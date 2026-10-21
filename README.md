@@ -54,13 +54,18 @@ Reference art for ships and era lives in [`references/`](references/) (schooner,
 
 ## Tech (planned)
 
-Browser-based **desktop** game: **TypeScript**, **Vite**, **three.js** (WebGPU or WebGL per hardware spike), DOM UI (**Preact**), local saves (**IndexedDB**), no backend. Open source (**MIT** code; **CC BY 4.0** for original assets)—built for modest hardware, solo dev, and static hosting.
+Browser-based **desktop** game: **TypeScript**, **Vite**, **three.js** (WebGPU or WebGL per hardware spike), DOM UI (**Preact**), local saves (**IndexedDB**), no backend. Open source, not sold—built for modest hardware, solo dev, and static hosting.
 
 ---
 
 ## License
 
-Code: MIT (see repository license file when added). Original game assets: CC BY 4.0. Third-party and AI-generated assets will be documented for redistribution in the public repo.
+| What | License |
+|------|---------|
+| Source code, plans, and other software text in this repo | [MIT](LICENSE) |
+| Original game assets (art, audio, media made for the project) | [CC BY 4.0](LICENSE-ASSETS) |
+
+Reference material under [`references/`](references/) and any third-party or AI-generated assets may use other terms; those will be recorded in `ATTRIBUTION.md` as the asset pipeline grows.
 
 ---
 
