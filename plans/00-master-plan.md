@@ -289,9 +289,9 @@ For reference, Lake Superior is ~350 mi long and ~160 mi wide, and the Apostle I
 |---|---|---|
 | 00 | Master plan (this doc) | Draft v0.2 |
 | 01 | [Tech stack, architecture & project setup](01-tech-architecture.md) | Draft v0.1 |
-| 02 | Arcade sailing & ship physics | Not started |
+| 02 | [Arcade sailing & ship handling](02-arcade-sailing.md) | Draft v0.2 |
 | 03 | [World, hybrid scale, chart travel & streaming](03-world-scale-chart-travel.md) | Draft v0.2 |
-| 04 | Water, weather, seasons, day/night | Not started |
+| 04 | [Water, weather, seasons, day/night](04-water-weather-seasons.md) | Draft v0.1 |
 | 05 | Ports, economy & trading | Not started |
 | 06 | Fame, Wanted, law enforcement & lighthouses | Not started |
 | 07 | Combat, boarding & targets | Not started |
@@ -399,6 +399,7 @@ The big design questions are answered. What remains is detail for the system pla
 | 2026-10-21 | Limited dev hardware is the performance baseline; physics kept minimal; quality presets from Phase 1. |
 | 2026-10-21 | MIT license for code (CC BY 4.0 for original assets). Baseline machine: Ryzen 7 7730U, integrated Radeon, 28 GB RAM, Linux. |
 | 2026-10-21 | World scale: geography compressed 8×, ~60-minute real day while sailing, slower clock on foot, freighters shrunk slightly, no chart escape while detected, lookout setting for encounters (see 03). |
+| 2026-10-21 | Sailing: abandon ship by rowboat (survival check, or death); play continues shipless; auto-trim with optional manual trim; sweeps in calm; islands block wind (lee shelter is a core feature). See 02. |
 | 2026-10-21 | Law patrols stay historically sparse: one roaming revenue cutter (*Morrill*), with only a small escalation at top Wanted. Most danger comes from watchers and local law. |
 
 ---

@@ -233,7 +233,7 @@ Spotted something (or something spotted you)
 5. **Resample resolution:**
    - **Sailing tiles:** ~4 m/sample of game space (Apostles ≈ 1,750² samples, ~6 MB at 16-bit).
    - **On-foot island tiles:** ~1 m/sample, generated only for island footprints plus a beach margin.
-6. **Derive:** land/water mask, **shoreline signed distance field**, depth bands, slope (for vegetation and walkability), and a vegetation density map (from slope plus elevation; hand-paintable override).
+6. **Derive:** land/water mask, **shoreline signed distance field**, depth bands, slope (for vegetation and walkability), a vegetation density map (from slope plus elevation; hand-paintable override), and **wind shelter maps** for 16 wind directions (see [02 §11](02-arcade-sailing.md#11-wind-interface-contract-with-plan-04)).
 7. **Hand-edit layer:** set-piece footprints (flatten or warp), 1900-era harbor corrections, sea-cave insertion points. Edits are stored as vector or mask data, so re-running the pipeline is repeatable.
 8. **Tile and encode:** e.g., 256×256-sample tiles as 16-bit PNG or raw plus fflate compression, with a tile manifest. Output to `public/world/<zone>/` (Git LFS).
 9. **Chart data:** a simplified coastline polygon set and depth shading for the whole lake (low resolution) for chart mode and arena silhouettes.
