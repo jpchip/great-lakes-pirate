@@ -224,11 +224,7 @@ Each of these gets its own plan doc. Summaries capture decisions plus remaining 
   - Cleanup: decimation, consistent scale/pivots, texture size budgets, and glTF/GLB export (Blender for touch-up as needed).
   - Style consistency: pick a target style (stylized vs. semi-real) and write prompt templates to match.
   - Modular kits for docks districts and hideout grid pieces. Grid pieces need precise dimensions, so these may be easier modeled simply or procedurally than AI-generated.
-- **TBD:** the exact stylized look. **Plan:** a Phase 0 **style test**. Render the same scene (the schooner, an Apostle island, a lighthouse, water at dusk) in 2–3 candidate looks and pick one:
-  1. **Low-poly flat-shaded:** cheapest, very consistent, and matches CC0 packs.
-  2. **Toon/cel-shaded:** outlines plus banded lighting. Forgiving of messy AI meshes.
-  3. **Painterly/soft-stylized:** most atmospheric (fog, light), with the highest shader/texture effort.
-  - Current recommendation: lean toward **1 or 2** for a solo dev with AI-generated meshes, since a unifying shader hides inconsistencies between assets from different sources.
+- **The exact stylized look** is picked by a Phase 0 **style test** between **low-poly flat-shaded** and **toon/cel-shaded with outlines** (painterly was dropped). Details, the photochrom palette reference, and the **fully scripted asset pipeline** are in [14](14-art-direction-asset-pipeline.md).
 
 ---
 
@@ -299,11 +295,11 @@ For reference, Lake Superior is ~350 mi long and ~160 mi wide, and the Apostle I
 | 09 | [Hideouts, grid building & crafting](09-hideouts-building-crafting.md) | Draft v0.2 |
 | 10 | [Ship upgrades & customization](10-ship-upgrades-customization.md) | Draft v0.2 |
 | 11 | [Exploration, islands & secrets](11-exploration-islands-secrets.md) | Draft v0.2 |
-| 12 | [Sandbox goals, events, character creation & failure](12-sandbox-events-character-failure.md) | Draft v0.1 |
-| 13 | UI/UX | Not started |
-| 14 | Art direction & AI asset pipeline | Not started |
-| 15 | Audio | Not started |
-| 16 | Save/persistence | Not started |
+| 12 | [Sandbox goals, events, character creation & failure](12-sandbox-events-character-failure.md) | Draft v0.2 |
+| 13 | [UI/UX](13-ui-ux.md) | Draft v0.2 |
+| 14 | [Art direction & AI asset pipeline](14-art-direction-asset-pipeline.md) | Draft v0.2 |
+| 15 | [Audio](15-audio.md) | Draft v0.2 |
+| 16 | [Save/persistence](16-save-persistence.md) | Draft v0.2 |
 | 17 | Testing, performance & release | Not started |
 | R1 | [Research: western Lake Superior circa 1900](R1-western-superior-1900-research.md) (ports, lights, industries, ships, Ojibwe communities) | Draft v0.3 |
 | R1a | [Western Superior gazetteer](R1a-western-superior-gazetteer.md) (port profiles, Wanted regions, distances, spring-1900 snapshot) | Draft v0.1 |
@@ -408,6 +404,11 @@ The big design questions are answered. What remains is detail for the system pla
 | 2026-10-21 | Hideouts: completely safe (no raids); materials buy/steal/salvage only; passive production; shipbuilding at a slipway only when shipless; seven fixed sites; construction takes game time (see 09). |
 | 2026-10-21 | Ships: hull variant per tier (MVP+); trade-in 50% hull + 25% upgrades; slipway builds T1 only; dark-tanned sails as a stealth upgrade; prices T1 ~$500 / T2 ~$1,600 / T3 ~$4,200 (see 10). |
 | 2026-10-21 | Exploration: deer poaching and trapping; bear and wolf hazards on islands; purchasable diving suit unlocks deep-wreck salvage; cold exposure can kill; 6 legends plus seeded caches (see 11). |
+| 2026-10-21 | Sandbox: newspaper nicknames; Retire and Turn Lawman endings; poker night; each background has its own starting hideout and port; Hall of Captains (records only) (see 12). |
+| 2026-10-21 | UI: period typography; minimal HUD default; no minimap; auto-written period-voice logbook; damage numbers off by default (optional) (see 13). |
+| 2026-10-21 | Art: photochrom palette reference; AI image gen (nano-banana) approved; public-domain engravings for UI; fully scripted asset pipeline; style test narrowed to low-poly flat vs. toon with outlines (see 14). |
+| 2026-10-22 | Audio: period folk score with traditional Great Lakes song motifs; no spoken dialogue (shouts and whistles only); instrumental saloon music; CC0 libraries first, AI for gaps (see 15). |
+| 2026-10-22 | Saves: danger snapshot (no reload escapes); player export/import labeled "Transferred"; Abandon run recorded in the Hall; autosave ~2 min while safe (see 16). |
 | 2026-10-21 | Law patrols stay historically sparse: one roaming revenue cutter (*Morrill*), with only a small escalation at top Wanted. Most danger comes from watchers and local law. |
 
 ---

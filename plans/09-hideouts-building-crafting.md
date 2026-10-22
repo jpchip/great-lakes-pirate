@@ -54,7 +54,7 @@ Hideouts are built at **predefined sites**, each a hand-placed area with build b
 ### 2.2 Claiming
 - **Abandoned sites** (most): discover them, then **claim** (free). The first structure placed establishes the claim.
 - **Owned sites** (some, e.g., the Minnesota Point light): **buy** the lease or deed from the owner, or squat (illegal: a small heat chance if noticed, and some sites need a bribe to be ignored).
-- **Starting hideout:** one simple site near Bayfield is available at game start (a background perk may choose which).
+- **Starting hideout:** each background starts with a claim on a specific site (Deckhand: Stockton; Fisherman: Outer Island; Lumberjack: Siskiwit Bay; Saloon Keeper: Minnesota Point; Ex-Navy: North Shore cove; Poacher: Devils Island). Hermit Island is never a starting site. See [12 §2.2](12-sandbox-events-character-failure.md).
 
 ---
 

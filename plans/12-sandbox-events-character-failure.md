@@ -1,6 +1,6 @@
 # 12 — Sandbox Goals, Events, Character Creation & Failure
 
-Status: DRAFT v0.1
+Status: DRAFT v0.2 (decisions made)
 Parent: [00-master-plan.md](00-master-plan.md)
 Inputs:
 - Master plan: custom pirate inspired by Seavey; name, appearance and background with perks; open sandbox; the legit path supported; permadeath always on; nothing carries over; jail, bail and jailbreak; execution only at the top tier
@@ -47,14 +47,16 @@ Define the **run** from start to finish:
 6. A **permadeath notice** (always on; nothing carries over), confirmed once.
 
 ### 2.2 Backgrounds (6)
-| Background | Start money & cargo | Perk 1 | Perk 2 |
-|---|---|---|---|
-| **Deckhand** | $150; rope and canvas | Faster sail changes (−25% time; big when solo) | Wider manual-trim sweet spot; +5% speed when trimmed |
-| **Fisherman** | $100; salted fish | Knows fish prices in every port; Apostles reefs pre-charted | Better weather forecast (barometer and sky reading) |
-| **Lumberjack / Teamster** | $120; lumber | Carry crates faster on foot; carry 1 extra CU in the rowboat | −15% building material costs; faster construction |
-| **Saloon Keeper** | $180; whiskey | Bribes cost −25%; better rumors | Whiskey trick works faster and on bigger crews |
-| **Ex-Navy** | $130; powder and shot | +Cannon and swivel accuracy, faster swivel reload | +Intimidation in the boarding check |
-| **Poacher / Trapper** | $100; furs | Tracking, trap yields, faster carcass carrying; slower warmth loss | A lockpick hidden in your boot (jailbreak start), quieter on foot |
+| Background | Start money & cargo | Perk 1 | Perk 2 | **Starting hideout → starting port** |
+|---|---|---|---|---|
+| **Deckhand** | $150; rope and canvas | Faster sail changes (−25% time; big when solo) | Wider manual-trim sweet spot; +5% speed when trimmed | Stockton Island bay → **Bayfield** |
+| **Fisherman** | $100; salted fish | Knows fish prices in every port; Apostles reefs pre-charted | Better weather forecast (barometer and sky reading) | Outer Island fish camp → **Bayfield** |
+| **Lumberjack / Teamster** | $120; lumber | Carry crates faster on foot; carry 1 extra CU in the rowboat | −15% building material costs; faster construction | Siskiwit Bay logging camp → **Washburn** |
+| **Saloon Keeper** | $180; whiskey | Bribes cost −25%; better rumors | Whiskey trick works faster and on bigger crews | Minnesota Point lighthouse → **Duluth** |
+| **Ex-Navy** | $130; powder and shot | +Cannon and swivel accuracy, faster swivel reload | +Intimidation in the boarding check | North Shore cove → **Two Harbors** |
+| **Poacher / Trapper** | $100; furs | Tracking, trap yields, faster carcass carrying; slower warmth loss | A lockpick hidden in your boot (jailbreak start), quieter on foot | Devils Island sea caves → **Bayfield** |
+
+**Decided:** each background starts with its **own hideout** (and the nearest suitable port). That gives different openings, regions and early strategies per background. The remaining site (Hermit Island quarry) is never a starting hideout; it's a discoverable early claim (and tied to the Quarryman's Payroll legend).
 
 Perks are modest. They shape the early game and playstyle but never decide a run.
 
@@ -62,14 +64,15 @@ Perks are modest. They shape the early game and playstyle but never decide a run
 
 ## 3. Starting Scenario & Onboarding
 
-- **When and where:** the week of **May 7, 1900** ([04 §3.3](04-water-weather-seasons.md)), **Bayfield**, at dawn. You own a T1 schooner (named by you), your background's cash and cargo, and a claim on the **starting hideout: Hermit Island quarry** (close to Bayfield; [09 §2](09-hideouts-building-crafting.md)).
-- **"Captain's First Week" checklist** (optional, skippable, in the journal). It teaches by doing:
-  1. Sell your cargo at Bayfield (trade screen).
-  2. Take a freight contract to Washburn or Ashland (sailing, docking).
-  3. Stash goods at Hermit Island (hideout storage).
+- **When and where:** the week of **May 7, 1900** ([04 §3.3](04-water-weather-seasons.md)), at dawn in your background's **starting port** (§2.2: Bayfield, Washburn, Duluth or Two Harbors). You own a T1 schooner (named by you), your background's cash and cargo, and a claim on your background's **starting hideout** ([09 §2](09-hideouts-building-crafting.md)).
+- **"Captain's First Week" checklist** (optional, skippable, in the journal). It adapts to the starting port and hideout and teaches by doing:
+  1. Sell your cargo in your starting port (trade screen).
+  2. Take a freight contract to a nearby port (sailing, docking).
+  3. Stash goods at your hideout (hideout storage).
   4. Visit the saloon and hear a rumor.
   5. Plot a chart voyage (chart mode).
-  6. *Optional, flagged as crime:* "A warehouse in Bayfield looks poorly watched..." (introduces night stealth and heat).
+  6. *Optional, flagged as crime:* "A warehouse here looks poorly watched..." (introduces night stealth and heat).
+- **Onboarding note:** Duluth (Saloon Keeper) and Two Harbors (Ex-Navy) are busier, more policed starts, so the background picker labels them as "harder starts."
 - **Contextual tips** on first encounters (first fog, first gale, first wanted tier, first ice), plus a guide section in the journal. They can be turned off.
 - No forced tutorial island. You learn in the real world.
 
@@ -90,7 +93,7 @@ Perks are modest. They shape the early game and playstyle but never decide a run
 | **Explorer** | Complete all legends; set foot on all 22 islands; salvage a deep wreck |
 | **Seavey homages** | *Moon-Cusser:* wreck a ship with a false light · *The Nellie Johnson:* loot a crew drunk on your whiskey · *Venison King:* sell 50 CU of venison · *Won It at Poker:* win a cargo in a card game (§5.3) |
 
-### 4.2 Voluntary endings (proposal)
+### 4.2 Voluntary endings (decided)
 There's no win condition, but a run can end on your terms:
 - **Retire:** available when you hold enough wealth and no region is at tier 3+. You choose a retirement (a farm in Peshtigo, a saloon in Duluth, a quiet island cabin). Epilogue newspaper plus run summary.
 - **Turn Lawman** (Seavey homage; he later became a US Marshal): offered when **Fame is high, every region is at Wanted tier ≤ 1, and Standing is good**. You accept a deputy marshal's badge. The epilogue headline is ironic. The run ends.
@@ -132,7 +135,7 @@ There's no win condition, but a run can end on your terms:
 - A short, abstract card game in saloons (e.g., simplified five-card draw against 2–3 NPCs) with stakes: money, cargo, a **freight contract**, a cache map, or an IOU.
 - You can't win a ship (decided: always your own ship), but you can win **a ship's cargo**.
 - Cheating option (a sleight check): if caught, there's a brawl or assault heat.
-- Cut list candidate (it could become a simple dice-wager vignette instead).
+- **Decided: included.** Poker night is in.
 
 ---
 
@@ -156,7 +159,7 @@ Fictional names avoid misrepresenting real period papers (many real ones existed
 - **Local color and period ads** (flavor), plus rival copycat stories and legend sightings (hooks).
 
 ### 6.3 Your nickname
-- Once your Fame reaches tier 1, the papers **coin a nickname** from your record. The most frequent or most notorious deeds and your haunts pick from template pools: *"Roaring"*, *"Black-Sail"*, *"Gentleman"* (non-lethal), *"Bloody"* (killings), *"the Moon-Cusser"* (wrecking), *"the Whiskey Pirate"*, *"of Devils Island"* (a hideout or haunt).
+- **Decided:** once your Fame reaches tier 1, the papers **coin a nickname** from your record. The most frequent or most notorious deeds and your haunts pick from template pools: *"Roaring"*, *"Black-Sail"*, *"Gentleman"* (non-lethal), *"Bloody"* (killings), *"the Moon-Cusser"* (wrecking), *"the Whiskey Pirate"*, *"of Devils Island"* (a hideout or haunt).
 - The nickname appears in headlines, posters and the epilogue. It may **change** as your record changes. The player can't pick it, but can **reroll once** via a "letter to the editor."
 
 ---
@@ -213,7 +216,7 @@ Sinking with a failed survival check · drowning · combat (boarding at bad odds
 2. **End screen:** a **front-page story** from the most relevant paper, using your nickname, e.g., *"ROARING JACK HANGED AT DULUTH"*, *"THE MOON-CUSSER LOST WITH HIS SCHOONER OFF OUTER ISLAND"*, or for voluntary endings, *"NOTORIOUS PIRATE PINS ON A MARSHAL'S STAR"*.
 3. **Run summary:** days and seasons survived, money earned, peak Fame and nickname, ships robbed or sunk, lives taken (or "never killed a soul"), legends completed, hideouts built, Ambitions achieved, and how it ended.
 4. **Logbook export:** download the journal as a text or markdown file (your story).
-5. **Hall of Captains (proposal):** a local list of past runs (name, nickname, summary, epitaph). **Records only, with no gameplay carry-over** (it respects "nothing carries over").
+5. **Hall of Captains (decided):** a local list of past runs (name, nickname, summary, epitaph). **Records only, with no gameplay carry-over** (it respects "nothing carries over").
 
 ---
 
@@ -247,25 +250,30 @@ Sinking with a failed survival check · drowning · combat (boarding at bad odds
 ---
 
 ## 12. Cut List
-1. Poker (replace with a dice-wager vignette).
-2. Rival parley.
-3. Nickname reroll.
-4. Letters / mail system (rumors and papers only).
-5. Hall of Captains.
-6. Turn Lawman ending (keep Retire).
+1. Rival parley.
+2. Nickname reroll.
+3. Letters / mail system (rumors and papers only).
+4. Poker cheating (keep honest poker).
 
-*Not cuttable:* character creation with backgrounds, Ambitions, the event system, newspapers with nicknames, copycat rivals, jail/bail/jailbreak, the end-of-run front page and summary.
+*Not cuttable:* character creation with backgrounds and **per-background starting hideouts**, Ambitions, the event system, newspapers with nicknames, copycat rivals, jail/bail/jailbreak, **poker night**, **both voluntary endings (Retire and Turn Lawman)**, the end-of-run front page and summary, the **Hall of Captains**.
 
 ---
 
-## 13. Open Questions (for the user)
-1. **Nickname from the papers** (earned from your deeds, with one reroll): OK?
-2. **Voluntary endings:** *Retire* and *Turn Lawman* (the Seavey homage) as optional ways to end a run on your terms?
-3. **Poker night** (win cargo or contracts, cheating possible): include?
-4. **Starting hideout:** Hermit Island quarry near Bayfield for everyone, or let the background choose?
-5. **Hall of Captains** (records of past runs, no gameplay carry-over): OK?
+## 13. Open Questions
+
+All resolved.
+
+### Decisions
+| Date | Decision |
+|---|---|
+| 2026-10-21 | Newspapers **coin your nickname** from your deeds (one reroll). |
+| 2026-10-21 | Optional endings: **Retire** and **Turn Lawman**. |
+| 2026-10-21 | **Poker night** included. |
+| 2026-10-21 | **Each background has its own starting hideout** (and starting port); Hermit Island is a discoverable claim. |
+| 2026-10-21 | **Hall of Captains:** records of past runs, no gameplay carry-over. |
 
 ---
 
 ## Changelog
+- v0.2: Decisions: newspaper nicknames, Retire and Lawman endings, poker, per-background starting hideouts and ports (with an adaptive First Week), Hall of Captains.
 - v0.1: Initial sandbox plan: character creation and 6 backgrounds with perks, the starting scenario and First Week onboarding, Ambitions, voluntary endings, the data-driven event system and catalog (Seavey-inspired opportunities, Hollister feud, poker), newspapers and nickname generation, copycat rival templates and lifecycle, jail sentences and bail, release summary, death causes, end-of-run front page and summary, data/state, phasing.
