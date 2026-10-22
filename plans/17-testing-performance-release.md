@@ -1,6 +1,6 @@
 # 17 — Testing, Performance & Release
 
-Status: DRAFT v0.2 (decisions made)
+Status: DRAFT v0.3 (decisions made)
 Parent: [00-master-plan.md](00-master-plan.md)
 Inputs:
 - [01](01-tech-architecture.md): testing strategy, budgets, CI, droplet and itch.io hosting, Git LFS, MIT + CC BY, the baseline machine
@@ -132,7 +132,7 @@ Each phase ends with a playtest against **that phase's acceptance criteria** (fr
 
 ### 6.3 Telemetry
 - **No network telemetry** (privacy-first; no backend). Nothing is ever sent anywhere.
-- **Opt-in local stats summary (decided):** the game keeps an anonymous play summary locally (session lengths, deaths and causes, where time is spent, bench-like frame-time stats, settings preset). The tester can **choose to include it** in a bug bundle, and it's shown before download.
+- **Opt-in local stats summary (confirmed by Jared, 2026-10-22):** the game keeps an anonymous play summary locally (session lengths, deaths and causes, where time is spent, bench-like frame-time stats, settings preset). The tester can **choose to include it** in a bug bundle, and it's shown before download.
 
 ---
 
@@ -248,7 +248,7 @@ All resolved.
 | Date | Decision |
 |---|---|
 | 2026-10-22 | **External testers from the MVP**; feedback via GitHub Issues plus the in-game bug bundle. |
-| 2026-10-22 | **No network telemetry**; an **opt-in local stats summary** can be attached to bug bundles. |
+| 2026-10-22 | **No network telemetry**; an **opt-in local stats summary** can be attached to bug bundles. Explicitly confirmed by Jared over removing telemetry entirely. |
 | 2026-10-22 | **Private until Beta** (unlisted droplet build for invited testers); public on itch.io and the droplet at Beta. |
 | 2026-10-22 | **Ojibwe cultural review budgeted** before Beta. |
 | 2026-10-22 | **Save migrations only**; no version-pinned old builds. |
@@ -256,5 +256,6 @@ All resolved.
 ---
 
 ## Changelog
+- v0.3: Telemetry decision explicitly confirmed: keep the opt-in local stats summary (not removed).
 - v0.2: Decisions: MVP external testers, no network telemetry plus an opt-in local stats summary, private until Beta, cultural review budgeted, migrations only (old-build paths removed).
 - v0.1: Initial testing and release plan: test layers, CI gates, simulation and balance harness, performance methodology and benches, the bench gate, browser matrix, playtesting and bug bundles, telemetry stance, versioning and milestones, CI/CD to the droplet and itch.io, the pre-release checklist (quality, licensing, cultural review, ops), post-release support, phase definition of done.
