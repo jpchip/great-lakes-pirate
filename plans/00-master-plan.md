@@ -1,6 +1,6 @@
 # Great Lakes Pirate — Master Plan
 
-Status: DRAFT v0.4 (third round of decisions made, no code yet)
+Status: DRAFT v0.5 (all plans 01–17 + R1/R1a drafted with decisions; ready for Phase 0; no code yet)
 Working title: *Great Lakes Pirate* (placeholder)
 
 This is the top-level plan. It captures the vision, pillars, systems, decisions, and a phased roadmap. Each system listed here gets its own detailed plan in `plans/` later (see [Plan Index](#9-plan-index)). Anything marked **TBD** or listed under [Open Questions](#10-open-questions) is a gap for later planning sessions to fill. Settled choices are recorded in [Decisions Log](#decisions-log).
@@ -300,7 +300,7 @@ For reference, Lake Superior is ~350 mi long and ~160 mi wide, and the Apostle I
 | 14 | [Art direction & AI asset pipeline](14-art-direction-asset-pipeline.md) | Draft v0.2 |
 | 15 | [Audio](15-audio.md) | Draft v0.2 |
 | 16 | [Save/persistence](16-save-persistence.md) | Draft v0.2 |
-| 17 | Testing, performance & release | Not started |
+| 17 | [Testing, performance & release](17-testing-performance-release.md) | Draft v0.2 |
 | R1 | [Research: western Lake Superior circa 1900](R1-western-superior-1900-research.md) (ports, lights, industries, ships, Ojibwe communities) | Draft v0.3 |
 | R1a | [Western Superior gazetteer](R1a-western-superior-gazetteer.md) (port profiles, Wanted regions, distances, spring-1900 snapshot) | Draft v0.1 |
 
@@ -335,9 +335,16 @@ The big design questions are answered. What remains is detail for the system pla
 
 ## 11. Next Steps
 
-1. Write **R1** (western Superior circa 1900 research, including Ojibwe communities) and **01** (tech/architecture).
-3. Write **03** (hybrid world) and **02** (arcade sailing), then **04** (water/weather/seasons).
-4. Phase 0: scaffold the repo and run a one-ship AI asset pipeline test.
+All planned documents are drafted and their open questions answered. Next:
+
+1. **Phase 0: Foundations** ([01 §11](01-tech-architecture.md)):
+   - `git init`, LFS, licenses, scaffold (Vite + TS + three.js), folder structure, CI.
+   - The core skeleton: loop, modes, events, RNG, coords, input, assets, save v1 plus a worker.
+   - Spikes: **S1** renderer, **S2** water and buoyancy, **S3** geo pipeline, **S4** AI asset plus A/B style test, **S5** on-foot controller, **S6** save size.
+   - Prototypes: **S7** scale-feel greybox, **S8** chart prototype, **S9** weather sim.
+2. Append spike results to their plans; update decisions (renderer, art style A/B, tuning values).
+3. **Phase 1: Sailing prototype** ([02 §14](02-arcade-sailing.md)).
+4. Ongoing: R1 research backlog (lens orders, distances on a NOAA chart, Ojibwe tribal sources, wreck database pass, island histories).
 
 ---
 
@@ -409,11 +416,13 @@ The big design questions are answered. What remains is detail for the system pla
 | 2026-10-21 | Art: photochrom palette reference; AI image gen (nano-banana) approved; public-domain engravings for UI; fully scripted asset pipeline; style test narrowed to low-poly flat vs. toon with outlines (see 14). |
 | 2026-10-22 | Audio: period folk score with traditional Great Lakes song motifs; no spoken dialogue (shouts and whistles only); instrumental saloon music; CC0 libraries first, AI for gaps (see 15). |
 | 2026-10-22 | Saves: danger snapshot (no reload escapes); player export/import labeled "Transferred"; Abandon run recorded in the Hall; autosave ~2 min while safe (see 16). |
+| 2026-10-22 | Release: external testers from MVP; no network telemetry (opt-in local stats for bug bundles); private until Beta; Ojibwe cultural review budgeted; save migrations only (see 17). |
 | 2026-10-21 | Law patrols stay historically sparse: one roaming revenue cutter (*Morrill*), with only a small escalation at top Wanted. Most danger comes from watchers and local law. |
 
 ---
 
 ## Changelog
+- v0.5: All plans 01–17 drafted with decisions recorded (see the Decisions Log); next steps updated to Phase 0.
 - v0.4: Third round of decisions: walkable islands, check-based boarding tied to crew, weapons, jail/bail/jailbreak, Fame decay, character creation with backgrounds, Ojibwe communities, start year 1900, mouse and keyboard only, AI audio, style test plan.
 - v0.3: Second round of decisions: crew model, chart travel, winter, stylized art, failure rules, per-hideout storage, regional Wanted, own-ship-only, 1890 start, no Seavey cameo, asset-sourcing approach.
 - v0.2: Incorporated the first round of decisions: Lake Superior start, hybrid scale, arcade sailing, Fame/Wanted split, hideouts, failure rules, tech stack, solo dev. Reworked the roadmap and MVP.

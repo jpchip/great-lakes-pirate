@@ -175,7 +175,7 @@ Render objects, physics and collision caches, navmeshes, audio state, UI state. 
 - Migrations are an ordered list: `migrate[n](state) → state(n+1)`, run in sequence on load.
 - **Every version keeps a fixture save** in `tests/fixtures/saves/vN.json`. CI loads every fixture through all migrations to the current version and validates it ([01 §9](01-tech-architecture.md)).
 - Content data changes (new goods, new pieces) use **stable string IDs** ([01 §8](01-tech-architecture.md)). Removed IDs are mapped or refunded by a migration.
-- **Breaking-change policy:** if a migration is truly impossible, keep the old run playable on that version (static hosting can keep a versioned build path), or as a last resort end the run gracefully with a Hall record ("Lost to the Great Update"). Avoid this.
+- **Breaking-change policy (decided: migrations only):** every release must migrate every older save. No old builds are kept online. If a migration is ever truly impossible, the last resort is to end the run gracefully with a Hall record ("Lost to the Great Update"), announced in the changelog. Design changes to avoid this.
 
 ---
 
