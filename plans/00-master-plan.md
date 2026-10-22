@@ -146,7 +146,7 @@ Each of these gets its own plan doc. Summaries capture decisions plus remaining 
   - Bigger ships bring more crew, which allows forced boarding of tougher targets.
 - **Weapons (decided):** broadside cannons, a bow swivel gun, and rifles/pistols. Availability varies by **ship type/tier**, and each can be **upgraded** (range, damage, reload, accuracy). The player aims and fires in real time; small arms matter for intimidation and on-foot defense.
 - **Lighthouses:** raid supplies, or extinguish or relocate lights for wrecking (§4.7).
-- **Other pirates:** rare, tough encounters, and possible named rivals.
+- **Other pirates:** none at the start; **copycat rivals** appear as your Fame grows (max 2–3 active). See 07.
 - **Revenue cutters:** flee, outwit or fight (very high heat).
 - **Violence is optional:** non-lethal options (intimidation, surrender, the whiskey trick, stealth theft) vs. lethal ones (killing crews, sinking ships). Lethal options are more efficient but spike Wanted.
 - **TBD:** surrender logic (what makes AI ships give up), exact check formula, weapon stats and upgrade trees.
@@ -160,15 +160,15 @@ Each of these gets its own plan doc. Summaries capture decisions plus remaining 
 - The player can claim **multiple hideouts** around the world (islands, coves, sea caves, abandoned quarries or fishing camps).
 - Primary purpose: **storage** of goods/loot, plus crafting, ship services and personalization.
 - **Grid-based building:** snap-to-grid placement of foundations, walls, roofs, docks, storage, workshops and decorations. Rich customization with lots of piece types, materials, paint and props.
-- **Crafting from supplies:** lumber, iron, rope, canvas, powder, brownstone, tar, rum, etc. Craft ship upgrades, ammo, tools (lockpicks, false lights), base pieces and disguises (sail colors, nameboards, flags).
-- Possible structures: dock, warehouse, workshop, smithy, sawmill, distillery, smokehouse (venison!), drydock/slipway, lookout tower, signal lantern, living quarters, trophy room.
-- **Law can't raid,** so defenses are cosmetic or flavor (or useful vs. rival pirates, TBD).
+- **Crafting from supplies:** lumber, iron, rope, canvas, powder, brownstone, tar, rum, etc. Craft ship upgrades, ammo, tools (lockpicks, false lights), base pieces and cosmetic ship customization (sail colors, nameboards, flags; cosmetic only, it doesn't shed heat).
+- Possible structures: dock, warehouse, workshop, smithy, distillery, smokehouse (venison!), drydock/slipway, lookout tower, signal lantern, living quarters, trophy room.
+- **Hideouts are completely safe** (no raids by the law or rivals), so defenses are cosmetic or flavor. Materials are bought, stolen or salvaged only, with no gathering. See 09.
 - **Storage is local to each hideout (decided).** Goods must be physically hauled between hideouts and ports, which makes logistics part of the game. Hideout placement matters (near markets, near prey, in different Wanted regions).
 - **TBD:** claim rules, hideout limits, and production (passive generation?).
 
 ### 4.9 Ship Upgrades & Customization
 - Upgrades: hull, sails/rigging (speed), cannons, cargo hold, hidden compartments (smuggling), lanterns/dark-running gear, ice-strengthened bow (winter?).
-- Visual customization: paint, figurehead, flags, nameboard, sail color. A changed appearance reduces recognition, and ties into Wanted.
+- Visual customization: paint, figurehead, flags, nameboard, sail color. **Cosmetic only (decided):** repainting or renaming doesn't shed heat. Only replacing the ship breaks its record (see 06).
 - **One ship, always yours (decided).** You can't steal other ships. Progression comes from upgrading or buying a bigger schooner (see §4.1 tiers). TBD: when you buy a new hull, is the old one sold or traded in?
 
 ### 4.10 Exploration & Secrets
@@ -291,15 +291,15 @@ For reference, Lake Superior is ~350 mi long and ~160 mi wide, and the Apostle I
 | 01 | [Tech stack, architecture & project setup](01-tech-architecture.md) | Draft v0.1 |
 | 02 | [Arcade sailing & ship handling](02-arcade-sailing.md) | Draft v0.2 |
 | 03 | [World, hybrid scale, chart travel & streaming](03-world-scale-chart-travel.md) | Draft v0.2 |
-| 04 | [Water, weather, seasons, day/night](04-water-weather-seasons.md) | Draft v0.1 |
-| 05 | Ports, economy & trading | Not started |
-| 06 | Fame, Wanted, law enforcement & lighthouses | Not started |
-| 07 | Combat, boarding & targets | Not started |
-| 08 | Docks district stealth | Not started |
-| 09 | Hideouts, grid building & crafting | Not started |
-| 10 | Ship upgrades & customization | Not started |
-| 11 | Exploration, islands & secrets | Not started |
-| 12 | Sandbox goals, events & failure (jail/permadeath) | Not started |
+| 04 | [Water, weather, seasons, day/night](04-water-weather-seasons.md) | Draft v0.2 |
+| 05 | [Ports, economy & trading](05-ports-economy-trading.md) | Draft v0.2 |
+| 06 | [Fame, Wanted, law enforcement & lighthouses](06-fame-wanted-law-lighthouses.md) | Draft v0.2 |
+| 07 | [Combat, boarding & targets](07-combat-boarding-targets.md) | Draft v0.2 |
+| 08 | [Docks district stealth](08-docks-district-stealth.md) | Draft v0.2 |
+| 09 | [Hideouts, grid building & crafting](09-hideouts-building-crafting.md) | Draft v0.2 |
+| 10 | [Ship upgrades & customization](10-ship-upgrades-customization.md) | Draft v0.2 |
+| 11 | [Exploration, islands & secrets](11-exploration-islands-secrets.md) | Draft v0.2 |
+| 12 | [Sandbox goals, events, character creation & failure](12-sandbox-events-character-failure.md) | Draft v0.1 |
 | 13 | UI/UX | Not started |
 | 14 | Art direction & AI asset pipeline | Not started |
 | 15 | Audio | Not started |
@@ -400,6 +400,14 @@ The big design questions are answered. What remains is detail for the system pla
 | 2026-10-21 | MIT license for code (CC BY 4.0 for original assets). Baseline machine: Ryzen 7 7730U, integrated Radeon, 28 GB RAM, Linux. |
 | 2026-10-21 | World scale: geography compressed 8×, ~60-minute real day while sailing, slower clock on foot, freighters shrunk slightly, no chart escape while detected, lookout setting for encounters (see 03). |
 | 2026-10-21 | Sailing: abandon ship by rowboat (survival check, or death); play continues shipless; auto-trim with optional manual trim; sweeps in calm; islands block wind (lee shelter is a core feature). See 02. |
+| 2026-10-21 | Environment: 1 game day = 1 calendar week; start the week of May 7, 1900; walkable ice; port storm flags; Mataafa storm and aurora Easter eggs (see 04). |
+| 2026-10-21 | Economy: separate legit Standing; cash on hand at risk; contract cargo theft once per company; no bank; companies never arm up (see 05). |
+| 2026-10-21 | Law: six Wanted tiers; serious crimes spread heat; no inspections at tier 0; no ship disguise (only replacing the ship); one jailbreak before execution (see 06). |
+| 2026-10-21 | Combat: aim freezes steering on T1; small shown death chance in boarding fights; boiler explosions; passenger steamers targetable; copycat rivals emerge with Fame, max 2–3 (see 07). |
+| 2026-10-21 | Docks: districts walkable by day; third-person camera; knife and pistol on foot; swimming; hold-to-pick locks; no watchdogs (see 08). |
+| 2026-10-21 | Hideouts: completely safe (no raids); materials buy/steal/salvage only; passive production; shipbuilding at a slipway only when shipless; seven fixed sites; construction takes game time (see 09). |
+| 2026-10-21 | Ships: hull variant per tier (MVP+); trade-in 50% hull + 25% upgrades; slipway builds T1 only; dark-tanned sails as a stealth upgrade; prices T1 ~$500 / T2 ~$1,600 / T3 ~$4,200 (see 10). |
+| 2026-10-21 | Exploration: deer poaching and trapping; bear and wolf hazards on islands; purchasable diving suit unlocks deep-wreck salvage; cold exposure can kill; 6 legends plus seeded caches (see 11). |
 | 2026-10-21 | Law patrols stay historically sparse: one roaming revenue cutter (*Morrill*), with only a small escalation at top Wanted. Most danger comes from watchers and local law. |
 
 ---

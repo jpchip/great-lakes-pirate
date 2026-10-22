@@ -1,6 +1,6 @@
 # 04 — Water, Weather, Seasons & Day/Night
 
-Status: DRAFT v0.1
+Status: DRAFT v0.2 (decisions confirmed)
 Parent: [00-master-plan.md](00-master-plan.md)
 Inputs:
 - [01 tech/architecture](01-tech-architecture.md): layers, budgets, the shared wave function, the iGPU baseline
@@ -320,6 +320,8 @@ At each new year (and at game start), roll seeded variation: ice-out date, freez
 ---
 
 ## 18. Open Questions (for the user)
+
+> **All confirmed (2026-10-21):** 1 game day = 1 calendar week; start the week of May 7, 1900; walkable ice included; port storm flags included; the Mataafa event and aurora included (both remain on the cut list if needed). The questions below are kept for the record.
 
 1. **Season calendar:** decouple seasons from days, with **1 game day = 1 calendar week** (year ≈ 52 game days, roughly 35–50 real hours)? Alternatives: 1:3 (year ≈ 120 h) or 1:1 (seasons barely change). *Recommendation:* 1:7.
 2. **Start date:** the week of **May 7, 1900** (season just opened, fog season starting)?
