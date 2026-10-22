@@ -1,0 +1,29 @@
+[
+  {
+    "id": "good.whitefish",
+    "name": "Salted whitefish",
+    "category": "legit",
+    "basePriceCents": 600,
+    "weightKg": 45,
+    "volumeM3": 0.12,
+    "seasons": ["spring", "summer", "fall"]
+  },
+  {
+    "id": "good.lumber",
+    "name": "Pine lumber",
+    "category": "legit",
+    "basePriceCents": 1800,
+    "weightKg": 500,
+    "volumeM3": 1.0,
+    "seasons": ["spring", "summer", "fall"]
+  },
+  {
+    "id": "good.whiskey",
+    "name": "Untaxed whiskey",
+    "category": "contraband",
+    "basePriceCents": 2500,
+    "weightKg": 40,
+    "volumeM3": 0.05,
+    "seasons": ["spring", "summer", "fall", "winter"]
+  }
+]
