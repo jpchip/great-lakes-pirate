@@ -14,7 +14,8 @@
     "verbatimModuleSyntax": true,
     "resolveJsonModule": true,
     "skipLibCheck": true,
-    "noEmit": true
+    "noEmit": true,
+    "allowImportingTsExtensions": true
   },
   "include": ["src", "data", "tests", "e2e", "bench", "tools", "*.ts"]
 }
