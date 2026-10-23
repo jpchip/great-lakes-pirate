@@ -56,9 +56,26 @@ export class Heightfield {
     return out;
   }
 
-  /** Slope angle in radians (0 = flat). */
-  slopeAt(x: number, z: number): number {
-    const g = this.gradientAt(x, z, scratch);
+  /**
+   * Gradient by central differences `span` meters wide. Wider than a cell, it smooths
+   * the sawtooth that bilinear cells give a diagonal cliff edge.
+   */
+  smoothGradientAt(
+    x: number,
+    z: number,
+    span: number,
+    out: { x: number; z: number },
+  ): { x: number; z: number } {
+    const h = span / 2;
+    out.x = (this.heightAt(x + h, z) - this.heightAt(x - h, z)) / span;
+    out.z = (this.heightAt(x, z + h) - this.heightAt(x, z - h)) / span;
+    return out;
+  }
+
+  /** Slope angle in radians (0 = flat), optionally smoothed over `span` meters. */
+  slopeAt(x: number, z: number, span = 0): number {
+    const g =
+      span > 0 ? this.smoothGradientAt(x, z, span, scratch) : this.gradientAt(x, z, scratch);
     return Math.atan(Math.hypot(g.x, g.z));
   }
 

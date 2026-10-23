@@ -54,7 +54,7 @@ export function createSpikeScene(
     const z = pos.getZ(k);
     const h = g.heightAt(x, z);
     pos.setY(k, h);
-    if (g.slopeAt(x, z) > params.maxSlope) c.copy(steep);
+    if (g.slopeAt(x, z, params.slopeSpan) > params.maxSlope) c.copy(steep);
     else c.copy(sand).lerp(grass, THREE.MathUtils.smoothstep(h, 0.8, 2.2));
     c.toArray(colors, k * 3);
   }

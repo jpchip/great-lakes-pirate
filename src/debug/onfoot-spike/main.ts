@@ -10,6 +10,7 @@ import { DEFAULT_CONTROLLER } from '../../gameplay/onfoot/controller';
 import type { GameContext, GameEvents } from '../../modes/context';
 import { ModeMachine } from '../../modes/machine';
 import { createOnFootMode } from '../../modes/on-foot';
+import { createSea } from '../../sim/weather/waves';
 import { createWorldState } from '../../sim/world-state';
 import { createSpikeChunk } from './chunk';
 import { createSpikeScene } from './scene';
@@ -42,6 +43,8 @@ const ctx: GameContext = {
   rng: Rng.fromState(state.environment.rng),
   input,
   events: new EventBus<GameEvents>(),
+  // Flat water on foot for now; the pier and shore don't follow waves yet.
+  sea: createSea([]),
 };
 
 const camera = new FollowCamera();
@@ -94,7 +97,7 @@ const loop = createLoop(
       const info = scene.renderer.info.render;
       hud.textContent = [
         `S5 on-foot spike  ${look.locked ? '' : '(click to look)'}`,
-        `WASD move · Shift run · C crouch · Esc release mouse`,
+        `WASD move · Shift run · C crouch · Space hop · Esc release mouse`,
         ``,
         `frame ${frameMsAvg.toFixed(1)} ms (${(1000 / frameMsAvg).toFixed(0)} fps) · ${info.calls} calls · ${(info.triangles / 1000).toFixed(0)}k tris`,
         `controller ${avg.toFixed(3)} ms avg · ${max.toFixed(3)} ms max @ ${hz} Hz`,

@@ -19,6 +19,7 @@ export type Action =
   | 'MoveRight'
   | 'Crouch'
   | 'Sprint'
+  | 'Jump'
   | 'TrimSailsIn'
   | 'TrimSailsOut'
   | 'SteerPort'
@@ -53,6 +54,8 @@ export const DEFAULT_BINDINGS: Bindings = {
     MoveRight: ['KeyD'],
     // Not Ctrl: Ctrl+W (crouch while moving) closes the browser tab (spike S5).
     Crouch: ['KeyC'],
+    // A hop for now; vault and climb at marked spots share Space later (plan 08 §3.1).
+    Jump: ['Space'],
     Sprint: ['ShiftLeft'],
     Interact: ['KeyE'],
   },

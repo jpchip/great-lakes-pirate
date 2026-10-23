@@ -8,8 +8,9 @@ import type { Heightfield } from './heightfield';
  * engine: horizontal moves are sub-stepped so the capsule never skips through a prop,
  * pushed out of overlapping footprints, then snapped to the ground below.
  *
- * Controls follow plan 08 §3: walk, run, crouch-sneak, and swimming in deep water.
- * Vault and climb at marked spots are left for Phase 7.
+ * Controls follow plan 08 §3: walk, run, crouch-sneak, and swimming in deep water, plus
+ * a small hop (about 0.45 m) for getting over rough ground. Vault and climb at marked
+ * spots are left for Phase 7.
  */
 
 export interface ControllerParams {
@@ -20,6 +21,11 @@ export interface ControllerParams {
   stepHeight: number;
   /** Steeper terrain blocks uphill movement and slides you down (plan 11 §3.1). */
   maxSlope: number;
+  /**
+   * Width in meters the slope is measured over. Wider than a heightfield cell, it keeps
+   * the sawtooth of a diagonal cliff on 1 m tiles from snagging you as you walk along it.
+   */
+  slopeSpan: number;
   /** While grounded, follow the ground down this far instead of falling (slopes, stairs). */
   snapDistance: number;
   sneakSpeed: number;
@@ -29,6 +35,8 @@ export interface ControllerParams {
   groundAccel: number;
   airAccel: number;
   gravity: number;
+  /** Take-off speed of a hop, in m/s; the apex is jumpSpeed² / (2·gravity). */
+  jumpSpeed: number;
   /** Radians per second the body turns to face its movement. */
   turnRate: number;
   /** Water deeper than this floats you: you swim with your feet this far below the surface. */
@@ -41,6 +49,7 @@ export const DEFAULT_CONTROLLER: ControllerParams = {
   crouchHeight: 1.15,
   stepHeight: 0.4,
   maxSlope: (42 * Math.PI) / 180,
+  slopeSpan: 1,
   snapDistance: 0.45,
   sneakSpeed: 1.3,
   walkSpeed: 2.4,
@@ -49,6 +58,7 @@ export const DEFAULT_CONTROLLER: ControllerParams = {
   groundAccel: 30,
   airAccel: 4,
   gravity: 18,
+  jumpSpeed: 4,
   turnRate: 12,
   swimDepth: 1.3,
 };
@@ -76,6 +86,8 @@ export interface MoveInput {
   right: number;
   run: boolean;
   crouch: boolean;
+  /** Hop this tick (on the ground, standing). */
+  jump?: boolean;
 }
 
 export interface OnFootZone {
@@ -141,9 +153,18 @@ export function stepCharacter(
         : p.walkSpeed;
 
   const sliding = s.grounded && s.groundSlope > p.maxSlope;
-  const onFooting = (s.grounded && !sliding) || s.swimming;
-  const accel = onFooting ? p.groundAccel : p.airAccel;
-  // In the air or sliding you only steer a little.
+  if (sliding) {
+    // On a slope too steep to stand on you can walk off it, but not up it.
+    zone.ground.smoothGradientAt(s.position.x, s.position.z, p.slopeSpan, grad);
+    const g = Math.hypot(grad.x, grad.z);
+    const up = (wx * grad.x + wz * grad.z) / g;
+    if (up > 0) {
+      wx -= (up * grad.x) / g;
+      wz -= (up * grad.z) / g;
+    }
+  }
+  // In the air you only steer a little.
+  const accel = s.grounded || s.swimming ? p.groundAccel : p.airAccel;
   let dvx = wx * speed - s.velocity.x;
   let dvz = wz * speed - s.velocity.z;
   const dv = Math.hypot(dvx, dvz);
@@ -157,7 +178,7 @@ export function stepCharacter(
 
   if (sliding) {
     // Gravity along the slope, downhill.
-    zone.ground.gradientAt(s.position.x, s.position.z, grad);
+    zone.ground.smoothGradientAt(s.position.x, s.position.z, p.slopeSpan, grad);
     const g = Math.hypot(grad.x, grad.z);
     const a = p.gravity * Math.sin(s.groundSlope) * Math.cos(s.groundSlope);
     s.velocity.x -= (grad.x / g) * a * dt;
@@ -166,6 +187,10 @@ export function stepCharacter(
 
   if (s.grounded || s.swimming) s.velocity.y = 0;
   else s.velocity.y = Math.max(s.velocity.y - p.gravity * dt, -MAX_FALL_SPEED);
+  if (input.jump && s.grounded && !s.crouching) {
+    s.velocity.y = p.jumpSpeed;
+    s.grounded = false;
+  }
 
   // Sub-step so no step moves farther than half the radius.
   const travel = Math.hypot(s.velocity.x, s.velocity.z, s.velocity.y) * dt;
@@ -235,8 +260,12 @@ function moveHorizontal(
     const hNow = ground.heightAt(pos.x, pos.z);
     const hNext = ground.heightAt(pos.x + dx, pos.z + dz);
     const terrainIsFloor = hNext > pos.y - p.stepHeight;
-    if (terrainIsFloor && hNext > hNow && ground.slopeAt(pos.x + dx, pos.z + dz) > p.maxSlope) {
-      ground.gradientAt(pos.x + dx, pos.z + dz, grad);
+    if (
+      terrainIsFloor &&
+      hNext > hNow &&
+      ground.slopeAt(pos.x + dx, pos.z + dz, p.slopeSpan) > p.maxSlope
+    ) {
+      ground.smoothGradientAt(pos.x + dx, pos.z + dz, p.slopeSpan, grad);
       const g = Math.hypot(grad.x, grad.z);
       const ux = grad.x / g;
       const uz = grad.z / g;
@@ -254,7 +283,7 @@ function moveHorizontal(
       const hSlide = ground.heightAt(pos.x + dx, pos.z + dz);
       if (
         hSlide > hNow + p.stepHeight * 0.25 &&
-        ground.slopeAt(pos.x + dx, pos.z + dz) > p.maxSlope
+        ground.slopeAt(pos.x + dx, pos.z + dz, p.slopeSpan) > p.maxSlope
       ) {
         dx = 0;
         dz = 0;
@@ -306,7 +335,7 @@ function settle(s: CharacterState, zone: OnFootZone, p: ControllerParams): void 
   }
 
   const wasGrounded = s.grounded;
-  s.groundSlope = onTerrain ? zone.ground.slopeAt(pos.x, pos.z) : 0;
+  s.groundSlope = onTerrain ? zone.ground.slopeAt(pos.x, pos.z, p.slopeSpan) : 0;
 
   // Deep water floats you; walking out where it gets shallow.
   const floatY = zone.waterLevel - p.swimDepth;

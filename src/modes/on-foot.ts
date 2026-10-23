@@ -74,6 +74,7 @@ export function createOnFootMode(
           right: (input.isDown('MoveRight') ? 1 : 0) - (input.isDown('MoveLeft') ? 1 : 0),
           run: input.isDown('Sprint'),
           crouch: input.isDown('Crouch'),
+          jump: input.pressed('Jump'),
         },
         viewYaw(),
         zone,

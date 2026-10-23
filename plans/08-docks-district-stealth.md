@@ -1,6 +1,6 @@
 # 08 — Docks District Stealth (Night)
 
-Status: DRAFT v0.4 (decisions made; gap review applied; spike S5 written up)
+Status: DRAFT v0.5 (decisions made; gap review applied; spike S5 written up)
 Parent: [00-master-plan.md](00-master-plan.md)
 Inputs:
 - Master plan: compact docks-district scenes, no full towns; lockpicks, distractions, bribes, the whiskey trick; carry limits
@@ -82,7 +82,7 @@ Layouts draw on **Sanborn fire insurance maps** and period photos where availabl
 
 ### 3.1 Camera & controls (mouse and keyboard)
 - **Third-person** over-the-shoulder camera (decided; pointer lock), with collision and a close mode indoors.
-- WASD move · **Shift** run · **C** crouch (sneak; not Ctrl, see §19) · **Space** vault or climb (at marked spots: crates, fences, low roofs, ladders) · **F** interact · **Q/E** lean or peek · **LMB** use the selected tool · **RMB** aim a throw · **1–6** tool belt · **Tab** inventory · **M** district sketch map · **Esc** pause.
+- WASD move · **Shift** run · **C** crouch (sneak; not Ctrl, see §19) · **Space** hop (about 0.45 m), or vault or climb at marked spots (crates, fences, low roofs, ladders) · **F** interact · **Q/E** lean or peek · **LMB** use the selected tool · **RMB** aim a throw · **1–6** tool belt · **Tab** inventory · **M** district sketch map · **Esc** pause.
 - Bindings go through the input action map ([01 §4.8](01-tech-architecture.md)).
 
 ### 3.2 Movement & noise
@@ -344,6 +344,7 @@ All resolved.
 | 2026-10-22 | The **rifle** is an on-foot weapon too (alongside knife and pistol). |
 | 2026-10-22 | **No disguise items.** |
 | 2026-10-23 | Spike S5: the **hand-rolled controller is good enough**; Rapier is not needed (§19). Crouch is **C** only, because Ctrl+W closes the browser tab. |
+| 2026-10-23 | **Space hops** (about 0.45 m) where there's no marked vault spot, so rough ground never traps you. Waist-high crates and walls still need a vault spot. |
 
 ---
 
@@ -358,7 +359,7 @@ All resolved.
 |---|---|---|
 | Heightfield | `src/gameplay/onfoot/heightfield.ts` | Bilinear height, gradient and slope over a regular grid. It takes the 1 m on-foot tiles from S3 as they are. |
 | Colliders | `src/gameplay/onfoot/colliders.ts` | Yawed boxes, vertical cylinders and an occupancy grid for gridded buildings (plan 09), all as footprints extruded between `minY` and `maxY`. A 4 m spatial hash keeps queries local. |
-| Controller | `src/gameplay/onfoot/controller.ts` | A capsule (r 0.3 m, 1.75 m standing, 1.15 m crouched). Sub-stepped moves (never more than r/2 per step), push-out from footprints, step-up to 0.4 m, ground snap 0.45 m, a 42° slope limit with sliding, gravity, and swimming in water deeper than 1.3 m. No three.js, so it unit-tests in Node. |
+| Controller | `src/gameplay/onfoot/controller.ts` | A capsule (r 0.3 m, 1.75 m standing, 1.15 m crouched). Sub-stepped moves (never more than r/2 per step), push-out from footprints, step-up to 0.4 m, ground snap 0.45 m, a 42° slope limit (measured over 1 m) with sliding, gravity, a 0.45 m hop on Space, and swimming in water deeper than 1.3 m. No three.js, so it unit-tests in Node. |
 | Camera | `src/gameplay/onfoot/camera.ts`, `src/core/pointer-look.ts` | Third-person over the right shoulder with pointer-lock yaw and pitch. The boom marches against terrain and props, snaps in, then eases out. |
 | Mode | `src/modes/on-foot.ts` | The `onFoot` mode: the clock at **R = 6**, the `onFoot` input context, and the controller on the fixed tick with render interpolation. It isn't wired into the main boot yet. |
 | Test scene | `onfoot-spike.html`, `src/debug/onfoot-spike/` | A dev-only page (`npm run dev`, then `/onfoot-spike.html`) that isn't part of the production build. It's a seeded 128 m island at 1 m resolution with a cliff band and one walkable gully, a pier over deep water, 140 trees and 50 boulders, plus a test yard (stairs, a 0.6 m ledge, a crouch-only overhang, crates, a 0.8 m alley and a gridded L-shaped building with a door). `?props=2000` adds stress props and `?hz=30` changes the tick. The HUD shows frame time, draw calls, controller cost, gait, slope and the clock. |
@@ -368,10 +369,11 @@ All resolved.
 |---|---|
 | Walk, run, sneak speeds (2.4 / 5.2 / 1.3 m/s) | Feel right at a third-person distance. Tune them with guards in Phase 7. |
 | Stairs (0.25 m rises), low crates (0.35 m) | Walked up smoothly with no vault. |
-| 0.6 m ledge, waist-high crates, walls | Block, and you slide along them. These are the "vault at marked spots" cases (§3.1). |
+| 0.6 m ledge, waist-high crates, walls | Block, and you slide along them. A hop gets you up the 0.6 m ledge; 0.9 m crates and walls still need a vault spot (§3.1). |
 | Crouch-only overhang (1.3 m clearance) | You can't pass standing. You can crouch under, and you can't stand up beneath it. |
 | 0.8 m alley | Passable. Corners and rotated boxes don't snag. |
 | Terrain over 42° | Blocks uphill movement and slides you down. The gully is walkable, so cliffs become barriers with authored paths, as plan 11 §3.1 wants. |
+| Getting stuck (first playtest) | The dev reported getting stuck a few times. 246 random 20-second wanders found no spot you can't walk out of, so these were snags, not traps: the 1 m cells give diagonal cliffs a sawtooth that caught you as you walked along them, and on a too-steep patch you had almost no control. Fixes: the slope is measured over 1 m (about 25% more progress walking along a cliff base), you keep full control on a steep patch except uphill, and Space hops. |
 | Pier and water | Run along the deck, drop off, swim (head above water), swim under the deck between pilings, and walk out up the beach. |
 | Tunneling | None, even through a 5 cm wall at a 10 Hz tick (unit-tested). |
 | Determinism | Same inputs give the same state (unit-tested), which keeps replays and tests honest. |
@@ -381,7 +383,7 @@ All resolved.
 ### Findings for later phases
 1. **Crouch must not be Ctrl.** Ctrl+W (crouching while walking forward) closes the browser tab, and pointer lock doesn't stop it. The default binding is now **C** only.
 2. **Interact key mismatch:** §3.1 says **F**, but the input map's `onFoot` context has `Interact` on **E**, which §3.1 gives to lean/peek. Settle this when lean lands.
-3. **Vault and climb** (Space at marked spots) and **ladders** were out of scope. They fit the same model: a marked collider tags its top as a target and a short scripted move carries you up.
+3. **Vault and climb** at marked spots and **ladders** were out of scope (Space hops elsewhere). They fit the same model: a marked collider tags its top as a target and a short scripted move carries you up.
 4. **Camera close mode indoors:** the boom collision works but gets very close under low roofs. Add the planned close mode (shorter boom, lower shoulder) when interiors land.
 5. **Fall damage** (plan 11 §3.2) only needs the landing speed, which the controller already has at the moment it lands.
 6. **Noise and surfaces** (§3.2): the gait (`sneak`/`walk`/`run`/`swim`) plus the collider underfoot is enough to look up surface noise. Tag colliders with a surface when the kit lands.
@@ -390,6 +392,7 @@ All resolved.
 ---
 
 ## Changelog
+- v0.5: S5 playtest: a hop on Space, smoother slope measurement and control on steep patches, so rough ground doesn't snag you.
 - v0.4: Spike S5 written up (§19): the hand-rolled controller is good enough without Rapier; crouch moved off Ctrl.
 - v0.3: Gap review: Bayfield lockup for MVP jail and jailbreaks, rifle added to on-foot tools, disguises removed, scent removed from the changelog.
 - v0.2: Decisions: day-walkable districts, third-person, lethal weapons on foot, swimming, hold-to-pick, no dogs (snow tracks remain).

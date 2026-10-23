@@ -170,6 +170,45 @@ describe('character controller', () => {
     expect(s.position.z).toBeCloseTo(-3.5 + DEFAULT_CONTROLLER.radius, 2);
   });
 
+  it('hops onto a 0.6 m ledge but not onto a 0.9 m crate', () => {
+    const hop = (ledge: number): number => {
+      const z = zone([box(0, -2, 4, 2, 0, ledge)]);
+      const s = createCharacter({ x: 0, y: 0, z: 0 });
+      run(s, z, 0.5);
+      stepCharacter(s, { ...forward, jump: true }, NORTH, z, DT);
+      expect(s.grounded).toBe(false);
+      run(s, z, 1);
+      return s.position.y;
+    };
+    expect(hop(0.6)).toBeCloseTo(0.6);
+    expect(hop(0.9)).toBe(0);
+  });
+
+  it('does not hop while crouched or swimming', () => {
+    const z = zone();
+    const s = createCharacter({ x: 0, y: 0, z: 0 });
+    run(s, z, 0.1, { ...forward, crouch: true });
+    stepCharacter(s, { ...forward, crouch: true, jump: true }, NORTH, z, DT);
+    expect(s.grounded).toBe(true);
+
+    const wet = zone([], () => -5, 0);
+    const swimmer = createCharacter({ x: 0, y: -5, z: 0 });
+    run(swimmer, wet, 0.1);
+    stepCharacter(swimmer, { ...forward, jump: true }, NORTH, wet, DT);
+    expect(swimmer.velocity.y).toBe(0);
+  });
+
+  it('lets you walk across a slope too steep to stand on, but not up it', () => {
+    // A 50° face rising to the north everywhere.
+    const steep = Math.tan((50 * Math.PI) / 180);
+    const z = zone([], (_x, zz) => -zz * steep);
+    const s = createCharacter({ x: 0, y: 0, z: 0 });
+    run(s, z, 1, { forward: 1, right: 1, run: false, crouch: false });
+    expect(s.gait).toBe('slide');
+    expect(s.position.x).toBeGreaterThan(1.5);
+    expect(s.position.y).toBeLessThan(0);
+  });
+
   it('follows the ground down and falls off a high ledge', () => {
     const z = zone([box(0, -1, 4, 2, 0, 3)]);
     const s = createCharacter({ x: 0, y: 3, z: -1.5 });
