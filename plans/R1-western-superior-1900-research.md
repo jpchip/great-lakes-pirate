@@ -1,6 +1,6 @@
 # R1 — Research: Western Lake Superior, circa 1900
 
-Status: DRAFT v0.3 (high-priority research pass done; see also [R1a gazetteer](R1a-western-superior-gazetteer.md))
+Status: DRAFT v0.4 (high-priority research pass done; see also [R1a gazetteer](R1a-western-superior-gazetteer.md))
 Parent: [00-master-plan.md](00-master-plan.md)
 Feeds: 03 (world/scale), 05 (economy), 06 (law/lighthouses), 07 (targets), 08 (docks districts), 11 (islands/secrets), 12 (events/backgrounds), 14 (art)
 
@@ -40,12 +40,12 @@ Lens order sets beam strength. Fresnel orders run from 1st (largest, longest ran
 | Light | Built / first lit | Lens (original) | State in spring 1900 | Confidence | Game notes |
 |---|---|---|---|---|---|
 | La Pointe (original, Madeline Island area) | 1852 | — | Gone (replaced) | ✅ | Lore only. |
-| Michigan Island | 1856–57 | 3½-order | Active | ✅ / ⚠️ date | Poorly sited per historical accounts ("the unwanted lighthouse"). **Tier: strong.** |
+| Michigan Island | 1856–57 | 3½-order since 1869; characteristic ❓ | Active | ✅ / ⚠️ date | Poorly sited per historical accounts ("the unwanted lighthouse"). **Tier: strong.** |
 | La Pointe light (Long Island) | 1858 | ❓ | Active | ✅ / ❓ lens | Guards the Chequamegon Bay approach. |
-| Raspberry Island | 1862; lit July 20, 1863 | 5th-order, fixed | Active | ✅ | West channel, near Bayfield. **Tier: weak beam, but fast reporting** (close to town). |
-| Outer Island | 1874 | ❓ (3rd-order assumed) | Active | ✅ / ❓ lens | Most remote; tall tower. **Tier: strong (assumed)**, slow reporting. |
-| Sand Island | 1881; lit Sept 25, 1881 | 4th-order Lepaute, fixed white | Active | ✅ | Brownstone building (art reference). **Tier: medium.** Guards the *Sevona* shoal. |
-| Devils Island | 1891 temporary; permanent tower ~1898 | 3rd-order Lepaute **arrives April 1901** | **Tower up, lens not yet installed (weak temporary light)** | ✅ | **A known coverage gap in 1900**: a prime wrecking spot on the exposed north edge. Sea caves. |
+| Raspberry Island | 1862; lit July 20, 1863 | 5th-order; **white flash every 90 s** around 1900 | Active | ✅ | West channel, near Bayfield. **Tier: weak beam, but fast reporting** (close to town). |
+| Outer Island | 1874 | 3rd-order Sautter; **white flash every 90 s** | Active | ✅ | Most remote; tall tower. **Tier: strong**, slow reporting. |
+| Sand Island | 1881; lit Sept 25, 1881 | 4th-order Lepaute, **fixed white** (until 1921) | Active | ✅ | Brownstone building (art reference). **Tier: medium.** Guards the *Sevona* shoal. |
+| Devils Island | 1891 temporary; permanent tower ~1898 | 1891–1901: temporary **fixed red**, 4th-order. 3rd-order lens **arrives June 22, 1901**, in service **Sept 20, 1901** (alternating red and white flashes every 10 s) | **Tower up, temporary fixed red light (weak)** | ✅ | **A known coverage gap in 1900**: a prime wrecking spot on the exposed north edge. Sea caves. |
 | Chequamegon Point | 1896–97 | ❓ | Active | ✅ / ❓ lens | Tip of Long Island; erosion problems. |
 | Duluth South Breakwater Outer (canal south pier) | 1874; current tower Aug 1901 | ❓ | **Temporary tower** (pier being rebuilt 1898–1901) | ✅ | Canal entrance light amid construction. |
 | Duluth North Pier | 1910 | — | **Not built** (pier unlit) | ✅ | Exclude. |
@@ -66,7 +66,8 @@ Lens order sets beam strength. Fresnel orders run from 1st (largest, longest ran
 |---|---|---|
 | The service was renamed from "Revenue-Marine" to **US Revenue Cutter Service** in 1894 | ✅ | Use "Revenue Cutter Service" in-game. |
 | Around 1901, **USRC *Morrill*** covered Lakes Michigan **and** Superior plus the St. Marys River; USRC *Fessenden* covered Erie/Huron | ✅ (single trade-press source, but specific) | Historically there was **about one cutter for two lakes**. Real patrols were sparse. |
-| **US Life-Saving Service** station at Duluth (Minnesota Point), built ~1894, operating by 1895 | ⚠️ (1894 vs. 1895) | Surfmen are witnesses who report and rescue, not fighters. A lifeboat can shadow you. |
+| The *Morrill* was **based at Milwaukee** after August 1898 and **laid up in winter** | ✅ | No cutter on Superior in winter ([04](04-water-weather-seasons.md)). |
+| **US Life-Saving Service** station at Duluth (Minnesota Point), **built 1894, manned 1895** | ✅ (how it reported to town, e.g., telephone, is ❓) | Surfmen are witnesses who report and rescue, not fighters. A lifeboat can shadow you. |
 | Life-Saving Service merged into the Coast Guard in 1915 | ✅ | Confirms there's no "Coast Guard" in 1900. |
 | Other western Superior life-saving stations circa 1900 (Bayfield? Two Harbors?) | ❓ | Research. |
 | Local law in ports (city police, county sheriffs, US Marshals in Duluth/Superior) | ❓ | Research the structure only; NPCs will be fictional. |
@@ -253,7 +254,7 @@ Sources
 
 | # | Question | Feeds | Priority / Status |
 |---|---|---|---|
-| 1 | Verify the remaining lighthouse dates and characteristics; lens order or beam range for each | 06 | **Mostly done** (v0.3). Open: lenses for Outer Island, La Pointe, Chequamegon Point, Duluth breakwater; Superior Entry light in 1900 |
+| 1 | Verify the remaining lighthouse dates and characteristics; lens order or beam range for each | 06 | **Mostly done** (v0.3). Raspberry, Outer, Sand and Devils characteristics done (2026-10-22). Open: La Pointe, Chequamegon Point and Duluth breakwater lenses; Michigan Island characteristic; Superior Entry light in 1900 |
 | 2 | Water distances between MVP ports and islands; channel and shoal locations | 03 | **Distances estimated** (v0.3). Open: verify on a NOAA chart; map shoals and channels |
 | 3 | Shipping-season dates, ice-out and freeze-up, fog and storm seasons | 04 | **Done** (v0.3), with a proposed calendar |
 | 4 | Port profiles (template above) for all MVP ports | 05, 08 | **First pass done** (R1a). Open: Two Harbors, Washburn and Bayfield populations; Ashland dock count; Washburn details |
@@ -352,9 +353,14 @@ All four v0.1 questions are resolved (see the Decisions table below). Remaining:
 - [Cornucopia, Wisconsin](https://en.wikipedia.org/wiki/Cornucopia,_Wisconsin) · [Odanah, Wisconsin](https://en.wikipedia.org/wiki/Odanah,_Wisconsin) · [PBS Wisconsin: Bad River Ojibwe History](https://pbswisconsin.org/watch/tribal-histories/wpt-documentaries-bad-river-ojibwe-history/) · [NPS: Home of the Ojibwe](https://home.nps.gov/apis/learn/historyculture/home-of-the-ojibwe.htm)
 - More port sources are listed in [R1a](R1a-western-superior-gazetteer.md#sources-v01).
 
+### Added in v0.4
+- Lighthouse Friends: [Sand Island](https://www.lighthousefriends.com/light.asp?ID=689) · [Raspberry Island](https://www.lighthousefriends.com/light.asp?ID=690) · [Devils Island](https://www.lighthousefriends.com/light.asp?ID=691) · [Outer Island](https://www.lighthousefriends.com/light.asp?ID=692) · [Michigan Island](https://www.lighthousefriends.com/light.asp?ID=693)
+- [US Life-Saving Service Heritage Association: Duluth station](https://uslife-savingservice.org/)
+
 ---
 
 ## Changelog
+- v0.4: Gap-review history checks: Raspberry, Outer, Sand and Devils Island lens and characteristics (Devils lens date corrected to June/Sept 1901), *Morrill* Milwaukee base and winter lay-up, Duluth life-saving station dates confirmed.
 - v0.3: High-priority pass: lighthouse lens and 1900-state table with light tiers, season, ice, fog and storm findings plus a proposed calendar, distances, Siskiwit Bay correction, Bad River logging context. Created the R1a gazetteer.
 - v0.2: Recorded decisions on company and ship naming, Ojibwe trading-only interaction, separate Duluth/Superior regions, and sparse historical patrols.
 - v0.1: Initial research plan with first-pass findings (lighthouses, law, industries, whalebacks, wrecks, Ojibwe history), gazetteer template, backlog and open questions.

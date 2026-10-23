@@ -1,6 +1,6 @@
 # 04 — Water, Weather, Seasons & Day/Night
 
-Status: DRAFT v0.2 (decisions confirmed)
+Status: DRAFT v0.3 (decisions confirmed; gap review applied)
 Parent: [00-master-plan.md](00-master-plan.md)
 Inputs:
 - [01 tech/architecture](01-tech-architecture.md): layers, budgets, the shared wave function, the iGPU baseline
@@ -108,7 +108,7 @@ At each new year (and at game start), roll seeded variation: ice-out date, freez
 |---|---|
 | Traffic (05) | Spring opening rush ("first boat in" bonus), steady summer, **fall ore and grain peak**, winter near zero |
 | Markets (05) | Fish runs, wild rice (fall), maple sugar (spring), furs (winter), fuel and food scarcity in winter |
-| Law (06) | The cutter withdraws to winter quarters when ice closes the lake (❓ verify; it's plausible). Winter policing is local only. |
+| Law (06) | The cutter is laid up for the winter (✅ the *Morrill* was based at Milwaukee and "laid up during the winter months"; [USCG history](https://www.history.uscg.mil/Browse-by-Topic/Assets/Water/All/Article/2518666/morrill-lot-m-morrill-1889/)). Winter policing is local only. |
 | Sailing (02) | Ice, cold-water survival, gales |
 | On foot (08, 11) | Snow tracks (stealth), cold exposure, walkable ice |
 
@@ -142,7 +142,7 @@ At each new year (and at game start), roll seeded variation: ice-out date, freez
 |---|---|
 | **Barometer** (HUD instrument) | Pressure and trend: steady, falling, falling fast |
 | **Sky** | Cirrus "mares' tails," halos, a darkening western sky, wind backing |
-| **Port storm signals** | Ports fly **storm warning flags** when a big low approaches (the US Weather Bureau operated Great Lakes storm warning displays around 1900; ❓ verify display details in R1) |
+| **Port storm signals** | Ports fly **storm warning flags** when a big low approaches (✅ the storm signal used on the Great Lakes since 1871 was a red flag with a black square by day and a red light at night; wind flags were added in the mid-1890s; [NWS heritage](https://vlab.noaa.gov/web/nws-heritage/-/a-brief-history-of-signal-flags). Which ports flew which flags in 1900 is ❓) |
 | Saloon rumors, newspapers | General outlook ("old-timers say a blow is coming") |
 | **Chart** | Known fronts and storm cells shown with uncertainty that grows with distance and age |
 
@@ -293,14 +293,16 @@ At each new year (and at game start), roll seeded variation: ice-out date, freez
 | **5 (Law)** | Visibility feeds stealth and detection, moon phase, storm warnings at ports |
 | **9 (Seasons & secrets)** | Full seasonal cycle, ice sim and rendering, walkable ice, snow, aurora, year variation, the Mataafa event |
 
+**The MVP ends at freeze-up (decided 2026-10-22).** Until Phase 9 ships winter, a run that reaches the first freeze-up reaches the end of MVP content: the game says winter arrives in a later build and the run stops there. Spring at the start (May 7) has no ice; floes come with the Phase 9 ice sim.
+
 ---
 
 ## 16. Spikes & Tests
 
 | ID | Spike / test | Question |
 |---|---|---|
-| **S2** (existing) | Water and buoyancy | The shared Gerstner set looks good with depth bands and shore foam at ≤ 3 ms GPU on Medium on the baseline laptop; a 4-wave CPU buoyancy matches the visuals |
-| **S9** (new) | Weather sim on the chart | A few moving systems produce believable, varied wind and pressure over a simulated month; a barometer trend predicts storms; fog banks spawn plausibly |
+| **S2** (existing) | Water and buoyancy | The shared Gerstner set looks good with depth bands, shore foam **and crest foam** at ≤ 3 ms GPU on Medium on the baseline laptop; a 4-wave CPU buoyancy matches the visuals |
+| **S9** (Phase 0) | Weather sim on the chart | A few moving systems produce believable, varied wind and pressure over a simulated month; a barometer trend predicts storms; fog banks spawn plausibly |
 | Unit tests | Sun and moon vs. 1900 tables, climate interpolation, wave parameter mapping, ice growth and melt curves, determinism (same seed → same weather) | |
 
 ---
@@ -319,17 +321,24 @@ At each new year (and at game start), roll seeded variation: ice-out date, freez
 
 ---
 
-## 18. Open Questions (for the user)
+## 18. Open Questions
 
-> **All confirmed (2026-10-21):** 1 game day = 1 calendar week; start the week of May 7, 1900; walkable ice included; port storm flags included; the Mataafa event and aurora included (both remain on the cut list if needed). The questions below are kept for the record.
+All resolved.
 
-1. **Season calendar:** decouple seasons from days, with **1 game day = 1 calendar week** (year ≈ 52 game days, roughly 35–50 real hours)? Alternatives: 1:3 (year ≈ 120 h) or 1:1 (seasons barely change). *Recommendation:* 1:7.
-2. **Start date:** the week of **May 7, 1900** (season just opened, fog season starting)?
-3. **Walkable ice:** frozen bays become walkable in winter (the ice road, sled smuggling, thin-ice danger)? It's a significant feature, but it makes winter a real season.
-4. **Port storm warning flags** (historically grounded) as a forecasting aid: OK?
-5. **Easter eggs:** the Mataafa Storm (November 1905) as a scripted event for long runs, and an occasional aurora on winter nights?
+### Decisions
+| Date | Decision |
+|---|---|
+| 2026-10-21 | 1 game day = 1 calendar week (a year is ~52 game days). |
+| 2026-10-21 | Start the week of May 7, 1900. |
+| 2026-10-21 | Walkable ice in winter (ice road, sled smuggling, thin-ice danger). |
+| 2026-10-21 | Port storm warning flags as a forecasting aid. |
+| 2026-10-21 | Mataafa Storm (November 1905) and aurora Easter eggs (both stay on the cut list). |
+| 2026-10-22 | The MVP ends at the first freeze-up; winter rules arrive in Phase 9. |
+| 2026-10-22 | S2 measures the water budget with crest foam on. S9 is a Phase 0 prototype. |
 
 ---
 
 ## Changelog
+- v0.3: Gap review: MVP ends at freeze-up, S2 measures with crest foam, S9 in Phase 0, cutter winter lay-up and 1900 storm signals researched, §18 rewritten as decisions.
+- v0.2: Decisions confirmed: 1 game day = 1 week, May 7, 1900 start, walkable ice, port storm flags, Mataafa and aurora.
 - v0.1: Initial environment plan: architecture, calendar (with a decoupled season-calendar proposal), sun/moon, climate normals, weather systems, fog, storms, forecasting, waves (fetch, duration, lake character), stylized water rendering, ice sim and walkable-ice proposal, sky/lighting, fog and precipitation rendering, chart display, data and state, budgets, phasing, spikes, cut list.

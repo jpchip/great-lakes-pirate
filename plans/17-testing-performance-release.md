@@ -1,6 +1,6 @@
 # 17 — Testing, Performance & Release
 
-Status: DRAFT v0.2 (decisions made)
+Status: DRAFT v0.3 (decisions made)
 Parent: [00-master-plan.md](00-master-plan.md)
 Inputs:
 - [01](01-tech-architecture.md): testing strategy, budgets, CI, droplet and itch.io hosting, Git LFS, MIT + CC BY, the baseline machine
@@ -44,13 +44,13 @@ Define how the game is verified, kept fast, and shipped:
 | **Data** | zod schemas | All `data/*.json` validated; cross-references (IDs exist, recipes reference real goods, sites reference real zones) | CI |
 | **Save** | Vitest | Migration fixtures for every version, corruption fuzzing, the danger-snapshot flow, the deletion-on-death flow ([16 §11](16-save-persistence.md)) | CI |
 | **Simulation harness** | Node, headless `sim/` | Multi-year runs of economy, traffic, weather and law with scripted or bot players (§3) | CI (short), nightly/local (long) |
-| **Smoke / E2E** | Playwright (Chromium) | Boot, New Run, sail for N seconds, open each major screen, autosave, reload and Continue, no console errors | CI |
-| **Visual** | Playwright screenshots | Key scenes at fixed seeds and times (loose diff threshold; stylized art tolerates small changes) | CI (on demand), before releases |
+| **Smoke / E2E** | Playwright (Chromium) | Boot with a **null renderer** (no WebGL in CI), New Run, run the sim for N seconds, open each major screen, autosave, reload and Continue, no console errors | CI |
+| **Visual** | Playwright screenshots | Key scenes at fixed seeds and times (loose diff threshold; stylized art tolerates small changes) | **Locally only** for now; no screenshot diffs in CI |
 | **Asset/audio validation** | Pipeline scripts | Budgets (triangles, textures), provenance and license present, naming ([14 §7](14-art-direction-asset-pipeline.md), [15 §9](15-audio.md)) | CI |
 | **Performance** | Benchmark scenes (§4) | Frame-time distribution, memory, load times on the **baseline laptop** | Locally, each phase, and before releases |
 | **Manual playtest** | Checklists (§6) | Feel, fun, clarity, acceptance criteria | Each phase |
 
-**CI note:** GitHub Actions runners have no real GPU (software rendering), so CI **checks correctness, not frame rates**. Performance is measured locally on the baseline machine.
+**CI note:** GitHub Actions runners have no real GPU, so CI **does not run WebGL** and checks correctness, not rendering or frame rates. Performance and visuals are checked locally on the baseline machine. **Blender and GDAL run locally only**; CI validates their committed outputs.
 
 ---
 
@@ -139,18 +139,18 @@ Each phase ends with a playtest against **that phase's acceptance criteria** (fr
 ## 7. Versioning & Milestones
 
 ### 7.1 Versioning
-- **Semver:** `0.<phase>.<patch>` during development (e.g., `0.1.0` = Phase 1 sailing prototype). **1.0.0** = the first full release.
+- **Semver (fixed 2026-10-22):** `0.<phase>.<patch>` for Phases 0–9 (e.g., `0.1.0` = Phase 1 sailing prototype). **`0.8.x` = MVP/Alpha** (Phase 8 done) and **`0.9.x` = Beta** (Phase 9 done). Phase 10 expansion builds are **`0.10.x`** (Phase 10 comes before polish, decided 2026-10-23), and Phase 11 polish builds are **`0.11.x`** release candidates, ending at **1.0.0**.
 - `gameVersion` is in saves ([16 §5.1](16-save-persistence.md)). `saveVersion` is separate.
 - `CHANGELOG.md` (Keep a Changelog style) is updated with every release.
 
 ### 7.2 Milestones
 | Milestone | Definition | Audience |
 |---|---|---|
-| **Phase builds** (0.0–0.8) | Each phase's playable goal ([00 §7](00-master-plan.md)) | Developer (+ optional friends) |
-| **MVP / Alpha** | The master plan MVP definition: western Superior, sailing with weather, hybrid travel, trading, Fame/Wanted with the cutter and lighthouses, freighter piracy, one docks district, 1–2 hideouts, at least summer and fall | **Private:** invited external testers only (unlisted droplet URL) |
+| **Phase builds** (0.0–0.7) | Each phase's playable goal ([00 §7](00-master-plan.md)) | Developer (+ optional friends) |
+| **MVP / Alpha** | The master plan MVP definition: western Superior, sailing with weather, hybrid travel, trading, Fame/Wanted with the cutter and lighthouses, freighter piracy, one docks district, 1–2 hideouts, at least summer and fall | **Private:** invited external testers only (unlisted URL, optional basic auth) |
 | **Beta** | All MVP-region systems and content complete (Phase 9 done): all docks districts, islands, legends, seasons including winter, rivals, endings | **First public release:** itch.io "in development" plus a public droplet URL |
+| **Expansions** (0.10) | Lake Michigan (Seavey's home waters), then the other lakes ([00 §7](00-master-plan.md) Phase 10) | Public (Beta) |
 | **1.0** | Polish (Phase 11), full checklist (§9) | Public release |
-| **Post-1.0** | Expansions: Lake Michigan (Seavey's home waters), then the other lakes ([00 §7](00-master-plan.md) Phase 10) | Public |
 
 ---
 
@@ -162,6 +162,7 @@ push / PR ──► lint · typecheck · unit · data · save fixtures · sim (s
               asset & audio validation · build · Playwright smoke
 tag vX.Y.Z ──► all of the above ──► production build ──► deploy (droplet) ──► (optional) butler push (itch.io)
 ```
+- **Not yet (decided 2026-10-22):** builds are local only for now. No tagged deploys, and the droplet (domain, size, provisioning) isn't planned until testers need it. The tag and deploy steps above are the target, not Phase 0 work.
 - Git LFS checkout **with cache** ([01 §10](01-tech-architecture.md)).
 - Build artifacts: hashed filenames, `index.html` short-cache, assets immutable-cache.
 
@@ -169,7 +170,7 @@ tag vX.Y.Z ──► all of the above ──► production build ──► deplo
 - `rsync` over SSH to `/srv/glp/releases/<version>/`, then **atomically switch** the `current` symlink and reload Caddy. Keep the last 5 releases.
 - **Rollback:** re-point the symlink to the previous release (a one-line script or a manual workflow trigger).
 - **No version-pinned old builds (decided):** compatibility relies on **save migrations only** ([16 §7](16-save-persistence.md)). Every release must migrate every older save.
-- **Private until Beta (decided):** before Beta the droplet build is unlisted (a non-indexed URL, `robots.txt` disallow, optional HTTP basic auth via Caddy) and shared only with invited testers. The GitHub repo can stay public (open source) regardless.
+- **Private until Beta (decided):** once hosting exists, the pre-Beta build is unlisted (a non-indexed URL, `robots.txt` disallow, optional HTTP basic auth via Caddy) and shared only with invited testers. The GitHub repo can stay public (open source) regardless.
 - A basic **uptime check** (a free external monitor, or a cron curl on another host) alerts by email.
 
 ### 8.3 itch.io
@@ -226,12 +227,12 @@ tag vX.Y.Z ──► all of the above ──► production build ──► deplo
 4. The bench gate passes for the scenes that exist so far.
 5. Saves from the previous phase build migrate (once saves exist).
 6. Plans are updated: status, decisions, changelog, and spike write-ups.
-7. A tagged build is deployed to the droplet.
+7. A tagged build is deployed to the droplet (**deferred** until hosting exists; until then, a local production build runs).
 
 ---
 
 ## 12. Cut List
-1. Visual screenshot diffs (smoke only).
+1. Visual screenshot diffs (already local only; cut entirely if they cost time).
 2. Pacing bots (manual playtest pacing only).
 3. itch.io mirror (droplet only).
 4. Opt-in local stats summary.
@@ -252,9 +253,14 @@ All resolved.
 | 2026-10-22 | **Private until Beta** (unlisted droplet build for invited testers); public on itch.io and the droplet at Beta. |
 | 2026-10-22 | **Ojibwe cultural review budgeted** before Beta. |
 | 2026-10-22 | **Save migrations only**; no version-pinned old builds. |
+| 2026-10-22 | **CI runs no WebGL:** Playwright smoke uses a null renderer; screenshot diffs are local only. Blender and GDAL are local only. |
+| 2026-10-22 | **Version scheme:** 0.8 = MVP/Alpha, 0.9 = Beta, 0.10 = Phase 10 expansions, 0.11 = Phase 11 polish, then 1.0. |
+| 2026-10-22 | **No hosting yet:** local builds only; droplet, domain and tagged deploys deferred. Unlisted with optional basic auth until Beta once it exists. |
+| 2026-10-23 | **Phase 10 (expansions) comes before Phase 11 (polish)**, so the other lakes ship before 1.0. |
 
 ---
 
 ## Changelog
+- v0.3: Gap review: CI without WebGL (null-renderer smoke, local screenshot diffs), Blender/GDAL local, version scheme fixed (0.8 MVP, 0.9 Beta, 0.10 expansions, 0.11 polish, then 1.0), hosting deferred, DoD #7 deferred.
 - v0.2: Decisions: MVP external testers, no network telemetry plus an opt-in local stats summary, private until Beta, cultural review budgeted, migrations only (old-build paths removed).
 - v0.1: Initial testing and release plan: test layers, CI gates, simulation and balance harness, performance methodology and benches, the bench gate, browser matrix, playtesting and bug bundles, telemetry stance, versioning and milestones, CI/CD to the droplet and itch.io, the pre-release checklist (quality, licensing, cultural review, ops), post-release support, phase definition of done.

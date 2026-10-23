@@ -1,6 +1,6 @@
 # 14 — Art Direction & AI Asset Pipeline
 
-Status: DRAFT v0.2 (decisions made; A/B pick pending S4)
+Status: DRAFT v0.3 (decisions made; A/B pick in S4)
 Parent: [00-master-plan.md](00-master-plan.md)
 Inputs:
 - Master plan: stylized art; AI-generated 3D; period authenticity; the `references/` photos
@@ -19,7 +19,7 @@ Define how the game looks and how its assets get made:
 - the art pillars, palette and mood
 - the **style test** that picks the final look
 - the unified stylized material that makes mixed-source assets cohesive
-- which source to use per asset type (AI, CC0, procedural, hand-built)
+- which source to use per asset type (procedural and CC0 first, AI generation fills the gaps, hand-built last)
 - AI tool and license rules for an open-source project
 - the automated asset pipeline, budgets, animation and VFX style, and the MVP asset list
 
@@ -70,7 +70,7 @@ The **Detroit Publishing Company photochroms** (colorized photo prints around 19
 Both suit the **fully scripted pipeline** (§7): they tolerate rough, auto-cleaned AI meshes well.
 
 ### 3.2 Test scene (same for both)
-The T1 schooner (from the AI pipeline), a slice of an Apostle island (sandstone cliff, pines and birches, a beach), a lighthouse station, water at **dusk** and at **night with a lighthouse beam**, one character, and fog on and off.
+**Shrunk (decided 2026-10-22):** the T1 schooner (from the AI pipeline), water, fog on and off, and **one lighthouse beam**, rendered at **dusk** and at **night**. No island slice or character; those are judged later against the chosen style.
 
 ### 3.3 Scoring
 Readability (silhouettes, night, fog) · cohesion of mixed-source assets · fit to the Superior mood · **GPU frame time on the baseline laptop** (Ryzen 7 7730U iGPU, [01 §13](01-tech-architecture.md)) · production effort per asset. The developer picks; the result is recorded in this plan.
@@ -101,6 +101,8 @@ One custom material ([S1](01-tech-architecture.md) decides between TSL and GLSL)
 
 ## 5. Asset Sources by Type
 
+**Sourcing order (decided 2026-10-22):** procedural or CC0 first; **AI-generated assets fill the gaps** (Meshy for image-to-3D, nano-banana for images); hand-built only when neither works.
+
 | Asset type | Primary source | Why / notes |
 |---|---|---|
 | **Player ships** (T1–T3 + variants) | **AI image-to-3D hull and deckhouse only** (prompted without sails or rigging) from `references/schooner.png` and generated orthographic views → **scripted cleanup** | **Masts, spars and sails are procedural** (generated from per-class parameters: mast count, heights, sail plan, per-level sail shapes; [02 §13](02-arcade-sailing.md)). **Rigging lines are procedural** too. Attachment points come from a **per-class template** in data, so no manual placement is needed. |
@@ -123,8 +125,8 @@ One custom material ([S1](01-tech-architecture.md) decides between TSL and GLSL)
 
 ## 6. AI Tooling & Licensing (open-source rules)
 
-- **Candidate image-to-3D tools:** commercial services with free tiers (e.g., Meshy, Tripo, Rodin/Hyper3D). Evaluate 1–2 in S4. Locally run open models are unlikely to be practical on the baseline laptop's iGPU.
-- **Image generation** (concepts, orthographic sheets, textures, UI plates): **nano-banana (Gemini CLI skill) approved** (decided). Still run it through the license gate below: confirm the current Gemini output terms allow public redistribution for anything shipped (UI plates, textures). Concept-only images aren't shipped.
+- **Image-to-3D (decided 2026-10-22): Meshy.** S4 records its current terms in `assets/LICENSES.json`. Tripo and Rodin/Hyper3D are fallbacks only if Meshy's terms or results fail.
+- **Image generation** (concepts, orthographic sheets, textures, UI plates): **nano-banana (Gemini CLI skill) approved for this open-source project, including shipped outputs** (decided 2026-10-22). Provenance records still apply to every shipped image.
 - **License gate (mandatory before adopting a tool):**
   1. Outputs may be **publicly redistributed** in an open-source repo (we're not selling, but the repo is public and assets are CC BY 4.0).
   2. Check whether the free tier requires attribution, restricts ownership, or limits use. Record the terms (date checked plus a link) in `assets/LICENSES.json`.
@@ -166,7 +168,7 @@ raw-assets/<category>/<name>/   (Git LFS; source files + provenance.json + asset
 - **One command** rebuilds everything that changed (content-hash cache).
 - **CI** runs steps 1, 7 and 8 on every push ([01 §10](01-tech-architecture.md)).
 - **Regenerate, don't repair:** if the scripted clean step produces an unusable result, tweak the prompt or hints and regenerate, swap in a CC0 asset, or simplify the design. Manual Blender fixes are only for a handful of hero assets, and only if nothing else works.
-- **Headless Blender** (`blender -b -P tools/assets/blender/clean.py`) is a dev dependency, run locally and in CI where possible.
+- **Headless Blender** (`blender -b -P tools/assets/blender/clean.py`) is a dev dependency that runs **locally only**. CI never runs Blender; it validates the committed outputs and their provenance.
 - **Preview sheet:** the pipeline renders a contact sheet (thumbnails of all processed assets in the stylized material) so the developer can review results at a glance and flag regenerations.
 
 ---
@@ -194,7 +196,7 @@ raw-assets/<category>/<name>/   (Git LFS; source files + provenance.json + asset
 - **One humanoid skeleton** for the player and all NPCs. GPU skinning, animation LOD ([08 §14](08-docks-district-stealth.md)).
 - **Required clips (MVP):** idle, walk, sneak, run, carry (crate), vault/climb, ladder, swim, row, hold-interact (pick lock, dig, grapple), knockout (giving and receiving), tie-up, knife attack, pistol and rifle aim and fire, hit react, fall, death, search/look around, alerted point and shout, drink, sit, poker idle, helm steering, haul line.
 - **Animals:** idle, walk, run, threaten, attack, flee, die (deer, bear, wolf).
-- **Ships:** no skeletal animation. Sails and flags use vertex shaders ([02 §13](02-arcade-sailing.md)). The rudder and wheel are simple transforms.
+- **Ships:** no skeletal animation. Flags use a vertex shader; sails are **static shapes per sail level** (no billow shader, [02 §13](02-arcade-sailing.md)). The rudder and wheel are simple transforms.
 - **Diving suit:** a heavy-walk variant of the walk clip ([11 §6.2](11-exploration-islands-secrets.md)).
 
 ---
@@ -246,7 +248,7 @@ This is a lot for one developer, which is why the pipeline is automated, kits ar
 ## 13. Phasing
 | Phase | Art scope |
 |---|---|
-| **0** | **S4 style test** (pick A/B/C), the T1 schooner through the full pipeline, the unified material v1, palette v1, the license gate for the chosen tools |
+| **0** | **S4 style test** (pick A or B, shrunk scene §3.2), the T1 schooner through the full pipeline, the unified material v1, palette v1, the license gate for the chosen tools |
 | 1 | Placeholder-plus ship, water and sky look, sail meshes and shader |
 | 2 | Terrain shader (sandstone, beach, forest), vegetation plus impostors, the lighthouse kit, lighting LUTs |
 | 4–6 | NPC ships, character base plus animations, props |
@@ -281,7 +283,7 @@ This is a lot for one developer, which is why the pipeline is automated, kits ar
 
 ## 16. Open Questions
 
-All resolved. The final A-vs-B pick happens in spike S4.
+All resolved. The final A-vs-B pick happens in spike S4 (shrunk scene).
 
 ### Decisions
 | Date | Decision |
@@ -291,9 +293,15 @@ All resolved. The final A-vs-B pick happens in spike S4.
 | 2026-10-21 | **Public-domain period engravings and ads** for newspapers and UI. |
 | 2026-10-21 | **Fully scripted pipeline** (headless Blender clean step; procedural masts, sails, rigging and caves; regenerate rather than repair). |
 | 2026-10-21 | **Style test narrowed to A (low-poly flat) vs. B (toon with outlines).** |
+| 2026-10-22 | **Sourcing order:** procedural/CC0 first, AI-generated assets fill gaps. |
+| 2026-10-22 | **Meshy** is the image-to-3D tool; **nano-banana** approved for shipped outputs in this open-source project. |
+| 2026-10-22 | **S4 scene shrunk** to schooner, water, fog and one lighthouse beam at dusk and night. |
+| 2026-10-22 | **Blender runs locally only**, never in CI. |
+| 2026-10-22 | **Static sails** (no billow shader); flags keep a vertex shader. |
 
 ---
 
 ## Changelog
+- v0.3: Gap review: sourcing order (procedural/CC0 first, AI fills gaps), Meshy chosen, nano-banana approved for shipped outputs, shrunk S4 scene, Blender local only, static sails, A-or-B wording fixed.
 - v0.2: Decisions: photochrom reference, AI image gen (nano-banana) approved, public-domain engravings, fully scripted pipeline (headless Blender clean, procedural ship rigs and caves, contact-sheet review), style test narrowed to A/B.
 - v0.1: Initial art plan: pillars, palette and mood (photochrom reference), time and season palettes, style test (candidates, scene, scoring), the unified stylized material and palette-ization, sources by asset type, AI tooling and the license gate, the automated pipeline, budgets, animation list, VFX style, MVP asset list, historical references, phasing, risks.

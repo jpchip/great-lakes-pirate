@@ -1,6 +1,6 @@
 # 06 — Fame, Wanted, Law Enforcement & Lighthouses
 
-Status: DRAFT v0.2 (decisions made)
+Status: DRAFT v0.3 (decisions made; gap review applied)
 Parent: [00-master-plan.md](00-master-plan.md)
 Inputs: master plan decisions (separate Fame/Wanted, regional Wanted, execution only at the top tier, jail/bail/jailbreak, Fame fades, sparse patrols), [R1 §2.1–2.2](R1-western-superior-1900-research.md) (lights, the *Morrill*), [R1a](R1a-western-superior-gazetteer.md) (regions), [02](02-arcade-sailing.md) (dark running, shallows), [03](03-world-scale-chart-travel.md) (no chart escape), [04](04-water-weather-seasons.md) (visibility, moon, storms), [05](05-ports-economy-trading.md) (hot goods, grudges, Standing)
 Feeds: 07 (lethality, surrender), 08 (docks guards, perception), 11 (lighthouse raids), 12 (capture, jail, execution, newspapers), 13 (HUD indicators)
@@ -72,7 +72,7 @@ Crime committed ──► Witnessed? ──no──► (nothing, unless evidence
 
 - Identification depends on observation quality: distance, light, fog, spyglass, how long you were seen.
 - **Ship profile (decided: no disguise).** The law tracks your ship's appearance and name. **Repainting, renaming and swapping sails don't shed heat.** Cosmetic customization is cosmetic only. Heat tied to your ship stays until it decays, is bribed down, or you serve time. The only way to "lose" an old ship profile is to genuinely **replace the ship** (buy a new hull, or lose the old one). Reports about the old ship then no longer match, but the personal record stays.
-- **Personal identity** grows with Fame (people recognize a famous pirate on sight in ports). Disguises (clothing items, plan 09/10) reduce on-foot recognition.
+- **Personal identity** grows with Fame (people recognize a famous pirate on sight in ports). **No disguise items (decided 2026-10-22):** on-foot recognition depends on Fame, light, distance and how long you're seen.
 
 ### 2.4 Report delay (the intervention window)
 | Witness | Report method | Delay (game time) |
@@ -81,7 +81,7 @@ Crime committed ──► Witnessed? ──no──► (nothing, unless evidence
 | Townsperson | Tells the police | ~30–60 min |
 | Lighthouse keeper | Signal lamp or flag if it's visible from town; otherwise rows to town at dawn | ~1–8 h (by distance; R1 light data) |
 | Freighter / ship crew | Reports on arrival at its next port | Hours to days (voyage time) |
-| Life-Saving surfmen | Telephone/telegraph from the Duluth station (❓) | ~15–30 min |
+| Life-Saving surfmen | Telephone from the Duluth station (✅ the station on Minnesota Point was built in 1894 and manned in 1895; the telephone is a game assumption ❓) | ~15–30 min |
 | Rescued or released crew | On reaching shore | Varies |
 
 The HUD shows a **"report in progress" indicator** (an eye icon with a timer) when a known witness is carrying a report, which gives the player a chance to react. Silencing witnesses lethally is a far worse crime if discovered.
@@ -91,7 +91,7 @@ The HUD shows a **"report in progress" indicator** (an eye icon with a timer) wh
 ## 3. Wanted (per region)
 
 ### 3.1 Regions
-From [R1a](R1a-western-superior-gazetteer.md): **Duluth**, **Superior**, **North Shore**, **South Shore West**, **Apostles & Chequamegon Bay**. Red Cliff and Bad River are trade-only zones (no crime possible, so no Wanted there).
+From [R1a](R1a-western-superior-gazetteer.md), with the Apostles region split in two and Ashland on its own (decided 2026-10-22). **Seven regions:** **Duluth**, **Superior**, **North Shore**, **South Shore West**, **Apostle Islands** (the islands, including La Pointe on Madeline Island), **Chequamegon Bay** (Bayfield, Washburn and the bay's western shore) and **Ashland** (Ashland and the head of the bay). Red Cliff and Bad River are trade-only zones (no crime possible, so no Wanted there).
 
 ### 3.2 Tiers
 | Tier | Name | Heat range (draft) | World response |
@@ -136,13 +136,13 @@ From [R1a](R1a-western-superior-gazetteer.md): **Duluth**, **Superior**, **North
 ### 4.2 Effects
 | Benefit | Cost |
 |---|---|
-| Fences unlock and pay better ([05 §6.2](05-ports-economy-trading.md)) | **Recognition:** people in ports recognize you (personal identification) unless disguised |
+| Fences unlock and pay better ([05 §6.2](05-ports-economy-trading.md)) | **Recognition:** people in ports recognize you (personal identification) |
 | Ships surrender faster (intimidation, plan 07) | Bounty hunters seek you out at high Fame plus high Wanted |
 | Better rumors; smugglers and special jobs offered | Companies take notice (grudge builds faster) |
 | **Copycat rival pirates** appear as your Fame grows (max 2–3 active; [07 §8.1](07-combat-boarding-targets.md)) | The cutter's commander takes it personally (it prioritizes you) |
 
 ### 4.3 Standing (legit reputation)
-Defined in [05 §5.2](05-ports-economy-trading.md): per port and company. Crimes **identified to you** lower Standing with the victims and in that port. A legit player builds Standing, not Fame. *Respectable Captain* acclaim (newspaper stories about honest feats, such as rescues and record runs) may give a small Fame gain too (proposal).
+Defined in [05 §5.2](05-ports-economy-trading.md): per port and company. Crimes **identified to you** lower Standing with the victims and in that port. A legit player builds Standing, not Fame. **Respectable Captain (decided 2026-10-22):** newspaper stories about honest feats (rescues, record runs, "first boat in" after ice-out) give a small Fame gain, so a legit captain can reach Fame tier 1–2 without crime.
 
 ---
 
@@ -165,7 +165,11 @@ Defined in [05 §5.2](05-ports-economy-trading.md): per port and company. Crimes
 - **US Marshal posse / county sheriff:** on-foot searchers in docks districts and **islands** (they can land on islands to search hideout areas, but **can't raid hideouts**, per the decision; hideouts remain safe zones).
 - **Bounty hunters:** independent armed men who appear at tier 4+ and high Fame, sometimes in a hired boat. They're beatable, but killing them adds heat.
 
-### 5.4 Watchers (non-combatant eyes)
+### 5.4 Hideouts end pursuit (decided 2026-10-22)
+- Reaching your hideout's boundary **ends any pursuit**: the cutter, harbor launches, constables, marshals and bounty hunters break off, and the chart lock lifts ([09 §3](09-hideouts-building-crafting.md)).
+- The cost is being seen: pursuers who watch you reach it mark the hideout as **spotted** ([09 §8](09-hideouts-building-crafting.md)), so rumors name the place and the cutter patrols nearby more.
+
+### 5.5 Watchers (non-combatant eyes)
 - **Lighthouse keepers** (§6), **Life-Saving surfmen** (Duluth station: witnesses, and they rescue wreck survivors, who then testify), **ship crews** (freighters, tugs, fishing boats), **townsfolk** at day.
 
 ---
@@ -178,7 +182,7 @@ Each lighthouse (from [R1 §2.1](R1-western-superior-1900-research.md)) has:
 | Property | Source / meaning |
 |---|---|
 | **Light tier** | Strong (3rd/3½-order), medium (4th), weak (5th / temporary) → lit radius at night |
-| **Characteristic** | Fixed (a constant glow over its radius) vs. flashing/revolving (a sweeping beam; a direct hit = instant spot within range). From R1 data (❓ per light) |
+| **Characteristic** | Fixed (a constant glow over its radius) vs. flashing/revolving (a sweeping beam; a direct hit = instant spot within range). From [R1 §2.1](R1-western-superior-1900-research.md): ✅ Raspberry and Outer Island flash white every 90 s, Sand Island is fixed white, Devils Island shows a temporary fixed red; ❓ for the rest |
 | **Keeper(s)** | 1–3; a watch schedule (vigilance varies by hour; a keeper might doze before dawn) |
 | **Reporting speed** | Signal visible from town = fast; remote = rows at dawn ([2.4](#24-report-delay-the-intervention-window)) |
 | **Fog signal** | Horn or bell in fog (audio nav aid; [04 §10](04-water-weather-seasons.md)) |
@@ -209,7 +213,7 @@ One perception module serves keepers, guards, crews, the cutter lookout and mars
 - The cutter or another hostile that has spotted you **locks chart travel** ([03 §5.4](03-world-scale-chart-travel.md)) until line of sight is broken (islands, fog, distance, night plus dark running).
 
 ### 7.2 On-foot detection
-Plan 08 details it: vision cones × light level (lamplight vs. shadow) × movement (crouch, walk, run) × noise events × snow tracks (winter). Recognition (personal identification) uses Fame and disguise.
+Plan 08 details it: vision cones × light level (lamplight vs. shadow) × movement (crouch, walk, run) × noise events × snow tracks (winter). Recognition (personal identification) uses Fame, light and distance.
 
 ---
 
@@ -224,9 +228,11 @@ Plan 08 details it: vision cones × light level (lamplight vs. shadow) × moveme
 | Region Wanted at capture | Result |
 |---|---|
 | Tier 0–4 | **Jail**: **current cargo confiscated** (and cash on hand), **time passes** (sentence in weeks, by heat; 1 game day = 1 week, so a 3-week sentence = 3 game days skipped). The ship is impounded and returned on release (fee). Region heat is reset to tier 1 after serving. |
-| | **Bail:** pay (scaling with heat) to leave immediately. Needs money stashed accessibly (a "send word to your hideout" option at a cost) or on hand before confiscation (TBD). |
+| | **Bail:** pay (scaling with heat) to leave immediately, from a hideout stash via "send word" (a messenger fee plus a delay) or through a trusted fence ([12 §8.1](12-sandbox-events-character-failure.md)). |
 | | **Jailbreak:** a short stealth/escape scenario (plan 12). Success → free, +60 heat, and the ship is still impounded (steal it back from the harbor impound: a mini-heist). Failure → more time added. |
 | **Tier 5** | **Execution** → the run ends (permadeath). **Decided:** exactly **one hard jailbreak attempt** before the hanging. Success means escape (still tier 5, ship impounded). Failure means execution. |
+
+**MVP holding cell:** the MVP has one docks district (Bayfield), so captures in any region are held in **Bayfield's lockup**, and jailbreaks run there ([08 §9](08-docks-district-stealth.md)). The Duluth, Superior and Ashland lockups arrive with their districts.
 
 ---
 
@@ -245,7 +251,7 @@ Plan 08 details it: vision cones × light level (lamplight vs. shadow) × moveme
 - `wanted[regionId] = {heat, lastCrimeAt, lastSeenAt}`
 - `fame = {value, lastNotableAt}`
 - `profiles.ship = {silhouette, paint, sails, name, flag, recordHeat}`
-- `profiles.person = {recognition, disguise}`
+- `profiles.person = {recognition}`
 - `reports.inProgress[]` (witness, crime, ETA, identification)
 - `lighthouses[id] = {lit, keeperState, vigilance}`
 - `law.cutter` (abstract position and plan)
@@ -277,7 +283,6 @@ Plan 08 details it: vision cones × light level (lamplight vs. shadow) × moveme
 3. Investigations from wreck patterns.
 4. Heat spread via newspapers (strictly regional).
 5. Harbor impound mini-heist (pay a fee to recover the ship).
-6. Personal disguise items (clothing that lowers on-foot recognition).
 
 ---
 
@@ -294,9 +299,15 @@ All resolved.
 | 2026-10-21 | **No ship disguise:** repainting, renaming and new sails don't shed heat; only replacing the ship breaks the old ship profile. |
 | 2026-10-21 | One hard jailbreak attempt before execution. |
 | 2026-10-21 | Rival pirates appear as Fame grows (copycats), max 2–3 active (see 07). |
+| 2026-10-22 | Seven Wanted regions: the Apostles region splits into **Apostle Islands** and **Chequamegon Bay**, and **Ashland** is its own region. |
+| 2026-10-22 | **Respectable Captain** Fame from honest feats is in. |
+| 2026-10-22 | **No disguise items**; recognition depends on Fame, light and distance. |
+| 2026-10-22 | Reaching a hideout **ends pursuit** (pursuers break off; the hideout may be spotted). |
+| 2026-10-22 | In the MVP, captures are held in Bayfield's lockup. |
 
 ---
 
 ## Changelog
+- v0.3: Gap review: seven Wanted regions, Respectable Captain Fame, no disguise items, hideouts end pursuit, bail source from 12, MVP lockup at Bayfield, light characteristics and the Duluth life-saving station researched.
 - v0.2: Decisions: six tiers, heat spread, no inspections at tier 0, no ship disguise (only replacing the ship), one jailbreak before execution, copycat rivals; removed company guards and the bank freeze.
 - v0.1: Initial law plan: crime pipeline, severity, identification and ship profiles, report delays, regional tiers, decay and reduction, heat spread, Fame tiers and effects, Standing link, cutter behavior, harbor law, marshals, lighthouses (detection, raids, false lights, investigations), the detection model, capture outcomes, newspapers, data/state, Phase 5 acceptance.

@@ -1,6 +1,6 @@
 # R1a — Western Superior Gazetteer (circa spring 1900)
 
-Status: DRAFT v0.1
+Status: DRAFT v0.2
 Parent: [R1-western-superior-1900-research.md](R1-western-superior-1900-research.md)
 Feeds: 03 (world zones), 05 (markets), 06 (Wanted regions, lighthouses), 08 (docks districts)
 
@@ -14,7 +14,7 @@ Useful as world-state flavor, rumors and newspaper headlines at game start.
 
 - **The Duluth Ship Canal and Superior Entry piers are being rebuilt in concrete** (1896–1902), part of a $3M federal harbor project that also dredges 20-ft channels. ✅ *Game:* construction sites, scaffolding, temporary lights. Good night-theft targets (tools, iron, cement).
 - **The Duluth South Breakwater light is a temporary tower** (1898–1900) while the pier is rebuilt. The permanent tower is finished August 1901. ✅
-- **Devils Island's permanent tower stands, but its big third-order lens doesn't arrive until 1901.** ✅ (lens arrived April 1901) *Game:* a weaker light is a known gap in coverage on the exposed north edge of the Apostles. A prime wrecking spot.
+- **Devils Island's permanent tower stands, but its big third-order lens doesn't arrive until 1901.** ✅ (lens arrived June 1901, lit Sept 1901; a temporary fixed red light until then) *Game:* a weaker light is a known gap in coverage on the exposed north edge of the Apostles. A prime wrecking spot.
 - **The American Steel Barge Co. (whalebacks) is sold to American Ship Building Co. in 1900.** ✅ *Game:* a shipyard in transition; rumors of layoffs and surplus parts.
 - **Bayfield fishing is dominated by one big packer** (the real Booth Fisheries; fictionalized in-game). Its cooperage was built around 1900. ✅
 - **Island brownstone quarries are abandoned** (the last one closed in 1897). ✅
@@ -31,10 +31,12 @@ Useful as world-state flavor, rumors and newspaper headlines at game start.
 | **Superior** | Superior harbor and shipyards, Superior Entry, Wisconsin Point | Wisconsin, Douglas County, Superior police |
 | **North Shore** | Two Harbors and the coast northeast of Duluth | Minnesota, Lake County |
 | **South Shore West** | Coast from Superior to the Bayfield peninsula, Siskiwit Bay (Cornucopia area) | Wisconsin, Douglas/Bayfield Counties |
-| **Apostles & Chequamegon Bay** | Bayfield, Washburn, Ashland, La Pointe, the islands | Wisconsin, Bayfield/Ashland Counties |
+| **Apostle Islands** | The islands, including La Pointe (Madeline Island) | Wisconsin, Ashland/Bayfield Counties |
+| **Chequamegon Bay** | Bayfield, Washburn and the bay's western shore | Wisconsin, Bayfield County |
+| **Ashland** | Ashland and the head of the bay | Wisconsin, Ashland County |
 | *(Trade-only zones)* | Red Cliff, Bad River (Odanah) | Ojibwe reservation communities: no crime possible |
 
-TBD (plan 06): whether Apostles & Chequamegon Bay splits into "Islands" vs. "Bay towns," and whether Ashland (a different county) is its own region.
+**Decided (2026-10-22):** the Apostles region splits into Apostle Islands and Chequamegon Bay, and Ashland is its own region, for **seven regions** in all ([06 §3.1](06-fame-wanted-law-lighthouses.md)).
 
 ---
 
@@ -161,4 +163,5 @@ From general sources on the Lake Superior Ojibwe seasonal round: **fish year-rou
 - [NPS: Home of the Ojibwe](https://home.nps.gov/apis/learn/historyculture/home-of-the-ojibwe.htm) · [Ojibwa economy (everyculture)](https://www.everyculture.com/North-America/Ojibwa-Economy.html)
 
 ## Changelog
+- v0.2: Region split decided (seven regions); Devils Island lens date corrected.
 - v0.1: First gazetteer from the high-priority research pass.

@@ -1,6 +1,6 @@
 # 15 — Audio
 
-Status: DRAFT v0.2 (decisions made)
+Status: DRAFT v0.3 (decisions made)
 Parent: [00-master-plan.md](00-master-plan.md)
 Inputs:
 - Master plan: AI-generated audio
@@ -238,9 +238,11 @@ All resolved.
 | 2026-10-22 | Saloon music: **piano or fiddle, instrumental only, no lyrics**. |
 | 2026-10-22 | SFX and ambience: **free CC0 libraries first**, AI generation to fill gaps. |
 | 2026-10-22 | **Period folk** score style. |
+| 2026-10-22 | **Plan 15 wins on sourcing:** CC0 first for SFX, ambience and shouts, AI generation fills gaps. The master plan now matches. |
 
 ---
 
 ## Changelog
+- v0.3: Gap review: master plan aligned to this plan's sourcing order; no content change here.
 - v0.2: Decisions: traditional song motifs, no spoken dialogue, instrumental saloon music, CC0-first SFX, period folk style.
 - v0.1: Initial audio plan: goals, style (period folk, Great Lakes song tradition), sources and license gate, sound list by system, audio-as-gameplay rules, dynamic music states and technique, buses and spatialization, budgets, pipeline, data/state, phasing.
