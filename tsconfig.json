@@ -16,5 +16,5 @@
     "skipLibCheck": true,
     "noEmit": true
   },
-  "include": ["src", "data", "tests", "e2e", "tools", "*.ts"]
+  "include": ["src", "data", "tests", "e2e", "bench", "tools", "*.ts"]
 }

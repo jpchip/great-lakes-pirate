@@ -253,7 +253,7 @@ Each hideout has a **concealment rating**: site base + camouflage − night ligh
 | Collision | From grid occupancy (walls block edges, floors are walkable; [01 §4.4](01-tech-architecture.md)). No physics engine. |
 | Lights | Lanterns are emissive plus fake pools; ≤ 4 real lights near the player |
 | Rebuild cost | Incremental instance updates on placement (≤ 1 frame); proxy regeneration debounced |
-| Save size | ~12 bytes per piece (type id, cell, rotation, variant), compressed. 7 hideouts × 1,500 pieces ≈ 125 KB raw. Fine. |
+| Save size | Pieces saved **packed**: a palette of piece ids plus a flat integer array (type, cell, level, rotation, variant, paint). S6 measured ~17 bytes per piece raw, 7 hideouts × 1,500 pieces = 177 KB raw, 55 KB compressed ([16 §15](16-save-persistence.md)). |
 
 ---
 

@@ -1,6 +1,6 @@
 # 16 — Save & Persistence
 
-Status: DRAFT v0.3 (decisions made)
+Status: DRAFT v0.4 (decisions made; S6 measured)
 Parent: [00-master-plan.md](00-master-plan.md)
 Inputs:
 - [01 §4.7](01-tech-architecture.md): single slot per run, IndexedDB, compressed JSON, autosave triggers, delete on death, migrations, spike S6
@@ -150,6 +150,8 @@ Render objects, physics and collision caches, navmeshes, audio state, UI state. 
 | Logbook, newspapers, events, misc. | ~100–300 KB raw |
 | **Total** | **~0.5–1 MB raw → ~100–250 KB compressed** |
 
+S6 measured a worst case of **839 KB raw → 244 KB compressed** with packed hideout pieces; see [§15](#15-spike-s6-results-2026-10-23).
+
 ---
 
 ## 6. Writing & Reading
@@ -258,7 +260,64 @@ All resolved.
 
 ---
 
+## 15. Spike S6 Results (2026-10-23)
+
+**Question:** with a worst-case `WorldState`, what is the compressed size, how long does a save take, does it hitch a frame, and how long does a 12-game-day batch fast-forward take ([01 §11.2](01-tech-architecture.md))?
+
+**Answer:** it fits, with one change: **hideout pieces must be stored packed**, not as one JSON object per piece. With packed pieces the save is 244 KB compressed and costs ~2.6 ms on the main thread (p95 4.0 ms), inside the §6.2 budget. Dirty-slice tracking is not needed and stays on the cut list.
+
+### Setup
+- Code: `bench/s6/` (`npm run bench:save` runs it in Chromium and writes `bench/s6/last-run.json`). `tests/save-size.test.ts` guards the worst-case size in CI.
+- The state is generated from a seed: 7 hideouts × 1,500 pieces, 200 abstract ships, 16 ports × 30 goods with 52 weeks of price history, 400 knowledge entries, 150 reports, 1,200 logbook entries, 40 newspaper editions, 6 zones of 64×64 ice grids (coverage and thickness), weather systems and fog banks. Values are random, which is the compression worst case (real ice and price fields are smoother).
+- It runs the real save code from PR #6: the save worker, fflate level 6, CRC-32 and the atomic IndexedDB write. 3 warm-up runs, then 20 measured runs.
+- **Machine:** these numbers come from headless Chromium 156 in the cloud dev container (4 vCPU Intel Xeon at 2.1 GHz), not the baseline laptop. The Ryzen 7 7730U should be about as fast or faster per core. Re-run `npm run bench:save` there to confirm.
+
+### Size
+| | Raw JSON | Compressed |
+|---|---|---|
+| **Packed pieces** (whole state) | 839 KB | **244 KB** |
+| Objects per piece (whole state) | 1,522 KB | 278 KB (over target) |
+| Hideouts only, packed | 177 KB (16.8 B per piece) | 55 KB |
+| Hideouts only, objects | 860 KB (82 B per piece) | 87 KB |
+
+Biggest slices (packed, compressed): markets 67 KB (the 52-week price history is most of it), hideouts 55 KB, environment 54 KB (almost all ice grids), logbook 33 KB, traffic 11 KB. Everything else is under 10 KB each.
+
+Compression level, whole packed state: level 1 → 278 KB in 22 ms; level 3 → 262 KB in 32 ms; **level 6 → 244 KB in 84 ms**; level 9 → 242 KB in 104 ms. Level 6 stays: it runs in the worker, so the extra time is free, and level 9 gains almost nothing.
+
+### Speed (median / p95, ms)
+| Step | Packed | Objects |
+|---|---|---|
+| **Main thread: `postMessage` to the worker (structured clone)** | **2.6 / 4.0** | 6.8 / 13.9 |
+| Worker round trip (stringify, compress, checksum, transfer back) | 105 / 130 | 135 / 170 |
+| IndexedDB atomic write (`current` + `backup`) | 5.9 / 11.1 | 4.5 / 11.1 |
+| Whole save, request to committed | 110 / 137 | 139 / 175 |
+| Load: checksum, inflate and parse (before zod) | 23 / 33 | 21 / 25 |
+| For reference, inline encode with no worker | 93 / 150 | 107 / 142 |
+
+- **Frame hitch:** no long tasks (> 50 ms) during 20 saves, and frame gaps stayed at 16.7 ms. Headless Chromium's frame clock is coarse, so treat this as "no big hitch" and recheck with the dev overlay's frame graph on the laptop.
+- The ~6 ms IndexedDB write is async; most of its cost is off the main thread.
+- Without the worker a save would block for ~90 ms, so the worker path is required, not an optimization.
+
+### Batch fast-forward (12 game days = 1,728 world ticks)
+The real world tick doesn't exist yet, so `bench/s6/world-tick.ts` stands in for it with heavier-than-planned work on the worst-case state: every market drifts and restocks, every ship moves and trades, weather systems move, Wanted decays, and every ice cell grows or melts.
+
+| Ice update cadence | 12 game days |
+|---|---|
+| Every world tick (10 game minutes) | 2,256 ms |
+| **Once per game day** | **80 ms** |
+
+Per-cell grid updates dominate. Everything else (480 markets, 200 ships) costs under 50 µs per tick. Updating ice daily turns a jail sentence into a sub-0.1 s batch, so the progress screen is a nicety rather than a necessity. S9 should still time the real weather sim.
+
+### Recommendations for the owner plans
+1. **Hideouts ([09 §10](09-hideouts-building-crafting.md)):** save pieces as a per-hideout palette of piece ids plus one flat integer array (7 numbers per piece). Objects per piece break both the size target and the 4 ms budget.
+2. **Markets ([05](05-ports-economy-trading.md)):** keep price history short (e.g. 12 weeks) or store it as deltas; at 52 weeks it is the largest slice.
+3. **Environment ([04](04-water-weather-seasons.md)):** store grids as integer arrays (0–100 coverage, whole cm), and update per-cell grids on a coarse cadence (daily, or hourly at most), not every world tick.
+4. **Save path:** keep the worker, full structured clone and fflate level 6. Dirty-slice tracking stays cut unless a later slice pushes the clone past 4 ms on the laptop.
+
+---
+
 ## Changelog
+- v0.4: Spike S6 results (§15): worst case 244 KB compressed, ~2.6 ms main thread with packed hideout pieces; ice updates daily in fast-forward.
 - v0.3: Gap review: export/import is a committed Phase 11 feature, not optional.
 - v0.2: Decisions: danger snapshot, player export/import (Transferred label, blocked during danger), Abandon run, 2-minute autosave.
 - v0.1: Initial persistence plan: stores, run lifecycle, autosave triggers, safe vs. danger states, the danger snapshot anti-scum rule, integrity rules, envelope and WorldState slice ownership, size targets, atomic writes, worker serialization, recovery, migrations, browser storage pitfalls, optional export/import, dev tools, tests, phasing.
