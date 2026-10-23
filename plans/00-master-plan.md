@@ -263,7 +263,7 @@ Each of these gets its own plan doc. Summaries capture decisions plus remaining 
 | 7 | **On Foot: Docks & Islands** | The night loop + island exploration | On-foot mode, one docks district (**Bayfield**, with the lockup for jail and jailbreaks), stealth AI, theft, one fully walkable island |
 | 8 | **Hideouts** | Base loop | Grid building, crafting, storage, two MVP hideouts (seven sites by Beta) |
 | 9 | **Seasons & Secrets** | Depth | Full season cycle (winter rules), island secrets, wrecking, events, newspapers, permadeath polish |
-| 10 | **Expand the Lakes** | More world | Lake Michigan (Seavey's home waters), then Huron, Erie, Ontario, and the Soo Locks. ❓ [17 §7](17-testing-performance-release.md) ships this after 1.0 |
+| 10 | **Expand the Lakes** | More world | Lake Michigan (Seavey's home waters), then Huron, Erie, Ontario, and the Soo Locks (before 1.0; decided 2026-10-23) |
 | 11 | **Polish & Release** | Ship it | Audio, UI polish, performance, tutorial, playtests |
 
 ### MVP definition
@@ -311,7 +311,6 @@ For reference, Lake Superior is ~350 mi long and ~160 mi wide, and the Apostle I
 
 The big design questions are answered, and the 2026-10-22 gap review closed the Phase 0 blockers. The system plans hold the remaining detail. Open items:
 
-- ❓ **Phase 10 ordering:** [17 §7](17-testing-performance-release.md) ships the lake expansions after 1.0, but the roadmap lists Phase 10 before Phase 11 polish. Confirm which comes first.
 - ❓ Ojibwe tribal sources and the cultural review before Beta ([R1 §5](R1-western-superior-1900-research.md), [17](17-testing-performance-release.md)).
 - ❓ Remaining history checks in the [R1 backlog](R1-western-superior-1900-research.md#7-research-backlog-prioritized) (some lenses, storm-flag ports, life-saving station communication).
 - The art style (A or B) and renderer are picked by spikes S4 and S1.
@@ -412,6 +411,7 @@ All planned documents are drafted and their open questions answered. Next:
 | 2026-10-22 | Seven Wanted regions (Apostles split; Ashland on its own); Respectable Captain Fame track included (06, R1a). |
 | 2026-10-22 | Time skips batch fast-forward; the shipyard auto-sells cargo; harbor tugs tow T3; player export/import ships (01, 05, 10, 16). |
 | 2026-10-22 | Versions: 0.8 = MVP/Alpha, 0.9 = Beta, 1.0 after Phase 11 (17). |
+| 2026-10-23 | Phase 10 (expand the lakes) comes before Phase 11 (polish); expansions ship before 1.0 as 0.10.x (17). |
 | 2026-10-22 | Booth Fisheries is fictionalized as Hollister Fish & Packing everywhere, including the README. |
 
 ---

@@ -139,7 +139,7 @@ Each phase ends with a playtest against **that phase's acceptance criteria** (fr
 ## 7. Versioning & Milestones
 
 ### 7.1 Versioning
-- **Semver (fixed 2026-10-22):** `0.<phase>.<patch>` for Phases 0–9 (e.g., `0.1.0` = Phase 1 sailing prototype). **`0.8.x` = MVP/Alpha** (Phase 8 done) and **`0.9.x` = Beta** (Phase 9 done). Phase 11 polish builds are `0.9.x` release candidates, ending at **1.0.0**. Phase 10 expansions ship after 1.0 as `1.x` minor versions.
+- **Semver (fixed 2026-10-22):** `0.<phase>.<patch>` for Phases 0–9 (e.g., `0.1.0` = Phase 1 sailing prototype). **`0.8.x` = MVP/Alpha** (Phase 8 done) and **`0.9.x` = Beta** (Phase 9 done). Phase 10 expansion builds are **`0.10.x`** (Phase 10 comes before polish, decided 2026-10-23), and Phase 11 polish builds are **`0.11.x`** release candidates, ending at **1.0.0**.
 - `gameVersion` is in saves ([16 §5.1](16-save-persistence.md)). `saveVersion` is separate.
 - `CHANGELOG.md` (Keep a Changelog style) is updated with every release.
 
@@ -149,8 +149,8 @@ Each phase ends with a playtest against **that phase's acceptance criteria** (fr
 | **Phase builds** (0.0–0.7) | Each phase's playable goal ([00 §7](00-master-plan.md)) | Developer (+ optional friends) |
 | **MVP / Alpha** | The master plan MVP definition: western Superior, sailing with weather, hybrid travel, trading, Fame/Wanted with the cutter and lighthouses, freighter piracy, one docks district, 1–2 hideouts, at least summer and fall | **Private:** invited external testers only (unlisted URL, optional basic auth) |
 | **Beta** | All MVP-region systems and content complete (Phase 9 done): all docks districts, islands, legends, seasons including winter, rivals, endings | **First public release:** itch.io "in development" plus a public droplet URL |
+| **Expansions** (0.10) | Lake Michigan (Seavey's home waters), then the other lakes ([00 §7](00-master-plan.md) Phase 10) | Public (Beta) |
 | **1.0** | Polish (Phase 11), full checklist (§9) | Public release |
-| **Post-1.0** | Expansions: Lake Michigan (Seavey's home waters), then the other lakes ([00 §7](00-master-plan.md) Phase 10) | Public |
 
 ---
 
@@ -254,12 +254,13 @@ All resolved.
 | 2026-10-22 | **Ojibwe cultural review budgeted** before Beta. |
 | 2026-10-22 | **Save migrations only**; no version-pinned old builds. |
 | 2026-10-22 | **CI runs no WebGL:** Playwright smoke uses a null renderer; screenshot diffs are local only. Blender and GDAL are local only. |
-| 2026-10-22 | **Version scheme:** 0.8 = MVP/Alpha, 0.9 = Beta, 1.0 after Phase 11 polish; Phase 10 expansions ship as 1.x. |
+| 2026-10-22 | **Version scheme:** 0.8 = MVP/Alpha, 0.9 = Beta, 0.10 = Phase 10 expansions, 0.11 = Phase 11 polish, then 1.0. |
 | 2026-10-22 | **No hosting yet:** local builds only; droplet, domain and tagged deploys deferred. Unlisted with optional basic auth until Beta once it exists. |
+| 2026-10-23 | **Phase 10 (expansions) comes before Phase 11 (polish)**, so the other lakes ship before 1.0. |
 
 ---
 
 ## Changelog
-- v0.3: Gap review: CI without WebGL (null-renderer smoke, local screenshot diffs), Blender/GDAL local, version scheme fixed (0.8 MVP, 0.9 Beta, Phase 10 post-1.0), hosting deferred, DoD #7 deferred.
+- v0.3: Gap review: CI without WebGL (null-renderer smoke, local screenshot diffs), Blender/GDAL local, version scheme fixed (0.8 MVP, 0.9 Beta, 0.10 expansions, 0.11 polish, then 1.0), hosting deferred, DoD #7 deferred.
 - v0.2: Decisions: MVP external testers, no network telemetry plus an opt-in local stats summary, private until Beta, cultural review budgeted, migrations only (old-build paths removed).
 - v0.1: Initial testing and release plan: test layers, CI gates, simulation and balance harness, performance methodology and benches, the bench gate, browser matrix, playtesting and bug bundles, telemetry stance, versioning and milestones, CI/CD to the droplet and itch.io, the pre-release checklist (quality, licensing, cultural review, ops), post-release support, phase definition of done.
