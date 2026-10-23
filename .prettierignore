@@ -1,0 +1,9 @@
+dist/
+node_modules/
+raw-assets/
+public/
+plans/
+references/
+package-lock.json
+playwright-report/
+test-results/
