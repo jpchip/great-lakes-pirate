@@ -29,8 +29,9 @@ Left out on purpose:
 
 ## Gaps worth a later pass
 
-- NOAA Office of Coast Survey historical charts (historicalcharts.noaa.gov) for Lake Superior around
-  1900, and the US Lake Survey chart 1 of the Apostle Islands at full resolution.
+- The US Lake Survey chart 1 of the Apostle Islands (1900) at full resolution. The NOAA charts for
+  1899, 1906 and 1915 are in; their full-size scans live in `raw-assets/charts/` (LFS) and
+  `maps/` holds 2048 px copies.
 - NPS Apostle Islands historic photos (quarries, fish camps, Stockton and Siskiwit), once their
   rights are checked per image.
 - Period clothing, signage and painted lettering.
