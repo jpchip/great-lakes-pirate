@@ -1,4 +1,5 @@
 import { World } from 'miniplex';
+import type { Buoyancy } from './buoyancy';
 
 /**
  * Materialized entities in the active zone (plan 01 §3.4), managed with miniplex.
@@ -19,6 +20,10 @@ export interface Transform {
   position: Vec3;
   /** Radians, clockwise from north (compass convention). */
   heading: number;
+  /** Radians, bow up. Set by buoyancy; absent means level. */
+  pitch?: number;
+  /** Radians, starboard side up. Set by buoyancy; absent means level. */
+  roll?: number;
 }
 
 export interface Entity {
@@ -28,8 +33,10 @@ export interface Entity {
   /** Transform at the previous tick, for render interpolation. */
   previousTransform?: Transform;
   velocity?: Vec3;
-  /** Placeholder bobbing until buoyancy lands (plan 02). */
+  /** Simple sine bobbing for floating props that don't need buoyancy. */
   bob?: { amplitude: number; frequency: number; phase: number };
+  /** Hull sampling on the shared wave set (plan 02 §5.1); see gameplay/buoyancy. */
+  buoyancy?: Buoyancy;
   /** Which model render/ draws for this entity; render/ owns the three.js objects. */
   model?: 'schooner';
   playerControlled?: true;
@@ -46,10 +53,15 @@ function copyTransform(from: Transform, to: Transform): void {
   to.position.y = from.position.y;
   to.position.z = from.position.z;
   to.heading = from.heading;
+  if (from.pitch !== undefined) to.pitch = from.pitch;
+  if (from.roll !== undefined) to.roll = from.roll;
 }
 
 export function cloneTransform(t: Transform): Transform {
-  return { position: { ...t.position }, heading: t.heading };
+  const out: Transform = { position: { ...t.position }, heading: t.heading };
+  if (t.pitch !== undefined) out.pitch = t.pitch;
+  if (t.roll !== undefined) out.roll = t.roll;
+  return out;
 }
 
 /** Run first in every tick: remember where interpolated entities were. */
@@ -88,5 +100,9 @@ export function interpolateTransform(e: Entity, alpha: number, out: Transform): 
   out.position.y = prev.position.y + (cur.position.y - prev.position.y) * alpha;
   out.position.z = prev.position.z + (cur.position.z - prev.position.z) * alpha;
   out.heading = lerpAngle(prev.heading, cur.heading, alpha);
+  const pitch = cur.pitch ?? 0;
+  const roll = cur.roll ?? 0;
+  out.pitch = (prev.pitch ?? pitch) + (pitch - (prev.pitch ?? pitch)) * alpha;
+  out.roll = (prev.roll ?? roll) + (roll - (prev.roll ?? roll)) * alpha;
   return out;
 }

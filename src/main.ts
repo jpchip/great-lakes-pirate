@@ -6,11 +6,18 @@ import { openSaveDb } from './core/save/db';
 import { createWorkerEncoder } from './core/save/encoder';
 import { loadRun } from './core/save/load';
 import { RunSaver } from './core/save/run-saver';
+import { AssetLoader, EMPTY_MANIFEST } from './core/assets';
+import { schoonerBuoyancy } from './gameplay/buoyancy';
 import { cloneTransform, createGameWorld } from './gameplay/ecs';
+import type { SaveControls } from './debug/overlay';
 import type { GameContext, GameEvents } from './modes/context';
 import { ModeMachine } from './modes/machine';
 import { createSailingMode, type SailingView } from './modes/sailing';
+import { loadAssets } from './render/assets';
+import { browserStorage, initialQuality } from './render/quality';
+import { GameRenderer } from './render/renderer';
 import { createTestScene } from './render/test-scene';
+import { createSea } from './sim/weather/waves';
 import { createWorldState, parseWorldState, type WorldState } from './sim/world-state';
 
 /** Periodic autosave while safe (plan 16 §4.1). */
@@ -76,7 +83,8 @@ async function boot(): Promise<void> {
 
   // `?renderer=null` boots without WebGL. CI has no GPU, so its smoke test uses this
   // (plan 01 §9); rendering is checked locally.
-  const rendererKind = new URLSearchParams(window.location.search).get('renderer');
+  const params = new URLSearchParams(window.location.search);
+  const rendererKind = params.get('renderer');
   document.body.dataset['renderer'] = rendererKind === 'null' ? 'null' : 'webgl';
 
   const machine = new ModeMachine();
@@ -95,31 +103,76 @@ async function boot(): Promise<void> {
     rng: Rng.fromState(state.environment.rng),
     input,
     events: new EventBus<GameEvents>(),
+    sea: createSea(),
   };
 
-  // Placeholder schooner until the ship slice and sailing controller land (plan 02).
-  const shipTransform = { position: { x: 0, y: 0, z: 0 }, heading: 0 };
+  // Placeholder schooner riding the test-bay sea until the sailing controller lands
+  // (plan 02). It holds still; the waves move it.
+  const shipTransform = { position: { x: 0, y: 0, z: 0 }, heading: 0.6 };
   ctx.world.add({
     id: 'ship.player',
     transform: shipTransform,
     previousTransform: cloneTransform(shipTransform),
-    bob: { amplitude: 0.15, frequency: 0.2, phase: 0 },
+    buoyancy: schoonerBuoyancy(),
     model: 'schooner',
     playerControlled: true,
   });
 
-  const view: SailingView | undefined =
-    rendererKind === 'null' ? undefined : createTestScene(container, ctx.world);
+  const saveControls: SaveControls = {
+    status,
+    lastSavedAt: undefined,
+    lastError: undefined,
+    async saveNow(): Promise<void> {
+      if (!saver) return;
+      state.environment.rng = ctx.rng.getState();
+      try {
+        await saver.save(state);
+        saveControls.lastSavedAt = new Date();
+        saveControls.lastError = undefined;
+      } catch (err) {
+        saveControls.lastError = String(err);
+        console.error('Autosave failed', err);
+      }
+    },
+  };
+  const saveNow = (): void => void saveControls.saveNow();
+
+  let view: SailingView | undefined;
+  if (rendererKind !== 'null') {
+    const assets = await loadAssets().catch((err: unknown) => {
+      console.warn('Asset manifest unavailable; using placeholders', err);
+      return new AssetLoader({ manifest: EMPTY_MANIFEST, baseUrl: document.baseURI, decoders: {} });
+    });
+    const renderer = new GameRenderer(
+      container,
+      initialQuality(window.location.search, browserStorage()),
+    );
+    const scene = await createTestScene(renderer, ctx.world, ctx.sea, assets);
+    view = scene;
+
+    // Dev overlay: dev builds, or `?debug` / `?bench=water` on a production build.
+    const bench = params.get('bench') === 'water';
+    if (import.meta.env.DEV || params.has('debug') || bench) {
+      const { createDevOverlay } = await import('./debug/overlay');
+      const overlay = createDevOverlay({
+        renderer,
+        scene,
+        sea: ctx.sea,
+        save: saveControls,
+        autoBench: bench,
+      });
+      view = {
+        render(alpha, seaTime, frameSeconds) {
+          scene.render(alpha, seaTime, frameSeconds);
+          overlay.update(frameSeconds);
+        },
+      };
+    }
+  }
 
   machine
     .register({ id: 'mainMenu', enter: () => (input.context = 'menu') })
     .register(createSailingMode(ctx, view));
-
-  const saveNow = (): void => {
-    if (!saver) return;
-    state.environment.rng = ctx.rng.getState();
-    saver.save(state).catch((err: unknown) => console.error('Autosave failed', err));
-  };
   // Phase 0 has no danger states yet, so every moment is safe to save (plan 16 §4.2).
   window.setInterval(saveNow, AUTOSAVE_INTERVAL_MS);
   document.addEventListener('visibilitychange', () => {

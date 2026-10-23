@@ -2,6 +2,7 @@ import type { EventBus } from '../core/events';
 import type { InputMapper } from '../core/input';
 import type { Rng } from '../core/rng';
 import type { GameWorld } from '../gameplay/ecs';
+import type { Sea } from '../sim/weather/waves';
 import type { WorldState } from '../sim/world-state';
 
 /** Events shared across layers. Each system plan adds its own (plan 01 §3.5). */
@@ -18,4 +19,6 @@ export interface GameContext {
   rng: Rng;
   input: InputMapper;
   events: EventBus<GameEvents>;
+  /** The active zone's waves (plan 04 §6.2); buoyancy and the water shader share it. */
+  sea: Sea;
 }
