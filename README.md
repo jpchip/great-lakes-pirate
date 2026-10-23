@@ -39,7 +39,7 @@ Start on western Lake Superior; all five Great Lakes and the connecting waters (
 
 ## Project status
 
-**Phase 0 (Foundations) is under way.** Every system plan (00–17) and the research docs (R1, R1a) are drafted with their decisions recorded, and the project scaffold is in place (see [Development](#development)). Spikes S1–S9 come next; there is no playable build yet. The MVP region is **western Lake Superior**: Duluth, Superior, Two Harbors, Ashland, Bayfield, Washburn, La Pointe, Siskiwit Bay and the Apostle Islands, with the Red Cliff and Bad River Ojibwe communities as trading partners.
+**Phase 0 (Foundations) is under way.** Every system plan (00–17) and the research docs (R1, R1a) are drafted with their decisions recorded, the project scaffold is in place (see [Development](#development)), and the core skeleton (fixed-step loop, game clock, modes, events, seeded RNG, coords, input map, miniplex entities and the IndexedDB save layer) has landed. Spikes S1–S9 come next; there is no playable build yet. The MVP region is **western Lake Superior**: Duluth, Superior, Two Harbors, Ashland, Bayfield, Washburn, La Pointe, Siskiwit Bay and the Apostle Islands, with the Red Cliff and Bad River Ojibwe communities as trading partners.
 
 **MVP scope:** arcade sailing with weather, hybrid travel (detailed coasts plus chart travel), trading, Fame/Wanted with the revenue cutter and lighthouses, freighter piracy, one docks district (Bayfield, whose lockup holds every MVP prisoner), one fully walkable island, two hideouts with grid building (Stockton Island and the Siskiwit camp), and the season from the May 1900 start through freeze-up.
 

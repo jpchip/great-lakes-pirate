@@ -2,6 +2,9 @@
   "saveVersion": 1,
   "state": {
     "player": {},
-    "environment": {}
+    "environment": {
+      "clock": { "gameSeconds": 5400, "worldTickAccumulator": 0 },
+      "rng": [2847503681, 1250297732, 3366045090, 7]
+    }
   }
 }

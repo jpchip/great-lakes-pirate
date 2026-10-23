@@ -1,0 +1,21 @@
+import type { EventBus } from '../core/events';
+import type { InputMapper } from '../core/input';
+import type { Rng } from '../core/rng';
+import type { GameWorld } from '../gameplay/ecs';
+import type { WorldState } from '../sim/world-state';
+
+/** Events shared across layers. Each system plan adds its own (plan 01 §3.5). */
+export interface GameEvents {
+  /** A strategic world tick ran (every 10 game minutes). */
+  WorldTick: { gameSeconds: number };
+  DayChanged: { day: number };
+}
+
+/** Everything a mode needs; built once at boot and handed to each mode. */
+export interface GameContext {
+  state: WorldState;
+  world: GameWorld;
+  rng: Rng;
+  input: InputMapper;
+  events: EventBus<GameEvents>;
+}
