@@ -84,7 +84,7 @@ Lighthouse station (tower, keeper's house, oil house, fog signal) · quarry ruin
 
 ### 3.1 Movement & traversal
 - The same controller and third-person camera as the docks ([08 §3](08-docks-district-stealth.md)): walk, crouch, run, vault and climb at marked spots, swim.
-- **Terrain** is the 1 m on-foot heightmap ([03 §8](03-world-scale-chart-travel.md)). Slopes above a threshold aren't walkable, so cliffs are barriers except at authored paths, gullies and ladders.
+- **Terrain** is the 1 m on-foot heightmap ([03 §8](03-world-scale-chart-travel.md)). Slopes above a threshold (**42°**, from spike S5, [08 §19](08-docks-district-stealth.md)) aren't walkable, so cliffs are barriers except at authored paths, gullies and ladders.
 - **Going ashore:** anchor, take the rowboat to a beach or landing ([03 §7](03-world-scale-chart-travel.md)). You can carry loot back by rowboat or have the ship moored at a dock (lighthouse docks, fish camps, hideouts).
 - Clock: R_foot ≈ 6 ([03 §3.3](03-world-scale-chart-travel.md)).
 
