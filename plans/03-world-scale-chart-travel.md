@@ -231,7 +231,7 @@ Spotted something (or something spotted you)
 1. **Reproject** to ~~**UTM zone 15N**~~ the game's chart projection (the local equirectangular projection in `src/core/coords.ts`), so baked samples line up with `geoToChart()` at runtime (S3, §14).
 2. **Merge** DEM and bathymetry into one elevation surface (land positive, lake bottom negative relative to the lake level, ~602 ft / 183.5 m).
 3. **Clip** per zone (geo bounds from `zones.json`) with a margin.
-4. **Compress horizontally by C**: resample to the zone grid, where 1 m of game space = C m of real space. ~~Heights stay 1:1 (with an optional cliff exaggeration curve).~~ Land heights go through a configurable curve, because 1:1 heights make slopes C times steeper; water depth stays 1:1 (S3, §14.3; the curve is pending a decision).
+4. **Compress horizontally by C**: resample to the zone grid, where 1 m of game space = C m of real space. ~~Heights stay 1:1 (with an optional cliff exaggeration curve).~~ Land heights go through a configurable curve, because 1:1 heights make slopes C times steeper; water depth stays 1:1. Decided: a soft knee at 20 m (S3, §14.3).
 5. **Resample resolution:**
    - **Sailing tiles:** ~4 m/sample of game space (Apostles ≈ 1,750² samples, ~6 MB at 16-bit).
    - **On-foot island tiles:** ~1 m/sample, generated for **all 22 island** footprints plus a beach margin, and for the three mainland hideout pads.
@@ -309,9 +309,7 @@ S7 and S8 are **Phase 0** prototypes (decided 2026-10-22; [01 §11](01-tech-arch
 
 ## 13. Open Questions
 
-Remaining tuning (not decisions) happens in S7: the exact freighter scale and the exact R_foot.
-
-- ❓ **Land height curve** (S3, §14.3): keep heights 1:1, halve them, or a soft knee at 20 m (proposed). The pipeline bakes the soft knee until this is decided.
+All resolved. Remaining tuning (not decisions) happens in S7: the exact freighter scale and the exact R_foot.
 
 ### Decisions
 | Date | Decision |
@@ -327,6 +325,7 @@ Remaining tuning (not decisions) happens in S7: the exact freighter scale and th
 | 2026-10-22 | The three mainland hideout sites get small on-foot build pads, the only mainland on-foot areas besides docks districts. |
 | 2026-10-22 | The Apostles zone spans three Wanted regions: Apostle Islands, Chequamegon Bay, Ashland. |
 | 2026-10-22 | S7 and S8 are Phase 0 prototypes; S3 bakes funneling maps. |
+| 2026-10-23 | Land heights use a **soft knee at 20 m** (`h' = 20·ln(1 + h/20)`), not 1:1, so compressed islands stay walkable; water depth stays 1:1 (S3, §14.3). |
 
 ---
 
@@ -362,9 +361,9 @@ Squeezing 8× sideways while keeping heights 1:1 makes every slope 8× steeper (
 |---|---|---|---|---|---|
 | 1:1 (old §8.2) | 35.5% | 16.6% | 10.7% | 7.4% | 148 m |
 | Linear × 0.5 | 12.3% | 7.4% | 6.5% | 3.3% | 74 m |
-| **Soft knee at 20 m** (proposed, baked) | **7.6%** | 8.1% | 8.6% | 4.0% | 43 m |
+| **Soft knee at 20 m** (decided) | **7.6%** | 8.1% | 8.6% | 4.0% | 43 m |
 
-The soft knee (`h' = 20·ln(1 + h/20)`) keeps low ground near full height, so beaches, shore cliffs and sea caves still read right from the water, and flattens high ground the most. Lower land also shortens the lee. **Decision pending** (§13).
+The soft knee (`h' = 20·ln(1 + h/20)`) keeps low ground near full height, so beaches, shore cliffs and sea caves still read right from the water, and flattens high ground the most. Lower land also shortens the lee. **Decided 2026-10-23: soft knee at 20 m** (§13).
 
 ### 14.4 Not done (follow-ups)
 - `zones.json` in `data/` (the zone config lives in `tools/geo/zones/` for now), `islands.json`, and the three mainland hideout pads, whose sites aren't placed yet (09).
@@ -376,7 +375,7 @@ The soft knee (`h' = 20·ln(1 + h/20)`) keeps low ground near full height, so be
 ---
 
 ## Changelog
-- v0.4: Spike S3 results (§14): pipeline in `tools/geo/`, chart projection instead of UTM, 16-bit delta + deflate tiles, lee in game meters, land height curve proposed (pending).
+- v0.4: Spike S3 results (§14): pipeline in `tools/geo/`, chart projection instead of UTM, 16-bit delta + deflate tiles, lee in game meters, land height curve (soft knee at 20 m, decided).
 - v0.3: Gap review: separate island scene loads, 1 m tiles for all 22 islands, mainland hideout pads, three Wanted regions in the Apostles zone, S7/S8 in Phase 0, Siskiwit cut keeps its hideout reachable.
 - v0.2: Decisions recorded: C = 8, 60-minute day, no chart escape when detected, shrunk freighters, lookout setting, slower on-foot clock (R_foot = 6 proposed).
 - v0.1: Initial world-scale plan: compression model (C = 8), time/speed linkage (R = 24), 1:1 set-piece exceptions, MVP zones, chart mode, simulation-driven encounters, arenas, transitions, terrain pipeline, data model, spikes S3/S7/S8.
