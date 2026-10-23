@@ -1,7 +1,14 @@
 import * as THREE from 'three';
+import { interpolateTransform, type Entity, type GameWorld, type Transform } from '../gameplay/ecs';
 
-/** Placeholder scene: a flat water plane and a bobbing box standing in for the schooner. */
-export function createTestScene(container: HTMLElement): void {
+/**
+ * Placeholder scene: a flat water plane and a box standing in for the schooner. The box
+ * follows the player ship entity, interpolated between gameplay ticks.
+ */
+export function createTestScene(
+  container: HTMLElement,
+  world: GameWorld,
+): { render(alpha: number): void } {
   const renderer = new THREE.WebGLRenderer({ antialias: true });
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
   renderer.setSize(container.clientWidth, container.clientHeight);
@@ -31,11 +38,22 @@ export function createTestScene(container: HTMLElement): void {
   water.rotation.x = -Math.PI / 2;
   scene.add(water);
 
-  const hull = new THREE.Mesh(
-    new THREE.BoxGeometry(2, 1, 6),
-    new THREE.MeshStandardMaterial({ color: 0x6b4a2f, flatShading: true }),
-  );
-  scene.add(hull);
+  const hullGeometry = new THREE.BoxGeometry(2, 1, 6);
+  const hullMaterial = new THREE.MeshStandardMaterial({ color: 0x6b4a2f, flatShading: true });
+  const drawn = world.with('transform', 'model');
+  const objects = new Map<Entity, THREE.Object3D>();
+  const add = (e: Entity): void => {
+    const mesh = new THREE.Mesh(hullGeometry, hullMaterial);
+    objects.set(e, mesh);
+    scene.add(mesh);
+  };
+  for (const e of drawn) add(e);
+  drawn.onEntityAdded.subscribe(add);
+  drawn.onEntityRemoved.subscribe((e) => {
+    const obj = objects.get(e);
+    if (obj) scene.remove(obj);
+    objects.delete(e);
+  });
 
   window.addEventListener('resize', () => {
     camera.aspect = container.clientWidth / container.clientHeight;
@@ -43,13 +61,16 @@ export function createTestScene(container: HTMLElement): void {
     renderer.setSize(container.clientWidth, container.clientHeight);
   });
 
-  const timer = new THREE.Timer();
-  renderer.setAnimationLoop((time) => {
-    timer.update(time);
-    const t = timer.getElapsed();
-    hull.position.y = 0.3 + Math.sin(t * 1.3) * 0.15;
-    hull.rotation.z = Math.sin(t * 0.9) * 0.05;
-    hull.rotation.x = Math.sin(t * 0.7) * 0.03;
-    renderer.render(scene, camera);
-  });
+  const t: Transform = { position: { x: 0, y: 0, z: 0 }, heading: 0 };
+  return {
+    render(alpha) {
+      for (const [e, obj] of objects) {
+        interpolateTransform(e, alpha, t);
+        obj.position.set(t.position.x, t.position.y + 0.3, t.position.z);
+        // Heading is clockwise from north; three.js yaw is counter-clockwise.
+        obj.rotation.y = -t.heading;
+      }
+      renderer.render(scene, camera);
+    },
+  };
 }

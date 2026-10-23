@@ -20,6 +20,9 @@
     "e2e": "playwright test"
   },
   "dependencies": {
+    "fflate": "0.8.3",
+    "idb": "8.0.4",
+    "miniplex": "2.0.0",
     "three": "0.186.1",
     "zod": "4.6.7"
   },
@@ -30,6 +33,7 @@
     "@types/three": "0.186.0",
     "eslint": "10.13.0",
     "eslint-config-prettier": "10.1.8",
+    "fake-indexeddb": "6.2.5",
     "fast-check": "4.10.2",
     "globals": "17.13.0",
     "prettier": "3.9.10",
