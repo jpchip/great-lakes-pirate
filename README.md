@@ -137,6 +137,8 @@ npm run build
 npm run e2e        # Playwright: null-renderer smoke (CI) plus WebGL check (local only)
 ```
 
+Spike pages are dev-only: with `npm run dev` running, open `/onfoot-spike.html` for the on-foot controller spike S5 ([plan 08 §19](plans/08-docks-district-stealth.md)).
+
 Layout follows [plan 01 §6](plans/01-tech-architecture.md). Save migrations live in `src/core/save/migrations/` with one fixture per save version in `tests/fixtures/saves/` ([plan 16 §7](plans/16-save-persistence.md)).
 
 ---

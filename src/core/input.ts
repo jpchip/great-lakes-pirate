@@ -51,7 +51,8 @@ export const DEFAULT_BINDINGS: Bindings = {
     MoveBack: ['KeyS'],
     MoveLeft: ['KeyA'],
     MoveRight: ['KeyD'],
-    Crouch: ['KeyC', 'ControlLeft'],
+    // Not Ctrl: Ctrl+W (crouch while moving) closes the browser tab (spike S5).
+    Crouch: ['KeyC'],
     Sprint: ['ShiftLeft'],
     Interact: ['KeyE'],
   },
