@@ -1,6 +1,6 @@
 # 10 — Ship Upgrades & Customization
 
-Status: DRAFT v0.2 (decisions made)
+Status: DRAFT v0.3 (decisions made; gap review applied)
 Parent: [00-master-plan.md](00-master-plan.md)
 Inputs:
 - Master plan decisions: one ship at a time and always your own (no stealing ships); the invisible crew comes with bigger ships
@@ -72,7 +72,7 @@ The MVP ships the standard hull per tier. Variants are added if time allows (cut
 - **One ship at a time (decided):** buying a new hull **trades in** your current ship automatically.
   - Trade-in value = **50%** of the hull's base price × condition, plus **25%** of installed upgrade value.
   - **Transferable items** move to the new ship if it has slots: weapons (if the class allows), instruments, the rowboat upgrade, cosmetic flags. **Hull-bound items** stay with the old ship: sails, hull plating, hold expansions, hidden compartments.
-  - Cargo is moved over if it fits. If it doesn't fit, it's sold at 80% on the spot or kept in a shipyard lot for one week (TBD).
+  - Cargo is moved over if it fits. If it doesn't fit, it's **auto-sold at 80%** on the spot (decided 2026-10-22; no shipyard lot).
 - **Naming:** you name each new ship. **Renaming is cosmetic** and never sheds heat ([06 §2.3](06-fame-wanted-law-lighthouses.md)).
 - **New hull = new ship profile:** reports about your old ship no longer match the new one. That's a side benefit of genuinely replacing the ship, not a disguise.
 - **Standing discounts:** high Standing with the shipyard's port lowers prices up to 15%. High Wanted in that region raises prices and adds suspicion (tier 3+: refusal, or a "no questions asked" price at 1.5×).
@@ -88,7 +88,7 @@ Each hull has slots per category, which prevents stacking everything onto one sh
 | Hull | 1 | 2 | 2 |
 | Rigging & sails | 1 | 2 | 3 |
 | Cargo | 1 | 1 | 2 |
-| Weapons (mounts) | Bow swivel | Swivel + 1–2/side | 2 swivels + 3–4/side |
+| Weapons (mounts) | Bow swivel | Swivel + 1–2/side | Swivel + 3–4/side |
 | Weapon mods | 1 | 2 | 3 |
 | Instruments | 2 | 3 | 3 |
 | Stealth gear | 2 | 1 | 1 |
@@ -170,7 +170,7 @@ Numbers are draft tuning values. ★ = visible on the model.
 
 | Source | What | Install |
 |---|---|---|
-| **Shipyard** (Superior, Duluth, Ashland) | Most upgrades, legit hull work | Paid; takes game time (hours to days) while the ship is in the yard (you're on foot in the docks district meanwhile) |
+| **Shipyard** (Superior, Duluth, Ashland) | Most upgrades, legit hull work | Paid; takes game time (hours to days) while the ship is in the yard (you're on foot in the docks district meanwhile; until that port's district exists, the wait passes as a time skip at the shipyard screen) |
 | **Chandlery** | Instruments, gear, rope and canvas items | Instant, or self-installed |
 | **Shady shipwright** (Fame-gated, docks district at night) | Hidden compartments, guns, hidden gun ports, "no questions asked" work at high Wanted | Paid premium; a night job |
 | **Hideout crafting** ([09 §7](09-hideouts-building-crafting.md)) | Sails (sail loft), carriages and plating (smithy), compartments and hoists (drydock) | **Self-installed at a hideout drydock or slipway** (a construction session, faster with crew) |
@@ -247,7 +247,6 @@ Numbers are draft tuning values. ★ = visible on the model.
 2. Low-profile rig, muffled blocks.
 3. Ice room.
 4. Cosmetic figureheads (paint and flags only).
-5. Shipyard cargo lot (excess cargo is auto-sold on trade-in).
 
 *Not cuttable:* three tiers, trade-in, the slot system, weapons and stealth upgrades, hidden compartments, crafted upgrades, cosmetics (at least paint, name and flag), shipless shipbuilding (T1).
 
@@ -265,9 +264,12 @@ All resolved.
 | 2026-10-21 | Shipless shipbuilding at a slipway: **T1 only**. |
 | 2026-10-21 | **Dark-tanned sails** are a stealth upgrade (lower night visibility; not a disguise). |
 | 2026-10-21 | Starting prices: T1 ~$500, T2 ~$1,600, T3 ~$4,200 (tunable). |
+| 2026-10-22 | Excess cargo on trade-in is **auto-sold at 80%** (no shipyard lot). |
+| 2026-10-22 | T3 has one bow swivel (07). Shipyard waits are a time skip until the port's docks district exists. |
 
 ---
 
 ## Changelog
+- v0.3: Gap review: auto-sell excess cargo, T3 single swivel, shipyard wait before districts exist.
 - v0.2: Decisions: hull variants (MVP+), trade-in rule, T1-only shipless building, dark-tanned sails, starting prices.
 - v0.1: Initial ship progression plan: tiers and prices, hull variants, shipyards, trade-in, naming, the slot system, upgrade catalog (hull, rigging, cargo, weapons, instruments, stealth, utility), sources and installation, cosmetics (cosmetic only), repairs, shipless shipbuilding, visuals and budget, data/state, UI, phasing.

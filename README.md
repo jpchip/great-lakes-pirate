@@ -2,7 +2,7 @@
 
 **The Caribbean had Blackbeard. Lake Superior had “Roaring” Dan Seavey—and now it has you.**
 
-It’s spring 1900. Ore freighters choke the Duluth ship canal. Lighthouses sweep the Apostle Islands. Revenue cutters prowl the lanes while Booth Fisheries counts every crate in the warehouse. You’re nobody—yet—with a small schooner, a ledger that looks honest, and a knack for being somewhere else when the sun comes up.
+It’s spring 1900. Ore freighters choke the Duluth ship canal. Lighthouses sweep the Apostle Islands. Revenue cutters prowl the lanes while Hollister Fish & Packing counts every crate in the warehouse. You’re nobody—yet—with a small schooner, a ledger that looks honest, and a knack for being somewhere else when the sun comes up.
 
 By day you haul grain, lumber, and fish like any captain trying to eat. By night you slip through the docks district: steal cargo, fence goods, sabotage a rival’s rigging, vanish before the watch bell. At sea you chase fall gales for the richest runs, duck patrols, intimidate steamers into surrender, or explore sea caves and wrecks the charts don’t bother to name. Build hideouts on remote islands—grid by grid—stash contraband, craft, customize. Grow **Fame** so fences and contacts open up; grow **Wanted** and the lake gets smaller, meaner, and more personal.
 

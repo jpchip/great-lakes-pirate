@@ -1,6 +1,6 @@
 # 12 — Sandbox Goals, Events, Character Creation & Failure
 
-Status: DRAFT v0.2 (decisions made)
+Status: DRAFT v0.3 (decisions made; gap review applied)
 Parent: [00-master-plan.md](00-master-plan.md)
 Inputs:
 - Master plan: custom pirate inspired by Seavey; name, appearance and background with perks; open sandbox; the legit path supported; permadeath always on; nothing carries over; jail, bail and jailbreak; execution only at the top tier
@@ -57,6 +57,9 @@ Define the **run** from start to finish:
 | **Poacher / Trapper** | $100; furs | Tracking, trap yields, faster carcass carrying; slower warmth loss | A lockpick hidden in your boot (jailbreak start), quieter on foot | Devils Island sea caves → **Bayfield** |
 
 **Decided:** each background starts with its **own hideout** (and the nearest suitable port). That gives different openings, regions and early strategies per background. The remaining site (Hermit Island quarry) is never a starting hideout; it's a discoverable early claim (and tied to the Quarryman's Payroll legend).
+
+- A starting hideout comes **pre-built with a strongbox and basic storage** ([09 §2.2](09-hideouts-building-crafting.md)).
+- **In the MVP** (2 sites), the Lumberjack starts at the Siskiwit logging camp and every other background starts at Stockton Island bay. Each background's own site arrives with the full 7 sites.
 
 Perks are modest. They shape the early game and playstyle but never decide a run.
 
@@ -202,7 +205,8 @@ Fictional names avoid misrepresenting real period papers (many real ones existed
 
 - **On capture:** cargo and cash on hand are confiscated. The ship is impounded. Hideouts are untouched.
 - **Bail payment:** from a hideout stash via "send word" (a messenger fee plus a delay), or from a trusted fence (cost plus favor).
-- **Serving time:** a time skip (1 game day per week of sentence) with a **"While you were inside..." summary** on release: prices, the cutter's location, rival activity, weather and season, your hideouts' production. Region heat resets to tier 1. Pay the impound fee to get the ship back, or steal it from the impound yard ([08 §8](08-docks-district-stealth.md)).
+- **MVP:** prisoners are held in Bayfield's lockup ([08 §9](08-docks-district-stealth.md)).
+- **Serving time:** a time skip (1 game day per week of sentence, run as a batch fast-forward; [01 §3.3](01-tech-architecture.md)) with a **"While you were inside..." summary** on release: prices, the cutter's location, rival activity, weather and season, your hideouts' production. Region heat resets to tier 1. Pay the impound fee to get the ship back, or steal it from the impound yard ([08 §8](08-docks-district-stealth.md)).
 - **Jailbreak:** [08 §9](08-docks-district-stealth.md). Success adds +60 heat.
 
 ### 8.2 Death causes (permadeath)
@@ -242,7 +246,7 @@ Sinking with a failed survival check · drowning · combat (boarding at bad odds
 ---
 
 ## 11. Phasing
-- **Phase 4:** character creation (name, appearance presets, background), starting scenario, First Week checklist (trade parts).
+- **Phase 4:** character creation (name, appearance presets, background), starting scenario, First Week checklist (trade parts). Starting hideouts attach in Phase 8, when hideouts exist.
 - **Phase 5:** jail, bail, the release summary; newspapers v1 (headlines, WANTED); death and end screen plus run summary.
 - **Phase 8:** the event system with the first ~10 events, letters, Ambitions.
 - **Phase 9:** the full event catalog, the Hollister feud, copycat rivals, nickname generation, poker, the Mataafa event, voluntary endings, Hall of Captains.
@@ -255,7 +259,7 @@ Sinking with a failed survival check · drowning · combat (boarding at bad odds
 3. Letters / mail system (rumors and papers only).
 4. Poker cheating (keep honest poker).
 
-*Not cuttable:* character creation with backgrounds and **per-background starting hideouts**, Ambitions, the event system, newspapers with nicknames, copycat rivals, jail/bail/jailbreak, **poker night**, **both voluntary endings (Retire and Turn Lawman)**, the end-of-run front page and summary, the **Hall of Captains**.
+*Not cuttable:* character creation with backgrounds and **per-background starting hideouts** (full game; the MVP uses its 2 sites), Ambitions, the event system, newspapers with nicknames, copycat rivals, jail/bail/jailbreak, **poker night**, **both voluntary endings (Retire and Turn Lawman)**, the end-of-run front page and summary, the **Hall of Captains**.
 
 ---
 
@@ -271,9 +275,11 @@ All resolved.
 | 2026-10-21 | **Poker night** included. |
 | 2026-10-21 | **Each background has its own starting hideout** (and starting port); Hermit Island is a discoverable claim. |
 | 2026-10-21 | **Hall of Captains:** records of past runs, no gameplay carry-over. |
+| 2026-10-22 | Starting hideouts come pre-built with a strongbox and storage. MVP starts: Lumberjack at Siskiwit, everyone else at Stockton. MVP prisoners go to Bayfield's lockup. |
 
 ---
 
 ## Changelog
+- v0.3: Gap review: pre-built starting hideouts, MVP starting sites, Bayfield lockup, batch time skip for sentences.
 - v0.2: Decisions: newspaper nicknames, Retire and Lawman endings, poker, per-background starting hideouts and ports (with an adaptive First Week), Hall of Captains.
 - v0.1: Initial sandbox plan: character creation and 6 backgrounds with perks, the starting scenario and First Week onboarding, Ambitions, voluntary endings, the data-driven event system and catalog (Seavey-inspired opportunities, Hollister feud, poker), newspapers and nickname generation, copycat rival templates and lifecycle, jail sentences and bail, release summary, death causes, end-of-run front page and summary, data/state, phasing.
