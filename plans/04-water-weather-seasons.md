@@ -1,6 +1,6 @@
 # 04 — Water, Weather, Seasons & Day/Night
 
-Status: DRAFT v0.4 (decisions confirmed; gap review applied; spike S2 done)
+Status: DRAFT v0.5 (decisions confirmed; gap review applied; spike S2 and prototype S9 done)
 Parent: [00-master-plan.md](00-master-plan.md)
 Inputs:
 - [01 tech/architecture](01-tech-architecture.md): layers, budgets, the shared wave function, the iGPU baseline
@@ -302,7 +302,7 @@ At each new year (and at game start), roll seeded variation: ice-out date, freez
 | ID | Spike / test | Question |
 |---|---|---|
 | **S2** (existing) | Water and buoyancy | The shared Gerstner set looks good with depth bands, shore foam **and crest foam** at ≤ 3 ms GPU on Medium on the baseline laptop; a 4-wave CPU buoyancy matches the visuals |
-| **S9** (Phase 0) | Weather sim on the chart | A few moving systems produce believable, varied wind and pressure over a simulated month; a barometer trend predicts storms; fog banks spawn plausibly |
+| **S9** (Phase 0, done: §20) | Weather sim on the chart | A few moving systems produce believable, varied wind and pressure over a simulated month; a barometer trend predicts storms; fog banks spawn plausibly |
 | Unit tests | Sun and moon vs. 1900 tables, climate interpolation, wave parameter mapping, ice growth and melt curves, determinism (same seed → same weather) | |
 
 ---
@@ -336,6 +336,7 @@ All resolved.
 | 2026-10-22 | The MVP ends at the first freeze-up; winter rules arrive in Phase 9. |
 | 2026-10-22 | S2 measures the water budget with crest foam on. S9 is a Phase 0 prototype. |
 | 2026-10-23 | S2 passed: water 1.0 ms on Medium with crest foam on the baseline laptop. The shared 4/6/8-wave Gerstner set, the polar-grid mesh and six-point buoyancy are kept for Phase 1 (§19). |
+| 2026-10-23 | S9 passed (§20): wind comes from the pressure field (geostrophic, slowed and turned by friction), the barometer trend is reconstructed by running systems backwards, and weather rates are per game day. *Proposed, pending review:* barometer classes at ±1 and ±3 hPa per 3 game hours. |
 
 ---
 
@@ -382,9 +383,108 @@ Measured with `?bench=water` on a production build (`npm run preview`) on the Ry
 - A camera-centered polar grid is the water mesh for Phase 1 (no far ring needed so far).
 - Six hull samples plus damped springs is enough; no rigid-body solver (01 §5).
 
+## 20. Prototype S9 Results: Weather Sim (2026-10-23)
+
+**Question** ([01 §11.2](01-tech-architecture.md), §16): do a few moving pressure systems give believable, varied wind and pressure, a barometer that predicts storms, and plausible fog?
+
+**Answer: yes.** Over the MVP season (May 7 to early December, 30 game days, 16 seeds) the sim gives calm summers and stormy Novembers, wind that backs and veers as systems pass, and fog that peaks in spring and early summer. A barometer falling 3 hPa or more in 3 game hours came before 92% of storms, with a median warning of about 9 game hours (about 22 real minutes at R = 24). The whole sim costs about 11 µs per world tick, against a 0.2 ms budget.
+
+### What was built
+| Piece | Where | Notes |
+|---|---|---|
+| Climate normals | `src/sim/weather/climate.ts` | The §4.1 table as mid-month numbers, interpolated by calendar date (wind as a vector, so it turns the short way round). Adds rates per game day for lows and highs, the share of lows that become gales, storm-track weights, and fog weights. These are tuning placeholders and move to `data/climate.json` in Phase 2. |
+| Pressure systems | `src/sim/weather/weather.ts` | At most 6 lows and highs on the true-scale chart. Each has a Gaussian pressure dip or bump, a straight-line track and a lifecycle (deepen, hold, fill). Lows come on three tracks: **Alberta clippers** from the northwest (fast), **Colorado ("panhandle") lows** from the southwest (the November northeasters), and **Pacific lows** from the west. Highs settle in from the northwest. |
+| Wind | `windAt()` | Computed from the **pressure field itself**: geostrophic wind from the gradient, then slowed to 70% and turned 15° toward low pressure by surface friction. That gives counter-clockwise flow around lows and clockwise flow around highs for free, and the barometer and the wind can never disagree. A small seasonal background flow (3–6 kn) and a slow ±12° / ±15% drift sit on top. `gust01` rises in lows and when cold air crosses warm water in the fall. |
+| Barometer | `barometerAt()`, `pressureTendency()` | Pressure plus the 3-hour change and a trend class (rising fast, rising, steady, falling, falling fast at ±1 and ±3 hPa per 3 h). Systems move in straight lines, so the past is rebuilt exactly by running each system backwards; no history buffer is saved, and the trend works at any point on the chart, not only where the player has been. |
+| Fog banks | `spawnFog()`, `updateFog()` | Up to 12 banks. **Advection fog** forms over open water when the air is warmer than the lake, the wind is 3–16 kn, and the flow is from the south (moist). Banks are 10–35 km across, drift with the wind, and break up in strong wind, rain or cold air. **Radiation fog** forms in five bays (Chequamegon Bay, the Bayfield–La Pointe channel, Siskiwit Bay, the Duluth–Superior harbor and Agate Bay) on clear, calm nights and burns off between 8 and 11 in the morning. |
+| Rain, visibility, air temperature | `precipitationAt()`, `visibilityAt()`, `airTempAt()` | Rain or snow sits ahead of deep lows. Visibility is the worst of 25 km haze, precipitation and fog. Air temperature is the normal plus a day/night swing plus warm or cold air carried by the wind. |
+| Geography | `src/sim/weather/geography.ts` | A hand-placed outline of western Superior (cut at 90° W) for fog, the radiation-fog bays, and five probe points. It stands in until S3 bakes the real shoreline. |
+| Chart page | `weather-sim.html`, `src/debug/weather-sim/` | Dev-only (`npm run dev`, then `/weather-sim.html`). A synoptic chart with isobars, systems and wind; western Superior with wind, rain and fog; a season strip to scrub; and the instruments at a probe. `?seed=` and `?day=` pick the run and moment. |
+| Season report | `bench/s9/`, `npm run bench:weather` | Runs 16 seeds through the season, reads the instruments at the probes on every tick, and prints the tables below. `tests/weather.test.ts` guards the rules and the season shape in CI. |
+
+### Wind and storms (Bayfield, mean of 16 seeds)
+A game day is a calendar week (§3.2), so each calendar month below is about 4.3 game days. "Gales" counts how often the wind rose to 34 kn or more after at least 3 hours below it.
+
+| Month | Mean wind | 90th percentile | Strongest | Time ≥ 28 kn | Time ≥ 34 kn | Gales | Lowest pressure |
+|---|---|---|---|---|---|---|---|
+| May | 10.8 kn | 21 kn | 47 kn | 5.7% | 2.4% | 0.3 | 979 hPa |
+| Jun | 10.8 | 21 | 49 | 2.7% | 1.2% | 0.2 | 980 |
+| Jul | 7.9 | 15 | 44 | 1.6% | 0.9% | 0.1 | 978 |
+| Aug | 7.9 | 15 | 29 | 0.1% | 0.0% | 0.0 | 989 |
+| Sep | 11.2 | 22 | 56 | 5.1% | 2.5% | 0.4 | 976 |
+| Oct | 11.7 | 23 | 47 | 6.2% | 2.6% | 0.6 | 973 |
+| **Nov** | **15.6** | **30** | **58** | **14.5%** | **7.8%** | **1.5** | **967** |
+
+- **Direction:** summer winds come mostly from the south and southwest; by October and November the northwest and north lead, with real northeasters when a panhandle low passes south of the lake. Winds swing through 90–180° as a system passes, and that variety is what makes tacking and lee shelter matter (02 §11).
+- **The whole western arm shares one weather.** Wind at Bayfield and at Duluth (about 100 km apart) correlates at r = 0.97. A low is 700–1,000 km across, so a zone can take one wind sample plus its shelter map, as §5.1 assumed. Local differences come from fog, shelter and a storm reaching Duluth an hour or two before the Apostles.
+- **Overlap guard:** when two or three lows crowd together their dips would add up to pressures Superior never sees, so the combined dip is squeezed smoothly past 32 hPa, and sustained wind past 45 kn is squeezed toward 60 kn. The worst season-long readings were 967 hPa and 58 kn, close to the great November storms (the 1905 Mataafa Storm and the 1913 Big Blow had 50–60 kn sustained).
+
+### Does the barometer predict storms? (Bayfield, 16 seeds)
+A storm here is wind of 28 kn or more ("reef now", 02 §3.5) after at least 3 hours below it.
+
+| Warning | Storms warned | Median warning before onset | Warnings followed by a storm within 18 h |
+|---|---|---|---|
+| Falling ≥ 1 hPa / 3 h | 76 / 77 | 13.8 game h | 50 / 241 (21%) |
+| Falling ≥ 2 hPa / 3 h | 75 / 77 | 12.5 game h | 53 / 202 (26%) |
+| **Falling ≥ 3 hPa / 3 h ("falling fast")** | **71 / 77 (92%)** | **8.8 game h** | **55 / 165 (33%)** |
+
+What each reading is followed by in the next 12 game hours:
+
+| Reading | Share of time | Mean strongest wind | Chance of a storm |
+|---|---|---|---|
+| Rising fast | 14.5% | 17.3 kn | 14.8% |
+| Rising | 19.2% | 12.9 kn | 6.9% |
+| Steady | 31.4% | 12.7 kn | 7.4% |
+| Falling | 20.3% | 15.5 kn | 9.2% |
+| **Falling fast** | 14.5% | **24.4 kn** | **34.0%** |
+
+- **Readable, not a guarantee.** "Falling fast" makes a storm about five times as likely as "steady", and almost every storm gives one. Two out of three alarms bring only a stiff breeze, because many lows pass far enough away. That matches §1 goal 3: surprise exists, but it isn't random cruelty.
+- **The rise after a low can blow too.** "Rising fast" carries a 15% storm chance: the northwest or north gale on the back of a deep low (screenshot 3). Sailors said "first rise after low foretells a stronger blow", so it fits the period and is a good thing for a saloon rumor to teach.
+- **Lead time:** about 9 game hours is about 22 real minutes while sailing, enough to run for a harbor in a zone or to reroute on the chart. Port storm flags (§5.4) can fire on the same rule at their own position.
+
+### Fog (16 seeds)
+| Month | Bayfield time under 1 km | Bayfield time under 400 m | Days with thick fog (< 400 m), Bayfield | Same, all five probes |
+|---|---|---|---|---|
+| May | 1.7% | 1.0% | 16% | 16% |
+| Jun | 2.2% | 1.3% | 25% | 25% |
+| Jul | 2.5% | 1.4% | 16% | 19% |
+| Aug | 2.7% | 1.7% | 20% | 20% |
+| Sep | 1.0% | 0.6% | 10% | 10% |
+| Oct | 1.0% | 0.5% | 6% | 8% |
+| Nov | 7.9% (mostly rain and snow) | 0.1% | 1% | 1% |
+
+- Spring and early summer fog is **advection fog**: wide banks drifting in on a southerly over cold water. Late summer and fall fog is **radiation fog**: dawn fog in the bays under a high, gone by mid-morning. November visibility drops in rain and snow, not fog. That's the seasonal pattern in R1 §2.7.
+- **Frequency:** a game day is a full day/night cycle, so "thick fog on 16–25% of game days" in May–August is a little above the modern Duluth average (3–4 thick-fog days a month, about 12% of days). That's a deliberate lean toward gameplay: fog is a stealth tool (06) and a hazard, so it should show up most sessions in fog season. The rates are one constant each (`ADVECTION_PER_HOUR`, `RADIATION_PER_HOUR`).
+
+### Cost (cloud container, Node 22)
+| Item | Result | Budget |
+|---|---|---|
+| World tick, average | **11 µs** | ≤ 0.2 ms (§14) |
+| Batch fast-forward, 12 game days (1,728 ticks) | **21 ms** | — (S6 measured 59 ms for everything else) |
+| One `windAt` + `visibilityAt` + `pressureTendency` query | ~5 µs | ≤ 0.1 ms per gameplay tick for all queries |
+| Saved state (`WorldState.environment.weather`) | ≤ 2.8 KB raw, ≤ 1.3 KB compressed | — |
+
+The laptop should be in the same range; `npm run bench:weather` reruns it there.
+
+### Screenshots (seed `s9-1`)
+1. **Nov 12, 01:00, Bayfield:** 1027 hPa and **falling fast** (−4.3 hPa / 3 h), wind ESE 9 kn. A panhandle low is coming up from the southwest.
+2. **Nov 15, 10:48:** nine game hours later two lows have deepened just west of the lake: 998 hPa, still falling fast, **S 40 kn** with rain.
+3. **Nov 24, 18:00:** the back of a three-low cluster: 977 hPa and **rising fast**, **N 55 kn**, −7.6 °C. The worst blow of the season comes on a rising barometer.
+4. **Jun 15, 07:50:** a weak Pacific low; advection fog banks over the lake, 264 m at Bayfield in a light SSW wind.
+5. **Aug 28, 03:50:** under a high, calm and clear, radiation fog has pooled in the bays: 224 m at Bayfield, and banks at Two Harbors, Siskiwit and Chequamegon.
+
+### Not covered yet (for Phase 2)
+1. **Wiring into the game.** The weather state isn't in `WorldState` yet; adding it is a save-schema change with a migration (16 §7). The query functions take chart meters, so a zone converts with `zoneToChart` first.
+2. **Shelter and fetch maps** (02 §11, §6.1) come from S3. Without them the wind is the same everywhere in a zone.
+3. **Summer thunderstorms** (§5.3), drawn **fronts**, and lake-effect snow are not modeled. Thunderstorms would be small, short cells spawned in the warm sector of summer lows.
+4. **Fog banks are round.** Stretching them along the wind would look better on the chart and in a zone.
+5. **Clusters of lows** are soft-limited rather than merged. If merged super-lows read oddly on the chart, merge two lows that come within half a radius.
+6. **Climate numbers are placeholders**, as §4.1 says. Check them against NOAA normals before the Phase 2 tuning pass.
+
 ---
 
 ## Changelog
+- v0.5: Prototype S9 write-up (§20): pressure-gradient wind on three storm tracks, a barometer trend rebuilt from system tracks (92% of storms warned, about 9 game hours ahead), advection and radiation fog, and an 11 µs world tick.
 - v0.4: Spike S2 write-up (§19): shared Gerstner set, water shader and mesh, buoyancy, CPU timings, and baseline-laptop GPU timings (water 1.0 ms on Medium with crest foam).
 - v0.3: Gap review: MVP ends at freeze-up, S2 measures with crest foam, S9 in Phase 0, cutter winter lay-up and 1900 storm signals researched, §18 rewritten as decisions.
 - v0.2: Decisions confirmed: 1 game day = 1 week, May 7, 1900 start, walkable ice, port storm flags, Mataafa and aurora.
