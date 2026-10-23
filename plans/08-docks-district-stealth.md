@@ -1,6 +1,6 @@
 # 08 — Docks District Stealth (Night)
 
-Status: DRAFT v0.2 (decisions made)
+Status: DRAFT v0.3 (decisions made; gap review applied)
 Parent: [00-master-plan.md](00-master-plan.md)
 Inputs:
 - Master plan: compact docks-district scenes, no full towns; lockpicks, distractions, bribes, the whiskey trick; carry limits
@@ -57,7 +57,7 @@ Interiors are part of the same scene (no load); roofs fade when the player is in
 ### 2.2 MVP districts
 | District | Size | Phase | Character |
 |---|---|---|---|
-| **Bayfield** | Small–medium | **7 (first)** | Fish docks, Hollister packing house and cooperage, saloon, small police presence |
+| **Bayfield** | Small–medium | **7 (first)** | Fish docks, Hollister packing house and cooperage, saloon, small police presence, and the **lockup** that holds MVP prisoners and hosts jailbreaks (§9) |
 | Ashland | Medium | 8+ | Ore and lumber docks, rail, brownstone buildings |
 | Washburn | Medium | 8+ | Lumber and coal docks |
 | **Duluth** | Large | 9+ | Busy waterfront, canal construction site, many police, the best fence, a jail |
@@ -120,7 +120,7 @@ Simple HP. Wounds from fights or falls heal over game days or at a doctor. No re
 **No watchdogs (decided).** The only "trail" mechanic is **snow footprints** in winter: guards who find fresh tracks follow them (a decaying breadcrumb trail of player positions, only on snow).
 
 ### 4.4 Recognition
-Being **seen clearly** (close, lit, for long enough) **identifies you**, scaled by Fame ([06 §4.2](06-fame-wanted-law-lighthouses.md)). Seen at a distance or in the dark, you're only "someone." Optional clothing disguises (06 cut list) reduce recognition.
+Being **seen clearly** (close, lit, for long enough) **identifies you**, scaled by Fame ([06 §4.2](06-fame-wanted-law-lighthouses.md)). Seen at a distance or in the dark, you're only "someone." There are no disguise items (decided 2026-10-22).
 
 ---
 
@@ -172,6 +172,7 @@ Navmesh per district, **baked offline** (recast-navigation-js tooling) from the 
 | **Rope** | Tie up an unconscious NPC (stays out much longer; found = alert) | None | Assault | Chandlery, crafted |
 | **Knife** | Lethal takedown | Low | **Killing (150)** | Any |
 | **Pistol** | Lethal ranged; **a gunshot alerts the whole district** | Very high | Killing / assault | Chandlery (Fame-gated) |
+| **Rifle** | Long-range lethal shots; slow to aim and can't be used while carrying. The same rifle is used at sea ([07 §2](07-combat-boarding-targets.md)) and on islands for hunting and wildlife ([11 §3.2](11-exploration-islands-secrets.md)) | Very high (alerts the district) | Killing / assault | Chandlery |
 | **Bribe** | Pay a watchman or constable to look away (refusal → suspicion) | None | Small, if it's reported | Cash on hand |
 | **Extinguish lamp** | Darken an area (guards notice and relight) | Low | None | — |
 | **Player lantern** | See in dark interiors (and be seen) | None | — | Default |
@@ -221,11 +222,11 @@ Contents and security are data (`districts.json`) and vary with season ([05](05-
 
 ## 9. Jailbreak Scenario
 
-Set in the police lockup of a jail port (Duluth, Superior, Ashland).
+Set in a police lockup. **In the MVP this is Bayfield's lockup**, the only district (decided 2026-10-22). The Duluth, Superior and Ashland lockups arrive with their districts (Phase 8+).
 
 - **Regular jailbreak** (tiers 0–4, an alternative to serving time or paying bail): start in a cell with nothing (cargo and cash confiscated).
   - **Ways out:** a pick hidden in your boot (*Poacher* perk or a crafted item), stealing the guard's keys at a shift change, a distraction (bang the bars) plus a lure, or bribing a guard with a promise of stashed money (a debt you must pay or face heat).
-  - Then **escape the district**, reach the impound yard (your ship) or a rowboat, and get out.
+  - Then **escape the district**, reach the impound yard (your ship; in the MVP, Bayfield's wharf) or a rowboat, and get out.
   - Success → free, +60 heat ([06 §2.2](06-fame-wanted-law-lighthouses.md)). Failure → recaptured, more time added.
 - **Execution jailbreak** (tier 5, **one attempt only**, decided): the same structure, harder. You're in irons (it takes time to slip them), there are more constables and a marshal, and fewer routes. Fail = execution (the run ends).
 - **Always readable:** a clear "ONE CHANCE" banner, and the guard routines are learnable by observing from the cell before acting.
@@ -339,9 +340,13 @@ All resolved.
 | 2026-10-21 | **Swimming** allowed (cold-water danger). |
 | 2026-10-21 | Lockpicking is **hold-to-pick** (no minigame). |
 | 2026-10-21 | **No watchdogs.** |
+| 2026-10-22 | MVP jail and jailbreaks use **Bayfield's lockup**. |
+| 2026-10-22 | The **rifle** is an on-foot weapon too (alongside knife and pistol). |
+| 2026-10-22 | **No disguise items.** |
 
 ---
 
 ## Changelog
+- v0.3: Gap review: Bayfield lockup for MVP jail and jailbreaks, rifle added to on-foot tools, disguises removed, scent removed from the changelog.
 - v0.2: Decisions: day-walkable districts, third-person, lethal weapons on foot, swimming, hold-to-pick, no dogs (snow tracks remain).
-- v0.1: Initial docks stealth plan: district structure and MVP list, day/night modes, controls, movement and noise, perception (sight, light, hearing, scent, recognition), NPC types and FSM, tools and the whiskey trick, loot and carrying, heist targets, the jailbreak scenario, escape and capture, time/light/weather, HUD, the modular kit and shared layout editor, budgets, data/state, Phase 7 acceptance.
+- v0.1: Initial docks stealth plan: district structure and MVP list, day/night modes, controls, movement and noise, perception (sight, light, hearing, recognition), NPC types and FSM, tools and the whiskey trick, loot and carrying, heist targets, the jailbreak scenario, escape and capture, time/light/weather, HUD, the modular kit and shared layout editor, budgets, data/state, Phase 7 acceptance.

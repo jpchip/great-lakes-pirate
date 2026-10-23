@@ -1,6 +1,6 @@
 # 05 — Ports, Economy & Trading
 
-Status: DRAFT v0.2 (decisions made)
+Status: DRAFT v0.3 (decisions made; gap review applied)
 Parent: [00-master-plan.md](00-master-plan.md)
 Inputs: [R1a gazetteer](R1a-western-superior-gazetteer.md) (ports, industries), [03](03-world-scale-chart-travel.md) (routes, chart, encounters), [04](04-water-weather-seasons.md) (seasons; 1 game day = 1 week), [02](02-arcade-sailing.md) (cargo load, shipless play), [01](01-tech-architecture.md) (sim layer, data files)
 Feeds: 06 (hot goods, informants), 07 (what's in the holds), 08 (fences, warehouses), 09 (materials), 10 (ship prices), 12 (contracts, events)
@@ -153,6 +153,7 @@ Harder but viable. A legit player avoids all heat, gets the best contracts, and 
 | **Telegraph office** | Duluth, Superior, Ashland | Buy price updates; news |
 | **Passage office** | Duluth, Superior, Ashland, Bayfield, Washburn | Steamer tickets between ports when shipless ([02 §6.5](02-arcade-sailing.md)) |
 | **Police station / jail** | Duluth, Superior, Ashland (others have a constable) | Bail, fines, bribes (plan 06) |
+| **Harbor tug tow** | Duluth, Superior, Ashland, Two Harbors | Tows a ship in or out of the harbor in calms (mainly T3, which has no sweeps; [02 §3.6](02-arcade-sailing.md)). Small fee; game time passes |
 
 **Dock fees:** a small daily berth fee in big ports, free at anchor. **Provisions:** a light upkeep (cents per day aboard), auto-deducted when docked (cut list).
 
@@ -269,9 +270,11 @@ All resolved.
 | 2026-10-21 | Stealing contract cargo is allowed **once per company**; that company never contracts you again. |
 | 2026-10-21 | **No bank**, and nothing freezes the player's money. |
 | 2026-10-21 | **Companies don't arm up** (no guards, decoys or company bounties); grudge affects only contracts, prices and goods detection. |
+| 2026-10-22 | **Harbor tug tows** can be hired in the four big harbors, mainly for T3 in calms. |
 
 ---
 
 ## Changelog
+- v0.3: Gap review: harbor tug tow service added.
 - v0.2: Decisions: separate Standing, cash at risk, contract theft once per company, no bank, companies don't arm up (grudge limited to legit effects).
 - v0.1: Initial economy plan: money, goods, market model, port profiles, price knowledge, contracts and Standing, hot goods and fences, smuggling, services, traffic flows and manifests, company grudge, rumors, fictional names, data/state, Phase 4 acceptance.

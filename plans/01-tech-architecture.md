@@ -1,6 +1,6 @@
 # 01 — Tech Stack, Architecture & Project Setup
 
-Status: DRAFT v0.4 (all open questions resolved)
+Status: DRAFT v0.5 (Phase 0 gap review answers applied)
 Parent: [00-master-plan.md](00-master-plan.md)
 Feeds: every implementation plan. Phase 0 tasks are defined here.
 
@@ -23,7 +23,7 @@ Define the technology choices, high-level architecture, project layout, conventi
 | **Permadeath, autosave only** | Robust single-slot save with versioning and migration. |
 | **Hybrid world (coastal zones + chart travel)** | Load only the active zone. Simulate the rest of the world abstractly. |
 | **Islands walkable, docks districts walkable** | Need a character controller, collisions, navmesh AI. |
-| **Stylized art, AI-generated assets** | A unifying shader and material approach. Asset processing pipeline. |
+| **Stylized art; procedural, CC0 and AI-generated assets** | A unifying shader and material approach. Asset processing pipeline. |
 | **Long-term: all five lakes** | Data-driven world. Nothing about Lake Superior hard-coded. |
 
 ---
@@ -37,7 +37,7 @@ Versions: **pin exact versions at project setup** (latest stable at that time) a
 |---|---|---|
 | Language | **TypeScript** (strict mode) | |
 | Build/dev server | **Vite** | Fast HMR. Static build output. |
-| Package manager | npm (or pnpm) | Pick one at setup. |
+| Package manager | **npm** | Decided 2026-10-22. |
 | 3D engine | **three.js** | |
 | Renderer | **Spike S1 decides (approved):** `WebGPURenderer` + TSL (node shaders, auto-falls back to WebGL2) **vs.** classic `WebGLRenderer` + GLSL | The deciding test runs **on the developer's limited hardware**. Pick whichever is faster and more stable there. With integrated graphics, the mature WebGLRenderer is a strong default unless WebGPU clearly wins. |
 
@@ -46,17 +46,17 @@ Versions: **pin exact versions at project setup** (latest stable at that time) a
 |---|---|---|
 | Ship physics | **Custom arcade model** (no physics engine) | Arcade sailing needs a hand-tuned feel. Buoyancy samples the same wave function as the water shader. |
 | On-foot collisions and character controller | **Hand-rolled lightweight controller first**: heightmap ground sampling plus a capsule vs. simple primitives (boxes, cylinders, a grid-cell occupancy map for buildings) | Keeps physics minimal for limited hardware. Islands are heightmaps, and docks and hideouts are mostly boxes on a grid, so a full physics engine is likely unnecessary. **Fallback:** Rapier (`@dimforge/rapier3d-compat`, WASM) only if spike S5 shows the simple approach can't handle it. |
-| NPC pathfinding (guards, dogs) | **recast-navigation-js** (navmesh) | Navmeshes for docks districts and islands, baked offline or at load. |
-| Entity management | **miniplex** (lightweight ECS over plain TS objects) or a hand-rolled equivalent | Simple, typed, no archetype complexity. Decide in Phase 0. |
+| NPC pathfinding (guards, keepers, wildlife) | **recast-navigation-js** (navmesh) | Navmeshes for docks districts and islands, baked offline or at load. |
+| Entity management | **miniplex** (lightweight ECS over plain TS objects) | Simple, typed, no archetype complexity. Decided 2026-10-22. |
 | UI (menus, trade, inventory, build palette, chart overlays) | **DOM overlay with Preact + signals** | HTML/CSS is far faster to build than in-canvas UI. Tiny bundle. |
 | Data validation | **zod** | Validate JSON definitions at load and in tests. |
-| Persistence | **IndexedDB** via a small wrapper (`idb` or `idb-keyval`) | Async, large capacity. |
+| Persistence | **IndexedDB** via **`idb`** | Async, large capacity. Decided 2026-10-22. |
 | Compression (saves, data tiles) | **fflate** | Small and fast. |
 | Audio | **three.js Audio/PositionalAudio** (Web Audio) plus a thin mixer layer | Music, ambience, 3D SFX. Volume buses. |
 | Debug UI | **lil-gui**, **stats.js** (or three's built-in stats), a custom dev console | Dev builds only. |
-| Asset processing (CLI, offline) | **gltf-transform** (meshopt/Draco, KTX2 textures, resize, dedupe) | Scripted pipeline in `tools/`. |
-| Geodata processing (offline) | **GDAL** (CLI) plus Node or Python scripts | Bathymetry/DEM → heightmap tiles, shoreline → masks. |
-| Testing | **Vitest** (unit/sim), **Playwright** (smoke/e2e, screenshot checks) | Chromium is available for Playwright. |
+| Asset processing (CLI, offline) | **gltf-transform** (meshopt/Draco, KTX2 textures, resize, dedupe) plus **headless Blender** (bpy) for the clean step | Scripted pipeline in `tools/` ([14 §7](14-art-direction-asset-pipeline.md)). **Blender runs locally only, not in CI.** |
+| Geodata processing (offline) | **GDAL** (CLI) plus Node or Python scripts | Bathymetry/DEM → heightmap tiles, shoreline → masks. Runs locally; the baked tiles are committed (LFS). |
+| Testing | **Vitest** (unit/sim), **fast-check** (property tests), **Playwright** (smoke/e2e) | Chromium is available for Playwright. CI smoke tests run without WebGL (§9). |
 | Lint/format | ESLint + Prettier | |
 
 **Rule:** a new dependency must be justified in the relevant plan. Prefer fewer, mature libraries.
@@ -120,7 +120,8 @@ Boot → MainMenu → CharacterCreation → ┐
 - **Render loop:** `requestAnimationFrame`, variable dt.
 - **Gameplay tick:** fixed timestep (e.g., **60 Hz**; 30 Hz acceptable) for ship physics, the character controller and AI, with render interpolation.
 - **World tick ("strategic")**: runs in **game-minutes**, e.g., every 10 game-minutes. It covers economy, off-screen traffic, weather evolution, Wanted decay and Fame decay. In Chart mode, time compression simply runs more world ticks per real second.
-- **Game clock:** real-to-game ratio is TBD in plan 04 (e.g., 1 real minute = 30 game minutes while sailing, so a full day takes ~48 real minutes). The calendar starts in spring 1900.
+- **Game clock (decided):** **R = 24** while sailing (1 real minute = 24 game minutes, so a full day takes ~60 real minutes) and R_foot ≈ 6 on foot ([03 §3.3](03-world-scale-chart-travel.md)). The calendar starts the week of May 7, 1900, and 1 game day = 1 calendar week ([04 §3.2](04-water-weather-seasons.md)).
+- **Batch fast-forward (decided 2026-10-22):** time skips (jail sentences, sleep and waiting, build sessions) run world ticks in a batch loop behind a short progress screen, outside the per-frame budget. A 12-week sentence is ~1,700 world ticks; S6 and S9 measure how long the batch takes.
 - **Pause** stops both ticks. Overlays may stop the gameplay tick but keep ambient rendering.
 
 ### 3.4 Simulation LOD: abstract vs. materialized entities
@@ -157,7 +158,7 @@ Events are also the natural hook for the **newspaper** system and for debugging 
 | **Zone local** | meters ×1/compression, origin at zone center | 3D gameplay in a coastal zone |
 | **Scene/render** | Zone local minus **floating origin** offset | three.js scene graph (keeps float precision near the camera) |
 
-- Each coastal zone defines its geo bounds, compression ratio (plan 03 sets 1:6–1:10) and origin.
+- Each coastal zone defines its geo bounds, compression ratio (**C = 8** for all MVP zones; [03 §3.2](03-world-scale-chart-travel.md)) and origin.
 - Conversion functions live in one module (`core/coords`). Nothing else does its own projection math.
 - **Floating origin:** recenter when the player gets more than ~2 km from the origin (render space only; zone-local values stay authoritative).
 
@@ -174,7 +175,7 @@ Events are also the natural hook for the **newspaper** system and for debugging 
 ### 4.2 Terrain & coastal zones (plan 03)
 - An **offline pipeline** (`tools/geo/`): NOAA Great Lakes bathymetry plus USGS elevation → clipped per zone → resampled → compressed into **heightmap tiles** (16-bit) and a **shoreline distance field**, output to `public/world/<zone>/`.
 - At runtime: chunked terrain meshes per tile with LOD (geomipmapping or CDLOD), plus instanced vegetation (stylized pine forests) with distance culling.
-- **Walkable islands:** the same heightmap is used at higher resolution, plus authored props, simple collision primitives for props (the heightmap itself is the ground collision) and a navmesh baked offline.
+- **Walkable islands:** the same heightmap is used at higher resolution, plus authored props, simple collision primitives for props (the heightmap itself is the ground collision) and a navmesh baked offline. Each island's on-foot area **loads as its own scene** behind a short transition (decided 2026-10-22; [03 §7](03-world-scale-chart-travel.md)). The three mainland hideout build pads work the same way.
 - **Docks districts:** hand-assembled scenes from a modular kit (piers, warehouses, cranes, crates), stored as a placement list (JSON) rather than a monolithic GLB.
 
 ### 4.3 Rendering approach (plan 14 finalizes the style)
@@ -207,7 +208,7 @@ Events are also the natural hook for the **newspaper** system and for debugging 
 - **Autosave triggers:** entering or leaving a zone or mode, after trades, sleeping, a periodic timer (e.g., every 2 real minutes) and `visibilitychange`/`pagehide`.
 - **Permadeath:** on `RunEnded`, delete the slot *before* showing the GameOver screen. There is no manual save or load.
 - **Migrations:** an ordered list of `migrate(vN → vN+1)` functions, run on load. Every `WorldState` schema change increments `saveVersion` and adds a migration plus a test fixture.
-- Dev builds: a hidden "export/import save" (to a file) for debugging and testing.
+- **Player export/import** of the run (imported runs are marked "Transferred"; [16 §9](16-save-persistence.md)). Dev builds add a save inspector and debug tools ([16 §10](16-save-persistence.md)).
 
 ### 4.8 Input
 - An action-mapping layer: physical keys/mouse → semantic actions (`TrimSailsIn`, `FirePort`, `Interact`, `Crouch`…), with a context per mode.
@@ -290,9 +291,11 @@ great-lakes-pirate/
 ├─ tools/
 │  ├─ assets/                 # gltf-transform pipeline scripts
 │  ├─ geo/                    # GDAL/Node scripts: bathymetry/DEM → tiles
-│  └─ data/                   # validators, CSV→JSON converters (e.g., from R1 tables)
+│  ├─ data/                   # validators, CSV→JSON converters (e.g., from R1 tables)
+│  └─ audio/                  # audio pipeline: trim, normalize, loop, encode (15 §9)
 ├─ tests/                     # vitest unit tests + fixtures (incl. save migrations)
 ├─ e2e/                       # playwright smoke tests
+├─ bench/                     # benchmark results history (17 §4.2)
 └─ raw-assets/                # (gitignored or LFS) unprocessed AI/CC0 sources
 ```
 
@@ -332,7 +335,7 @@ The R1/R1a research tables convert almost directly into `ports.json`, `lighthous
 
 - **Strict TS**, no `any` in `sim/`. Prefer plain data plus functions over class hierarchies for state (serializable by default).
 - **IDs are stable strings** (`"port.bayfield"`, `"good.whitefish"`). Saves reference IDs, never array indices.
-- **Units:** meters, seconds, radians, knots only at the UI boundary. Money in integer cents.
+- **Units (decided 2026-10-22):** meters, seconds and radians inside `sim/` and gameplay. Speeds are **authored in knots** in data files (fields end in `Kn`, as in [02 §12](02-arcade-sailing.md)) and converted to m/s by the data loader; the UI shows knots. Money in integer cents.
 - **No `Math.random()` in `sim/`.** Use `core/rng` (seeded).
 - Each system plan lists its events, state slices and data files.
 - Small, frequent commits. A plan's status is updated when its implementation lands.
@@ -347,19 +350,20 @@ The R1/R1a research tables convert almost directly into `ports.json`, `lighthous
 | Save/load | Round-trip tests, migration tests against stored fixture saves from each version |
 | Data | A schema validation test over all `data/*.json` |
 | Coordinates | Conversion round-trip tests (geo ↔ chart ↔ zone) |
-| Rendering/gameplay | Playwright smoke tests: boot, enter zone, sail for N seconds, no console errors, screenshot diff on key scenes (loose threshold) |
+| Rendering/gameplay | Playwright smoke tests in CI run **without WebGL** (a null renderer stands in), covering boot, mode changes, UI and saves with no console errors. Rendering and screenshot checks run locally on the dev machine; screenshot diffs are not in the first CI (decided 2026-10-22) |
 | Performance | A dev-only benchmark scene with a fixed camera path that logs frame times, run before merging heavy changes |
 
 ---
 
 ## 10. Hosting, Version Control & Tooling
 
-- **Git:** the project isn't a repository yet. Phase 0 starts with `git init` and a `.gitignore` (node_modules, dist).
-- **Large files go into git (decided)** using **Git LFS** for binaries: GLB, KTX2/PNG textures, audio, baked world tiles, and raw source assets in `raw-assets/`. Track them via `.gitattributes` from the first commit.
+- **Git:** the public GitHub repo already exists (LICENSE, LICENSE-ASSETS, README, `plans/`, `references/`). Phase 0 adds `.gitignore` (node_modules, dist) and `.gitattributes`.
+- **Large files go into git (decided)** using **Git LFS** for binaries: GLB, KTX2/PNG textures, audio, baked world tiles, and raw source assets in `raw-assets/`. Track new binaries via `.gitattributes`. **The existing `references/` PNGs stay plain git files** (no `git lfs migrate`, so history isn't rewritten; decided 2026-10-22).
   - *Caveat:* GitHub LFS has free storage and bandwidth quotas. Check the current limits at setup, keep raw assets lean (prune failed AI generations), and **cache LFS objects in CI** so every build doesn't re-download them.
 - **Remote:** **public GitHub repo** (open source), with Actions CI (lint, typecheck, unit tests, build).
 - **Hosting (decided): a DigitalOcean droplet** as the primary, with an optional **itch.io** mirror. GitHub Pages is not used.
-  - **Server:** a small droplet running **Caddy** (automatic HTTPS via Let's Encrypt; simple config) or nginx, serving the static `dist/` build. No backend code is needed (local saves only).
+  - **Not provisioned yet (decided 2026-10-22):** builds run locally only for now. The domain, droplet size and provisioning get planned when hosting is needed. Until Beta, the hosted build is unlisted with optional basic auth ([17 §8.2](17-testing-performance-release.md)).
+  - **Server:** a small droplet running **Caddy** (decided 2026-10-22; automatic HTTPS via Let's Encrypt; simple config), serving the static `dist/` build. No backend code is needed (local saves only).
   - **Server config checklist:**
     - Correct MIME types for `.glb`, `.ktx2`, `.wasm`, `.ogg`/`.opus`.
     - Brotli/gzip for JS, JSON and text.
@@ -375,7 +379,7 @@ The R1/R1a research tables convert almost directly into `ports.json`, `lighthous
   - **MIT** for code (decided).
   - **CC BY 4.0** for original assets and data.
   - A `CREDITS.md` and `assets/LICENSES` manifest recording the source and license of every third-party or AI-generated asset.
-  - **AI tool terms must allow public redistribution** of outputs. Some free tiers restrict ownership or require attribution or a paid plan. Check this in spike S4 before choosing a tool, and do the same for AI audio tools (plan 15).
+  - **AI tool terms must allow public redistribution** of outputs. Some free tiers restrict ownership or require attribution or a paid plan. The chosen tools are **Meshy** (image-to-3D) and **nano-banana** (Gemini image generation, approved for this open-source project); S4 records their terms. Do the same for AI audio tools (plan 15).
 - **Browser support:** current Chrome, Edge, Firefox and Safari on desktop. WebGL2 is the minimum (WebGPU optional, depending on S1).
 
 ---
@@ -383,13 +387,13 @@ The R1/R1a research tables convert almost directly into `ports.json`, `lighthous
 ## 11. Phase 0 — Setup & Spikes
 
 ### 11.1 Setup tasks
-1. `git init`, `.gitignore`, `.gitattributes` (LFS patterns), README, LICENSE (code) plus an asset license note, `CREDITS.md`. Create the public GitHub repo.
-2. Scaffold Vite + TS strict + three.js. ESLint/Prettier, Vitest, Playwright.
+1. `.gitignore`, `.gitattributes` (LFS patterns for new binaries; the existing `references/` PNGs stay plain git files), `CREDITS.md`. The public repo, README, LICENSE and LICENSE-ASSETS already exist.
+2. Scaffold Vite + TS strict + three.js with **npm**. ESLint/Prettier, Vitest plus fast-check, Playwright.
 3. Create the folder structure (§6) and import-rule lint config.
-4. Core skeleton: loop (fixed tick plus render), mode state machine, event bus, seeded RNG, coords module, input action map, asset loader, dev overlay (stats plus lil-gui).
-5. `WorldState` skeleton plus a save/load round trip to IndexedDB with `saveVersion: 1`.
+4. Core skeleton: loop (fixed tick plus render, R = 24), mode state machine, event bus, seeded RNG, coords module (C = 8, SI units), miniplex entities, input action map, asset loader, dev overlay (stats plus lil-gui).
+5. `WorldState` skeleton plus a save/load round trip to IndexedDB (`idb`) with `saveVersion: 1`.
 6. `data/` with zod schemas and two or three sample definitions. A validation test.
-7. CI workflow (lint, typecheck, test, build). Provision the droplet (Caddy, deploy user, firewall) and add the deploy workflow (LFS checkout → build → rsync → symlink switch). The itch.io butler job can wait until the first public build.
+7. CI workflow (lint, typecheck, test, build, Playwright smoke without WebGL). Blender and GDAL steps run locally, not in CI. **No droplet or deploy workflow in Phase 0** (decided 2026-10-22): builds run locally until hosting is planned.
 8. Quality presets (Low/Medium/High) and a dynamic resolution scaling hook in the renderer wrapper.
 
 ### 11.2 Spikes (time-boxed experiments; each produces a short write-up appended to the relevant plan)
@@ -397,13 +401,16 @@ The R1/R1a research tables convert almost directly into `ports.json`, `lighthous
 | ID | Spike | Question answered | Feeds |
 |---|---|---|---|
 | **S1** | Renderer: WebGPURenderer+TSL vs. WebGLRenderer | Stability and performance **on the developer's machine** (frame time, startup or shader-compile time), plus post-processing availability. Pick one. | 01, 04, 14 |
-| **S2** | Water and buoyancy | Can a shared Gerstner wave set (≤ 4 waves on Low) look good and drive a bobbing hull within the Low/Medium budgets? | 02, 04 |
-| **S3** | Geo pipeline for the Apostles | Turn NOAA bathymetry and USGS DEM into heightmap tiles plus a shoreline distance field. Choose resolution and compression. | 03 |
-| **S4** | AI asset test plus **art style test** | Generate the schooner from `references/schooner.png` with free tiers of 1–2 image-to-3D tools (**check their terms allow open-source redistribution**); run it through the pipeline down to ≤ 12k triangles; render one scene in 2 candidate styles (low-poly flat vs. toon with outlines; see [14 §3](14-art-direction-asset-pipeline.md)) and measure their cost on the dev machine. Pick the style. The pipeline is fully scripted (headless Blender clean step). | 14 |
+| **S2** | Water and buoyancy | Can a shared Gerstner wave set (≤ 4 waves on Low) look good and drive a bobbing hull within the Low/Medium budgets? Measure Medium **with crest foam on**. | 02, 04 |
+| **S3** | Geo pipeline for the Apostles | Turn NOAA bathymetry and USGS DEM into heightmap tiles plus a shoreline distance field, the 16-direction shelter and fetch maps, **and the funneling maps**. 1 m on-foot tiles for **all 22 islands**. Choose resolution and compression. | 03 |
+| **S4** | AI asset test plus **art style test** | Generate the schooner hull from `references/schooner.png` with **Meshy** (record its terms in `assets/LICENSES.json`); run it through the pipeline down to ≤ 12k triangles; render a **small scene** (the schooner, water, fog and one lighthouse beam, at dusk and at night) in 2 candidate styles (low-poly flat vs. toon with outlines; see [14 §3](14-art-direction-asset-pipeline.md)) and measure their cost on the dev machine. Pick the style. The pipeline is fully scripted (headless Blender clean step, run locally). | 14 |
 | **S5** | On-foot controller | A **hand-rolled** capsule controller on a heightmap island chunk plus box/cylinder props; pointer-lock camera. Is it good enough without Rapier? | 08, 11 |
-| **S6** | Save size and speed | A realistic large `WorldState` (5 hideouts × 500 pieces, 200 abstract ships, markets). Compressed size, save time, no frame hitch. | 16 |
+| **S6** | Save size and speed | A worst-case `WorldState` (**7 hideouts × 1,500 pieces**, 200 abstract ships, markets; [09 §10](09-hideouts-building-crafting.md), [16 §5.4](16-save-persistence.md)). Compressed size, save time, no frame hitch. Also time a batch fast-forward of 12 game days (§3.3). | 16 |
+| **S7** | Scale-feel greybox | Do C = 8, R = 24 and the freighter scale feel right? ([03 §11](03-world-scale-chart-travel.md)) | 02, 03 |
+| **S8** | Chart mode prototype | Is plotting, a compressed voyage and an encounter interrupt fun and readable? ([03 §11](03-world-scale-chart-travel.md)) | 03, 13 |
+| **S9** | Weather sim | Do a few moving pressure systems give believable wind, a barometer that predicts storms, and plausible fog? ([04 §16](04-water-weather-seasons.md)) | 04 |
 
-**Phase 0 exit criteria:** the repo builds and deploys a page that boots into a test scene with water, a bobbing placeholder schooner, the dev overlay, and a working autosave round trip. All six spikes are written up, and the renderer and art style are chosen.
+**Phase 0 exit criteria:** the repo builds and **runs locally** (dev server and production build) into a test scene with water, a bobbing placeholder schooner, the dev overlay, and a working autosave round trip. CI is green. **All nine spikes and prototypes (S1–S9)** are written up, and the renderer, art style, C, R and freighter scale are chosen. No hosted deploy is required yet.
 
 ---
 
@@ -448,10 +455,20 @@ All resolved (see Decisions). No open questions remain for this plan; spike resu
 | 2026-10-21 | Limited dev hardware is the performance baseline; physics stays minimal (arcade ships, hand-rolled on-foot collisions, Rapier only as a fallback). |
 | 2026-10-21 | Code license: **MIT** (anyone may build on it). Original assets and data: CC BY 4.0. |
 | 2026-10-21 | Baseline machine: Ryzen 7 7730U, integrated Radeon graphics, 28 GB RAM, Linux. |
+| 2026-10-22 | Phase 0 includes spikes S1–S6 **and** prototypes S7–S9; the master plan and this plan now agree. |
+| 2026-10-22 | Game clock R = 24 (~60 min day) and compression C = 8 are the starting values for the core time and coords modules. |
+| 2026-10-22 | Sim uses SI units (m/s); speeds are authored in knots in data and converted by the loader. |
+| 2026-10-22 | The existing `references/` PNGs stay plain git files (no LFS migration); LFS covers new binaries. Tools: npm, miniplex, `idb`, Caddy. |
+| 2026-10-22 | No hosted deploys yet: builds run locally; domain, droplet size and provisioning are planned later. Unlisted with optional basic auth until Beta. |
+| 2026-10-22 | Blender (and GDAL) run locally, not in CI. CI Playwright smoke tests don't run WebGL; screenshot diffs are not in the first CI. |
+| 2026-10-22 | Meshy for image-to-3D; nano-banana may be used in this open-source project. |
+| 2026-10-22 | S4 test scene shrunk to schooner, water, fog and one lighthouse beam. S6 benchmarks 7 hideouts × 1,500 pieces. |
+| 2026-10-22 | Time skips use a batch fast-forward path. Island on-foot areas load as separate scenes. |
 
 ---
 
 ## Changelog
+- v0.5: Applied the 2026-10-22 gap review: Phase 0 = S1–S9, R = 24 and C = 8, SI units in sim, repo already exists (PNGs stay plain), npm/miniplex/idb/Caddy, local builds only (no droplet yet), CI without Blender or WebGL, Meshy and nano-banana, shrunk S4 scene, worst-case S6, batch fast-forward, separate island scenes, player export/import.
 - v0.4: Hosting changed from GitHub Pages to a DigitalOcean droplet (Caddy, Actions rsync deploy, versioned releases); itch.io via butler.
 - v0.3: MIT license confirmed; recorded the baseline dev machine and its implications (GPU-bound, check WebGPU on Linux).
 - v0.2: Resolved open questions: open source plus licensing approach, GitHub Pages via Actions (LFS caveat), itch.io mirror, Git LFS, low-end hardware budgets with quality presets, minimal physics (Rapier demoted to fallback).

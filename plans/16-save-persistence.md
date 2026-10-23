@@ -1,6 +1,6 @@
 # 16 — Save & Persistence
 
-Status: DRAFT v0.2 (decisions made)
+Status: DRAFT v0.3 (decisions made)
 Parent: [00-master-plan.md](00-master-plan.md)
 Inputs:
 - [01 §4.7](01-tech-architecture.md): single slot per run, IndexedDB, compressed JSON, autosave triggers, delete on death, migrations, spike S6
@@ -230,7 +230,7 @@ Render objects, physics and collision caches, navmeshes, audio state, UI state. 
 | 5 | Permadeath deletion flow, `lastRun` and the end screen, the danger snapshot, the single-tab lock |
 | 8 | Hideout slices (largest), dirty-slice optimization if needed |
 | 9 | Hall of Captains store, logbook export, all remaining slices |
-| 11 | Hardening: corruption fuzzing, browser matrix, storage-persistence UX, (optional) export/import |
+| 11 | Hardening: corruption fuzzing, browser matrix, storage-persistence UX, player export/import |
 
 ---
 
@@ -254,9 +254,11 @@ All resolved.
 | 2026-10-22 | **Player export/import** included; imported runs labeled "Transferred"; export blocked during danger. |
 | 2026-10-22 | **Abandon run** ends the run, recorded as "Abandoned" in the Hall of Captains. |
 | 2026-10-22 | **Autosave every ~2 real minutes** (plus event triggers) while safe. |
+| 2026-10-22 | **Player export/import ships** (§9); it is no longer optional. |
 
 ---
 
 ## Changelog
+- v0.3: Gap review: export/import is a committed Phase 11 feature, not optional.
 - v0.2: Decisions: danger snapshot, player export/import (Transferred label, blocked during danger), Abandon run, 2-minute autosave.
 - v0.1: Initial persistence plan: stores, run lifecycle, autosave triggers, safe vs. danger states, the danger snapshot anti-scum rule, integrity rules, envelope and WorldState slice ownership, size targets, atomic writes, worker serialization, recovery, migrations, browser storage pitfalls, optional export/import, dev tools, tests, phasing.

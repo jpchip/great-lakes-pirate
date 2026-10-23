@@ -1,6 +1,6 @@
 # 07 — Combat, Boarding & Targets
 
-Status: DRAFT v0.2 (decisions made)
+Status: DRAFT v0.3 (decisions made; gap review applied)
 Parent: [00-master-plan.md](00-master-plan.md)
 Inputs: master plan decisions (weapons vary by ship and are upgradable; boarding is an intimidate/fight check driven by crew; solo players can only loot surrendered ships; violence is optional and adds heavy heat), [02](02-arcade-sailing.md) (ship model, tiers, damage pools, sinking/rowboat, NPC steam mode), [05](05-ports-economy-trading.md) (manifests, grudges), [06](06-fame-wanted-law-lighthouses.md) (heat, witnesses, the cutter)
 Feeds: 10 (weapon upgrades), 11 (wreck salvage), 12 (rival pirates, events), 13 (aim UI)
@@ -26,7 +26,7 @@ Define ship-to-ship combat (weapons, aiming, ballistics, damage), the AI's will 
 ### 2.1 Types (decided set: broadside cannons, swivel gun, small arms)
 | Weapon | Mount | Arc | Range (game) | Reload (solo / crewed) | Best against | Lethality |
 |---|---|---|---|---|---|---|
-| **Swivel gun** | Bow (and stern on T3), on a pivot | ~120° | Short | 6 s / 4 s | Rigging (chain), crew (grape), warning shots | Medium with grape |
+| **Swivel gun** | Bow, on a pivot | ~120° | Short | 6 s / 4 s | Rigging (chain), crew (grape), warning shots | Medium with grape |
 | **Broadside cannons** | Fixed, port and starboard | ~30° off the beam | Medium | n/a (T1 has none) / 10–14 s per side | Hull (round shot), rigging (chain) | Low–medium (round shot can kill crew by chance) |
 | **Rifle / pistols** | Player (on deck or on foot) | Aimed | Short–medium | 2–3 s | Single crew member, a lamp, a tow line | High (aimed at people) |
 
@@ -48,7 +48,7 @@ Ammo is cargo (powder and shot, per [05](05-ports-economy-trading.md)) and is co
 |---|---|
 | T1 (solo) | Bow swivel plus small arms |
 | T2 | Bow swivel plus 1–2 cannons per side plus small arms |
-| T3 | Bow and stern swivels plus 3–4 cannons per side plus small arms |
+| T3 | Bow swivel plus 3–4 cannons per side plus small arms |
 
 **Upgrades** (plan 10): bore and range, faster reload (better carriages, crew drill on T2/T3), accuracy (sights), more guns (slots), and a **hidden gun ports** option (the ship looks unarmed to targets, which improves surprise; it doesn't affect the law's ship profile).
 
@@ -234,11 +234,10 @@ Ships that sink or ground leave **wreck sites** in the world: salvageable cargo 
 ---
 
 ## 12. Cut List
-1. Stern swivel (bow only).
-2. Steering and boiler hit locations (hull, rigging, crew only).
-3. Ramming damage model (block or bounce only).
-4. Rival-pirate three-way prize contests and blame-shifting.
-5. Player injury (injury becomes "repelled plus damage").
+1. Steering and boiler hit locations (hull, rigging, crew only).
+2. Ramming damage model (block or bounce only).
+3. Rival-pirate three-way prize contests and blame-shifting.
+4. Player injury (injury becomes "repelled plus damage").
 
 ---
 
@@ -255,9 +254,11 @@ All resolved.
 | 2026-10-21 | **Passenger steamers are valid targets** (very high heat). |
 | 2026-10-21 | **No rivals at start;** copycat rival pirates emerge as Fame grows, max 2–3 active. |
 | 2026-10-21 | Companies never arm their ships (from 05). |
+| 2026-10-22 | T3 carries **one bow swivel** plus its broadside (matches 02 §10); no stern swivel. |
 
 ---
 
 ## Changelog
+- v0.3: Gap review: T3 has a single bow swivel (stern swivel removed).
 - v0.2: Decisions: steering freeze, boarding death chance, boiler explosions, passenger steamers targetable, copycat rivals (none at start, max 2–3); removed company guards and decoys.
 - v0.1: Initial combat plan: weapons and ammo, tier loadouts, aim mode and solo handicap, ballistics, hit locations, damage pools, lethality accounting, morale/surrender/flee AI, the boarding check, looting with time pressure, aftermath choices, target roster, rival pirates, ramming and tow lines, death and injury rules, data/state, Phase 6 acceptance.

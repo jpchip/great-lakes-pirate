@@ -1,6 +1,6 @@
 # 03 — World, Hybrid Scale, Chart Travel & Streaming
 
-Status: DRAFT v0.2 (decisions made; tuning pending spike S7)
+Status: DRAFT v0.3 (decisions made; gap review applied; tuning pending spike S7)
 Parent: [00-master-plan.md](00-master-plan.md)
 Inputs: [01 tech/architecture](01-tech-architecture.md) (coordinate spaces, simulation LOD, budgets), [R1](R1-western-superior-1900-research.md) and [R1a gazetteer](R1a-western-superior-gazetteer.md) (distances, places, regions)
 Feeds: 02 (sailing speeds), 04 (clock, weather on chart), 05 (traffic/routes), 06 (Wanted regions, pursuit), 08/11 (on-foot areas), 14 (terrain look)
@@ -38,7 +38,8 @@ WORLD (geo, lat/lon) ─ authoring truth for everything
   ├─ COASTAL ZONES (3D, real-time, compressed geography)
   │     Twin Ports · Two Harbors · Siskiwit Bay · Apostles & Chequamegon Bay
   │       ├─ Harbor set pieces (hand-authored, 1:1 scale, embedded in a zone)
-  │       └─ Walkable islands (on-foot sub-areas inside a zone)
+  │       ├─ Walkable islands (on-foot scenes loaded from a zone)
+  │       └─ Mainland hideout pads (small on-foot build areas; 09 §2.1)
   │
   ├─ OPEN-WATER ARENAS (3D, generated on demand for chart encounters)
   │
@@ -121,11 +122,12 @@ Derived from the [R1a distances](R1a-western-superior-gazetteer.md#distances-est
 
 | Zone ID | Covers | Real extent (approx.) | Compressed size | Set pieces | Walkable islands | Wanted region(s) |
 |---|---|---|---|---|---|---|
-| `zone.twin_ports` | Duluth–Superior harbor, Minnesota and Wisconsin Points, both entries | ~10 × 8 nm | ~2.3 × 1.9 km | Duluth canal & waterfront; Superior Entry & shipyard; Minnesota Point (abandoned light) | — | **Duluth** / **Superior** (split by the harbor/state line) |
-| `zone.two_harbors` | Agate Bay and nearby North Shore | ~5 × 4 nm | ~1.2 × 0.9 km | Ore docks & lighthouse | — | North Shore |
-| `zone.siskiwit` | Siskiwit Bay, sea-cave shoreline | ~8 × 5 nm | ~1.9 × 1.2 km | Logging landing | — (mainland sea caves accessible by boat) | South Shore West |
-| `zone.apostles` | All Apostle Islands, Bayfield, Washburn, Ashland, La Pointe, Red Cliff, Chequamegon Bay, Long Island, approach to Bad River | ~30 × 30 nm | ~7 × 7 km (tiled) | Bayfield, Washburn, Ashland, La Pointe, Red Cliff landing, Bad River landing | **All 22 islands** (on-foot sub-areas) | Apostles & Chequamegon Bay (may split; plan 06) |
+| `zone.twin_ports` | Duluth–Superior harbor, Minnesota and Wisconsin Points, both entries | ~10 × 8 nm | ~2.3 × 1.9 km | Duluth canal & waterfront; Superior Entry & shipyard; Minnesota Point (abandoned light) | Minnesota Point hideout pad | **Duluth** / **Superior** (split by the harbor/state line) |
+| `zone.two_harbors` | Agate Bay and nearby North Shore | ~5 × 4 nm | ~1.2 × 0.9 km | Ore docks & lighthouse | North Shore cove hideout pad | North Shore |
+| `zone.siskiwit` | Siskiwit Bay, sea-cave shoreline | ~8 × 5 nm | ~1.9 × 1.2 km | Logging landing | Logging-camp hideout pad (mainland sea caves by boat) | South Shore West |
+| `zone.apostles` | All Apostle Islands, Bayfield, Washburn, Ashland, La Pointe, Red Cliff, Chequamegon Bay, Long Island, approach to Bad River | ~30 × 30 nm | ~7 × 7 km (tiled) | Bayfield, Washburn, Ashland, La Pointe, Red Cliff landing, Bad River landing | **All 22 islands** by Beta (the MVP has one hero island; [11 §15](11-exploration-islands-secrets.md)) | **Apostle Islands**, **Chequamegon Bay** and **Ashland** ([06 §3.1](06-fame-wanted-law-lighthouses.md)) |
 
+- **Mainland on-foot exception (decided 2026-10-22):** the mainland isn't walkable except docks districts and the **build pads of the three mainland hideout sites** ([09 §2.1](09-hideouts-building-crafting.md)). A pad is the site's build bounds plus a small margin, loaded like an island.
 - **The Apostles is the main playground** (start area, most content). It's large enough that it streams by tile rather than being a single loaded scene.
 - **Zone edges** are soft: the water continues ~1 km past the authored area, fog thickens, and a "Take to the chart" prompt appears. There are no invisible walls except at the very edge.
 
@@ -207,11 +209,11 @@ Spotted something (or something spotted you)
 | Chart → Zone | Course reaches a zone boundary, or the destination is inside a zone | Loading screen (≤ 8 s); ship placed at the matching edge point and heading |
 | Chart → Arena | Engage, or forced encounter | Fast (≤ 2 s; water and ships only) |
 | Arena → Chart | Leave arena edge / encounter resolved | Instant |
-| Zone ↔ Walkable island | Anchor near the island → "Go ashore" (rowboat cutaway) | Stream high-res island tiles and props; the schooner stays anchored as an entity |
+| Zone ↔ Walkable island or hideout pad | Anchor near the island → "Go ashore" (rowboat cutaway) | **Separate scene load** (decided 2026-10-22): the 1 m tiles, props and navmesh load behind a short transition; the schooner stays anchored as an entity |
 | Zone ↔ Docks district | Moor in the harbor set piece → "Go ashore" | Separate scene load (the docks district); the zone stays in memory if the budget allows, otherwise it's reloaded on return |
 | Any → Jail / GameOver | Captured / killed | Flow from plans 06 and 12 |
 
-**Seamless vs. loading:** zone ↔ island is near-seamless streaming (the same zone, more detail). Everything else uses short loads disguised with a period-style transition (a chart unrolling, a newspaper page, a fade to fog).
+**Loading:** every transition, zone ↔ island included, uses a short load hidden behind a period-style transition (a chart unrolling, a newspaper page, a fade to fog).
 
 ---
 
@@ -232,8 +234,8 @@ Spotted something (or something spotted you)
 4. **Compress horizontally by C**: resample to the zone grid, where 1 m of game space = C m of real space. Heights stay 1:1 (with an optional cliff exaggeration curve).
 5. **Resample resolution:**
    - **Sailing tiles:** ~4 m/sample of game space (Apostles ≈ 1,750² samples, ~6 MB at 16-bit).
-   - **On-foot island tiles:** ~1 m/sample, generated only for island footprints plus a beach margin.
-6. **Derive:** land/water mask, **shoreline signed distance field**, depth bands, slope (for vegetation and walkability), a vegetation density map (from slope plus elevation; hand-paintable override), and **wind shelter maps** for 16 wind directions (see [02 §11](02-arcade-sailing.md#11-wind-interface-contract-with-plan-04)).
+   - **On-foot island tiles:** ~1 m/sample, generated for **all 22 island** footprints plus a beach margin, and for the three mainland hideout pads.
+6. **Derive:** land/water mask, **shoreline signed distance field**, depth bands, slope (for vegetation and walkability), a vegetation density map (from slope plus elevation; hand-paintable override), **wind shelter maps** for 16 wind directions, and **channel funneling maps** (S3 bakes these; see [02 §11](02-arcade-sailing.md#11-wind-interface-contract-with-plan-04)).
 7. **Hand-edit layer:** set-piece footprints (flatten or warp), 1900-era harbor corrections, sea-cave insertion points. Edits are stored as vector or mask data, so re-running the pipeline is repeatable.
 8. **Tile and encode:** e.g., 256×256-sample tiles as 16-bit PNG or raw plus fflate compression, with a tile manifest. Output to `public/world/<zone>/` (Git LFS).
 9. **Chart data:** a simplified coastline polygon set and depth shading for the whole lake (low resolution) for chart mode and arena silhouettes.
@@ -289,20 +291,19 @@ Spotted something (or something spotted you)
 
 | ID | Spike | Question | Exit criteria |
 |---|---|---|---|
-| **S3** | Geo pipeline (Apostles) | Can we produce compressed heightmap tiles plus an SDF from NOAA/USGS data reproducibly? | One command builds `public/world/apostles/`; islands are recognizable compared with a real map |
+| **S3** | Geo pipeline (Apostles) | Can we produce compressed heightmap tiles plus an SDF from NOAA/USGS data reproducibly? | One command builds `public/world/apostles/` (with shelter, fetch and funneling maps, and 1 m tiles for all 22 islands); islands are recognizable compared with a real map |
 | **S7** | **Scale-feel greybox** (new) | Do C = 8 and R = 24 feel right? Visual speed, channel widths, island walk sizes, freighter scale | Greybox Apostles zone with a placeholder schooner and a dev panel to vary C (6/8/10), R and freighter scale live. Pick values. |
 | **S8** | Chart mode prototype (new) | Is plotting plus a compressed voyage plus encounter interrupts fun and readable? | Chart with western Superior, course plotting, a time-compressed voyage, a fake encounter popping into an empty arena and back |
 
-S7 should follow S2 (water) and can reuse the S3 output. A flat-mask fallback is fine if S3 isn't done.
+S7 and S8 are **Phase 0** prototypes (decided 2026-10-22; [01 §11](01-tech-architecture.md)). S7 should follow S2 (water) and can reuse the S3 output. A flat-mask fallback is fine if S3 isn't done.
 
 ---
 
 ## 12. Cut List (if scope or performance demands)
 1. Distant coastline silhouettes in arenas: use fog only.
-2. Seamless zone ↔ island streaming: use a short load instead.
-3. Per-tile vegetation variety: one or two tree types.
-4. Chart fog of war: show everything.
-5. Siskiwit Bay zone: merge it into the chart as a point of interest with a small arena.
+2. Per-tile vegetation variety: one or two tree types.
+3. Chart fog of war: show everything.
+4. Siskiwit Bay zone: merge it into the chart as a point of interest with a small arena. If used, the logging-camp hideout pad stays reachable from that arena, so the site and the Lumberjack start survive.
 
 ---
 
@@ -319,9 +320,15 @@ All resolved. Remaining tuning (not decisions) happens in S7: the exact freighte
 | 2026-10-21 | Big freighters are **shrunk** (~0.75–1.0×) for readability. |
 | 2026-10-21 | **Lookout setting** filters encounter interruptions; forced encounters always interrupt. |
 | 2026-10-21 | **Clock slows on foot** (proposed R_foot = 6; tune in S7/plan 08). |
+| 2026-10-22 | Zone ↔ island uses a **separate scene load** (old cut #2 applied). |
+| 2026-10-22 | All 22 islands get 1 m on-foot tiles; the MVP ships one hero island. |
+| 2026-10-22 | The three mainland hideout sites get small on-foot build pads, the only mainland on-foot areas besides docks districts. |
+| 2026-10-22 | The Apostles zone spans three Wanted regions: Apostle Islands, Chequamegon Bay, Ashland. |
+| 2026-10-22 | S7 and S8 are Phase 0 prototypes; S3 bakes funneling maps. |
 
 ---
 
 ## Changelog
+- v0.3: Gap review: separate island scene loads, 1 m tiles for all 22 islands, mainland hideout pads, three Wanted regions in the Apostles zone, S7/S8 in Phase 0, Siskiwit cut keeps its hideout reachable.
 - v0.2: Decisions recorded: C = 8, 60-minute day, no chart escape when detected, shrunk freighters, lookout setting, slower on-foot clock (R_foot = 6 proposed).
 - v0.1: Initial world-scale plan: compression model (C = 8), time/speed linkage (R = 24), 1:1 set-piece exceptions, MVP zones, chart mode, simulation-driven encounters, arenas, transitions, terrain pipeline, data model, spikes S3/S7/S8.
