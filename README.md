@@ -83,7 +83,7 @@ npm test           # Vitest unit, data and save-migration tests
 npm run lint       # ESLint, including layer import rules
 npm run typecheck
 npm run build
-npm run e2e        # Playwright smoke test (run `npx playwright install chromium` once)
+npm run e2e        # Playwright: null-renderer smoke (CI) plus WebGL check (local only)
 ```
 
 Layout follows [plan 01 §6](plans/01-tech-architecture.md). Save migrations live in `src/core/save/migrations/` with one fixture per save version in `tests/fixtures/saves/` ([plan 16 §7](plans/16-save-persistence.md)).

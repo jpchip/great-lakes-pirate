@@ -1,5 +1,6 @@
 import { readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
+import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import { migrateSave, SaveMigrationError } from '../src/core/save/migrate';
 import { CURRENT_SAVE_VERSION, migrations } from '../src/core/save/migrations';
@@ -31,5 +32,15 @@ describe('save migrations', () => {
 
   it('rejects saves from a newer version', () => {
     expect(() => migrateSave({}, CURRENT_SAVE_VERSION + 1)).toThrow(SaveMigrationError);
+  });
+});
+
+describe('save migrations (properties)', () => {
+  it('leaves a current-version payload unchanged', () => {
+    fc.assert(
+      fc.property(fc.dictionary(fc.string(), fc.jsonValue()), (state) => {
+        expect(migrateSave(state, CURRENT_SAVE_VERSION)).toEqual(state);
+      }),
+    );
   });
 });
