@@ -1,6 +1,6 @@
 # 03 — World, Hybrid Scale, Chart Travel & Streaming
 
-Status: DRAFT v0.3 (decisions made; gap review applied; tuning pending spike S7)
+Status: DRAFT v0.4 (decisions made; gap review applied; S7 greybox built, feel check on the dev laptop pending)
 Parent: [00-master-plan.md](00-master-plan.md)
 Inputs: [01 tech/architecture](01-tech-architecture.md) (coordinate spaces, simulation LOD, budgets), [R1](R1-western-superior-1900-research.md) and [R1a gazetteer](R1a-western-superior-gazetteer.md) (distances, places, regions)
 Feeds: 02 (sailing speeds), 04 (clock, weather on chart), 05 (traffic/routes), 06 (Wanted regions, pursuit), 08/11 (on-foot areas), 14 (terrain look)
@@ -328,7 +328,96 @@ All resolved. Remaining tuning (not decisions) happens in S7: the exact freighte
 
 ---
 
+## 14. Spike S7: Scale-Feel Greybox (results, 2026-10-23)
+
+**Question** (§11): do C = 8, R = 24 and the freighter scale feel right? That covers visual speed, channel widths, island walk sizes and freighter scale.
+
+**Answer so far: the numbers support keeping C = 8 and R = 24, with freighters at 0.85×.** The greybox is built and measured. The feel check on the dev laptop (the checklist at the end of this section) still has to confirm or change the picks before they go in the Decisions table.
+
+### What was built
+| Piece | Where | Notes |
+|---|---|---|
+| Page | `scale-greybox.html`, `src/debug/scale-greybox/` | Dev-only like the S5 page: `npm run dev`, then `/scale-greybox.html`. It isn't part of the production build. `?c=8&r=24&rfoot=6&freighter=0.85` set the starting values. |
+| Geography | `geography.ts` | Hand-placed stand-in for S3: all 22 islands as ellipses and the mainland (Bayfield peninsula, Chequamegon Bay, south shore) as one polygon, from approximate public coordinates. The R1a legs come out close: Bayfield–La Pointe 2.3 nm (R1a: 2), Bayfield–Ashland 13.4 nm (13), Sand–Outer 21.8 nm (22). Coastline shapes are rough, so treat the channel widths below as indicative. |
+| Terrain | `terrain.ts`, `scene.ts` | One 125 m grid in true-scale chart meters (457 × 497 samples), built once in about 0.4 s. Every C shares it: the mesh is scaled by 1/C horizontally, and the on-foot and grounding heightfield is the same heights with a cell of 125/C m. Heights stay 1:1 (§3.1). Ground too steep to walk at the current C (over 42°, plan 08 §19) is drawn red. |
+| Helm | `helm.ts` | A stand-in for plan 02: the four sail levels on a steady beam reach (Full = 7.65 game kn for the T2 hull), 6 s inertia, a best turn rate of 6°/s that falls off at low speed, grounding at a 3 m draft, and sweeps astern to back off. The ship moves at v₃ᴅ = v × R / C. |
+| 1:1 references | `setpieces.ts`, `trees.ts`, `freighters.ts` | The S2 schooner (30 m), conifers 10–20 m tall within 1.4 km of the camera, five towns with piers (Ashland gets a 560 m ore dock), six 1900 lighthouses at their real heights, three 122 m ore boats steaming at 9 kn on two lanes, and the S5 capsule (1.75 m) on foot. |
+| On foot | `main.ts` | **F** goes ashore at the nearest walkable shore and back aboard, with the S5 controller and camera and the clock at R_foot. |
+| Dev panel | lil-gui | C from 4 to 12 (with 6/8/10 buttons), R, R_foot, freighter scale, hull speed, wind factor, turn rate, inertia, visibility, FOV, and teleports (channels, Chequamegon Bay, Outer Island, and ashore on Stockton, Oak, Madeline and Raspberry). |
+| HUD | `main.ts` | Game speed and on-screen speed, turning circle, the channel width abeam (on screen and in real nm), distance and ETA to the nearest places, freighter size and distance, the R1a legs in real minutes, island size and walk times on foot, and a trip timer on **T** (real time, game time, distance). |
+| Tests | `tests/scale-greybox.test.ts` | R1a distances, places near land, steamer lanes in deep water, one height grid for every C, v₃ᴅ, real time independent of C, grounding, freighter speed. |
+
+### Results
+
+**What C does and doesn't change.** Real travel time is chart distance / (v × R), so **C cancels out**: Bayfield to Ashland at Full takes 4:23 real at any C, and only R sets trip times. The ratio of a channel's width to the turning circle cancels C too, because both shrink by 1/C at a fixed R. So C doesn't make the helm harder. What C does change is how big the 1:1 things (ships, towns, trees, people) look against the land, how fast the water slides by, how long island walks take, and how steep the terrain gets (finding 1).
+
+**Visual speed and turning (R = 24, best turn rate 6°/s)**
+
+| C | Full (7.65 kn) on screen | Reefed (3.4 kn) on screen | Turning circle at Full | At Reefed |
+|---|---|---|---|---|
+| 6 | 15.7 m/s (31 visual kn) | 7.1 m/s | 324 m | 135 m |
+| **8** | **11.8 m/s (23 visual kn)** | **5.3 m/s** | **243 m (8 ship lengths)** | **101 m** |
+| 10 | 9.4 m/s (18 visual kn) | 4.3 m/s | 195 m | 81 m |
+
+**Channel widths (narrowest water deeper than 3 m, greybox geography)**
+
+| Channel | Real | C = 6 | **C = 8** | C = 10 |
+|---|---|---|---|---|
+| North Channel (Bayfield–Madeline) | 1.5 nm | 455 m | **341 m** | 273 m |
+| Basswood–Red Cliff | 1.1 nm | 353 m | **265 m** | 212 m |
+| Chequamegon Bay mouth | 2.8 nm | 853 m | **640 m** | 512 m |
+| Manitou–Stockton | 2.2 nm | 677 m | **508 m** | 406 m |
+| Rocky–South Twin | 1.0 nm | 320 m | **240 m** | 192 m |
+| Bear–Devils | 0.5 nm | 147 m | **110 m** | 88 m |
+
+At C = 8 the tightest gaps are still about 4 schooner lengths, and the channels the freighters use are 2.5 freighter lengths or more. At C = 10 the Bear–Devils gap (88 m) is shorter than a freighter.
+
+**Island walks (end to end, S5 speeds: walk 2.4 m/s, run 5.2 m/s)**
+
+| Island (real length) | C = 6 | **C = 8** | C = 10 |
+|---|---|---|---|
+| Madeline (22 km) | 3.7 km: 25 min walk | **2.8 km: 19 min walk, 9 min run** | 2.2 km: 15 min walk |
+| Stockton (9.5 km) | 1.6 km: 11 min | **1.2 km: 8 min walk, 4 min run** | 950 m: 7 min |
+| Oak (4.8 km) | 800 m: 6 min | **600 m: 4 min** | 480 m: 3 min |
+| Sand (4.2 km) | 700 m: 5 min | **525 m: 3.6 min** | 420 m: 3 min |
+| Raspberry (1.8 km) | 300 m: 2 min | **225 m: 1.6 min** | 180 m: 1.3 min |
+
+At R_foot = 6, walking Stockton end to end is 49 game minutes, so a 10-minute visit is about an hour of game time, as §3.3 intends.
+
+**R options at C = 8**
+
+| R | Full on screen | Bayfield → Ashland | Day length |
+|---|---|---|---|
+| 18 | 8.9 m/s | 5.8 min | 80 min |
+| 20 | 9.8 m/s | 5.3 min | 72 min |
+| **24** | **11.8 m/s** | **4.4 min** | **60 min** |
+| 30 | 14.8 m/s | 3.5 min | 48 min |
+
+**Freighter scale.** At 0.85× a laker is 104 m, 3.5× the schooner. In the C = 8 North Channel (341 m) it takes up 30% of the width; at 1.0× (122 m) it's 36%, and at 0.75× (92 m) it starts to look stubby beside the schooner. **0.85 is the proposal**, and it's the value that most needs the eye test.
+
+**Recommendation (pending the feel check):** keep **C = 8** and **R = 24** (fall back to R = 20 before touching C, as §3.3 says), set big freighters' `displayScale` to **0.85**, and keep **R_foot = 6**. C = 6 makes Madeline a 25-minute walk and puts 1:1 ships in very roomy water; C = 10 shrinks small islands to one-minute walks, squeezes freighters out of the tighter gaps, and steepens terrain further.
+
+### Findings for later work
+1. **Terrain gets C times steeper.** Heights stay 1:1 over ground compressed by C, so a 5° real hillside becomes 35° at C = 8 and 41° at C = 10, close to the 42° walking limit. The greybox already shows red (unwalkable) patches inside Oak and Madeline at C = 8. S3 should handle it for the on-foot tiles, for example by keeping shore cliffs at full height but scaling relief above the bluff by about 0.5, or by capping slopes outside authored cliffs. That would amend §3.1 ("heights are not compressed"), so it's a decision for the dev.
+2. **1:1 waterfronts swamp compressed bays.** Ashland's 560 m ore dock reaches about two-thirds of the way across the greybox bay (about 830 m at C = 8). This confirms §3.4: the Ashland set piece needs its local lens of uncompressed space.
+3. **Water has to reach the zone's far side.** The S2 water disc ends 2.5 km out, but at C = 8 the Apostles zone is about 7 km across and islands 5 km away are clearly visible. The greybox lays a flat sheet under the disc; plan 04 should add a proper far-water LOD.
+4. **Speed cues are missing.** The greybox has no wake, spray or sound, which plan 02 §7 relies on to make 23 visual knots feel natural, so judge speed knowing it may read slower here than in the game.
+5. **Performance isn't measured.** The page draws about 1M triangles in about 25 calls, mostly trees, and was only run in headless SwiftShader. It isn't a budget test.
+
+### Feel check on the dev laptop
+With `npm run dev` running, open `/scale-greybox.html`, then:
+1. Sail Bayfield → La Pointe and around Madeline at C = 8, R = 24, timing with **T**. Does 12 m/s on screen feel brisk but readable? If it's too fast, try R = 20.
+2. At "Sail: west of Oak" and "Sail: Raspberry–Oak", switch C between 6, 8 and 10. Which looks right for the channels and island sizes?
+3. Go to "Sail: Chequamegon Bay" and sit beside a passing freighter at 0.75, 0.85 and 1.0.
+4. "Ashore: Stockton", then walk or run end to end. Is R_foot = 6 right?
+5. "Ashore: Oak (summit)" and walk down. Do the red slopes block too much?
+
+Record the picks here and in the Decisions table.
+
+---
+
 ## Changelog
+- v0.4: Spike S7 greybox built and measured (§14): the numbers support C = 8, R = 24, R_foot = 6 and 0.85× freighters, pending a feel check on the dev laptop. Findings on terrain steepness, 1:1 waterfronts and far water.
 - v0.3: Gap review: separate island scene loads, 1 m tiles for all 22 islands, mainland hideout pads, three Wanted regions in the Apostles zone, S7/S8 in Phase 0, Siskiwit cut keeps its hideout reachable.
 - v0.2: Decisions recorded: C = 8, 60-minute day, no chart escape when detected, shrunk freighters, lookout setting, slower on-foot clock (R_foot = 6 proposed).
 - v0.1: Initial world-scale plan: compression model (C = 8), time/speed linkage (R = 24), 1:1 set-piece exceptions, MVP zones, chart mode, simulation-driven encounters, arenas, transitions, terrain pipeline, data model, spikes S3/S7/S8.

@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Spike S7 — Scale-feel greybox</title>
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+    <style>
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        overflow: hidden;
+        background: #1b2630;
+      }
+      #app {
+        width: 100%;
+        height: 100%;
+      }
+      #hud {
+        position: fixed;
+        top: 8px;
+        left: 8px;
+        padding: 6px 8px;
+        background: rgb(0 0 0 / 55%);
+        color: #e8eef2;
+        font:
+          12px/1.35 ui-monospace,
+          monospace;
+        white-space: pre;
+        pointer-events: none;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app"></div>
+    <div id="hud"></div>
+    <!-- Dev-only page for spike S7 (plan 03 §11); not part of the production build. -->
+    <script type="module" src="/src/debug/scale-greybox/main.ts"></script>
+  </body>
+</html>
