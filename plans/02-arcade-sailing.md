@@ -1,6 +1,6 @@
 # 02 — Arcade Sailing & Ship Handling
 
-Status: DRAFT v0.3 (decisions made; gap review applied)
+Status: DRAFT v0.4 (decisions made; gap review applied; S2 buoyancy notes)
 Parent: [00-master-plan.md](00-master-plan.md)
 Inputs:
 - [01 tech/architecture](01-tech-architecture.md): minimal physics, 30–60 Hz tick, budgets, shared wave function
@@ -133,6 +133,7 @@ Wind speed comes from the weather system (plan 04) via `windAt(position, time)`.
 - The player ship samples **4–6 hull points** (bow, stern, port and starboard pairs) each tick. Heave = average height; pitch and roll = differences. Damped springs smooth them.
 - **Heel** is added on top: the lean from wind pressure × sail level × wind strength, which makes strong wind visible. It's visual, plus a cannon-accuracy modifier in plan 07.
 - NPC ships: full sampling only when near the camera. Distant ones use a single height sample. Abstract ones use none.
+- **Spike S2 (2026-10-23):** built in `src/gameplay/buoyancy.ts`. Six samples (bow, stern, port and starboard pairs at ±L/4) on the first 4 waves; heave is the mean, pitch is the fore trio vs. the aft trio, roll is port vs. starboard. Schooner starting values: sample span 26 m × 6.5 m, natural periods heave 3.2 s, pitch 3.8 s, roll 4.6 s, damping 0.55. About 4 µs per ship per tick. Full write-up in [04 §19](04-water-weather-seasons.md).
 
 ### 5.2 Weather effects on sailing
 | Weather | Sailing effect | Other effect |
@@ -364,6 +365,7 @@ All resolved. Follow-ups for other plans: passage prices and shipless earning (0
 ---
 
 ## Changelog
+- v0.4: §5.1 records the spike S2 buoyancy model and starting tuning values.
 - v0.3: Gap review: static sail shapes (no billow), funneling baked in S3, T3 harbor tug tow, knots-in-data/SI-in-sim, shipless slipway building cross-referenced.
 - v0.2: Decisions: rowboat abandon-ship with survival check, shipless play continues (rowboat, passage, on-foot earning), auto-trim default, sweeps, wind shadow promoted to core with a shelter-map design and calmer lee waves.
 - v0.1: Initial sailing plan: controls, speed model (sail levels, polar, trim, wind strength), turning and tacking, buoyancy and weather effects, damage, grounding, knockdown, sinking proposal, mooring, camera, HUD, tiers, NPC steam model, wind interface, data fields, Phase 1 deliverables and acceptance criteria.
