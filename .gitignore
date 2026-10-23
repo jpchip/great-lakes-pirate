@@ -6,3 +6,4 @@ playwright-report/
 test-results/
 coverage/
 .vite/
+bench/s6/last-run.json
