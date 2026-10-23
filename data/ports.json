@@ -1,0 +1,16 @@
+[
+  {
+    "id": "port.bayfield",
+    "name": "Bayfield",
+    "zone": "zone.apostles",
+    "wantedRegion": "region.chequamegon",
+    "services": ["market", "tavern"]
+  },
+  {
+    "id": "port.ashland",
+    "name": "Ashland",
+    "zone": "zone.chequamegon_bay",
+    "wantedRegion": "region.chequamegon",
+    "services": ["market", "shipyard", "tavern", "jail"]
+  }
+]

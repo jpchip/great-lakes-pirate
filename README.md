@@ -8,19 +8,19 @@ By day you haul grain, lumber, and fish like any captain trying to eat. By night
 
 This is an **open sandbox**: no scripted hero’s journey. Go fully legit (harder margins, no heat), go full outlaw, or live in the grey between. Violence pays—but it brings heat you may not survive. Permadeath is real. The lakes are real. The tall tales are yours to write.
 
-*Sid Meier’s Pirates!* meets *Sea of Thieves* meets a grid base-builder—set on western Lake Superior instead of the Spanish Main, with a stealth layer in the port at night and seasons that can freeze the lake solid under your keel.
+_Sid Meier’s Pirates!_ meets _Sea of Thieves_ meets a grid base-builder—set on western Lake Superior instead of the Spanish Main, with a stealth layer in the port at night and seasons that can freeze the lake solid under your keel.
 
 ---
 
 ## What you’ll do
 
-| Rhythm | What happens |
-|--------|----------------|
-| **Day (port)** | Trade, contracts, upgrades, rumors, harbor fees—the respectable face |
-| **Night (docks)** | Stealth, theft, fencing, sabotage—the shadow face |
-| **At sea** | Arcade sailing with wind and weather, chart travel across open water, ambushes, exploration, evasion |
-| **Ashore (islands)** | Walk forests and cliffs, poach, raid lighthouses, discover secrets, expand hideouts |
-| **Winter** | Risky ice sailing, smuggling on frozen routes, warehouse jobs, hideout projects—or skip ahead to spring |
+| Rhythm               | What happens                                                                                            |
+| -------------------- | ------------------------------------------------------------------------------------------------------- |
+| **Day (port)**       | Trade, contracts, upgrades, rumors, harbor fees—the respectable face                                    |
+| **Night (docks)**    | Stealth, theft, fencing, sabotage—the shadow face                                                       |
+| **At sea**           | Arcade sailing with wind and weather, chart travel across open water, ambushes, exploration, evasion    |
+| **Ashore (islands)** | Walk forests and cliffs, poach, raid lighthouses, discover secrets, expand hideouts                     |
+| **Winter**           | Risky ice sailing, smuggling on frozen routes, warehouse jobs, hideout projects—or skip ahead to spring |
 
 Long-term vision: all five Great Lakes, real geography compressed into a believable playground, grounded in 1900 industry (ore, grain, lumber, fishing, brownstone quarries) with legend layered on top—moon-cussing wrecks, venison poaching, whiskey-fueled hijacks—without turning real communities into targets.
 
@@ -60,13 +60,30 @@ Browser-based **desktop** game: **TypeScript**, **Vite**, **three.js** (WebGPU o
 
 ## License
 
-| What | License |
-|------|---------|
-| Source code, plans, and other software text in this repo | [MIT](LICENSE) |
+| What                                                          | License                     |
+| ------------------------------------------------------------- | --------------------------- |
+| Source code, plans, and other software text in this repo      | [MIT](LICENSE)              |
 | Original game assets (art, audio, media made for the project) | [CC BY 4.0](LICENSE-ASSETS) |
 
 Reference material under [`references/`](references/) and any third-party or AI-generated assets may use other terms; those will be recorded in `ATTRIBUTION.md` as the asset pipeline grows.
 
 ---
 
-*Fair winds—or foul, if that’s how you like your profit.*
+_Fair winds—or foul, if that’s how you like your profit._
+
+## Development
+
+Requires Node 22+ and [Git LFS](https://git-lfs.com/) (binaries such as models, textures and audio are stored in LFS).
+
+```sh
+git lfs install
+npm ci
+npm run dev        # Vite dev server
+npm test           # Vitest unit, data and save-migration tests
+npm run lint       # ESLint, including layer import rules
+npm run typecheck
+npm run build
+npm run e2e        # Playwright: null-renderer smoke (CI) plus WebGL check (local only)
+```
+
+Layout follows [plan 01 §6](plans/01-tech-architecture.md). Save migrations live in `src/core/save/migrations/` with one fixture per save version in `tests/fixtures/saves/` ([plan 16 §7](plans/16-save-persistence.md)).
