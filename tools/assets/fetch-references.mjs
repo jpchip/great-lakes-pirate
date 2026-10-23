@@ -76,7 +76,7 @@ async function main() {
     const row = { ...entry, path: `${entry.file}.jpg`, status: '' };
     rows.push(row);
     if (entry.manual) {
-      row.status = 'manual download';
+      row.status = (await exists(out)) ? 'ok (manual)' : 'manual download';
       continue;
     }
     if (!entry.source.includes('loc.gov')) {
