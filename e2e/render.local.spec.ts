@@ -14,3 +14,9 @@ test('boots into the WebGL test scene without console errors', async ({ page }) 
   await page.waitForTimeout(1000);
   expect(errors).toEqual([]);
 });
+
+test('shows the dev overlay with ?debug', async ({ page }) => {
+  await page.goto('/?debug');
+  await expect(page.locator('[data-testid="dev-stats"]')).toContainText('calls');
+  await expect(page.locator('.lil-gui.root')).toContainText('Measure water');
+});

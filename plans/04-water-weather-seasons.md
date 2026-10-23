@@ -1,6 +1,6 @@
 # 04 — Water, Weather, Seasons & Day/Night
 
-Status: DRAFT v0.3 (decisions confirmed; gap review applied)
+Status: DRAFT v0.4 (decisions confirmed; gap review applied; spike S2 done)
 Parent: [00-master-plan.md](00-master-plan.md)
 Inputs:
 - [01 tech/architecture](01-tech-architecture.md): layers, budgets, the shared wave function, the iGPU baseline
@@ -335,10 +335,57 @@ All resolved.
 | 2026-10-21 | Mataafa Storm (November 1905) and aurora Easter eggs (both stay on the cut list). |
 | 2026-10-22 | The MVP ends at the first freeze-up; winter rules arrive in Phase 9. |
 | 2026-10-22 | S2 measures the water budget with crest foam on. S9 is a Phase 0 prototype. |
+| 2026-10-23 | S2 passed: water 1.0 ms on Medium with crest foam on the baseline laptop. The shared 4/6/8-wave Gerstner set, the polar-grid mesh and six-point buoyancy are kept for Phase 1 (§19). |
+
+---
+
+## 19. Spike S2 Results: Water and Buoyancy (2026-10-23)
+
+**Question** ([01 §11.2](01-tech-architecture.md)): can a shared Gerstner wave set (≤ 4 waves on Low) look good and drive a bobbing hull within the Low and Medium budgets, measured on Medium with crest foam on?
+
+**Answer: yes.** On the baseline laptop the water costs **1.0 ms on Medium with crest foam on** (budget ≤ 3 ms) and 0.5 ms on Low. The full test scene runs at 60 fps on Medium at full resolution.
+
+### What was built
+| Piece | Where | Notes |
+|---|---|---|
+| Shared wave set (CPU half) | `src/sim/weather/waves.ts` | Up to 8 Gerstner waves. Each has amplitude, wavelength, compass direction, steepness share and phase. Deep-water dispersion (ω = √(g·k)). The summed steepness is capped at 0.9, so crests never loop. One packed array feeds both the CPU and the shader uniforms (`writeWaveUniforms`). |
+| Water height query | `heightAt()` | Gerstner points move sideways, so the height at a fixed spot needs the rest position first. Three Newton steps on the 2×2 Jacobian keep the error ≤ 4 mm even at 2.5× the test sea; plain fixed-point iteration was off by up to 7 cm after three steps. Unit tests check that it lands on the query point. |
+| Water shader (GPU half) | `src/render/water/water-material.ts` | The same loop in GLSL: displacement, analytic normals, three toon diffuse bands, banded sky tint at grazing angles, banded sun glint, crest foam where Σ steepness·sin θ passes a threshold (broken up by value noise). Opaque, with no reflections or refraction. Short waves fade out with distance so the coarse outer rings don't alias. |
+| Water mesh | `src/render/water/water.ts` | A camera-centered polar grid, one draw call. Rings grow geometrically from 0.5 m at the camera to 2.5 km, past the fog. It snaps to 4 m steps so vertices don't swim. Low 56 × 96 (~11k tris), Medium 80 × 144 (~23k), High 112 × 192 (~43k). |
+| Buoyancy | `src/gameplay/buoyancy.ts` | Six hull samples (bow, stern, and port and starboard pairs at ±L/4) on the **first 4 waves only**, so ship motion is identical on every preset. Heave is the mean; pitch is the fore trio vs. the aft trio; roll is port vs. starboard. Three damped springs chase the targets. |
+| Test sea | `testBaySea(scale)` | A moderate northwest chop: 34, 22, 15 and 9 m gameplay waves, plus 6.2, 4.4, 3.1 and 2.3 m detail waves for Medium and High. Short and steep for a lake (§6.1). A "Sea state" slider in the dev overlay scales it from 0 to 2.5. |
+
+### Findings
+1. **Looks:** with 4 waves on Low the sea already reads as a lake chop rather than a sine wave, because the four gameplay waves cross at 50° and differ in length. The detail waves on Medium and High mostly add sparkle near the camera. Crest foam reads well at a threshold of 0.5. With 4 waves Low has fewer steep crests to foam, but Low has crest foam off anyway. Depth bands and shore foam wait for the S3 depth texture and shoreline field.
+2. **CPU cost is negligible:** one `heightAt` (4 waves, 3 Newton steps) is ~0.6 µs, and buoyancy for **8 ships** is **~31 µs per tick** (Node 22 on a 2.1 GHz cloud Xeon; expect the same order on the 7730U). That is a small fraction of the 0.1 ms environment-query budget (§14).
+3. **The CPU and the GPU agree where it matters.** Near the ship the shader runs the same formula on the same packed array. The only gap is the detail waves 5–8, worth at most ±0.21 m on High, and averaging over the hull hides them. No hull clipping showed in the test renders.
+4. **Motion feel:** with the schooner tuning (heave 3.2 s, pitch 3.8 s, roll 4.6 s, damping 0.55) the hull rolls and pitches a few degrees in the test chop and lags the water slightly, which reads as weight. All values live in `schoonerBuoyancy()` for the Phase 1 tuning pass. Heel from wind is still to be added on top (02 §5.1).
+5. **Draw calls:** the whole test scene is 4 (sky, water, hull and spars, sails), so the water's "1–2 draw calls" budget holds.
+
+### GPU timing on the baseline laptop (2026-10-23)
+Measured with `?bench=water` on a production build (`npm run preview`) on the Ryzen 7 7730U: Chrome 156 on Linux, ANGLE on OpenGL 4.6 (radeonsi, Mesa), MSAA off, device pixel ratio 1. Each value is the median over 150 frames, timed around render plus a 1-pixel `readPixels`. Chrome rounds `performance.now()` to 0.1 ms, so treat each value as ±0.1 ms.
+
+| Preset | Buffer | Waves | Frame ms | Water ms | Crest foam ms | No water ms | Triangles | Draw calls |
+|---|---|---|---|---|---|---|---|---|
+| Low | 1190×816 | 4 | 1.2 | 0.5 | 0.1 | 0.7 | 11,590 | 4 |
+| Medium | 1587×1088 | 6 | 2.0 | 1.0 | 0.2 | 1.0 | 23,830 | 4 |
+| High | 1587×1088 | 8 | 2.0 | 0.9 | 0.2 | 1.1 | 43,750 | 4 |
+
+**Result:** Medium with crest foam on is at **1.0 ms, a third of the 3 ms budget**, and crest foam costs about 0.2 ms. Low is far above its 30 fps floor. High matches Medium here because the display's pixel ratio is 1, so High renders the same buffer; its extra waves and denser grid add nothing measurable. The GPU timer in the overlay agreed (about 1.0 ms per frame on Medium in normal play).
+
+**Headroom:** the water leaves roughly 13 ms of the 16.7 ms Medium frame for terrain, ships, sky and post-processing. The water's quality settings don't need cutting. If the budget gets tight later, the cheapest levers are still fewer water rings, then 4 shader waves on Medium.
+
+**Caveats:** this is one machine on one browser, with MSAA off (High with MSAA needs `&quality=high` at load) and no Firefox run yet. Rerun the benchmark once depth bands and shore foam are added in Phase 1.
+
+### Decisions
+- Keep the shared Gerstner set as designed: 4/6/8 waves by preset, buoyancy on the first 4, a steepness cap of 0.9.
+- A camera-centered polar grid is the water mesh for Phase 1 (no far ring needed so far).
+- Six hull samples plus damped springs is enough; no rigid-body solver (01 §5).
 
 ---
 
 ## Changelog
+- v0.4: Spike S2 write-up (§19): shared Gerstner set, water shader and mesh, buoyancy, CPU timings, and baseline-laptop GPU timings (water 1.0 ms on Medium with crest foam).
 - v0.3: Gap review: MVP ends at freeze-up, S2 measures with crest foam, S9 in Phase 0, cutter winter lay-up and 1900 storm signals researched, §18 rewritten as decisions.
 - v0.2: Decisions confirmed: 1 game day = 1 week, May 7, 1900 start, walkable ice, port storm flags, Mataafa and aurora.
 - v0.1: Initial environment plan: architecture, calendar (with a decoupled season-calendar proposal), sun/moon, climate normals, weather systems, fog, storms, forecasting, waves (fetch, duration, lake character), stylized water rendering, ice sim and walkable-ice proposal, sky/lighting, fog and precipitation rendering, chart display, data and state, budgets, phasing, spikes, cut list.

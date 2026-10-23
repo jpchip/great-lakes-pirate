@@ -1,10 +1,12 @@
 import { dayAndHour, advanceClock, R_SAILING } from '../core/time';
+import { buoyancySystem } from '../gameplay/buoyancy';
 import { bobSystem, snapshotTransforms, velocitySystem } from '../gameplay/ecs';
 import type { GameContext } from './context';
 import type { Mode } from './machine';
 
 export interface SailingView {
-  render(alpha: number): void;
+  /** `seaTime` is the wave clock at this frame, between the last two ticks. */
+  render(alpha: number, seaTime: number, frameSeconds: number): void;
 }
 
 /**
@@ -13,6 +15,7 @@ export interface SailingView {
  */
 export function createSailingMode(ctx: GameContext, view?: SailingView): Mode {
   let elapsed = 0;
+  let lastDt = 0;
 
   return {
     id: 'sailing',
@@ -22,6 +25,8 @@ export function createSailingMode(ctx: GameContext, view?: SailingView): Mode {
     update(dt) {
       snapshotTransforms(ctx.world);
       elapsed += dt;
+      lastDt = dt;
+      ctx.sea.time += dt;
 
       const clock = ctx.state.environment.clock;
       const dayBefore = dayAndHour(clock.gameSeconds).day;
@@ -34,9 +39,10 @@ export function createSailingMode(ctx: GameContext, view?: SailingView): Mode {
 
       velocitySystem(ctx.world, dt);
       bobSystem(ctx.world, elapsed);
+      buoyancySystem(ctx.world, ctx.sea, dt);
     },
-    render(alpha) {
-      view?.render(alpha);
+    render(alpha, frameSeconds) {
+      view?.render(alpha, ctx.sea.time - (1 - alpha) * lastDt, frameSeconds);
     },
   };
 }
