@@ -1,6 +1,6 @@
 # 11 — Exploration, Islands & Secrets
 
-Status: DRAFT v0.2 (decisions made)
+Status: DRAFT v0.3 (decisions made; gap review applied)
 Parent: [00-master-plan.md](00-master-plan.md)
 Inputs:
 - Master plan: islands fully walkable, mainland not; secrets on islands; hunting and poaching; lighthouse raids on foot
@@ -238,7 +238,7 @@ Island lighthouses use the **lighthouse station kit** (tower with a climbable in
 |---|---|
 | Draw calls | ≤ 150 (instanced vegetation, merged POI statics) |
 | NPCs | ≤ 6 full AI (keepers, fishermen, marshals) plus wildlife (≤ 4) |
-| Terrain | 1 m tiles streamed around the player ([03 §8.3](03-world-scale-chart-travel.md)) |
+| Terrain | 1 m tiles, loaded as the island's own scene ([03 §7](03-world-scale-chart-travel.md)) |
 | Caves | Separate small meshes; fog and light tuned; ≤ 40 draw calls inside |
 
 ---
@@ -272,11 +272,10 @@ Island lighthouses use the **lighthouse station kit** (tower with a climbable in
 1. Winter ice caves (sea caves stay boat-only).
 2. Fur trapping (hunting only).
 3. Mirages.
-4. Minor-tier islets (make them non-walkable scenery).
-5. Legends reduced from 6 to 4.
-6. Diving-suit entanglement hazard.
+4. Legends reduced from 6 to 4.
+5. Diving-suit entanglement hazard.
 
-*Not cuttable:* walkable islands, caches, legends (at least 4), shallow wreck salvage, **the diving suit and deep wrecks** (may ship in the first post-MVP update), **wildlife hazards**, **deer poaching**, the clue → map flow, lighthouse stations on foot, cold exposure in winter.
+*Not cuttable:* walkable islands (**all 22 by Beta**, minor islets included), caches, legends (at least 4), shallow wreck salvage, **the diving suit and deep wrecks** (may ship in the first post-MVP update), **wildlife hazards**, **deer poaching**, the clue → map flow, lighthouse stations on foot, cold exposure in winter.
 
 ---
 
@@ -292,9 +291,11 @@ All resolved.
 | 2026-10-21 | **Diving suit:** an expensive purchase that unlocks deep-wreck salvage. |
 | 2026-10-21 | **Cold exposure** can kill (with clear warnings). |
 | 2026-10-21 | **6 hand-authored legends** (never actually supernatural) plus **seeded caches** varying per run. |
+| 2026-10-22 | All 22 islands, minor islets included, get 1 m on-foot tiles and stay walkable; each island loads as its own scene. |
 
 ---
 
 ## Changelog
+- v0.3: Gap review: minor islets stay walkable (cut removed), islands load as their own scenes.
 - v0.2: Decisions: poaching and trapping, wildlife hazards (bears, wolves), a purchasable diving suit for deep wrecks (with design), cold exposure, 6 legends plus seeded caches.
 - v0.1: Initial exploration plan: island catalog and tiers (22 Apostles), POI kits, on-foot traversal and hazards, hunting and trapping, sea and ice caves, wreck sources and salvage, secret types, clue sources and the map flow, 6 legends, seeded variety, lighthouse stations on foot, discovery and journal, rewards and balance, pipeline and budgets, data/state, phasing.

@@ -1,6 +1,6 @@
 # 02 — Arcade Sailing & Ship Handling
 
-Status: DRAFT v0.2 (decisions made)
+Status: DRAFT v0.3 (decisions made; gap review applied)
 Parent: [00-master-plan.md](00-master-plan.md)
 Inputs:
 - [01 tech/architecture](01-tech-architecture.md): minimal physics, 30–60 Hz tick, budgets, shared wave function
@@ -59,7 +59,7 @@ targetSpeed (game knots) =
   × iceFactor                (winter, §5)
 ```
 - Actual speed approaches `targetSpeed` with **inertia**: acceleration and deceleration time constants per ship (heavier = slower; ~4–8 s to reach 63% of the target).
-- Everything works in **game knots**. The render layer converts to 3D meters per second with `v₃ᴅ = v_game × R / C` (with C = 8 and R = 24, ×3 → 8 kn ≈ 12.3 m/s on screen).
+- Speeds are tuned and authored in **game knots** (data fields end in `Kn`); the data loader converts them to m/s for the sim ([01 §8](01-tech-architecture.md)). The render layer converts game speed to 3D meters per second with `v₃ᴅ = v_game × R / C` (with C = 8 and R = 24, ×3 → 8 kn ≈ 12.3 m/s on screen).
 - The wind angle used is the **true wind relative to the heading** (arcade simplification; no apparent-wind math).
 
 ### 3.2 Sail levels
@@ -110,7 +110,7 @@ Wind speed comes from the weather system (plan 04) via `windAt(position, time)`.
 
 ### 3.6 Sweeps (calm-weather oars)
 - **Decided:** T1 and T2 can use **sweeps** in a calm: ~1–1.5 kn, slow turning. Historically plausible for small craft, and it prevents frustrating dead stops. Sweeps also work in the lee of an island where the wind is blocked (§11).
-- T3 is too big; it relies on the wind. TBD whether a tow from a tug can be hired in harbors (plan 05).
+- T3 is too big; it relies on the wind. **Decided:** T3 can hire a **harbor tug tow** in calms to get in or out of a harbor ([05 §7](05-ports-economy-trading.md)); there's no tow at sea.
 
 ---
 
@@ -188,7 +188,7 @@ Wind speed comes from the weather system (plan 04) via `windAt(position, time)`.
   - **Buy passage** on a steamer or ferry between ports (a paid fast-travel between zones, abstracted through the chart; plan 05 sets prices). There's a risk of being recognized if Wanted is high.
   - **Ways to earn without a ship** (plans 05, 08, 12): sell goods stored at hideouts, docks labor and odd jobs, docks-district theft, poaching and trapping on islands, fishing from the rowboat.
   - **Hideout storage matters here:** goods and gold stashed at hideouts become the recovery fund. This rewards the logistics play from the per-hideout storage decision.
-  - When you can afford it, buy a new T1 (or better) schooner at a shipyard. Plan 10 decides whether hideouts with a slipway can build one from materials.
+  - When you can afford it, buy a new T1 (or better) schooner at a shipyard, or build a T1 from materials at a hideout slipway ([09 §7.4](09-hideouts-building-crafting.md), [10 §9](10-ship-upgrades-customization.md)).
 
 ---
 
@@ -212,7 +212,7 @@ Wind speed comes from the weather system (plan 04) via `windAt(position, time)`.
 
 - **The camera does not roll with the ship** by default (reduces motion sickness). An optional "roll with ship" setting is available.
 - The camera collides with terrain (it stays above the water and outside cliffs).
-- **Scale tricks** that make 24-knot visual speed feel natural rather than speedboat-fast: exaggerated bow wave and wake, spray particles, sail billow and creak audio, and a slightly lower FOV at speed.
+- **Scale tricks** that make 24-knot visual speed feel natural rather than speedboat-fast: exaggerated bow wave and wake, spray particles, sail and rigging creak audio, and a slightly lower FOV at speed.
 
 ---
 
@@ -303,7 +303,7 @@ Weapons, crew size for boarding and upgrade slots belong to plans 07 and 10 but 
 - At most 8 materialized ships ([01 §5](01-tech-architecture.md)). Distant ones use simplified motion.
 - **Sails rendering:**
   - Sail meshes with per-level shape states (furled, reefed, half, full).
-  - Billow via a cheap vertex shader (wind-side bulge plus a luff flutter when in irons).
+  - **Static sail shapes per level (decided 2026-10-22: no billow shader).** Luffing in irons swaps to a slack-sail shape, plus the flapping audio.
   - Opaque or alpha-tested canvas to avoid transparency overdraw on the iGPU.
 - Wake and spray: a GPU particle budget per preset, plus a trailing decal/ribbon wake mesh (cheap).
 
@@ -335,11 +335,10 @@ Weapons, crew size for boarding and upgrade slots belong to plans 07 and 10 but 
 ## 15. Cut List
 1. Leeway.
 2. Jibe damage.
-3. Channel wind funneling (keep basic shelter).
+3. Channel wind funneling (keep basic shelter). S3 bakes the funneling maps either way, so cutting it later only drops the runtime use.
 4. Kedging minigame (replace with "wait or jettison" options).
-5. Sail billow shader (use static sail shapes per level).
-6. Following-seas surfing boost.
-7. Rescue pickup by a passing vessel after abandoning ship (rowboat only).
+5. Following-seas surfing boost.
+6. Rescue pickup by a passing vessel after abandoning ship (rowboat only).
 
 *Not cuttable (decided features):* manual trim option, sweeps, wind shadow/lee shelter, the abandon-ship rowboat, shipless play.
 
@@ -347,7 +346,7 @@ Weapons, crew size for boarding and upgrade slots belong to plans 07 and 10 but 
 
 ## 16. Open Questions
 
-All resolved. Follow-ups for other plans: passage prices and shipless earning (05, 12), wreck salvage (11), whether hideouts can build ships (10).
+All resolved. Follow-ups for other plans: passage prices and shipless earning (05, 12), wreck salvage (11).
 
 ### Decisions
 | Date | Decision |
@@ -357,9 +356,14 @@ All resolved. Follow-ups for other plans: passage prices and shipless earning (0
 | 2026-10-21 | Auto-trim default; manual trim optional. |
 | 2026-10-21 | Sweeps (long oars) for T1 and T2 in calms. |
 | 2026-10-21 | Wind shadow and lee shelter behind islands and cliffs is a core feature (precomputed shelter maps; calmer waves in the lee). |
+| 2026-10-22 | No sail billow shader: static sail shapes per sail level (cut #5 applied). |
+| 2026-10-22 | S3 bakes the channel funneling maps. |
+| 2026-10-22 | T3 can hire a harbor tug tow in calms (05 §7). |
+| 2026-10-22 | Speeds are authored in knots and converted to m/s for the sim (01 §8). |
 
 ---
 
 ## Changelog
+- v0.3: Gap review: static sail shapes (no billow), funneling baked in S3, T3 harbor tug tow, knots-in-data/SI-in-sim, shipless slipway building cross-referenced.
 - v0.2: Decisions: rowboat abandon-ship with survival check, shipless play continues (rowboat, passage, on-foot earning), auto-trim default, sweeps, wind shadow promoted to core with a shelter-map design and calmer lee waves.
 - v0.1: Initial sailing plan: controls, speed model (sail levels, polar, trim, wind strength), turning and tacking, buoyancy and weather effects, damage, grounding, knockdown, sinking proposal, mooring, camera, HUD, tiers, NPC steam model, wind interface, data fields, Phase 1 deliverables and acceptance criteria.

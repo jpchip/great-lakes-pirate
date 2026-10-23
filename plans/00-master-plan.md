@@ -1,9 +1,9 @@
 # Great Lakes Pirate — Master Plan
 
-Status: DRAFT v0.5 (all plans 01–17 + R1/R1a drafted with decisions; ready for Phase 0; no code yet)
+Status: DRAFT v0.6 (Phase 0 gap review applied; all plans 01–17 + R1/R1a drafted with decisions; no code yet)
 Working title: *Great Lakes Pirate* (placeholder)
 
-This is the top-level plan. It captures the vision, pillars, systems, decisions, and a phased roadmap. Each system listed here gets its own detailed plan in `plans/` later (see [Plan Index](#9-plan-index)). Anything marked **TBD** or listed under [Open Questions](#10-open-questions) is a gap for later planning sessions to fill. Settled choices are recorded in [Decisions Log](#decisions-log).
+This is the top-level plan. It captures the vision, pillars, systems, decisions, and a phased roadmap. Each system listed here gets its own detailed plan in `plans/` later (see [Plan Index](#9-plan-index)). Anything marked ❓ or listed under [Open Questions](#10-open-questions) is still open. The system plans own the details; where this summary and a system plan differ, the system plan wins. Settled choices are recorded in [Decisions Log](#decisions-log).
 
 ---
 
@@ -23,7 +23,7 @@ Play as an original pirate captain on the Great Lakes around the turn of the 20t
 6. **Grounded history, tall-tale tone.** Real ports, lighthouses and industries, with Seavey-style legend layered on top ("moon cussing", poaching, whiskey-fueled hijackings).
 
 ### Reference material
-- `references/dan_seavey.md`: biography, used as inspiration for mechanics and optional events (wrecking with false lights, venison poaching, the *Nellie Johnson*-style hijack, Booth Fisheries rivalry, a later career as a lawman).
+- `references/dan_seavey.md`: biography, used as inspiration for mechanics and optional events (wrecking with false lights, venison poaching, the *Nellie Johnson*-style hijack, a fish-company rivalry (fictionalized in-game as **Hollister Fish & Packing**), a later career as a lawman).
 - `references/schooner.png`: the player ship style (a multi-mast Great Lakes schooner with many headsails).
 - `references/freighter1.png`: an early steam package freighter (*Onoko*-style, pilothouse forward).
 - `references/freighter2.png`: a steel bulk freighter ("Henry Phipps" type, long hull, stern engines). *Era caveat:* the largest of these came a few years after 1900. Use it as a visual guide for the steel bulk carriers of ~1900 (slightly smaller), the biggest and most valuable prey on the lake.
@@ -35,7 +35,7 @@ Play as an original pirate captain on the Great Lakes around the turn of the 20t
 
 - **Era: the game starts in spring 1900; technology is fixed.** The calendar advances (seasons and years), but ship types, weapons and world technology stay at their 1900 level. 1900 also lines up with Seavey's own active years. The world is a snapshot of sail in decline: schooners (many now towed as barges) share the lake with wooden and steel steam freighters, steel bulk ore carriers, tugs and sidewheel/passenger steamers.
   - Local color for 1900: Duluth–Superior is a booming ore and grain port, and the Two Harbors ore docks are busy. Alexander McDougall's **whaleback** ships (built at Duluth/Superior from 1888 into the 1890s) are a perfect regional oddity to include as a freighter type.
-  - Picking 1900 means most Apostle-area lighthouses exist (Devils Island, Chequamegon Point and Two Harbors were all built in the 1890s, from memory, *verify in R1*). Historical accuracy is "1900-flavored," not strict. Things built after 1900 (e.g., the Duluth aerial bridge, 1905) are excluded by default.
+  - Picking 1900 means most Apostle-area lighthouses exist (Devils Island, Chequamegon Point and Two Harbors were all built in the 1890s; verified in [R1 §2.1](R1-western-superior-1900-research.md)). Historical accuracy is "1900-flavored," not strict. Things built after 1900 (e.g., the Duluth aerial bridge, 1905) are excluded by default.
   - **Ojibwe communities (included):** Red Cliff and Bad River bands, and Madeline Island's history as a historic Ojibwe center. Portray them respectfully as communities with their own interests: trading partners, guides, sources of local knowledge and lore, not stereotypes or targets. R1 must research this carefully (treaty-era context, the 1854 treaty reservations, fishing and wild rice economies). Consider authenticity review/sensitivity reading before release.
 - **Seasons:** spring, summer, fall and winter change weather, ice, traffic and prices (see §4.2).
 - **Player character:** an original, customizable pirate *inspired by* Seavey. **Seavey himself does not appear.** His exploits inspire mechanics and events only.
@@ -43,8 +43,8 @@ Play as an original pirate captain on the Great Lakes around the turn of the 20t
 - **Starting region / MVP: western Lake Superior.**
   - **Ports:** Duluth, Superior (WI), Ashland, Bayfield, Washburn, La Pointe (Madeline Island), Two Harbors, Siskiwit Bay (a fading logging landing in 1900; the Cornucopia fishing boom came later), plus the Red Cliff and Bad River communities (trade only). Profiles are in [R1a](R1a-western-superior-gazetteer.md).
   - **Apostle Islands** (22 islands, including Madeline; see R1): sea caves, sandstone cliffs, brownstone quarries (e.g., Basswood, Hermit and Stockton Islands) and fishing camps. Natural hideout and secret territory.
-  - **Lighthouses (Apostles area):** Raspberry Island, Sand Island, Devils Island, Outer Island, Michigan Island, La Pointe, Chequamegon Point, plus Duluth and Two Harbors. *Verify construction dates against the chosen era.*
-  - **Economy flavor:** iron ore (Two Harbors and Duluth ore docks), lumber, brownstone, commercial fishing (Booth fishing operations were present in the region, a natural rival), grain via Duluth–Superior, and furs/venison (poaching).
+  - **Lighthouses (Apostles area):** Raspberry Island, Sand Island, Devils Island, Outer Island, Michigan Island, La Pointe, Chequamegon Point, plus Duluth and Two Harbors. Dates and lenses are in [R1 §2.1](R1-western-superior-1900-research.md); Devils Island still shows a weak temporary light in 1900.
+  - **Economy flavor:** iron ore (Two Harbors and Duluth ore docks), lumber, brownstone, commercial fishing (the fictional **Hollister Fish & Packing Co.**, modeled on the real regional packers, is a natural rival; [05](05-ports-economy-trading.md)), grain via Duluth–Superior, and furs/venison (poaching).
   - **Hazards:** reefs and shoals around the Apostles, Superior's cold and violent fall storms, fog, and the Duluth ship canal.
 - **Real vs. invented:** real ports, islands and lighthouse names. Invented ships, NPCs, companies (where needed) and secrets layered on top.
 
@@ -91,12 +91,12 @@ Each of these gets its own plan doc. Summaries capture decisions plus remaining 
   - Ship tiers (draft): small schooner → mid schooner (e.g., three-masted) → large/fast schooner. Exact tiers belong to plan 10.
 - **Always your own ship:** the player can't steal or captain other vessels, only take their cargo.
 - **Controls: mouse and keyboard only** (decided). No gamepad support planned.
-- **TBD:** camera modes.
+- **Camera (decided):** a chase camera plus a spyglass at sea, third-person on foot ([02](02-arcade-sailing.md), [08](08-docks-district-stealth.md)).
 
 ### 4.2 World, Scale, Weather & Seasons — **Hybrid Scale**
 - **Hybrid model:** detailed, real-time **coastal zones** (ports, island clusters, lighthouses, river mouths) connected by **abstracted open water**.
 - **Decided:** open-water crossings use a **chart travel mode** with time compression. Random encounters (freighters, cutters, storms, derelicts, ice fields) drop the player into real-time sailing at that spot.
-- Coastlines are based on real geography (NOAA/USGS shoreline and bathymetry data, simplified). *TBD:* data-processing pipeline.
+- Coastlines are based on real geography (NOAA/USGS shoreline and bathymetry data, simplified). The GDAL pipeline runs locally ([03 §8.2](03-world-scale-chart-travel.md), spike S3).
 - **Day/night cycle** drives the trade-vs-steal rhythm.
 - **Weather system:** wind fields, fog banks, storms (fall "gales" are the deadliest), calm spells. Forecasts or signs (barometer, sky) could be a light skill element.
 - **Seasons:**
@@ -110,7 +110,8 @@ Each of these gets its own plan doc. Summaries capture decisions plus remaining 
 - Points of interest: ports, lighthouses, life-saving stations, islands, sea caves, quarries, fishing camps, Ojibwe communities, wrecks, shoals/reefs, shipping lanes.
 - **On-foot areas (decided):**
   - **Islands are fully walkable:** explore, hunt and poach, find secrets, raid lighthouses on foot, build hideouts.
-  - **The mainland is not walkable** except the docks-district scenes in ports.
+  - **The mainland is not walkable** except the docks-district scenes in ports and the **on-foot build pads at the mainland hideout sites** ([09](09-hideouts-building-crafting.md)).
+  - **MVP:** one fully walkable island; all 22 Apostles become walkable by Beta (Phase 9).
   - This makes island terrain a real on-foot level (forest, cliffs, beaches, sea caves, quarries) and a major content and performance item for plans 03 and 11.
 
 ### 4.3 Ports & Trading (Day)
@@ -119,23 +120,24 @@ Each of these gets its own plan doc. Summaries capture decisions plus remaining 
 - Stolen goods and contraband must go to **fences** (which unlock with Fame), at a risk.
 - Services: shipyard (repairs/upgrades), chandlery (supplies), saloon (rumors, contacts), harbor master (fees, papers).
 - Rumors and tips: cargo shipments, patrol routes, island legends.
-- **TBD:** economy depth (static tables vs. lightweight simulation), cargo list, price dynamics.
+- **Economy (decided):** a lightweight per-port, per-good market model with ~22 MVP goods and traffic-driven cargo flows ([05](05-ports-economy-trading.md)).
 
 ### 4.4 Docks District Stealth (Night)
 - Each port has a compact, hand-built **docks district** scene (wharves, warehouses, moored ships, a saloon, a few streets) rather than a full town.
-- On foot (third-person assumed, TBD): sneak, steal cargo from warehouses and moored ships, sabotage, meet fences.
-- Threats: night watchmen, constables, dogs(?), lanterns/gas lamps, noise. Alertness scales with Wanted.
+- On foot (third-person, decided): sneak, steal cargo from warehouses and moored ships, sabotage, meet fences.
+- Threats: night watchmen, constables, lanterns/gas lamps, noise (no watchdogs, decided). Alertness scales with Wanted.
 - Tools/tactics: lockpicks, distractions, bribes, whiskey (getting a crew drunk, à la *Nellie Johnson*, to loot their cargo, not to steal the ship).
 - Moving loot: carry limits, rowboat/cart to your schooner.
+- **MVP:** one district (Bayfield). Duluth, Superior and Ashland districts come in Phase 8+ ([08](08-docks-district-stealth.md)).
 - *Build cost note:* one reusable kit of dock parts (piers, warehouses, cranes, crates) assembled into per-port layouts keeps this feasible for a solo dev.
 
 ### 4.5 Fame & Wanted — **Separate Meters**
-- **Fame (long-term, mostly positive):** grows from big heists, daring escapes, newspaper coverage and wealth. It unlocks better fences, black-market contacts, rumor quality, intimidation (ships surrender faster) and special opportunities. **Fame fades over time** if you stop doing notable things (decided), so you have to stay in the papers. TBD: decay rate, and whether legit success earns Fame too.
+- **Fame (long-term, mostly positive):** grows from big heists, daring escapes, newspaper coverage and wealth. It unlocks better fences, black-market contacts, rumor quality, intimidation (ships surrender faster) and special opportunities. **Fame fades over time** if you stop doing notable things (decided), so you have to stay in the papers. Decay rate and the separate legit **Standing** meter are in [06](06-fame-wanted-law-lighthouses.md); legit success earns Standing and the "Respectable Captain" Fame track.
 - **Wanted (short-term heat, negative):** grows from witnessed crimes and scales by severity. **Violence raises heat a lot:** theft < assault < sinking a ship < killing people. It drives patrol density, cutter aggression, lighthouse vigilance and bounty hunters. It decays over time when you lay low, and can be reduced with bribes, fines, a changed ship appearance or name, or hiding.
-- **Wanted is per region (decided).** Each region has its own level (e.g., the Apostles/Chequamegon Bay, the Duluth–Superior harbor, the North Shore; eventually each lake or sub-region). Fleeing to another region is a valid way to escape heat. *TBD in plan 06:* region boundaries, and whether extreme Wanted spreads to neighboring regions (news travels).
+- **Wanted is per region (decided).** **Seven MVP regions:** Duluth, Superior, North Shore, South Shore West, Apostle Islands, Chequamegon Bay and Ashland ([06 §3.1](06-fame-wanted-law-lighthouses.md)). Fleeing to another region is a valid way to escape heat. Serious crimes spread heat to neighboring regions (decided).
 - **Law enforcement (era-accurate):** the US Revenue Cutter Service (historically **one cutter, the *Morrill*, covered Lakes Michigan and Superior**. The game keeps it that sparse: a roaming, trackable threat that focuses on your region as Wanted rises. See R1 §2.2), local constables and police in ports, lighthouse keepers (lookouts who report sightings), the Life-Saving Service (witnesses, not fighters), and US Marshals/bounty hunters at high Wanted. *Naming decision:* use era-accurate names in-game. The Coast Guard didn't exist until 1915.
 - **Lighthouses:** sweeping beams and keepers act as detection nodes. Higher Wanted makes keepers signal and report faster.
-- **The law cannot raid hideouts.** Hideouts are safe zones (they could still be a place to lose pursuit).
+- **The law cannot raid hideouts.** Hideouts are safe zones, and **reaching one ends pursuit** (decided, [06 §5.4](06-fame-wanted-law-lighthouses.md)).
 
 ### 4.6 Combat & Targets
 - **Freighters** (primary prey): force a surrender, board, or shell and sink. Cargo value depends on ship type.
@@ -149,7 +151,7 @@ Each of these gets its own plan doc. Summaries capture decisions plus remaining 
 - **Other pirates:** none at the start; **copycat rivals** appear as your Fame grows (max 2–3 active). See 07.
 - **Revenue cutters:** flee, outwit or fight (very high heat).
 - **Violence is optional:** non-lethal options (intimidation, surrender, the whiskey trick, stealth theft) vs. lethal ones (killing crews, sinking ships). Lethal options are more efficient but spike Wanted.
-- **TBD:** surrender logic (what makes AI ships give up), exact check formula, weapon stats and upgrade trees.
+- **Weapons by tier (decided):** T3 carries one bow swivel plus a broadside; rifles are usable on foot. Surrender logic, the boarding check and weapon stats are in [07](07-combat-boarding-targets.md).
 
 ### 4.7 Wrecking ("Moon Cussing")
 - Signature mechanic: douse a lighthouse or hang a false light to lure a ship onto the rocks, then salvage the wreck.
@@ -164,24 +166,24 @@ Each of these gets its own plan doc. Summaries capture decisions plus remaining 
 - Possible structures: dock, warehouse, workshop, smithy, distillery, smokehouse (venison!), drydock/slipway, lookout tower, signal lantern, living quarters, trophy room.
 - **Hideouts are completely safe** (no raids by the law or rivals), so defenses are cosmetic or flavor. Materials are bought, stolen or salvaged only, with no gathering. See 09.
 - **Storage is local to each hideout (decided).** Goods must be physically hauled between hideouts and ports, which makes logistics part of the game. Hideout placement matters (near markets, near prey, in different Wanted regions).
-- **TBD:** claim rules, hideout limits, and production (passive generation?).
+- **Sites and claims (decided):** seven fixed sites (island and mainland); the MVP ships **two** (Stockton Island and the Siskiwit logging camp), and the starting hideout comes with a strongbox and storage. Passive production is in. Details in [09](09-hideouts-building-crafting.md).
 
 ### 4.9 Ship Upgrades & Customization
 - Upgrades: hull, sails/rigging (speed), cannons, cargo hold, hidden compartments (smuggling), lanterns/dark-running gear, ice-strengthened bow (winter?).
 - Visual customization: paint, figurehead, flags, nameboard, sail color. **Cosmetic only (decided):** repainting or renaming doesn't shed heat. Only replacing the ship breaks its record (see 06).
-- **One ship, always yours (decided).** You can't steal other ships. Progression comes from upgrading or buying a bigger schooner (see §4.1 tiers). TBD: when you buy a new hull, is the old one sold or traded in?
+- **One ship, always yours (decided).** You can't steal other ships. Progression comes from upgrading or buying a bigger schooner (see §4.1 tiers). Buying a new hull trades in the old one (50% hull + 25% upgrades; [10](10-ship-upgrades-customization.md)).
 
 ### 4.10 Exploration & Secrets
 - Islands with hidden content: caches, wrecks, sea caves, quarry ruins, fishing-camp mysteries, legends and lore, treasure maps.
 - Real Superior lore as inspiration (shipwrecks, island history), plus invented secrets.
 - Discovery: chart fog-of-war, journal clues, collectibles.
-- **TBD:** hand-authored vs. procedural placement, reward types (gold, blueprints, unique parts, lore).
+- **Placement (decided):** six hand-authored legends plus seeded caches and wrecks per run ([11](11-exploration-islands-secrets.md)).
 
 ### 4.11 Progression, Sandbox Goals & Failure
 - **Open sandbox:** no fixed campaign. Optional goals and milestones (e.g., "first $10,000", "become the most wanted on Superior", "own 5 hideouts", "go fully legit").
 - Optional Seavey-inspired **events/jobs** (not a linear story): a whiskey hijack, a fishing-company feud, poaching runs, a wrecking job, a cutter chase.
 - **Failure (decided):**
-  - Caught below the top Wanted level → **jail.** You lose your **current cargo** and **time** (days or weeks pass; seasons and prices move on). Ship, gold and hideout contents are kept. Escape options:
+  - Caught below the top Wanted level → **jail.** You lose your **current cargo** and **time** (days or weeks pass; seasons and prices move on). Ship, gold and hideout contents are kept. In the MVP every capture is held in **Bayfield's lockup**. Time served is fast-forwarded in a batch. Escape options:
     - **Pay bail** (cost scales with Wanted) to skip or shorten the sentence.
     - **Jailbreak:** a small escape scenario (stealth/timing). Success frees you but raises Wanted; failure adds time.
   - Caught at the **top Wanted level only → execution.** The run ends.
@@ -203,12 +205,12 @@ Each of these gets its own plan doc. Summaries capture decisions plus remaining 
 ### 4.13 Audio & Atmosphere
 - Wind, waves, creaking rigging, foghorns, bells, ice groaning, dock ambience, shanties/period music.
 - Dynamic music for stealth and chase states.
-- **Sourcing: AI-generated audio** (decided): music, ambience and SFX. Evaluate tools in Phase 0/plan 15. Check each tool's license allows commercial use. CC0 SFX libraries are a fallback.
+- **Sourcing (decided, per [15](15-audio.md)):** CC0 libraries first for SFX, ambience and shouts; AI generation fills the gaps; music is AI-generated arrangements of public-domain melodies. Every tool passes the open-source license gate.
 
 ### 4.14 Save / Persistence
 - Local saves (IndexedDB). No backend planned.
 - Must save: world state, season/date, economy, Fame/Wanted, ship, all hideout layouts and storage, discoveries.
-- Permadeath is always on, so: **autosave only** (one save slot per run, written on key events), and the save is deleted on death. The format still needs versioning for game updates.
+- Permadeath is always on, so: **autosave only** (one save slot per run, written on key events), and the save is deleted on death. The format is versioned with save migrations, and players can export/import a run ([16](16-save-persistence.md)).
 
 ---
 
@@ -217,12 +219,11 @@ Each of these gets its own plan doc. Summaries capture decisions plus remaining 
 - Period-authentic ship silhouettes based on `references/` (schooner, early steam freighter, steel bulk freighter, sidewheel ferry), plus a revenue cutter, tug, and fishing boats.
 - Moody Superior atmosphere: cold blue-gray water, fog, red sandstone cliffs, dark pine forests, lantern light, ice. Sepia/newsprint UI flavor.
 - **Style (decided): stylized.** Clean, chunky shapes, a limited palette, painterly or toon-ish shading, exaggerated silhouettes. Stylized art is far more forgiving for a solo developer and for AI-generated assets than realism.
-- **3D assets: AI-generated where it helps, mixed with other sources.** The pipeline needs planning (plan 14):
-  - No AI 3D tool chosen yet. Evaluate the free tiers of image/text-to-3D tools (e.g., Meshy, Tripo, Rodin) during Phase 0. No subscription is needed until then.
-  - Complementary sources: CC0 stylized asset packs (e.g., Kenney, Quaternius, Poly Pizza) for props, procedural/code-built geometry (water, terrain, simple ship parts), and simple Blender modeling.
+- **3D assets (decided, per [14](14-art-direction-asset-pipeline.md)): procedural and CC0 first; AI-generated assets fill the gaps.**
+  - **Meshy** is the image-to-3D tool; **nano-banana** (Gemini) makes concepts, orthographic sheets and UI plates. Both are approved for this open-source project.
+  - Sources: CC0 stylized asset packs (e.g., Kenney, Quaternius, Poly Pizza) for props, procedural/code-built geometry (water, terrain, masts, sails and rigging), and Meshy for hulls and unique objects.
   - Feed the reference photos into image-to-3D for ships.
-  - Cleanup: decimation, consistent scale/pivots, texture size budgets, and glTF/GLB export (Blender for touch-up as needed).
-  - Style consistency: pick a target style (stylized vs. semi-real) and write prompt templates to match.
+  - Cleanup: scripted headless Blender (run locally, never in CI): decimation, consistent scale/pivots, texture size budgets, and glTF/GLB export.
   - Modular kits for docks districts and hideout grid pieces. Grid pieces need precise dimensions, so these may be easier modeled simply or procedurally than AI-generated.
 - **The exact stylized look** is picked by a Phase 0 **style test** between **low-poly flat-shaded** and **toon/cel-shaded with outlines** (painterly was dropped). Details, the photochrom palette reference, and the **fully scripted asset pipeline** are in [14](14-art-direction-asset-pipeline.md).
 
@@ -231,7 +232,7 @@ Each of these gets its own plan doc. Summaries capture decisions plus remaining 
 ## 6. Technical Approach
 
 - **Stack (decided):** TypeScript + Vite + three.js. Desktop browsers.
-- **Backend:** none; local saves only. Hosted as static files on a DigitalOcean droplet, with an optional itch.io mirror.
+- **Backend:** none; local saves only. Builds run **locally** for now. Static hosting (a DigitalOcean droplet, optional itch.io mirror) comes later, unlisted with optional basic auth until Beta ([17](17-testing-performance-release.md)).
 - **Key technical risks** (each gets a spike/prototype):
   1. **Hybrid world:** coastal zone streaming plus a chart travel mode, and transitions between them. Floating origin to avoid precision jitter.
   2. **Water:** a performant, good-looking lake shader with waves driving ship motion, storm states and ice.
@@ -252,30 +253,30 @@ Each of these gets its own plan doc. Summaries capture decisions plus remaining 
 
 | Phase | Name | Goal | Key deliverables |
 |---|---|---|---|
-| 0 | **Foundations** | Tech set up, key plans written | Repo scaffold (TS/Vite/three.js), plans 01–04, AI asset pipeline test (one schooner) |
+| 0 | **Foundations** | Tech set up, key plans written | Repo scaffold (TS/Vite/three.js), local build and CI, spikes **S1–S6** and prototypes **S7–S9** ([01 §11](01-tech-architecture.md)) |
 | 1 | **Sailing Prototype** | "Sailing feels good" | Water shader, arcade wind sailing, schooner, camera, test bay |
 | 2 | **Superior Slice** | The Apostle Islands feel real | Real coastline for the Apostles and Chequamegon Bay, Bayfield + Ashland, lighthouses, day/night, weather v1 |
 | 3 | **Hybrid Travel** | Big-world feel | Chart travel mode, open-water encounters, Duluth/Superior/Two Harbors zones |
 | 4 | **Trade & Economy** | The day loop works | Markets, cargo, gold, ship upgrades v1, save/load |
 | 5 | **Law, Fame & Wanted** | Heat has teeth | Cutters, lighthouse detection, Fame/Wanted meters, jail |
 | 6 | **Piracy & Combat** | At-sea crime | Freighter AI, cannons, boarding/surrender, sinking, fences |
-| 7 | **On Foot: Docks & Islands** | The night loop + island exploration | On-foot mode, one docks district (Bayfield?), stealth AI, theft, one fully walkable island |
-| 8 | **Hideouts** | Base loop | Grid building, crafting, storage, multiple hideouts |
+| 7 | **On Foot: Docks & Islands** | The night loop + island exploration | On-foot mode, one docks district (**Bayfield**, with the lockup for jail and jailbreaks), stealth AI, theft, one fully walkable island |
+| 8 | **Hideouts** | Base loop | Grid building, crafting, storage, two MVP hideouts (seven sites by Beta) |
 | 9 | **Seasons & Secrets** | Depth | Full season cycle (winter rules), island secrets, wrecking, events, newspapers, permadeath polish |
-| 10 | **Expand the Lakes** | More world | Lake Michigan (Seavey's home waters), then Huron, Erie, Ontario, and the Soo Locks |
+| 10 | **Expand the Lakes** | More world | Lake Michigan (Seavey's home waters), then Huron, Erie, Ontario, and the Soo Locks. ❓ [17 §7](17-testing-performance-release.md) ships this after 1.0 |
 | 11 | **Polish & Release** | Ship it | Audio, UI polish, performance, tutorial, playtests |
 
 ### MVP definition
-Western Lake Superior (Apostles, Bayfield, Ashland, Duluth/Superior), arcade sailing with weather, hybrid travel, trading, Fame/Wanted with cutters and lighthouses, freighter piracy, one docks district, one or two hideouts with grid building, and at least summer + fall seasons.
+Western Lake Superior (Apostles, Bayfield, Ashland, Duluth/Superior), arcade sailing with weather, hybrid travel, trading, Fame/Wanted with cutters and lighthouses, freighter piracy, one docks district (Bayfield, whose lockup holds all MVP prisoners), one fully walkable island, two hideouts with grid building, and the season from the May start **through freeze-up**, where MVP content ends ([04](04-water-weather-seasons.md)).
 
 ---
 
 ## 8. Scale — **Decided: Hybrid**
 
 For reference, Lake Superior is ~350 mi long and ~160 mi wide, and the Apostle Islands span roughly 25 × 20 mi. Approach:
-- **Coastal zones** are detailed and real-time. Their scale is TBD (maybe 1:4 to 1:10 compression so that islands are minutes, not hours, apart while their relative positions stay recognizable).
+- **Coastal zones** are detailed and real-time, with geography compressed **C = 8** (decided) so that islands are minutes, not hours, apart while their relative positions stay recognizable.
 - **Open water** is abstracted via chart travel with time compression and encounters (decided).
-- Plan 03 decides zone boundaries, compression ratios and transition UX. **Draft:** [03](03-world-scale-chart-travel.md) proposes C = 8 (geography only; ships, people and buildings stay 1:1), a ~60-minute real day, four MVP zones, and hand-built 1:1 harbor set pieces.
+- **Decided:** C = 8 (geography only; ships, people and buildings stay 1:1) and R = 24 (time), a ~60-minute real day, four MVP zones, and hand-built 1:1 harbor set pieces ([03](03-world-scale-chart-travel.md)). Spike S7 confirms the feel.
 
 ---
 
@@ -283,53 +284,37 @@ For reference, Lake Superior is ~350 mi long and ~160 mi wide, and the Apostle I
 
 | # | Plan | Status |
 |---|---|---|
-| 00 | Master plan (this doc) | Draft v0.2 |
-| 01 | [Tech stack, architecture & project setup](01-tech-architecture.md) | Draft v0.1 |
-| 02 | [Arcade sailing & ship handling](02-arcade-sailing.md) | Draft v0.2 |
-| 03 | [World, hybrid scale, chart travel & streaming](03-world-scale-chart-travel.md) | Draft v0.2 |
-| 04 | [Water, weather, seasons, day/night](04-water-weather-seasons.md) | Draft v0.2 |
-| 05 | [Ports, economy & trading](05-ports-economy-trading.md) | Draft v0.2 |
-| 06 | [Fame, Wanted, law enforcement & lighthouses](06-fame-wanted-law-lighthouses.md) | Draft v0.2 |
-| 07 | [Combat, boarding & targets](07-combat-boarding-targets.md) | Draft v0.2 |
-| 08 | [Docks district stealth](08-docks-district-stealth.md) | Draft v0.2 |
-| 09 | [Hideouts, grid building & crafting](09-hideouts-building-crafting.md) | Draft v0.2 |
-| 10 | [Ship upgrades & customization](10-ship-upgrades-customization.md) | Draft v0.2 |
-| 11 | [Exploration, islands & secrets](11-exploration-islands-secrets.md) | Draft v0.2 |
-| 12 | [Sandbox goals, events, character creation & failure](12-sandbox-events-character-failure.md) | Draft v0.2 |
-| 13 | [UI/UX](13-ui-ux.md) | Draft v0.2 |
-| 14 | [Art direction & AI asset pipeline](14-art-direction-asset-pipeline.md) | Draft v0.2 |
-| 15 | [Audio](15-audio.md) | Draft v0.2 |
-| 16 | [Save/persistence](16-save-persistence.md) | Draft v0.2 |
-| 17 | [Testing, performance & release](17-testing-performance-release.md) | Draft v0.2 |
-| R1 | [Research: western Lake Superior circa 1900](R1-western-superior-1900-research.md) (ports, lights, industries, ships, Ojibwe communities) | Draft v0.3 |
-| R1a | [Western Superior gazetteer](R1a-western-superior-gazetteer.md) (port profiles, Wanted regions, distances, spring-1900 snapshot) | Draft v0.1 |
+| 00 | Master plan (this doc) | Draft v0.6 |
+| 01 | [Tech stack, architecture & project setup](01-tech-architecture.md) | Draft v0.5 |
+| 02 | [Arcade sailing & ship handling](02-arcade-sailing.md) | Draft v0.3 |
+| 03 | [World, hybrid scale, chart travel & streaming](03-world-scale-chart-travel.md) | Draft v0.3 |
+| 04 | [Water, weather, seasons, day/night](04-water-weather-seasons.md) | Draft v0.3 |
+| 05 | [Ports, economy & trading](05-ports-economy-trading.md) | Draft v0.3 |
+| 06 | [Fame, Wanted, law enforcement & lighthouses](06-fame-wanted-law-lighthouses.md) | Draft v0.3 |
+| 07 | [Combat, boarding & targets](07-combat-boarding-targets.md) | Draft v0.3 |
+| 08 | [Docks district stealth](08-docks-district-stealth.md) | Draft v0.3 |
+| 09 | [Hideouts, grid building & crafting](09-hideouts-building-crafting.md) | Draft v0.3 |
+| 10 | [Ship upgrades & customization](10-ship-upgrades-customization.md) | Draft v0.3 |
+| 11 | [Exploration, islands & secrets](11-exploration-islands-secrets.md) | Draft v0.3 |
+| 12 | [Sandbox goals, events, character creation & failure](12-sandbox-events-character-failure.md) | Draft v0.3 |
+| 13 | [UI/UX](13-ui-ux.md) | Draft v0.3 |
+| 14 | [Art direction & AI asset pipeline](14-art-direction-asset-pipeline.md) | Draft v0.3 |
+| 15 | [Audio](15-audio.md) | Draft v0.3 |
+| 16 | [Save/persistence](16-save-persistence.md) | Draft v0.3 |
+| 17 | [Testing, performance & release](17-testing-performance-release.md) | Draft v0.3 |
+| R1 | [Research: western Lake Superior circa 1900](R1-western-superior-1900-research.md) (ports, lights, industries, ships, Ojibwe communities) | Draft v0.4 |
+| R1a | [Western Superior gazetteer](R1a-western-superior-gazetteer.md) (port profiles, Wanted regions, distances, spring-1900 snapshot) | Draft v0.2 |
 
 ---
 
 ## 10. Open Questions
 
-Items marked ★ affect the next plans (01–04).
+The big design questions are answered, and the 2026-10-22 gap review closed the Phase 0 blockers. The system plans hold the remaining detail. Open items:
 
-The big design questions are answered. What remains is detail for the system plans to resolve; none of it blocks plans 01–04.
-
-### Gameplay (for system plans)
-- On-foot perspective and controls (third-person assumed). Is there on-foot combat or only evasion? (plans 08, 11)
-- On-foot danger on islands: wildlife (wolves, bears), exposure/cold in winter? (plan 11)
-- Surrender logic and boarding check formula (plan 07).
-- Number of Wanted tiers, decay rates, regional boundaries (plan 06).
-- Fame decay rate; does legit trading earn Fame or a separate "reputation"? (plan 06)
-- Jail sentence lengths, bail costs, jailbreak scenario design (plan 12).
-- Final backgrounds and perks (plan 12).
-- Hideout claim rules and limits; passive production? (plan 09)
-- Ship tiers and the trade-in rule when buying a new hull (plan 10).
-
-### World & content
-- Final MVP port list (proposed: Duluth, Superior, Two Harbors, Ashland, Washburn, Bayfield, La Pointe, Cornucopia, plus Red Cliff and Bad River communities)? (R1)
-- How Ojibwe communities participate: trade, guides, lore, quests. Approach for respectful portrayal and possible review. (R1, plan 12)
-
-### Art & tech
-- Final stylized look: decided by the Phase 0 style test (plan 14).
-- AI audio tool choice and license check (plan 15).
+- ❓ **Phase 10 ordering:** [17 §7](17-testing-performance-release.md) ships the lake expansions after 1.0, but the roadmap lists Phase 10 before Phase 11 polish. Confirm which comes first.
+- ❓ Ojibwe tribal sources and the cultural review before Beta ([R1 §5](R1-western-superior-1900-research.md), [17](17-testing-performance-release.md)).
+- ❓ Remaining history checks in the [R1 backlog](R1-western-superior-1900-research.md#7-research-backlog-prioritized) (some lenses, storm-flag ports, life-saving station communication).
+- The art style (A or B) and renderer are picked by spikes S4 and S1.
 
 ---
 
@@ -338,13 +323,13 @@ The big design questions are answered. What remains is detail for the system pla
 All planned documents are drafted and their open questions answered. Next:
 
 1. **Phase 0: Foundations** ([01 §11](01-tech-architecture.md)):
-   - `git init`, LFS, licenses, scaffold (Vite + TS + three.js), folder structure, CI.
+   - Scaffold in the existing repo (Vite + TS + three.js, npm), licenses, folder structure, CI without WebGL or Blender. No hosting yet.
    - The core skeleton: loop, modes, events, RNG, coords, input, assets, save v1 plus a worker.
-   - Spikes: **S1** renderer, **S2** water and buoyancy, **S3** geo pipeline, **S4** AI asset plus A/B style test, **S5** on-foot controller, **S6** save size.
+   - Spikes: **S1** renderer, **S2** water and buoyancy, **S3** geo pipeline, **S4** Meshy asset plus A/B style test (small scene), **S5** on-foot controller, **S6** save size (7 hideouts × 1,500 pieces).
    - Prototypes: **S7** scale-feel greybox, **S8** chart prototype, **S9** weather sim.
 2. Append spike results to their plans; update decisions (renderer, art style A/B, tuning values).
 3. **Phase 1: Sailing prototype** ([02 §14](02-arcade-sailing.md)).
-4. Ongoing: R1 research backlog (lens orders, distances on a NOAA chart, Ojibwe tribal sources, wreck database pass, island histories).
+4. Ongoing: R1 research backlog (remaining lenses, distances on a NOAA chart, Ojibwe tribal sources, wreck database pass, island histories).
 
 ---
 
@@ -362,13 +347,13 @@ All planned documents are drafted and their open questions answered. Next:
 | 2026-10-20 | Violence is optional (killing/sinking allowed) and greatly increases heat. |
 | 2026-10-20 | Fame and Wanted are separate meters. |
 | 2026-10-20 | A legit trading-only path is supported but harder. |
-| 2026-10-20 | Permadeath is possible; jail when caught at low Wanted. |
-| 2026-10-20 | Seasons change; technology does not advance (fixed era, ~1895–1905). |
+| 2026-10-20 | ~~Permadeath is possible~~ (superseded: always on, see below); jail when caught at low Wanted. |
+| 2026-10-20 | Seasons change; technology does not advance (fixed era, ~~~1895–1905~~ superseded: 1900). |
 | 2026-10-20 | Multiple hideouts allowed, primarily for storage. |
 | 2026-10-20 | Grid-based building. |
 | 2026-10-20 | The law cannot raid hideouts. |
 | 2026-10-20 | Stack: TypeScript + Vite + three.js, desktop browsers. |
-| 2026-10-20 | 3D assets are AI-generated. |
+| 2026-10-20 | ~~3D assets are AI-generated.~~ Superseded 2026-10-22: procedural/CC0 first, AI fills gaps. |
 | 2026-10-20 | Solo developer. |
 | 2026-10-20 | Start truly solo on a small schooner; larger ships bring an unmanaged invisible crew. |
 | 2026-10-20 | Open-water crossings use chart travel with encounters. |
@@ -379,9 +364,9 @@ All planned documents are drafted and their open questions answered. Next:
 | 2026-10-20 | Hideout storage is separate per hideout. |
 | 2026-10-20 | Wanted level is tracked per region. |
 | 2026-10-20 | Always the player's own ship; other ships can be looted but not taken. |
-| 2026-10-20 | Game starts in 1890 (technology fixed at that level). |
+| 2026-10-20 | ~~Game starts in 1890~~ (superseded 2026-10-21: 1900). |
 | 2026-10-20 | Dan Seavey does not appear in the game. |
-| 2026-10-20 | No AI 3D tool yet; evaluate free tiers in Phase 0 alongside CC0 packs and procedural geometry. |
+| 2026-10-20 | ~~No AI 3D tool yet~~ (superseded 2026-10-22: Meshy). |
 | 2026-10-21 | Islands are fully walkable; the mainland is not (docks districts only). |
 | 2026-10-21 | Boarding is an intimidate-or-fight check driven by crew size; solo players can only loot ships that already surrendered. |
 | 2026-10-21 | Weapons: broadside cannons, a swivel gun, rifles/pistols; vary by ship type and are upgradable. |
@@ -392,13 +377,14 @@ All planned documents are drafted and their open questions answered. Next:
 | 2026-10-21 | Ojibwe communities included, portrayed respectfully. |
 | 2026-10-21 | Start year moved to 1900 (supersedes 1890) to include more lighthouses. |
 | 2026-10-21 | Mouse and keyboard only. |
-| 2026-10-21 | Audio is AI-generated. |
+| 2026-10-21 | ~~Audio is AI-generated.~~ Superseded 2026-10-22: CC0 first, AI fills gaps (plan 15). |
 | 2026-10-21 | Art style is stylized; the specific look will be picked via a Phase 0 style test. |
 | 2026-10-21 | Companies the player can attack are fictionalized; neutral landmarks keep real names; a few real ships appear as Easter eggs. |
 | 2026-10-21 | Ojibwe communities are trading partners only; no crimes against them are possible. |
 | 2026-10-21 | Duluth and Superior are separate Wanted regions. |
+| 2026-10-21 | Law patrols stay historically sparse: one roaming revenue cutter (*Morrill*), with only a small escalation at top Wanted. Most danger comes from watchers and local law. |
 | 2026-10-21 | Open source (public GitHub repo), not sold; large files in git via LFS. |
-| 2026-10-21 | Hosting on a DigitalOcean droplet (static site, deployed by GitHub Actions), with an optional itch.io mirror. GitHub Pages is not used. |
+| 2026-10-21 | Hosting on a DigitalOcean droplet (static site, deployed by GitHub Actions), with an optional itch.io mirror. GitHub Pages is not used. *Deferred 2026-10-22: local builds only for now.* |
 | 2026-10-21 | Limited dev hardware is the performance baseline; physics kept minimal; quality presets from Phase 1. |
 | 2026-10-21 | MIT license for code (CC BY 4.0 for original assets). Baseline machine: Ryzen 7 7730U, integrated Radeon, 28 GB RAM, Linux. |
 | 2026-10-21 | World scale: geography compressed 8×, ~60-minute real day while sailing, slower clock on foot, freighters shrunk slightly, no chart escape while detected, lookout setting for encounters (see 03). |
@@ -417,11 +403,21 @@ All planned documents are drafted and their open questions answered. Next:
 | 2026-10-22 | Audio: period folk score with traditional Great Lakes song motifs; no spoken dialogue (shouts and whistles only); instrumental saloon music; CC0 libraries first, AI for gaps (see 15). |
 | 2026-10-22 | Saves: danger snapshot (no reload escapes); player export/import labeled "Transferred"; Abandon run recorded in the Hall; autosave ~2 min while safe (see 16). |
 | 2026-10-22 | Release: external testers from MVP; no network telemetry (opt-in local stats for bug bundles); private until Beta; Ojibwe cultural review budgeted; save migrations only (see 17). |
-| 2026-10-21 | Law patrols stay historically sparse: one roaming revenue cutter (*Morrill*), with only a small escalation at top Wanted. Most danger comes from watchers and local law. |
+| 2026-10-22 | Phase 0 = spikes S1–S6 plus prototypes S7–S9; builds run locally, no hosting or tagged deploys yet (01, 17). |
+| 2026-10-22 | Scale: R = 24 and C = 8 confirmed; SI units in the sim, knots only in authored data (01, 02, 03). |
+| 2026-10-22 | Tooling: npm, miniplex, idb, Caddy; reference PNGs stay plain git files; Blender and GDAL run locally only; CI runs no WebGL and no screenshot diffs (01, 17). |
+| 2026-10-22 | Assets: procedural/CC0 first, AI fills gaps; Meshy for image-to-3D; nano-banana approved for shipped outputs; shrunk S4 scene; static sails (02, 14). |
+| 2026-10-22 | MVP: Bayfield is the only district and its lockup holds all prisoners; one walkable island (22 by Beta); two hideouts (Stockton, Siskiwit camp); content ends at freeze-up (04, 08, 09, 11, 12). |
+| 2026-10-22 | Mainland hideout sites get on-foot build pads; reaching a hideout ends pursuit; no watchdogs; no disguise items; rifles usable on foot; T3 has one swivel plus a broadside (06, 07, 08, 09, 10). |
+| 2026-10-22 | Seven Wanted regions (Apostles split; Ashland on its own); Respectable Captain Fame track included (06, R1a). |
+| 2026-10-22 | Time skips batch fast-forward; the shipyard auto-sells cargo; harbor tugs tow T3; player export/import ships (01, 05, 10, 16). |
+| 2026-10-22 | Versions: 0.8 = MVP/Alpha, 0.9 = Beta, 1.0 after Phase 11 (17). |
+| 2026-10-22 | Booth Fisheries is fictionalized as Hollister Fish & Packing everywhere, including the README. |
 
 ---
 
 ## Changelog
+- v0.6: Applied the 2026-10-22 Phase 0 gap review: §4 TBDs replaced with decisions from the system plans, Booth fictionalized, audio and asset sourcing aligned to 15 and 14, Phase 0 row matches 01, MVP definition tightened, C = 8 and R = 24 decided, plan index statuses refreshed, §10 and §11 rewritten, superseded decisions marked.
 - v0.5: All plans 01–17 drafted with decisions recorded (see the Decisions Log); next steps updated to Phase 0.
 - v0.4: Third round of decisions: walkable islands, check-based boarding tied to crew, weapons, jail/bail/jailbreak, Fame decay, character creation with backgrounds, Ojibwe communities, start year 1900, mouse and keyboard only, AI audio, style test plan.
 - v0.3: Second round of decisions: crew model, chart travel, winter, stylized art, failure rules, per-hideout storage, regional Wanted, own-ship-only, 1890 start, no Seavey cameo, asset-sourcing approach.

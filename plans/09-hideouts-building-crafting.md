@@ -1,6 +1,6 @@
 # 09 — Hideouts, Grid Building & Crafting
 
-Status: DRAFT v0.2 (all decisions made)
+Status: DRAFT v0.3 (all decisions made; gap review applied)
 Parent: [00-master-plan.md](00-master-plan.md)
 Inputs:
 - Master plan decisions: multiple hideouts, mainly for storage; separate storage per hideout; grid-based building; robust customization; the law can't raid; crafting from supplies
@@ -47,14 +47,18 @@ Hideouts are built at **predefined sites**, each a hand-placed area with build b
 | **Minnesota Point lighthouse** (dark since 1885) | Twin Ports | An abandoned light tower and keeper's house | **Inside the Duluth region**: a stash next to the best fence and market; low concealment; small area |
 | **North Shore cove** | Two Harbors | A rocky cove with forest | North Shore region; near the ore traffic |
 
+- **Mainland sites (decided 2026-10-22):** Minnesota Point, the North Shore cove and the Siskiwit logging camp are on the mainland. Each has a small on-foot **build pad** (its build bounds plus a margin), the one exception to the mainland not being walkable ([03 §4](03-world-scale-chart-travel.md)).
 - Different sites sit in **different Wanted regions**. Laying low ([06 §3.3](06-fame-wanted-law-lighthouses.md)) works for the region the hideout is in, which spreads players across the map.
 - **Anchorage shelter** uses the wind shelter maps ([02 §11](02-arcade-sailing.md)): some sites are storm refuges, others are exposed to certain winds.
-- **Limit:** one hideout per site. All sites in the MVP region can be owned (~7). Expansions add more.
+- **Limit:** one hideout per site. In the full game all 7 sites can be owned; expansions add more.
+- **MVP: 2 sites (decided 2026-10-22):** Stockton Island bay and the Siskiwit logging camp. The other five arrive after the MVP.
 
 ### 2.2 Claiming
 - **Abandoned sites** (most): discover them, then **claim** (free). The first structure placed establishes the claim.
 - **Owned sites** (some, e.g., the Minnesota Point light): **buy** the lease or deed from the owner, or squat (illegal: a small heat chance if noticed, and some sites need a bribe to be ignored).
 - **Starting hideout:** each background starts with a claim on a specific site (Deckhand: Stockton; Fisherman: Outer Island; Lumberjack: Siskiwit Bay; Saloon Keeper: Minnesota Point; Ex-Navy: North Shore cove; Poacher: Devils Island). Hermit Island is never a starting site. See [12 §2.2](12-sandbox-events-character-failure.md).
+  - **A starting hideout comes pre-built with a strongbox and basic storage** (decided 2026-10-22), which also establishes the claim.
+  - **In the MVP** (2 sites), the Lumberjack starts at the Siskiwit logging camp and every other background starts at Stockton Island bay.
 
 ---
 
@@ -63,7 +67,7 @@ Hideouts are built at **predefined sites**, each a hand-placed area with build b
 | Function | Details |
 |---|---|
 | **Storage** (primary) | Local inventory per hideout (decided). Capacity comes from storage pieces (§5.4). Goods and **cash** (needs a strongbox). |
-| **Safe zone** | **Completely safe (decided):** neither the law nor rival pirates can raid hideouts or touch their storage. Marshals searching an island stop at the hideout boundary. The only risk is being **spotted** (§8). |
+| **Safe zone** | **Completely safe (decided):** neither the law nor rival pirates can raid hideouts or touch their storage. Reaching the boundary **ends any pursuit**: pursuers break off and the chart lock lifts ([06 §5.4](06-fame-wanted-law-lighthouses.md)). The only risk is being **spotted** (§8). |
 | **Lay low** | Sleeping here accelerates Wanted decay in this hideout's region ([06](06-fame-wanted-law-lighthouses.md)). |
 | **Autosave point** | Sleeping and leaving trigger autosave ([01 §4.7](01-tech-architecture.md)). |
 | **Crafting & production** | Workstations (§7). |
@@ -283,7 +287,7 @@ Navmesh baking ([08 §5.3](08-docks-district-stealth.md)) runs from the exported
 
 ## 13. Phase 8 Deliverables & Acceptance
 
-**Build:** two sites (one Apostles quarry plus the Siskiwit logging camp), claiming, the grid engine (cells, edges, roofs, props, water pieces), validity and support rules, ~60 pieces in 2–3 materials, the build mode UX (ghost, drag, undo, eyedropper, paint), per-hideout storage plus strongbox, construction time with a crew multiplier, workbench plus smithy plus cooperage plus distillery with 10+ recipes, passive production, laying low, the distant LOD proxy, and the dev layout editor mode.
+**Build:** the two MVP sites (Stockton Island bay and the Siskiwit logging camp with its mainland build pad), pre-built starting hideouts, claiming, the grid engine (cells, edges, roofs, props, water pieces), validity and support rules, ~60 pieces in 2–3 materials, the build mode UX (ghost, drag, undo, eyedropper, paint), per-hideout storage plus strongbox, construction time with a crew multiplier, workbench plus smithy plus cooperage plus distillery with 10+ recipes, passive production, laying low, the distant LOD proxy, and the dev layout editor mode.
 
 **Acceptance:**
 - A player can build a weatherproof storehouse with a pier in under 10 real minutes of UI time.
@@ -303,7 +307,7 @@ Navmesh baking ([08 §5.3](08-docks-district-stealth.md)) runs from the exported
 5. Lookout tower traffic reveal.
 6. Drag-placement (single placement only).
 
-*Not cuttable:* multiple hideouts (7 fixed sites), per-hideout storage, grid building with materials, crafting of tools, ammo, repair kits and false lights, the safe zone, laying low, passive production, shipless shipbuilding.
+*Not cuttable:* multiple hideouts (2 sites in the MVP, 7 fixed sites in the full game), per-hideout storage, grid building with materials, crafting of tools, ammo, repair kits and false lights, the safe zone, laying low, passive production, shipless shipbuilding.
 
 ---
 
@@ -320,9 +324,14 @@ All resolved.
 | 2026-10-21 | **Shipbuilding at a hideout slipway, only when shipless.** |
 | 2026-10-21 | **Seven fixed hideout sites** in the MVP region. |
 | 2026-10-21 | **Construction takes game time** (a work session advances the clock; faster with a bigger crew). |
+| 2026-10-22 | **MVP ships 2 sites** (Stockton Island bay, Siskiwit logging camp); all 7 in the full game. |
+| 2026-10-22 | Mainland sites get small on-foot **build pads**. |
+| 2026-10-22 | Starting hideouts come **pre-built with a strongbox and storage**. |
+| 2026-10-22 | Reaching a hideout **ends pursuit**. |
 
 ---
 
 ## Changelog
+- v0.3: Gap review: MVP = 2 sites, mainland build pads, pre-built starting hideouts, MVP starting sites by background, hideouts end pursuit.
 - v0.2: Decisions: hideouts completely safe, no gathering (sawpit removed), passive production, shipless shipbuilding (§7.4), seven fixed sites.
 - v0.1: Initial hideouts plan: sites (R1-grounded), claiming, functions, grid dimensions and placement types, validity and support rules, piece catalog, storage capacities, materials and gathering, construction time, workstations, recipes, passive production, concealment, build-mode UX, rendering budgets, shared layout editor, data/state, Phase 8 acceptance.

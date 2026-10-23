@@ -1,6 +1,6 @@
 # 13 — UI / UX
 
-Status: DRAFT v0.2 (decisions made)
+Status: DRAFT v0.3 (decisions made)
 Parent: [00-master-plan.md](00-master-plan.md)
 Inputs: [01](01-tech-architecture.md) (Preact DOM overlay, input action map, budgets), the HUD and screen needs of every system plan (02–12), master plan (mouse and keyboard only, stylized art, period flavor, sepia/newsprint UI idea)
 Feeds: 14 (UI art assets, fonts), 15 (UI sounds), 17 (usability testing)
@@ -33,7 +33,7 @@ Define the look and behavior of every piece of interface:
 | Context | Motif |
 |---|---|
 | Menus, journal, ledgers | **Logbook and ledger paper**: ruled lines, ink, a pasted-in clipping style |
-| Chart mode and the minimap | **Period nautical chart**: parchment, soundings, compass rose, hand-drawn coastlines |
+| Chart mode | **Period nautical chart**: parchment, soundings, compass rose, hand-drawn coastlines |
 | Newspapers, end screen, big alerts | **Letterpress newsprint**: woodtype headlines, columns, engravings |
 | HUD instruments | **Brass and enamel instruments**: compass, barometer, a lead-line gauge, simplified and flat |
 | Trade, shipyard, crafting | **Merchant's ledger** plus stamped labels and crate stencils |
@@ -226,7 +226,7 @@ Define the look and behavior of every piece of interface:
 ---
 
 ## 11. Settings Storage
-UI and settings preferences are stored **outside the run save** (a separate IndexedDB/localStorage key; [16](00-master-plan.md#9-plan-index)), so they survive permadeath. The Hall of Captains is stored the same way.
+UI and settings preferences are stored **outside the run save** (a separate IndexedDB/localStorage key; [16](16-save-persistence.md)), so they survive permadeath. The Hall of Captains is stored the same way.
 
 ---
 
@@ -271,5 +271,6 @@ All resolved.
 ---
 
 ## Changelog
+- v0.3: Gap review: removed the stale minimap mention in §2.1; §11 links to plan 16 directly.
 - v0.2: Decisions: period type, minimal HUD default, no minimap, auto-logbook, damage numbers off by default (optional).
 - v0.1: Initial UI/UX plan: principles, visual language (motifs, color tokens, open fonts), Preact architecture, HUD per mode (sailing, on foot, chart, build, combat), full screen list, interaction patterns, notification priorities, chart and auto-logbook, accessibility, UI performance budget, settings storage, phasing.
