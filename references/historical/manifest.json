@@ -1,0 +1,53 @@
+{
+  "$comment": "Candidate historical references. tools/assets/fetch-references.mjs downloads each loc.gov entry and writes SOURCES.md. Delete an entry (and its image) to prune it.",
+  "entries": [
+    { "file": "bayfield-apostles/bayfield-from-madeline-island", "source": "https://www.loc.gov/item/2016797744/", "why": "Bayfield waterfront and hills seen across the channel, 1880s-90s" },
+    { "file": "bayfield-apostles/old-mission-madeline-bayfield-distance", "source": "https://www.loc.gov/item/2016802808/", "why": "La Pointe mission with Bayfield on the far shore" },
+    { "file": "bayfield-apostles/old-mission-buildings-madeline", "source": "https://www.loc.gov/item/2016799268/", "why": "La Pointe period buildings" },
+    { "file": "bayfield-apostles/devils-island-lighthouse-landing", "source": "https://www.loc.gov/item/2016794360/", "why": "Light station landing and cliff shoreline, Devils Island" },
+    { "file": "bayfield-apostles/devils-kitchen-devils-island", "source": "https://www.loc.gov/item/2016797749/", "why": "Sea caves (smuggler hideout look)" },
+    { "file": "bayfield-apostles/popes-nose-devils-island", "source": "https://www.loc.gov/item/2016797751/", "why": "Sandstone headland" },
+    { "file": "bayfield-apostles/squaw-bay-washington-arches", "source": "https://www.loc.gov/item/2016797748/", "why": "Mainland sea arches" },
+    { "file": "bayfield-apostles/grand-arch", "source": "https://www.loc.gov/item/2016819049/", "why": "Arch and wave action" },
+    { "file": "bayfield-apostles/sand-island-temple-gate", "source": "https://www.loc.gov/item/2016799270/", "why": "Sand Island sandstone formations" },
+    { "file": "bayfield-apostles/presque-isle-stella-cove", "source": "https://www.loc.gov/item/2016799271/", "why": "Presque Isle (Stockton Island) cove: Stockton hideout reference" },
+    { "file": "bayfield-apostles/stella-cove", "source": "https://www.loc.gov/item/2016799272/", "why": "Second view of Stella Cove" },
+    { "file": "bayfield-apostles/raspberry-island-light-habs", "source": "https://www.loc.gov/item/wi0312/", "why": "HABS survey of Raspberry Island light (modern photos/drawings of the period structure)" },
+    { "file": "bayfield-apostles/sand-island-light-habs", "source": "https://www.loc.gov/item/wi0311/", "why": "HABS survey of Sand Island light (modern photos/drawings of the period structure)" },
+
+    { "file": "ports/ashland-wisconsin", "source": "https://www.loc.gov/item/2016800659/", "why": "Ashland waterfront and docks" },
+    { "file": "ports/duluth-superior-harbor-panorama", "source": "https://www.loc.gov/item/2007662361/", "why": "Twin Ports harbor panorama" },
+    { "file": "ports/duluth-from-point-of-rocks", "source": "https://www.loc.gov/item/2007662314/", "why": "Bird's-eye view of Duluth harbor" },
+    { "file": "ports/duluth-minnesota", "source": "https://www.loc.gov/item/2016801060/", "why": "Duluth city and waterfront" },
+    { "file": "ports/minnesota-point-duluth", "source": "https://www.loc.gov/item/2016804124/", "why": "Minnesota Point sand spit" },
+    { "file": "ports/superior-ship-yards", "source": "https://www.loc.gov/item/2007663078/", "why": "West Superior shipyards (whaleback builders)" },
+    { "file": "ports/two-harbors-panorama", "source": "https://www.loc.gov/item/2007662318/", "why": "Two Harbors ore docks and town" },
+
+    { "file": "ships/old-time-schooner", "source": "https://www.loc.gov/item/2016806405/", "why": "Schooner under sail, c1908" },
+    { "file": "ships/james-w-parker-two-masted-schooner", "source": "https://www.loc.gov/item/2016806413/", "why": "Two-masted schooner, player T1 size" },
+    { "file": "ships/revenue-cutter-morrill-and-pathfinder", "source": "https://www.loc.gov/item/2016798880/", "why": "USRC Morrill (the game's cutter) on the Lakes, 1901" },
+    { "file": "ships/revenue-cutter-morrill", "source": "https://www.loc.gov/item/2016798885/", "why": "Second view of USRC Morrill" },
+    { "file": "ships/henry-cort-whaleback-and-barge-manda", "source": "https://www.loc.gov/resource/det.4a26812/", "why": "Whaleback steamer towing a schooner-barge" },
+    { "file": "ships/loading-lumber-menominee", "source": "https://www.loc.gov/item/2016800653/", "why": "Lumber steamer loading at a Great Lakes mill yard" },
+    { "file": "ships/fishing-smacks-mackinac", "source": "https://www.loc.gov/item/2016805813/", "why": "Small Great Lakes fishing boats" },
+    { "file": "ships/fisherman-with-net-at-wharf", "source": "https://www.loc.gov/item/2016818153/", "why": "Fisherman, nets and boat at a wharf (docks props)" },
+
+    { "file": "water-weather/rising-storm", "source": "https://www.loc.gov/item/2016816317/", "why": "Storm sky and water" },
+    { "file": "water-weather/marquette-pulpit-rock", "source": "https://www.loc.gov/item/2016797779/", "why": "Lake Superior surf on rock" },
+    { "file": "water-weather/picked-up-by-juniata", "source": "https://www.loc.gov/item/2016805667/", "why": "Open Lake Superior from a steamer" },
+    { "file": "water-weather/hanna-after-storm", "source": "https://www.loc.gov/item/2016806647/", "why": "Storm damage to a laker (1913, later than our era)" },
+
+    { "file": "lumber/among-the-lumberjacks", "source": "https://www.loc.gov/item/2016814719/", "why": "Lumber camp crew, Northern Michigan" },
+    { "file": "lumber/logging-a-big-load", "source": "https://www.loc.gov/item/2016797567/", "why": "Sleigh load of logs" },
+    { "file": "lumber/logging-pine-forest-michigan", "source": "https://www.loc.gov/item/2006684526/", "why": "Pine logging scene" },
+    { "file": "lumber/logging-northern-wisconsin-thulstrup", "source": "https://www.loc.gov/resource/cph.3c04898/", "why": "Period engraving of a Wisconsin logging camp" },
+
+    { "file": "maps/sanborn-bayfield", "source": "https://www.loc.gov/item/sanborn09493_003/", "why": "Bayfield building and dock layout (docks district)" },
+    { "file": "maps/sanborn-washburn", "source": "https://www.loc.gov/item/sanborn09724_004/", "why": "Washburn building and dock layout" },
+    { "file": "maps/lake-survey-apostle-islands-chart-1-1900-west", "source": "https://geo.btaa.org/catalog/p16022coll230:602", "manual": true, "license": "Public domain (US War Dept., Lake Survey, 1900)", "why": "1900 Apostle Islands chart, west sheet: shoreline, soundings, channels. 2048 px from the UMN IIIF server: https://cdm16022.contentdm.oclc.org/iiif/2/p16022coll230:600/full/2048,/0/default.jpg" },
+    { "file": "maps/lake-survey-apostle-islands-chart-1-1900-east", "source": "https://geo.btaa.org/catalog/p16022coll230:602", "manual": true, "license": "Public domain (US War Dept., Lake Survey, 1900)", "why": "1900 Apostle Islands chart, east sheet: shoreline, soundings, channels. 2048 px from the UMN IIIF server: https://cdm16022.contentdm.oclc.org/iiif/2/p16022coll230:601/full/2048,/0/default.jpg" },
+    {"file": "maps/lake-survey-lake-superior-chart-3-1899", "source": "https://historicalcharts.noaa.gov/", "manual": true, "license": "Public domain (US War Dept., Lake Survey)", "title": "Lake Superior, Chart No. 3 (Survey of the Northern and Northwestern Lakes)", "date": "1873, corrected to 1899", "why": "Western Lake Superior from Duluth to Keweenaw with the Apostle Islands; sailing directions and harbor notes as of 1899. NOAA historical chart LC00036, added by Jared. This is a 2048 px copy; the full-size scan is in raw-assets/charts/ (LFS)."},
+    {"file": "maps/lake-survey-apostle-islands-chart-2-1906", "source": "https://historicalcharts.noaa.gov/", "manual": true, "license": "Public domain (US War Dept., Lake Survey)", "title": "Chart No. 2, Apostle Islands including Chequamegon Bay and South Coast of Lake Superior", "date": "1906", "why": "Madeline Island, Chequamegon Bay, Ashland and Washburn; soundings, channels, docks. NOAA historical chart 961, added by Jared. This is a 2048 px copy; the full-size scan is in raw-assets/charts/ (LFS)."},
+    {"file": "maps/lake-survey-coast-chart-6-west-end-1915", "source": "https://historicalcharts.noaa.gov/", "manual": true, "license": "Public domain (US War Dept., Lake Survey)", "title": "Coast Chart No. 6, West End of Lake Superior including the Apostle Islands", "date": "1915", "why": "Whole play area (Duluth to the Apostles) in color with lights and courses; later than our era. NOAA historical chart LC00096, added by Jared. This is a 2048 px copy; the full-size scan is in raw-assets/charts/ (LFS)."}
+  ]
+}
