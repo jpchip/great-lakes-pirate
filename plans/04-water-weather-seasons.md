@@ -1,6 +1,6 @@
 # 04 — Water, Weather, Seasons & Day/Night
 
-Status: DRAFT v0.4 (decisions confirmed; gap review applied; spike S2 write-up added, GPU timings pending)
+Status: DRAFT v0.4 (decisions confirmed; gap review applied; spike S2 done)
 Parent: [00-master-plan.md](00-master-plan.md)
 Inputs:
 - [01 tech/architecture](01-tech-architecture.md): layers, budgets, the shared wave function, the iGPU baseline
@@ -335,6 +335,7 @@ All resolved.
 | 2026-10-21 | Mataafa Storm (November 1905) and aurora Easter eggs (both stay on the cut list). |
 | 2026-10-22 | The MVP ends at the first freeze-up; winter rules arrive in Phase 9. |
 | 2026-10-22 | S2 measures the water budget with crest foam on. S9 is a Phase 0 prototype. |
+| 2026-10-23 | S2 passed: water 1.0 ms on Medium with crest foam on the baseline laptop. The shared 4/6/8-wave Gerstner set, the polar-grid mesh and six-point buoyancy are kept for Phase 1 (§19). |
 
 ---
 
@@ -342,7 +343,7 @@ All resolved.
 
 **Question** ([01 §11.2](01-tech-architecture.md)): can a shared Gerstner wave set (≤ 4 waves on Low) look good and drive a bobbing hull within the Low and Medium budgets, measured on Medium with crest foam on?
 
-**Status:** built and working; **the GPU timings on the baseline laptop are still to be run** (see "How to measure" below). Everything else is answered.
+**Answer: yes.** On the baseline laptop the water costs **1.0 ms on Medium with crest foam on** (budget ≤ 3 ms) and 0.5 ms on Low. The full test scene runs at 60 fps on Medium at full resolution.
 
 ### What was built
 | Piece | Where | Notes |
@@ -361,22 +362,22 @@ All resolved.
 4. **Motion feel:** with the schooner tuning (heave 3.2 s, pitch 3.8 s, roll 4.6 s, damping 0.55) the hull rolls and pitches a few degrees in the test chop and lags the water slightly, which reads as weight. All values live in `schoonerBuoyancy()` for the Phase 1 tuning pass. Heel from wind is still to be added on top (02 §5.1).
 5. **Draw calls:** the whole test scene is 4 (sky, water, hull and spars, sails), so the water's "1–2 draw calls" budget holds.
 
-### GPU timing (to run on the baseline laptop)
-**How to measure:** `npm run build && npm run preview`, then open `http://localhost:4173/?bench=water` in Chrome (and Firefox) on the Ryzen 7 7730U at the usual window size. The benchmark starts after 3 seconds and runs for under a minute. For each preset it times full frames with the water, with crest foam off, and with the water hidden; the difference is the water's cost. It then prints a Markdown table to the console and the overlay ("Copy results" copies it). Paste the table here. Open the page with `&quality=high` to measure High with MSAA on, since MSAA is fixed when the context is created.
+### GPU timing on the baseline laptop (2026-10-23)
+Measured with `?bench=water` on a production build (`npm run preview`) on the Ryzen 7 7730U: Chrome 156 on Linux, ANGLE on OpenGL 4.6 (radeonsi, Mesa), MSAA off, device pixel ratio 1. Each value is the median over 150 frames, timed around render plus a 1-pixel `readPixels`. Chrome rounds `performance.now()` to 0.1 ms, so treat each value as ±0.1 ms.
 
-**Pass criteria:** water ≤ 3 ms on Medium with crest foam on (§7, §14), and Low holding 30 fps.
+| Preset | Buffer | Waves | Frame ms | Water ms | Crest foam ms | No water ms | Triangles | Draw calls |
+|---|---|---|---|---|---|---|---|---|
+| Low | 1190×816 | 4 | 1.2 | 0.5 | 0.1 | 0.7 | 11,590 | 4 |
+| Medium | 1587×1088 | 6 | 2.0 | 1.0 | 0.2 | 1.0 | 23,830 | 4 |
+| High | 1587×1088 | 8 | 2.0 | 0.9 | 0.2 | 1.1 | 43,750 | 4 |
 
-**Sanity run (not the baseline):** the cloud container's software renderer (SwiftShader, CPU-emulated) produced these numbers. They only show that the benchmark works and the relative cost: water scales with the grid and the wave count, and crest foam costs little next to the vertex work.
+**Result:** Medium with crest foam on is at **1.0 ms, a third of the 3 ms budget**, and crest foam costs about 0.2 ms. Low is far above its 30 fps floor. High matches Medium here because the display's pixel ratio is 1, so High renders the same buffer; its extra waves and denser grid add nothing measurable. The GPU timer in the overlay agreed (about 1.0 ms per frame on Medium in normal play).
 
-| Preset | Buffer | Waves | Frame ms | Water ms | Crest foam ms |
-|---|---|---|---|---|---|
-| Low | 960×540 | 4 | 21.4 | 12.1 | 0.3 |
-| Medium | 1280×720 | 6 | 40.2 | 24.5 | 1.0 |
-| High | 1280×720 | 8 | 54.6 | 39.6 | 0.4 |
+**Headroom:** the water leaves roughly 13 ms of the 16.7 ms Medium frame for terrain, ships, sky and post-processing. The water's quality settings don't need cutting. If the budget gets tight later, the cheapest levers are still fewer water rings, then 4 shader waves on Medium.
 
-**If Medium is over budget on the laptop,** the cheapest levers, in order: fewer water rings on Medium (the vertex loop dominates), 4 shader waves on Medium too, then a lower Medium resolution floor. Crest foam stays unless it is the cause.
+**Caveats:** this is one machine on one browser, with MSAA off (High with MSAA needs `&quality=high` at load) and no Firefox run yet. Rerun the benchmark once depth bands and shore foam are added in Phase 1.
 
-### Decisions this spike proposes (confirm after the laptop run)
+### Decisions
 - Keep the shared Gerstner set as designed: 4/6/8 waves by preset, buoyancy on the first 4, a steepness cap of 0.9.
 - A camera-centered polar grid is the water mesh for Phase 1 (no far ring needed so far).
 - Six hull samples plus damped springs is enough; no rigid-body solver (01 §5).
@@ -384,7 +385,7 @@ All resolved.
 ---
 
 ## Changelog
-- v0.4: Spike S2 write-up (§19): shared Gerstner set, water shader and mesh, buoyancy, CPU timings; GPU timings on the baseline laptop pending.
+- v0.4: Spike S2 write-up (§19): shared Gerstner set, water shader and mesh, buoyancy, CPU timings, and baseline-laptop GPU timings (water 1.0 ms on Medium with crest foam).
 - v0.3: Gap review: MVP ends at freeze-up, S2 measures with crest foam, S9 in Phase 0, cutter winter lay-up and 1900 storm signals researched, §18 rewritten as decisions.
 - v0.2: Decisions confirmed: 1 game day = 1 week, May 7, 1900 start, walkable ice, port storm flags, Mataafa and aurora.
 - v0.1: Initial environment plan: architecture, calendar (with a decoupled season-calendar proposal), sun/moon, climate normals, weather systems, fog, storms, forecasting, waves (fetch, duration, lake character), stylized water rendering, ice sim and walkable-ice proposal, sky/lighting, fog and precipitation rendering, chart display, data and state, budgets, phasing, spikes, cut list.
