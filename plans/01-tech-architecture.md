@@ -39,7 +39,7 @@ Versions: **pin exact versions at project setup** (latest stable at that time) a
 | Build/dev server | **Vite** | Fast HMR. Static build output. |
 | Package manager | **npm** | Decided 2026-10-22. |
 | 3D engine | **three.js** | |
-| Renderer | **`WebGLRenderer` + GLSL** (decided by spike S1, 2026-10-24) | WebGPU had no adapter in Chrome on the baseline laptop, and WebGPURenderer's WebGL2 fallback was slower than WebGLRenderer on every measure. See [§14](#14-spike-s1-results-renderer-2026-10-24). |
+| Renderer | **`WebGLRenderer` + GLSL** (decided by spike S1, 2026-10-24) | WebGPU was unavailable in Chrome and Firefox on the baseline laptop, and WebGPURenderer's WebGL2 fallback was slower than WebGLRenderer on every measure. See [§14](#14-spike-s1-results-renderer-2026-10-24). |
 
 ### 2.2 Libraries (proposed; each is optional until a plan needs it)
 | Need | Choice | Why |
@@ -472,7 +472,7 @@ All resolved (see Decisions). No open questions remain for this plan; spike resu
 
 **Question** (§11.2): is `WebGPURenderer` + TSL or classic `WebGLRenderer` + GLSL faster and more stable on the baseline laptop, and is post-processing available?
 
-**Answer: `WebGLRenderer` + GLSL.** WebGPU itself is not available in Chrome on the baseline laptop, so WebGPURenderer would always run on its WebGL2 fallback, and that fallback is slower than WebGLRenderer on every measure.
+**Answer: `WebGLRenderer` + GLSL.** WebGPU itself is not available in Chrome or Firefox on the baseline laptop, so WebGPURenderer would always run on its WebGL2 fallback, and that fallback is slower than WebGLRenderer on every measure.
 
 ### What was built
 `bench/s1/` (run `npm run dev`, open `/bench/s1/`) draws the S2 test scene (sky, Gerstner water, placeholder schooner, fog, hemisphere and sun light) from a fixed camera with three renderers, each on a fresh canvas:
@@ -486,7 +486,7 @@ All resolved (see Decisions). No open questions remain for this plan; spike resu
 For each rig it measures renderer init, the first frame (shader compile included), frame time per preset (frames submitted in batches of 20 with one GPU sync per batch; "CPU ms" is the submit time alone), Medium plus a bloom pass (`EffectComposer` + `UnrealBloomPass` vs. the TSL `RenderPipeline` + `bloom()`), and a 10 s real-time soak. It logs device loss, WebGPU validation errors and console errors.
 
 ### Results on the baseline laptop
-Chrome 156 on Linux, ANGLE on OpenGL 4.6 (radeonsi renoir, ACO), MSAA off, device pixel ratio 1. WebGPU: `navigator.gpu` is present, but `requestAdapter()` returns no adapter, so the WebGPU rig was skipped.
+**Chrome 156** on Linux, ANGLE on OpenGL 4.6 (radeonsi renoir, ACO), MSAA off, device pixel ratio 1. WebGPU: `navigator.gpu` is present, but `requestAdapter()` returns no adapter, so the WebGPU rig was skipped.
 
 | Renderer | Init ms | First frame ms | Low ms | Medium ms | High ms | Medium CPU ms | Medium + bloom ms | Bloom first frame ms | Soak p50 / p99 ms | Hitches | Errors |
 |---|---|---|---|---|---|---|---|---|---|---|---|
@@ -494,16 +494,23 @@ Chrome 156 on Linux, ANGLE on OpenGL 4.6 (radeonsi renoir, ACO), MSAA off, devic
 | WebGPURenderer + TSL, WebGL2 fallback | 9.1 | 116.5 | 1.0 | 1.7 | 1.7 | 0.3 | 2.8 | 103.7 | 16.7 / 16.8 | 0 of 600 | 0 |
 | WebGPURenderer + TSL, WebGPU | – | – | – | – | – | – | – | – | – | – | no adapter |
 
+**Firefox 158** on the same laptop (Linux; Firefox masks the GPU name as "Radeon HD 3200 Graphics, or similar"). `navigator.gpu` is missing, so the WebGPU rig was skipped. The window was smaller (Medium buffer 1280×912 for WebGLRenderer, 1280×954 for the fallback), so compare the rows with each other, not with Chrome.
+
+| Renderer | Init ms | First frame ms | Low ms | Medium ms | High ms | Medium CPU ms | Medium + bloom ms | Bloom first frame ms | Soak p50 / p99 ms | Hitches | Errors |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| WebGLRenderer + GLSL | 10.0 | **60.0** | **0.6** | **1.0** | **1.0** | **0.2** | **1.9** | **95.0** | 17.1 / 17.1 | 0 of 600 | 0 |
+| WebGPURenderer + TSL, WebGL2 fallback | 4.0 | 123.0 | 0.9 | 1.4 | 1.3 | 0.4 | 2.2 | 122.0 | 17.1 / 17.1 | 0 of 600 | 0 |
+
 Buffers: Low 1440×816, Medium and High 1920×1088. Draw calls: 4 for WebGLRenderer, 5 for WebGPURenderer (it draws the scene to an intermediate target and adds a full-screen pass for tone mapping and color space). Triangles match (11.6k, 23.8k, 43.8k). The thumbnails of both rigs looked the same, so the TSL port is faithful.
 
 ### Findings
-1. **WebGPU is not available on the baseline machine.** Chrome 156 on Linux exposes `navigator.gpu` but gives no adapter for this GPU without flags. Players on similar Linux laptops would get the same, so WebGPU could only ever be an optional path here.
-2. **The WebGPURenderer fallback costs more.** About +0.3 ms per frame on Medium (+20%) and 3× the CPU submit time, mostly the extra output pass and the node system's per-frame work. Shader compile for the first frame is 4× slower (117 ms vs. 28 ms), which matters for zone loads and new materials.
-3. **Both are stable.** No hitches in 600 presented frames and no errors for either WebGL path.
-4. **Post-processing works on both.** Bloom costs about 1.2 ms on Medium at 1920×1088 with `UnrealBloomPass`, and about the same with TSL bloom. That fits the Medium budget's "bloom or outlines" (§5) with room to spare.
+1. **WebGPU is not available on the baseline machine.** Chrome 156 on Linux exposes `navigator.gpu` but gives no adapter for this GPU without flags, and Firefox 158 on Linux has no `navigator.gpu` at all. Players on similar Linux laptops would get the same, so WebGPU could only ever be an optional path here.
+2. **The WebGPURenderer fallback costs more, in both browsers.** On Medium it adds +0.3 ms per frame in Chrome (+20%) and +0.4 ms in Firefox (+40%), and 2–3× the CPU submit time, mostly the extra output pass and the node system's per-frame work. The first frame (shader compile) is 4× slower in Chrome (117 ms vs. 28 ms) and 2× in Firefox (123 ms vs. 60 ms), which matters for zone loads and new materials.
+3. **Both are stable in both browsers.** No hitches in 600 presented frames and no errors for either WebGL path.
+4. **Post-processing works on both.** Bloom costs about 1.2 ms on Medium at 1920×1088 with `UnrealBloomPass` in Chrome (0.9 ms at 1280×912 in Firefox), and about the same with TSL bloom. That fits the Medium budget's "bloom or outlines" (§5) with room to spare.
 5. **Frame times here are lower than the S2 numbers** (1.4 ms vs. 2.0 ms on Medium) because S1 batches 20 frames per GPU sync, which overlaps CPU and GPU work; S2 synced every frame. Compare rigs within one bench, not across benches.
 
-**Caveats:** one machine, Chrome only (no Firefox run). The WebGPU backend was never exercised, here or in the cloud container, so its numbers are unknown.
+**Caveats:** one machine. The WebGPU backend was never exercised, here or in the cloud container, so its numbers are unknown.
 
 ### Decisions
 - **`WebGLRenderer` + GLSL is the renderer for Phase 1 onward.** The unified stylized material (plan 14 §4) is written in GLSL via `ShaderMaterial` or `onBeforeCompile`. Post-processing uses `EffectComposer`.
@@ -512,7 +519,7 @@ Buffers: Low 1440×816, Medium and High 1920×1088. Draw calls: 4 for WebGLRende
 ---
 
 ## Changelog
-- v0.6: Spike S1 write-up (§14): WebGPU has no adapter in Chrome on the baseline laptop; WebGLRenderer + GLSL beats the WebGPURenderer fallback on every measure and is the renderer.
+- v0.6: Spike S1 write-up (§14): WebGPU is unavailable in Chrome and Firefox on the baseline laptop; WebGLRenderer + GLSL beats the WebGPURenderer fallback on every measure in both and is the renderer.
 - v0.5: Applied the 2026-10-22 gap review: Phase 0 = S1–S9, R = 24 and C = 8, SI units in sim, repo already exists (PNGs stay plain), npm/miniplex/idb/Caddy, local builds only (no droplet yet), CI without Blender or WebGL, Meshy and nano-banana, shrunk S4 scene, worst-case S6, batch fast-forward, separate island scenes, player export/import.
 - v0.4: Hosting changed from GitHub Pages to a DigitalOcean droplet (Caddy, Actions rsync deploy, versioned releases); itch.io via butler.
 - v0.3: MIT license confirmed; recorded the baseline dev machine and its implications (GPU-bound, check WebGPU on Linux).
