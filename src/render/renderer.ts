@@ -5,8 +5,8 @@ import { QUALITY_PRESETS, type QualityId, type QualityPreset } from './quality';
 
 /**
  * The renderer wrapper (plan 01 §11.1 task 8): owns the WebGLRenderer, applies the
- * quality preset, and runs dynamic resolution scaling. Spike S1 may swap the renderer
- * underneath; the rest of render/ only talks to this.
+ * quality preset, and runs dynamic resolution scaling. Spike S1 kept WebGLRenderer
+ * (plan 01 §14); the rest of render/ only talks to this.
  */
 export interface FrameStats {
   drawCalls: number;

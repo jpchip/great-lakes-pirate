@@ -139,7 +139,7 @@ npm run e2e        # Playwright: null-renderer smoke (CI) plus WebGL check (loca
 
 The app boots into the Phase 0 test scene: a schooner riding Gerstner waves (drag to orbit, wheel to zoom). URL options: `?quality=low|medium|high` picks a preset, `?debug` shows the dev overlay on a production build (it is always on in `npm run dev`), `?bench=water` runs the spike S2 water benchmark ([plan 04 §19](plans/04-water-weather-seasons.md)), and `?renderer=null` boots without WebGL.
 
-Spike pages are dev-only: with `npm run dev` running, open `/onfoot-spike.html` for the on-foot controller spike S5 ([plan 08 §19](plans/08-docks-district-stealth.md)) and `/scale-greybox.html` for the scale-feel greybox S7 ([plan 03 §14](plans/03-world-scale-chart-travel.md)).
+Spike pages are dev-only: with `npm run dev` running, open `/onfoot-spike.html` for the on-foot controller spike S5 ([plan 08 §19](plans/08-docks-district-stealth.md)) and `/scale-greybox.html` for the scale-feel greybox S7 ([plan 03 §15](plans/03-world-scale-chart-travel.md)).
 
 Layout follows [plan 01 §6](plans/01-tech-architecture.md). Save migrations live in `src/core/save/migrations/` with one fixture per save version in `tests/fixtures/saves/` ([plan 16 §7](plans/16-save-persistence.md)).
 

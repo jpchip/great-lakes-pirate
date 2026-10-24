@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>S1 renderer benchmark</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        background: #10181d;
+        color: #dde6ea;
+        font:
+          14px/1.4 system-ui,
+          sans-serif;
+      }
+      #stage {
+        position: fixed;
+        inset: 0;
+      }
+      #stage canvas {
+        display: block;
+      }
+      #status {
+        position: fixed;
+        top: 8px;
+        left: 8px;
+        padding: 4px 8px;
+        background: rgb(0 0 0 / 60%);
+        border-radius: 4px;
+      }
+      #report {
+        display: none;
+        padding: 16px;
+        max-width: 1400px;
+      }
+      body[data-s1='done'] #report,
+      body[data-s1='failed'] #report {
+        display: block;
+      }
+      body[data-s1='done'] #stage,
+      body[data-s1='failed'] #stage,
+      body[data-s1='done'] #status,
+      body[data-s1='failed'] #status {
+        display: none;
+      }
+      pre {
+        white-space: pre-wrap;
+        background: #1b262d;
+        padding: 12px;
+        border-radius: 4px;
+        font-size: 12px;
+      }
+      #thumbs {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+      #thumbs figure {
+        margin: 0;
+      }
+      #thumbs img {
+        width: 400px;
+        max-width: 100%;
+        border-radius: 4px;
+      }
+      button {
+        font: inherit;
+        padding: 6px 14px;
+      }
+    </style>
+  </head>
+  <body data-s1="running">
+    <div id="stage"></div>
+    <div id="status">
+      Spike S1: starting… keep this tab in front and don't touch it (about a minute).
+    </div>
+    <div id="report">
+      <h1>S1 renderer benchmark</h1>
+      <p>
+        <button id="copy">Copy results</button>
+        <span id="copied"></span>
+      </p>
+      <pre id="out"></pre>
+      <h2>Same scene, each renderer</h2>
+      <p>These should look the same. Anything missing or broken is a finding.</p>
+      <div id="thumbs"></div>
+    </div>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

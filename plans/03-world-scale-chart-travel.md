@@ -1,6 +1,6 @@
 # 03 — World, Hybrid Scale, Chart Travel & Streaming
 
-Status: DRAFT v0.5 (decisions made; gap review applied; spike S7 done: C = 8, R = 24, R_foot = 6, freighters 0.85×)
+Status: DRAFT v0.6 (decisions made; gap review applied; S3 done; S7 done: C = 8, R = 24, R_foot = 6, freighters 0.85×)
 Parent: [00-master-plan.md](00-master-plan.md)
 Inputs: [01 tech/architecture](01-tech-architecture.md) (coordinate spaces, simulation LOD, budgets), [R1](R1-western-superior-1900-research.md) and [R1a gazetteer](R1a-western-superior-gazetteer.md) (distances, places, regions)
 Feeds: 02 (sailing speeds), 04 (clock, weather on chart), 05 (traffic/routes), 06 (Wanted regions, pursuit), 08/11 (on-foot areas), 14 (terrain look)
@@ -228,10 +228,10 @@ Spotted something (or something spotted you)
 | Historical charts (reference only) | NOAA Office of Coast Survey historical charts; US Lake Survey around 1900 | Hand-corrections for 1900 harbors (modern breakwaters, fills, dredged channels differ) |
 
 ### 8.2 Pipeline (`tools/geo/`, GDAL plus Node scripts)
-1. **Reproject** to **UTM zone 15N**. All MVP zones fall within it (−96° to −90°), so the MVP uses one projection.
+1. **Reproject** to ~~**UTM zone 15N**~~ the game's chart projection (the local equirectangular projection in `src/core/coords.ts`), so baked samples line up with `geoToChart()` at runtime (S3, §14).
 2. **Merge** DEM and bathymetry into one elevation surface (land positive, lake bottom negative relative to the lake level, ~602 ft / 183.5 m).
 3. **Clip** per zone (geo bounds from `zones.json`) with a margin.
-4. **Compress horizontally by C**: resample to the zone grid, where 1 m of game space = C m of real space. Heights stay 1:1 (with an optional cliff exaggeration curve).
+4. **Compress horizontally by C**: resample to the zone grid, where 1 m of game space = C m of real space. ~~Heights stay 1:1 (with an optional cliff exaggeration curve).~~ Land heights go through a configurable curve, because 1:1 heights make slopes C times steeper; water depth stays 1:1. Decided: a soft knee at 20 m (S3, §14.3).
 5. **Resample resolution:**
    - **Sailing tiles:** ~4 m/sample of game space (Apostles ≈ 1,750² samples, ~6 MB at 16-bit).
    - **On-foot island tiles:** ~1 m/sample, generated for **all 22 island** footprints plus a beach margin, and for the three mainland hideout pads.
@@ -309,7 +309,7 @@ S7 and S8 are **Phase 0** prototypes (decided 2026-10-22; [01 §11](01-tech-arch
 
 ## 13. Open Questions
 
-All resolved. S7 settled the freighter scale (0.85×) and R_foot (6). The open item is how S3 handles terrain steepness (§14, finding 1).
+All resolved. S7 settled the freighter scale (0.85×) and R_foot (6). S3 handles terrain steepness with the soft knee (§14.3).
 
 ### Decisions
 | Date | Decision |
@@ -325,11 +325,57 @@ All resolved. S7 settled the freighter scale (0.85×) and R_foot (6). The open i
 | 2026-10-22 | The three mainland hideout sites get small on-foot build pads, the only mainland on-foot areas besides docks districts. |
 | 2026-10-22 | The Apostles zone spans three Wanted regions: Apostle Islands, Chequamegon Bay, Ashland. |
 | 2026-10-22 | S7 and S8 are Phase 0 prototypes; S3 bakes funneling maps. |
-| 2026-10-24 | Spike S7 confirmed by playtest: **C = 8**, **R = 24**, **R_foot = 6**, big freighters' `displayScale` **0.85** (§14). |
+| 2026-10-23 | Land heights use a **soft knee at 20 m** (`h' = 20·ln(1 + h/20)`), not 1:1, so compressed islands stay walkable; water depth stays 1:1 (S3, §14.3). |
+| 2026-10-24 | Spike S7 confirmed by playtest: **C = 8**, **R = 24**, **R_foot = 6**, big freighters' `displayScale` **0.85** (§15). |
 
 ---
 
-## 14. Spike S7: Scale-Feel Greybox (results, 2026-10-23)
+## 14. Spike S3 Results: Geo Pipeline (2026-10-23)
+
+**Question** (§11): can we produce compressed heightmap tiles plus an SDF from NOAA/USGS data reproducibly?
+
+**Answer: yes.** `npm run geo:build` bakes `public/world/apostles/` from public-domain sources in one command: about 35 s from cache and about 1.5 minutes from scratch on the cloud dev box (the first run downloads ~100 MB of bathymetry and reads the DEM blocks it needs). The output is **9.6 MB**: sailing tiles 2.3 MB, SDF and wind maps 1.1 MB, and 1 m tiles for all 22 islands 6.2 MB. That's under the §8.4 estimate (~6 MB for the sailing heightmap alone). Code, format and usage are in [`tools/geo/README.md`](../tools/geo/README.md); the bake report with per-island numbers is [`tools/geo/reports/apostles.md`](../tools/geo/reports/apostles.md).
+
+### 14.1 What was built
+| Piece | Result |
+|---|---|
+| Sources | NOAA NCEI Lake Superior bathymetry, 3″ (~90 m, includes nearshore land), and USGS 3DEP 1/3″ (~10 m) read in place from the cloud-optimized tiles, so only the zone's blocks download |
+| Zone grid | Centered at 46.835°N 90.72°W: **7.17 × 8.19 km game** (57.3 × 65.5 km real), 7 × 8 tiles. It covers Eagle Island to Outer Island, Devils Island to Ashland and the Bad River mouth |
+| Merge | Land from the DEM (lake hydroflattened, so ≤ 0.5 m above lake level counts as water), depth from the bathymetry, 0 = 183.5 m. Where the coarse bathymetry still reads as land, water is clamped to −0.3 m (reads as a shallow shelf) |
+| Sailing heightmap | 4 m samples, 1793 × 2049, as 56 tiles of 257² (256 plus a shared edge row and column) |
+| Shoreline SDF | Exact Euclidean distance transform on the 4 m grid, 0.25 m steps, positive over water |
+| Shelter, fetch, funneling | 16 directions × 224 × 256 cells of 32 m. Rays that leave the zone continue on a 1 km lake-wide grid, so fetch from the open lake is real (up to ~400 km for an east-north-east wind, down the length of Superior) |
+| Islands | Each island's land component is found from its center point; **20 of 22** match directly. Long Island is joined to the mainland in the data and uses a clip box. **Gull Island** (a ~1 ha rock) is below the land threshold and gets an empty 256 m tile: a job for the hand-edit layer |
+| Decoder | `src/core/terrain-grid.ts` (`decodeGrid`), shared by every baked grid, with round-trip tests |
+
+### 14.2 Decisions made in the spike
+- **Projection: the game's chart projection, not UTM 15N.** `coords.ts` already defines chart space as a local equirectangular projection, and every runtime position goes through it. Baking in the same projection (as a PROJ string for GDAL) means a port's lat/lon lands on the right terrain sample with no reprojection at runtime. The cost is ~1.3% east-west scale error at the Apostles (the projection's reference latitude is 47.5°N), which is invisible at C = 8. A test checks the two projections agree.
+- **Format: raw 16-bit, row-delta, byte planes, deflate** (fflate decodes it). Heights in 1/64 m steps from −512 m. On the sailing tiles it's 8% smaller than 16-bit PNG and 46% smaller than plain deflate, and it avoids the browser's 8-bit canvas when decoding PNGs. Coarser 1/16 m steps would save another ~30%, but they terrace gentle 1 m on-foot slopes.
+- **Resolution: kept at 4 m (sailing) and 1 m (on foot).** The DEM is ~10 m real = 1.25 m game, so 1 m tiles are lightly upsampled; finer detail comes from authored props. Bathymetry is ~11 m game, so seabed detail is smooth: fine for color bands and depth checks.
+- **Lee length is measured in game meters** (15 × obstacle height). In real meters the lee behind a 30 m island would be ~60 m game, about two ship lengths at C = 8, which isn't a usable refuge. In game meters it's ~450 m, which matches what the player sees, because heights aren't compressed. Fetch and channel width stay in real meters, because the weather sim (04) works in real geography.
+- **Islands are recognizable:** baked land areas are within ~5% of the published figures (Stockton 39.4 km² vs 40.7, Outer 31.2 vs 32.4, Oak 20.3 vs 20.6, Sand 11.5 vs 11.9, Madeline 58.2 vs 62.2), and every island's OpenStreetMap center point falls on its baked land. Preview: [`tools/geo/reports/apostles-relief.png`](../tools/geo/reports/apostles-relief.png).
+
+### 14.3 Finding: 1:1 heights make the islands too steep to walk
+Squeezing 8× sideways while keeping heights 1:1 makes every slope 8× steeper (S7 hit this too). With 1:1 heights, **35% of Oak Island** and 17% of Basswood are steeper than the 42° walk limit (11 §4). The pipeline now has a `landCurve` setting; water depth always stays 1:1.
+
+| Land heights | Oak over 42° | Basswood | Devils | Madeline | Oak summit |
+|---|---|---|---|---|---|
+| 1:1 (old §8.2) | 35.5% | 16.6% | 10.7% | 7.4% | 148 m |
+| Linear × 0.5 | 12.3% | 7.4% | 6.5% | 3.3% | 74 m |
+| **Soft knee at 20 m** (decided) | **7.6%** | 8.1% | 8.6% | 4.0% | 43 m |
+
+The soft knee (`h' = 20·ln(1 + h/20)`) keeps low ground near full height, so beaches, shore cliffs and sea caves still read right from the water, and flattens high ground the most. Lower land also shortens the lee. **Decided 2026-10-23: soft knee at 20 m** (§13).
+
+### 14.4 Not done (follow-ups)
+- `zones.json` in `data/` (the zone config lives in `tools/geo/zones/` for now), `islands.json`, and the three mainland hideout pads, whose sites aren't placed yet (09).
+- Hand-edit layer (step 7): set-piece footprints, 1900 harbor corrections, sea caves, Gull Island.
+- Vegetation density and depth-band maps: both are cheap to derive from the height tiles at runtime or in a later bake, once the terrain shader exists (14).
+- Chart data (step 9): the lake-wide grid the bake already builds is a starting point for S8.
+- Shelter maps ignore trees; the DEM is bare earth. A flat +15 m canopy on forested land would lengthen the lee.
+
+---
+
+## 15. Spike S7: Scale-Feel Greybox (results, 2026-10-23)
 
 **Question** (§11): do C = 8, R = 24 and the freighter scale feel right? That covers visual speed, channel widths, island walk sizes and freighter scale.
 
@@ -340,7 +386,7 @@ All resolved. S7 settled the freighter scale (0.85×) and R_foot (6). The open i
 |---|---|---|
 | Page | `scale-greybox.html`, `src/debug/scale-greybox/` | Dev-only like the S5 page: `npm run dev`, then `/scale-greybox.html`. It isn't part of the production build. `?c=8&r=24&rfoot=6&freighter=0.85` set the starting values. |
 | Geography | `geography.ts` | Hand-placed stand-in for S3: all 22 islands as ellipses and the mainland (Bayfield peninsula, Chequamegon Bay, south shore) as one polygon, from approximate public coordinates. The R1a legs come out close: Bayfield–La Pointe 2.3 nm (R1a: 2), Bayfield–Ashland 13.4 nm (13), Sand–Outer 21.8 nm (22). Coastline shapes are rough, so treat the channel widths below as indicative. |
-| Terrain | `terrain.ts`, `scene.ts` | One 125 m grid in true-scale chart meters (457 × 497 samples), built once in about 0.4 s. Every C shares it: the mesh is scaled by 1/C horizontally, and the on-foot and grounding heightfield is the same heights with a cell of 125/C m. Heights stay 1:1 (§3.1). Ground too steep to walk at the current C (over 42°, plan 08 §19) is drawn red. |
+| Terrain | `terrain.ts`, `scene.ts` | One 125 m grid in true-scale chart meters (457 × 497 samples), built once in about 0.4 s. Every C shares it: the mesh is scaled by 1/C horizontally, and the on-foot and grounding heightfield is the same heights with a cell of 125/C m. Heights stay 1:1 (§3.1 as it stood; S3 later chose a soft knee, §14.3). Ground too steep to walk at the current C (over 42°, plan 08 §19) is drawn red. |
 | Helm | `helm.ts` | A stand-in for plan 02: the four sail levels on a steady beam reach (Full = 7.65 game kn for the T2 hull), 6 s inertia, a best turn rate of 6°/s that falls off at low speed, grounding at a 3 m draft, and sweeps astern to back off. The ship moves at v₃ᴅ = v × R / C. |
 | 1:1 references | `setpieces.ts`, `trees.ts`, `freighters.ts` | The S2 schooner (30 m), conifers 10–20 m tall within 1.4 km of the camera, five towns with piers (Ashland gets a 560 m ore dock), six 1900 lighthouses at their real heights, three 122 m ore boats steaming at 9 kn on two lanes, and the S5 capsule (1.75 m) on foot. |
 | On foot | `main.ts` | **F** goes ashore at the nearest walkable shore and back aboard, with the S5 controller and camera and the clock at R_foot. |
@@ -399,7 +445,7 @@ At R_foot = 6, walking Stockton end to end is 49 game minutes, so a 10-minute vi
 **Picked (confirmed in the feel check):** keep **C = 8** and **R = 24** (fall back to R = 20 before touching C, as §3.3 says), set big freighters' `displayScale` to **0.85**, and keep **R_foot = 6**. C = 6 makes Madeline a 25-minute walk and puts 1:1 ships in very roomy water; C = 10 shrinks small islands to one-minute walks, squeezes freighters out of the tighter gaps, and steepens terrain further.
 
 ### Findings for later work
-1. **Terrain gets C times steeper.** Heights stay 1:1 over ground compressed by C, so a 5° real hillside becomes 35° at C = 8 and 41° at C = 10, close to the 42° walking limit. The greybox already shows red (unwalkable) patches inside Oak and Madeline at C = 8. S3 should handle it for the on-foot tiles, for example by keeping shore cliffs at full height but scaling relief above the bluff by about 0.5, or by capping slopes outside authored cliffs. That would amend §3.1 ("heights are not compressed"), so it's a decision for the dev.
+1. **Terrain gets C times steeper.** Heights stay 1:1 over ground compressed by C, so a 5° real hillside becomes 35° at C = 8 and 41° at C = 10, close to the 42° walking limit. The greybox already shows red (unwalkable) patches inside Oak and Madeline at C = 8. **Resolved by S3:** land heights now go through a soft knee at 20 m (§14.3), which keeps shore cliffs and flattens high ground. The greybox still uses 1:1 heights, so its red patches overstate the problem.
 2. **1:1 waterfronts swamp compressed bays.** Ashland's 560 m ore dock reaches about two-thirds of the way across the greybox bay (about 830 m at C = 8). This confirms §3.4: the Ashland set piece needs its local lens of uncompressed space.
 3. **Water has to reach the zone's far side.** The S2 water disc ends 2.5 km out, but at C = 8 the Apostles zone is about 7 km across and islands 5 km away are clearly visible. The greybox lays a flat sheet under the disc; plan 04 should add a proper far-water LOD.
 4. **Speed cues are missing.** The greybox has no wake, spray or sound, which plan 02 §7 relies on to make 23 visual knots feel natural, so judge speed knowing it may read slower here than in the game.
@@ -413,13 +459,14 @@ With `npm run dev` running, open `/scale-greybox.html`, then:
 4. "Ashore: Stockton", then walk or run end to end. Is R_foot = 6 right?
 5. "Ashore: Oak (summit)" and walk down. Do the red slopes block too much?
 
-Done on 2026-10-24: all four values confirmed, and the stutter fixed (plan 04 §19). Finding 1 (terrain steepness) is still open for S3.
+Done on 2026-10-24: all four values confirmed, and the stutter fixed (plan 04 §19). Finding 1 (terrain steepness) is settled by S3's soft knee (§14.3).
 
 ---
 
 ## Changelog
-- v0.5: S7 feel check done: C = 8, R = 24, R_foot = 6 and 0.85× freighters confirmed and recorded.
-- v0.4: Spike S7 greybox built and measured (§14): the numbers support C = 8, R = 24, R_foot = 6 and 0.85× freighters, pending a feel check on the dev laptop. Findings on terrain steepness, 1:1 waterfronts and far water.
+- v0.6: Merged S3 and S7: S7 moved to §15; the S7 picks (C = 8, R = 24, R_foot = 6, 0.85× freighters) confirmed by playtest and recorded.
+- v0.5: S7 greybox built and measured (§15), with findings on terrain steepness, 1:1 waterfronts and far water.
+- v0.4: Spike S3 results (§14): pipeline in `tools/geo/`, chart projection instead of UTM, 16-bit delta + deflate tiles, lee in game meters, land height curve (soft knee at 20 m, decided).
 - v0.3: Gap review: separate island scene loads, 1 m tiles for all 22 islands, mainland hideout pads, three Wanted regions in the Apostles zone, S7/S8 in Phase 0, Siskiwit cut keeps its hideout reachable.
 - v0.2: Decisions recorded: C = 8, 60-minute day, no chart escape when detected, shrunk freighters, lookout setting, slower on-foot clock (R_foot = 6 proposed).
 - v0.1: Initial world-scale plan: compression model (C = 8), time/speed linkage (R = 24), 1:1 set-piece exceptions, MVP zones, chart mode, simulation-driven encounters, arenas, transitions, terrain pipeline, data model, spikes S3/S7/S8.
