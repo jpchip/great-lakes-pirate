@@ -332,7 +332,7 @@ All resolved. Remaining tuning (not decisions) happens in S7: the exact freighte
 
 **Question** (§11): is plotting plus a compressed voyage plus encounter interrupts fun and readable?
 
-**Answer: readable, yes; fun needs your playtest.** Every exit criterion works end to end: a western Superior chart, course plotting with land checks, a time-compressed voyage that keeps an honest clock, and encounters that drop into an open-water arena and back. Headless runs can't judge fun, so the checks below are about readability and pacing. Two tuning changes came out of it: a **pacing guard** and a **6 nm daytime lookout range**.
+**Answer: yes, it reads clearly and it's fun.** The dev's playtest (2026-10-24) found it fun, with encounters coming up at a good rhythm. Every exit criterion works end to end: a western Superior chart, course plotting with land checks, a time-compressed voyage that keeps an honest clock, and encounters that drop into an open-water arena and back. The headless checks below cover readability and pacing. Two tuning changes came out of it: a **pacing guard** and a **6 nm daytime lookout range**.
 
 ### What was built
 | Piece | Where | Notes |
@@ -359,7 +359,7 @@ All resolved. Remaining tuning (not decisions) happens in S7: the exact freighte
 | Cost | A full chart redraw takes **5.2 ms median and 8.1 ms p95 at 1920×1080** (headless Chromium, software canvas, cloud container). Replotting a course takes under 0.1 ms. **Re-check on the dev laptop**, where the canvas is GPU-backed. |
 
 ### Findings for later phases
-1. **Playtest for fun.** Plot a few crossings at day and at night, with each lookout setting, and judge whether 2-ish stops per Apostles run feel right or too busy. The knobs are `ENCOUNTER_QUIET_S`, `DAY_SPOT_NM`/`NIGHT_SPOT_NM`, each contact's conspicuity, and traffic density (plan 05).
+1. **Pacing feels right (playtest, 2026-10-24).** Keep about 2 stops per Apostles run as the baseline. The knobs, if later content changes it, are `ENCOUNTER_QUIET_S`, `DAY_SPOT_NM`/`NIGHT_SPOT_NM`, each contact's conspicuity, and traffic density (plan 05).
 2. **Pacing belongs to the encounter director, not just the lookouts.** Once-per-voyage plus a quiet spell works, but the right model is probably a per-voyage budget weighted by route traffic and season (§6.4). Plan 05's traffic slice should feed it.
 3. **The cutter needs Wanted gating.** In the prototype it always hunts you. With plan 06 it should only force an encounter when your Wanted in that region is high enough, which also brings the forced rate down.
 4. **"Steer clear" has no cost yet.** Avoiding a squall or a ship takes no extra time. A detour should cost time (and a squall avoided late could still clip you), or Avoid becomes the obvious choice.
@@ -373,7 +373,7 @@ All resolved. Remaining tuning (not decisions) happens in S7: the exact freighte
 ---
 
 ## Changelog
-- v0.4: Prototype S8 written up (§14): chart mode with plotting, compressed voyages and encounter arenas works; pacing guard and 6 nm day lookout range added.
+- v0.4: Prototype S8 written up (§14) and playtested as fun: chart mode with plotting, compressed voyages and encounter arenas works; pacing guard and 6 nm day lookout range added.
 - v0.3: Gap review: separate island scene loads, 1 m tiles for all 22 islands, mainland hideout pads, three Wanted regions in the Apostles zone, S7/S8 in Phase 0, Siskiwit cut keeps its hideout reachable.
 - v0.2: Decisions recorded: C = 8, 60-minute day, no chart escape when detected, shrunk freighters, lookout setting, slower on-foot clock (R_foot = 6 proposed).
 - v0.1: Initial world-scale plan: compression model (C = 8), time/speed linkage (R = 24), 1:1 set-piece exceptions, MVP zones, chart mode, simulation-driven encounters, arenas, transitions, terrain pipeline, data model, spikes S3/S7/S8.
