@@ -116,7 +116,7 @@ A phase isn't done if any bench's p95 frame time on Medium exceeds 16.7 ms, or L
 | Safari (current) | macOS | Smoke (WebGL2, audio unlock, IndexedDB persistence quirks) |
 | Inside **itch.io** iframe | Chrome/Firefox | Smoke (relative paths, storage, fullscreen, pointer lock) |
 
-The renderer choice (S1, WebGPU vs. WebGL) is verified on this matrix. WebGL2 is the minimum.
+S1 picked `WebGLRenderer` ([01 §14](01-tech-architecture.md)); WebGL2 is the minimum and the only renderer. It was benched in Chrome and Firefox on the baseline laptop.
 
 ---
 
