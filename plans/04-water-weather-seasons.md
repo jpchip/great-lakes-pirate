@@ -1,6 +1,6 @@
 # 04 — Water, Weather, Seasons & Day/Night
 
-Status: DRAFT v0.4 (decisions confirmed; gap review applied; spike S2 done)
+Status: DRAFT v0.5 (decisions confirmed; gap review applied; spike S2 done; moving-camera wave fix)
 Parent: [00-master-plan.md](00-master-plan.md)
 Inputs:
 - [01 tech/architecture](01-tech-architecture.md): layers, budgets, the shared wave function, the iGPU baseline
@@ -377,6 +377,13 @@ Measured with `?bench=water` on a production build (`npm run preview`) on the Ry
 
 **Caveats:** this is one machine on one browser, with MSAA off (High with MSAA needs `&quality=high` at load) and no Firefox run yet. Rerun the benchmark once depth bands and shore foam are added in Phase 1.
 
+### Moving-camera fix (2026-10-24, from the S7 playtest)
+Sailing in the S7 greybox, the dev saw the waves stutter. The polar grid's vertices are too far apart past about 50 m (Medium) to sample the 4–9 m waves, so those waves aliased into blocky shapes. Each 4 m snap of the grid to the moving camera resampled them, and the shapes jumped. The test scene never showed it because the ship held still. The fix:
+- **Geometry** displaces only with waves the grid samples at least 2.5 times per wavelength where each vertex sits (`uGridOffset` and `uGridGrowth` come from `createPolarGrid`).
+- **Shading** computes the wave normals and crest foam per pixel at the rest position, faded by the pixel's footprint, so the chop stays but no longer depends on where the grid vertices are.
+- **Result:** in a frozen-time test that moves the camera 0.5 m per frame, the frame-to-frame change no longer spikes at each snap (before, it was about 2.5× normal every 4 m; after, it's flat). The bands now have smooth edges instead of triangle facets, which S4's style test can revisit.
+- **Cost:** the per-pixel loop adds shader work (6 waves on Medium). **Rerun `?bench=water` on the laptop.**
+
 ### Decisions
 - Keep the shared Gerstner set as designed: 4/6/8 waves by preset, buoyancy on the first 4, a steepness cap of 0.9.
 - A camera-centered polar grid is the water mesh for Phase 1 (no far ring needed so far).
@@ -385,6 +392,7 @@ Measured with `?bench=water` on a production build (`npm run preview`) on the Ry
 ---
 
 ## Changelog
+- v0.5: Moving-camera wave stutter fixed (§19): geometry keeps only waves the grid can sample, shading is per pixel.
 - v0.4: Spike S2 write-up (§19): shared Gerstner set, water shader and mesh, buoyancy, CPU timings, and baseline-laptop GPU timings (water 1.0 ms on Medium with crest foam).
 - v0.3: Gap review: MVP ends at freeze-up, S2 measures with crest foam, S9 in Phase 0, cutter winter lay-up and 1900 storm signals researched, §18 rewritten as decisions.
 - v0.2: Decisions confirmed: 1 game day = 1 week, May 7, 1900 start, walkable ice, port storm flags, Mataafa and aurora.

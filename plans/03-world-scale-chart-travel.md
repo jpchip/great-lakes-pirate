@@ -1,6 +1,6 @@
 # 03 — World, Hybrid Scale, Chart Travel & Streaming
 
-Status: DRAFT v0.4 (decisions made; gap review applied; S7 greybox built, feel check on the dev laptop pending)
+Status: DRAFT v0.5 (decisions made; gap review applied; spike S7 done: C = 8, R = 24, R_foot = 6, freighters 0.85×)
 Parent: [00-master-plan.md](00-master-plan.md)
 Inputs: [01 tech/architecture](01-tech-architecture.md) (coordinate spaces, simulation LOD, budgets), [R1](R1-western-superior-1900-research.md) and [R1a gazetteer](R1a-western-superior-gazetteer.md) (distances, places, regions)
 Feeds: 02 (sailing speeds), 04 (clock, weather on chart), 05 (traffic/routes), 06 (Wanted regions, pursuit), 08/11 (on-foot areas), 14 (terrain look)
@@ -91,7 +91,7 @@ To keep the clock honest: `v₃ᴅ = v_game × R / C`
 | Bayfield → La Pointe (2 nm) | ~15 game minutes | ~40 real seconds |
 
 - Faster ships or a good wind raise `v_game`, and v₃ᴅ follows automatically. The arcade sailing model in plan 02 works in **game knots** and converts at the boundary.
-- **On foot, the clock slows down (decided).** Proposed **R_foot = 6** (1 real minute = 6 game minutes), so a 10-minute docks heist ≈ 1 game hour, and a full night (~6–9 game hours) gives ~60–90 real minutes of on-foot time. The value is tunable in S7 and plan 08.
+- **On foot, the clock slows down (decided).** **R_foot = 6** (confirmed in S7) (1 real minute = 6 game minutes), so a 10-minute docks heist ≈ 1 game hour, and a full night (~6–9 game hours) gives ~60–90 real minutes of on-foot time. Plan 08 can still retune it.
   - The switch happens on "Go ashore" and "Return aboard," with a small HUD clock-speed indicator.
   - Abstract world simulation keeps ticking at the slower rate (ships move less while you're ashore), which stays consistent because R only changes how fast game time passes.
 - **"Wait/sleep"** (at a hideout, in port, or moored) fast-forwards the clock, for example to dusk or dawn.
@@ -112,7 +112,7 @@ A **set piece** is a hand-built region (1:1 inside, typically 0.5–1.5 km) plac
 
 ### 3.5 Ship scale
 - Player schooners and small craft: 1:1.
-- **Big freighters are shrunk (decided): 0.75–1.0×**, with the exact factor tuned in S7. A 1:1 steel ore boat (~400 ft) is huge in a compressed bay. A slight shrink keeps encounters readable without looking wrong next to the schooner. Scale applies per ship class (`ships.json` → `displayScale`).
+- **Big freighters are shrunk (decided): 0.85× for big freighters** (S7; the allowed range was 0.75–1.0×). A 1:1 steel ore boat (~400 ft) is huge in a compressed bay. A slight shrink keeps encounters readable without looking wrong next to the schooner. Scale applies per ship class (`ships.json` → `displayScale`).
 
 ---
 
@@ -309,7 +309,7 @@ S7 and S8 are **Phase 0** prototypes (decided 2026-10-22; [01 §11](01-tech-arch
 
 ## 13. Open Questions
 
-All resolved. Remaining tuning (not decisions) happens in S7: the exact freighter scale and the exact R_foot.
+All resolved. S7 settled the freighter scale (0.85×) and R_foot (6). The open item is how S3 handles terrain steepness (§14, finding 1).
 
 ### Decisions
 | Date | Decision |
@@ -325,6 +325,7 @@ All resolved. Remaining tuning (not decisions) happens in S7: the exact freighte
 | 2026-10-22 | The three mainland hideout sites get small on-foot build pads, the only mainland on-foot areas besides docks districts. |
 | 2026-10-22 | The Apostles zone spans three Wanted regions: Apostle Islands, Chequamegon Bay, Ashland. |
 | 2026-10-22 | S7 and S8 are Phase 0 prototypes; S3 bakes funneling maps. |
+| 2026-10-24 | Spike S7 confirmed by playtest: **C = 8**, **R = 24**, **R_foot = 6**, big freighters' `displayScale` **0.85** (§14). |
 
 ---
 
@@ -332,7 +333,7 @@ All resolved. Remaining tuning (not decisions) happens in S7: the exact freighte
 
 **Question** (§11): do C = 8, R = 24 and the freighter scale feel right? That covers visual speed, channel widths, island walk sizes and freighter scale.
 
-**Answer so far: the numbers support keeping C = 8 and R = 24, with freighters at 0.85×.** The greybox is built and measured. The feel check on the dev laptop (the checklist at the end of this section) still has to confirm or change the picks before they go in the Decisions table.
+**Answer: yes. Keep C = 8 and R = 24, with freighters at 0.85× and R_foot = 6.** The numbers below supported these values, and the dev confirmed them on the laptop on 2026-10-24 ("feels good, takes a bit of time to get places but not crazy"). The one problem found was the wave stutter while sailing, now fixed in plan 04 §19.
 
 ### What was built
 | Piece | Where | Notes |
@@ -395,7 +396,7 @@ At R_foot = 6, walking Stockton end to end is 49 game minutes, so a 10-minute vi
 
 **Freighter scale.** At 0.85× a laker is 104 m, 3.5× the schooner. In the C = 8 North Channel (341 m) it takes up 30% of the width; at 1.0× (122 m) it's 36%, and at 0.75× (92 m) it starts to look stubby beside the schooner. **0.85 is the proposal**, and it's the value that most needs the eye test.
 
-**Recommendation (pending the feel check):** keep **C = 8** and **R = 24** (fall back to R = 20 before touching C, as §3.3 says), set big freighters' `displayScale` to **0.85**, and keep **R_foot = 6**. C = 6 makes Madeline a 25-minute walk and puts 1:1 ships in very roomy water; C = 10 shrinks small islands to one-minute walks, squeezes freighters out of the tighter gaps, and steepens terrain further.
+**Picked (confirmed in the feel check):** keep **C = 8** and **R = 24** (fall back to R = 20 before touching C, as §3.3 says), set big freighters' `displayScale` to **0.85**, and keep **R_foot = 6**. C = 6 makes Madeline a 25-minute walk and puts 1:1 ships in very roomy water; C = 10 shrinks small islands to one-minute walks, squeezes freighters out of the tighter gaps, and steepens terrain further.
 
 ### Findings for later work
 1. **Terrain gets C times steeper.** Heights stay 1:1 over ground compressed by C, so a 5° real hillside becomes 35° at C = 8 and 41° at C = 10, close to the 42° walking limit. The greybox already shows red (unwalkable) patches inside Oak and Madeline at C = 8. S3 should handle it for the on-foot tiles, for example by keeping shore cliffs at full height but scaling relief above the bluff by about 0.5, or by capping slopes outside authored cliffs. That would amend §3.1 ("heights are not compressed"), so it's a decision for the dev.
@@ -404,7 +405,7 @@ At R_foot = 6, walking Stockton end to end is 49 game minutes, so a 10-minute vi
 4. **Speed cues are missing.** The greybox has no wake, spray or sound, which plan 02 §7 relies on to make 23 visual knots feel natural, so judge speed knowing it may read slower here than in the game.
 5. **Performance isn't measured.** The page draws about 1M triangles in about 25 calls, mostly trees, and was only run in headless SwiftShader. It isn't a budget test.
 
-### Feel check on the dev laptop
+### Feel check on the dev laptop (done)
 With `npm run dev` running, open `/scale-greybox.html`, then:
 1. Sail Bayfield → La Pointe and around Madeline at C = 8, R = 24, timing with **T**. Does 12 m/s on screen feel brisk but readable? If it's too fast, try R = 20.
 2. At "Sail: west of Oak" and "Sail: Raspberry–Oak", switch C between 6, 8 and 10. Which looks right for the channels and island sizes?
@@ -412,11 +413,12 @@ With `npm run dev` running, open `/scale-greybox.html`, then:
 4. "Ashore: Stockton", then walk or run end to end. Is R_foot = 6 right?
 5. "Ashore: Oak (summit)" and walk down. Do the red slopes block too much?
 
-Record the picks here and in the Decisions table.
+Done on 2026-10-24: all four values confirmed, and the stutter fixed (plan 04 §19). Finding 1 (terrain steepness) is still open for S3.
 
 ---
 
 ## Changelog
+- v0.5: S7 feel check done: C = 8, R = 24, R_foot = 6 and 0.85× freighters confirmed and recorded.
 - v0.4: Spike S7 greybox built and measured (§14): the numbers support C = 8, R = 24, R_foot = 6 and 0.85× freighters, pending a feel check on the dev laptop. Findings on terrain steepness, 1:1 waterfronts and far water.
 - v0.3: Gap review: separate island scene loads, 1 m tiles for all 22 islands, mainland hideout pads, three Wanted regions in the Apostles zone, S7/S8 in Phase 0, Siskiwit cut keeps its hideout reachable.
 - v0.2: Decisions recorded: C = 8, 60-minute day, no chart escape when detected, shrunk freighters, lookout setting, slower on-foot clock (R_foot = 6 proposed).

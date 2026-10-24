@@ -617,6 +617,7 @@ loop.start();
 Object.assign(window, {
   greybox: {
     tuning,
+    sea,
     helm,
     ship,
     character,

@@ -7,8 +7,9 @@ import { MAX_WAVES } from '../../sim/weather/waves';
  * angles, and optional crest foam. Opaque, no reflections or refraction (iGPU budget).
  *
  * The wave loop must match sim/weather/waves.ts `displacementAt` term for term. The only
- * difference is the distance fade, which removes short waves far from the camera so the
- * coarse outer rings don't alias; the ship is always well inside the fade radius.
+ * difference is the fade, which removes short waves far from the camera, and any wave
+ * the grid is too coarse to sample where a vertex sits. Without that, an undersampled
+ * wave aliases into shapes that jump each time the grid snaps to a moving camera.
  */
 
 const vertexShader = /* glsl */ `
@@ -21,26 +22,29 @@ uniform float uTime;
 uniform int uWaveCount;
 uniform vec4 uWaveA[MAX_WAVES]; // dir.x, dir.z, k, amplitude
 uniform vec4 uWaveB[MAX_WAVES]; // omega, phase, steepness, unused
+// Grid vertex spacing at distance d from its center ≈ (d + uGridOffset) · uGridGrowth.
+uniform float uGridOffset;
+uniform float uGridGrowth;
 
 varying vec3 vWorldPos;
-varying vec3 vNormal;
-varying float vCrest;
+varying vec2 vRestPos;
 varying float vHeight;
 
 void main() {
   vec4 world = modelMatrix * vec4(position, 1.0);
   vec2 p0 = world.xz;
   float dist = distance(p0, cameraPosition.xz);
+  float spacing = (distance(p0, modelMatrix[3].xz) + uGridOffset) * uGridGrowth;
 
   vec3 disp = vec3(0.0);
-  vec3 n = vec3(0.0, 1.0, 0.0);
-  float crest = 0.0;
   for (int i = 0; i < MAX_WAVES; i++) {
     if (i >= uWaveCount) break;
     vec4 a = uWaveA[i];
     vec4 b = uWaveB[i];
     float wavelength = 6.2831853 / a.z;
     float fade = 1.0 - smoothstep(wavelength * 8.0, wavelength * 30.0, dist);
+    // Displace only with waves the grid samples at least 2.5 times per wavelength.
+    fade = min(fade, 1.0 - smoothstep(wavelength * 0.2, wavelength * 0.4, spacing));
     float amp = a.w * fade;
     float steep = b.z * fade;
     float theta = a.z * dot(a.xy, p0) - b.x * uTime + b.y;
@@ -48,16 +52,11 @@ void main() {
     float s = sin(theta);
     disp.xz += a.xy * (steep / a.z) * c;
     disp.y += amp * s;
-    n.x -= a.x * a.z * amp * c;
-    n.z -= a.y * a.z * amp * c;
-    n.y -= steep * s;
-    crest += steep * s;
   }
 
   world.xyz += disp;
   vWorldPos = world.xyz;
-  vNormal = n;
-  vCrest = crest;
+  vRestPos = p0;
   vHeight = disp.y;
 
   vec4 mvPosition = viewMatrix * world;
@@ -68,6 +67,7 @@ void main() {
 
 const fragmentShader = /* glsl */ `
 #include <common>
+#define MAX_WAVES ${MAX_WAVES}
 #include <fog_pars_fragment>
 
 uniform vec3 uDeepColor;
@@ -78,11 +78,41 @@ uniform vec3 uSunColor;
 uniform vec3 uSunDirection;
 uniform float uCrestFoam;
 uniform float uFoamThreshold;
+uniform float uTime;
+uniform int uWaveCount;
+uniform vec4 uWaveA[MAX_WAVES];
+uniform vec4 uWaveB[MAX_WAVES];
 
 varying vec3 vWorldPos;
-varying vec3 vNormal;
-varying float vCrest;
+varying vec2 vRestPos;
 varying float vHeight;
+
+// The normal and crest of every wave, per pixel at the undisplaced position. Short waves
+// the vertex grid can't resolve still shade here, faded by the pixel's footprint
+// instead of the grid's spacing, so they stay put as the grid follows the camera.
+void waveShading(out vec3 n, out float crest) {
+  n = vec3(0.0, 1.0, 0.0);
+  crest = 0.0;
+  float footprint = length(fwidth(vRestPos));
+  float dist = distance(vRestPos, cameraPosition.xz);
+  for (int i = 0; i < MAX_WAVES; i++) {
+    if (i >= uWaveCount) break;
+    vec4 a = uWaveA[i];
+    vec4 b = uWaveB[i];
+    float wavelength = 6.2831853 / a.z;
+    float fade = 1.0 - smoothstep(wavelength * 8.0, wavelength * 30.0, dist);
+    fade = min(fade, 1.0 - smoothstep(wavelength * 0.25, wavelength * 0.5, footprint));
+    float amp = a.w * fade;
+    float steep = b.z * fade;
+    float theta = a.z * dot(a.xy, vRestPos) - b.x * uTime + b.y;
+    float c = cos(theta);
+    float s = sin(theta);
+    n.x -= a.x * a.z * amp * c;
+    n.z -= a.y * a.z * amp * c;
+    n.y -= steep * s;
+    crest += steep * s;
+  }
+}
 
 float hash(vec2 p) {
   return fract(sin(dot(p, vec2(127.1, 311.7))) * 43758.5453);
@@ -97,7 +127,10 @@ float valueNoise(vec2 p) {
 }
 
 void main() {
-  vec3 n = normalize(vNormal);
+  vec3 n;
+  float crestHere;
+  waveShading(n, crestHere);
+  n = normalize(n);
   vec3 toCamera = normalize(cameraPosition - vWorldPos);
 
   // Toon-banded diffuse: three steps of sun light.
@@ -118,7 +151,7 @@ void main() {
   // Crest foam where the waves pinch, broken up by noise.
   if (uCrestFoam > 0.5) {
     float noise = valueNoise(vWorldPos.xz * 0.6) * 0.5 + valueNoise(vWorldPos.xz * 2.1) * 0.5;
-    float foam = step(uFoamThreshold, vCrest + (noise - 0.5) * 0.25);
+    float foam = step(uFoamThreshold, crestHere + (noise - 0.5) * 0.25);
     color = mix(color, uFoamColor, foam * 0.85);
   }
 
@@ -135,6 +168,8 @@ export interface WaterUniforms {
   uWaveCount: THREE.IUniform<number>;
   uWaveA: THREE.IUniform<Float32Array>;
   uWaveB: THREE.IUniform<Float32Array>;
+  uGridOffset: THREE.IUniform<number>;
+  uGridGrowth: THREE.IUniform<number>;
   uDeepColor: THREE.IUniform<THREE.Color>;
   uCrestColor: THREE.IUniform<THREE.Color>;
   uSkyColor: THREE.IUniform<THREE.Color>;
@@ -152,6 +187,9 @@ export function createWaterMaterial(): THREE.ShaderMaterial & { uniforms: WaterU
     uWaveCount: { value: 4 },
     uWaveA: { value: new Float32Array(MAX_WAVES * 4) },
     uWaveB: { value: new Float32Array(MAX_WAVES * 4) },
+    // Set from the grid by water.ts; zero spacing disables the grid fade.
+    uGridOffset: { value: 0 },
+    uGridGrowth: { value: 0 },
     // Cold blue-gray Superior water (plan 04 §1); art direction retunes these.
     uDeepColor: { value: new THREE.Color(0x1d3a4a) },
     uCrestColor: { value: new THREE.Color(0x4f7f8c) },
