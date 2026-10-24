@@ -1,6 +1,6 @@
 # 03 — World, Hybrid Scale, Chart Travel & Streaming
 
-Status: DRAFT v0.4 (decisions made; gap review applied; S3 done; tuning pending spike S7)
+Status: DRAFT v0.4 (decisions made; gap review applied; prototype S8 written up in §14; tuning pending spike S7)
 Parent: [00-master-plan.md](00-master-plan.md)
 Inputs: [01 tech/architecture](01-tech-architecture.md) (coordinate spaces, simulation LOD, budgets), [R1](R1-western-superior-1900-research.md) and [R1a gazetteer](R1a-western-superior-gazetteer.md) (distances, places, regions)
 Feeds: 02 (sailing speeds), 04 (clock, weather on chart), 05 (traffic/routes), 06 (Wanted regions, pursuit), 08/11 (on-foot areas), 14 (terrain look)
@@ -293,7 +293,7 @@ Spotted something (or something spotted you)
 |---|---|---|---|
 | **S3** | Geo pipeline (Apostles) | Can we produce compressed heightmap tiles plus an SDF from NOAA/USGS data reproducibly? | One command builds `public/world/apostles/` (with shelter, fetch and funneling maps, and 1 m tiles for all 22 islands); islands are recognizable compared with a real map |
 | **S7** | **Scale-feel greybox** (new) | Do C = 8 and R = 24 feel right? Visual speed, channel widths, island walk sizes, freighter scale | Greybox Apostles zone with a placeholder schooner and a dev panel to vary C (6/8/10), R and freighter scale live. Pick values. |
-| **S8** | Chart mode prototype (new) | Is plotting plus a compressed voyage plus encounter interrupts fun and readable? | Chart with western Superior, course plotting, a time-compressed voyage, a fake encounter popping into an empty arena and back |
+| **S8** | Chart mode prototype (new) | Is plotting plus a compressed voyage plus encounter interrupts fun and readable? | Chart with western Superior, course plotting, a time-compressed voyage, a fake encounter popping into an empty arena and back. **Built; results in §14.** |
 
 S7 and S8 are **Phase 0** prototypes (decided 2026-10-22; [01 §11](01-tech-architecture.md)). S7 should follow S2 (water) and can reuse the S3 output. A flat-mask fallback is fine if S3 isn't done.
 
@@ -374,7 +374,52 @@ The soft knee (`h' = 20·ln(1 + h/20)`) keeps low ground near full height, so be
 
 ---
 
+## 14. Prototype S8: Chart Mode (results, 2026-10-23)
+
+**Question** (§11): is plotting plus a compressed voyage plus encounter interrupts fun and readable?
+
+**Answer: yes, it reads clearly and it's fun.** The dev's playtest (2026-10-24) found it fun, with encounters coming up at a good rhythm. Every exit criterion works end to end: a western Superior chart, course plotting with land checks, a time-compressed voyage that keeps an honest clock, and encounters that drop into an open-water arena and back. The headless checks below cover readability and pacing. Two tuning changes came out of it: a **pacing guard** and a **6 nm daytime lookout range**.
+
+### What was built
+| Piece | Where | Notes |
+|---|---|---|
+| Chart data | `data/chart.json`, `data/schemas/chart.ts` | Western Superior: the lake outline, 17 Apostle Islands, 10 ports, 10 lights as they stood in spring 1900 (Minnesota Point dark, Devils Island on its temporary light, no Split Rock), the four MVP zones, and the charted bounds. **Hand-traced by eye at about 1 km accuracy** until S3 step 9 bakes the real coastline. It is zod-validated like the other data files. |
+| Geography | `src/sim/chart/geography.ts` | Projects the data to chart meters (equirectangular around 47° N, 91° W) and answers the land-mask questions: is this water, where does this leg first touch land (exact edge intersection, so thin spits count), and where does a leg enter a zone. |
+| Voyage | `src/sim/chart/voyage.ts` | Plots a course from the ship through the waypoints, refuses legs that run aground, and **stops the sailed course where it enters the destination zone**, since the zone takes over there (§5.3 step 5). Speed comes from a point-of-sail table (fastest on a beam reach, upwind folds tacking into the made-good speed) and a wind-strength table, on a 7.5 kn schooner. |
+| Traffic and encounters | `src/sim/chart/traffic.ts` | Eight abstract contacts on hand-placed lanes, each checked against the land mask in tests: two ore and grain freighters, a package steamer, two fishing tugs, the *Morrill*, a derelict scow and a drifting squall. The lookout check runs on each world tick: day 6 nm and night 3 nm, scaled by how conspicuous the contact is (smoke 1.3, a tug 0.8) and halved inside a squall. The cutter **forces** an encounter when it spots you first (you're 0.75 as conspicuous). Ships you've lost sight of stay on the chart as grey ghosts with their age and a "could be anywhere in here" circle. |
+| Chart mode | `src/modes/chart.ts` | The `chart` mode. The clock holds while you plot. Under way it runs at **1 game hour per 2.5 real seconds**, the world ticks normally, and the wind drifts until S9's weather sim drives it. An encounter stops the clock until you choose, and the lookout setting filters what interrupts you. It emits `VoyageStarted`, `VoyageArrived`, `EncounterSpotted`, `EncounterEngaged` and `EncounterAvoided`. |
+| Chart renderer | `src/render/chart/chart-view.ts` | A 2D canvas in the plan 13 period style: parchment grain, ink coastlines with shore shading, illustrative soundings in fathoms, a graticule, a compass rose, a scale bar, dashed zone edges, hatched "beyond your charts", and night shading with light-tier rings. Every contact type has its own shape (plan 13 §2.2). |
+| Arena | `src/debug/chart-spike/arena*.ts` | An empty 3 × 3 km arena with the S2 water and sky at R = 24. The schooner is a kinematic stand-in (A/D steer, W/S trim, speed from the same wind model as the chart) until plan 02. Box-built freighters and steamers, a listing hulk and a storm sea with 26 kn of wind and close fog stand in for the contacts. Hold F near a ship to deal with it. The cutter chases you, locks the chart while it's within 900 m, and ends the voyage if it gets alongside. Sail off the edge, or press M when nothing is chasing you, to go back to the chart. |
+| Test page | `chart-spike.html`, `src/debug/chart-spike/` | Dev-only (`npm run dev`, then `/chart-spike.html`), not in the production build. Click to add waypoints (they snap to ports), drag to move them, right-click to delete, Shift-click to insert, drag empty chart to pan and use the wheel to zoom. Enter sets sail. There are also a lookout setting, a time-compression picker, departure points for each zone, a "show all traffic" toggle and an event log. `?hour=21` starts at night and `?seed=` reseeds the traffic. |
+
+### Results
+| Check | Result |
+|---|---|
+| Duluth → the Apostles zone edge (43 nm on the chart) | **About 21 real seconds** at the default compression, plus stops, which lands inside the 20–30 s target (§5.3). Two Harbors → Apostles takes 13 s and Duluth → Two Harbors 7 s. |
+| Honest clock | Chart distance per real second equals speed × compression exactly (unit-tested). The ETA from the plotted course matches the sailed time whatever the step size. |
+| Course checks | A leg across the Bayfield peninsula is refused with a red cross where it grounds. A course to the zone you're already in is refused ("sail there in 3D"). The final leg is cut at the zone edge and the rest is drawn faint. |
+| Encounter pacing, first pass | Three to four interruptions per Duluth → Apostles crossing with the default lookout, well over the 0–2 target (§6.4). Every contact interrupts once per voyage, and the Duluth corridor has four prize ships on it. |
+| Encounter pacing, tuned | A **pacing guard** (after a report, only a hostile can interrupt for 2 game hours) plus a **6 nm daytime range** (was 8) bring it to an average of **2.1–2.3** on the Apostles crossings, **1.3** to Siskiwit Bay and **0.7** to Two Harbors. Report everything gives 2.4–2.7 and threats only gives 1.0–1.3. That's 100 seeded runs per route at all hours and random winds, now in `tests/chart-pacing.test.ts`. |
+| Cutter | It forces an encounter on **0.3 to 0.5 of Apostles crossings**, more often than before the guard, because the guard holds back the early sighting that would have let you avoid it. Night raises your odds of slipping it from about 45% to about 75%. In the arena, steam at 6.5 kn beats the schooner upwind and loses to it on a reach in a working breeze, so the point of sail decides the chase. |
+| Readability | In the screenshots, ports, lights, zones, the course, the ship and each contact type read at the full-lake zoom. Encounter cards sit low so the contact stays visible. At night the chart darkens and the lights show their rings, and a running light makes a ship visible in the arena before its hull. |
+| Cost | A full chart redraw takes **5.2 ms median and 8.1 ms p95 at 1920×1080** (headless Chromium, software canvas, cloud container). Replotting a course takes under 0.1 ms. **Re-check on the dev laptop**, where the canvas is GPU-backed. |
+
+### Findings for later phases
+1. **Pacing feels right (playtest, 2026-10-24).** Keep about 2 stops per Apostles run as the baseline. The knobs, if later content changes it, are `ENCOUNTER_QUIET_S`, `DAY_SPOT_NM`/`NIGHT_SPOT_NM`, each contact's conspicuity, and traffic density (plan 05).
+2. **Pacing belongs to the encounter director, not just the lookouts.** Once-per-voyage plus a quiet spell works, but the right model is probably a per-voyage budget weighted by route traffic and season (§6.4). Plan 05's traffic slice should feed it.
+3. **The cutter needs Wanted gating.** In the prototype it always hunts you. With plan 06 it should only force an encounter when your Wanted in that region is high enough, which also brings the forced rate down.
+4. **"Steer clear" has no cost yet.** Avoiding a squall or a ship takes no extra time. A detour should cost time (and a squall avoided late could still clip you), or Avoid becomes the obvious choice.
+5. **Zones the course passes through** (Siskiwit Bay on the way to the Apostles) don't stop you. That seems right for open-water transits, but it should be a decision: the alternative is that every zone edge you cross offers "enter the zone?".
+6. **The chart clock holds while you plot.** It's simple and readable, but it means pulling up the chart mid-zone pauses the world. Plan 13 should decide whether the chart is a pause from a zone (M) and only a voyage runs time.
+7. **The arena return point.** You come back to the chart where you left it, even after sailing 1.5 km of compressed space (12 km real). That's fine at chart scale, but say so in the plan.
+8. **Chart data from S3** must keep the islands as separate rings and close the lake ring along the charted edge. Then `buildGeography` and the land checks work unchanged. Real soundings replace the illustrative ones.
+9. **Rendering:** cache the coast, soundings and graticule in an offscreen layer while the view isn't moving, if the laptop shows the 5 ms redraw matters.
+10. **Not built:** saving the voyage (`player.location`, `voyage`), shoals, fog of war, ice, rumor markers from plan 05, the real sailing controller and arena coastline silhouettes. The arena drops into the `sailing` mode as plan 01 intends, so the plan 02 controller slots in later.
+
+---
+
 ## Changelog
+- v0.5: Prototype S8 written up (§14) and playtested as fun: chart mode with plotting, compressed voyages and encounter arenas works; pacing guard and 6 nm day lookout range added.
 - v0.4: Spike S3 results (§14): pipeline in `tools/geo/`, chart projection instead of UTM, 16-bit delta + deflate tiles, lee in game meters, land height curve (soft knee at 20 m, decided).
 - v0.3: Gap review: separate island scene loads, 1 m tiles for all 22 islands, mainland hideout pads, three Wanted regions in the Apostles zone, S7/S8 in Phase 0, Siskiwit cut keeps its hideout reachable.
 - v0.2: Decisions recorded: C = 8, 60-minute day, no chart escape when detected, shrunk freighters, lookout setting, slower on-foot clock (R_foot = 6 proposed).
