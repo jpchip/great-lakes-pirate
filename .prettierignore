@@ -7,3 +7,5 @@ references/
 package-lock.json
 playwright-report/
 test-results/
+# Written by tools/geo/build.ts
+tools/geo/reports/
