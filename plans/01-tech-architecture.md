@@ -1,6 +1,6 @@
 # 01 — Tech Stack, Architecture & Project Setup
 
-Status: DRAFT v0.5 (Phase 0 gap review answers applied)
+Status: DRAFT v0.6 (Phase 0 gap review answers applied; spike S1 done)
 Parent: [00-master-plan.md](00-master-plan.md)
 Feeds: every implementation plan. Phase 0 tasks are defined here.
 
@@ -39,7 +39,7 @@ Versions: **pin exact versions at project setup** (latest stable at that time) a
 | Build/dev server | **Vite** | Fast HMR. Static build output. |
 | Package manager | **npm** | Decided 2026-10-22. |
 | 3D engine | **three.js** | |
-| Renderer | **Spike S1 decides (approved):** `WebGPURenderer` + TSL (node shaders, auto-falls back to WebGL2) **vs.** classic `WebGLRenderer` + GLSL | The deciding test runs **on the developer's limited hardware**. Pick whichever is faster and more stable there. With integrated graphics, the mature WebGLRenderer is a strong default unless WebGPU clearly wins. |
+| Renderer | **`WebGLRenderer` + GLSL** (decided by spike S1, 2026-10-24) | WebGPU had no adapter in Chrome on the baseline laptop, and WebGPURenderer's WebGL2 fallback was slower than WebGLRenderer on every measure. See [§14](#14-spike-s1-results-renderer-2026-10-24). |
 
 ### 2.2 Libraries (proposed; each is optional until a plan needs it)
 | Need | Choice | Why |
@@ -380,7 +380,7 @@ The R1/R1a research tables convert almost directly into `ports.json`, `lighthous
   - **CC BY 4.0** for original assets and data.
   - A `CREDITS.md` and `assets/LICENSES` manifest recording the source and license of every third-party or AI-generated asset.
   - **AI tool terms must allow public redistribution** of outputs. Some free tiers restrict ownership or require attribution or a paid plan. The chosen tools are **Meshy** (image-to-3D) and **nano-banana** (Gemini image generation, approved for this open-source project); S4 records their terms. Do the same for AI audio tools (plan 15).
-- **Browser support:** current Chrome, Edge, Firefox and Safari on desktop. WebGL2 is the minimum (WebGPU optional, depending on S1).
+- **Browser support:** current Chrome, Edge, Firefox and Safari on desktop. WebGL2 is the minimum and the only renderer (S1, §14).
 
 ---
 
@@ -464,10 +464,55 @@ All resolved (see Decisions). No open questions remain for this plan; spike resu
 | 2026-10-22 | Meshy for image-to-3D; nano-banana may be used in this open-source project. |
 | 2026-10-22 | S4 test scene shrunk to schooner, water, fog and one lighthouse beam. S6 benchmarks 7 hideouts × 1,500 pieces. |
 | 2026-10-22 | Time skips use a batch fast-forward path. Island on-foot areas load as separate scenes. |
+| 2026-10-24 | S1: the renderer is `WebGLRenderer` + GLSL. WebGPURenderer is not used for now (§14). |
+
+---
+
+## 14. Spike S1 Results: Renderer (2026-10-24)
+
+**Question** (§11.2): is `WebGPURenderer` + TSL or classic `WebGLRenderer` + GLSL faster and more stable on the baseline laptop, and is post-processing available?
+
+**Answer: `WebGLRenderer` + GLSL.** WebGPU itself is not available in Chrome on the baseline laptop, so WebGPURenderer would always run on its WebGL2 fallback, and that fallback is slower than WebGLRenderer on every measure.
+
+### What was built
+`bench/s1/` (run `npm run dev`, open `/bench/s1/`) draws the S2 test scene (sky, Gerstner water, placeholder schooner, fog, hemisphere and sun light) from a fixed camera with three renderers, each on a fresh canvas:
+
+| Rig | Renderer | Shaders |
+|---|---|---|
+| WebGL | `WebGLRenderer` (the game today) | The S2 GLSL water and sky |
+| WebGPU | `WebGPURenderer`, WebGPU backend | A term-for-term TSL port of the water and sky (`bench/s1/water-tsl.ts`) |
+| WebGPU fallback | `WebGPURenderer` with `forceWebGL` | The same TSL, compiled to GLSL |
+
+For each rig it measures renderer init, the first frame (shader compile included), frame time per preset (frames submitted in batches of 20 with one GPU sync per batch; "CPU ms" is the submit time alone), Medium plus a bloom pass (`EffectComposer` + `UnrealBloomPass` vs. the TSL `RenderPipeline` + `bloom()`), and a 10 s real-time soak. It logs device loss, WebGPU validation errors and console errors.
+
+### Results on the baseline laptop
+Chrome 156 on Linux, ANGLE on OpenGL 4.6 (radeonsi renoir, ACO), MSAA off, device pixel ratio 1. WebGPU: `navigator.gpu` is present, but `requestAdapter()` returns no adapter, so the WebGPU rig was skipped.
+
+| Renderer | Init ms | First frame ms | Low ms | Medium ms | High ms | Medium CPU ms | Medium + bloom ms | Bloom first frame ms | Soak p50 / p99 ms | Hitches | Errors |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| WebGLRenderer + GLSL | 13.0 | **28.3** | **0.7** | **1.4** | **1.4** | **0.1** | **2.6** | 98.9 | 16.7 / 16.8 | 0 of 600 | 0 |
+| WebGPURenderer + TSL, WebGL2 fallback | 9.1 | 116.5 | 1.0 | 1.7 | 1.7 | 0.3 | 2.8 | 103.7 | 16.7 / 16.8 | 0 of 600 | 0 |
+| WebGPURenderer + TSL, WebGPU | – | – | – | – | – | – | – | – | – | – | no adapter |
+
+Buffers: Low 1440×816, Medium and High 1920×1088. Draw calls: 4 for WebGLRenderer, 5 for WebGPURenderer (it draws the scene to an intermediate target and adds a full-screen pass for tone mapping and color space). Triangles match (11.6k, 23.8k, 43.8k). The thumbnails of both rigs looked the same, so the TSL port is faithful.
+
+### Findings
+1. **WebGPU is not available on the baseline machine.** Chrome 156 on Linux exposes `navigator.gpu` but gives no adapter for this GPU without flags. Players on similar Linux laptops would get the same, so WebGPU could only ever be an optional path here.
+2. **The WebGPURenderer fallback costs more.** About +0.3 ms per frame on Medium (+20%) and 3× the CPU submit time, mostly the extra output pass and the node system's per-frame work. Shader compile for the first frame is 4× slower (117 ms vs. 28 ms), which matters for zone loads and new materials.
+3. **Both are stable.** No hitches in 600 presented frames and no errors for either WebGL path.
+4. **Post-processing works on both.** Bloom costs about 1.2 ms on Medium at 1920×1088 with `UnrealBloomPass`, and about the same with TSL bloom. That fits the Medium budget's "bloom or outlines" (§5) with room to spare.
+5. **Frame times here are lower than the S2 numbers** (1.4 ms vs. 2.0 ms on Medium) because S1 batches 20 frames per GPU sync, which overlaps CPU and GPU work; S2 synced every frame. Compare rigs within one bench, not across benches.
+
+**Caveats:** one machine, Chrome only (no Firefox run). The WebGPU backend was never exercised, here or in the cloud container, so its numbers are unknown.
+
+### Decisions
+- **`WebGLRenderer` + GLSL is the renderer for Phase 1 onward.** The unified stylized material (plan 14 §4) is written in GLSL via `ShaderMaterial` or `onBeforeCompile`. Post-processing uses `EffectComposer`.
+- The TSL port stays in `bench/s1/` as a reference. **Revisit** only if Chrome or Firefox on Linux exposes WebGPU on the baseline GPU without flags **and** a feature needs it (for example, GPU compute for particles or wave simulation). Rerun `bench/s1/` then.
 
 ---
 
 ## Changelog
+- v0.6: Spike S1 write-up (§14): WebGPU has no adapter in Chrome on the baseline laptop; WebGLRenderer + GLSL beats the WebGPURenderer fallback on every measure and is the renderer.
 - v0.5: Applied the 2026-10-22 gap review: Phase 0 = S1–S9, R = 24 and C = 8, SI units in sim, repo already exists (PNGs stay plain), npm/miniplex/idb/Caddy, local builds only (no droplet yet), CI without Blender or WebGL, Meshy and nano-banana, shrunk S4 scene, worst-case S6, batch fast-forward, separate island scenes, player export/import.
 - v0.4: Hosting changed from GitHub Pages to a DigitalOcean droplet (Caddy, Actions rsync deploy, versioned releases); itch.io via butler.
 - v0.3: MIT license confirmed; recorded the baseline dev machine and its implications (GPU-bound, check WebGPU on Linux).
