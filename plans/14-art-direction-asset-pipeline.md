@@ -105,7 +105,7 @@ Draw calls and triangles per variant: A, B0 17 calls; B (hull outline) 27 calls 
 
 **Findings:** (1) Toon banding costs nothing over flat shading: A vs. B0 is within noise (±0.2 ms) on every preset. (2) Inverted-hull outlines are also within noise: at most +0.27 ms, usually ±0.1, for 10 extra draw calls. (3) The screen-space edge pass is the only real cost: about +0.25 ms on Low, +0.5 ms on Medium and +1.5 ms on High, where the half-float target plus the MSAA resolve at full size dominate. It would use up most of Medium's post-processing budget (01 §5: "bloom or outlines"). (4) Every variant is far inside budget on this small scene (≤ 3 ms on High), so the pick can be made on looks.
 
-**Pick:** B with per-object outlines (§16). Still open: the Meshy hull, which doesn't change the cost picture.
+**Pick:** B with per-object outlines (§16). The Meshy hull was not made: ships are built in code instead (§5, decided 2026-10-25), so it is no longer needed. The hull pipeline (`npm run assets:hull`) stays for any AI-made organic one-off.
 
 ---
 
@@ -135,8 +135,8 @@ One custom GLSL material (spike S1 picked `WebGLRenderer` + GLSL; [01 §14](01-t
 
 | Asset type | Primary source | Why / notes |
 |---|---|---|
-| **Player ships** (T1–T3 + variants) | **AI image-to-3D hull and deckhouse only** (prompted without sails or rigging) from `references/schooner.png` and generated orthographic views → **scripted cleanup** | **Masts, spars and sails are procedural** (generated from per-class parameters: mast count, heights, sail plan, per-level sail shapes; [02 §13](02-arcade-sailing.md)). **Rigging lines are procedural** too. Attachment points come from a **per-class template** in data, so no manual placement is needed. |
-| **NPC ships** (package and bulk freighters, whaleback, sidewheel steamer, tug, fishing boats, cutter, schooner-barge) | AI from `references/` photos plus cleanup | Lower budgets; reuse parts (deckhouses, stacks) |
+| **Player ships** (T1–T3 + variants) | **Procedural parametric hull generator** (decided 2026-10-25): hull lines from per-class parameters (length, beam, sheer, draft, stem and transom shape) plus deckhouse and hatch parts, an upgrade of the S2 placeholder schooner. Reference: `references/schooner.png` and the R1 photos | **Masts, spars and sails are procedural** (generated from per-class parameters: mast count, heights, sail plan, per-level sail shapes; [02 §13](02-arcade-sailing.md)). **Rigging lines are procedural** too. Attachment points come from a **per-class template** in data, so no manual placement is needed. |
+| **NPC ships** (package and bulk freighters, whaleback, sidewheel steamer, tug, fishing boats, cutter, schooner-barge) | **The same parametric generator**, with steamer parts (stacks, pilothouses, paddle boxes) | Lower budgets; reuse parts (deckhouses, stacks). Mostly boxy shapes, which suit code |
 | **Characters** | One **CC0 base humanoid** (e.g., Quaternius-style) with period clothing variants (AI-generated accessories: hats, coats) | Shared skeleton for all ([08 §13](08-docks-district-stealth.md)) |
 | **Animations** | **CC0 animation libraries** (e.g., Quaternius Universal Animation Library) plus a few custom ones | Avoid Mixamo-style terms that restrict redistributing raw files in a public repo |
 | **Animals** (deer, bear, wolf) | CC0 packs, or AI plus auto-rig | Low poly |
@@ -146,7 +146,7 @@ One custom GLSL material (spike S1 picked `WebGLRenderer` + GLSL; [01 §14](01-t
 | **Terrain** | Geo pipeline heightmaps ([03 §8](03-world-scale-chart-travel.md)) plus a **shader** (slope and height bands: red sandstone cliffs, beach, forest floor, snow) | No painted textures |
 | **Water, sky, weather** | Shaders ([04](04-water-weather-seasons.md)) | — |
 | **Lighthouses** | A modular **lighthouse station kit** plus per-light variants (tower height and shape, brick vs. white, from R1 photos) | Recognizable real lights |
-| **Figureheads, curios, trophies** | AI | Unique small objects |
+| **Figureheads, curios, trophies** | CC0 where one fits; otherwise **Meshy (optional)** through the hull pipeline; otherwise simplify or cut | Unique organic objects that are hard to build in code |
 | **Sea caves** | **Procedural** (scripted cave meshes carved from noise or SDF shapes along the cliff line) plus AI rock props | Few; hero spots; no hand sculpting |
 | **UI art** ([13](13-ui-ux.md)) | **Public-domain period engravings and ads** (pre-1929 sources) for newspapers and decorations; hand-made SVG icons; AI image generation for parchment and texture plates | Authentic and license-safe |
 | **Concept art and orthographic references** | AI image generation: **the nano-banana (Gemini) skill is available and approved** for this | Inputs for image-to-3D (front, side and top orthographic sheets), mood boards, UI texture plates |
@@ -155,7 +155,7 @@ One custom GLSL material (spike S1 picked `WebGLRenderer` + GLSL; [01 §14](01-t
 
 ## 6. AI Tooling & Licensing (open-source rules)
 
-- **Image-to-3D (decided 2026-10-22): Meshy.** S4 records its current terms in `assets/LICENSES.json`. Tripo and Rodin/Hyper3D are fallbacks only if Meshy's terms or results fail.
+- **Image-to-3D (decided 2026-10-22, narrowed 2026-10-25): Meshy, optional, for organic one-offs only** (figureheads, curios, trophies, maybe animals). Ships are procedural. S4 records its current terms in `assets/LICENSES.json`. Tripo and Rodin/Hyper3D are fallbacks only if Meshy's terms or results fail.
 - **Image generation** (concepts, orthographic sheets, textures, UI plates): **nano-banana (Gemini CLI skill) approved for this open-source project, including shipped outputs** (decided 2026-10-22). Provenance records still apply to every shipped image.
 - **License gate (mandatory before adopting a tool):**
   1. Outputs may be **publicly redistributed** in an open-source repo (we're not selling, but the repo is public and assets are CC BY 4.0).
@@ -253,8 +253,8 @@ Stylized, few particles, matched to the palette. Sizes and counts scale by prese
 
 | Category | Count (MVP) | Main source |
 |---|---|---|
-| Player ships | 3 hulls (+3 variants MVP+) plus attachments (~15) | AI + cleanup; procedural rigging |
-| NPC ships | ~9 classes | AI + cleanup |
+| Player ships | 3 hulls (+3 variants MVP+) plus attachments (~15) | Procedural hulls and rigging |
+| NPC ships | ~9 classes | Procedural (shared generator) |
 | Characters | 1 base + ~25 clothing and accessory variants | CC0 base + AI accessories |
 | Animals | 3 | CC0 / AI |
 | Hideout grid pieces | ~120 incl. variants ([09 §5](09-hideouts-building-crafting.md)) | Procedural / hand |
@@ -328,12 +328,13 @@ All resolved. The final A-vs-B pick happens in spike S4 (shrunk scene).
 | 2026-10-22 | **S4 scene shrunk** to schooner, water, fog and one lighthouse beam at dusk and night. |
 | 2026-10-22 | **Blender runs locally only**, never in CI. |
 | 2026-10-22 | **Static sails** (no billow shader); flags keep a vertex shader. |
+| 2026-10-25 | **Ships are procedural** (a parametric hull generator for player and NPC ships); **Meshy is optional, for organic one-offs only** (figureheads, curios, trophies). |
 | 2026-10-25 | **Style B picked (S4):** toon bands plus inverted-hull outlines on hero objects; no screen-space edge pass. Laptop cost within noise of flat shading (§3.4). |
 
 ---
 
 ## Changelog
-- v0.4: S4 results (§3.4): scene, benchmark on the baseline laptop, style B with per-object outlines picked.
+- v0.4: S4 results (§3.4): scene, benchmark on the baseline laptop, style B with per-object outlines picked. Ships move to a procedural hull generator; Meshy becomes optional for organic one-offs.
 - v0.3: Gap review: sourcing order (procedural/CC0 first, AI fills gaps), Meshy chosen, nano-banana approved for shipped outputs, shrunk S4 scene, Blender local only, static sails, A-or-B wording fixed.
 - v0.2: Decisions: photochrom reference, AI image gen (nano-banana) approved, public-domain engravings, fully scripted pipeline (headless Blender clean, procedural ship rigs and caves, contact-sheet review), style test narrowed to A/B.
 - v0.1: Initial art plan: pillars, palette and mood (photochrom reference), time and season palettes, style test (candidates, scene, scoring), the unified stylized material and palette-ization, sources by asset type, AI tooling and the license gate, the automated pipeline, budgets, animation list, VFX style, MVP asset list, historical references, phasing, risks.
