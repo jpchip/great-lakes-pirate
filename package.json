@@ -19,6 +19,7 @@
     "test:watch": "vitest",
     "e2e": "playwright test",
     "bench:save": "playwright test --config bench/s6/playwright.config.ts",
+    "bench:weather": "vitest run --config bench/s9/vitest.config.ts",
     "geo:build": "node tools/geo/build.ts"
   },
   "dependencies": {
