@@ -32,6 +32,7 @@ import {
   type LookoutPref,
 } from '../../sim/chart/traffic';
 import { chartSpeedKn, estimateSeconds, PROTOTYPE_SCHOONER } from '../../sim/chart/voyage';
+import { createLocalWeather } from '../../sim/weather/local-weather';
 import { createSea } from '../../sim/weather/waves';
 import { createWorldState } from '../../sim/world-state';
 import {
@@ -96,6 +97,7 @@ const ctx: GameContext = {
   input,
   events: new EventBus<GameEvents>(),
   sea: createSea(),
+  weather: createLocalWeather(),
 };
 const clock = state.environment.clock;
 const hour = (): number => dayAndHour(clock.gameSeconds).hour;

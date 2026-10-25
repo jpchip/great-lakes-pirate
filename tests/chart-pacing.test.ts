@@ -11,6 +11,7 @@ import type { GameContext, GameEvents } from '../src/modes/context';
 import { buildGeography } from '../src/sim/chart/geography';
 import { createContacts, type LookoutPref } from '../src/sim/chart/traffic';
 import { PROTOTYPE_SCHOONER } from '../src/sim/chart/voyage';
+import { createLocalWeather } from '../src/sim/weather/local-weather';
 import { createSea } from '../src/sim/weather/waves';
 import { createWorldState } from '../src/sim/world-state';
 
@@ -66,6 +67,7 @@ function sail(route: (typeof ROUTES)[string], lookout: LookoutPref, runs: number
       input: new InputMapper(),
       events: new EventBus<GameEvents>(),
       sea: createSea([]),
+      weather: createLocalWeather(),
     };
     const session: ChartSession = {
       geo,

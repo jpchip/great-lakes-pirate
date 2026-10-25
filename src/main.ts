@@ -1,3 +1,4 @@
+import { SECONDS_PER_GAME_DAY, dayAndHour } from './core/time';
 import { EventBus } from './core/events';
 import { InputMapper } from './core/input';
 import { createLoop } from './core/loop';
@@ -17,12 +18,18 @@ import { loadAssets } from './render/assets';
 import { browserStorage, initialQuality } from './render/quality';
 import { GameRenderer } from './render/renderer';
 import { createTestScene } from './render/test-scene';
-import { createSailingState, type SailingWind } from './sim/sailing/controller';
+import { createSailingState } from './sim/sailing/controller';
 import { defaultHandling } from './sim/sailing/handling';
 import { compileSailingClass } from './sim/sailing/ship-class';
 import { sailShipRecord, T1_SCHOONER_ID } from './sim/sailing/ships';
 import { httpBytes, loadZoneTerrain, type LoadedZone } from './sim/terrain/load';
 import { TEST_BAY } from './sim/terrain/test-bay';
+import {
+  WEATHER_PRESETS,
+  createLocalWeather,
+  type WeatherPresetId,
+} from './sim/weather/local-weather';
+import { TEST_BAY_ISLANDS, stubIslandShelter } from './sim/weather/shelter';
 import { createSea } from './sim/weather/waves';
 import { createWorldState, parseWorldState, type WorldState } from './sim/world-state';
 
@@ -83,6 +90,28 @@ async function openRun(): Promise<OpenedRun> {
   return { state, saver, status: 'created' };
 }
 
+/**
+ * Dev and playtest URL switches for the weather (plan 02 §14.2): `?weather=gale` picks a
+ * preset, `?gale` starts the scripted gale, `?wind=45` sets where it comes from,
+ * `?knots=30` its speed, and `?day=1&hour=19.5` the game day and time of day.
+ */
+function applyWeatherParams(params: URLSearchParams, ctx: GameContext): void {
+  const preset = params.get('weather');
+  if (preset && preset in WEATHER_PRESETS) ctx.weather.applyPreset(preset as WeatherPresetId);
+  const from = Number(params.get('wind'));
+  if (params.has('wind') && Number.isFinite(from)) ctx.weather.settings.fromDeg = from;
+  const knots = Number(params.get('knots'));
+  if (params.has('knots') && Number.isFinite(knots)) ctx.weather.settings.speedKn = knots;
+  const clock = ctx.state.environment.clock;
+  const now = dayAndHour(clock.gameSeconds);
+  const day = params.has('day') ? Number(params.get('day')) : now.day;
+  const hour = params.has('hour') ? Number(params.get('hour')) : now.hour;
+  if ((params.has('day') || params.has('hour')) && Number.isFinite(day + hour)) {
+    clock.gameSeconds = day * SECONDS_PER_GAME_DAY + hour * 3600;
+  }
+  if (params.has('gale')) ctx.weather.startGale(clock.gameSeconds);
+}
+
 async function boot(): Promise<void> {
   const container = document.getElementById('app');
   if (!container) throw new Error('Missing #app container');
@@ -122,14 +151,16 @@ async function boot(): Promise<void> {
     events: new EventBus<GameEvents>(),
     sea: createSea(),
     terrain: zone?.terrain,
+    // The baked shelter, fetch and funneling maps of the test bay, or the stub island's
+    // lee when the terrain didn't load.
+    weather: createLocalWeather(undefined, zone?.terrain ?? stubIslandShelter(TEST_BAY_ISLANDS)),
   };
+  applyWeatherParams(params, ctx);
 
-  // The player's T1 schooner on the plan 02 sailing model at the test bay's spawn, in a
-  // steady northwesterly that matches the test-bay swell until the weather system
-  // provides the wind.
+  // The player's T1 schooner on the plan 02 sailing model at the test bay's spawn, in
+  // the weather's wind.
   const shipRecord = sailShipRecord(T1_SCHOONER_ID);
   const handling = defaultHandling();
-  const devWind: SailingWind = { fromRad: (315 * Math.PI) / 180, speedKn: 12, gust01: 0 };
   const { spawn } = TEST_BAY;
   const shipTransform = { position: { x: spawn.x, y: 0, z: spawn.z }, heading: spawn.heading };
   const sailing = {
@@ -175,7 +206,16 @@ async function boot(): Promise<void> {
       container,
       initialQuality(window.location.search, browserStorage()),
     );
-    const scene = await createTestScene(renderer, ctx.world, ctx.sea, assets, zone);
+    const scene = await createTestScene(
+      renderer,
+      ctx.world,
+      ctx.sea,
+      assets,
+      ctx.weather,
+      state.environment.clock,
+      zone,
+      TEST_BAY_ISLANDS,
+    );
     view = scene;
 
     // Dev overlay: dev builds, or `?debug` / `?bench=water` on a production build.
@@ -185,7 +225,8 @@ async function boot(): Promise<void> {
       const overlay = createDevOverlay({
         renderer,
         scene,
-        sea: ctx.sea,
+        weather: ctx.weather,
+        clock: state.environment.clock,
         save: saveControls,
         autoBench: bench,
         probe: () => shipTransform.position,
@@ -196,7 +237,6 @@ async function boot(): Promise<void> {
         ship: sailing,
         record: shipRecord,
         handling,
-        wind: devWind,
       });
       view = {
         render(alpha, seaTime, frameSeconds) {
@@ -208,9 +248,12 @@ async function boot(): Promise<void> {
     }
   }
 
-  machine
-    .register({ id: 'mainMenu', enter: () => (input.context = 'menu') })
-    .register(createSailingMode(ctx, { view, wind: () => devWind }));
+  machine.register({ id: 'mainMenu', enter: () => (input.context = 'menu') }).register(
+    createSailingMode(ctx, {
+      view,
+      wind: (x, z) => ctx.weather.windAt({ x, z }, state.environment.clock.gameSeconds),
+    }),
+  );
   // Phase 0 has no danger states yet, so every moment is safe to save (plan 16 §4.2).
   window.setInterval(saveNow, AUTOSAVE_INTERVAL_MS);
   document.addEventListener('visibilitychange', () => {

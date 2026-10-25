@@ -4,10 +4,14 @@ import type { AssetLoader } from '../core/assets';
 import type { LoadedZone } from '../sim/terrain/load';
 import { TEST_BAY } from '../sim/terrain/test-bay';
 import { interpolateTransform, type Entity, type GameWorld, type Transform } from '../gameplay/ecs';
+import type { ClockState } from '../core/time';
+import type { LocalWeather } from '../sim/weather/local-weather';
+import type { StubIsland } from '../sim/weather/shelter';
 import type { Sea } from '../sim/weather/waves';
 import type { GLTF } from './assets';
 import type { GameRenderer } from './renderer';
 import { createPlaceholderSchooner } from './ships/placeholder-schooner';
+import { createEnvironmentView, type EnvironmentView } from './environment';
 import { createSky } from './sky';
 import { createDockMesh } from './terrain/dock';
 import { createTerrainView } from './terrain/terrain-mesh';
@@ -18,15 +22,34 @@ const SCHOONER_ASSET = 'ship.schooner';
 
 const HORIZON = new THREE.Color(0xb7c6cf);
 const ZENITH = new THREE.Color(0x6f8ea3);
-const SUN_DIRECTION = new THREE.Vector3(0.45, 0.55, -0.35).normalize();
 
 export interface TestScene {
   readonly scene: THREE.Scene;
   readonly camera: THREE.PerspectiveCamera;
   readonly water: Water;
+  readonly environment: EnvironmentView;
   /** The test bay's terrain, when it loaded. */
   readonly zone: LoadedZone | undefined;
   render(alpha: number, seaTime: number, frameSeconds: number): void;
+}
+
+/** Greybox stand-ins for the islands the stub shelter field blocks wind with. */
+function createStubIsland(island: StubIsland): THREE.Mesh {
+  // A bell profile from below the waterline to the summit.
+  const profile: THREE.Vector2[] = [];
+  const steps = 10;
+  for (let i = 0; i <= steps; i++) {
+    const r = island.radius * 1.15 * (1 - i / steps);
+    const y = -6 + (island.height + 6) * (1 - (r / (island.radius * 1.15)) ** 2) ** 1.5;
+    profile.push(new THREE.Vector2(Math.max(r, 0.01), y));
+  }
+  const mesh = new THREE.Mesh(
+    new THREE.LatheGeometry(profile, 28),
+    new THREE.MeshLambertMaterial({ color: 0x4d5c45, flatShading: true }),
+  );
+  mesh.position.set(island.x, 0, island.z);
+  mesh.name = 'stub-island';
+  return mesh;
 }
 
 /**
@@ -35,33 +58,38 @@ export interface TestScene {
  * (drag to orbit, wheel to zoom) and follows it, interpolated between ticks.
  *
  * With `zone`, it's the Phase 1 test bay: the Apostles slice's terrain and the greybox
- * Bayfield dock (plan 02 §14.1).
+ * Bayfield dock (plan 02 §14.1). Piece D adds day and night, fog and sea state from the
+ * weather, and, without a zone, greybox islands for the stub lee.
  */
 export async function createTestScene(
   renderer: GameRenderer,
   world: GameWorld,
   sea: Sea,
   assets: AssetLoader,
+  weather: LocalWeather,
+  clock: ClockState,
   zone?: LoadedZone,
+  islands: readonly StubIsland[] = [],
 ): Promise<TestScene> {
   const scene = new THREE.Scene();
-  scene.fog = new THREE.Fog(HORIZON, 150, 1600);
-  const sky = createSky(HORIZON, ZENITH);
+  const sky = createSky(HORIZON.clone(), ZENITH.clone(), true);
   scene.add(sky);
 
   const camera = new THREE.PerspectiveCamera(50, renderer.aspect, 0.5, 4000);
   camera.position.set(46, 15, 38);
 
-  scene.add(new THREE.HemisphereLight(0xdfe9f0, 0x2a3a44, 1.4));
+  const hemi = new THREE.HemisphereLight(0xdfe9f0, 0x2a3a44, 1.4);
+  scene.add(hemi);
   const sun = new THREE.DirectionalLight(0xfff2d6, 2);
-  sun.position.copy(SUN_DIRECTION).multiplyScalar(100);
   scene.add(sun);
 
   const water = createWater(sea, renderer.preset);
-  water.material.uniforms.uSunDirection.value.copy(SUN_DIRECTION);
-  water.material.uniforms.uSkyColor.value.copy(HORIZON);
   scene.add(water.mesh);
   renderer.onPresetChange((preset) => water.applyPreset(preset));
+  if (!zone) for (const island of islands) scene.add(createStubIsland(island));
+
+  const environment = createEnvironmentView(scene, sky, hemi, sun, water, weather);
+  environment.update(clock.gameSeconds, { x: 0, z: 0 });
 
   if (zone) {
     const terrain = createTerrainView(
@@ -119,6 +147,7 @@ export async function createTestScene(
     scene,
     camera,
     water,
+    environment,
     zone,
     render(alpha, seaTime, frameSeconds) {
       for (const [e, object] of objects) {
@@ -135,6 +164,7 @@ export async function createTestScene(
       }
       controls.update();
       sky.position.copy(camera.position);
+      environment.update(clock.gameSeconds, { x: 0, z: 0 });
       water.update(camera, seaTime);
       renderer.render(scene, camera, frameSeconds);
     },

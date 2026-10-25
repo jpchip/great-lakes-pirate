@@ -2,6 +2,7 @@ import type { EventBus } from '../core/events';
 import type { InputMapper } from '../core/input';
 import type { Rng } from '../core/rng';
 import type { GameWorld } from '../gameplay/ecs';
+import type { LocalWeather } from '../sim/weather/local-weather';
 import type { ZoneTerrain } from '../sim/terrain/zone-terrain';
 import type { Sea } from '../sim/weather/waves';
 import type { WorldState } from '../sim/world-state';
@@ -31,6 +32,8 @@ export interface GameContext {
   events: EventBus<GameEvents>;
   /** The active zone's waves (plan 04 §6.2); buoyancy and the water shader share it. */
   sea: Sea;
+  /** Wind, sea state, visibility and sky for the zone (plan 02 §11); it rebuilds `sea`. */
+  weather: LocalWeather;
   /**
    * The active zone's terrain: depth, shoreline and wind maps (plan 03 §8.3). Absent until
    * it loads, or when the zone files can't be fetched.

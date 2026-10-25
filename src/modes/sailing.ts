@@ -5,8 +5,11 @@ import { buoyancySystem } from '../gameplay/buoyancy';
 import { bobSystem, snapshotTransforms, velocitySystem, type Entity } from '../gameplay/ecs';
 import { heelSystem, sailingSystem, type WindSampler } from '../gameplay/sailing';
 import { IDLE_COMMAND, type SailingCommand } from '../sim/sailing/controller';
+import { seaScaleAt } from '../sim/weather/waves';
 import type { GameContext } from './context';
 import type { Mode } from './machine';
+
+const ORIGIN = { x: 0, z: 0 };
 
 export interface SailingView {
   /** `seaTime` is the wave clock at this frame, between the last two ticks. */
@@ -15,7 +18,7 @@ export interface SailingView {
 
 export interface SailingModeOptions {
   view?: SailingView | undefined;
-  /** The wind at a zone point. Until the weather lands (piece D), a dev-panel wind. */
+  /** The wind at a zone point: `ctx.weather.windAt` at the current game time. */
   wind: WindSampler;
 }
 
@@ -62,10 +65,23 @@ export function createSailingMode(ctx: GameContext, options: SailingModeOptions)
       const dayAfter = dayAndHour(clock.gameSeconds).day;
       if (dayAfter !== dayBefore) ctx.events.emit('DayChanged', { day: dayAfter });
 
-      sailingSystem(ctx.world, commandFor, options.wind, ctx.sea, scale, dt, (e, ev) => {
-        if (ev.kind === 'tack') ctx.events.emit('ShipTacked', { shipId: e.id });
-        else ctx.events.emit('ShipJibed', { shipId: e.id, uncontrolled: ev.uncontrolled });
-      });
+      // The sea follows the wind; anchor it on the player so the surface never jumps there.
+      const player = ctx.world.with('playerControlled', 'transform').first;
+      ctx.weather.tick(clock.gameSeconds, player?.transform.position ?? ORIGIN, ctx.sea);
+
+      sailingSystem(
+        ctx.world,
+        commandFor,
+        options.wind,
+        ctx.sea,
+        scale,
+        dt,
+        (e, ev) => {
+          if (ev.kind === 'tack') ctx.events.emit('ShipTacked', { shipId: e.id });
+          else ctx.events.emit('ShipJibed', { shipId: e.id, uncontrolled: ev.uncontrolled });
+        },
+        (x, z) => seaScaleAt(ctx.sea, x, z),
+      );
       velocitySystem(ctx.world, dt);
       bobSystem(ctx.world, elapsed);
       buoyancySystem(ctx.world, ctx.sea, dt);

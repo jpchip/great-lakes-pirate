@@ -287,6 +287,7 @@ visibilityAt(position, gameTime) → meters (fog, rain, night)
   - **Gameplay uses:** storm shelter and anchorages, ambushes from a becalmed lee (risky), escaping a steam cutter by threading wind-funneling channels, and being becalmed under cliffs (sweeps help).
   - **AI awareness:** NPC sailing ships route around shelter (or use it); the cutter ignores wind but still benefits from calmer lee water.
   - Memory: 16 maps × e.g., 220×220 cells × 1 byte ≈ 0.8 MB for the Apostles. Negligible.
+- **Phase 1 (2026-10-25):** `ctx.weather` (`src/sim/weather/local-weather.ts`) implements these queries from dev-panel wind. `windAt(position, gameSeconds)` returns the S9 `Wind` shape (`fromRad`, sustained `speedKn` after shelter and funneling, `gust01`); the controller adds the gust on top. `waveParams` gives the shared set plus the local scale, and `hullTargets` applies that scale. Details and tuning constants in [04 §21](04-water-weather-seasons.md).
 
 ---
 

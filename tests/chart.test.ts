@@ -38,6 +38,7 @@ import {
   stepVoyage,
   trueWindAngle,
 } from '../src/sim/chart/voyage';
+import { createLocalWeather } from '../src/sim/weather/local-weather';
 import { createSea } from '../src/sim/weather/waves';
 import { createWorldState } from '../src/sim/world-state';
 
@@ -271,6 +272,7 @@ describe('chart mode', () => {
       input: new InputMapper(),
       events: new EventBus<GameEvents>(),
       sea: createSea([]),
+      weather: createLocalWeather(),
     };
     const session: ChartSession = {
       geo,

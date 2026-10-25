@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { writeWaveUniforms, type Sea } from '../../sim/weather/waves';
+import { writeWaveUniforms, type Sea, type SeaScaleGrid } from '../../sim/weather/waves';
 import type { QualityPreset } from '../quality';
 import { createWaterMaterial } from './water-material';
 
@@ -77,12 +77,32 @@ function applySpacing(
   material.uniforms.uGridGrowth.value = spacing.growth;
 }
 
+function seaScaleTexture(grid: SeaScaleGrid): THREE.DataTexture {
+  const texture = new THREE.DataTexture(
+    grid.data,
+    grid.width,
+    grid.height,
+    THREE.RedFormat,
+    THREE.UnsignedByteType,
+  );
+  // Linear filtering on texel centers matches sampleSeaScale on the CPU.
+  texture.magFilter = THREE.LinearFilter;
+  texture.minFilter = THREE.LinearFilter;
+  texture.wrapS = THREE.ClampToEdgeWrapping;
+  texture.wrapT = THREE.ClampToEdgeWrapping;
+  texture.needsUpdate = true;
+  return texture;
+}
+
 export interface Water {
   readonly mesh: THREE.Mesh;
   readonly material: ReturnType<typeof createWaterMaterial>;
   applyPreset(preset: QualityPreset): void;
   /** Upload a new wave set (weather change, dev panel). */
   setWaves(sea: Sea): void;
+  /** Upload the local sea scale (shelter and fetch). */
+  setScale(sea: Sea): void;
+  /** Follows the camera and uploads any change the weather made to the sea. */
   update(camera: THREE.Camera, seaTime: number): void;
 }
 
@@ -93,6 +113,8 @@ export function createWater(sea: Sea, preset: QualityPreset): Water {
   mesh.frustumCulled = false;
   mesh.name = 'water';
 
+  let wavesVersion = sea.wavesVersion;
+  let scaleVersion = sea.scaleVersion;
   const water: Water = {
     mesh,
     material,
@@ -105,8 +127,23 @@ export function createWater(sea: Sea, preset: QualityPreset): Water {
     },
     setWaves(next) {
       writeWaveUniforms(next.waves, material.uniforms.uWaveA.value, material.uniforms.uWaveB.value);
+      wavesVersion = next.wavesVersion;
+    },
+    setScale(next) {
+      const g = next.scale;
+      material.uniforms.uSeaScale.value.dispose();
+      material.uniforms.uSeaScale.value = seaScaleTexture(g);
+      material.uniforms.uSeaScaleRect.value.set(
+        g.minX,
+        g.minZ,
+        1 / (g.width * g.cellM),
+        1 / (g.height * g.cellM),
+      );
+      scaleVersion = next.scaleVersion;
     },
     update(camera, seaTime) {
+      if (sea.wavesVersion !== wavesVersion) water.setWaves(sea);
+      if (sea.scaleVersion !== scaleVersion) water.setScale(sea);
       mesh.position.set(
         Math.round(camera.position.x / SNAP_M) * SNAP_M,
         0,
@@ -116,6 +153,7 @@ export function createWater(sea: Sea, preset: QualityPreset): Water {
     },
   };
   water.setWaves(sea);
+  water.setScale(sea);
   water.applyPreset(preset);
   return water;
 }

@@ -1,6 +1,6 @@
 # 04 — Water, Weather, Seasons & Day/Night
 
-Status: DRAFT v0.5 (decisions confirmed; gap review applied; spike S2 and prototype S9 done; moving-camera wave fix)
+Status: DRAFT v0.6 (decisions confirmed; gap review applied; spike S2 and prototype S9 done; moving-camera wave fix; Phase 1 wind, waves and sky built)
 Parent: [00-master-plan.md](00-master-plan.md)
 Inputs:
 - [01 tech/architecture](01-tech-architecture.md): layers, budgets, the shared wave function, the iGPU baseline
@@ -496,9 +496,60 @@ The laptop should be in the same range; `npm run bench:weather` reruns it there.
 5. **Clusters of lows** are soft-limited rather than merged. If merged super-lows read oddly on the chart, merge two lows that come within half a radius.
 6. **Climate numbers are placeholders**, as §4.1 says. Check them against NOAA normals before the Phase 2 tuning pass.
 
+## 21. Phase 1 Piece D: Wind, Waves and Sky (2026-10-25)
+
+**Scope** (Phase 1 scope doc, piece D; §15 Phase 1 row): a `windAt` that meets the [02 §11](02-arcade-sailing.md) contract from dev-panel wind with drift, gusts and shelter; `waveParams` scaled by wind, fetch and shelter; a scripted gale; basic sun, moon and sky gradient; global fog.
+
+### What was built
+| Piece | Where | Notes |
+|---|---|---|
+| Phase 1 weather | `src/sim/weather/local-weather.ts` | `createLocalWeather()` on `GameContext.weather`. Answers `windAt`, `waveParams`, `iceAt` (always clear) and `visibilityAt` per 02 §11. `windAt` returns the S9 `Wind` shape (`fromRad`, `speedKn`, `gust01`, `toKn`), so Phase 2 swaps the source without touching sailing. Time is game seconds, as in S9. |
+| Wind | `windAt()` | Panel direction and speed, plus S9's drift (±`driftDeg` over a few game hours, ±`surge` in speed) and gusts (a few real seconds each, none in a calm). Shelter cuts speed by up to 85% (`SHELTER_WIND_LOSS`); funneling strength 0–1 adds up to 30% (`FUNNEL_GAIN`); the lee's edge gets extra gust. Gusts are **not** in `speedKn`: the sailing controller adds them (agreed with piece C). |
+| Presets and gale | `WEATHER_PRESETS`, `GALE_SCRIPT` | Calm, light, moderate, fresh, strong and gale across the 02 §3.5 bands. The scripted gale is a November blow: ESE 14 kn backs NE and passes 38 kn within 3 real minutes, holds 44 kn, veers NW on the back side and eases to 20 kn by 11 real minutes, with cloud and visibility to match. It hands back to the panel when it ends. |
+| Wind to waves | `src/sim/weather/sea-state.ts` | Fetch-limited JONSWAP fits capped at a fully developed sea give Hs and the peak period; the peak wavelength is the deep-water one × 0.85 (lake chop, §6.1). Eight waves keep the S2 test sea's ratios relative to the peak, so the first 4 always carry the motion. Steepness is 2.6 × k·A per wave (cap 0.32, total 0.9). The sea eases toward the wind with a 45 game-minute lag (§6.1 duration), direction twice as fast. |
+| No-jump retuning | `retuneSea()` | Every change of k, ω or direction re-solves each wave's phase so the surface at the player doesn't move. Far away the pattern slides a little per change, which slow per-tick easing keeps invisible. |
+| Local sea scale | `SeaScaleGrid` in `waves.ts`, `bakeSeaScale()` | One global wave set (shared GPU/CPU) times a local scale: √(fetch / reference fetch), clamped 0.15–1.25, then up to 80% off at full shelter. A byte grid of at most 256 cells a side over the shelter field's bounds, sampled bilinearly on the CPU (`heightAt`, `hullTargets`) and as an R8 texture in the water shader (one fetch per vertex and per pixel). The reference fetch is the 90th percentile over the zone. Rebaked 16 rows per tick when the wind turns 4°. |
+| Shelter source | `src/sim/weather/shelter.ts` | The `ShelterField` interface piece B's terrain loader satisfies (shelter 0–1, fetch in real meters, funneling strength 0–1, 16 directions blended). Until it lands, `stubIslandShelter()` gives round islands a lee 15 heights long, and the test scene draws one greybox island 780 m northeast of the start. |
+| Sun and moon | `src/sim/weather/celestial.ts` | Cooper's declination and the standard elevation and azimuth formula at 46.8° N, local solar time = the game-day hour, season from the compressed calendar. The moon's phase is from the synodic month (checked against May 1900 tables); its path is the sun's, trailing by the phase angle with the declination of half a year on at full. |
+| Sky, light and fog | `src/render/sky.ts`, `src/render/environment.ts` | The dome adds a sun disc and low-sun glow, a phased moon disc lit toward the sun, and hashed stars on clear nights. A palette keyed by sun elevation (night, nautical twilight, sunset, golden hour, day) drives the dome, the hemisphere light and fog color; cloud grays and darkens it. One directional light swaps between sun and moon, with a moonlight floor at night. Fog is exp² from the visibility (2% at V), floored at 1.8 km so the 2.5 km water disc edge stays hidden. The water's colors scale with the light, and its crest foam threshold falls from 0.6 to 0.3 between 12 and 40 kn. |
+| Dev panel | `src/debug/overlay.ts` | Wind and sea (preset, gale, direction, speed, drift, surge, gustiness, sea × wind, sea lag, visibility, cloud), Time (hour), and a readout of the wind, lee, local Hs and sun at the ship. URL switches for playtests: `?weather=gale`, `?gale`, `?wind=63`, `?knots=30`, `?day=0&hour=19.5`. |
+
+### Numbers
+| Wind | Fetch | Hs | Peak period | Peak wavelength |
+|---|---|---|---|---|
+| 14 kn (moderate) | 60 km | 0.9 m | 4.7 s | 30 m |
+| 20 kn (fresh) | 60 km | 1.3 m | 5.3 s | 37 m |
+| 36 kn (gale preset) | 60 km | 2.3 m | 6.5 s | 55 m |
+| 45 kn | 200 km | 5.3 m | 10.4 s | 144 m |
+
+The stub's open fetch is 60 km; drift moves these by ±15%. The S2 test sea that S2 and S7 tuned on was about Hs 2 m with a 34 m peak, which is steeper than any physical wind sea here; if Phase 1 sailing feels too tame, raise "Sea × wind" rather than the wind.
+
+In the stub lee (wind from 63°, the ship 560 m behind the island's shore) the wind falls from 14 to about 9.5 kn and the sea to 0.11 of open water, mostly from the short fetch. A schooner there heaves less than half as much as in open water (unit test).
+
+Cost in the cloud container: a weather tick 1.2 µs (p50), `windAt` 0.3 µs, a full 256-row scale bake 12 ms with the stub (spread over 16 ticks at under 1 ms each). On the baseline laptop (AMD Radeon Renoir, Chrome 156, MSAA off, 2026-10-25, with the Apostles test bay and the sea-scale texture), the water bench gives:
+
+| Preset | Waves | Frame ms | Water ms | Crest foam ms | No water ms |
+|---|---|---|---|---|---|
+| Low | 4 | 1.70 | 0.80 | 0.00 | 0.90 |
+| Medium | 6 | 2.90 | 1.30 | 0.40 | 1.60 |
+| High | 8 | 3.30 | 1.60 | 0.30 | 1.70 |
+
+Medium water is 1.3 ms of its 3 ms budget, so the extra texture fetch fits. It is below the 2.0 ms recorded in §19 after the stutter fix, but that run was on a different scene, so don't read it as a speed-up. Piece F's rerun with shore foam and depth bands is still due.
+
+### Screenshots
+`/mnt/project-files/wind-sky/` in the project: day, dusk, night, gale, the lee behind the stub island, and the moon's phases.
+
+### Not covered yet
+1. **Real shelter maps.** Swap `ctx.weather.shelter` for piece B's loaded terrain and call `invalidate()`. Fetch from the bake is real meters; the scale only cares about ratios.
+2. **Swell** from distant systems (§6.1) and **fetch-dependent wavelength** across the zone: the wavelength is global, only amplitude and steepness vary locally.
+3. **Fog banks, rain, clouds and lightning** stay Phase 2, as does wind from the S9 sim and the save-schema change it needs.
+4. **The palette is a stand-in** until the art style test (piece A) picks a look and plan 14's lighting LUTs replace it. The moon is drawn four times life size so it reads on screen.
+5. **The moon's path** is approximate (no inclination or libration); fine for light and phase, not for navigation.
+
 ---
 
 ## Changelog
+- v0.6: Phase 1 piece D (§21): dev-panel wind with drift, gusts, lee and funneling behind the 02 §11 contract; fetch-limited wind seas with lag and a local shelter and fetch scale shared by the CPU and the water shader; a scripted November gale; sun, moon, stars, a sky palette by sun elevation, and exp² fog from visibility.
 - v0.5: Moving-camera wave stutter fixed (§19): geometry keeps only waves the grid can sample, shading is per pixel. Prototype S9 write-up (§20): pressure-gradient wind on three storm tracks, a barometer trend rebuilt from system tracks (92% of storms warned, about 9 game hours ahead), advection and radiation fog, and an 11 µs world tick.
 - v0.4: Spike S2 write-up (§19): shared Gerstner set, water shader and mesh, buoyancy, CPU timings, and baseline-laptop GPU timings (water 1.0 ms on Medium with crest foam).
 - v0.3: Gap review: MVP ends at freeze-up, S2 measures with crest foam, S9 in Phase 0, cutter winter lay-up and 1900 storm signals researched, §18 rewritten as decisions.

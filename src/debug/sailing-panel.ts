@@ -2,14 +2,14 @@ import type { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js';
 import type { SailShipRecord } from '../../data/schemas/ships';
 import { msToKnots } from '../core/coords';
 import type { SailingShip } from '../gameplay/sailing';
-import { SAIL_LEVELS, speedKn, type SailingWind } from '../sim/sailing/controller';
+import { SAIL_LEVELS, speedKn } from '../sim/sailing/controller';
 import type { HandlingRecord } from '../sim/sailing/handling';
 import { parsePreset, serializePreset } from '../sim/sailing/preset';
 import { compileSailingClass } from '../sim/sailing/ship-class';
 
 /**
  * The sailing tuning panel (plan 02 §14.8): every number in the ship record and the
- * handling rules, a live readout of the speed model, the dev wind, and tuning presets
+ * handling rules, a live readout of the speed model, and tuning presets
  * saved to and loaded from JSON. Edits rebuild the ship's class straight away.
  */
 export interface SailingPanelOptions {
@@ -18,8 +18,6 @@ export interface SailingPanelOptions {
   /** The ships.json record and handling the game started with, for Reset. */
   record: SailShipRecord;
   handling: HandlingRecord;
-  /** The wind the ship sails in until the weather system provides it (piece D). */
-  wind: SailingWind;
 }
 
 const DEG = 180 / Math.PI;
@@ -96,7 +94,7 @@ function pickFile(): Promise<string> {
 }
 
 export function createSailingPanel(options: SailingPanelOptions): { update(): void } {
-  const { ship, wind } = options;
+  const { ship } = options;
   const root = options.gui.addFolder('Sailing');
   let record: SailShipRecord = structuredClone(options.record);
   let handling: HandlingRecord = structuredClone(options.handling);
@@ -123,15 +121,6 @@ export function createSailingPanel(options: SailingPanelOptions): { update(): vo
   for (const key of Object.keys(read) as (keyof typeof read)[]) {
     readFolder.add(read, key).disable().listen();
   }
-
-  const windDeg = { fromDeg: Math.round(wind.fromRad * DEG) };
-  const windFolder = root.addFolder('Wind (dev)');
-  windFolder
-    .add(windDeg, 'fromDeg', 0, 359, 1)
-    .name('From (°)')
-    .onChange((d: number) => (wind.fromRad = d / DEG));
-  windFolder.add(wind, 'speedKn', 0, 50, 0.5).name('Speed (kn)');
-  windFolder.add(wind, 'gust01', 0, 1, 0.01).name('Gust');
 
   const helm = root.addFolder('Helm');
   helm.add(ship.state, 'manualTrim').name('Manual trim (Q/E)');
