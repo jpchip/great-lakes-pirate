@@ -84,7 +84,28 @@ Readability (silhouettes, night, fog) · cohesion of mixed-source assets · fit 
 
 **Seen in the renders:** the outlines do most for the sails and spars against a bright dusk sky; at night the moonlit sails already read in all variants, and the lamp, beam and glare carry the light station in fog. The edge pass also inks the light station and islet, but leaves a few stray lines on near wave crests.
 
-**Still to do:** the Meshy hull (the scene loads it automatically), the laptop benchmark, and the pick, which goes in §16 Decisions.
+**Baseline laptop (2026-10-25)**, Chrome 156 on Linux, ANGLE on OpenGL 4.6 (radeonsi renoir), placeholder hull. Buffers: Low 1440×816, Medium 1920×1088, High 1920×1088 with MSAA. Frame ms, median of batched frames, with the difference from A in brackets:
+
+| Preset | Time | Fog | A flat | B no outline | B hull outline | B edge pass |
+|---|---|---|---|---|---|---|
+| low | dusk | off | 1.22 | 0.88 (−0.34) | 0.94 (−0.28) | 1.20 (−0.02) |
+| low | dusk | on | 0.89 | 0.95 (+0.06) | 0.89 (+0.00) | 1.15 (+0.26) |
+| low | night | off | 0.92 | 0.86 (−0.05) | 0.94 (+0.03) | 1.19 (+0.28) |
+| low | night | on | 0.95 | 0.91 (−0.04) | 0.87 (−0.08) | 1.18 (+0.23) |
+| medium | dusk | off | 1.90 | 1.96 (+0.06) | 2.13 (+0.23) | 2.42 (+0.52) |
+| medium | dusk | on | 2.03 | 1.96 (−0.07) | 1.92 (−0.11) | 2.57 (+0.53) |
+| medium | night | off | 1.93 | 1.98 (+0.04) | 2.09 (+0.16) | 2.41 (+0.48) |
+| medium | night | on | 2.10 | 1.87 (−0.22) | 2.00 (−0.10) | 2.59 (+0.49) |
+| high | dusk | off | 2.67 | 2.86 (+0.19) | 2.69 (+0.02) | 4.20 (+1.53) |
+| high | dusk | on | 2.76 | 2.67 (−0.08) | 2.72 (−0.03) | 4.27 (+1.52) |
+| high | night | off | 2.70 | 2.75 (+0.05) | 2.70 (−0.00) | 4.21 (+1.51) |
+| high | night | on | 2.66 | 2.68 (+0.02) | 2.92 (+0.27) | 4.19 (+1.53) |
+
+Draw calls and triangles per variant: A, B0 17 calls; B (hull outline) 27 calls and +620 triangles; B-edge 18 calls. CPU submit 0.11–0.20 ms everywhere.
+
+**Findings:** (1) Toon banding costs nothing over flat shading: A vs. B0 is within noise (±0.2 ms) on every preset. (2) Inverted-hull outlines are also within noise: at most +0.27 ms, usually ±0.1, for 10 extra draw calls. (3) The screen-space edge pass is the only real cost: about +0.25 ms on Low, +0.5 ms on Medium and +1.5 ms on High, where the half-float target plus the MSAA resolve at full size dominate. It would use up most of Medium's post-processing budget (01 §5: "bloom or outlines"). (4) Every variant is far inside budget on this small scene (≤ 3 ms on High), so the pick can be made on looks.
+
+**Still to do:** the Meshy hull (the scene loads it automatically) and the pick, which goes in §16 Decisions.
 
 ---
 
