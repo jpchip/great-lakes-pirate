@@ -52,7 +52,29 @@ export function createPolarGrid(rings: number, segments: number): THREE.BufferGe
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
   geometry.setIndex(indices);
+  // Vertex spacing at distance d from the center is about (d + a) · growth: the larger
+  // of the ring-to-ring step and the step around a ring. The shader fades waves the grid
+  // can't resolve there.
+  const spacing: GridSpacing = {
+    offset: a,
+    growth: Math.max(Math.exp(b) - 1, (2 * Math.PI) / segments),
+  };
+  geometry.userData['spacing'] = spacing;
   return geometry;
+}
+
+export interface GridSpacing {
+  offset: number;
+  growth: number;
+}
+
+function applySpacing(
+  geometry: THREE.BufferGeometry,
+  material: ReturnType<typeof createWaterMaterial>,
+): void {
+  const spacing = geometry.userData['spacing'] as GridSpacing;
+  material.uniforms.uGridOffset.value = spacing.offset;
+  material.uniforms.uGridGrowth.value = spacing.growth;
 }
 
 export interface Water {
@@ -77,6 +99,7 @@ export function createWater(sea: Sea, preset: QualityPreset): Water {
     applyPreset(p) {
       mesh.geometry.dispose();
       mesh.geometry = createPolarGrid(p.waterRings, p.waterSegments);
+      applySpacing(mesh.geometry, material);
       material.uniforms.uWaveCount.value = Math.min(p.waveCount, sea.waves.length);
       material.uniforms.uCrestFoam.value = p.crestFoam ? 1 : 0;
     },

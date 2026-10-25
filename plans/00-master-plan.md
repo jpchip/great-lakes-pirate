@@ -276,7 +276,7 @@ Western Lake Superior (Apostles, Bayfield, Ashland, Duluth/Superior), arcade sai
 For reference, Lake Superior is ~350 mi long and ~160 mi wide, and the Apostle Islands span roughly 25 × 20 mi. Approach:
 - **Coastal zones** are detailed and real-time, with geography compressed **C = 8** (decided) so that islands are minutes, not hours, apart while their relative positions stay recognizable.
 - **Open water** is abstracted via chart travel with time compression and encounters (decided).
-- **Decided:** C = 8 (geography only; ships, people and buildings stay 1:1) and R = 24 (time), a ~60-minute real day, four MVP zones, and hand-built 1:1 harbor set pieces ([03](03-world-scale-chart-travel.md)). Spike S7 confirms the feel.
+- **Decided:** C = 8 (geography only; ships, people and buildings stay 1:1) and R = 24 (time), a ~60-minute real day, four MVP zones, and hand-built 1:1 harbor set pieces ([03](03-world-scale-chart-travel.md)). Spike S7 confirmed the feel on 2026-10-24 ([03 §15](03-world-scale-chart-travel.md)).
 
 ---
 
@@ -413,6 +413,7 @@ All planned documents are drafted and their open questions answered. Next:
 | 2026-10-22 | Versions: 0.8 = MVP/Alpha, 0.9 = Beta, 1.0 after Phase 11 (17). |
 | 2026-10-23 | Phase 10 (expand the lakes) comes before Phase 11 (polish); expansions ship before 1.0 as 0.10.x (17). |
 | 2026-10-22 | Booth Fisheries is fictionalized as Hollister Fish & Packing everywhere, including the README. |
+| 2026-10-24 | Spike S7: C = 8, R = 24, R_foot = 6 and freighter display scale 0.85 confirmed by playtest (03 §15). |
 
 ---
 

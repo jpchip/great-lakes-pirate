@@ -81,7 +81,7 @@ Readability (silhouettes, night, fog) · cohesion of mixed-source assets · fit 
 
 ## 4. Unified Stylized Material
 
-One custom material ([S1](01-tech-architecture.md) decides between TSL and GLSL) is used by **every** mesh except water, sky and UI:
+One custom GLSL material (spike S1 picked `WebGLRenderer` + GLSL; [01 §14](01-tech-architecture.md)) is used by **every** mesh except water, sky and UI:
 
 | Feature | Purpose |
 |---|---|

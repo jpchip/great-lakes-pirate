@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createPolarGrid } from '../src/render/water/water';
+import { createPolarGrid, type GridSpacing } from '../src/render/water/water';
 
 describe('water grid', () => {
   it('is dense at the camera and reaches past the fog', () => {
@@ -20,5 +20,22 @@ describe('water grid', () => {
     grid.computeVertexNormals();
     const normals = grid.getAttribute('normal');
     for (let i = 0; i < normals.count; i++) expect(normals.getY(i)).toBeGreaterThan(0.99);
+  });
+
+  it('reports a vertex spacing that bounds the real one', () => {
+    const rings = 80;
+    const segments = 144;
+    const grid = createPolarGrid(rings, segments);
+    const { offset, growth } = grid.userData['spacing'] as GridSpacing;
+    const pos = grid.getAttribute('position');
+    const radius = (ring: number): number =>
+      Math.hypot(pos.getX(1 + (ring - 1) * segments), pos.getZ(1 + (ring - 1) * segments));
+    for (const ring of [1, 10, 40, 79]) {
+      const r = radius(ring);
+      const step = Math.max(radius(ring + 1) - r, (2 * Math.PI * r) / segments);
+      const estimate = (r + offset) * growth;
+      expect(estimate).toBeGreaterThanOrEqual(step * 0.99);
+      expect(estimate).toBeLessThan(step * 1.2);
+    }
   });
 });

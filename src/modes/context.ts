@@ -10,6 +10,12 @@ export interface GameEvents {
   /** A strategic world tick ran (every 10 game minutes). */
   WorldTick: { gameSeconds: number };
   DayChanged: { day: number };
+  /** Chart travel (plan 03 §9). */
+  VoyageStarted: { legs: number; lengthM: number; destinationZoneId: string | undefined };
+  VoyageArrived: { zoneId: string | undefined };
+  EncounterSpotted: { contactId: string; forced: boolean };
+  EncounterEngaged: { contactId: string; forced: boolean };
+  EncounterAvoided: { contactId: string; escaped: boolean };
 }
 
 /** Everything a mode needs; built once at boot and handed to each mode. */

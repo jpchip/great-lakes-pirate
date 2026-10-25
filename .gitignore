@@ -8,3 +8,4 @@ coverage/
 .vite/
 bench/s6/last-run.json
 bench/s9/last-run.*
+tools/geo/.cache/
