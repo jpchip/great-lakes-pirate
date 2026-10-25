@@ -1,6 +1,6 @@
 # 04 — Water, Weather, Seasons & Day/Night
 
-Status: DRAFT v0.4 (decisions confirmed; gap review applied; spike S2 done)
+Status: DRAFT v0.5 (decisions confirmed; gap review applied; spike S2 done; moving-camera wave fix)
 Parent: [00-master-plan.md](00-master-plan.md)
 Inputs:
 - [01 tech/architecture](01-tech-architecture.md): layers, budgets, the shared wave function, the iGPU baseline
@@ -377,6 +377,21 @@ Measured with `?bench=water` on a production build (`npm run preview`) on the Ry
 
 **Caveats:** this is one machine on one browser, with MSAA off (High with MSAA needs `&quality=high` at load) and no Firefox run yet. Rerun the benchmark once depth bands and shore foam are added in Phase 1.
 
+### Moving-camera fix (2026-10-24, from the S7 playtest)
+Sailing in the S7 greybox, the dev saw the waves stutter. The polar grid's vertices are too far apart past about 50 m (Medium) to sample the 4–9 m waves, so those waves aliased into blocky shapes. Each 4 m snap of the grid to the moving camera resampled them, and the shapes jumped. The test scene never showed it because the ship held still. The fix:
+- **Geometry** displaces only with waves the grid samples at least 2.5 times per wavelength where each vertex sits (`uGridOffset` and `uGridGrowth` come from `createPolarGrid`).
+- **Shading** computes the wave normals and crest foam per pixel at the rest position, faded by the pixel's footprint, so the chop stays but no longer depends on where the grid vertices are.
+- **Result:** in a frozen-time test that moves the camera 0.5 m per frame, the frame-to-frame change no longer spikes at each snap (before, it was about 2.5× normal every 4 m; after, it's flat). The bands now have smooth edges instead of triangle facets, which S4's style test can revisit.
+- **Cost (baseline laptop, Chrome 156, ANGLE on OpenGL 4.6, radeonsi, 2026-10-25):** the same `?bench=water` run on a production build as the S2 table above, but at a larger buffer (1920×1088, about 21% more pixels than 1587×1088).
+
+| Preset | Buffer | Waves | Frame ms | Water ms | Crest foam ms | No water ms | Triangles | Draw calls |
+|---|---|---|---|---|---|---|---|---|
+| Low | 1440×816 | 4 | 1.8 | 0.8 | 0.0 | 1.0 | 11,590 | 4 |
+| Medium | 1920×1088 | 6 | 3.1 | 2.0 | 0.5 | 1.1 | 23,830 | 4 |
+| High | 1920×1088 | 8 | 3.4 | 2.3 | 0.3 | 1.1 | 43,750 | 4 |
+
+  **Result:** water on Medium with crest foam is **2.0 ms, still inside the 3 ms budget** but with about 1 ms of headroom instead of 2. Scaled to S2's buffer size, the old shader would be about 1.2 ms here, so the per-pixel waves cost roughly 0.8 ms. The whole frame is 3.1 ms of 16.7. If the budget gets tight, the levers are: shade only the detail waves (5–8) per pixel and keep vertex normals for the gameplay waves, or drop Medium to 4 per-pixel waves. A Firefox run gave the same picture with whole-millisecond timings (Medium about 2 ms). If it gets tight, the cheapest lever is per-pixel shading of the detail waves only (5–8) on Low.
+
 ### Decisions
 - Keep the shared Gerstner set as designed: 4/6/8 waves by preset, buoyancy on the first 4, a steepness cap of 0.9.
 - A camera-centered polar grid is the water mesh for Phase 1 (no far ring needed so far).
@@ -385,6 +400,7 @@ Measured with `?bench=water` on a production build (`npm run preview`) on the Ry
 ---
 
 ## Changelog
+- v0.5: Moving-camera wave stutter fixed (§19): geometry keeps only waves the grid can sample, shading is per pixel.
 - v0.4: Spike S2 write-up (§19): shared Gerstner set, water shader and mesh, buoyancy, CPU timings, and baseline-laptop GPU timings (water 1.0 ms on Medium with crest foam).
 - v0.3: Gap review: MVP ends at freeze-up, S2 measures with crest foam, S9 in Phase 0, cutter winter lay-up and 1900 storm signals researched, §18 rewritten as decisions.
 - v0.2: Decisions confirmed: 1 game day = 1 week, May 7, 1900 start, walkable ice, port storm flags, Mataafa and aurora.

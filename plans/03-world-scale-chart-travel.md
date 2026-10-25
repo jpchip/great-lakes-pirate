@@ -1,6 +1,6 @@
 # 03 — World, Hybrid Scale, Chart Travel & Streaming
 
-Status: DRAFT v0.4 (decisions made; gap review applied; prototype S8 written up in §14; tuning pending spike S7)
+Status: DRAFT v0.6 (decisions made; gap review applied; S3 done; S7 done: C = 8, R = 24, R_foot = 6, freighters 0.85×)
 Parent: [00-master-plan.md](00-master-plan.md)
 Inputs: [01 tech/architecture](01-tech-architecture.md) (coordinate spaces, simulation LOD, budgets), [R1](R1-western-superior-1900-research.md) and [R1a gazetteer](R1a-western-superior-gazetteer.md) (distances, places, regions)
 Feeds: 02 (sailing speeds), 04 (clock, weather on chart), 05 (traffic/routes), 06 (Wanted regions, pursuit), 08/11 (on-foot areas), 14 (terrain look)
@@ -91,7 +91,7 @@ To keep the clock honest: `v₃ᴅ = v_game × R / C`
 | Bayfield → La Pointe (2 nm) | ~15 game minutes | ~40 real seconds |
 
 - Faster ships or a good wind raise `v_game`, and v₃ᴅ follows automatically. The arcade sailing model in plan 02 works in **game knots** and converts at the boundary.
-- **On foot, the clock slows down (decided).** Proposed **R_foot = 6** (1 real minute = 6 game minutes), so a 10-minute docks heist ≈ 1 game hour, and a full night (~6–9 game hours) gives ~60–90 real minutes of on-foot time. The value is tunable in S7 and plan 08.
+- **On foot, the clock slows down (decided).** **R_foot = 6** (confirmed in S7) (1 real minute = 6 game minutes), so a 10-minute docks heist ≈ 1 game hour, and a full night (~6–9 game hours) gives ~60–90 real minutes of on-foot time. Plan 08 can still retune it.
   - The switch happens on "Go ashore" and "Return aboard," with a small HUD clock-speed indicator.
   - Abstract world simulation keeps ticking at the slower rate (ships move less while you're ashore), which stays consistent because R only changes how fast game time passes.
 - **"Wait/sleep"** (at a hideout, in port, or moored) fast-forwards the clock, for example to dusk or dawn.
@@ -112,7 +112,7 @@ A **set piece** is a hand-built region (1:1 inside, typically 0.5–1.5 km) plac
 
 ### 3.5 Ship scale
 - Player schooners and small craft: 1:1.
-- **Big freighters are shrunk (decided): 0.75–1.0×**, with the exact factor tuned in S7. A 1:1 steel ore boat (~400 ft) is huge in a compressed bay. A slight shrink keeps encounters readable without looking wrong next to the schooner. Scale applies per ship class (`ships.json` → `displayScale`).
+- **Big freighters are shrunk (decided): 0.85× for big freighters** (S7; the allowed range was 0.75–1.0×). A 1:1 steel ore boat (~400 ft) is huge in a compressed bay. A slight shrink keeps encounters readable without looking wrong next to the schooner. Scale applies per ship class (`ships.json` → `displayScale`).
 
 ---
 
@@ -309,7 +309,7 @@ S7 and S8 are **Phase 0** prototypes (decided 2026-10-22; [01 §11](01-tech-arch
 
 ## 13. Open Questions
 
-All resolved. Remaining tuning (not decisions) happens in S7: the exact freighter scale and the exact R_foot.
+All resolved. S7 settled the freighter scale (0.85×) and R_foot (6). S3 handles terrain steepness with the soft knee (§14.3).
 
 ### Decisions
 | Date | Decision |
@@ -326,6 +326,7 @@ All resolved. Remaining tuning (not decisions) happens in S7: the exact freighte
 | 2026-10-22 | The Apostles zone spans three Wanted regions: Apostle Islands, Chequamegon Bay, Ashland. |
 | 2026-10-22 | S7 and S8 are Phase 0 prototypes; S3 bakes funneling maps. |
 | 2026-10-23 | Land heights use a **soft knee at 20 m** (`h' = 20·ln(1 + h/20)`), not 1:1, so compressed islands stay walkable; water depth stays 1:1 (S3, §14.3). |
+| 2026-10-24 | Spike S7 confirmed by playtest: **C = 8**, **R = 24**, **R_foot = 6**, big freighters' `displayScale` **0.85** (§15). |
 
 ---
 
@@ -374,6 +375,11 @@ The soft knee (`h' = 20·ln(1 + h/20)`) keeps low ground near full height, so be
 
 ---
 
+## 15. Spike S7: Scale-Feel Greybox (results, 2026-10-23)
+
+**Question** (§11): do C = 8, R = 24 and the freighter scale feel right? That covers visual speed, channel widths, island walk sizes and freighter scale.
+
+**Answer: yes. Keep C = 8 and R = 24, with freighters at 0.85× and R_foot = 6.** The numbers below supported these values, and the dev confirmed them on the laptop on 2026-10-24 ("feels good, takes a bit of time to get places but not crazy"). The one problem found was the wave stutter while sailing, now fixed in plan 04 §19.
 ## 14. Prototype S8: Chart Mode (results, 2026-10-23)
 
 **Question** (§11): is plotting plus a compressed voyage plus encounter interrupts fun and readable?
