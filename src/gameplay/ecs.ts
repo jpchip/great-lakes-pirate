@@ -1,5 +1,6 @@
 import { World } from 'miniplex';
 import type { Buoyancy } from './buoyancy';
+import type { SailingShip } from './sailing';
 
 /**
  * Materialized entities in the active zone (plan 01 §3.4), managed with miniplex.
@@ -37,6 +38,8 @@ export interface Entity {
   bob?: { amplitude: number; frequency: number; phase: number };
   /** Hull sampling on the shared wave set (plan 02 §5.1); see gameplay/buoyancy. */
   buoyancy?: Buoyancy;
+  /** The plan 02 sailing model; see gameplay/sailing. */
+  sailing?: SailingShip;
   /** Which model render/ draws for this entity; render/ owns the three.js objects. */
   model?: 'schooner';
   playerControlled?: true;

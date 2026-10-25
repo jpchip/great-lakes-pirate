@@ -37,7 +37,13 @@ const STYLE = `
   border-radius: 4px; pointer-events: none; white-space: pre;
 `;
 
-export function createDevOverlay(options: OverlayOptions): { update(frameSeconds: number): void } {
+export interface DevOverlay {
+  /** The root panel, for other dev panels to add folders to. */
+  gui: GUI;
+  update(frameSeconds: number): void;
+}
+
+export function createDevOverlay(options: OverlayOptions): DevOverlay {
   const { renderer, scene, sea, save } = options;
 
   const readout = document.createElement('pre');
@@ -144,6 +150,7 @@ export function createDevOverlay(options: OverlayOptions): { update(frameSeconds
   let worstMs = 0;
   let worstShown = 0;
   return {
+    gui,
     update(frameSeconds) {
       frames++;
       elapsed += frameSeconds;

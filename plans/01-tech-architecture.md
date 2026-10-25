@@ -211,7 +211,7 @@ Events are also the natural hook for the **newspaper** system and for debugging 
 - **Player export/import** of the run (imported runs are marked "Transferred"; [16 §9](16-save-persistence.md)). Dev builds add a save inspector and debug tools ([16 §10](16-save-persistence.md)).
 
 ### 4.8 Input
-- An action-mapping layer: physical keys/mouse → semantic actions (`TrimSailsIn`, `FirePort`, `Interact`, `Crouch`…), with a context per mode.
+- An action-mapping layer: physical keys/mouse → semantic actions (`RaiseSail`, `Fire`, `Interact`, `Crouch`…), with a context per mode.
 - Pointer lock for the on-foot camera. Free mouse for sailing camera orbit and aiming.
 - Rebinding is supported by the data model from day one (UI later).
 

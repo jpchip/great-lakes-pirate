@@ -191,9 +191,9 @@ const sailing: Mode = {
       ship,
       {
         steer: (input.isDown('SteerStarboard') ? 1 : 0) - (input.isDown('SteerPort') ? 1 : 0),
-        raise: input.pressed('TrimSailsOut'),
-        lower: input.pressed('TrimSailsIn'),
-        astern: input.isDown('TrimSailsIn'),
+        raise: input.pressed('RaiseSail'),
+        lower: input.pressed('LowerSail'),
+        astern: input.isDown('LowerSail'),
       },
       helm,
       { compression: tuning.compression, rate: tuning.rate },

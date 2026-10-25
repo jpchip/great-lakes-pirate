@@ -7,7 +7,7 @@ import { createWorkerEncoder } from './core/save/encoder';
 import { loadRun } from './core/save/load';
 import { RunSaver } from './core/save/run-saver';
 import { AssetLoader, EMPTY_MANIFEST } from './core/assets';
-import { schoonerBuoyancy } from './gameplay/buoyancy';
+import { createBuoyancy } from './gameplay/buoyancy';
 import { cloneTransform, createGameWorld } from './gameplay/ecs';
 import type { SaveControls } from './debug/overlay';
 import type { GameContext, GameEvents } from './modes/context';
@@ -17,6 +17,10 @@ import { loadAssets } from './render/assets';
 import { browserStorage, initialQuality } from './render/quality';
 import { GameRenderer } from './render/renderer';
 import { createTestScene } from './render/test-scene';
+import { createSailingState, type SailingWind } from './sim/sailing/controller';
+import { defaultHandling } from './sim/sailing/handling';
+import { compileSailingClass } from './sim/sailing/ship-class';
+import { sailShipRecord, T1_SCHOONER_ID } from './sim/sailing/ships';
 import { httpBytes, loadZoneTerrain, type LoadedZone } from './sim/terrain/load';
 import { TEST_BAY } from './sim/terrain/test-bay';
 import { createSea } from './sim/weather/waves';
@@ -120,15 +124,24 @@ async function boot(): Promise<void> {
     terrain: zone?.terrain,
   };
 
-  // Placeholder schooner riding the test-bay sea until the sailing controller lands
-  // (plan 02). It holds still; the waves move it.
+  // The player's T1 schooner on the plan 02 sailing model at the test bay's spawn, in a
+  // steady northwesterly that matches the test-bay swell until the weather system
+  // provides the wind.
+  const shipRecord = sailShipRecord(T1_SCHOONER_ID);
+  const handling = defaultHandling();
+  const devWind: SailingWind = { fromRad: (315 * Math.PI) / 180, speedKn: 12, gust01: 0 };
   const { spawn } = TEST_BAY;
   const shipTransform = { position: { x: spawn.x, y: 0, z: spawn.z }, heading: spawn.heading };
+  const sailing = {
+    cls: compileSailingClass(shipRecord, handling),
+    state: createSailingState(spawn.x, spawn.z, spawn.heading),
+  };
   ctx.world.add({
     id: 'ship.player',
     transform: shipTransform,
     previousTransform: cloneTransform(shipTransform),
-    buoyancy: schoonerBuoyancy(),
+    buoyancy: createBuoyancy(shipRecord.buoyancy),
+    sailing,
     model: 'schooner',
     playerControlled: true,
   });
@@ -177,10 +190,19 @@ async function boot(): Promise<void> {
         autoBench: bench,
         probe: () => shipTransform.position,
       });
+      const { createSailingPanel } = await import('./debug/sailing-panel');
+      const panel = createSailingPanel({
+        gui: overlay.gui,
+        ship: sailing,
+        record: shipRecord,
+        handling,
+        wind: devWind,
+      });
       view = {
         render(alpha, seaTime, frameSeconds) {
           scene.render(alpha, seaTime, frameSeconds);
           overlay.update(frameSeconds);
+          panel.update();
         },
       };
     }
@@ -188,7 +210,7 @@ async function boot(): Promise<void> {
 
   machine
     .register({ id: 'mainMenu', enter: () => (input.context = 'menu') })
-    .register(createSailingMode(ctx, view));
+    .register(createSailingMode(ctx, { view, wind: () => devWind }));
   // Phase 0 has no danger states yet, so every moment is safe to save (plan 16 §4.2).
   window.setInterval(saveNow, AUTOSAVE_INTERVAL_MS);
   document.addEventListener('visibilitychange', () => {
