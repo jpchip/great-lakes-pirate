@@ -4,6 +4,8 @@ import { bobSystem, snapshotTransforms, velocitySystem } from '../gameplay/ecs';
 import type { GameContext } from './context';
 import type { Mode } from './machine';
 
+const ORIGIN = { x: 0, z: 0 };
+
 export interface SailingView {
   /** `seaTime` is the wave clock at this frame, between the last two ticks. */
   render(alpha: number, seaTime: number, frameSeconds: number): void;
@@ -36,6 +38,10 @@ export function createSailingMode(ctx: GameContext, view?: SailingView): Mode {
       }
       const dayAfter = dayAndHour(clock.gameSeconds).day;
       if (dayAfter !== dayBefore) ctx.events.emit('DayChanged', { day: dayAfter });
+
+      // The sea follows the wind; anchor it on the player so the surface never jumps there.
+      const player = ctx.world.with('playerControlled', 'transform').first;
+      ctx.weather.tick(clock.gameSeconds, player?.transform.position ?? ORIGIN, ctx.sea);
 
       velocitySystem(ctx.world, dt);
       bobSystem(ctx.world, elapsed);

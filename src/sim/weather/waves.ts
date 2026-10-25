@@ -110,6 +110,7 @@ export function displacementAt(
   z0: number,
   t: number,
   out: WaveSample = { dx: 0, dy: 0, dz: 0 },
+  scale = 1,
 ): WaveSample {
   out.dx = 0;
   out.dy = 0;
@@ -119,10 +120,10 @@ export function displacementAt(
     const w = waves[i] as PackedWave;
     const theta = w.k * (w.dx * x0 + w.dz * z0) - w.omega * t + w.phase;
     const c = Math.cos(theta);
-    const horizontal = (w.steepness / w.k) * c;
+    const horizontal = ((w.steepness * scale) / w.k) * c;
     out.dx += w.dx * horizontal;
     out.dz += w.dz * horizontal;
-    out.dy += w.amplitude * Math.sin(theta);
+    out.dy += w.amplitude * scale * Math.sin(theta);
   }
   return out;
 }
@@ -132,6 +133,9 @@ export function displacementAt(
  * first finds the rest position that lands on (x, z), with Newton steps on the 2×2
  * Jacobian of the horizontal displacement. Three steps keep the error to millimeters
  * at the steepness cap; plain fixed-point iteration needed more than six for 1 cm.
+ *
+ * `scale` is the local sea scale (shelter and fetch, see SeaScaleGrid). It multiplies
+ * amplitude and steepness alike, as the shader does at each rest position.
  */
 export function heightAt(
   waves: readonly PackedWave[],
@@ -140,6 +144,7 @@ export function heightAt(
   z: number,
   t: number,
   iterations = 3,
+  scale = 1,
 ): number {
   const n = Math.min(count, waves.length);
   let x0 = x;
@@ -154,10 +159,10 @@ export function heightAt(
     for (let i = 0; i < n; i++) {
       const w = waves[i] as PackedWave;
       const theta = w.k * (w.dx * x0 + w.dz * z0) - w.omega * t + w.phase;
-      const horizontal = (w.steepness / w.k) * Math.cos(theta);
+      const horizontal = ((w.steepness * scale) / w.k) * Math.cos(theta);
       fx += w.dx * horizontal;
       fz += w.dz * horizontal;
-      const bend = w.steepness * Math.sin(theta);
+      const bend = w.steepness * scale * Math.sin(theta);
       jxx -= bend * w.dx * w.dx;
       jxz -= bend * w.dx * w.dz;
       jzz -= bend * w.dz * w.dz;
@@ -172,7 +177,7 @@ export function heightAt(
     const w = waves[i] as PackedWave;
     height += w.amplitude * Math.sin(w.k * (w.dx * x0 + w.dz * z0) - w.omega * t + w.phase);
   }
-  return height;
+  return height * scale;
 }
 
 /**
@@ -202,15 +207,88 @@ export function testBaySea(scale = 1): GerstnerWave[] {
 }
 
 /**
+ * How much of the zone's wave set reaches each spot: shelter and short fetch calm the
+ * sea locally (plan 02 §11, plan 04 §6.1) while the set itself stays global. A byte grid
+ * over the zone, value / SEA_SCALE_BYTE, sampled bilinearly with texel centers at
+ * (i + 0.5) · cellM and clamped at the edges. The water shader reads the same bytes as
+ * an R8 texture with linear filtering, so the CPU and GPU agree.
+ */
+export interface SeaScaleGrid {
+  minX: number;
+  minZ: number;
+  cellM: number;
+  width: number;
+  height: number;
+  data: Uint8Array;
+}
+
+/** The byte for a scale of 1. 255 caps the scale at 1.275. */
+export const SEA_SCALE_BYTE = 200;
+
+/** A one-cell grid: the full sea everywhere. */
+export function uniformSeaScale(): SeaScaleGrid {
+  return {
+    minX: -1,
+    minZ: -1,
+    cellM: 2,
+    width: 1,
+    height: 1,
+    data: new Uint8Array([SEA_SCALE_BYTE]),
+  };
+}
+
+export function sampleSeaScale(grid: SeaScaleGrid, x: number, z: number): number {
+  const fx = Math.min(Math.max((x - grid.minX) / grid.cellM - 0.5, 0), grid.width - 1);
+  const fz = Math.min(Math.max((z - grid.minZ) / grid.cellM - 0.5, 0), grid.height - 1);
+  const ix = Math.min(Math.floor(fx), grid.width - 2);
+  const iz = Math.min(Math.floor(fz), grid.height - 2);
+  if (ix < 0 || iz < 0) {
+    // One row or column: interpolate along the other axis only.
+    const i = Math.round(fz) * grid.width + Math.round(fx);
+    return (grid.data[i] ?? SEA_SCALE_BYTE) / SEA_SCALE_BYTE;
+  }
+  const tx = fx - ix;
+  const tz = fz - iz;
+  const at = (cx: number, cz: number): number => grid.data[cz * grid.width + cx] ?? 0;
+  const top = at(ix, iz) + (at(ix + 1, iz) - at(ix, iz)) * tx;
+  const bottom = at(ix, iz + 1) + (at(ix + 1, iz + 1) - at(ix, iz + 1)) * tx;
+  return (top + (bottom - top) * tz) / SEA_SCALE_BYTE;
+}
+
+/**
  * The live sea of the active zone: one wave set and its clock, read by buoyancy every
- * tick and by the water shader every frame. Not saved; it is rebuilt from the weather.
+ * tick and by the water shader every frame. Not saved; the weather rebuilds it each
+ * tick (sim/weather/sea-state.ts), so read `waves` fresh rather than caching it.
  */
 export interface Sea {
   waves: PackedWave[];
   /** Seconds of wave time at the latest gameplay tick. */
   time: number;
+  /** Local calming by shelter and fetch. */
+  scale: SeaScaleGrid;
+  /** Bumped whenever `waves` changes, so the water re-uploads its uniforms. */
+  wavesVersion: number;
+  /** Bumped whenever `scale` changes, so the water re-uploads its texture. */
+  scaleVersion: number;
 }
 
 export function createSea(waves: readonly GerstnerWave[] = testBaySea()): Sea {
-  return { waves: packWaves(waves), time: 0 };
+  return {
+    waves: packWaves(waves),
+    time: 0,
+    scale: uniformSeaScale(),
+    wavesVersion: 0,
+    scaleVersion: 0,
+  };
+}
+
+/** The local sea scale under (x, z). */
+export function seaScaleAt(sea: Sea, x: number, z: number): number {
+  return sampleSeaScale(sea.scale, x, z);
+}
+
+/** Swap in a new wave set (dev panel, weather) and tell the water. */
+export function setSeaWaves(sea: Sea, waves: PackedWave[]): void {
+  sea.waves = waves;
+  sea.wavesVersion++;
 }

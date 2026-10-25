@@ -1,4 +1,4 @@
-import { GAMEPLAY_WAVES, heightAt, type Sea } from '../sim/weather/waves';
+import { GAMEPLAY_WAVES, heightAt, seaScaleAt, type Sea } from '../sim/weather/waves';
 import type { GameWorld } from './ecs';
 
 /**
@@ -71,6 +71,8 @@ export function hullTargets(
   const half = b.length / 2;
   const quarter = b.length / 4;
   const side = b.beam / 2;
+  // The lee calms the sea over hundreds of meters, so one sample covers the hull.
+  const scale = seaScaleAt(sea, x, z);
   const h = (along: number, across: number): number =>
     heightAt(
       sea.waves,
@@ -78,6 +80,8 @@ export function hullTargets(
       x + fx * along + sx * across,
       z + fz * along + sz * across,
       sea.time,
+      3,
+      scale,
     );
 
   const bow = h(half, 0);

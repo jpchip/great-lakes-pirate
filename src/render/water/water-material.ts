@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { MAX_WAVES } from '../../sim/weather/waves';
+import { MAX_WAVES, SEA_SCALE_BYTE } from '../../sim/weather/waves';
 
 /**
  * The stylized water shader (plan 04 §7): Gerstner displacement and analytic normals
@@ -10,7 +10,18 @@ import { MAX_WAVES } from '../../sim/weather/waves';
  * difference is the fade, which removes short waves far from the camera, and any wave
  * the grid is too coarse to sample where a vertex sits. Without that, an undersampled
  * wave aliases into shapes that jump each time the grid snaps to a moving camera.
+ *
+ * The local sea scale (shelter and fetch, waves.ts SeaScaleGrid) is an R8 texture over the
+ * zone; it multiplies amplitude and steepness at each rest position, as heightAt does.
  */
+
+const seaScaleChunk = /* glsl */ `
+uniform sampler2D uSeaScale;
+uniform vec4 uSeaScaleRect; // minX, minZ, 1 / width m, 1 / height m
+float seaScale(vec2 p) {
+  return texture2D(uSeaScale, (p - uSeaScaleRect.xy) * uSeaScaleRect.zw).r * ${(255 / SEA_SCALE_BYTE).toFixed(6)};
+}
+`;
 
 const vertexShader = /* glsl */ `
 #include <common>
@@ -25,7 +36,7 @@ uniform vec4 uWaveB[MAX_WAVES]; // omega, phase, steepness, unused
 // Grid vertex spacing at distance d from its center ≈ (d + uGridOffset) · uGridGrowth.
 uniform float uGridOffset;
 uniform float uGridGrowth;
-
+${seaScaleChunk}
 varying vec3 vWorldPos;
 varying vec2 vRestPos;
 varying float vHeight;
@@ -35,6 +46,7 @@ void main() {
   vec2 p0 = world.xz;
   float dist = distance(p0, cameraPosition.xz);
   float spacing = (distance(p0, modelMatrix[3].xz) + uGridOffset) * uGridGrowth;
+  float local = seaScale(p0);
 
   vec3 disp = vec3(0.0);
   for (int i = 0; i < MAX_WAVES; i++) {
@@ -44,7 +56,7 @@ void main() {
     float wavelength = 6.2831853 / a.z;
     float fade = 1.0 - smoothstep(wavelength * 8.0, wavelength * 30.0, dist);
     // Displace only with waves the grid samples at least 2.5 times per wavelength.
-    fade = min(fade, 1.0 - smoothstep(wavelength * 0.2, wavelength * 0.4, spacing));
+    fade = min(fade, 1.0 - smoothstep(wavelength * 0.2, wavelength * 0.4, spacing)) * local;
     float amp = a.w * fade;
     float steep = b.z * fade;
     float theta = a.z * dot(a.xy, p0) - b.x * uTime + b.y;
@@ -82,7 +94,7 @@ uniform float uTime;
 uniform int uWaveCount;
 uniform vec4 uWaveA[MAX_WAVES];
 uniform vec4 uWaveB[MAX_WAVES];
-
+${seaScaleChunk}
 varying vec3 vWorldPos;
 varying vec2 vRestPos;
 varying float vHeight;
@@ -95,13 +107,14 @@ void waveShading(out vec3 n, out float crest) {
   crest = 0.0;
   float footprint = length(fwidth(vRestPos));
   float dist = distance(vRestPos, cameraPosition.xz);
+  float local = seaScale(vRestPos);
   for (int i = 0; i < MAX_WAVES; i++) {
     if (i >= uWaveCount) break;
     vec4 a = uWaveA[i];
     vec4 b = uWaveB[i];
     float wavelength = 6.2831853 / a.z;
     float fade = 1.0 - smoothstep(wavelength * 8.0, wavelength * 30.0, dist);
-    fade = min(fade, 1.0 - smoothstep(wavelength * 0.25, wavelength * 0.5, footprint));
+    fade = min(fade, 1.0 - smoothstep(wavelength * 0.25, wavelength * 0.5, footprint)) * local;
     float amp = a.w * fade;
     float steep = b.z * fade;
     float theta = a.z * dot(a.xy, vRestPos) - b.x * uTime + b.y;
@@ -170,6 +183,8 @@ export interface WaterUniforms {
   uWaveB: THREE.IUniform<Float32Array>;
   uGridOffset: THREE.IUniform<number>;
   uGridGrowth: THREE.IUniform<number>;
+  uSeaScale: THREE.IUniform<THREE.Texture>;
+  uSeaScaleRect: THREE.IUniform<THREE.Vector4>;
   uDeepColor: THREE.IUniform<THREE.Color>;
   uCrestColor: THREE.IUniform<THREE.Color>;
   uSkyColor: THREE.IUniform<THREE.Color>;
@@ -190,6 +205,9 @@ export function createWaterMaterial(): THREE.ShaderMaterial & { uniforms: WaterU
     // Set from the grid by water.ts; zero spacing disables the grid fade.
     uGridOffset: { value: 0 },
     uGridGrowth: { value: 0 },
+    // Set from the sea by water.ts.
+    uSeaScale: { value: new THREE.Texture() },
+    uSeaScaleRect: { value: new THREE.Vector4(0, 0, 1, 1) },
     // Cold blue-gray Superior water (plan 04 §1); art direction retunes these.
     uDeepColor: { value: new THREE.Color(0x1d3a4a) },
     uCrestColor: { value: new THREE.Color(0x4f7f8c) },

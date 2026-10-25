@@ -17,6 +17,13 @@ import { loadAssets } from './render/assets';
 import { browserStorage, initialQuality } from './render/quality';
 import { GameRenderer } from './render/renderer';
 import { createTestScene } from './render/test-scene';
+import {
+  WEATHER_PRESETS,
+  createLocalWeather,
+  type WeatherPresetId,
+} from './sim/weather/local-weather';
+import { SECONDS_PER_GAME_DAY, dayAndHour } from './core/time';
+import { TEST_BAY_ISLANDS, stubIslandShelter } from './sim/weather/shelter';
 import { createSea } from './sim/weather/waves';
 import { createWorldState, parseWorldState, type WorldState } from './sim/world-state';
 
@@ -77,6 +84,28 @@ async function openRun(): Promise<OpenedRun> {
   return { state, saver, status: 'created' };
 }
 
+/**
+ * Dev and playtest URL switches for the weather (plan 02 §14.2): `?weather=gale` picks a
+ * preset, `?gale` starts the scripted gale, `?wind=45` sets where it comes from,
+ * `?knots=30` its speed, and `?day=1&hour=19.5` the game day and time of day.
+ */
+function applyWeatherParams(params: URLSearchParams, ctx: GameContext): void {
+  const preset = params.get('weather');
+  if (preset && preset in WEATHER_PRESETS) ctx.weather.applyPreset(preset as WeatherPresetId);
+  const from = Number(params.get('wind'));
+  if (params.has('wind') && Number.isFinite(from)) ctx.weather.settings.fromDeg = from;
+  const knots = Number(params.get('knots'));
+  if (params.has('knots') && Number.isFinite(knots)) ctx.weather.settings.speedKn = knots;
+  const clock = ctx.state.environment.clock;
+  const now = dayAndHour(clock.gameSeconds);
+  const day = params.has('day') ? Number(params.get('day')) : now.day;
+  const hour = params.has('hour') ? Number(params.get('hour')) : now.hour;
+  if ((params.has('day') || params.has('hour')) && Number.isFinite(day + hour)) {
+    clock.gameSeconds = day * SECONDS_PER_GAME_DAY + hour * 3600;
+  }
+  if (params.has('gale')) ctx.weather.startGale(clock.gameSeconds);
+}
+
 async function boot(): Promise<void> {
   const container = document.getElementById('app');
   if (!container) throw new Error('Missing #app container');
@@ -104,10 +133,14 @@ async function boot(): Promise<void> {
     input,
     events: new EventBus<GameEvents>(),
     sea: createSea(),
+    // The stub lee until the Apostles terrain (piece B) provides the baked maps.
+    weather: createLocalWeather(undefined, stubIslandShelter(TEST_BAY_ISLANDS)),
   };
 
   // Placeholder schooner riding the test-bay sea until the sailing controller lands
   // (plan 02). It holds still; the waves move it.
+  applyWeatherParams(params, ctx);
+
   const shipTransform = { position: { x: 0, y: 0, z: 0 }, heading: 0.6 };
   ctx.world.add({
     id: 'ship.player',
@@ -147,7 +180,15 @@ async function boot(): Promise<void> {
       container,
       initialQuality(window.location.search, browserStorage()),
     );
-    const scene = await createTestScene(renderer, ctx.world, ctx.sea, assets);
+    const scene = await createTestScene(
+      renderer,
+      ctx.world,
+      ctx.sea,
+      assets,
+      ctx.weather,
+      state.environment.clock,
+      TEST_BAY_ISLANDS,
+    );
     view = scene;
 
     // Dev overlay: dev builds, or `?debug` / `?bench=water` on a production build.
@@ -157,7 +198,9 @@ async function boot(): Promise<void> {
       const overlay = createDevOverlay({
         renderer,
         scene,
-        sea: ctx.sea,
+        weather: ctx.weather,
+        clock: state.environment.clock,
+        probe: () => shipTransform.position,
         save: saveControls,
         autoBench: bench,
       });

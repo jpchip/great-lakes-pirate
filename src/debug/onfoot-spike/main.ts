@@ -10,6 +10,7 @@ import { DEFAULT_CONTROLLER } from '../../gameplay/onfoot/controller';
 import type { GameContext, GameEvents } from '../../modes/context';
 import { ModeMachine } from '../../modes/machine';
 import { createOnFootMode } from '../../modes/on-foot';
+import { createLocalWeather } from '../../sim/weather/local-weather';
 import { createSea } from '../../sim/weather/waves';
 import { createWorldState } from '../../sim/world-state';
 import { createSpikeChunk } from './chunk';
@@ -45,6 +46,7 @@ const ctx: GameContext = {
   events: new EventBus<GameEvents>(),
   // Flat water on foot for now; the pier and shore don't follow waves yet.
   sea: createSea([]),
+  weather: createLocalWeather(),
 };
 
 const camera = new FollowCamera();

@@ -1,5 +1,10 @@
 import { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js';
-import { packWaves, testBaySea, type Sea } from '../sim/weather/waves';
+import { dayAndHour, SECONDS_PER_GAME_DAY, type ClockState } from '../core/time';
+import {
+  WEATHER_PRESETS,
+  type LocalWeather,
+  type WeatherPresetId,
+} from '../sim/weather/local-weather';
 import type { GameRenderer } from '../render/renderer';
 import { browserStorage, QUALITY_IDS, storeQuality, type QualityId } from '../render/quality';
 import type { TestScene } from '../render/test-scene';
@@ -7,7 +12,7 @@ import { formatWaterBench, runWaterBench } from './water-bench';
 
 /**
  * The dev overlay (plan 01 §5, §11.1 task 4): a stats readout plus lil-gui panels for
- * quality, the sea, saving and the S2 water benchmark. Loaded only in dev builds or with
+ * quality, wind and sea (plan 02 §14.2), time of day, saving and the S2 water benchmark. Loaded only in dev builds or with
  * `?debug` / `?bench=water`, as a separate chunk.
  */
 
@@ -21,7 +26,10 @@ export interface SaveControls {
 export interface OverlayOptions {
   renderer: GameRenderer;
   scene: TestScene;
-  sea: Sea;
+  weather: LocalWeather;
+  clock: ClockState;
+  /** Where to read the wind for the readout (the player ship). */
+  probe(): { x: number; z: number };
   save: SaveControls;
   /** Run the water benchmark straight away (`?bench=water`). */
   autoBench: boolean;
@@ -34,7 +42,7 @@ const STYLE = `
 `;
 
 export function createDevOverlay(options: OverlayOptions): { update(frameSeconds: number): void } {
-  const { renderer, scene, sea, save } = options;
+  const { renderer, scene, weather, clock, probe, save } = options;
 
   const readout = document.createElement('pre');
   readout.style.cssText = STYLE;
@@ -62,23 +70,49 @@ export function createDevOverlay(options: OverlayOptions): { update(frameSeconds
     .name('Dynamic resolution')
     .onChange((on: boolean) => (renderer.dynamicResolution.enabled = on));
 
-  const seaParams = { scale: 1, foam: renderer.preset.crestFoam };
+  const settings = weather.settings;
+  const windFolder = gui.addFolder('Wind and sea');
+  const preset: { id: string } = { id: 'moderate' };
+  windFolder
+    .add(preset, 'id', Object.keys(WEATHER_PRESETS))
+    .name('Preset')
+    .onChange((id: string) => weather.applyPreset(id as WeatherPresetId));
+  windFolder
+    .add({ gale: () => weather.startGale(clock.gameSeconds) }, 'gale')
+    .name('Start scripted gale');
+  windFolder.add(settings, 'fromDeg', 0, 359, 1).name('From (°)');
+  windFolder.add(settings, 'speedKn', 0, 50, 0.5).name('Speed (kn)');
+  windFolder.add(settings, 'driftDeg', 0, 40, 1).name('Drift (°)');
+  windFolder.add(settings, 'surge', 0, 0.4, 0.01).name('Surge');
+  windFolder.add(settings, 'gustiness', 0, 1, 0.01).name('Gustiness');
+  windFolder.add(settings, 'seaGain', 0, 2.5, 0.05).name('Sea × wind');
+  windFolder.add(settings, 'seaLagMin', 0, 180, 5).name('Sea lag (game min)');
+  windFolder.add(settings, 'visibilityM', 100, 25_000, 100).name('Visibility (m)');
+  windFolder.add(settings, 'cloud01', 0, 1, 0.01).name('Cloud');
+  windFolder.controllers.forEach((c) => c.listen());
+
+  const time = {
+    get hour(): number {
+      return dayAndHour(clock.gameSeconds).hour;
+    },
+    set hour(h: number) {
+      const { day } = dayAndHour(clock.gameSeconds);
+      clock.gameSeconds = day * SECONDS_PER_GAME_DAY + h * 3600;
+    },
+  };
+  const timeFolder = gui.addFolder('Time');
+  timeFolder.add(time, 'hour', 0, 23.99, 0.05).name('Hour').listen();
+
+  const seaParams = { foam: renderer.preset.crestFoam };
   const uniforms = scene.water.material.uniforms;
-  const seaFolder = gui.addFolder('Sea');
-  seaFolder
-    .add(seaParams, 'scale', 0, 2.5, 0.05)
-    .name('Sea state')
-    .onChange((scale: number) => {
-      // Buoyancy reads ctx.sea, so swap the set on the shared object.
-      sea.waves = packWaves(testBaySea(scale));
-      scene.water.setWaves(sea);
-    });
+  const seaFolder = gui.addFolder('Water');
   seaFolder.add(uniforms.uWaveCount, 'value', 1, 8, 1).name('Shader waves').listen();
   seaFolder
     .add(seaParams, 'foam')
     .name('Crest foam')
     .onChange((on: boolean) => (uniforms.uCrestFoam.value = on ? 1 : 0));
-  seaFolder.add(uniforms.uFoamThreshold, 'value', 0.1, 0.9, 0.01).name('Foam threshold');
+  // Driven by the wind each frame (render/environment.ts); shown for reference.
+  seaFolder.add(uniforms.uFoamThreshold, 'value', 0.1, 0.9, 0.01).name('Foam threshold').disable();
   renderer.onPresetChange((preset) => (seaParams.foam = preset.crestFoam));
   seaFolder.controllers.forEach((c) => c.listen());
 
@@ -140,12 +174,22 @@ export function createDevOverlay(options: OverlayOptions): { update(frameSeconds
       const s = renderer.stats();
       const heap = (performance as { memory?: { usedJSHeapSize: number } }).memory;
       const saved = save.lastSavedAt ? save.lastSavedAt.toLocaleTimeString() : '—';
+      const at = probe();
+      const wind = weather.windAt(at, clock.gameSeconds);
+      const waves = weather.waveParams(at);
+      const { hour } = dayAndHour(clock.gameSeconds);
+      const hh = Math.floor(hour);
+      const mm = Math.floor((hour - hh) * 60);
+      const clockText = `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`;
       readout.textContent = [
         `${fps.toFixed(0)} fps  worst ${worstShown.toFixed(1)} ms`,
         `GPU ${s.gpuMs === undefined ? 'n/a' : `${s.gpuMs.toFixed(2)} ms`}`,
         `${s.drawCalls} calls  ${(s.triangles / 1000).toFixed(1)}k tris`,
         `${renderer.preset.label}  scale ${s.scale.toFixed(2)}  ${s.width}×${s.height}`,
         heap ? `heap ${(heap.usedJSHeapSize / 1048576).toFixed(0)} MB` : '',
+        `wind ${((wind.fromRad * 180) / Math.PI).toFixed(0)}° ${wind.speedKn.toFixed(1)} kn  gust ${wind.gust01.toFixed(2)}  lee ${wind.shelter01.toFixed(2)}${weather.galeActive ? '  GALE' : ''}`,
+        `sea Hs ${waves.hsM.toFixed(2)} m  ×${waves.scale.toFixed(2)}  λ ${weather.seaShape.peakWavelengthM.toFixed(0)} m`,
+        `${clockText}  sun ${scene.environment.sunElevationDeg.toFixed(0)}°  vis ${(weather.visibilityAt(at, clock.gameSeconds) / 1000).toFixed(1)} km`,
         `save ${save.status}  last ${saved}${save.lastError ? `  ERROR ${save.lastError}` : ''}`,
         benchText,
       ]
