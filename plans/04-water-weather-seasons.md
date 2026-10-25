@@ -382,15 +382,15 @@ Sailing in the S7 greybox, the dev saw the waves stutter. The polar grid's verti
 - **Geometry** displaces only with waves the grid samples at least 2.5 times per wavelength where each vertex sits (`uGridOffset` and `uGridGrowth` come from `createPolarGrid`).
 - **Shading** computes the wave normals and crest foam per pixel at the rest position, faded by the pixel's footprint, so the chop stays but no longer depends on where the grid vertices are.
 - **Result:** in a frozen-time test that moves the camera 0.5 m per frame, the frame-to-frame change no longer spikes at each snap (before, it was about 2.5× normal every 4 m; after, it's flat). The bands now have smooth edges instead of triangle facets, which S4's style test can revisit.
-- **Cost (baseline laptop, Firefox 158, 2026-10-25):** the per-pixel loop adds shader work. Firefox rounds `performance.now()` to 1 ms, so each value is ±1 ms, and the buffer was larger than in the Chrome run (1920×1089 vs 1587×1088).
+- **Cost (baseline laptop, Chrome 156, ANGLE on OpenGL 4.6, radeonsi, 2026-10-25):** the same `?bench=water` run on a production build as the S2 table above, but at a larger buffer (1920×1088, about 21% more pixels than 1587×1088).
 
 | Preset | Buffer | Waves | Frame ms | Water ms | Crest foam ms | No water ms | Triangles | Draw calls |
 |---|---|---|---|---|---|---|---|---|
-| Low | 1440×816 | 4 | 2 | 1 | 0 | 1 | 11,590 | 4 |
-| Medium | 1920×1089 | 6 | 3 | 2 | 0 | 1 | 23,830 | 4 |
-| High | 1920×1089 | 8 | 3 | 2 | 0 | 1 | 43,750 | 4 |
+| Low | 1440×816 | 4 | 1.8 | 0.8 | 0.0 | 1.0 | 11,590 | 4 |
+| Medium | 1920×1088 | 6 | 3.1 | 2.0 | 0.5 | 1.1 | 23,830 | 4 |
+| High | 1920×1088 | 8 | 3.4 | 2.3 | 0.3 | 1.1 | 43,750 | 4 |
 
-  **Provisional:** water on Medium reads about 2 ms against the S2 baseline's 1.0 ms, still inside the 3 ms budget. The whole-millisecond timer, Firefox's generic GPU name and the 0 ms crest foam on every preset mean this can't tell a real slowdown from rounding. Rerun in Chrome (0.1 ms timer), as the S2 baseline was, before treating these as the new baseline. If it gets tight, the cheapest lever is per-pixel shading of the detail waves only (5–8) on Low.
+  **Result:** water on Medium with crest foam is **2.0 ms, still inside the 3 ms budget** but with about 1 ms of headroom instead of 2. Scaled to S2's buffer size, the old shader would be about 1.2 ms here, so the per-pixel waves cost roughly 0.8 ms. The whole frame is 3.1 ms of 16.7. If the budget gets tight, the levers are: shade only the detail waves (5–8) per pixel and keep vertex normals for the gameplay waves, or drop Medium to 4 per-pixel waves. A Firefox run gave the same picture with whole-millisecond timings (Medium about 2 ms). If it gets tight, the cheapest lever is per-pixel shading of the detail waves only (5–8) on Low.
 
 ### Decisions
 - Keep the shared Gerstner set as designed: 4/6/8 waves by preset, buoyancy on the first 4, a steepness cap of 0.9.
