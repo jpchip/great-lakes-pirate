@@ -16,6 +16,9 @@ export interface GameEvents {
   EncounterSpotted: { contactId: string; forced: boolean };
   EncounterEngaged: { contactId: string; forced: boolean };
   EncounterAvoided: { contactId: string; escaped: boolean };
+  /** Sailing (plan 02 §4): the bow or the stern crossed the wind. */
+  ShipTacked: { shipId: string | undefined };
+  ShipJibed: { shipId: string | undefined; uncontrolled: boolean };
 }
 
 /** Everything a mode needs; built once at boot and handed to each mode. */

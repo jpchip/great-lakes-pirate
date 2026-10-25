@@ -20,12 +20,18 @@ export type Action =
   | 'Crouch'
   | 'Sprint'
   | 'Jump'
-  | 'TrimSailsIn'
-  | 'TrimSailsOut'
   | 'SteerPort'
   | 'SteerStarboard'
-  | 'FirePort'
-  | 'FireStarboard'
+  | 'RaiseSail'
+  | 'LowerSail'
+  | 'TrimIn'
+  | 'TrimOut'
+  | 'Anchor'
+  | 'Sweeps'
+  | 'Lantern'
+  | 'Spyglass'
+  | 'AimMode'
+  | 'Fire'
   | 'ToggleChart';
 
 export type Bindings = Record<InputContext, Partial<Record<Action, readonly string[]>>>;
@@ -35,16 +41,24 @@ export const DEFAULT_BINDINGS: Bindings = {
     Confirm: ['Enter', 'Space'],
     Cancel: ['Escape'],
   },
+  // Plan 02 §2. Interact stays F here; on foot it is E for now (plan 08 §19).
   sailing: {
     Pause: ['Escape'],
     SteerPort: ['KeyA', 'ArrowLeft'],
     SteerStarboard: ['KeyD', 'ArrowRight'],
-    TrimSailsIn: ['KeyS', 'ArrowDown'],
-    TrimSailsOut: ['KeyW', 'ArrowUp'],
-    FirePort: ['KeyQ'],
-    FireStarboard: ['KeyE'],
+    RaiseSail: ['KeyW', 'ArrowUp'],
+    LowerSail: ['KeyS', 'ArrowDown'],
+    TrimIn: ['KeyQ'],
+    TrimOut: ['KeyE'],
+    Anchor: ['KeyX'],
+    Sweeps: ['KeyR'],
+    Lantern: ['KeyL'],
+    Spyglass: ['Mouse2'],
     Interact: ['KeyF'],
     ToggleChart: ['KeyM'],
+    // Reserved for combat (plan 07).
+    AimMode: ['Tab'],
+    Fire: ['Mouse0'],
   },
   onFoot: {
     Pause: ['Escape'],
