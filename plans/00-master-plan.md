@@ -414,6 +414,7 @@ All planned documents are drafted and their open questions answered. Next:
 | 2026-10-23 | Phase 10 (expand the lakes) comes before Phase 11 (polish); expansions ship before 1.0 as 0.10.x (17). |
 | 2026-10-22 | Booth Fisheries is fictionalized as Hollister Fish & Packing everywhere, including the README. |
 | 2026-10-24 | Spike S7: C = 8, R = 24, R_foot = 6 and freighter display scale 0.85 confirmed by playtest (03 §15). |
+| 2026-10-25 | Spike S4: art style B (toon with per-object ink outlines) picked; costs nothing measurable on the baseline laptop (14 §3.4). |
 
 ---
 

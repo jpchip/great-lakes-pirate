@@ -1,6 +1,6 @@
 # 14 — Art Direction & AI Asset Pipeline
 
-Status: DRAFT v0.3 (decisions made; A/B pick in S4)
+Status: DRAFT v0.4 (style picked in S4: B, toon with per-object outlines)
 Parent: [00-master-plan.md](00-master-plan.md)
 Inputs:
 - Master plan: stylized art; AI-generated 3D; period authenticity; the `references/` photos
@@ -75,7 +75,7 @@ Both suit the **fully scripted pipeline** (§7): they tolerate rough, auto-clean
 ### 3.3 Scoring
 Readability (silhouettes, night, fog) · cohesion of mixed-source assets · fit to the Superior mood · **GPU frame time on the baseline laptop** (Ryzen 7 7730U iGPU, [01 §13](01-tech-architecture.md)) · production effort per asset. The developer picks; the result is recorded in this plan.
 
-**Current recommendation:** **A or B**. B (toon with outlines) has an edge for night and fog readability, if the outline cost fits the budget. An inverted-hull outline on hero objects only, or a cheap depth/normal edge pass on High only, are both options.
+**Decided (2026-10-25, S4): B, toon with per-object outlines.** Three light bands plus inverted-hull ink outlines on hero objects (ships, lighthouses, characters), with 1 px edge lines on open surfaces such as sails. On the baseline laptop this costs nothing measurable over flat shading (§3.4). The screen-space edge pass is dropped: it cost +0.5 ms on Medium and +1.5 ms on High for little visible gain.
 
 ### 3.4 Spike S4 progress (2026-10-25)
 **Built, pick pending.** `/bench/s4/` (`npm run dev`) renders the §3.2 scene in four variants: **A** (flat, face normals from screen-space derivatives), **B0** (toon bands, no outline, to isolate the outline's cost), **B** (toon plus inverted-hull outlines on the schooner and light station, 1 px edge lines on the sails) and **B-edge** (toon plus a screen-space depth-edge pass). `?bench` times each variant × dusk/night × fog on/off × preset and prints a table to paste here. The hull pipeline (§7) runs end to end: `npm run assets:hull -- raw-assets/ships/schooner-t1`, steps in `tools/assets/README.md`. Meshy and nano-banana terms are in `assets/LICENSES.json`.
@@ -105,7 +105,7 @@ Draw calls and triangles per variant: A, B0 17 calls; B (hull outline) 27 calls 
 
 **Findings:** (1) Toon banding costs nothing over flat shading: A vs. B0 is within noise (±0.2 ms) on every preset. (2) Inverted-hull outlines are also within noise: at most +0.27 ms, usually ±0.1, for 10 extra draw calls. (3) The screen-space edge pass is the only real cost: about +0.25 ms on Low, +0.5 ms on Medium and +1.5 ms on High, where the half-float target plus the MSAA resolve at full size dominate. It would use up most of Medium's post-processing budget (01 §5: "bloom or outlines"). (4) Every variant is far inside budget on this small scene (≤ 3 ms on High), so the pick can be made on looks.
 
-**Still to do:** the Meshy hull (the scene loads it automatically) and the pick, which goes in §16 Decisions.
+**Pick:** B with per-object outlines (§16). Still open: the Meshy hull, which doesn't change the cost picture.
 
 ---
 
@@ -116,7 +116,7 @@ One custom GLSL material (spike S1 picked `WebGLRenderer` + GLSL; [01 §14](01-t
 | Feature | Purpose |
 |---|---|
 | **Palette texture** (a shared color-ramp atlas) sampled by UV or vertex color | Forces every asset into the master palette, which gives cohesion |
-| Banded (toon) or flat diffuse, per the style test | Consistent lighting response |
+| Banded (toon) diffuse, three bands (style B, §3) | Consistent lighting response |
 | Optional small detail texture (wood grain, stone) at low contrast | Surface interest without realism |
 | Rim light (subtle) | Silhouette readability at night |
 | Emissive mask | Lanterns, windows, lighthouse lamps |
@@ -328,10 +328,12 @@ All resolved. The final A-vs-B pick happens in spike S4 (shrunk scene).
 | 2026-10-22 | **S4 scene shrunk** to schooner, water, fog and one lighthouse beam at dusk and night. |
 | 2026-10-22 | **Blender runs locally only**, never in CI. |
 | 2026-10-22 | **Static sails** (no billow shader); flags keep a vertex shader. |
+| 2026-10-25 | **Style B picked (S4):** toon bands plus inverted-hull outlines on hero objects; no screen-space edge pass. Laptop cost within noise of flat shading (§3.4). |
 
 ---
 
 ## Changelog
+- v0.4: S4 results (§3.4): scene, benchmark on the baseline laptop, style B with per-object outlines picked.
 - v0.3: Gap review: sourcing order (procedural/CC0 first, AI fills gaps), Meshy chosen, nano-banana approved for shipped outputs, shrunk S4 scene, Blender local only, static sails, A-or-B wording fixed.
 - v0.2: Decisions: photochrom reference, AI image gen (nano-banana) approved, public-domain engravings, fully scripted pipeline (headless Blender clean, procedural ship rigs and caves, contact-sheet review), style test narrowed to A/B.
 - v0.1: Initial art plan: pillars, palette and mood (photochrom reference), time and season palettes, style test (candidates, scene, scoring), the unified stylized material and palette-ization, sources by asset type, AI tooling and the license gate, the automated pipeline, budgets, animation list, VFX style, MVP asset list, historical references, phasing, risks.
