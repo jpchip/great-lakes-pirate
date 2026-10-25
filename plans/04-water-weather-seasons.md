@@ -526,7 +526,15 @@ The stub's open fetch is 60 km; drift moves these by ±15%. The S2 test sea that
 
 In the stub lee (wind from 63°, the ship 560 m behind the island's shore) the wind falls from 14 to about 9.5 kn and the sea to 0.11 of open water, mostly from the short fetch. A schooner there heaves less than half as much as in open water (unit test).
 
-Cost in the cloud container: a weather tick 1.2 µs (p50), `windAt` 0.3 µs, a full 256-row scale bake 12 ms with the stub (spread over 16 ticks at under 1 ms each). The baseline laptop hasn't measured the shader's extra texture fetch; piece F's water bench rerun covers it.
+Cost in the cloud container: a weather tick 1.2 µs (p50), `windAt` 0.3 µs, a full 256-row scale bake 12 ms with the stub (spread over 16 ticks at under 1 ms each). On the baseline laptop (AMD Radeon Renoir, Chrome 156, MSAA off, 2026-10-25, with the Apostles test bay and the sea-scale texture), the water bench gives:
+
+| Preset | Waves | Frame ms | Water ms | Crest foam ms | No water ms |
+|---|---|---|---|---|---|
+| Low | 4 | 1.70 | 0.80 | 0.00 | 0.90 |
+| Medium | 6 | 2.90 | 1.30 | 0.40 | 1.60 |
+| High | 8 | 3.30 | 1.60 | 0.30 | 1.70 |
+
+Medium water is 1.3 ms of its 3 ms budget, so the extra texture fetch fits. It is below the 2.0 ms recorded in §19 after the stutter fix, but that run was on a different scene, so don't read it as a speed-up. Piece F's rerun with shore foam and depth bands is still due.
 
 ### Screenshots
 `/mnt/project-files/wind-sky/` in the project: day, dusk, night, gale, the lee behind the stub island, and the moon's phases.
