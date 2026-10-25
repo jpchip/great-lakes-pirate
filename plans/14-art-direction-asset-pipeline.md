@@ -77,6 +77,15 @@ Readability (silhouettes, night, fog) · cohesion of mixed-source assets · fit 
 
 **Current recommendation:** **A or B**. B (toon with outlines) has an edge for night and fog readability, if the outline cost fits the budget. An inverted-hull outline on hero objects only, or a cheap depth/normal edge pass on High only, are both options.
 
+### 3.4 Spike S4 progress (2026-10-25)
+**Built, pick pending.** `/bench/s4/` (`npm run dev`) renders the §3.2 scene in four variants: **A** (flat, face normals from screen-space derivatives), **B0** (toon bands, no outline, to isolate the outline's cost), **B** (toon plus inverted-hull outlines on the schooner and light station, 1 px edge lines on the sails) and **B-edge** (toon plus a screen-space depth-edge pass). `?bench` times each variant × dusk/night × fog on/off × preset and prints a table to paste here. The hull pipeline (§7) runs end to end: `npm run assets:hull -- raw-assets/ships/schooner-t1`, steps in `tools/assets/README.md`. Meshy and nano-banana terms are in `assets/LICENSES.json`.
+
+**Cloud check (software renderer, not a GPU):** at Medium 1280×720 under SwiftShader, A, B0 and B were within noise of each other (≈ 57–65 ms per frame), and B-edge cost about +35% (≈ +22–26 ms) for its full-screen pass and half-float target. B adds 10 draw calls and ~620 triangles (outline shells) to the scene's 17 calls and 24.3k triangles. Only the ratios mean anything; the laptop run decides.
+
+**Seen in the renders:** the outlines do most for the sails and spars against a bright dusk sky; at night the moonlit sails already read in all variants, and the lamp, beam and glare carry the light station in fog. The edge pass also inks the light station and islet, but leaves a few stray lines on near wave crests.
+
+**Still to do:** the Meshy hull (the scene loads it automatically), the laptop benchmark, and the pick, which goes in §16 Decisions.
+
 ---
 
 ## 4. Unified Stylized Material
