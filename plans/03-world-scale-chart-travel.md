@@ -293,7 +293,7 @@ Spotted something (or something spotted you)
 |---|---|---|---|
 | **S3** | Geo pipeline (Apostles) | Can we produce compressed heightmap tiles plus an SDF from NOAA/USGS data reproducibly? | One command builds `public/world/apostles/` (with shelter, fetch and funneling maps, and 1 m tiles for all 22 islands); islands are recognizable compared with a real map |
 | **S7** | **Scale-feel greybox** (new) | Do C = 8 and R = 24 feel right? Visual speed, channel widths, island walk sizes, freighter scale | Greybox Apostles zone with a placeholder schooner and a dev panel to vary C (6/8/10), R and freighter scale live. Pick values. |
-| **S8** | Chart mode prototype (new) | Is plotting plus a compressed voyage plus encounter interrupts fun and readable? | Chart with western Superior, course plotting, a time-compressed voyage, a fake encounter popping into an empty arena and back |
+| **S8** | Chart mode prototype (new) | Is plotting plus a compressed voyage plus encounter interrupts fun and readable? | Chart with western Superior, course plotting, a time-compressed voyage, a fake encounter popping into an empty arena and back. **Built; results in §14.** |
 
 S7 and S8 are **Phase 0** prototypes (decided 2026-10-22; [01 §11](01-tech-architecture.md)). S7 should follow S2 (water) and can reuse the S3 output. A flat-mask fallback is fine if S3 isn't done.
 
@@ -380,92 +380,52 @@ The soft knee (`h' = 20·ln(1 + h/20)`) keeps low ground near full height, so be
 **Question** (§11): do C = 8, R = 24 and the freighter scale feel right? That covers visual speed, channel widths, island walk sizes and freighter scale.
 
 **Answer: yes. Keep C = 8 and R = 24, with freighters at 0.85× and R_foot = 6.** The numbers below supported these values, and the dev confirmed them on the laptop on 2026-10-24 ("feels good, takes a bit of time to get places but not crazy"). The one problem found was the wave stutter while sailing, now fixed in plan 04 §19.
+## 14. Prototype S8: Chart Mode (results, 2026-10-23)
+
+**Question** (§11): is plotting plus a compressed voyage plus encounter interrupts fun and readable?
+
+**Answer: yes, it reads clearly and it's fun.** The dev's playtest (2026-10-24) found it fun, with encounters coming up at a good rhythm. Every exit criterion works end to end: a western Superior chart, course plotting with land checks, a time-compressed voyage that keeps an honest clock, and encounters that drop into an open-water arena and back. The headless checks below cover readability and pacing. Two tuning changes came out of it: a **pacing guard** and a **6 nm daytime lookout range**.
 
 ### What was built
 | Piece | Where | Notes |
 |---|---|---|
-| Page | `scale-greybox.html`, `src/debug/scale-greybox/` | Dev-only like the S5 page: `npm run dev`, then `/scale-greybox.html`. It isn't part of the production build. `?c=8&r=24&rfoot=6&freighter=0.85` set the starting values. |
-| Geography | `geography.ts` | Hand-placed stand-in for S3: all 22 islands as ellipses and the mainland (Bayfield peninsula, Chequamegon Bay, south shore) as one polygon, from approximate public coordinates. The R1a legs come out close: Bayfield–La Pointe 2.3 nm (R1a: 2), Bayfield–Ashland 13.4 nm (13), Sand–Outer 21.8 nm (22). Coastline shapes are rough, so treat the channel widths below as indicative. |
-| Terrain | `terrain.ts`, `scene.ts` | One 125 m grid in true-scale chart meters (457 × 497 samples), built once in about 0.4 s. Every C shares it: the mesh is scaled by 1/C horizontally, and the on-foot and grounding heightfield is the same heights with a cell of 125/C m. Heights stay 1:1 (§3.1 as it stood; S3 later chose a soft knee, §14.3). Ground too steep to walk at the current C (over 42°, plan 08 §19) is drawn red. |
-| Helm | `helm.ts` | A stand-in for plan 02: the four sail levels on a steady beam reach (Full = 7.65 game kn for the T2 hull), 6 s inertia, a best turn rate of 6°/s that falls off at low speed, grounding at a 3 m draft, and sweeps astern to back off. The ship moves at v₃ᴅ = v × R / C. |
-| 1:1 references | `setpieces.ts`, `trees.ts`, `freighters.ts` | The S2 schooner (30 m), conifers 10–20 m tall within 1.4 km of the camera, five towns with piers (Ashland gets a 560 m ore dock), six 1900 lighthouses at their real heights, three 122 m ore boats steaming at 9 kn on two lanes, and the S5 capsule (1.75 m) on foot. |
-| On foot | `main.ts` | **F** goes ashore at the nearest walkable shore and back aboard, with the S5 controller and camera and the clock at R_foot. |
-| Dev panel | lil-gui | C from 4 to 12 (with 6/8/10 buttons), R, R_foot, freighter scale, hull speed, wind factor, turn rate, inertia, visibility, FOV, and teleports (channels, Chequamegon Bay, Outer Island, and ashore on Stockton, Oak, Madeline and Raspberry). |
-| HUD | `main.ts` | Game speed and on-screen speed, turning circle, the channel width abeam (on screen and in real nm), distance and ETA to the nearest places, freighter size and distance, the R1a legs in real minutes, island size and walk times on foot, and a trip timer on **T** (real time, game time, distance). |
-| Tests | `tests/scale-greybox.test.ts` | R1a distances, places near land, steamer lanes in deep water, one height grid for every C, v₃ᴅ, real time independent of C, grounding, freighter speed. |
+| Chart data | `data/chart.json`, `data/schemas/chart.ts` | Western Superior: the lake outline, 17 Apostle Islands, 10 ports, 10 lights as they stood in spring 1900 (Minnesota Point dark, Devils Island on its temporary light, no Split Rock), the four MVP zones, and the charted bounds. **Hand-traced by eye at about 1 km accuracy** until S3 step 9 bakes the real coastline. It is zod-validated like the other data files. |
+| Geography | `src/sim/chart/geography.ts` | Projects the data to chart meters (equirectangular around 47° N, 91° W) and answers the land-mask questions: is this water, where does this leg first touch land (exact edge intersection, so thin spits count), and where does a leg enter a zone. |
+| Voyage | `src/sim/chart/voyage.ts` | Plots a course from the ship through the waypoints, refuses legs that run aground, and **stops the sailed course where it enters the destination zone**, since the zone takes over there (§5.3 step 5). Speed comes from a point-of-sail table (fastest on a beam reach, upwind folds tacking into the made-good speed) and a wind-strength table, on a 7.5 kn schooner. |
+| Traffic and encounters | `src/sim/chart/traffic.ts` | Eight abstract contacts on hand-placed lanes, each checked against the land mask in tests: two ore and grain freighters, a package steamer, two fishing tugs, the *Morrill*, a derelict scow and a drifting squall. The lookout check runs on each world tick: day 6 nm and night 3 nm, scaled by how conspicuous the contact is (smoke 1.3, a tug 0.8) and halved inside a squall. The cutter **forces** an encounter when it spots you first (you're 0.75 as conspicuous). Ships you've lost sight of stay on the chart as grey ghosts with their age and a "could be anywhere in here" circle. |
+| Chart mode | `src/modes/chart.ts` | The `chart` mode. The clock holds while you plot. Under way it runs at **1 game hour per 2.5 real seconds**, the world ticks normally, and the wind drifts until S9's weather sim drives it. An encounter stops the clock until you choose, and the lookout setting filters what interrupts you. It emits `VoyageStarted`, `VoyageArrived`, `EncounterSpotted`, `EncounterEngaged` and `EncounterAvoided`. |
+| Chart renderer | `src/render/chart/chart-view.ts` | A 2D canvas in the plan 13 period style: parchment grain, ink coastlines with shore shading, illustrative soundings in fathoms, a graticule, a compass rose, a scale bar, dashed zone edges, hatched "beyond your charts", and night shading with light-tier rings. Every contact type has its own shape (plan 13 §2.2). |
+| Arena | `src/debug/chart-spike/arena*.ts` | An empty 3 × 3 km arena with the S2 water and sky at R = 24. The schooner is a kinematic stand-in (A/D steer, W/S trim, speed from the same wind model as the chart) until plan 02. Box-built freighters and steamers, a listing hulk and a storm sea with 26 kn of wind and close fog stand in for the contacts. Hold F near a ship to deal with it. The cutter chases you, locks the chart while it's within 900 m, and ends the voyage if it gets alongside. Sail off the edge, or press M when nothing is chasing you, to go back to the chart. |
+| Test page | `chart-spike.html`, `src/debug/chart-spike/` | Dev-only (`npm run dev`, then `/chart-spike.html`), not in the production build. Click to add waypoints (they snap to ports), drag to move them, right-click to delete, Shift-click to insert, drag empty chart to pan and use the wheel to zoom. Enter sets sail. There are also a lookout setting, a time-compression picker, departure points for each zone, a "show all traffic" toggle and an event log. `?hour=21` starts at night and `?seed=` reseeds the traffic. |
 
 ### Results
+| Check | Result |
+|---|---|
+| Duluth → the Apostles zone edge (43 nm on the chart) | **About 21 real seconds** at the default compression, plus stops, which lands inside the 20–30 s target (§5.3). Two Harbors → Apostles takes 13 s and Duluth → Two Harbors 7 s. |
+| Honest clock | Chart distance per real second equals speed × compression exactly (unit-tested). The ETA from the plotted course matches the sailed time whatever the step size. |
+| Course checks | A leg across the Bayfield peninsula is refused with a red cross where it grounds. A course to the zone you're already in is refused ("sail there in 3D"). The final leg is cut at the zone edge and the rest is drawn faint. |
+| Encounter pacing, first pass | Three to four interruptions per Duluth → Apostles crossing with the default lookout, well over the 0–2 target (§6.4). Every contact interrupts once per voyage, and the Duluth corridor has four prize ships on it. |
+| Encounter pacing, tuned | A **pacing guard** (after a report, only a hostile can interrupt for 2 game hours) plus a **6 nm daytime range** (was 8) bring it to an average of **2.1–2.3** on the Apostles crossings, **1.3** to Siskiwit Bay and **0.7** to Two Harbors. Report everything gives 2.4–2.7 and threats only gives 1.0–1.3. That's 100 seeded runs per route at all hours and random winds, now in `tests/chart-pacing.test.ts`. |
+| Cutter | It forces an encounter on **0.3 to 0.5 of Apostles crossings**, more often than before the guard, because the guard holds back the early sighting that would have let you avoid it. Night raises your odds of slipping it from about 45% to about 75%. In the arena, steam at 6.5 kn beats the schooner upwind and loses to it on a reach in a working breeze, so the point of sail decides the chase. |
+| Readability | In the screenshots, ports, lights, zones, the course, the ship and each contact type read at the full-lake zoom. Encounter cards sit low so the contact stays visible. At night the chart darkens and the lights show their rings, and a running light makes a ship visible in the arena before its hull. |
+| Cost | A full chart redraw takes **5.2 ms median and 8.1 ms p95 at 1920×1080** (headless Chromium, software canvas, cloud container). Replotting a course takes under 0.1 ms. **Re-check on the dev laptop**, where the canvas is GPU-backed. |
 
-**What C does and doesn't change.** Real travel time is chart distance / (v × R), so **C cancels out**: Bayfield to Ashland at Full takes 4:23 real at any C, and only R sets trip times. The ratio of a channel's width to the turning circle cancels C too, because both shrink by 1/C at a fixed R. So C doesn't make the helm harder. What C does change is how big the 1:1 things (ships, towns, trees, people) look against the land, how fast the water slides by, how long island walks take, and how steep the terrain gets (finding 1).
-
-**Visual speed and turning (R = 24, best turn rate 6°/s)**
-
-| C | Full (7.65 kn) on screen | Reefed (3.4 kn) on screen | Turning circle at Full | At Reefed |
-|---|---|---|---|---|
-| 6 | 15.7 m/s (31 visual kn) | 7.1 m/s | 324 m | 135 m |
-| **8** | **11.8 m/s (23 visual kn)** | **5.3 m/s** | **243 m (8 ship lengths)** | **101 m** |
-| 10 | 9.4 m/s (18 visual kn) | 4.3 m/s | 195 m | 81 m |
-
-**Channel widths (narrowest water deeper than 3 m, greybox geography)**
-
-| Channel | Real | C = 6 | **C = 8** | C = 10 |
-|---|---|---|---|---|
-| North Channel (Bayfield–Madeline) | 1.5 nm | 455 m | **341 m** | 273 m |
-| Basswood–Red Cliff | 1.1 nm | 353 m | **265 m** | 212 m |
-| Chequamegon Bay mouth | 2.8 nm | 853 m | **640 m** | 512 m |
-| Manitou–Stockton | 2.2 nm | 677 m | **508 m** | 406 m |
-| Rocky–South Twin | 1.0 nm | 320 m | **240 m** | 192 m |
-| Bear–Devils | 0.5 nm | 147 m | **110 m** | 88 m |
-
-At C = 8 the tightest gaps are still about 4 schooner lengths, and the channels the freighters use are 2.5 freighter lengths or more. At C = 10 the Bear–Devils gap (88 m) is shorter than a freighter.
-
-**Island walks (end to end, S5 speeds: walk 2.4 m/s, run 5.2 m/s)**
-
-| Island (real length) | C = 6 | **C = 8** | C = 10 |
-|---|---|---|---|
-| Madeline (22 km) | 3.7 km: 25 min walk | **2.8 km: 19 min walk, 9 min run** | 2.2 km: 15 min walk |
-| Stockton (9.5 km) | 1.6 km: 11 min | **1.2 km: 8 min walk, 4 min run** | 950 m: 7 min |
-| Oak (4.8 km) | 800 m: 6 min | **600 m: 4 min** | 480 m: 3 min |
-| Sand (4.2 km) | 700 m: 5 min | **525 m: 3.6 min** | 420 m: 3 min |
-| Raspberry (1.8 km) | 300 m: 2 min | **225 m: 1.6 min** | 180 m: 1.3 min |
-
-At R_foot = 6, walking Stockton end to end is 49 game minutes, so a 10-minute visit is about an hour of game time, as §3.3 intends.
-
-**R options at C = 8**
-
-| R | Full on screen | Bayfield → Ashland | Day length |
-|---|---|---|---|
-| 18 | 8.9 m/s | 5.8 min | 80 min |
-| 20 | 9.8 m/s | 5.3 min | 72 min |
-| **24** | **11.8 m/s** | **4.4 min** | **60 min** |
-| 30 | 14.8 m/s | 3.5 min | 48 min |
-
-**Freighter scale.** At 0.85× a laker is 104 m, 3.5× the schooner. In the C = 8 North Channel (341 m) it takes up 30% of the width; at 1.0× (122 m) it's 36%, and at 0.75× (92 m) it starts to look stubby beside the schooner. **0.85 is the proposal**, and it's the value that most needs the eye test.
-
-**Picked (confirmed in the feel check):** keep **C = 8** and **R = 24** (fall back to R = 20 before touching C, as §3.3 says), set big freighters' `displayScale` to **0.85**, and keep **R_foot = 6**. C = 6 makes Madeline a 25-minute walk and puts 1:1 ships in very roomy water; C = 10 shrinks small islands to one-minute walks, squeezes freighters out of the tighter gaps, and steepens terrain further.
-
-### Findings for later work
-1. **Terrain gets C times steeper.** Heights stay 1:1 over ground compressed by C, so a 5° real hillside becomes 35° at C = 8 and 41° at C = 10, close to the 42° walking limit. The greybox already shows red (unwalkable) patches inside Oak and Madeline at C = 8. **Resolved by S3:** land heights now go through a soft knee at 20 m (§14.3), which keeps shore cliffs and flattens high ground. The greybox still uses 1:1 heights, so its red patches overstate the problem.
-2. **1:1 waterfronts swamp compressed bays.** Ashland's 560 m ore dock reaches about two-thirds of the way across the greybox bay (about 830 m at C = 8). This confirms §3.4: the Ashland set piece needs its local lens of uncompressed space.
-3. **Water has to reach the zone's far side.** The S2 water disc ends 2.5 km out, but at C = 8 the Apostles zone is about 7 km across and islands 5 km away are clearly visible. The greybox lays a flat sheet under the disc; plan 04 should add a proper far-water LOD.
-4. **Speed cues are missing.** The greybox has no wake, spray or sound, which plan 02 §7 relies on to make 23 visual knots feel natural, so judge speed knowing it may read slower here than in the game.
-5. **Performance isn't measured.** The page draws about 1M triangles in about 25 calls, mostly trees, and was only run in headless SwiftShader. It isn't a budget test.
-
-### Feel check on the dev laptop (done)
-With `npm run dev` running, open `/scale-greybox.html`, then:
-1. Sail Bayfield → La Pointe and around Madeline at C = 8, R = 24, timing with **T**. Does 12 m/s on screen feel brisk but readable? If it's too fast, try R = 20.
-2. At "Sail: west of Oak" and "Sail: Raspberry–Oak", switch C between 6, 8 and 10. Which looks right for the channels and island sizes?
-3. Go to "Sail: Chequamegon Bay" and sit beside a passing freighter at 0.75, 0.85 and 1.0.
-4. "Ashore: Stockton", then walk or run end to end. Is R_foot = 6 right?
-5. "Ashore: Oak (summit)" and walk down. Do the red slopes block too much?
-
-Done on 2026-10-24: all four values confirmed, and the stutter fixed (plan 04 §19). Finding 1 (terrain steepness) is settled by S3's soft knee (§14.3).
+### Findings for later phases
+1. **Pacing feels right (playtest, 2026-10-24).** Keep about 2 stops per Apostles run as the baseline. The knobs, if later content changes it, are `ENCOUNTER_QUIET_S`, `DAY_SPOT_NM`/`NIGHT_SPOT_NM`, each contact's conspicuity, and traffic density (plan 05).
+2. **Pacing belongs to the encounter director, not just the lookouts.** Once-per-voyage plus a quiet spell works, but the right model is probably a per-voyage budget weighted by route traffic and season (§6.4). Plan 05's traffic slice should feed it.
+3. **The cutter needs Wanted gating.** In the prototype it always hunts you. With plan 06 it should only force an encounter when your Wanted in that region is high enough, which also brings the forced rate down.
+4. **"Steer clear" has no cost yet.** Avoiding a squall or a ship takes no extra time. A detour should cost time (and a squall avoided late could still clip you), or Avoid becomes the obvious choice.
+5. **Zones the course passes through** (Siskiwit Bay on the way to the Apostles) don't stop you. That seems right for open-water transits, but it should be a decision: the alternative is that every zone edge you cross offers "enter the zone?".
+6. **The chart clock holds while you plot.** It's simple and readable, but it means pulling up the chart mid-zone pauses the world. Plan 13 should decide whether the chart is a pause from a zone (M) and only a voyage runs time.
+7. **The arena return point.** You come back to the chart where you left it, even after sailing 1.5 km of compressed space (12 km real). That's fine at chart scale, but say so in the plan.
+8. **Chart data from S3** must keep the islands as separate rings and close the lake ring along the charted edge. Then `buildGeography` and the land checks work unchanged. Real soundings replace the illustrative ones.
+9. **Rendering:** cache the coast, soundings and graticule in an offscreen layer while the view isn't moving, if the laptop shows the 5 ms redraw matters.
+10. **Not built:** saving the voyage (`player.location`, `voyage`), shoals, fog of war, ice, rumor markers from plan 05, the real sailing controller and arena coastline silhouettes. The arena drops into the `sailing` mode as plan 01 intends, so the plan 02 controller slots in later.
 
 ---
 
 ## Changelog
-- v0.6: Merged S3 and S7: S7 moved to §15; the S7 picks (C = 8, R = 24, R_foot = 6, 0.85× freighters) confirmed by playtest and recorded.
-- v0.5: S7 greybox built and measured (§15), with findings on terrain steepness, 1:1 waterfronts and far water.
+- v0.5: Prototype S8 written up (§14) and playtested as fun: chart mode with plotting, compressed voyages and encounter arenas works; pacing guard and 6 nm day lookout range added.
 - v0.4: Spike S3 results (§14): pipeline in `tools/geo/`, chart projection instead of UTM, 16-bit delta + deflate tiles, lee in game meters, land height curve (soft knee at 20 m, decided).
 - v0.3: Gap review: separate island scene loads, 1 m tiles for all 22 islands, mainland hideout pads, three Wanted regions in the Apostles zone, S7/S8 in Phase 0, Siskiwit cut keeps its hideout reachable.
 - v0.2: Decisions recorded: C = 8, 60-minute day, no chart escape when detected, shrunk freighters, lookout setting, slower on-foot clock (R_foot = 6 proposed).
