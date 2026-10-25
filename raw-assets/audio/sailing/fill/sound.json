@@ -1,0 +1,11 @@
+{
+  "id": "sfx.sail.fill",
+  "name": "fill",
+  "description": "A sail filling with a thump",
+  "source": "source.wav",
+  "kind": "oneshot",
+  "bus": "sfx",
+  "bundles": [
+    "sailing-audio"
+  ]
+}

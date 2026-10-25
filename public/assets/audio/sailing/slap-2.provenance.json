@@ -1,0 +1,19 @@
+{
+  "source": "cc0",
+  "tool": "OpenGameArt: 40 CC0 water / splash / slime SFX",
+  "author": "rubberduck",
+  "reference": "https://opengameart.org/content/40-cc0-water-splash-slime-sfx",
+  "date": "2026-10-25",
+  "license": "CC0 1.0",
+  "modifications": [],
+  "originalFile": "splash_03.ogg",
+  "description": "A wave slapping the hull",
+  "durationS": 0.772,
+  "pipeline": [
+    "decoded to mono 48000 Hz",
+    "edge fades",
+    "peak-normalized toward -1 dB (-3.2 dB)",
+    "Opus 56 kbps mono in Ogg (ffmpeg libopus)"
+  ],
+  "inputHash": "a38a0d114ded2f22"
+}

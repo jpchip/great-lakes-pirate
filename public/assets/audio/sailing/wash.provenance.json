@@ -1,0 +1,19 @@
+{
+  "source": "cc0",
+  "tool": "OpenGameArt: 100 CC0 SFX #2",
+  "author": "rubberduck",
+  "reference": "https://opengameart.org/content/100-cc0-sfx-2",
+  "date": "2026-10-25",
+  "license": "CC0 1.0",
+  "modifications": [],
+  "originalFile": "sfx100v2_loop_water_01.ogg",
+  "description": "Water rushing along the hull (loop)",
+  "durationS": 5.867,
+  "pipeline": [
+    "decoded to mono 48000 Hz",
+    "loop seam crossfaded over 0.5 s",
+    "RMS-normalized toward -24 dB (-0.4 dB)",
+    "Opus 64 kbps mono in Ogg (ffmpeg libopus)"
+  ],
+  "inputHash": "7a69d322ab7b8f41"
+}

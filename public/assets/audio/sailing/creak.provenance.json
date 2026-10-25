@@ -1,0 +1,20 @@
+{
+  "source": "cc0",
+  "tool": "OpenGameArt: Tree Creaking",
+  "author": "Department64; cleaned up by AntumDeluge",
+  "reference": "https://opengameart.org/content/tree-creaking",
+  "date": "2026-10-25",
+  "license": "CC0 1.0",
+  "attribution": "Tree creak by Department64, cleaned up by AntumDeluge (OpenGameArt)",
+  "modifications": [],
+  "originalFile": "tree_creak.flac",
+  "description": "Rigging and hull creak (sliced at runtime)",
+  "durationS": 6.581,
+  "pipeline": [
+    "decoded to mono 48000 Hz",
+    "edge fades",
+    "peak-normalized toward -1 dB (+4.9 dB)",
+    "Opus 56 kbps mono in Ogg (ffmpeg libopus)"
+  ],
+  "inputHash": "d57ec8e32423976d"
+}

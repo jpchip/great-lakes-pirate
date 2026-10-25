@@ -1,0 +1,11 @@
+{
+  "id": "sfx.sea.wave-break",
+  "name": "wave-break",
+  "description": "A breaking sea against the hull in heavy weather",
+  "source": "source.flac",
+  "kind": "oneshot",
+  "bus": "sfx",
+  "bundles": [
+    "sailing-audio"
+  ]
+}

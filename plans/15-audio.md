@@ -1,6 +1,6 @@
 # 15 — Audio
 
-Status: DRAFT v0.3 (decisions made)
+Status: DRAFT v0.4 (decisions made; Phase 1 sailing audio built)
 Parent: [00-master-plan.md](00-master-plan.md)
 Inputs:
 - Master plan: AI-generated audio
@@ -239,10 +239,12 @@ All resolved.
 | 2026-10-22 | SFX and ambience: **free CC0 libraries first**, AI generation to fill gaps. |
 | 2026-10-22 | **Period folk** score style. |
 | 2026-10-22 | **Plan 15 wins on sourcing:** CC0 first for SFX, ambience and shouts, AI generation fills gaps. The master plan now matches. |
+| 2026-10-25 | **Phase 1 sailing audio:** 14 CC0 clips from OpenGameArt (hull wash, slaps, breaking sea, creak, luff, sail fill, halyard and anchor sounds), all in `CREDITS.md`. The **wind, rigging whistle and swell beds are procedural** (filtered noise, §3.1's fallback): the one CC0 wind recording found had bag rustle in it, and noise follows wind and gusts smoothly at zero download. Freesound needs an account, so it wasn't used yet. Pipeline in `tools/audio/`, runtime in `src/audio/`. |
 
 ---
 
 ## Changelog
+- v0.4: Phase 1 sailing audio built (piece I): pipeline, mixer and buses, autoplay unlock, the sailing soundscape. Decision row for procedural wind beds.
 - v0.3: Gap review: master plan aligned to this plan's sourcing order; no content change here.
 - v0.2: Decisions: traditional song motifs, no spoken dialogue, instrumental saloon music, CC0-first SFX, period folk style.
 - v0.1: Initial audio plan: goals, style (period folk, Great Lakes song tradition), sources and license gate, sound list by system, audio-as-gameplay rules, dynamic music states and technique, buses and spatialization, budgets, pipeline, data/state, phasing.

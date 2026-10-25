@@ -1,0 +1,93 @@
+{
+  "version": 1,
+  "assets": {
+    "sfx.anchor.splash": {
+      "type": "audio",
+      "url": "sailing/anchor-splash.ogg",
+      "bytes": 7095
+    },
+    "sfx.anchor.chain-1": {
+      "type": "audio",
+      "url": "sailing/chain-1.ogg",
+      "bytes": 4104
+    },
+    "sfx.anchor.chain-2": {
+      "type": "audio",
+      "url": "sailing/chain-2.ogg",
+      "bytes": 4252
+    },
+    "sfx.anchor.chain-3": {
+      "type": "audio",
+      "url": "sailing/chain-3.ogg",
+      "bytes": 7057
+    },
+    "sfx.ship.creak": {
+      "type": "audio",
+      "url": "sailing/creak.ogg",
+      "bytes": 42413
+    },
+    "sfx.sail.fill": {
+      "type": "audio",
+      "url": "sailing/fill.ogg",
+      "bytes": 13599
+    },
+    "sfx.sail.hoist": {
+      "type": "audio",
+      "url": "sailing/hoist.ogg",
+      "bytes": 13945
+    },
+    "sfx.sail.luff": {
+      "type": "audio",
+      "url": "sailing/luff.ogg",
+      "bytes": 15486
+    },
+    "sfx.hull.slap-1": {
+      "type": "audio",
+      "url": "sailing/slap-1.ogg",
+      "bytes": 6189
+    },
+    "sfx.hull.slap-2": {
+      "type": "audio",
+      "url": "sailing/slap-2.ogg",
+      "bytes": 7217
+    },
+    "sfx.hull.slap-3": {
+      "type": "audio",
+      "url": "sailing/slap-3.ogg",
+      "bytes": 5132
+    },
+    "amb.hull.wash": {
+      "type": "audio",
+      "url": "sailing/wash.ogg",
+      "bytes": 43722
+    },
+    "sfx.sea.wave-break": {
+      "type": "audio",
+      "url": "sailing/wave-break.ogg",
+      "bytes": 25897
+    },
+    "sfx.anchor.windlass": {
+      "type": "audio",
+      "url": "sailing/windlass.ogg",
+      "bytes": 27905
+    }
+  },
+  "bundles": {
+    "sailing-audio": [
+      "sfx.anchor.splash",
+      "sfx.anchor.chain-1",
+      "sfx.anchor.chain-2",
+      "sfx.anchor.chain-3",
+      "sfx.ship.creak",
+      "sfx.sail.fill",
+      "sfx.sail.hoist",
+      "sfx.sail.luff",
+      "sfx.hull.slap-1",
+      "sfx.hull.slap-2",
+      "sfx.hull.slap-3",
+      "amb.hull.wash",
+      "sfx.sea.wave-break",
+      "sfx.anchor.windlass"
+    ]
+  }
+}
