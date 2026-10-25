@@ -1,0 +1,52 @@
+[
+  {
+    "id": "ship.t1_schooner",
+    "name": "Small schooner",
+    "tier": 1,
+    "propulsion": "sail",
+    "lengthM": 20,
+    "displayScale": 1,
+    "hullMaxSpeedKn": 8,
+    "accelTau": 4,
+    "decelTau": 7,
+    "turnRateCurve": [
+      [0, 1.5],
+      [2, 8],
+      [4, 12.5],
+      [6, 13.5],
+      [8, 12]
+    ],
+    "polar": [
+      [0, 0],
+      [40, 0],
+      [45, 0.6],
+      [60, 0.8],
+      [90, 0.95],
+      [120, 1],
+      [135, 1],
+      [150, 0.9],
+      [180, 0.75]
+    ],
+    "sailChangeTimeS": 4,
+    "sweeps": true,
+    "sweepsKn": 1.5,
+    "sweepsTurnDegS": 3,
+    "draftEmptyM": 1.5,
+    "draftFullM": 2,
+    "cargoCapacity": 40,
+    "hullHP": 100,
+    "riggingHP": 80,
+    "anchorRodeM": 30,
+    "buoyancy": {
+      "length": 17,
+      "beam": 5,
+      "heavePeriod": 2.6,
+      "pitchPeriod": 3.1,
+      "rollPeriod": 3.8,
+      "damping": 0.55
+    },
+    "visibilityProfile": "low",
+    "modelId": "ship.schooner",
+    "LODs": []
+  }
+]

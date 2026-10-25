@@ -27,6 +27,24 @@ export interface Buoyancy {
   rollVelocity: number;
 }
 
+export type BuoyancySpec = Pick<
+  Buoyancy,
+  'length' | 'beam' | 'heavePeriod' | 'pitchPeriod' | 'rollPeriod' | 'damping'
+>;
+
+/** Buoyancy at rest for a hull spec, e.g. a ships.json record's `buoyancy`. */
+export function createBuoyancy(spec: BuoyancySpec): Buoyancy {
+  return {
+    ...spec,
+    heave: 0,
+    heaveVelocity: 0,
+    pitch: 0,
+    pitchVelocity: 0,
+    roll: 0,
+    rollVelocity: 0,
+  };
+}
+
 /** Tuning for the placeholder schooner (~30 m on deck; plan 02 §10 tier 2). */
 export function schoonerBuoyancy(): Buoyancy {
   return {

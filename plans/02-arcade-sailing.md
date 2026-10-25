@@ -1,6 +1,6 @@
 # 02 — Arcade Sailing & Ship Handling
 
-Status: DRAFT v0.4 (decisions made; gap review applied; S2 buoyancy notes)
+Status: DRAFT v0.5 (decisions made; gap review applied; S2 buoyancy notes; Phase 1 controller built)
 Parent: [00-master-plan.md](00-master-plan.md)
 Inputs:
 - [01 tech/architecture](01-tech-architecture.md): minimal physics, 30–60 Hz tick, budgets, shared wave function
@@ -32,6 +32,7 @@ Define how the schooner feels and handles: controls, the wind and speed model, w
 | Raise / lower sail (one step) | **W / S** | Steps: Furled → Reefed → Half → Full (see §3.2) |
 | Trim sheets in / out (optional) | **Q / E** | Manual trim (see §3.4); auto-trim by default |
 | Drop / weigh anchor | **X** (hold) | Stops the ship over a few seconds when depth allows |
+| Sweeps out / in | **R** | Row in a calm (§3.6). Added in Phase 1; plan 02 had no key for it |
 | Lantern on / off (dark running) | **L** | Running dark lowers visibility at night (plan 06) |
 | Spyglass | **Right mouse (hold)** | Zoomed view; identify ships, flags and lights at range |
 | Camera orbit / zoom | Mouse move (free cursor) / wheel | See §8 |
@@ -292,7 +293,10 @@ visibilityAt(position, gameTime) → meters (fog, rain, night)
 
 ## 12. Data (`data/ships.json` fields, sailing-related)
 
-`id, name, tier, propulsion (sail|steam), lengthM, displayScale (03 §3.5), hullMaxSpeedKn, accelTau, decelTau, turnRateCurve[], polar[] (sail only), sailChangeTimeS, engineSpeedKn (steam only), draftEmptyM, draftFullM, cargoCapacity, hullHP, riggingHP, sweeps (bool), anchorRodeM, buoyancySamples[] (hull points), visibilityProfile, modelId, LODs[]`
+`id, name, tier, propulsion (sail|steam), lengthM, displayScale (03 §3.5), hullMaxSpeedKn, accelTau, decelTau, turnRateCurve[], polar[] (sail only), sailChangeTimeS, engineSpeedKn (steam only), draftEmptyM, draftFullM, cargoCapacity, hullHP, riggingHP, sweeps (bool), sweepsKn, sweepsTurnDegS, anchorRodeM, buoyancy, visibilityProfile, modelId, LODs[]`
+
+- **Built in Phase 1** (`data/schemas/ships.ts`). Curves are `[x, y]` pairs: `polar` is `[degrees off the bow, factor]` and `turnRateCurve` is `[knots, degrees per second]`. `buoyancy` replaces `buoyancySamples[]` with the S2 sampler's spans and spring periods (`length, beam, heavePeriod, pitchPeriod, rollPeriod, damping`), since §5.1 samples fixed points from those spans. `cargoCapacity` is m³ until plan 05 picks the unit.
+- Rules shared by every sailing ship (sail factors, the wind-strength curve, trim, stall, heel, leeway, head seas) are not per class. They live in `src/sim/sailing/handling.ts` and go into tuning presets alongside the ship record.
 
 Weapons, crew size for boarding and upgrade slots belong to plans 07 and 10 but live in the same record.
 
@@ -323,6 +327,17 @@ Weapons, crew size for boarding and upgrade slots belong to plans 07 and 10 but 
 7. Anchoring and auto-docking.
 8. A tuning panel exposing every curve and constant, with save/load of tuning presets to JSON.
 9. Quality presets plus dynamic resolution (from 01).
+
+**Controller (built 2026-10-25, Phase 1 piece C).** `src/sim/sailing/` is the pure sim (no three.js, no ECS): `stepSailing(state, command, class, wind, headSeaM, scale, dt)`. `gameplay/sailing.ts` runs it per ship before buoyancy and adds heel to the buoyancy roll after; NPCs get the same model through `commandFor`. Notes on how it reads this plan:
+- **Wind** comes in as the S9 `Wind` shape (`fromRad`, `speedKn` with shelter already applied, `gust01`); the controller adds gusts as `speedKn × (1 + 0.4 × gust01)`. Until the weather piece lands, the game page uses a dev-panel wind.
+- **Sails** are ordered instantly and set at one step per `sailChangeTimeS`, so W three times from Furled is 12 s to Full on the T1.
+- **Irons** is the polar's zero stretch (0–40°). Inside it the speed decays with a slower `ironsDecelTau` (14 s) so a tack keeps way; below 1.5 kn the ship stalls, makes sternway and its bow falls off at 4°/s to the side the wind is already on. With the rudder reversed in sternway, the player can also back the bow round.
+- **Manual trim:** the ideal sheet runs from hauled in at the no-go edge to eased right out dead downwind. Within ±0.06 of it trimFactor is 1.0, falling to 0.7 at 0.36 off.
+- **Head seas:** the summed amplitude of the gameplay waves running against the bow, times the local wave scale, gives up to a 20% loss at 1.5 m.
+- **Leeway** up to 4° close-hauled at Full sail, none from a beam reach onward. **Heel** up to 14° at Full on a beam reach in 20 kn or more, scaled by the square of the wind below that; none while luffing.
+- **Tack and jibe events** go out on the event bus (`ShipTacked`, `ShipJibed` with `uncontrolled` for strong wind at Half or Full) for hazards and audio to use. The controller deals no damage itself (piece E).
+- **Starting T1 values** (`data/ships.json`): hull 8 kn, accelTau 4 s, decelTau 7 s, turn rate 1.5°/s stopped, 8 at 2 kn, 12.5 at 4 kn, 13.5 at 6 kn, 12 at 8 kn, sweeps 1.5 kn and 3°/s, 20 m long. The buoyancy spans are the S2 values scaled to 20 m (17 × 5 m, periods 2.6 / 3.1 / 3.8 s). With these, in 14 kn a tack from 50–55° takes 8.4–9 s and loses 34–37% of the speed, inside §4's 6–10 s and 30–40% (unit tested). Steady speeds in 14 kn at Full with auto-trim: 4.3 kn at 45°, 6.9 at 90°, 7.2 at 120–135°, 5.4 dead downwind.
+- **Tuning panel:** the dev overlay's Sailing folder (dev builds or `?debug`) shows the §3.1 factors live, sets the dev wind, edits every ship and handling number, and saves or loads presets as JSON (`sailing-tuning` v1, the same record shape as ships.json).
 
 **Acceptance criteria:**
 - A first-time player can sail around the bay and dock within **2 minutes** without instructions beyond the key list.
@@ -366,6 +381,7 @@ All resolved. Follow-ups for other plans: passage prices and shipless earning (0
 ---
 
 ## Changelog
+- v0.5: Phase 1 controller built (§14): sweeps key (R), the ships.json fields as built (§12), how the controller reads §3–5, starting T1 values.
 - v0.4: §5.1 records the spike S2 buoyancy model and starting tuning values.
 - v0.3: Gap review: static sail shapes (no billow), funneling baked in S3, T3 harbor tug tow, knots-in-data/SI-in-sim, shipless slipway building cross-referenced.
 - v0.2: Decisions: rowboat abandon-ship with survival check, shipless play continues (rowboat, passage, on-foot earning), auto-trim default, sweeps, wind shadow promoted to core with a shelter-map design and calmer lee waves.

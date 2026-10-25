@@ -1,3 +1,4 @@
+import { SECONDS_PER_GAME_DAY, dayAndHour } from './core/time';
 import { EventBus } from './core/events';
 import { InputMapper } from './core/input';
 import { createLoop } from './core/loop';
@@ -7,7 +8,7 @@ import { createWorkerEncoder } from './core/save/encoder';
 import { loadRun } from './core/save/load';
 import { RunSaver } from './core/save/run-saver';
 import { AssetLoader, EMPTY_MANIFEST } from './core/assets';
-import { schoonerBuoyancy } from './gameplay/buoyancy';
+import { createBuoyancy } from './gameplay/buoyancy';
 import { cloneTransform, createGameWorld } from './gameplay/ecs';
 import type { SaveControls } from './debug/overlay';
 import type { GameContext, GameEvents } from './modes/context';
@@ -17,12 +18,17 @@ import { loadAssets } from './render/assets';
 import { browserStorage, initialQuality } from './render/quality';
 import { GameRenderer } from './render/renderer';
 import { createTestScene } from './render/test-scene';
+import { createSailingState } from './sim/sailing/controller';
+import { defaultHandling } from './sim/sailing/handling';
+import { compileSailingClass } from './sim/sailing/ship-class';
+import { sailShipRecord, T1_SCHOONER_ID } from './sim/sailing/ships';
+import { httpBytes, loadZoneTerrain, type LoadedZone } from './sim/terrain/load';
+import { TEST_BAY } from './sim/terrain/test-bay';
 import {
   WEATHER_PRESETS,
   createLocalWeather,
   type WeatherPresetId,
 } from './sim/weather/local-weather';
-import { SECONDS_PER_GAME_DAY, dayAndHour } from './core/time';
 import { TEST_BAY_ISLANDS, stubIslandShelter } from './sim/weather/shelter';
 import { createSea } from './sim/weather/waves';
 import { createWorldState, parseWorldState, type WorldState } from './sim/world-state';
@@ -124,6 +130,17 @@ async function boot(): Promise<void> {
   document.body.dataset['save'] = status;
   if (saver) document.body.dataset['runId'] = saver.run.runId;
 
+  // The Phase 1 test bay: a slice of the real Apostles bake (plan 02 §14.1). Gameplay
+  // needs it with or without a renderer; without it the bay is open water.
+  const zone: LoadedZone | undefined = await loadZoneTerrain(
+    httpBytes(new URL(TEST_BAY.path, document.baseURI)),
+    TEST_BAY.tiles,
+  ).catch((err: unknown) => {
+    console.warn('Test bay terrain unavailable; sailing on open water', err);
+    return undefined;
+  });
+  document.body.dataset['terrain'] = zone ? 'loaded' : 'unavailable';
+
   const input = new InputMapper();
   input.attach(window);
   const ctx: GameContext = {
@@ -133,20 +150,29 @@ async function boot(): Promise<void> {
     input,
     events: new EventBus<GameEvents>(),
     sea: createSea(),
-    // The stub lee until the Apostles terrain (piece B) provides the baked maps.
-    weather: createLocalWeather(undefined, stubIslandShelter(TEST_BAY_ISLANDS)),
+    terrain: zone?.terrain,
+    // The baked shelter, fetch and funneling maps of the test bay, or the stub island's
+    // lee when the terrain didn't load.
+    weather: createLocalWeather(undefined, zone?.terrain ?? stubIslandShelter(TEST_BAY_ISLANDS)),
   };
-
-  // Placeholder schooner riding the test-bay sea until the sailing controller lands
-  // (plan 02). It holds still; the waves move it.
   applyWeatherParams(params, ctx);
 
-  const shipTransform = { position: { x: 0, y: 0, z: 0 }, heading: 0.6 };
+  // The player's T1 schooner on the plan 02 sailing model at the test bay's spawn, in
+  // the weather's wind.
+  const shipRecord = sailShipRecord(T1_SCHOONER_ID);
+  const handling = defaultHandling();
+  const { spawn } = TEST_BAY;
+  const shipTransform = { position: { x: spawn.x, y: 0, z: spawn.z }, heading: spawn.heading };
+  const sailing = {
+    cls: compileSailingClass(shipRecord, handling),
+    state: createSailingState(spawn.x, spawn.z, spawn.heading),
+  };
   ctx.world.add({
     id: 'ship.player',
     transform: shipTransform,
     previousTransform: cloneTransform(shipTransform),
-    buoyancy: schoonerBuoyancy(),
+    buoyancy: createBuoyancy(shipRecord.buoyancy),
+    sailing,
     model: 'schooner',
     playerControlled: true,
   });
@@ -187,6 +213,7 @@ async function boot(): Promise<void> {
       assets,
       ctx.weather,
       state.environment.clock,
+      zone,
       TEST_BAY_ISLANDS,
     );
     view = scene;
@@ -200,22 +227,33 @@ async function boot(): Promise<void> {
         scene,
         weather: ctx.weather,
         clock: state.environment.clock,
-        probe: () => shipTransform.position,
         save: saveControls,
         autoBench: bench,
+        probe: () => shipTransform.position,
+      });
+      const { createSailingPanel } = await import('./debug/sailing-panel');
+      const panel = createSailingPanel({
+        gui: overlay.gui,
+        ship: sailing,
+        record: shipRecord,
+        handling,
       });
       view = {
         render(alpha, seaTime, frameSeconds) {
           scene.render(alpha, seaTime, frameSeconds);
           overlay.update(frameSeconds);
+          panel.update();
         },
       };
     }
   }
 
-  machine
-    .register({ id: 'mainMenu', enter: () => (input.context = 'menu') })
-    .register(createSailingMode(ctx, view));
+  machine.register({ id: 'mainMenu', enter: () => (input.context = 'menu') }).register(
+    createSailingMode(ctx, {
+      view,
+      wind: (x, z) => ctx.weather.windAt({ x, z }, state.environment.clock.gameSeconds),
+    }),
+  );
   // Phase 0 has no danger states yet, so every moment is safe to save (plan 16 §4.2).
   window.setInterval(saveNow, AUTOSAVE_INTERVAL_MS);
   document.addEventListener('visibilitychange', () => {

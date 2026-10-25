@@ -8,12 +8,15 @@ import {
 import type { GameRenderer } from '../render/renderer';
 import { browserStorage, QUALITY_IDS, storeQuality, type QualityId } from '../render/quality';
 import type { TestScene } from '../render/test-scene';
+import { createTerrainOverlay, type TerrainOverlay } from './terrain-overlay';
 import { formatWaterBench, runWaterBench } from './water-bench';
 
 /**
  * The dev overlay (plan 01 §5, §11.1 task 4): a stats readout plus lil-gui panels for
- * quality, wind and sea (plan 02 §14.2), time of day, saving and the S2 water benchmark. Loaded only in dev builds or with
- * `?debug` / `?bench=water`, as a separate chunk.
+ * quality, wind and sea (plan 02 §14.2), time of day, terrain, saving and the S2 water
+ * benchmark. Loaded only in dev builds or with `?debug` / `?bench=water`, as a separate
+ * chunk. `?overlay=shelter` (or `fetch`, `funnel`) and `?windfrom=<degrees>` open the
+ * terrain overlay straight away.
  */
 
 export interface SaveControls {
@@ -28,11 +31,11 @@ export interface OverlayOptions {
   scene: TestScene;
   weather: LocalWeather;
   clock: ClockState;
-  /** Where to read the wind for the readout (the player ship). */
-  probe(): { x: number; z: number };
   save: SaveControls;
   /** Run the water benchmark straight away (`?bench=water`). */
   autoBench: boolean;
+  /** Where to read the wind, sea and terrain for the stats (the player ship). */
+  probe: () => { x: number; z: number };
 }
 
 const STYLE = `
@@ -41,7 +44,13 @@ const STYLE = `
   border-radius: 4px; pointer-events: none; white-space: pre;
 `;
 
-export function createDevOverlay(options: OverlayOptions): { update(frameSeconds: number): void } {
+export interface DevOverlay {
+  /** The root panel, for other dev panels to add folders to. */
+  gui: GUI;
+  update(frameSeconds: number): void;
+}
+
+export function createDevOverlay(options: OverlayOptions): DevOverlay {
   const { renderer, scene, weather, clock, probe, save } = options;
 
   const readout = document.createElement('pre');
@@ -116,6 +125,20 @@ export function createDevOverlay(options: OverlayOptions): { update(frameSeconds
   renderer.onPresetChange((preset) => (seaParams.foam = preset.crestFoam));
   seaFolder.controllers.forEach((c) => c.listen());
 
+  // For scripted screenshots and poking around in the console.
+  (window as unknown as { __glpScene: TestScene }).__glpScene = scene;
+
+  let terrain: TerrainOverlay | undefined;
+  if (scene.zone) {
+    const params = new URLSearchParams(window.location.search);
+    const map = params.get('overlay');
+    const windFrom = Number(params.get('windfrom') ?? 315);
+    terrain = createTerrainOverlay(scene.scene, scene.zone.terrain, gui, {
+      map: map === 'shelter' || map === 'fetch' || map === 'funnel' ? map : 'off',
+      windFromDeg: Number.isFinite(windFrom) ? windFrom : 315,
+    });
+  }
+
   const saveFolder = gui.addFolder('Save');
   saveFolder.add({ save: () => void save.saveNow() }, 'save').name('Save now');
   saveFolder
@@ -160,6 +183,7 @@ export function createDevOverlay(options: OverlayOptions): { update(frameSeconds
   let worstMs = 0;
   let worstShown = 0;
   return {
+    gui,
     update(frameSeconds) {
       frames++;
       elapsed += frameSeconds;
@@ -191,6 +215,7 @@ export function createDevOverlay(options: OverlayOptions): { update(frameSeconds
         `sea Hs ${waves.hsM.toFixed(2)} m  ×${waves.scale.toFixed(2)}  λ ${weather.seaShape.peakWavelengthM.toFixed(0)} m`,
         `${clockText}  sun ${scene.environment.sunElevationDeg.toFixed(0)}°  vis ${(weather.visibilityAt(at, clock.gameSeconds) / 1000).toFixed(1)} km`,
         `save ${save.status}  last ${saved}${save.lastError ? `  ERROR ${save.lastError}` : ''}`,
+        terrain ? terrain.describe(at.x, at.z) : '',
         benchText,
       ]
         .filter(Boolean)

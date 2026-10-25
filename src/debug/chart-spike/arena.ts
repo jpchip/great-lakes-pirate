@@ -131,8 +131,8 @@ export function stepArena(state: ArenaState, input: InputMapper, dt: number): vo
   const p = state.player;
 
   const steer = (input.isDown('SteerStarboard') ? 1 : 0) - (input.isDown('SteerPort') ? 1 : 0);
-  if (input.pressed('TrimSailsOut')) p.trim = Math.min(p.trim + 0.25, 1);
-  if (input.pressed('TrimSailsIn')) p.trim = Math.max(p.trim - 0.25, 0.25);
+  if (input.pressed('RaiseSail')) p.trim = Math.min(p.trim + 0.25, 1);
+  if (input.pressed('LowerSail')) p.trim = Math.max(p.trim - 0.25, 0.25);
   p.speedKn = chartSpeedKn(p.heading, state.wind, state.ship) * p.trim;
   p.sceneSpeed = scene(p.speedKn);
   p.heading =

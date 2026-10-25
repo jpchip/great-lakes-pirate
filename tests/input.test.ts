@@ -33,7 +33,7 @@ describe('InputMapper', () => {
     const target = new EventTarget();
     const input = new InputMapper({
       menu: {},
-      sailing: { FirePort: ['KeyZ'] },
+      sailing: { Fire: ['KeyZ'] },
       onFoot: {},
       chart: {},
     });
@@ -42,8 +42,8 @@ describe('InputMapper', () => {
     target.dispatchEvent(key('keydown', 'KeyZ'));
     input.endTick();
     target.dispatchEvent(key('keydown', 'KeyZ'));
-    expect(input.pressed('FirePort')).toBe(false);
-    expect(input.isDown('FirePort')).toBe(true);
+    expect(input.pressed('Fire')).toBe(false);
+    expect(input.isDown('Fire')).toBe(true);
   });
 
   it('releases everything on blur and detach', () => {
@@ -53,9 +53,9 @@ describe('InputMapper', () => {
     input.context = 'sailing';
     target.dispatchEvent(key('keydown', 'KeyW'));
     target.dispatchEvent(new Event('blur'));
-    expect(input.isDown('TrimSailsOut')).toBe(false);
+    expect(input.isDown('RaiseSail')).toBe(false);
     input.detachListeners();
     target.dispatchEvent(key('keydown', 'KeyW'));
-    expect(input.isDown('TrimSailsOut')).toBe(false);
+    expect(input.isDown('RaiseSail')).toBe(false);
   });
 });

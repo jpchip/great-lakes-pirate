@@ -211,7 +211,7 @@ Events are also the natural hook for the **newspaper** system and for debugging 
 - **Player export/import** of the run (imported runs are marked "Transferred"; [16 §9](16-save-persistence.md)). Dev builds add a save inspector and debug tools ([16 §10](16-save-persistence.md)).
 
 ### 4.8 Input
-- An action-mapping layer: physical keys/mouse → semantic actions (`TrimSailsIn`, `FirePort`, `Interact`, `Crouch`…), with a context per mode.
+- An action-mapping layer: physical keys/mouse → semantic actions (`RaiseSail`, `Fire`, `Interact`, `Crouch`…), with a context per mode.
 - Pointer lock for the on-foot camera. Free mouse for sailing camera orbit and aiming.
 - Rebinding is supported by the data model from day one (UI later).
 
@@ -462,6 +462,7 @@ All resolved (see Decisions). No open questions remain for this plan; spike resu
 | 2026-10-22 | No hosted deploys yet: builds run locally; domain, droplet size and provisioning are planned later. Unlisted with optional basic auth until Beta. |
 | 2026-10-22 | Blender (and GDAL) run locally, not in CI. CI Playwright smoke tests don't run WebGL; screenshot diffs are not in the first CI. |
 | 2026-10-22 | Meshy for image-to-3D; nano-banana may be used in this open-source project. |
+| 2026-10-25 | S4: style B (toon, per-object outlines) picked; ships are procedural, so the Meshy hull step was dropped and Meshy is optional for organic one-offs (14 §3.4, §5). |
 | 2026-10-22 | S4 test scene shrunk to schooner, water, fog and one lighthouse beam. S6 benchmarks 7 hideouts × 1,500 pieces. |
 | 2026-10-22 | Time skips use a batch fast-forward path. Island on-foot areas load as separate scenes. |
 | 2026-10-24 | S1: the renderer is `WebGLRenderer` + GLSL. WebGPURenderer is not used for now (§14). |

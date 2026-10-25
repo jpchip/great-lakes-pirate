@@ -3,6 +3,7 @@ import type { InputMapper } from '../core/input';
 import type { Rng } from '../core/rng';
 import type { GameWorld } from '../gameplay/ecs';
 import type { LocalWeather } from '../sim/weather/local-weather';
+import type { ZoneTerrain } from '../sim/terrain/zone-terrain';
 import type { Sea } from '../sim/weather/waves';
 import type { WorldState } from '../sim/world-state';
 
@@ -17,6 +18,9 @@ export interface GameEvents {
   EncounterSpotted: { contactId: string; forced: boolean };
   EncounterEngaged: { contactId: string; forced: boolean };
   EncounterAvoided: { contactId: string; escaped: boolean };
+  /** Sailing (plan 02 §4): the bow or the stern crossed the wind. */
+  ShipTacked: { shipId: string | undefined };
+  ShipJibed: { shipId: string | undefined; uncontrolled: boolean };
 }
 
 /** Everything a mode needs; built once at boot and handed to each mode. */
@@ -30,4 +34,9 @@ export interface GameContext {
   sea: Sea;
   /** Wind, sea state, visibility and sky for the zone (plan 02 §11); it rebuilds `sea`. */
   weather: LocalWeather;
+  /**
+   * The active zone's terrain: depth, shoreline and wind maps (plan 03 §8.3). Absent until
+   * it loads, or when the zone files can't be fetched.
+   */
+  terrain?: ZoneTerrain | undefined;
 }

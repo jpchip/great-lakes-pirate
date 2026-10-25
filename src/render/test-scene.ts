@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import type { AssetLoader } from '../core/assets';
+import type { LoadedZone } from '../sim/terrain/load';
+import { TEST_BAY } from '../sim/terrain/test-bay';
 import { interpolateTransform, type Entity, type GameWorld, type Transform } from '../gameplay/ecs';
 import type { ClockState } from '../core/time';
 import type { LocalWeather } from '../sim/weather/local-weather';
@@ -11,6 +13,8 @@ import type { GameRenderer } from './renderer';
 import { createPlaceholderSchooner } from './ships/placeholder-schooner';
 import { createEnvironmentView, type EnvironmentView } from './environment';
 import { createSky } from './sky';
+import { createDockMesh } from './terrain/dock';
+import { createTerrainView } from './terrain/terrain-mesh';
 import { createWater, type Water } from './water/water';
 
 /** Asset id the pipeline will use for the schooner (spike S4). */
@@ -24,6 +28,8 @@ export interface TestScene {
   readonly camera: THREE.PerspectiveCamera;
   readonly water: Water;
   readonly environment: EnvironmentView;
+  /** The test bay's terrain, when it loaded. */
+  readonly zone: LoadedZone | undefined;
   render(alpha: number, seaTime: number, frameSeconds: number): void;
 }
 
@@ -51,8 +57,9 @@ function createStubIsland(island: StubIsland): THREE.Mesh {
  * matching fog, and the player schooner riding the waves. The camera orbits the ship
  * (drag to orbit, wheel to zoom) and follows it, interpolated between ticks.
  *
- * Phase 1 piece D adds day and night, fog and sea state from the weather, and greybox
- * islands for the stub lee until the Apostles terrain loads.
+ * With `zone`, it's the Phase 1 test bay: the Apostles slice's terrain and the greybox
+ * Bayfield dock (plan 02 §14.1). Piece D adds day and night, fog and sea state from the
+ * weather, and, without a zone, greybox islands for the stub lee.
  */
 export async function createTestScene(
   renderer: GameRenderer,
@@ -61,6 +68,7 @@ export async function createTestScene(
   assets: AssetLoader,
   weather: LocalWeather,
   clock: ClockState,
+  zone?: LoadedZone,
   islands: readonly StubIsland[] = [],
 ): Promise<TestScene> {
   const scene = new THREE.Scene();
@@ -78,10 +86,22 @@ export async function createTestScene(
   const water = createWater(sea, renderer.preset);
   scene.add(water.mesh);
   renderer.onPresetChange((preset) => water.applyPreset(preset));
-  for (const island of islands) scene.add(createStubIsland(island));
+  if (!zone) for (const island of islands) scene.add(createStubIsland(island));
 
   const environment = createEnvironmentView(scene, sky, hemi, sun, water, weather);
   environment.update(clock.gameSeconds, { x: 0, z: 0 });
+
+  if (zone) {
+    const terrain = createTerrainView(
+      zone.terrain,
+      zone.backdrop,
+      zone.manifest.heightFormat.tileSamples,
+      renderer.preset,
+    );
+    scene.add(terrain.group);
+    renderer.onPresetChange((preset) => terrain.applyPreset(preset));
+    for (const dock of TEST_BAY.docks) scene.add(createDockMesh(dock, zone.terrain));
+  }
 
   // The real hull once the asset pipeline exports one; the procedural stand-in until then.
   let schooner: THREE.Object3D;
@@ -128,6 +148,7 @@ export async function createTestScene(
     camera,
     water,
     environment,
+    zone,
     render(alpha, seaTime, frameSeconds) {
       for (const [e, object] of objects) {
         interpolateTransform(e, alpha, t);

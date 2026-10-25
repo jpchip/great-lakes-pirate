@@ -15,6 +15,8 @@ test('boots with the null renderer without console errors', async ({ page }) => 
   await page.goto('/?renderer=null');
   await expect(page.locator('body')).toHaveAttribute('data-renderer', 'null');
   await expect(page.locator('body')).toHaveAttribute('data-mode', 'sailing');
+  // The Phase 1 test bay's terrain loads with or without a renderer.
+  await expect(page.locator('body')).toHaveAttribute('data-terrain', 'loaded');
   expect(errors).toEqual([]);
 });
 
