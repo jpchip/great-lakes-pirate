@@ -3,12 +3,14 @@ import { packWaves, testBaySea, type Sea } from '../sim/weather/waves';
 import type { GameRenderer } from '../render/renderer';
 import { browserStorage, QUALITY_IDS, storeQuality, type QualityId } from '../render/quality';
 import type { TestScene } from '../render/test-scene';
+import { createTerrainOverlay, type TerrainOverlay } from './terrain-overlay';
 import { formatWaterBench, runWaterBench } from './water-bench';
 
 /**
  * The dev overlay (plan 01 §5, §11.1 task 4): a stats readout plus lil-gui panels for
- * quality, the sea, saving and the S2 water benchmark. Loaded only in dev builds or with
- * `?debug` / `?bench=water`, as a separate chunk.
+ * quality, the sea, terrain, saving and the S2 water benchmark. Loaded only in dev builds
+ * or with `?debug` / `?bench=water`, as a separate chunk. `?overlay=shelter` (or `fetch`,
+ * `funnel`) and `?windfrom=<degrees>` open the terrain overlay straight away.
  */
 
 export interface SaveControls {
@@ -25,6 +27,8 @@ export interface OverlayOptions {
   save: SaveControls;
   /** Run the water benchmark straight away (`?bench=water`). */
   autoBench: boolean;
+  /** Where to read terrain values for the stats (the player ship). */
+  probe?: () => { x: number; z: number };
 }
 
 const STYLE = `
@@ -81,6 +85,20 @@ export function createDevOverlay(options: OverlayOptions): { update(frameSeconds
   seaFolder.add(uniforms.uFoamThreshold, 'value', 0.1, 0.9, 0.01).name('Foam threshold');
   renderer.onPresetChange((preset) => (seaParams.foam = preset.crestFoam));
   seaFolder.controllers.forEach((c) => c.listen());
+
+  // For scripted screenshots and poking around in the console.
+  (window as unknown as { __glpScene: TestScene }).__glpScene = scene;
+
+  let terrain: TerrainOverlay | undefined;
+  if (scene.zone) {
+    const params = new URLSearchParams(window.location.search);
+    const map = params.get('overlay');
+    const windFrom = Number(params.get('windfrom') ?? 315);
+    terrain = createTerrainOverlay(scene.scene, scene.zone.terrain, gui, {
+      map: map === 'shelter' || map === 'fetch' || map === 'funnel' ? map : 'off',
+      windFromDeg: Number.isFinite(windFrom) ? windFrom : 315,
+    });
+  }
 
   const saveFolder = gui.addFolder('Save');
   saveFolder.add({ save: () => void save.saveNow() }, 'save').name('Save now');
@@ -147,6 +165,7 @@ export function createDevOverlay(options: OverlayOptions): { update(frameSeconds
         `${renderer.preset.label}  scale ${s.scale.toFixed(2)}  ${s.width}×${s.height}`,
         heap ? `heap ${(heap.usedJSHeapSize / 1048576).toFixed(0)} MB` : '',
         `save ${save.status}  last ${saved}${save.lastError ? `  ERROR ${save.lastError}` : ''}`,
+        terrain && options.probe ? terrain.describe(options.probe().x, options.probe().z) : '',
         benchText,
       ]
         .filter(Boolean)

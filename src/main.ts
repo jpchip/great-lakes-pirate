@@ -17,6 +17,8 @@ import { loadAssets } from './render/assets';
 import { browserStorage, initialQuality } from './render/quality';
 import { GameRenderer } from './render/renderer';
 import { createTestScene } from './render/test-scene';
+import { httpBytes, loadZoneTerrain, type LoadedZone } from './sim/terrain/load';
+import { TEST_BAY } from './sim/terrain/test-bay';
 import { createSea } from './sim/weather/waves';
 import { createWorldState, parseWorldState, type WorldState } from './sim/world-state';
 
@@ -95,6 +97,17 @@ async function boot(): Promise<void> {
   document.body.dataset['save'] = status;
   if (saver) document.body.dataset['runId'] = saver.run.runId;
 
+  // The Phase 1 test bay: a slice of the real Apostles bake (plan 02 §14.1). Gameplay
+  // needs it with or without a renderer; without it the bay is open water.
+  const zone: LoadedZone | undefined = await loadZoneTerrain(
+    httpBytes(new URL(TEST_BAY.path, document.baseURI)),
+    TEST_BAY.tiles,
+  ).catch((err: unknown) => {
+    console.warn('Test bay terrain unavailable; sailing on open water', err);
+    return undefined;
+  });
+  document.body.dataset['terrain'] = zone ? 'loaded' : 'unavailable';
+
   const input = new InputMapper();
   input.attach(window);
   const ctx: GameContext = {
@@ -104,11 +117,13 @@ async function boot(): Promise<void> {
     input,
     events: new EventBus<GameEvents>(),
     sea: createSea(),
+    terrain: zone?.terrain,
   };
 
   // Placeholder schooner riding the test-bay sea until the sailing controller lands
   // (plan 02). It holds still; the waves move it.
-  const shipTransform = { position: { x: 0, y: 0, z: 0 }, heading: 0.6 };
+  const { spawn } = TEST_BAY;
+  const shipTransform = { position: { x: spawn.x, y: 0, z: spawn.z }, heading: spawn.heading };
   ctx.world.add({
     id: 'ship.player',
     transform: shipTransform,
@@ -147,7 +162,7 @@ async function boot(): Promise<void> {
       container,
       initialQuality(window.location.search, browserStorage()),
     );
-    const scene = await createTestScene(renderer, ctx.world, ctx.sea, assets);
+    const scene = await createTestScene(renderer, ctx.world, ctx.sea, assets, zone);
     view = scene;
 
     // Dev overlay: dev builds, or `?debug` / `?bench=water` on a production build.
@@ -160,6 +175,7 @@ async function boot(): Promise<void> {
         sea: ctx.sea,
         save: saveControls,
         autoBench: bench,
+        probe: () => shipTransform.position,
       });
       view = {
         render(alpha, seaTime, frameSeconds) {
