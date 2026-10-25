@@ -382,7 +382,15 @@ Sailing in the S7 greybox, the dev saw the waves stutter. The polar grid's verti
 - **Geometry** displaces only with waves the grid samples at least 2.5 times per wavelength where each vertex sits (`uGridOffset` and `uGridGrowth` come from `createPolarGrid`).
 - **Shading** computes the wave normals and crest foam per pixel at the rest position, faded by the pixel's footprint, so the chop stays but no longer depends on where the grid vertices are.
 - **Result:** in a frozen-time test that moves the camera 0.5 m per frame, the frame-to-frame change no longer spikes at each snap (before, it was about 2.5× normal every 4 m; after, it's flat). The bands now have smooth edges instead of triangle facets, which S4's style test can revisit.
-- **Cost:** the per-pixel loop adds shader work (6 waves on Medium). **Rerun `?bench=water` on the laptop.**
+- **Cost (baseline laptop, Firefox 158, 2026-10-25):** the per-pixel loop adds shader work. Firefox rounds `performance.now()` to 1 ms, so each value is ±1 ms, and the buffer was larger than in the Chrome run (1920×1089 vs 1587×1088).
+
+| Preset | Buffer | Waves | Frame ms | Water ms | Crest foam ms | No water ms | Triangles | Draw calls |
+|---|---|---|---|---|---|---|---|---|
+| Low | 1440×816 | 4 | 2 | 1 | 0 | 1 | 11,590 | 4 |
+| Medium | 1920×1089 | 6 | 3 | 2 | 0 | 1 | 23,830 | 4 |
+| High | 1920×1089 | 8 | 3 | 2 | 0 | 1 | 43,750 | 4 |
+
+  Water on Medium is about **2 ms (was 1.0 ms), still inside the 3 ms budget**, and the frame is 3 ms of 16.7. A Chrome run (0.1 ms timer) at the old buffer size would pin down the exact cost. If it gets tight, the cheapest lever is per-pixel shading of the detail waves only (5–8) on Low.
 
 ### Decisions
 - Keep the shared Gerstner set as designed: 4/6/8 waves by preset, buoyancy on the first 4, a steepness cap of 0.9.
