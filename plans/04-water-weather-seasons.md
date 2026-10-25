@@ -390,7 +390,7 @@ Sailing in the S7 greybox, the dev saw the waves stutter. The polar grid's verti
 | Medium | 1920×1089 | 6 | 3 | 2 | 0 | 1 | 23,830 | 4 |
 | High | 1920×1089 | 8 | 3 | 2 | 0 | 1 | 43,750 | 4 |
 
-  Water on Medium is about **2 ms (was 1.0 ms), still inside the 3 ms budget**, and the frame is 3 ms of 16.7. A Chrome run (0.1 ms timer) at the old buffer size would pin down the exact cost. If it gets tight, the cheapest lever is per-pixel shading of the detail waves only (5–8) on Low.
+  **Provisional:** water on Medium reads about 2 ms against the S2 baseline's 1.0 ms, still inside the 3 ms budget. The whole-millisecond timer, Firefox's generic GPU name and the 0 ms crest foam on every preset mean this can't tell a real slowdown from rounding. Rerun in Chrome (0.1 ms timer), as the S2 baseline was, before treating these as the new baseline. If it gets tight, the cheapest lever is per-pixel shading of the detail waves only (5–8) on Low.
 
 ### Decisions
 - Keep the shared Gerstner set as designed: 4/6/8 waves by preset, buoyancy on the first 4, a steepness cap of 0.9.
