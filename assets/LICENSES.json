@@ -1,0 +1,34 @@
+{
+  "$comment": "License gate for asset tools (plan 14 §6). Re-check a tool's terms before each batch of shipped assets and update checked.",
+  "tools": {
+    "meshy": {
+      "use": "Image-to-3D for ship hulls and props (plan 14 §5)",
+      "checked": "2026-10-25",
+      "terms": ["https://www.meshy.ai/terms-of-use", "https://docs.meshy.ai/en/webapp/pricing"],
+      "plans": {
+        "free": {
+          "license": "CC BY 4.0",
+          "attribution": "Required: credit Meshy in the project description",
+          "publicRedistribution": true
+        },
+        "paid": {
+          "license": "Owned by the user (private ownership), if not published to the Meshy Community",
+          "attribution": "Not required",
+          "publicRedistribution": true
+        }
+      },
+      "verdict": "Allowed for shipped assets on either plan. Free-plan outputs are CC BY 4.0, which matches the repo's asset license; credit Meshy in CREDITS.md and each asset's provenance record. Meshy deletes API outputs for non-Enterprise customers after three days, so commit the raw export to raw-assets/ straight away.",
+      "notes": "Meshy's pricing page says the free-plan user 'owns' the output and also that it is CC BY 4.0; treat it as CC BY 4.0. The full Terms of Use license clause was not reachable on 2026-10-25, so read it once when signing up."
+    },
+    "nano-banana": {
+      "use": "Gemini image generation: concept art, orthographic sheets as Meshy inputs, UI plates (plan 14 §5)",
+      "checked": "2026-10-25",
+      "terms": ["https://ai.google.dev/terms"],
+      "license": "Google does not claim ownership of generated content; the user is responsible for its use",
+      "attribution": "Not required by the terms; record it in provenance anyway",
+      "publicRedistribution": true,
+      "verdict": "Allowed for shipped outputs (decided 2026-10-22). On unpaid tiers Google may use prompts and outputs to improve its products, so don't send anything private.",
+      "notes": "The clause covers generated content in general; it says nothing specific to images."
+    }
+  }
+}

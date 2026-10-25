@@ -1,0 +1,11 @@
+{
+  "id": "ship.schooner",
+  "category": "ships",
+  "name": "schooner-t1",
+  "source": "meshy.glb",
+  "lengthM": 30,
+  "draftM": 2.0,
+  "maxTriangles": 11500,
+  "bow": "auto",
+  "bundles": ["test-scene"]
+}

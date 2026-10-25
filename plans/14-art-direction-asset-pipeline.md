@@ -1,6 +1,6 @@
 # 14 — Art Direction & AI Asset Pipeline
 
-Status: DRAFT v0.3 (decisions made; A/B pick in S4)
+Status: DRAFT v0.4 (style picked in S4: B, toon with per-object outlines)
 Parent: [00-master-plan.md](00-master-plan.md)
 Inputs:
 - Master plan: stylized art; AI-generated 3D; period authenticity; the `references/` photos
@@ -75,7 +75,37 @@ Both suit the **fully scripted pipeline** (§7): they tolerate rough, auto-clean
 ### 3.3 Scoring
 Readability (silhouettes, night, fog) · cohesion of mixed-source assets · fit to the Superior mood · **GPU frame time on the baseline laptop** (Ryzen 7 7730U iGPU, [01 §13](01-tech-architecture.md)) · production effort per asset. The developer picks; the result is recorded in this plan.
 
-**Current recommendation:** **A or B**. B (toon with outlines) has an edge for night and fog readability, if the outline cost fits the budget. An inverted-hull outline on hero objects only, or a cheap depth/normal edge pass on High only, are both options.
+**Decided (2026-10-25, S4): B, toon with per-object outlines.** Three light bands plus inverted-hull ink outlines on hero objects (ships, lighthouses, characters), with 1 px edge lines on open surfaces such as sails. On the baseline laptop this costs nothing measurable over flat shading (§3.4). The screen-space edge pass is dropped: it cost +0.5 ms on Medium and +1.5 ms on High for little visible gain.
+
+### 3.4 Spike S4 progress (2026-10-25)
+**Built, pick pending.** `/bench/s4/` (`npm run dev`) renders the §3.2 scene in four variants: **A** (flat, face normals from screen-space derivatives), **B0** (toon bands, no outline, to isolate the outline's cost), **B** (toon plus inverted-hull outlines on the schooner and light station, 1 px edge lines on the sails) and **B-edge** (toon plus a screen-space depth-edge pass). `?bench` times each variant × dusk/night × fog on/off × preset and prints a table to paste here. The hull pipeline (§7) runs end to end: `npm run assets:hull -- raw-assets/ships/schooner-t1`, steps in `tools/assets/README.md`. Meshy and nano-banana terms are in `assets/LICENSES.json`.
+
+**Cloud check (software renderer, not a GPU):** at Medium 1280×720 under SwiftShader, A, B0 and B were within noise of each other (≈ 57–65 ms per frame), and B-edge cost about +35% (≈ +22–26 ms) for its full-screen pass and half-float target. B adds 10 draw calls and ~620 triangles (outline shells) to the scene's 17 calls and 24.3k triangles. Only the ratios mean anything; the laptop run decides.
+
+**Seen in the renders:** the outlines do most for the sails and spars against a bright dusk sky; at night the moonlit sails already read in all variants, and the lamp, beam and glare carry the light station in fog. The edge pass also inks the light station and islet, but leaves a few stray lines on near wave crests.
+
+**Baseline laptop (2026-10-25)**, Chrome 156 on Linux, ANGLE on OpenGL 4.6 (radeonsi renoir), placeholder hull. Buffers: Low 1440×816, Medium 1920×1088, High 1920×1088 with MSAA. Frame ms, median of batched frames, with the difference from A in brackets:
+
+| Preset | Time | Fog | A flat | B no outline | B hull outline | B edge pass |
+|---|---|---|---|---|---|---|
+| low | dusk | off | 1.22 | 0.88 (−0.34) | 0.94 (−0.28) | 1.20 (−0.02) |
+| low | dusk | on | 0.89 | 0.95 (+0.06) | 0.89 (+0.00) | 1.15 (+0.26) |
+| low | night | off | 0.92 | 0.86 (−0.05) | 0.94 (+0.03) | 1.19 (+0.28) |
+| low | night | on | 0.95 | 0.91 (−0.04) | 0.87 (−0.08) | 1.18 (+0.23) |
+| medium | dusk | off | 1.90 | 1.96 (+0.06) | 2.13 (+0.23) | 2.42 (+0.52) |
+| medium | dusk | on | 2.03 | 1.96 (−0.07) | 1.92 (−0.11) | 2.57 (+0.53) |
+| medium | night | off | 1.93 | 1.98 (+0.04) | 2.09 (+0.16) | 2.41 (+0.48) |
+| medium | night | on | 2.10 | 1.87 (−0.22) | 2.00 (−0.10) | 2.59 (+0.49) |
+| high | dusk | off | 2.67 | 2.86 (+0.19) | 2.69 (+0.02) | 4.20 (+1.53) |
+| high | dusk | on | 2.76 | 2.67 (−0.08) | 2.72 (−0.03) | 4.27 (+1.52) |
+| high | night | off | 2.70 | 2.75 (+0.05) | 2.70 (−0.00) | 4.21 (+1.51) |
+| high | night | on | 2.66 | 2.68 (+0.02) | 2.92 (+0.27) | 4.19 (+1.53) |
+
+Draw calls and triangles per variant: A, B0 17 calls; B (hull outline) 27 calls and +620 triangles; B-edge 18 calls. CPU submit 0.11–0.20 ms everywhere.
+
+**Findings:** (1) Toon banding costs nothing over flat shading: A vs. B0 is within noise (±0.2 ms) on every preset. (2) Inverted-hull outlines are also within noise: at most +0.27 ms, usually ±0.1, for 10 extra draw calls. (3) The screen-space edge pass is the only real cost: about +0.25 ms on Low, +0.5 ms on Medium and +1.5 ms on High, where the half-float target plus the MSAA resolve at full size dominate. It would use up most of Medium's post-processing budget (01 §5: "bloom or outlines"). (4) Every variant is far inside budget on this small scene (≤ 3 ms on High), so the pick can be made on looks.
+
+**Pick:** B with per-object outlines (§16). The Meshy hull was not made: ships are built in code instead (§5, decided 2026-10-25), so it is no longer needed. The hull pipeline (`npm run assets:hull`) stays for any AI-made organic one-off.
 
 ---
 
@@ -86,7 +116,7 @@ One custom GLSL material (spike S1 picked `WebGLRenderer` + GLSL; [01 §14](01-t
 | Feature | Purpose |
 |---|---|
 | **Palette texture** (a shared color-ramp atlas) sampled by UV or vertex color | Forces every asset into the master palette, which gives cohesion |
-| Banded (toon) or flat diffuse, per the style test | Consistent lighting response |
+| Banded (toon) diffuse, three bands (style B, §3) | Consistent lighting response |
 | Optional small detail texture (wood grain, stone) at low contrast | Surface interest without realism |
 | Rim light (subtle) | Silhouette readability at night |
 | Emissive mask | Lanterns, windows, lighthouse lamps |
@@ -105,8 +135,8 @@ One custom GLSL material (spike S1 picked `WebGLRenderer` + GLSL; [01 §14](01-t
 
 | Asset type | Primary source | Why / notes |
 |---|---|---|
-| **Player ships** (T1–T3 + variants) | **AI image-to-3D hull and deckhouse only** (prompted without sails or rigging) from `references/schooner.png` and generated orthographic views → **scripted cleanup** | **Masts, spars and sails are procedural** (generated from per-class parameters: mast count, heights, sail plan, per-level sail shapes; [02 §13](02-arcade-sailing.md)). **Rigging lines are procedural** too. Attachment points come from a **per-class template** in data, so no manual placement is needed. |
-| **NPC ships** (package and bulk freighters, whaleback, sidewheel steamer, tug, fishing boats, cutter, schooner-barge) | AI from `references/` photos plus cleanup | Lower budgets; reuse parts (deckhouses, stacks) |
+| **Player ships** (T1–T3 + variants) | **Procedural parametric hull generator** (decided 2026-10-25): hull lines from per-class parameters (length, beam, sheer, draft, stem and transom shape) plus deckhouse and hatch parts, an upgrade of the S2 placeholder schooner. Reference: `references/schooner.png` and the R1 photos | **Masts, spars and sails are procedural** (generated from per-class parameters: mast count, heights, sail plan, per-level sail shapes; [02 §13](02-arcade-sailing.md)). **Rigging lines are procedural** too. Attachment points come from a **per-class template** in data, so no manual placement is needed. |
+| **NPC ships** (package and bulk freighters, whaleback, sidewheel steamer, tug, fishing boats, cutter, schooner-barge) | **The same parametric generator**, with steamer parts (stacks, pilothouses, paddle boxes) | Lower budgets; reuse parts (deckhouses, stacks). Mostly boxy shapes, which suit code |
 | **Characters** | One **CC0 base humanoid** (e.g., Quaternius-style) with period clothing variants (AI-generated accessories: hats, coats) | Shared skeleton for all ([08 §13](08-docks-district-stealth.md)) |
 | **Animations** | **CC0 animation libraries** (e.g., Quaternius Universal Animation Library) plus a few custom ones | Avoid Mixamo-style terms that restrict redistributing raw files in a public repo |
 | **Animals** (deer, bear, wolf) | CC0 packs, or AI plus auto-rig | Low poly |
@@ -116,7 +146,7 @@ One custom GLSL material (spike S1 picked `WebGLRenderer` + GLSL; [01 §14](01-t
 | **Terrain** | Geo pipeline heightmaps ([03 §8](03-world-scale-chart-travel.md)) plus a **shader** (slope and height bands: red sandstone cliffs, beach, forest floor, snow) | No painted textures |
 | **Water, sky, weather** | Shaders ([04](04-water-weather-seasons.md)) | — |
 | **Lighthouses** | A modular **lighthouse station kit** plus per-light variants (tower height and shape, brick vs. white, from R1 photos) | Recognizable real lights |
-| **Figureheads, curios, trophies** | AI | Unique small objects |
+| **Figureheads, curios, trophies** | CC0 where one fits; otherwise **Meshy (optional)** through the hull pipeline; otherwise simplify or cut | Unique organic objects that are hard to build in code |
 | **Sea caves** | **Procedural** (scripted cave meshes carved from noise or SDF shapes along the cliff line) plus AI rock props | Few; hero spots; no hand sculpting |
 | **UI art** ([13](13-ui-ux.md)) | **Public-domain period engravings and ads** (pre-1929 sources) for newspapers and decorations; hand-made SVG icons; AI image generation for parchment and texture plates | Authentic and license-safe |
 | **Concept art and orthographic references** | AI image generation: **the nano-banana (Gemini) skill is available and approved** for this | Inputs for image-to-3D (front, side and top orthographic sheets), mood boards, UI texture plates |
@@ -125,7 +155,7 @@ One custom GLSL material (spike S1 picked `WebGLRenderer` + GLSL; [01 §14](01-t
 
 ## 6. AI Tooling & Licensing (open-source rules)
 
-- **Image-to-3D (decided 2026-10-22): Meshy.** S4 records its current terms in `assets/LICENSES.json`. Tripo and Rodin/Hyper3D are fallbacks only if Meshy's terms or results fail.
+- **Image-to-3D (decided 2026-10-22, narrowed 2026-10-25): Meshy, optional, for organic one-offs only** (figureheads, curios, trophies, maybe animals). Ships are procedural. S4 records its current terms in `assets/LICENSES.json`. Tripo and Rodin/Hyper3D are fallbacks only if Meshy's terms or results fail.
 - **Image generation** (concepts, orthographic sheets, textures, UI plates): **nano-banana (Gemini CLI skill) approved for this open-source project, including shipped outputs** (decided 2026-10-22). Provenance records still apply to every shipped image.
 - **License gate (mandatory before adopting a tool):**
   1. Outputs may be **publicly redistributed** in an open-source repo (we're not selling, but the repo is public and assets are CC BY 4.0).
@@ -223,8 +253,8 @@ Stylized, few particles, matched to the palette. Sizes and counts scale by prese
 
 | Category | Count (MVP) | Main source |
 |---|---|---|
-| Player ships | 3 hulls (+3 variants MVP+) plus attachments (~15) | AI + cleanup; procedural rigging |
-| NPC ships | ~9 classes | AI + cleanup |
+| Player ships | 3 hulls (+3 variants MVP+) plus attachments (~15) | Procedural hulls and rigging |
+| NPC ships | ~9 classes | Procedural (shared generator) |
 | Characters | 1 base + ~25 clothing and accessory variants | CC0 base + AI accessories |
 | Animals | 3 | CC0 / AI |
 | Hideout grid pieces | ~120 incl. variants ([09 §5](09-hideouts-building-crafting.md)) | Procedural / hand |
@@ -298,10 +328,13 @@ All resolved. The final A-vs-B pick happens in spike S4 (shrunk scene).
 | 2026-10-22 | **S4 scene shrunk** to schooner, water, fog and one lighthouse beam at dusk and night. |
 | 2026-10-22 | **Blender runs locally only**, never in CI. |
 | 2026-10-22 | **Static sails** (no billow shader); flags keep a vertex shader. |
+| 2026-10-25 | **Ships are procedural** (a parametric hull generator for player and NPC ships); **Meshy is optional, for organic one-offs only** (figureheads, curios, trophies). |
+| 2026-10-25 | **Style B picked (S4):** toon bands plus inverted-hull outlines on hero objects; no screen-space edge pass. Laptop cost within noise of flat shading (§3.4). |
 
 ---
 
 ## Changelog
+- v0.4: S4 results (§3.4): scene, benchmark on the baseline laptop, style B with per-object outlines picked. Ships move to a procedural hull generator; Meshy becomes optional for organic one-offs.
 - v0.3: Gap review: sourcing order (procedural/CC0 first, AI fills gaps), Meshy chosen, nano-banana approved for shipped outputs, shrunk S4 scene, Blender local only, static sails, A-or-B wording fixed.
 - v0.2: Decisions: photochrom reference, AI image gen (nano-banana) approved, public-domain engravings, fully scripted pipeline (headless Blender clean, procedural ship rigs and caves, contact-sheet review), style test narrowed to A/B.
 - v0.1: Initial art plan: pillars, palette and mood (photochrom reference), time and season palettes, style test (candidates, scene, scoring), the unified stylized material and palette-ization, sources by asset type, AI tooling and the license gate, the automated pipeline, budgets, animation list, VFX style, MVP asset list, historical references, phasing, risks.
