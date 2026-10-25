@@ -196,10 +196,14 @@ function rig(spars: TriangleSoup, sails: TriangleSoup): void {
   );
 }
 
-export function createPlaceholderSchooner(): THREE.Group {
+/**
+ * `hull: false` builds only the masts, spars and sails, to stand on a hull from the asset
+ * pipeline (plan 14 §5: AI hull, procedural rig).
+ */
+export function createPlaceholderSchooner(options: { hull?: boolean } = {}): THREE.Group {
   const solid = new TriangleSoup();
   const canvas = new TriangleSoup();
-  hull(solid);
+  if (options.hull ?? true) hull(solid);
   rig(solid, canvas);
 
   const group = new THREE.Group();

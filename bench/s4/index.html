@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>S4 art style test</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        background: #10181d;
+        color: #dde6ea;
+        font:
+          14px/1.4 system-ui,
+          sans-serif;
+      }
+      #stage {
+        position: fixed;
+        inset: 0;
+      }
+      #stage canvas {
+        display: block;
+      }
+      #status {
+        position: fixed;
+        top: 8px;
+        left: 8px;
+        padding: 4px 8px;
+        background: rgb(0 0 0 / 60%);
+        border-radius: 4px;
+        font:
+          12px/1.4 ui-monospace,
+          monospace;
+        white-space: pre;
+        pointer-events: none;
+      }
+      #report {
+        display: none;
+        padding: 16px;
+        max-width: 1400px;
+      }
+      body[data-s4='done'] #report,
+      body[data-s4='failed'] #report {
+        display: block;
+      }
+      body[data-s4='done'] #stage,
+      body[data-s4='failed'] #stage,
+      body[data-s4='done'] #status,
+      body[data-s4='failed'] #status {
+        display: none;
+      }
+      pre {
+        white-space: pre-wrap;
+        background: #1b262d;
+        padding: 12px;
+        border-radius: 4px;
+        font-size: 12px;
+      }
+      #thumbs {
+        display: flex;
+        gap: 12px;
+        flex-wrap: wrap;
+      }
+      #thumbs figure {
+        margin: 0;
+      }
+      #thumbs img {
+        width: 400px;
+        max-width: 100%;
+        border-radius: 4px;
+      }
+      button {
+        font: inherit;
+        padding: 6px 14px;
+      }
+    </style>
+  </head>
+  <body data-s4="starting">
+    <div id="stage"></div>
+    <div id="status">Spike S4: loading…</div>
+    <div id="report">
+      <h1>S4 art style test</h1>
+      <p>
+        <button id="copy">Copy results</button>
+        <span id="copied"></span>
+      </p>
+      <pre id="out"></pre>
+      <h2>Medium preset, each variant</h2>
+      <div id="thumbs"></div>
+    </div>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

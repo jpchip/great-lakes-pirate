@@ -248,6 +248,7 @@ Spotted something (or something spotted you)
 - **Collision:**
   - Ship vs. terrain: depth query (aground when depth < draft) plus a shoreline SDF for "push back" and damage.
   - On foot: heightmap ground plus prop primitives ([01 §2.2](01-tech-architecture.md)).
+- **Phase 1 runtime (built for the test bay, 2026-10-25):** `src/sim/terrain/` loads one slice of a baked zone up front: its sailing tiles at 4 m, the SDF and the 16-direction wind maps cropped to it, and a 32 m backdrop of the whole zone so land past the slice still shows in the fog. `ZoneTerrain` answers `heightAt`, `depthAt`, `shoreDistanceAt`, `shoreNormalAt`, and `shelterAt` / `fetchAt` / `funnelAt` (two nearest directions blended, land cells ignored). `src/render/terrain/` draws one mesh per tile at the preset's stride (16 m Low, 8 m Medium, 4 m High) with skirts, skips cells more than 12 m deep, and colors by height and slope until the art style pick. The test bay is tiles 2–4 × 3–5 of the Apostles (Bayfield, the North Channel, Red Cliff, Basswood, Hermit and Madeline; [02 §14](02-arcade-sailing.md)), with a greybox Bayfield pier and two berths. Streaming and geomipmapping stay Phase 2 work.
 
 ### 8.4 Memory estimate (Apostles, Medium preset)
 | Item | Estimate |
@@ -508,6 +509,7 @@ Done on 2026-10-24: all four values confirmed, and the stutter fixed (plan 04 §
 ---
 
 ## Changelog
+- v0.8: Phase 1 runtime terrain for the test bay (§8.3): slice loader, terrain queries, tile meshes with a whole-zone backdrop.
 - v0.7: Restored the S7 write-up (§15: what was built, the speed, channel, walk and R tables, findings, feel check), which a merge had dropped; S8 renumbered to §16.
 - v0.5: Prototype S8 written up (§14) and playtested as fun: chart mode with plotting, compressed voyages and encounter arenas works; pacing guard and 6 nm day lookout range added.
 - v0.4: Spike S3 results (§14): pipeline in `tools/geo/`, chart projection instead of UTM, 16-bit delta + deflate tiles, lee in game meters, land height curve (soft knee at 20 m, decided).

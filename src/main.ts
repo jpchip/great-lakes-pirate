@@ -21,6 +21,8 @@ import { createSailingState, type SailingWind } from './sim/sailing/controller';
 import { defaultHandling } from './sim/sailing/handling';
 import { compileSailingClass } from './sim/sailing/ship-class';
 import { sailShipRecord, T1_SCHOONER_ID } from './sim/sailing/ships';
+import { httpBytes, loadZoneTerrain, type LoadedZone } from './sim/terrain/load';
+import { TEST_BAY } from './sim/terrain/test-bay';
 import { createSea } from './sim/weather/waves';
 import { createWorldState, parseWorldState, type WorldState } from './sim/world-state';
 
@@ -99,6 +101,17 @@ async function boot(): Promise<void> {
   document.body.dataset['save'] = status;
   if (saver) document.body.dataset['runId'] = saver.run.runId;
 
+  // The Phase 1 test bay: a slice of the real Apostles bake (plan 02 §14.1). Gameplay
+  // needs it with or without a renderer; without it the bay is open water.
+  const zone: LoadedZone | undefined = await loadZoneTerrain(
+    httpBytes(new URL(TEST_BAY.path, document.baseURI)),
+    TEST_BAY.tiles,
+  ).catch((err: unknown) => {
+    console.warn('Test bay terrain unavailable; sailing on open water', err);
+    return undefined;
+  });
+  document.body.dataset['terrain'] = zone ? 'loaded' : 'unavailable';
+
   const input = new InputMapper();
   input.attach(window);
   const ctx: GameContext = {
@@ -108,17 +121,20 @@ async function boot(): Promise<void> {
     input,
     events: new EventBus<GameEvents>(),
     sea: createSea(),
+    terrain: zone?.terrain,
   };
 
-  // The player's T1 schooner on the plan 02 sailing model, in a steady northwesterly
-  // that matches the test-bay swell until the weather system provides the wind.
+  // The player's T1 schooner on the plan 02 sailing model at the test bay's spawn, in a
+  // steady northwesterly that matches the test-bay swell until the weather system
+  // provides the wind.
   const shipRecord = sailShipRecord(T1_SCHOONER_ID);
   const handling = defaultHandling();
   const devWind: SailingWind = { fromRad: (315 * Math.PI) / 180, speedKn: 12, gust01: 0 };
-  const shipTransform = { position: { x: 0, y: 0, z: 0 }, heading: 0.6 };
+  const { spawn } = TEST_BAY;
+  const shipTransform = { position: { x: spawn.x, y: 0, z: spawn.z }, heading: spawn.heading };
   const sailing = {
     cls: compileSailingClass(shipRecord, handling),
-    state: createSailingState(0, 0, shipTransform.heading),
+    state: createSailingState(spawn.x, spawn.z, spawn.heading),
   };
   ctx.world.add({
     id: 'ship.player',
@@ -159,7 +175,7 @@ async function boot(): Promise<void> {
       container,
       initialQuality(window.location.search, browserStorage()),
     );
-    const scene = await createTestScene(renderer, ctx.world, ctx.sea, assets);
+    const scene = await createTestScene(renderer, ctx.world, ctx.sea, assets, zone);
     view = scene;
 
     // Dev overlay: dev builds, or `?debug` / `?bench=water` on a production build.
@@ -172,6 +188,7 @@ async function boot(): Promise<void> {
         sea: ctx.sea,
         save: saveControls,
         autoBench: bench,
+        probe: () => shipTransform.position,
       });
       const { createSailingPanel } = await import('./debug/sailing-panel');
       const panel = createSailingPanel({

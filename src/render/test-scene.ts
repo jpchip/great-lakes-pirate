@@ -1,12 +1,16 @@
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import type { AssetLoader } from '../core/assets';
+import type { LoadedZone } from '../sim/terrain/load';
+import { TEST_BAY } from '../sim/terrain/test-bay';
 import { interpolateTransform, type Entity, type GameWorld, type Transform } from '../gameplay/ecs';
 import type { Sea } from '../sim/weather/waves';
 import type { GLTF } from './assets';
 import type { GameRenderer } from './renderer';
 import { createPlaceholderSchooner } from './ships/placeholder-schooner';
 import { createSky } from './sky';
+import { createDockMesh } from './terrain/dock';
+import { createTerrainView } from './terrain/terrain-mesh';
 import { createWater, type Water } from './water/water';
 
 /** Asset id the pipeline will use for the schooner (spike S4). */
@@ -20,6 +24,8 @@ export interface TestScene {
   readonly scene: THREE.Scene;
   readonly camera: THREE.PerspectiveCamera;
   readonly water: Water;
+  /** The test bay's terrain, when it loaded. */
+  readonly zone: LoadedZone | undefined;
   render(alpha: number, seaTime: number, frameSeconds: number): void;
 }
 
@@ -27,12 +33,16 @@ export interface TestScene {
  * Phase 0 test scene (plan 01 §11 exit criteria): Gerstner water, a sky dome with
  * matching fog, and the player schooner riding the waves. The camera orbits the ship
  * (drag to orbit, wheel to zoom) and follows it, interpolated between ticks.
+ *
+ * With `zone`, it's the Phase 1 test bay: the Apostles slice's terrain and the greybox
+ * Bayfield dock (plan 02 §14.1).
  */
 export async function createTestScene(
   renderer: GameRenderer,
   world: GameWorld,
   sea: Sea,
   assets: AssetLoader,
+  zone?: LoadedZone,
 ): Promise<TestScene> {
   const scene = new THREE.Scene();
   scene.fog = new THREE.Fog(HORIZON, 150, 1600);
@@ -52,6 +62,18 @@ export async function createTestScene(
   water.material.uniforms.uSkyColor.value.copy(HORIZON);
   scene.add(water.mesh);
   renderer.onPresetChange((preset) => water.applyPreset(preset));
+
+  if (zone) {
+    const terrain = createTerrainView(
+      zone.terrain,
+      zone.backdrop,
+      zone.manifest.heightFormat.tileSamples,
+      renderer.preset,
+    );
+    scene.add(terrain.group);
+    renderer.onPresetChange((preset) => terrain.applyPreset(preset));
+    for (const dock of TEST_BAY.docks) scene.add(createDockMesh(dock, zone.terrain));
+  }
 
   // The real hull once the asset pipeline exports one; the procedural stand-in until then.
   let schooner: THREE.Object3D;
@@ -97,6 +119,7 @@ export async function createTestScene(
     scene,
     camera,
     water,
+    zone,
     render(alpha, seaTime, frameSeconds) {
       for (const [e, object] of objects) {
         interpolateTransform(e, alpha, t);

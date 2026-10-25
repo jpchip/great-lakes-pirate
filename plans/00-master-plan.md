@@ -221,7 +221,7 @@ Each of these gets its own plan doc. Summaries capture decisions plus remaining 
 - **Style (decided): stylized.** Clean, chunky shapes, a limited palette, painterly or toon-ish shading, exaggerated silhouettes. Stylized art is far more forgiving for a solo developer and for AI-generated assets than realism.
 - **3D assets (decided, per [14](14-art-direction-asset-pipeline.md)): procedural and CC0 first; AI-generated assets fill the gaps.**
   - **Meshy** is the image-to-3D tool; **nano-banana** (Gemini) makes concepts, orthographic sheets and UI plates. Both are approved for this open-source project.
-  - Sources: CC0 stylized asset packs (e.g., Kenney, Quaternius, Poly Pizza) for props, procedural/code-built geometry (water, terrain, masts, sails and rigging), and Meshy for hulls and unique objects.
+  - Sources: CC0 stylized asset packs (e.g., Kenney, Quaternius, Poly Pizza) for props, procedural/code-built geometry (water, terrain, masts, sails and rigging), procedural hulls for every ship (decided 2026-10-25), and Meshy only, optionally, for organic one-offs such as figureheads and curios.
   - Feed the reference photos into image-to-3D for ships.
   - Cleanup: scripted headless Blender (run locally, never in CI): decimation, consistent scale/pivots, texture size budgets, and glTF/GLB export.
   - Modular kits for docks districts and hideout grid pieces. Grid pieces need precise dimensions, so these may be easier modeled simply or procedurally than AI-generated.
@@ -414,6 +414,8 @@ All planned documents are drafted and their open questions answered. Next:
 | 2026-10-23 | Phase 10 (expand the lakes) comes before Phase 11 (polish); expansions ship before 1.0 as 0.10.x (17). |
 | 2026-10-22 | Booth Fisheries is fictionalized as Hollister Fish & Packing everywhere, including the README. |
 | 2026-10-24 | Spike S7: C = 8, R = 24, R_foot = 6 and freighter display scale 0.85 confirmed by playtest (03 §15). |
+| 2026-10-25 | Ships are built by a procedural hull generator; Meshy is optional, for organic one-offs only (14 §5). |
+| 2026-10-25 | Spike S4: art style B (toon with per-object ink outlines) picked; costs nothing measurable on the baseline laptop (14 §3.4). |
 
 ---
 
