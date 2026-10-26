@@ -227,7 +227,7 @@ S6 measured a worst case of **839 KB raw → 244 KB compressed** with packed hid
 | Phase | Scope |
 |---|---|
 | 0 | IndexedDB wrapper, envelope plus checksum, save worker, `saveVersion: 1`, round-trip test, S6 benchmark |
-| 1 | Settings store (graphics presets, key rebinding) |
+| 1 | Settings store (graphics presets, key rebinding). Built 2026-10-25: `src/core/settings.ts`, the `settings` store's `v1` key, every field parsed on its own with a default; the localStorage fallback also carries over the Phase 0 `glp.quality` pick |
 | 3–4 | Autosave triggers, Continue, backup rotation, economy and voyage slices, first migrations and fixtures |
 | 5 | Permadeath deletion flow, `lastRun` and the end screen, the danger snapshot, the single-tab lock |
 | 8 | Hideout slices (largest), dirty-slice optimization if needed |
@@ -319,6 +319,7 @@ Per-cell grid updates dominate. Everything else (480 markets, 200 ships) costs u
 ---
 
 ## Changelog
+- v0.5: Phase 1 settings store built (§12).
 - v0.4: Spike S6 results (§15): worst case 244 KB compressed, ~3.1 ms main thread on the baseline laptop with packed hideout pieces; ice updates daily in fast-forward.
 - v0.3: Gap review: export/import is a committed Phase 11 feature, not optional.
 - v0.2: Decisions: danger snapshot, player export/import (Transferred label, blocked during danger), Abandon run, 2-minute autosave.
