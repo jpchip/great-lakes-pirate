@@ -1,5 +1,6 @@
 import { World } from 'miniplex';
 import type { Buoyancy } from './buoyancy';
+import type { ShipHazards } from './hazards';
 import type { SailingShip } from './sailing';
 
 /**
@@ -40,6 +41,8 @@ export interface Entity {
   buoyancy?: Buoyancy;
   /** The plan 02 sailing model; see gameplay/sailing. */
   sailing?: SailingShip;
+  /** Damage, strain, grounding, anchor and berth (plan 02 §6–7); see gameplay/hazards. */
+  hazards?: ShipHazards;
   /** Which model render/ draws for this entity; render/ owns the three.js objects. */
   model?: 'schooner';
   playerControlled?: true;

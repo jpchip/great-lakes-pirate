@@ -1,12 +1,21 @@
 import { DEFAULT_COMPRESSION } from '../core/coords';
+import type { EventBus } from '../core/events';
 import type { InputMapper } from '../core/input';
 import { dayAndHour, advanceClock, R_SAILING } from '../core/time';
 import { buoyancySystem } from '../gameplay/buoyancy';
 import { bobSystem, snapshotTransforms, velocitySystem, type Entity } from '../gameplay/ecs';
+import { hazardSystem, onShipJibed } from '../gameplay/hazards';
 import { heelSystem, sailingSystem, type WindSampler } from '../gameplay/sailing';
 import { IDLE_COMMAND, type SailingCommand } from '../sim/sailing/controller';
+import {
+  IDLE_MOORING,
+  type HazardEvent,
+  type MooringBerth,
+  type MooringCommand,
+} from '../sim/sailing/hazards';
+import type { Dock } from '../sim/terrain/test-bay';
 import { seaScaleAt } from '../sim/weather/waves';
-import type { GameContext } from './context';
+import type { GameContext, GameEvents } from './context';
 import type { Mode } from './machine';
 
 const ORIGIN = { x: 0, z: 0 };
@@ -20,6 +29,9 @@ export interface SailingModeOptions {
   view?: SailingView | undefined;
   /** The wind at a zone point: `ctx.weather.windAt` at the current game time. */
   wind: WindSampler;
+  /** Piers and their berths in the zone (plan 02 §7); none means open water. */
+  docks?: readonly Dock[];
+  berths?: readonly MooringBerth[];
 }
 
 /** The player's helm orders from the plan 02 §2 bindings. */
@@ -33,6 +45,61 @@ export function playerCommand(input: InputMapper, out: SailingCommand): SailingC
   return out;
 }
 
+/** The player's anchor and dock orders: X held, F pressed (plan 02 §2). */
+export function playerMooring(input: InputMapper, out: MooringCommand): MooringCommand {
+  out.anchor = input.isDown('Anchor');
+  out.interact = input.pressed('Interact');
+  return out;
+}
+
+/** Puts a hazard on the event bus for the HUD, audio and later the newspaper. */
+export function emitHazard(
+  events: EventBus<GameEvents>,
+  shipId: string | undefined,
+  ev: HazardEvent,
+): void {
+  switch (ev.kind) {
+    case 'grounded':
+      return events.emit('ShipGrounded', {
+        shipId,
+        speedKn: ev.speedKn,
+        damage: ev.damage,
+        hard: ev.hard,
+      });
+    case 'refloated':
+      return events.emit('ShipRefloated', { shipId });
+    case 'struck':
+      return events.emit('ShipStruck', {
+        shipId,
+        what: ev.what,
+        speedKn: ev.speedKn,
+        damage: ev.damage,
+      });
+    case 'knockdown':
+      return events.emit('ShipKnockedDown', {
+        shipId,
+        riggingDamage: ev.riggingDamage,
+        hullDamage: ev.hullDamage,
+      });
+    case 'foundering':
+      return events.emit('ShipFoundering', { shipId });
+    case 'anchorDropped':
+      return events.emit('AnchorDropped', { shipId });
+    case 'anchorWeighed':
+      return events.emit('AnchorWeighed', { shipId });
+    case 'anchorDragging':
+      return events.emit('AnchorDragging', { shipId, dragging: ev.dragging });
+    case 'anchorRefused':
+      return events.emit('AnchorRefused', { shipId, reason: ev.reason });
+    case 'docked':
+      return events.emit('ShipDocked', { shipId, berthId: ev.berthId });
+    case 'castOff':
+      return events.emit('ShipCastOff', { shipId, berthId: ev.berthId });
+    case 'dockRefused':
+      return events.emit('DockRefused', { shipId, reason: ev.reason });
+  }
+}
+
 /**
  * Sailing mode: runs the clock at R = 24, the world tick and the entity systems, with
  * the player's schooner on the plan 02 sailing model.
@@ -44,6 +111,16 @@ export function createSailingMode(ctx: GameContext, options: SailingModeOptions)
   const helm: SailingCommand = { ...IDLE_COMMAND };
   const commandFor = (e: Entity): SailingCommand =>
     e.playerControlled ? playerCommand(ctx.input, helm) : IDLE_COMMAND;
+  const mooring: MooringCommand = { ...IDLE_MOORING };
+  const mooringFor = (e: Entity): MooringCommand =>
+    e.playerControlled ? playerMooring(ctx.input, mooring) : IDLE_MOORING;
+  const hazardEnv = {
+    get terrain() {
+      return ctx.terrain;
+    },
+    docks: options.docks ?? [],
+    berths: options.berths ?? [],
+  };
 
   return {
     id: 'sailing',
@@ -78,9 +155,15 @@ export function createSailingMode(ctx: GameContext, options: SailingModeOptions)
         dt,
         (e, ev) => {
           if (ev.kind === 'tack') ctx.events.emit('ShipTacked', { shipId: e.id });
-          else ctx.events.emit('ShipJibed', { shipId: e.id, uncontrolled: ev.uncontrolled });
+          else {
+            onShipJibed(e, ev.uncontrolled);
+            ctx.events.emit('ShipJibed', { shipId: e.id, uncontrolled: ev.uncontrolled });
+          }
         },
         (x, z) => seaScaleAt(ctx.sea, x, z),
+      );
+      hazardSystem(ctx.world, mooringFor, hazardEnv, options.wind, scale, dt, (e, ev) =>
+        emitHazard(ctx.events, e.id, ev),
       );
       velocitySystem(ctx.world, dt);
       bobSystem(ctx.world, elapsed);
