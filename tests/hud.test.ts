@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { SECONDS_PER_GAME_DAY } from '../src/core/time';
 import { createSailingState } from '../src/sim/sailing/controller';
 import { defaultHandling } from '../src/sim/sailing/handling';
+import { defaultHazardRules } from '../src/sim/sailing/hazard-rules';
+import { compileHazardClass, createHazardState } from '../src/sim/sailing/hazards';
 import { compileSailingClass } from '../src/sim/sailing/ship-class';
 import { sailShipRecord, T1_SCHOONER_ID } from '../src/sim/sailing/ships';
 import { bestAngleBand, clockLabel, sampleHud, weekLabel } from '../src/ui/hud/model';
@@ -57,19 +59,32 @@ describe('sailing HUD model', () => {
     expect(hud.hull01).toBeUndefined();
     expect(hud.strain01).toBeUndefined();
     expect(hud.depthM).toBe(4.2);
+    expect(hud.shallow).toBe(true);
+    expect(hud.status).toEqual([]);
     expect(hud.timeText).toBe('12:00');
 
-    // Damage readouts come from the hazards piece when it's wired in.
+    // With the hazards component, the pools, strain, depth and states come from it.
+    const record = sailShipRecord(T1_SCHOONER_ID);
+    const hcls = compileHazardClass(record, defaultHazardRules());
+    const hstate = createHazardState(hcls);
+    hstate.hull = hcls.hullHP * 0.4;
+    hstate.strain = 0.7;
+    hstate.depth = 3.1;
+    hstate.shallow = true;
+    hstate.aground = true;
+    hstate.anchor = 'down';
     const damaged = sampleHud({
-      ship: { sailing: { cls, state } },
+      ship: { sailing: { cls, state }, hazards: { cls: hcls, state: hstate } },
       terrain: undefined,
       gameSeconds: 0,
       draftM: 1.5,
-      damage: () => ({ hull01: 0.4, strain01: 0.7 }),
     });
-    expect(damaged?.hull01).toBe(0.4);
+    expect(damaged?.hull01).toBeCloseTo(0.4);
+    expect(damaged?.rigging01).toBe(1);
     expect(damaged?.strain01).toBe(0.7);
-    expect(damaged?.depthM).toBeUndefined();
+    expect(damaged?.depthM).toBe(3.1);
+    expect(damaged?.shallow).toBe(true);
+    expect(damaged?.status).toEqual(['Aground', 'Anchored']);
     expect(sampleHud({ ship: {}, terrain: undefined, gameSeconds: 0, draftM: 1 })).toBeUndefined();
   });
 });

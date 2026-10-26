@@ -28,6 +28,8 @@ import { GameRenderer } from './render/renderer';
 import { createTestScene } from './render/test-scene';
 import { createSailingState } from './sim/sailing/controller';
 import { defaultHandling } from './sim/sailing/handling';
+import { defaultHazardRules } from './sim/sailing/hazard-rules';
+import { compileHazardClass, createHazardState, mooringBerths } from './sim/sailing/hazards';
 import { compileSailingClass } from './sim/sailing/ship-class';
 import { sailShipRecord, T1_SCHOONER_ID } from './sim/sailing/ships';
 import { httpBytes, loadZoneTerrain, type LoadedZone } from './sim/terrain/load';
@@ -195,12 +197,16 @@ async function boot(): Promise<void> {
     state: createSailingState(spawn.x, spawn.z, spawn.heading),
   };
   sailing.state.manualTrim = settings.value.sailing.manualTrim;
+  const hazardRules = defaultHazardRules();
+  const hazardClass = compileHazardClass(shipRecord, hazardRules);
+  const hazards = { cls: hazardClass, state: createHazardState(hazardClass) };
   const playerShip = ctx.world.add({
     id: 'ship.player',
     transform: shipTransform,
     previousTransform: cloneTransform(shipTransform),
     buoyancy: createBuoyancy(shipRecord.buoyancy),
     sailing,
+    hazards,
     model: 'schooner',
     playerControlled: true,
   });
@@ -273,11 +279,20 @@ async function boot(): Promise<void> {
         handling,
       });
       const drawn = scene;
+      const { createHazardsPanel } = await import('./debug/hazards-panel');
+      const hazardsPanel = createHazardsPanel({
+        gui: overlay.gui,
+        hazards,
+        record: shipRecord,
+        rules: hazardRules,
+        events: ctx.events,
+      });
       view = {
         render(alpha, seaTime, frameSeconds) {
           drawn.render(alpha, seaTime, frameSeconds);
           overlay.update(frameSeconds);
           panel.update();
+          hazardsPanel.update();
         },
       };
     }
@@ -333,6 +348,8 @@ async function boot(): Promise<void> {
     createSailingMode(ctx, {
       view,
       wind: (x, z) => ctx.weather.windAt({ x, z }, state.environment.clock.gameSeconds),
+      docks: TEST_BAY.docks,
+      berths: mooringBerths(TEST_BAY.docks),
     }),
   );
   // Phase 0 has no danger states yet, so every moment is safe to save (plan 16 §4.2).

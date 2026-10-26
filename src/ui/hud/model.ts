@@ -1,5 +1,6 @@
 import { calendarDate, dayAndHour } from '../../core/time';
 import type { Entity } from '../../gameplay/ecs';
+import type { HazardState } from '../../sim/sailing/hazards';
 import { SAIL_LEVELS, speedKn } from '../../sim/sailing/controller';
 import { sampleCurve } from '../../sim/sailing/curve';
 import type { SailingClass } from '../../sim/sailing/ship-class';
@@ -32,13 +33,17 @@ export interface HudSnapshot {
   manualTrim: boolean;
   trim: number;
   idealTrim: number;
-  /** Damage pools, 0–1. Hull and strain arrive with the hazards piece; absent until then. */
+  /** Damage pools and overpressing strain, 0–1 (plan 02 §6.1); absent without hazards. */
   hull01: number | undefined;
   rigging01: number;
   strain01: number | undefined;
   /** Water under the keel, meters; undefined off the loaded terrain. */
   depthM: number | undefined;
   draftM: number;
+  /** The lead-line warning: shallow enough to show on the minimal HUD. */
+  shallow: boolean;
+  /** Short states worth a chip: aground, anchored, docking and the like. */
+  status: string[];
   /** "Wk of Jun 4, 1900" and "19:30". */
   dateText: string;
   timeText: string;
@@ -83,19 +88,27 @@ export function bestAngleBand(cls: SailingClass): { fromDeg: number; toDeg: numb
   return { fromDeg, toDeg };
 }
 
-/** Optional damage readouts the hazards piece will provide (plan 02 §6.1). */
-export interface DamageReadout {
-  hull01: number;
-  strain01: number;
-}
-
 export interface HudSources {
   /** The player's ship entity. */
   ship: Entity | undefined;
   terrain: ZoneTerrain | undefined;
   gameSeconds: number;
+  /** Draft when the ship has no hazards component. */
   draftM: number;
-  damage?: (ship: Entity) => DamageReadout | undefined;
+}
+
+/** The hazard and mooring states worth a chip on the HUD (plan 02 §6–7). */
+export function hazardStatus(h: HazardState): string[] {
+  const out: string[] = [];
+  if (h.foundering) out.push('Foundering');
+  if (h.knockdown > 0) out.push('Knocked down');
+  if (h.aground) out.push(h.kedging ? 'Kedging off' : 'Aground');
+  if (h.anchor === 'down') out.push(h.dragging ? 'Anchor dragging' : 'Anchored');
+  if (h.anchor === 'weighing') out.push('Weighing anchor');
+  if (h.mooring === 'docking') out.push('Docking');
+  if (h.mooring === 'docked') out.push('Docked');
+  if (h.mooring === 'castingOff') out.push('Casting off');
+  return out;
 }
 
 const bands = new WeakMap<SailingClass, { fromDeg: number; toDeg: number }>();
@@ -110,9 +123,13 @@ export function sampleHud(src: HudSources): HudSnapshot | undefined {
     band = bestAngleBand(cls);
     bands.set(cls, band);
   }
-  const damage = src.damage?.(src.ship);
+  const hz = src.ship.hazards;
   const heading = (((s.heading * DEG) % 360) + 360) % 360;
   const onTerrain = src.terrain?.contains(s.x, s.z) ?? false;
+  // The hazards' keel probes when there are any; otherwise the terrain under the ship.
+  const probed = hz && Number.isFinite(hz.state.depth) ? hz.state.depth : undefined;
+  const depthM = probed ?? (onTerrain ? src.terrain?.depthAt(s.x, s.z) : undefined);
+  const draftM = hz ? hz.state.draft : src.draftM;
   return {
     headingDeg: heading,
     windAngleDeg: s.windAngle * DEG,
@@ -128,18 +145,23 @@ export function sampleHud(src: HudSources): HudSnapshot | undefined {
     manualTrim: s.manualTrim,
     trim: s.trim,
     idealTrim: s.idealTrim,
-    hull01: damage?.hull01,
-    rigging01: s.riggingCondition,
-    strain01: damage?.strain01,
-    depthM: onTerrain ? src.terrain?.depthAt(s.x, s.z) : undefined,
-    draftM: src.draftM,
+    hull01: hz ? hz.state.hull / hz.cls.hullHP : undefined,
+    rigging01: hz ? hz.state.rigging / hz.cls.riggingHP : s.riggingCondition,
+    strain01: hz?.state.strain,
+    depthM,
+    draftM,
+    shallow: hz ? hz.state.shallow : depthM !== undefined && depthM < SHALLOW_M,
+    status: hz ? hazardStatus(hz.state) : [],
     dateText: weekLabel(src.gameSeconds),
     timeText: clockLabel(src.gameSeconds),
     moonPhase01: moonPhase(calendarDate(src.gameSeconds)),
   };
 }
 
-/** Depth shows on the minimal HUD only in shallows (plan 13 §4.1): under this, meters. */
+/**
+ * Depth shows on the minimal HUD only in shallows (plan 13 §4.1): without hazards, under
+ * this many meters; with them, the hazards' own 2× draft warning.
+ */
 export const SHALLOW_M = 10;
 
 /** Strain shows on the minimal HUD only when overpressed (plan 13 §4.1). */

@@ -1,6 +1,6 @@
 import type { ReadonlySignal } from '@preact/signals';
 import type { HudDensity } from '../../core/settings';
-import { COMPASS_POINTS, SHALLOW_M, STRAIN_SHOW, type HudSnapshot } from './model';
+import { COMPASS_POINTS, STRAIN_SHOW, type HudSnapshot } from './model';
 
 /**
  * Sailing HUD v1 (plan 13 §4.1, §12): the wind ring with speed and sail level bottom
@@ -8,6 +8,8 @@ import { COMPASS_POINTS, SHALLOW_M, STRAIN_SHOW, type HudSnapshot } from './mode
  * compass strip top center. Brass-and-enamel instruments kept flat and cheap: SVG and
  * CSS transforms only, re-rendered at the 10 Hz the snapshot updates (plan 13 §10).
  */
+
+const DANGER_STATUS = new Set(['Foundering', 'Knocked down', 'Aground', 'Anchor dragging']);
 
 const RING = 64;
 const R_OUT = 56;
@@ -192,7 +194,7 @@ export function Hud({
                 Strain {Math.round(h.strain01 * 100)}%
               </div>
             )}
-            {h.depthM !== undefined && (mode === 'full' || h.depthM < SHALLOW_M) && (
+            {h.depthM !== undefined && (mode === 'full' || h.shallow) && (
               <div
                 class={`hud-chip${h.depthM < h.draftM + 1 ? ' danger' : ''}`}
                 data-testid="hud-depth"
@@ -213,6 +215,15 @@ export function Hud({
               </span>
               {h.inIrons && <span class="hud-chip danger">In irons</span>}
               {h.sweepsOut && <span class="hud-chip">Sweeps</span>}
+              {h.status.map((label) => (
+                <span
+                  key={label}
+                  class={`hud-chip${DANGER_STATUS.has(label) ? ' danger' : ''}`}
+                  data-testid="hud-status"
+                >
+                  {label}
+                </span>
+              ))}
               {mode === 'full' && (
                 <span class="hud-num hud-dim">wind {h.windKn.toFixed(0)} kn</span>
               )}
