@@ -311,7 +311,7 @@ Weapons, crew size for boarding and upgrade slots belong to plans 07 and 10 but 
   - Sail meshes with per-level shape states (furled, reefed, half, full).
   - **Static sail shapes per level (decided 2026-10-22: no billow shader).** Luffing in irons swaps to a slack-sail shape, plus the flapping audio.
   - Opaque or alpha-tested canvas to avoid transparency overdraw on the iGPU.
-- Wake and spray: a GPU particle budget per preset, plus a trailing decal/ribbon wake mesh (cheap).
+- Wake and spray: a GPU particle budget per preset, plus a trailing decal/ribbon wake mesh (cheap). **Built in Phase 1 (piece F):** bow-wave and stern ribbons per ship, spray puffs from a preset-sized pool, and cat's-paws on the water that show gusts before they arrive ([04 §22](04-water-weather-seasons.md)).
 
 ---
 

@@ -1,6 +1,6 @@
 # 04 — Water, Weather, Seasons & Day/Night
 
-Status: DRAFT v0.6 (decisions confirmed; gap review applied; spike S2 and prototype S9 done; moving-camera wave fix; Phase 1 wind, waves and sky built)
+Status: DRAFT v0.7 (decisions confirmed; gap review applied; spike S2 and prototype S9 done; moving-camera wave fix; Phase 1 wind, waves and sky built; Phase 1 water look and speed cues built)
 Parent: [00-master-plan.md](00-master-plan.md)
 Inputs:
 - [01 tech/architecture](01-tech-architecture.md): layers, budgets, the shared wave function, the iGPU baseline
@@ -546,9 +546,40 @@ Medium water is 1.3 ms of its 3 ms budget, so the extra texture fetch fits. It i
 4. **The palette is a stand-in** until the art style test (piece A) picks a look and plan 14's lighting LUTs replace it. The moon is drawn four times life size so it reads on screen.
 5. **The moon's path** is approximate (no inclination or libration); fine for light and phase, not for navigation.
 
+## 22. Phase 1 Piece F: Water Look and Speed Cues (2026-10-25)
+
+**Scope** (Phase 1 scope doc, piece F): depth bands and shore foam from the S3 bake, a far-water LOD ([03 §15](03-world-scale-chart-travel.md) S7 finding 3), bow wave, wake ribbon, spray, wind streaks and cat's-paws ([02 §8–9](02-arcade-sailing.md)), and a rerun of the water bench.
+
+### What was built
+| Piece | Where | Notes |
+|---|---|---|
+| Shore texture | `src/render/water/shore.ts`, `LoadedZone.seabed` / `.shoreline` | One RG8 texture over the **whole zone** at 8 m (897 × 1025, 1.8 MB), so the bands and foam reach the far islands, not just the 3 km slice. R is √(depth / 32 m), which keeps the shallow bands sharp; G is the distance to shore from −16 to 112 m. The loader keeps every second height and SDF sample of the zone while it reads the tiles. The outer texels are open deep water and the texture clamps to them. One texture fetch per pixel. |
+| Depth bands | `water-material.ts` | Toon steps on top of the S2 shading: deep slate past 9 m, two teal steps at 9 m and 4 m, and amber sand under 1.5 m (plan 14 §2 "Lake"), with one-pixel antialiased edges. The colors scale with the light like the rest of the water. |
+| Shore foam | `water-material.ts` | A wash line on the beach whose width follows the surf, and lines of surf running in to it every 6 m, out to 5–20 m from shore. Surf strength is the significant wave height (0.15–1.5 m) times the local sea scale, so a lee shore is quieter than a weather shore. The surf lines fade out where a pixel covers more than a meter or so, so they don't shimmer far away. |
+| Far water | `water.ts` `WATER_FAR_RADIUS_M` | The polar grid keeps adding rings at the same growth past 2.5 km out to **10 km**: 14 more rings on Medium (about 4k triangles), still one draw call. Waves have faded by then, so the far rings are flat. The clear-air fog floor moves from 1.8 km to **6 km** (`MAX_FOG_VISIBILITY_M`), which leaves under 0.1% of the color at 10 km, and the camera's far plane goes to 10.5 km. On a clear day the islands across the zone now show over open water. |
+| Bow wave and wake | `src/render/water/wake.ts` | Per ship, three ribbons in one draw call (about 300 triangles): the two arms of the bow wave from the bow's shoulders, spreading at 24° (real Kelvin waves are 19.5°, widened so 24 visual knots read), and the churned wake from the stern, widening to 2.2 beams over 9 s. Points are laid every 2.5 m or more (at most 48 per ribbon) and stay where they were laid, so the wake marks the track. The vertex shader floats them on the same waves as the water with the same grid fade (`wave-glsl.ts`, shared uniforms), so they don't sink into the swell. Opaque with a dissolve edge: white foam over a band of churned lighter water, no blending. The hull's waterline is measured from the model's vertices near y = 0, so it fits piece H's hull without changes. Strength follows scene speed, full at 10 m/s (about 20 visual knots), none astern. |
+| Spray | `src/render/water/spray.ts` | Toon puffs thrown off the bow: up to 10 a second at full speed, up to 4× that when the bow drops into a wave (pitch rate). Ballistic with drag, 0.8–1.4 s each. One point-sprite draw call for every ship; the pool is a preset setting (`sprayParticles`: Low 24, Medium 64, High 128). |
+| Cat's-paws | `src/render/water/wind-cues.ts`, `water-material.ts` | Darker patches with fine ripples where a gust is coming. `windAt`'s gusts are a function of time, so each frame the CPU samples the gust at the ship for the next 16 real seconds, and the shader draws, at a spot the air takes s seconds to carry to the ship, the gust that arrives in s seconds. The patches drift downwind at the wind's scene speed (v × R / C, like ships), so a patch reaches the ship with its gust: a skilled player sees a gust 100–300 m upwind and can reef before it hits. From 4 kn, full from 10 kn. |
+| Wind streaks | `water-material.ts` | Short, slightly wavy foam streaks along the wind, from 14 kn and full at 32 kn, weaker in a lee. |
+| Water bench | `src/debug/water-bench.ts` | Now times each feature on its own: crest foam, shore (depth bands and shore foam), wind cues, and wake plus spray, and the water's total with the wake and spray hidden too. If the ship isn't moving it first sets full sail and sails 20 s so there is a wake to draw. |
+
+### Cost
+The cloud container has no GPU (SwiftShader), so its run of `?bench=water` only shows that the bench works end to end; its per-feature differences are noise (some negative). The triangle count on Medium rises by about 4k for the far rings and 1k for one ship's wake; draw calls go from 9 to 11 (wake and spray). The laptop numbers go here once Jared reruns the bench. The budget to watch: Medium water was 1.3 ms of 3 ms in §21, so the new features have about 1.7 ms. If they overrun, the levers in order are: surf lines off on Low, cat's-paws to one noise octave, then the §19 levers.
+
+### Screenshots
+`/mnt/project-files/water-cues/` in the project: the bay from above (depth bands, shore foam, wake), the chase view, the far islands over open water, a dusk view, and a gale.
+
+### Not covered yet
+1. **The laptop rerun** of the water bench (§16, Phase 1 exit criteria): due once this lands.
+2. **A slightly lower FOV at speed** (02 §8) belongs to the camera (piece G).
+3. **Rocks and shoals breaking:** surf only follows the shoreline SDF, so a submerged rock shows as a sand band with no foam.
+4. **Wake on other ships** works the same way but is untested until NPC ships exist.
+5. **Waves don't shoal:** they keep their open-water length and height into the shallows; the sea scale already calms lees and short fetch.
+
 ---
 
 ## Changelog
+- v0.7: Phase 1 piece F (§22): depth bands and shore foam from a whole-zone shore texture, far water to 10 km with the fog floor at 6 km, bow wave and wake ribbons, bow spray, cat's-paws that show gusts before they arrive, wind streaks, and a per-feature water bench.
 - v0.6: Phase 1 piece D (§21): dev-panel wind with drift, gusts, lee and funneling behind the 02 §11 contract; fetch-limited wind seas with lag and a local shelter and fetch scale shared by the CPU and the water shader; a scripted November gale; sun, moon, stars, a sky palette by sun elevation, and exp² fog from visibility.
 - v0.5: Moving-camera wave stutter fixed (§19): geometry keeps only waves the grid can sample, shading is per pixel. Prototype S9 write-up (§20): pressure-gradient wind on three storm tracks, a barometer trend rebuilt from system tracks (92% of storms warned, about 9 game hours ahead), advection and radiation fog, and an 11 µs world tick.
 - v0.4: Spike S2 write-up (§19): shared Gerstner set, water shader and mesh, buoyancy, CPU timings, and baseline-laptop GPU timings (water 1.0 ms on Medium with crest foam).
