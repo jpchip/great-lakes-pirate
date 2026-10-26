@@ -1,5 +1,4 @@
 import * as THREE from 'three';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import type { AssetLoader } from '../core/assets';
 import type { LoadedZone } from '../sim/terrain/load';
 import { TEST_BAY } from '../sim/terrain/test-bay';
@@ -9,6 +8,7 @@ import type { LocalWeather } from '../sim/weather/local-weather';
 import type { StubIsland } from '../sim/weather/shelter';
 import type { Sea } from '../sim/weather/waves';
 import type { GLTF } from './assets';
+import { CameraRig } from './camera-rig';
 import type { GameRenderer } from './renderer';
 import { createPlaceholderSchooner } from './ships/placeholder-schooner';
 import { createEnvironmentView, type EnvironmentView } from './environment';
@@ -28,6 +28,8 @@ export interface TestScene {
   readonly camera: THREE.PerspectiveCamera;
   readonly water: Water;
   readonly environment: EnvironmentView;
+  /** The sailing camera: chase/orbit, tactical zoom and spyglass (plan 02 §8). */
+  readonly cameraRig: CameraRig;
   /** The test bay's terrain, when it loaded. */
   readonly zone: LoadedZone | undefined;
   render(alpha: number, seaTime: number, frameSeconds: number): void;
@@ -54,8 +56,8 @@ function createStubIsland(island: StubIsland): THREE.Mesh {
 
 /**
  * Phase 0 test scene (plan 01 §11 exit criteria): Gerstner water, a sky dome with
- * matching fog, and the player schooner riding the waves. The camera orbits the ship
- * (drag to orbit, wheel to zoom) and follows it, interpolated between ticks.
+ * matching fog, and the player schooner riding the waves. The plan 02 §8 camera follows
+ * the ship, interpolated between ticks (render/camera-rig).
  *
  * With `zone`, it's the Phase 1 test bay: the Apostles slice's terrain and the greybox
  * Bayfield dock (plan 02 §14.1). Piece D adds day and night, fog and sea state from the
@@ -128,12 +130,14 @@ export async function createTestScene(
     objects.delete(e);
   });
 
-  const controls = new OrbitControls(camera, renderer.renderer.domElement);
-  controls.enableDamping = true;
-  controls.minDistance = 12;
-  controls.maxDistance = 220;
-  controls.maxPolarAngle = Math.PI * 0.48;
-  controls.target.set(0, 3, 0);
+  const cameraRig = new CameraRig(camera, renderer.renderer.domElement);
+  // The camera stays above the hills, and a little above the mean water so swell
+  // crests don't cut through it.
+  const surface = (x: number, z: number): number =>
+    Math.max(zone && zone.terrain.contains(x, z) ? zone.terrain.heightAt(x, z) : 0, 0.8);
+  const pose = { position: { x: 0, y: 0, z: 0 }, heading: 0, roll: 0, speed01: 0 };
+  const fog = (): THREE.FogExp2 | undefined =>
+    scene.fog instanceof THREE.FogExp2 ? scene.fog : undefined;
 
   window.addEventListener('resize', () => {
     camera.aspect = renderer.aspect;
@@ -142,12 +146,12 @@ export async function createTestScene(
   });
 
   const t: Transform = { position: { x: 0, y: 0, z: 0 }, heading: 0 };
-  const follow = new THREE.Vector3();
   return {
     scene,
     camera,
     water,
     environment,
+    cameraRig,
     zone,
     render(alpha, seaTime, frameSeconds) {
       for (const [e, object] of objects) {
@@ -156,15 +160,23 @@ export async function createTestScene(
         // Heading is clockwise from north; three.js yaw is counter-clockwise.
         object.rotation.set(t.pitch ?? 0, -t.heading, t.roll ?? 0);
         if (e.playerControlled) {
+          // The spyglass looks from the deck, so the ship's own rig would fill the view.
+          object.visible = !cameraRig.ship.spyglass;
           // Follow the ship sideways, not up and down, so the swell stays visible.
-          follow.set(t.position.x, 3, t.position.z).sub(controls.target);
-          controls.target.add(follow);
-          camera.position.add(follow);
+          pose.position.x = t.position.x;
+          pose.position.z = t.position.z;
+          pose.heading = t.heading;
+          pose.roll = t.roll ?? 0;
+          const sailing = e.sailing;
+          pose.speed01 = sailing ? Math.abs(sailing.state.speed) / sailing.cls.hullMaxSpeed : 0;
         }
       }
-      controls.update();
+      cameraRig.update(pose, surface, frameSeconds);
       sky.position.copy(camera.position);
       environment.update(clock.gameSeconds, { x: 0, z: 0 });
+      // The tactical view thins the fog a little for readability (plan 02 §8).
+      const f = fog();
+      if (f) f.density *= 1 - 0.4 * cameraRig.ship.tactical01;
       water.update(camera, seaTime);
       renderer.render(scene, camera, frameSeconds);
     },

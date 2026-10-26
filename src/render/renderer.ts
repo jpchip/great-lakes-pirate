@@ -27,6 +27,7 @@ export class GameRenderer {
   readonly dynamicResolution: DynamicResolution;
   readonly gpuTimer: GpuTimer;
   private _preset: QualityPreset;
+  private fixedScale: number | undefined;
   private readonly presetListeners = new Set<(preset: QualityPreset) => void>();
 
   constructor(
@@ -67,11 +68,22 @@ export class GameRenderer {
     const next = QUALITY_PRESETS[id];
     const needsReload = next.antialias !== this._preset.antialias;
     this._preset = next;
-    const { min, max } = next.resolutionScale;
-    this.dynamicResolution.configure(min, max, next.targetFrameMs);
-    this.applySize();
+    this.configureResolution();
     for (const listener of this.presetListeners) listener(next);
     return needsReload;
+  }
+
+  /**
+   * The settings screen's resolution scale (plan 13 §12): 'auto' runs dynamic resolution
+   * inside the preset's range; a number pins the render scale there.
+   */
+  setResolution(resolution: 'auto' | number): void {
+    this.fixedScale = resolution === 'auto' ? undefined : resolution;
+    this.configureResolution();
+  }
+
+  get resolution(): 'auto' | number {
+    return this.fixedScale ?? 'auto';
   }
 
   onPresetChange(listener: (preset: QualityPreset) => void): () => void {
@@ -107,6 +119,15 @@ export class GameRenderer {
       gpuMs: this.gpuTimer.lastMs,
       frameMs: this.dynamicResolution.frameMs,
     };
+  }
+
+  private configureResolution(): void {
+    const { min, max } = this._preset.resolutionScale;
+    const fixed = this.fixedScale;
+    this.dynamicResolution.enabled = fixed === undefined;
+    if (fixed === undefined) this.dynamicResolution.configure(min, max, this._preset.targetFrameMs);
+    else this.dynamicResolution.configure(fixed, fixed, this._preset.targetFrameMs);
+    this.applySize();
   }
 
   private applySize(): void {
