@@ -8,17 +8,16 @@ import type { ClockState } from '../core/time';
 import type { LocalWeather } from '../sim/weather/local-weather';
 import type { StubIsland } from '../sim/weather/shelter';
 import type { Sea } from '../sim/weather/waves';
-import type { GLTF } from './assets';
 import type { GameRenderer } from './renderer';
-import { createPlaceholderSchooner } from './ships/placeholder-schooner';
+import { createSchooner, styleSchooner, type SchoonerModel } from './ships/schooner';
+import { T1_SCHOONER_LINES } from './ships/schooner-lines';
+import { OutlineSettings } from './style/outline';
+import { StyleLighting } from './style/stylized-material';
 import { createEnvironmentView, type EnvironmentView } from './environment';
 import { createSky } from './sky';
 import { createDockMesh } from './terrain/dock';
 import { createTerrainView } from './terrain/terrain-mesh';
 import { createWater, type Water } from './water/water';
-
-/** Asset id the pipeline will use for the schooner (spike S4). */
-const SCHOONER_ASSET = 'ship.schooner';
 
 const HORIZON = new THREE.Color(0xb7c6cf);
 const ZENITH = new THREE.Color(0x6f8ea3);
@@ -103,28 +102,28 @@ export async function createTestScene(
     for (const dock of TEST_BAY.docks) scene.add(createDockMesh(dock, zone.terrain));
   }
 
-  // The real hull once the asset pipeline exports one; the procedural stand-in until then.
-  let schooner: THREE.Object3D;
-  if (assets.has(SCHOONER_ASSET)) {
-    schooner = (await assets.acquire<GLTF>(SCHOONER_ASSET)).scene;
-  } else {
-    schooner = createPlaceholderSchooner();
-  }
+  // Ships are procedural (plan 14 §5) in style B: toon bands and ink outlines (§16). The
+  // style lighting follows the environment's sun, moon and sky each frame.
+  const lighting = new StyleLighting();
+  const outlines = new OutlineSettings();
+  const rim = new THREE.Color();
 
+  // Each ship has its own model: the sails and booms pose to its own sailing state.
   const drawn = world.with('transform', 'model');
-  const objects = new Map<Entity, THREE.Object3D>();
+  const objects = new Map<Entity, SchoonerModel>();
   const add = (e: Entity): void => {
-    // One schooner model for now; instances share geometry and materials.
-    const object = objects.size === 0 ? schooner : schooner.clone();
-    object.rotation.order = 'YXZ';
-    objects.set(e, object);
-    scene.add(object);
+    const model = createSchooner(T1_SCHOONER_LINES);
+    styleSchooner(model, lighting, outlines);
+    model.group.rotation.order = 'YXZ';
+    if (e.sailing) model.settle(e.sailing.state, 0);
+    objects.set(e, model);
+    scene.add(model.group);
   };
   for (const e of drawn) add(e);
   drawn.onEntityAdded.subscribe(add);
   drawn.onEntityRemoved.subscribe((e) => {
-    const object = objects.get(e);
-    if (object) scene.remove(object);
+    const model = objects.get(e);
+    if (model) scene.remove(model.group);
     objects.delete(e);
   });
 
@@ -150,7 +149,17 @@ export async function createTestScene(
     environment,
     zone,
     render(alpha, seaTime, frameSeconds) {
-      for (const [e, object] of objects) {
+      environment.update(clock.gameSeconds, { x: 0, z: 0 });
+      lighting.fromSceneLights(
+        hemi,
+        sun,
+        rim.copy(hemi.color).multiplyScalar(0.12 * hemi.intensity),
+        1.3,
+      );
+      outlines.setResolution(renderer.renderer);
+      for (const [e, model] of objects) {
+        const object = model.group;
+        if (e.sailing) model.update(e.sailing.state, seaTime, frameSeconds);
         interpolateTransform(e, alpha, t);
         object.position.set(t.position.x, t.position.y, t.position.z);
         // Heading is clockwise from north; three.js yaw is counter-clockwise.
@@ -164,7 +173,6 @@ export async function createTestScene(
       }
       controls.update();
       sky.position.copy(camera.position);
-      environment.update(clock.gameSeconds, { x: 0, z: 0 });
       water.update(camera, seaTime);
       renderer.render(scene, camera, frameSeconds);
     },
