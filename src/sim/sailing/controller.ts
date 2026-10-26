@@ -75,6 +75,8 @@ export interface SailingState {
   heel: number;
   /** Rigging damage, cargo and ice multipliers (plan 02 §3.1); set by other systems. */
   riggingCondition: number;
+  /** Multiplies sailChangeTimeS: above 1 when damaged rigging slows sail work (plan 02 §6.1). */
+  sailChangeScale: number;
   loadFactor: number;
   iceFactor: number;
 
@@ -111,6 +113,7 @@ export function createSailingState(x = 0, z = 0, heading = 0): SailingState {
     sweepsOut: false,
     heel: 0,
     riggingCondition: 1,
+    sailChangeScale: 1,
     loadFactor: 1,
     iceFactor: 1,
     windAngle: Number.NaN,
@@ -247,7 +250,11 @@ export function stepSailing(
   // Sails: orders are instant, the work takes time (slow for the solo T1, §3.2).
   if (cmd.raiseSail) s.sailLevel = Math.min(s.sailLevel + 1, FULL_SAIL);
   if (cmd.lowerSail) s.sailLevel = Math.max(s.sailLevel - 1, 0);
-  s.sailSetting = approach(s.sailSetting, s.sailLevel, dt / c.sailChangeTimeS);
+  s.sailSetting = approach(
+    s.sailSetting,
+    s.sailLevel,
+    dt / (c.sailChangeTimeS * s.sailChangeScale),
+  );
 
   if (s.manualTrim) {
     if (cmd.trimIn) s.trim -= c.trimRate * dt;
