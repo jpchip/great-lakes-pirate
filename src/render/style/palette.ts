@@ -9,11 +9,14 @@ import * as THREE from 'three';
 export const PALETTE = {
   // Ships
   hullBlack: 0x262b2a,
+  hullWhite: 0xd6d0c2,
   bootRed: 0x8a3426,
   railWhite: 0xd8d0bc,
   deckWood: 0xa48760,
   sparBrown: 0x6a4b31,
   canvas: 0xe2d6bc,
+  /** Pennant and wool telltales: the one saturated accent, so the wind reads. */
+  flagRed: 0xb3392b,
   // Lighthouses and buildings
   towerWhite: 0xe6e0d0,
   lanternBlack: 0x23282a,

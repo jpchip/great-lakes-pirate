@@ -356,6 +356,13 @@ Weapons, crew size for boarding and upgrade slots belong to plans 07 and 10 but 
 - **Tactical view:** from 220 m out the look-down floor rises to about 54° by 900 m, and the fog density thins by up to 40%.
 - **Spyglass:** hold right mouse (or toggle, a setting): an 8° FOV from 4.5 m above the deck, aimed where the cursor met the water in the chase view (or along the ray above the horizon), with a slow sway, a round vignette, and the player's own ship hidden so the rig doesn't fill the glass. Dragging pans it.
 
+**Schooner and sails (built 2026-10-26, Phase 1 piece H).** `src/render/ships/schooner.ts` builds the T1 in code from one lines record (`schooner-lines.ts`: 20 × 5.6 m, 1.6 m draft, two raked masts with topmasts, a 7.5 m bowsprit), in style B. `/bench/ship/` is a contact sheet of every level and point of sail. Notes on how it reads this plan:
+- **Sail plan per level** (§3.2): Furled stows everything (canvas gathered on the booms and at the foot of the stays); Reefed sets the fore and main reefed to 60% of the luff plus the fore staysail; Half shakes the reefs out; Full adds the jib and both gaff topsails.
+- **Sail changes animate from `sailSetting`**, which the controller already eases one step per `sailChangeTimeS`: gaffs climb the masts, headsails run up their stays, topsails rise up the topmasts. Settled, each level is one static shape (§13); a sail is rebuilt only when its hoist, its leeward side or luffing changes.
+- **Booms** swing to the sheet: the auto-trim ideal, or the player's trim with manual trim on, 7° hauled in to 78° eased out, to leeward. A tack brings them across at about 60°/s; a jibe slams them over at about 170°/s. Headsails sheet a little closer than the foresail.
+- **Luffing** (in irons, or under 1 kn of wind) swaps to the slack shape: little belly, ripples running to the leech, booms on the centerline working a few degrees either side.
+- **Pennant and telltales** (§9) stream along the apparent wind (true wind plus the ship's own way), stand straight out from about 8 kn, hang in a calm, and flutter faster as the wind rises: a 4.2 m red pennant at the main truck and a wool telltale on each side's middle shrouds. They are one CPU-updated mesh, not a vertex shader, since a few dozen vertices cost nothing.
+
 **Acceptance criteria:**
 - A first-time player can sail around the bay and dock within **2 minutes** without instructions beyond the key list.
 - Beating upwind to a target by tacking is clearly slower than reaching, and a skilled run is ≥ 15% faster than a novice run on the same course.
