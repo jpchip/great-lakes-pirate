@@ -1,0 +1,11 @@
+{
+  "id": "sfx.anchor.chain-1",
+  "name": "chain-1",
+  "description": "Anchor chain running out (one link burst)",
+  "source": "source.ogg",
+  "kind": "oneshot",
+  "bus": "sfx",
+  "bundles": [
+    "sailing-audio"
+  ]
+}

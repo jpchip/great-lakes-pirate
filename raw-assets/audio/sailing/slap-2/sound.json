@@ -1,0 +1,11 @@
+{
+  "id": "sfx.hull.slap-2",
+  "name": "slap-2",
+  "description": "A wave slapping the hull",
+  "source": "source.ogg",
+  "kind": "oneshot",
+  "bus": "sfx",
+  "bundles": [
+    "sailing-audio"
+  ]
+}

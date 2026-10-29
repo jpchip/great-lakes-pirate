@@ -16,6 +16,7 @@ import { createWorkerEncoder } from './core/save/encoder';
 import { loadRun } from './core/save/load';
 import { RunSaver } from './core/save/run-saver';
 import { AssetLoader, EMPTY_MANIFEST } from './core/assets';
+import { createGameAudio, type GameAudio } from './audio/game-audio';
 import { createBuoyancy } from './gameplay/buoyancy';
 import { cloneTransform, createGameWorld } from './gameplay/ecs';
 import type { SaveControls } from './debug/overlay';
@@ -211,6 +212,20 @@ async function boot(): Promise<void> {
     playerControlled: true,
   });
 
+  // Sailing audio (plan 15 §11). It loads alongside everything else and starts on the
+  // first key or click; without Web Audio the game just runs silent.
+  const audio: GameAudio | undefined = await createGameAudio({
+    game: ctx,
+    target: window,
+    storage: browserStorage(),
+    onState: (s) => (document.body.dataset['audio'] = s),
+  }).catch((err: unknown) => {
+    console.warn('Audio unavailable; running silent', err);
+    document.body.dataset['audio'] = 'unavailable';
+    return undefined;
+  });
+  if (audio) document.body.dataset['audioBank'] = String(audio.bank.size);
+
   const saveControls: SaveControls = {
     status,
     lastSavedAt: undefined,
@@ -278,6 +293,15 @@ async function boot(): Promise<void> {
         record: shipRecord,
         handling,
       });
+      const { createAudioPanel } = await import('./debug/audio-panel');
+      const audioPanel = audio
+        ? createAudioPanel({
+            gui: overlay.gui,
+            audio,
+            depthM: () =>
+              zone?.terrain.depthAt(shipTransform.position.x, shipTransform.position.z) ?? 10,
+          })
+        : undefined;
       const drawn = scene;
       const { createHazardsPanel } = await import('./debug/hazards-panel');
       const hazardsPanel = createHazardsPanel({
@@ -292,6 +316,7 @@ async function boot(): Promise<void> {
           drawn.render(alpha, seaTime, frameSeconds);
           overlay.update(frameSeconds);
           panel.update();
+          audioPanel?.update();
           hazardsPanel.update();
         },
       };
@@ -367,6 +392,7 @@ async function boot(): Promise<void> {
     },
     frame(alpha, frameSeconds) {
       machine.render(alpha, frameSeconds);
+      audio?.update(frameSeconds, machine.mode);
       ui.setSpyglass(cameraRig?.ship.spyglass ?? false);
       hudClock += frameSeconds;
       if (hudClock >= HUD_INTERVAL_S) {

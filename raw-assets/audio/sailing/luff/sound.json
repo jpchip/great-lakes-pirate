@@ -1,0 +1,11 @@
+{
+  "id": "sfx.sail.luff",
+  "name": "luff",
+  "description": "Canvas flapping while luffing",
+  "source": "source.flac",
+  "kind": "oneshot",
+  "bus": "sfx",
+  "bundles": [
+    "sailing-audio"
+  ]
+}

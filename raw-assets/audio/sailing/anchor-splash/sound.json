@@ -1,0 +1,11 @@
+{
+  "id": "sfx.anchor.splash",
+  "name": "anchor-splash",
+  "description": "Anchor hitting the water",
+  "source": "source.ogg",
+  "kind": "oneshot",
+  "bus": "sfx",
+  "bundles": [
+    "sailing-audio"
+  ]
+}

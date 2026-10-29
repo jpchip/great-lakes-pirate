@@ -1,0 +1,20 @@
+{
+  "source": "cc0",
+  "tool": "OpenGameArt: Large Wings Flap",
+  "author": "AntumDeluge, from \"fast simple chop 5\" by dave.des (freesound.org/s/127197)",
+  "reference": "https://opengameart.org/content/large-wings-flap",
+  "date": "2026-10-25",
+  "license": "CC0 1.0",
+  "attribution": "Large Wings Flap by AntumDeluge, from a chop sound by dave.des",
+  "modifications": [],
+  "originalFile": "wings_flap_large.flac",
+  "description": "Canvas flapping while luffing",
+  "durationS": 2.631,
+  "pipeline": [
+    "decoded to mono 48000 Hz",
+    "edge fades",
+    "peak-normalized toward -1 dB (+5.0 dB)",
+    "Opus 56 kbps mono in Ogg (ffmpeg libopus)"
+  ],
+  "inputHash": "d6bc4ec09186d659"
+}

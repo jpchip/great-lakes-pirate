@@ -1,0 +1,19 @@
+{
+  "source": "cc0",
+  "tool": "OpenGameArt: 80 CC0 RPG SFX",
+  "author": "rubberduck",
+  "reference": "https://opengameart.org/content/80-cc0-rpg-sfx",
+  "date": "2026-10-25",
+  "license": "CC0 1.0",
+  "modifications": [],
+  "originalFile": "chain_03.ogg",
+  "description": "Anchor chain running out (one link burst)",
+  "durationS": 0.927,
+  "pipeline": [
+    "decoded to mono 48000 Hz",
+    "edge fades",
+    "peak-normalized toward -1 dB (+0.2 dB)",
+    "Opus 56 kbps mono in Ogg (ffmpeg libopus)"
+  ],
+  "inputHash": "1f934df44adc976d"
+}

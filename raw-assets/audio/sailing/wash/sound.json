@@ -1,0 +1,12 @@
+{
+  "id": "amb.hull.wash",
+  "name": "wash",
+  "description": "Water rushing along the hull (loop)",
+  "source": "source.ogg",
+  "kind": "loop",
+  "bus": "ambience",
+  "bundles": [
+    "sailing-audio"
+  ],
+  "loopCrossfadeS": 0.5
+}

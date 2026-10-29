@@ -21,7 +21,8 @@
     "bench:save": "playwright test --config bench/s6/playwright.config.ts",
     "bench:weather": "vitest run --config bench/s9/vitest.config.ts",
     "geo:build": "node tools/geo/build.ts",
-    "assets:hull": "node tools/assets/build-hull.ts"
+    "assets:hull": "node tools/assets/build-hull.ts",
+    "audio": "node tools/audio/build.ts"
   },
   "dependencies": {
     "@preact/signals": "2.11.3",

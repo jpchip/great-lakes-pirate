@@ -1,0 +1,19 @@
+{
+  "source": "cc0",
+  "tool": "OpenGameArt: Beach Ocean Waves",
+  "author": "jasinski (freesound.org/s/18363); extracted by qubodup",
+  "reference": "https://opengameart.org/content/beach-ocean-waves",
+  "date": "2026-10-25",
+  "license": "CC0 1.0",
+  "modifications": [],
+  "originalFile": "wave_01_cc0-18363__jasinski__alkaibeach.flac",
+  "description": "A breaking sea against the hull in heavy weather",
+  "durationS": 4,
+  "pipeline": [
+    "decoded to mono 48000 Hz",
+    "edge fades",
+    "peak-normalized toward -1 dB (+9.9 dB)",
+    "Opus 56 kbps mono in Ogg (ffmpeg libopus)"
+  ],
+  "inputHash": "e66cd9c23595d43f"
+}

@@ -1,0 +1,11 @@
+{
+  "id": "sfx.ship.creak",
+  "name": "creak",
+  "description": "Rigging and hull creak (sliced at runtime)",
+  "source": "source.flac",
+  "kind": "oneshot",
+  "bus": "sfx",
+  "bundles": [
+    "sailing-audio"
+  ]
+}

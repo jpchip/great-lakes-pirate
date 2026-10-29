@@ -1,0 +1,20 @@
+{
+  "source": "cc0",
+  "tool": "OpenGameArt: Dragon Flap",
+  "author": "vishwajai",
+  "reference": "https://opengameart.org/content/dragon-flap-0",
+  "date": "2026-10-25",
+  "license": "CC0 1.0",
+  "attribution": "Dragon Flap by vishwajai (OpenGameArt)",
+  "modifications": [],
+  "originalFile": "dragonflap.wav",
+  "description": "A sail filling with a thump",
+  "durationS": 2.361,
+  "pipeline": [
+    "decoded to mono 48000 Hz",
+    "edge fades",
+    "peak-normalized toward -1 dB (+3.9 dB)",
+    "Opus 56 kbps mono in Ogg (ffmpeg libopus)"
+  ],
+  "inputHash": "45d122b0449190d6"
+}

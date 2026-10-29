@@ -94,3 +94,15 @@ test('settings pause the game, persist, and rebind keys', async ({ page }) => {
   await expect(page.getByTestId('bind-RaiseSail')).toContainText('I');
   expect(errors).toEqual([]);
 });
+
+// Plan 15 §8: the sailing sounds decode up front and audio starts on the first key.
+test('loads the sailing sounds and unlocks audio on the first key press', async ({ page }) => {
+  const errors = collectErrors(page);
+  const body = page.locator('body');
+  await page.goto('/?renderer=null');
+  await expect(body).toHaveAttribute('data-mode', 'sailing');
+  await expect(body).toHaveAttribute('data-audio-bank', '14');
+  await page.keyboard.press('KeyW');
+  await expect(body).toHaveAttribute('data-audio', 'running');
+  expect(errors).toEqual([]);
+});
