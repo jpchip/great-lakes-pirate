@@ -552,7 +552,7 @@ Before the worker, building on the main thread cost up to 18 ms in one frame on 
 - **Gull Island is 40 × 24 m game** (320 × 190 m real), a little bigger than the real rock, so it reads from the water and has a walkable top.
 
 ### 17.4 Still to do
-- **Laptop load and hitch check (Jared):** `npm run dev`, then `/bench/stream/` on the laptop (or `?quality=low` and `?quality=high`), and a normal sail with `?debug` watching the overlay's "update" reading. The criteria are a zone load of 8 s or less and no frame over 33 ms on Medium along the route.
+- ~~**Laptop load and hitch check (Jared)**~~ **Passed 2026-10-29** on the baseline laptop (`/bench/stream/`, Medium, 8× Full sail): zone load 0.33 s and scene build 0.12 s; frame time p50 16.7 ms, p95 16.8 ms, max 16.8 ms over 6,493 frames, **no frame over 33 ms**; main-thread streaming p99 0.3 ms, max 1.2 ms; 104 tiles built, the slowest 12.5 ms in the worker; at most 23 terrain draw calls.
 - A "Take to the chart" prompt at the edge (Phase 3, with chart travel) and entry points in `zones.json`.
 - The Wanted region mapping in `zones.json` (plan 06).
 - The other four set pieces in the Apostles (Washburn, La Pointe, Red Cliff, Bad River) get footprints when they're built (Phase 4).
