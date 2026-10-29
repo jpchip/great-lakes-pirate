@@ -564,13 +564,25 @@ Medium water is 1.3 ms of its 3 ms budget, so the extra texture fetch fits. It i
 | Water bench | `src/debug/water-bench.ts` | Now times each feature on its own: crest foam, shore (depth bands and shore foam), wind cues, and wake plus spray, and the water's total with the wake and spray hidden too. If the ship isn't moving it first sets full sail and sails 20 s so there is a wake to draw. |
 
 ### Cost
-The cloud container has no GPU (SwiftShader), so its run of `?bench=water` only shows that the bench works end to end; its per-feature differences are noise (some negative). The triangle count on Medium rises by about 4k for the far rings and 1k for one ship's wake; draw calls go from 9 to 11 (wake and spray). The laptop numbers go here once Jared reruns the bench. The budget to watch: Medium water was 1.3 ms of 3 ms in §21, so the new features have about 1.7 ms. If they overrun, the levers in order are: surf lines off on Low, cat's-paws to one noise octave, then the §19 levers.
+Baseline laptop (AMD Radeon Renoir, Chrome 156, MSAA off, 2026-10-29, `?bench=water` on a production build, ship under full sail so the wake and spray are drawn). Each feature column is the frame time minus the median with that feature off; Chrome rounds to 0.1 ms, so treat a column as ±0.2 ms and a negative value as zero.
+
+| Preset | Buffer | Frame ms | Water ms | Crest foam ms | Shore ms | Wind cues ms | Wake ms | No water ms | Triangles | Draw calls |
+|---|---|---|---|---|---|---|---|---|---|---|
+| Low | 1416×784 | 2.70 | 1.30 | 0.60 | 0.30 | 1.50 | 0.10 | 1.40 | 82,952 | 11 |
+| Medium | 1888×1046 | 4.70 | 2.70 | 0.30 | −0.10 | 0.80 | −0.10 | 2.00 | 160,954 | 11 |
+| High | 1888×1046 | 5.50 | 3.40 | 0.30 | −0.20 | 0.40 | 0.00 | 2.10 | 433,622 | 11 |
+
+**Result:** water with everything on is **2.7 ms on Medium, inside the 3 ms budget** (§21 had 1.3 ms before piece F), and the whole frame is 4.7 ms of 16.7. Low's frame is 2.7 ms against a 33 ms floor. High's 3.4 ms is a little over the Medium budget, which only binds Medium. The triangle counts are the whole test bay, so they're far above §21's water-only counts.
+
+**Where the 1.4 ms went:** the wind cues are the one real cost, about 0.8 ms on Medium (the cat's-paw and streak noise runs per pixel over the whole disc). Shore (one texture fetch plus a few steps) and the wake and spray (about 300 triangles and one point draw) are under the noise floor. Low's 1.5 ms for the cues is larger than its whole water cost of 1.3 ms, so it is run-to-run noise, not a measurement; rerun if Low needs a number. The remaining ~0.3 ms is crest foam and the far rings.
+
+**If the budget gets tight:** the cheapest lever is cat's-paws to one noise octave, then off on Low, ahead of the §19 levers.
 
 ### Screenshots
 `/mnt/project-files/water-cues/` in the project: the bay from above (depth bands, shore foam, wake), the chase view, the far islands over open water, a dusk view, and a gale.
 
 ### Not covered yet
-1. **The laptop rerun** of the water bench (§16, Phase 1 exit criteria): due once this lands.
+1. **Firefox and a MSAA-on High run** are still unmeasured.
 2. **A slightly lower FOV at speed** (02 §8) belongs to the camera (piece G).
 3. **Rocks and shoals breaking:** surf only follows the shoreline SDF, so a submerged rock shows as a sand band with no foam.
 4. **Wake on other ships** works the same way but is untested until NPC ships exist.
