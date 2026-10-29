@@ -136,6 +136,7 @@ One custom GLSL material (spike S1 picked `WebGLRenderer` + GLSL; [01 §14](01-t
 | Asset type | Primary source | Why / notes |
 |---|---|---|
 | **Player ships** (T1–T3 + variants) | **Procedural parametric hull generator** (decided 2026-10-25): hull lines from per-class parameters (length, beam, sheer, draft, stem and transom shape) plus deckhouse and hatch parts, an upgrade of the S2 placeholder schooner. Reference: `references/schooner.png` and the R1 photos | **Masts, spars and sails are procedural** (generated from per-class parameters: mast count, heights, sail plan, per-level sail shapes; [02 §13](02-arcade-sailing.md)). **Rigging lines are procedural** too. Attachment points come from a **per-class template** in data, so no manual placement is needed. |
+| | **Built 2026-10-26 (T1, Phase 1 piece H):** `src/render/ships/` (`schooner-lines.ts` per-class record, `schooner-hull.ts`, `schooner.ts`). About 2.6k triangles and 16 meshes with every sail set, before outlines; outline shells on the hull, spars and furled canvas, 1 px edge lines on the sails, rigging as ink lines. The shell now sits 0.15 m behind the surface along the view ray (`outline.ts uDepthOffset`), which hides flipped slivers on thin or flared faces that otherwise showed as black streaks on the hull. | |
 | **NPC ships** (package and bulk freighters, whaleback, sidewheel steamer, tug, fishing boats, cutter, schooner-barge) | **The same parametric generator**, with steamer parts (stacks, pilothouses, paddle boxes) | Lower budgets; reuse parts (deckhouses, stacks). Mostly boxy shapes, which suit code |
 | **Characters** | One **CC0 base humanoid** (e.g., Quaternius-style) with period clothing variants (AI-generated accessories: hats, coats) | Shared skeleton for all ([08 §13](08-docks-district-stealth.md)) |
 | **Animations** | **CC0 animation libraries** (e.g., Quaternius Universal Animation Library) plus a few custom ones | Avoid Mixamo-style terms that restrict redistributing raw files in a public repo |
@@ -334,6 +335,7 @@ All resolved. The final A-vs-B pick happens in spike S4 (shrunk scene).
 ---
 
 ## Changelog
+- v0.5: The procedural T1 schooner is built (§5) in style B; outline shells get a small depth offset.
 - v0.4: S4 results (§3.4): scene, benchmark on the baseline laptop, style B with per-object outlines picked. Ships move to a procedural hull generator; Meshy becomes optional for organic one-offs.
 - v0.3: Gap review: sourcing order (procedural/CC0 first, AI fills gaps), Meshy chosen, nano-banana approved for shipped outputs, shrunk S4 scene, Blender local only, static sails, A-or-B wording fixed.
 - v0.2: Decisions: photochrom reference, AI image gen (nano-banana) approved, public-domain engravings, fully scripted pipeline (headless Blender clean, procedural ship rigs and caves, contact-sheet review), style test narrowed to A/B.

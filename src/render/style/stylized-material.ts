@@ -57,6 +57,27 @@ export class StyleLighting {
     u.uRimColor.value.set(tod.rimColor).multiplyScalar(tod.rimIntensity);
   }
 
+  /**
+   * Follow the scene's three.js lights, as the game's environment view drives them (a
+   * hemisphere and one directional light, plan 04 §9). Standard materials scale diffuse
+   * light by 1/π, so this does too, times `gain`, so toon-shaded hero objects sit at the
+   * same brightness as the standard-lit terrain around them. `rim` is color × intensity.
+   */
+  fromSceneLights(
+    hemi: THREE.HemisphereLight,
+    key: THREE.DirectionalLight,
+    rim: THREE.Color,
+    gain = 1,
+  ): void {
+    const u = this.uniforms;
+    const scale = gain / Math.PI;
+    u.uKeyDirection.value.subVectors(key.position, key.target.position).normalize();
+    u.uKeyColor.value.copy(key.color).multiplyScalar(key.intensity * scale);
+    u.uSkyAmbient.value.copy(hemi.color).multiplyScalar(hemi.intensity * scale);
+    u.uGroundAmbient.value.copy(hemi.groundColor).multiplyScalar(hemi.intensity * scale);
+    u.uRimColor.value.copy(rim);
+  }
+
   setLamp(position: THREE.Vector3, color: THREE.Color, range: number): void {
     this.uniforms.uLampPosition.value.copy(position);
     this.uniforms.uLampColor.value.copy(color);

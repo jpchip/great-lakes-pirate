@@ -26,6 +26,8 @@ export interface QualityPreset {
   /** Water grid density: rings out from the camera and segments around each ring. */
   waterRings: number;
   waterSegments: number;
+  /** Bow spray puffs alive at once across all ships (plan 02 §13); 0 is off. */
+  sprayParticles: number;
   /** Heightmap samples per terrain vertex in the loaded slice (4 m each; plan 03 §8.3). */
   terrainStride: number;
 }
@@ -42,6 +44,7 @@ export const QUALITY_PRESETS: Record<QualityId, QualityPreset> = {
     crestFoam: false,
     waterRings: 56,
     waterSegments: 96,
+    sprayParticles: 24,
     terrainStride: 4,
   },
   medium: {
@@ -55,6 +58,7 @@ export const QUALITY_PRESETS: Record<QualityId, QualityPreset> = {
     crestFoam: true,
     waterRings: 80,
     waterSegments: 144,
+    sprayParticles: 64,
     terrainStride: 2,
   },
   high: {
@@ -68,14 +72,15 @@ export const QUALITY_PRESETS: Record<QualityId, QualityPreset> = {
     crestFoam: true,
     waterRings: 112,
     waterSegments: 192,
+    sprayParticles: 128,
     terrainStride: 1,
   },
 };
 
 export const DEFAULT_QUALITY: QualityId = 'medium';
 
-// Phase 0 keeps the choice in localStorage; it moves to the IndexedDB settings store
-// with the settings screen in Phase 1 (plan 16 §2).
+// The Phase 0 key. The settings store (core/settings) owns the choice now and reads this
+// once to carry it over; the dev overlay still writes it when no store is wired in.
 const STORAGE_KEY = 'glp.quality';
 
 /** window.localStorage, or undefined where touching it throws (some private modes). */

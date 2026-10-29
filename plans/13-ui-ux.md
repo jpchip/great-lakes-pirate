@@ -243,6 +243,8 @@ UI and settings preferences are stored **outside the run save** (a separate Inde
 | 9 | Full journal (legends, curios), poker, Hall of Captains, logbook export |
 | 11 | Accessibility pass, visual polish, usability testing |
 
+**Phase 1 as built (2026-10-25, piece G).** Preact 10 and `@preact/signals` mount on `#ui` above the canvas (`src/ui/mount.tsx`). The HUD (`ui/hud/`) follows §4.1: the week, clock and moon top left, a compass strip top center, the wind ring with speed, sail level (set → ordered while changing) and state chips bottom right, and hull and rigging bars bottom left with strain (only above 5% on Minimal) and depth (only when the hazards flag shallow water, under 2× draft; red under draft + 1 m). The ring puts the bow up, the wind arrow at the true wind angle, the red no-go zone ±40° either side of it, the gold band where the polar is within 5% of its best (90–145° for the T1), and, with manual trim, the sheet against its sweet spot. Snapshots are sampled at 10 Hz (`ui/hud/model.ts`). The settings screen opens with Esc or the Settings button and pauses the tick (the `pause` overlay): Graphics (preset, resolution Auto or 100/85/75/60/50%, HUD density), Camera & sailing (swing back, roll with ship, spyglass hold or toggle, camera speed, manual trim), and Controls (sailing rebinding; a new key replaces the primary binding, keeps the arrow-key alternative and is taken off any other sailing action; Esc can't be bound). Fonts are system serifs until plan 14 picks the open-license faces.
+
 ---
 
 ## 13. Cut List
@@ -271,6 +273,7 @@ All resolved.
 ---
 
 ## Changelog
+- v0.4: Phase 1 HUD v1 and settings screen built (§12).
 - v0.3: Gap review: removed the stale minimap mention in §2.1; §11 links to plan 16 directly.
 - v0.2: Decisions: period type, minimal HUD default, no minimap, auto-logbook, damage numbers off by default (optional).
 - v0.1: Initial UI/UX plan: principles, visual language (motifs, color tokens, open fonts), Preact architecture, HUD per mode (sailing, on foot, chart, build, combat), full screen list, interaction patterns, notification priorities, chart and auto-logbook, accessibility, UI performance budget, settings storage, phasing.

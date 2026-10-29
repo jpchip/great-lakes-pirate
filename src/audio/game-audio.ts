@@ -59,6 +59,16 @@ export async function createGameAudio(options: GameAudioOptions): Promise<GameAu
   game.events.on('ShipJibed', ({ shipId, uncontrolled }) => {
     if (isPlayer(shipId)) sailing.jibed(uncontrolled);
   });
+  const depthUnderPlayer = (): number => {
+    const p = game.world.with('playerControlled', 'transform').first?.transform.position;
+    return p ? (game.terrain?.depthAt(p.x, p.z) ?? 10) : 10;
+  };
+  game.events.on('AnchorDropped', ({ shipId }) => {
+    if (isPlayer(shipId)) sailing.anchorDropped(depthUnderPlayer());
+  });
+  game.events.on('AnchorWeighed', ({ shipId }) => {
+    if (isPlayer(shipId)) sailing.anchorWeighed(depthUnderPlayer());
+  });
 
   let active = false;
   const persist = (): void => saveAudioSettings(settings, storage);
@@ -90,6 +100,7 @@ export async function createGameAudio(options: GameAudioOptions): Promise<GameAu
             seaScaleAt(game.sea, state.x, state.z),
           ),
           gust01: wind.gust01,
+          strain01: player.hazards?.state.strain,
         },
         frameSeconds,
       );

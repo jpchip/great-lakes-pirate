@@ -1,24 +1,28 @@
 import * as THREE from 'three';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
 import type { AssetLoader } from '../core/assets';
 import type { LoadedZone } from '../sim/terrain/load';
 import { TEST_BAY } from '../sim/terrain/test-bay';
 import { interpolateTransform, type Entity, type GameWorld, type Transform } from '../gameplay/ecs';
-import type { ClockState } from '../core/time';
+import { sceneSpeed, DEFAULT_COMPRESSION } from '../core/coords';
+import { R_SAILING, type ClockState } from '../core/time';
 import type { LocalWeather } from '../sim/weather/local-weather';
 import type { StubIsland } from '../sim/weather/shelter';
 import type { Sea } from '../sim/weather/waves';
-import type { GLTF } from './assets';
+import { CameraRig } from './camera-rig';
 import type { GameRenderer } from './renderer';
-import { createPlaceholderSchooner } from './ships/placeholder-schooner';
+import { createSchooner, styleSchooner, type SchoonerModel } from './ships/schooner';
+import { T1_SCHOONER_LINES } from './ships/schooner-lines';
+import { OutlineSettings } from './style/outline';
+import { StyleLighting } from './style/stylized-material';
 import { createEnvironmentView, type EnvironmentView } from './environment';
 import { createSky } from './sky';
 import { createDockMesh } from './terrain/dock';
 import { createTerrainView } from './terrain/terrain-mesh';
-import { createWater, type Water } from './water/water';
-
-/** Asset id the pipeline will use for the schooner (spike S4). */
-const SCHOONER_ASSET = 'ship.schooner';
+import { createShipWake, measureWaterline, type ShipWake, type WakeShip } from './water/wake';
+import { createWater, WATER_FAR_RADIUS_M, type Water } from './water/water';
+import { bakeShore } from './water/shore';
+import { createSpray, type Spray } from './water/spray';
+import { createWindCues, type WindCues } from './water/wind-cues';
 
 const HORIZON = new THREE.Color(0xb7c6cf);
 const ZENITH = new THREE.Color(0x6f8ea3);
@@ -27,7 +31,14 @@ export interface TestScene {
   readonly scene: THREE.Scene;
   readonly camera: THREE.PerspectiveCamera;
   readonly water: Water;
+  /** Wind streaks and cat's-paws on the water. */
+  readonly windCues: WindCues;
+  readonly spray: Spray;
+  /** Every ship's bow wave and wake ribbons. */
+  readonly wakes: ReadonlyMap<Entity, ShipWake>;
   readonly environment: EnvironmentView;
+  /** The sailing camera: chase/orbit, tactical zoom and spyglass (plan 02 §8). */
+  readonly cameraRig: CameraRig;
   /** The test bay's terrain, when it loaded. */
   readonly zone: LoadedZone | undefined;
   render(alpha: number, seaTime: number, frameSeconds: number): void;
@@ -54,8 +65,8 @@ function createStubIsland(island: StubIsland): THREE.Mesh {
 
 /**
  * Phase 0 test scene (plan 01 §11 exit criteria): Gerstner water, a sky dome with
- * matching fog, and the player schooner riding the waves. The camera orbits the ship
- * (drag to orbit, wheel to zoom) and follows it, interpolated between ticks.
+ * matching fog, and the player schooner riding the waves. The plan 02 §8 camera follows
+ * the ship, interpolated between ticks (render/camera-rig).
  *
  * With `zone`, it's the Phase 1 test bay: the Apostles slice's terrain and the greybox
  * Bayfield dock (plan 02 §14.1). Piece D adds day and night, fog and sea state from the
@@ -75,7 +86,8 @@ export async function createTestScene(
   const sky = createSky(HORIZON.clone(), ZENITH.clone(), true);
   scene.add(sky);
 
-  const camera = new THREE.PerspectiveCamera(50, renderer.aspect, 0.5, 4000);
+  // Far enough for the far-water LOD and the far islands behind it.
+  const camera = new THREE.PerspectiveCamera(50, renderer.aspect, 0.5, WATER_FAR_RADIUS_M * 1.05);
   camera.position.set(46, 15, 38);
 
   const hemi = new THREE.HemisphereLight(0xdfe9f0, 0x2a3a44, 1.4);
@@ -86,6 +98,12 @@ export async function createTestScene(
   const water = createWater(sea, renderer.preset);
   scene.add(water.mesh);
   renderer.onPresetChange((preset) => water.applyPreset(preset));
+  // Depth bands and shore foam over the whole zone, out to the far islands.
+  if (zone) water.setShore(bakeShore(zone.seabed, zone.shoreline));
+  const windCues = createWindCues(water.material.uniforms, weather);
+  const spray = createSpray(renderer.preset.sprayParticles, water);
+  scene.add(spray.points);
+  renderer.onPresetChange((preset) => spray.setCapacity(preset.sprayParticles));
   if (!zone) for (const island of islands) scene.add(createStubIsland(island));
 
   const environment = createEnvironmentView(scene, sky, hemi, sun, water, weather);
@@ -103,37 +121,52 @@ export async function createTestScene(
     for (const dock of TEST_BAY.docks) scene.add(createDockMesh(dock, zone.terrain));
   }
 
-  // The real hull once the asset pipeline exports one; the procedural stand-in until then.
-  let schooner: THREE.Object3D;
-  if (assets.has(SCHOONER_ASSET)) {
-    schooner = (await assets.acquire<GLTF>(SCHOONER_ASSET)).scene;
-  } else {
-    schooner = createPlaceholderSchooner();
-  }
+  // Ships are procedural (plan 14 §5), drawn in style B: toon bands and ink outlines (§16).
+  // The style lighting follows the environment's sun, moon and sky each frame.
+  const lighting = new StyleLighting();
+  const outlines = new OutlineSettings();
+  const rim = new THREE.Color();
 
   const drawn = world.with('transform', 'model');
-  const objects = new Map<Entity, THREE.Object3D>();
+  // Each ship has its own model: the sails and booms pose to its own sailing state.
+  const objects = new Map<Entity, SchoonerModel>();
+  const wakes = new Map<Entity, ShipWake>();
+  const hull = measureWaterline(createSchooner(T1_SCHOONER_LINES).group);
   const add = (e: Entity): void => {
-    // One schooner model for now; instances share geometry and materials.
-    const object = objects.size === 0 ? schooner : schooner.clone();
-    object.rotation.order = 'YXZ';
-    objects.set(e, object);
-    scene.add(object);
+    const model = createSchooner(T1_SCHOONER_LINES);
+    styleSchooner(model, lighting, outlines);
+    model.group.rotation.order = 'YXZ';
+    if (e.sailing) model.settle(e.sailing.state, 0);
+    objects.set(e, model);
+    scene.add(model.group);
+    if (e.sailing) {
+      const wake = createShipWake(hull, water);
+      wakes.set(e, wake);
+      scene.add(wake.mesh);
+    }
   };
   for (const e of drawn) add(e);
   drawn.onEntityAdded.subscribe(add);
   drawn.onEntityRemoved.subscribe((e) => {
-    const object = objects.get(e);
-    if (object) scene.remove(object);
+    const model = objects.get(e);
+    if (model) scene.remove(model.group);
     objects.delete(e);
+    const wake = wakes.get(e);
+    if (wake) {
+      scene.remove(wake.mesh);
+      wake.dispose();
+    }
+    wakes.delete(e);
   });
 
-  const controls = new OrbitControls(camera, renderer.renderer.domElement);
-  controls.enableDamping = true;
-  controls.minDistance = 12;
-  controls.maxDistance = 220;
-  controls.maxPolarAngle = Math.PI * 0.48;
-  controls.target.set(0, 3, 0);
+  const cameraRig = new CameraRig(camera, renderer.renderer.domElement);
+  // The camera stays above the hills, and a little above the mean water so swell
+  // crests don't cut through it.
+  const surface = (x: number, z: number): number =>
+    Math.max(zone && zone.terrain.contains(x, z) ? zone.terrain.heightAt(x, z) : 0, 0.8);
+  const pose = { position: { x: 0, y: 0, z: 0 }, heading: 0, roll: 0, speed01: 0 };
+  const fog = (): THREE.FogExp2 | undefined =>
+    scene.fog instanceof THREE.FogExp2 ? scene.fog : undefined;
 
   window.addEventListener('resize', () => {
     camera.aspect = renderer.aspect;
@@ -142,29 +175,77 @@ export async function createTestScene(
   });
 
   const t: Transform = { position: { x: 0, y: 0, z: 0 }, heading: 0 };
-  const follow = new THREE.Vector3();
+  const focus = { x: 0, z: 0 };
+  const ship: WakeShip & { pitch: number } = {
+    x: 0,
+    z: 0,
+    heading: 0,
+    course: 0,
+    speed: 0,
+    pitch: 0,
+  };
+  // Real seconds for the wake and spray; they hold still while frameSeconds is 0.
+  let now = 0;
   return {
     scene,
     camera,
     water,
+    windCues,
+    spray,
+    wakes,
     environment,
+    cameraRig,
     zone,
     render(alpha, seaTime, frameSeconds) {
-      for (const [e, object] of objects) {
+      now += frameSeconds;
+      for (const [e, model] of objects) {
+        const object = model.group;
+        if (e.sailing) model.update(e.sailing.state, seaTime, frameSeconds);
         interpolateTransform(e, alpha, t);
         object.position.set(t.position.x, t.position.y, t.position.z);
         // Heading is clockwise from north; three.js yaw is counter-clockwise.
         object.rotation.set(t.pitch ?? 0, -t.heading, t.roll ?? 0);
         if (e.playerControlled) {
+          // The spyglass looks from the deck, so the ship's own rig would fill the view.
+          object.visible = !cameraRig.ship.spyglass;
           // Follow the ship sideways, not up and down, so the swell stays visible.
-          follow.set(t.position.x, 3, t.position.z).sub(controls.target);
-          controls.target.add(follow);
-          camera.position.add(follow);
+          pose.position.x = t.position.x;
+          pose.position.z = t.position.z;
+          pose.heading = t.heading;
+          pose.roll = t.roll ?? 0;
+          const sailing = e.sailing;
+          pose.speed01 = sailing ? Math.abs(sailing.state.speed) / sailing.cls.hullMaxSpeed : 0;
+          focus.x = t.position.x;
+          focus.z = t.position.z;
+        }
+        const wake = wakes.get(e);
+        if (wake && e.sailing) {
+          const s = e.sailing.state;
+          ship.x = t.position.x;
+          ship.z = t.position.z;
+          ship.heading = t.heading;
+          ship.course = t.heading + (s.course - s.heading);
+          ship.speed = sceneSpeed(s.speed, R_SAILING, DEFAULT_COMPRESSION);
+          ship.pitch = t.pitch ?? 0;
+          wake.update(ship, now);
+          spray.emit(e, ship, hull, frameSeconds);
         }
       }
-      controls.update();
+      spray.update(frameSeconds);
+      cameraRig.update(pose, surface, frameSeconds);
       sky.position.copy(camera.position);
-      environment.update(clock.gameSeconds, { x: 0, z: 0 });
+      environment.update(clock.gameSeconds, focus);
+      lighting.fromSceneLights(
+        hemi,
+        sun,
+        rim.copy(hemi.color).multiplyScalar(0.12 * hemi.intensity),
+        1.3,
+      );
+      outlines.setResolution(renderer.renderer);
+      windCues.update(focus, clock.gameSeconds, seaTime);
+      // The tactical view thins the fog a little for readability (plan 02 §8).
+      const f = fog();
+      if (f) f.density *= 1 - 0.4 * cameraRig.ship.tactical01;
       water.update(camera, seaTime);
       renderer.render(scene, camera, frameSeconds);
     },

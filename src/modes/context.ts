@@ -21,6 +21,28 @@ export interface GameEvents {
   /** Sailing (plan 02 §4): the bow or the stern crossed the wind. */
   ShipTacked: { shipId: string | undefined };
   ShipJibed: { shipId: string | undefined; uncontrolled: boolean };
+  /** Hazards (plan 02 §6): touching bottom, hitting rock or a pier, knockdown, sinking. */
+  ShipGrounded: { shipId: string | undefined; speedKn: number; damage: number; hard: boolean };
+  ShipRefloated: { shipId: string | undefined };
+  ShipStruck: {
+    shipId: string | undefined;
+    what: 'rock' | 'pier';
+    speedKn: number;
+    damage: number;
+  };
+  ShipKnockedDown: { shipId: string | undefined; riggingDamage: number; hullDamage: number };
+  ShipFoundering: { shipId: string | undefined };
+  /** Mooring (plan 02 §7). */
+  AnchorDropped: { shipId: string | undefined };
+  AnchorWeighed: { shipId: string | undefined };
+  AnchorDragging: { shipId: string | undefined; dragging: boolean };
+  AnchorRefused: { shipId: string | undefined; reason: 'tooDeep' | 'moored' };
+  ShipDocked: { shipId: string | undefined; berthId: string };
+  ShipCastOff: { shipId: string | undefined; berthId: string };
+  DockRefused: {
+    shipId: string | undefined;
+    reason: 'noBerth' | 'tooFast' | 'anchored' | 'aground';
+  };
 }
 
 /** Everything a mode needs; built once at boot and handed to each mode. */

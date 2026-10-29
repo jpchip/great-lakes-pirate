@@ -1,0 +1,468 @@
+/*
+ * Plan 13 §2 visual language, first pass: brass-and-enamel instruments for the HUD,
+ * logbook paper for menus. Color tokens are the §2.2 drafts (shared with the chart
+ * view); fonts stay on system serifs until plan 14 picks the open-license faces.
+ * No blur, heavy shadows or animated filters (plan 13 §10).
+ */
+:root {
+  --ink: #2b2118;
+  --paper: #e9dcbb;
+  --paper-dark: #d9c393;
+  --brass: #b8892e;
+  --brass-light: #e0b955;
+  --signal-red: #b3362b;
+  --lake-teal: #2f6f73;
+  --fog-gray: #8d8a83;
+  --enamel: rgba(20, 28, 34, 0.72);
+  --hud-text: #f1e7cc;
+  --serif: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, 'Times New Roman', serif;
+}
+
+#ui {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 5;
+  font-family: var(--serif);
+  color: var(--hud-text);
+  user-select: none;
+}
+
+.hud {
+  position: absolute;
+  inset: 0;
+}
+
+.hud-num {
+  font-variant-numeric: tabular-nums;
+}
+
+.hud-dim {
+  opacity: 0.7;
+  font-size: 12px;
+}
+
+.hud-label {
+  display: inline-block;
+  width: 34px;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* Top left: the week, the clock and the moon. */
+.hud-clock {
+  position: absolute;
+  top: 14px;
+  left: 16px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 4px 10px;
+  background: var(--enamel);
+  border: 1px solid rgba(184, 137, 46, 0.6);
+  border-radius: 3px;
+  font-size: 14px;
+}
+
+.hud-moon {
+  width: 16px;
+  height: 16px;
+}
+
+.moon-dark {
+  fill: #1c252c;
+  stroke: rgba(241, 231, 204, 0.5);
+  stroke-width: 0.8;
+}
+
+.moon-lit {
+  fill: var(--hud-text);
+}
+
+/* Top center: the compass strip. */
+.hud-compass {
+  position: absolute;
+  top: 12px;
+  left: 50%;
+  width: 360px;
+  height: 34px;
+  margin-left: -180px;
+  overflow: hidden;
+  background: var(--enamel);
+  border: 1px solid rgba(184, 137, 46, 0.6);
+  border-radius: 3px;
+}
+
+.hud-compass-strip {
+  position: absolute;
+  top: 0;
+  left: 180px;
+  height: 100%;
+  will-change: transform;
+}
+
+.hud-compass-mark {
+  position: absolute;
+  top: 3px;
+  transform: translateX(-50%);
+  font-size: 12px;
+  opacity: 0.85;
+}
+
+.hud-compass-mark.cardinal {
+  font-size: 15px;
+  font-weight: bold;
+  opacity: 1;
+  color: var(--brass-light);
+}
+
+.hud-compass-tick {
+  position: absolute;
+  top: 6px;
+  width: 1px;
+  height: 7px;
+  background: var(--hud-text);
+  opacity: 0.5;
+}
+
+.hud-compass-lubber {
+  position: absolute;
+  left: 50%;
+  bottom: 0;
+  width: 0;
+  height: 0;
+  margin-left: -5px;
+  border: 5px solid transparent;
+  border-bottom-color: var(--brass-light);
+}
+
+.hud-compass-heading {
+  position: absolute;
+  left: 50%;
+  bottom: 1px;
+  transform: translateX(14px);
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.85;
+}
+
+/* Bottom left: hull, rigging, strain and depth. */
+.hud-status {
+  position: absolute;
+  left: 16px;
+  bottom: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+}
+
+.hud-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 3px 8px;
+  background: var(--enamel);
+  border-radius: 3px;
+}
+
+.hud-bar-track {
+  position: relative;
+  width: 120px;
+  height: 8px;
+  overflow: hidden;
+  background: rgba(241, 231, 204, 0.18);
+  border-radius: 1px;
+}
+
+.hud-bar-fill {
+  position: absolute;
+  inset: 0;
+  background: var(--brass);
+  transform-origin: left center;
+}
+
+.hud-bar.danger .hud-bar-fill {
+  background: var(--signal-red);
+}
+
+.hud-chip {
+  display: inline-block;
+  padding: 3px 8px;
+  font-size: 13px;
+  background: var(--enamel);
+  border: 1px solid rgba(184, 137, 46, 0.6);
+  border-radius: 3px;
+}
+
+/* Colour is never the only signal (plan 13 §2.2): danger also gets a heavier border. */
+.hud-chip.danger {
+  border: 2px solid var(--signal-red);
+  color: #ffd9d2;
+}
+
+/* Bottom right: the wind ring, speed and sails. */
+.hud-wind {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  display: flex;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.hud-ring {
+  width: 128px;
+  height: 128px;
+}
+
+.ring-face {
+  fill: var(--enamel);
+}
+
+.ring-rim {
+  fill: none;
+  stroke: var(--brass);
+  stroke-width: 2;
+}
+
+.ring-nogo {
+  fill: var(--signal-red);
+  opacity: 0.85;
+}
+
+.ring-best {
+  fill: var(--brass-light);
+  opacity: 0.85;
+}
+
+.ring-ship {
+  fill: var(--paper);
+  stroke: var(--ink);
+  stroke-width: 1;
+}
+
+.ring-wind {
+  fill: none;
+  stroke: #9fd3d6;
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+
+.ring-trim {
+  stroke: var(--ink);
+  stroke-width: 3;
+  stroke-linecap: round;
+}
+
+.ring-trim-ideal {
+  stroke: var(--brass-light);
+  stroke-width: 5;
+  stroke-linecap: round;
+  opacity: 0.8;
+}
+
+.hud-readout {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
+  min-width: 84px;
+  padding-bottom: 6px;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.6);
+}
+
+.hud-speed {
+  font-size: 28px;
+  line-height: 1;
+}
+
+.hud-speed small {
+  font-size: 14px;
+}
+
+.hud-sail {
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--brass-light);
+}
+
+/* The spyglass: a round eyepiece with dark edges (plan 02 §8). */
+.hud-spyglass {
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(
+    circle at center,
+    transparent 0,
+    transparent 36vmin,
+    rgba(5, 8, 10, 0.85) 42vmin,
+    #05080a 48vmin
+  );
+}
+
+.hud-menu-button {
+  position: absolute;
+  top: 14px;
+  /* Beside the compass, clear of the dev panel in the top right corner. */
+  left: 50%;
+  margin-left: 192px;
+  padding: 4px 10px;
+  font: 13px var(--serif);
+  color: var(--hud-text);
+  background: var(--enamel);
+  border: 1px solid rgba(184, 137, 46, 0.6);
+  border-radius: 3px;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+/* The settings screen: logbook paper. */
+.menu-backdrop {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10, 14, 18, 0.55);
+  pointer-events: auto;
+}
+
+.menu {
+  width: min(520px, calc(100vw - 32px));
+  max-height: calc(100vh - 48px);
+  overflow-y: auto;
+  padding: 18px 22px;
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--paper-dark);
+  border-radius: 2px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+}
+
+.menu-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.menu-header h2 {
+  margin: 0 0 8px;
+  font-size: 24px;
+}
+
+.menu-paused {
+  font-size: 13px;
+  font-style: italic;
+  color: var(--lake-teal);
+}
+
+.menu-tabs {
+  display: flex;
+  gap: 4px;
+  margin-bottom: 10px;
+  border-bottom: 1px solid var(--paper-dark);
+}
+
+.menu-tab {
+  padding: 5px 10px;
+  font: 14px var(--serif);
+  color: var(--ink);
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  cursor: pointer;
+}
+
+.menu-tab.active {
+  border-bottom-color: var(--brass);
+  font-weight: bold;
+}
+
+.menu-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.menu-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-height: 28px;
+  font-size: 15px;
+}
+
+.menu-row select,
+.menu-row input[type='range'] {
+  min-width: 180px;
+  font: 14px var(--serif);
+}
+
+.menu-note {
+  margin: 0 0 4px;
+  font-size: 13px;
+  font-style: italic;
+  color: #5a4a38;
+}
+
+.menu-key {
+  min-width: 140px;
+  padding: 3px 10px;
+  font: 14px var(--serif);
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.35);
+  border: 1px solid var(--paper-dark);
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.menu-key.changed {
+  border-color: var(--brass);
+  font-weight: bold;
+}
+
+.menu-key.listening {
+  color: var(--signal-red);
+  border: 2px dashed var(--signal-red);
+}
+
+.menu-button {
+  align-self: flex-start;
+  margin-top: 8px;
+  padding: 5px 12px;
+  font: 14px var(--serif);
+  color: var(--ink);
+  background: var(--paper-dark);
+  border: 1px solid var(--brass);
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.menu-button.primary {
+  color: var(--paper);
+  background: var(--lake-teal);
+  border-color: var(--lake-teal);
+}
+
+.menu-footer {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 14px;
+}
+
+@media (max-width: 720px) {
+  .hud-compass {
+    width: 220px;
+    margin-left: -110px;
+  }
+  .hud-compass-strip {
+    left: 110px;
+  }
+  .hud-menu-button {
+    margin-left: 122px;
+  }
+}

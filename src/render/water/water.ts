@@ -2,9 +2,16 @@ import * as THREE from 'three';
 import { writeWaveUniforms, type Sea, type SeaScaleGrid } from '../../sim/weather/waves';
 import type { QualityPreset } from '../quality';
 import { createWaterMaterial } from './water-material';
+import { shoreRect, shoreTexture, type ShoreGrid } from './shore';
 
-/** Outer radius of the water disc; fog hides the edge well before it (plan 04 §7). */
+/** Radius of the detailed water disc: the rings the presets' counts cover (plan 04 §7). */
 const WATER_RADIUS_M = 2500;
+/**
+ * The far-water LOD (S7 finding 3): the grid keeps adding rings at the same growth out
+ * to here, so the water reaches the far side of a 7 km zone. Waves have faded out by
+ * then, so the far rings are flat and cost a few thousand triangles; fog hides the edge.
+ */
+export const WATER_FAR_RADIUS_M = 10_000;
 /** Spacing of the first ring at the camera, meters. */
 const INNER_SPACING_M = 0.5;
 /** The disc moves with the camera in steps of this size, so vertices don't swim. */
@@ -12,9 +19,15 @@ const SNAP_M = 4;
 
 /**
  * A camera-centered polar grid, dense near the camera and sparse far away: one draw
- * call. Ring radii grow geometrically so the first ring is INNER_SPACING_M out.
+ * call. Ring radii grow geometrically so the first ring is INNER_SPACING_M out and ring
+ * `rings` is at WATER_RADIUS_M; past it, rings continue at the same growth out to
+ * `farRadius`.
  */
-export function createPolarGrid(rings: number, segments: number): THREE.BufferGeometry {
+export function createPolarGrid(
+  rings: number,
+  segments: number,
+  farRadius = WATER_RADIUS_M,
+): THREE.BufferGeometry {
   // Solve a·(e^(b·rings) − 1) = R with a·(e^b − 1) = INNER_SPACING_M for b by bisection.
   const ratio = WATER_RADIUS_M / INNER_SPACING_M;
   let lo = 1e-4;
@@ -26,10 +39,15 @@ export function createPolarGrid(rings: number, segments: number): THREE.BufferGe
   }
   const b = (lo + hi) / 2;
   const a = INNER_SPACING_M / (Math.exp(b) - 1);
+  // The far rings, with the last one exactly on farRadius.
+  const total =
+    farRadius > WATER_RADIUS_M ? Math.ceil(Math.log(farRadius / a + 1) / b - 1e-9) : rings;
+  const ringRadius = (r: number): number =>
+    r > rings && r === total ? farRadius : a * (Math.exp(b * r) - 1);
 
-  const positions = new Float32Array((1 + rings * segments) * 3);
-  for (let r = 1; r <= rings; r++) {
-    const radius = a * (Math.exp(b * r) - 1);
+  const positions = new Float32Array((1 + total * segments) * 3);
+  for (let r = 1; r <= total; r++) {
+    const radius = ringRadius(r);
     for (let s = 0; s < segments; s++) {
       const angle = (s / segments) * Math.PI * 2;
       const i = (1 + (r - 1) * segments + s) * 3;
@@ -42,7 +60,7 @@ export function createPolarGrid(rings: number, segments: number): THREE.BufferGe
   const at = (r: number, s: number): number => 1 + (r - 1) * segments + (s % segments);
   // Winding is counter-clockwise seen from above, so the top face points up.
   for (let s = 0; s < segments; s++) indices.push(0, at(1, s + 1), at(1, s));
-  for (let r = 1; r < rings; r++) {
+  for (let r = 1; r < total; r++) {
     for (let s = 0; s < segments; s++) {
       indices.push(at(r, s), at(r, s + 1), at(r + 1, s));
       indices.push(at(r, s + 1), at(r + 1, s + 1), at(r + 1, s));
@@ -102,13 +120,26 @@ export interface Water {
   setWaves(sea: Sea): void;
   /** Upload the local sea scale (shelter and fetch). */
   setScale(sea: Sea): void;
+  /** Depth bands and shore foam from the zone's shore texture (shore.ts). */
+  setShore(grid: ShoreGrid): void;
   /** Follows the camera and uploads any change the weather made to the sea. */
   update(camera: THREE.Camera, seaTime: number): void;
 }
 
-export function createWater(sea: Sea, preset: QualityPreset): Water {
+/**
+ * `farRadius` is where the water ends; scenes with their own far water (the S7 greybox)
+ * can keep the detailed disc only.
+ */
+export function createWater(
+  sea: Sea,
+  preset: QualityPreset,
+  farRadius = WATER_FAR_RADIUS_M,
+): Water {
   const material = createWaterMaterial();
-  const mesh = new THREE.Mesh(createPolarGrid(preset.waterRings, preset.waterSegments), material);
+  const mesh = new THREE.Mesh(
+    createPolarGrid(preset.waterRings, preset.waterSegments, farRadius),
+    material,
+  );
   // The vertex shader moves vertices outside the flat bounds.
   mesh.frustumCulled = false;
   mesh.name = 'water';
@@ -120,7 +151,7 @@ export function createWater(sea: Sea, preset: QualityPreset): Water {
     material,
     applyPreset(p) {
       mesh.geometry.dispose();
-      mesh.geometry = createPolarGrid(p.waterRings, p.waterSegments);
+      mesh.geometry = createPolarGrid(p.waterRings, p.waterSegments, farRadius);
       applySpacing(mesh.geometry, material);
       material.uniforms.uWaveCount.value = Math.min(p.waveCount, sea.waves.length);
       material.uniforms.uCrestFoam.value = p.crestFoam ? 1 : 0;
@@ -140,6 +171,12 @@ export function createWater(sea: Sea, preset: QualityPreset): Water {
         1 / (g.height * g.cellM),
       );
       scaleVersion = next.scaleVersion;
+    },
+    setShore(grid) {
+      material.uniforms.uShore.value.dispose();
+      material.uniforms.uShore.value = shoreTexture(grid);
+      shoreRect(grid, material.uniforms.uShoreRect.value);
+      material.uniforms.uShoreOn.value = 1;
     },
     update(camera, seaTime) {
       if (sea.wavesVersion !== wavesVersion) water.setWaves(sea);

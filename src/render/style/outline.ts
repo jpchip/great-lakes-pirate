@@ -18,6 +18,12 @@ export interface OutlineUniforms {
   uReferenceDistance: THREE.IUniform<number>;
   uResolution: THREE.IUniform<THREE.Vector2>;
   uInk: THREE.IUniform<THREE.Color>;
+  /**
+   * The shell sits this far behind the surface along the view ray, meters. Thin or
+   * flared faces can flip when their corners are pushed apart on screen; set back, those
+   * flipped bits stay hidden behind the surface and only the silhouette shows.
+   */
+  uDepthOffset: THREE.IUniform<number>;
 }
 
 export class OutlineSettings {
@@ -26,6 +32,7 @@ export class OutlineSettings {
     uReferenceDistance: { value: 60 },
     uResolution: { value: new THREE.Vector2(1920, 1080) },
     uInk: { value: new THREE.Color(PALETTE.ink) },
+    uDepthOffset: { value: 0.15 },
   };
   /** Shared by every edge-line material. */
   readonly lineMaterial = new THREE.LineBasicMaterial({ color: PALETTE.ink, fog: true });
@@ -43,9 +50,12 @@ const vertexShader = /* glsl */ `
 uniform float uWidth;
 uniform float uReferenceDistance;
 uniform vec2 uResolution;
+uniform float uDepthOffset;
 
 void main() {
   vec4 mvPosition = modelViewMatrix * vec4(position, 1.0);
+  // Back along the view ray: the same spot on screen, just behind the surface.
+  mvPosition.xyz += normalize(mvPosition.xyz) * uDepthOffset;
   vec4 clip = projectionMatrix * mvPosition;
   vec3 viewNormal = normalize(normalMatrix * normal);
   vec2 direction = (projectionMatrix * vec4(viewNormal, 0.0)).xy;
