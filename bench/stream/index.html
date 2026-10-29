@@ -1,0 +1,39 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Zone streaming bench</title>
+    <style>
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        overflow: hidden;
+        background: #10181d;
+      }
+      #app {
+        position: fixed;
+        inset: 0;
+      }
+      #out {
+        position: fixed;
+        top: 8px;
+        left: 8px;
+        margin: 0;
+        padding: 6px 8px;
+        font:
+          11px/1.4 ui-monospace,
+          monospace;
+        color: #e8eef0;
+        background: rgba(15, 25, 32, 0.78);
+        white-space: pre;
+      }
+    </style>
+  </head>
+  <body data-stream="running">
+    <div id="app"></div>
+    <pre id="out">Loading the zone…</pre>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>

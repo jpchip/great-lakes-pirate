@@ -3,7 +3,7 @@
 // spike S3). Needs GDAL ≥ 3.4, curl and tar on the PATH, plus network access to
 // www.ngdc.noaa.gov and prd-tnm.s3.amazonaws.com on the first run.
 //
-//   node tools/geo/build.ts                 # bake zones/apostles.json → public/world/apostles/
+//   node tools/geo/build.ts                 # bake zone.apostles (data/zones.json) → public/world/apostles/
 //   node tools/geo/build.ts apostles --refetch    # re-download and re-warp the sources
 //   node tools/geo/build.ts apostles --compare    # also print the tile format comparison
 //
@@ -14,6 +14,7 @@ import { mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
+  zoneConfigFromData,
   zoneFrame,
   zoneGrid,
   CHART_PROJ,
@@ -23,6 +24,7 @@ import {
 } from './lib/zone.ts';
 import { BATHY_URL, DEM_VRT, checkTools, fetchBathy, warpLake, warpToGrid } from './lib/gdal.ts';
 import { mergeElevation } from './lib/merge.ts';
+import { applyHandEdits } from './lib/edits.ts';
 import { downsample, stats, type Raster } from './lib/raster.ts';
 import { shorelineSdf } from './lib/sdf.ts';
 import { DEFAULT_WIND, DIRECTIONS, bakeWindMaps } from './lib/wind.ts';
@@ -62,9 +64,13 @@ const t0 = performance.now();
 const lap = (label: string) =>
   console.log(`${((performance.now() - t0) / 1000).toFixed(1).padStart(6)} s  ${label}`);
 
-const config = JSON.parse(
-  readFileSync(join(ROOT, 'tools', 'geo', 'zones', `${zoneName}.json`), 'utf8'),
-) as ZoneConfig;
+const readData = (file: string): unknown =>
+  JSON.parse(readFileSync(join(ROOT, 'data', file), 'utf8'));
+const config: ZoneConfig = zoneConfigFromData(
+  `zone.${zoneName}`,
+  readData('zones.json'),
+  readData('islands.json'),
+);
 if (curveArg) {
   const [kind, value] = curveArg.split(':');
   if (kind === 'none') delete config.landCurve;
@@ -112,6 +118,8 @@ lap(`lake context grid (${lake.width}×${lake.height})`);
 
 const foot = mergeElevation(dem, bathy, config);
 lap('merged');
+const edits = applyHandEdits(foot, footGrid, frame, config.islands, config.setPieces);
+lap(`hand edits (${edits.map((e) => `${e.id} ${e.samples}`).join(', ')})`);
 const sail = downsample(foot, ratio);
 const sdf = shorelineSdf(sail, config.sailingSampleM);
 lap('sailing heightmap and shoreline SDF');
@@ -263,6 +271,7 @@ const manifest = {
     funnel: { file: 'wind/funnel.bin', ...UNIT_Q, encoding: 'deflate' },
   },
   islands,
+  handEdits: edits,
   sources: [
     {
       name: 'NOAA NCEI Great Lakes Bathymetry, Lake Superior (3 arc-second)',
@@ -319,6 +328,7 @@ const lines = [
   `- Land heights: ${curveLabel} (water depth stays 1:1)`,
   `- SDF and wind maps: ${kb(derivedBytes)}`,
   `- Island tiles (1 m): ${kb(islandBytes)}`,
+  `- Hand edits: ${edits.map((e) => `${e.id} (${e.kind}, ${e.samples.toLocaleString('en-US')} samples)`).join(', ')}`,
   `- Total: ${kb(bytes)}`,
   '',
   '| Island | Found by | Land area (real km²) | Max height (m) | Land over 42° | Tiles |',

@@ -4,22 +4,16 @@ import { zoneManifestSchema, type ZoneManifest } from './manifest';
 import { WindMaps, ZoneTerrain } from './zone-terrain';
 
 /**
- * Loads a slice of a baked coastal zone (plan 03 §8.3; format in tools/geo/README.md):
- * the sailing heightmap tiles in the slice at full resolution, the SDF and wind maps
- * cropped to it, and a coarse backdrop of the whole zone so land past the slice still
- * shows through the fog. Phase 1 loads one slice up front; tile streaming comes in Phase 2.
+ * Loads a whole baked coastal zone (plan 03 §8.3; format in tools/geo/README.md): all of
+ * its sailing heightmap tiles at full resolution, the shoreline SDF and the wind maps,
+ * plus the coarser grids the renderer and the water draw from. Gameplay can then query
+ * anywhere in the zone with no loading while sailing; what streams by distance is the
+ * terrain meshes (render/terrain). For the Apostles that's 3.5 MB on the wire and about
+ * 50 MB decoded, the top of plan 03 §8.4's 30–50 MB terrain estimate.
  */
 
 /** Reads a file of the zone by its path relative to the zone folder. */
 export type FetchBytes = (path: string) => Promise<Uint8Array>;
-
-/** Inclusive range of sailing tiles. */
-export interface TileRange {
-  tx0: number;
-  ty0: number;
-  tx1: number;
-  ty1: number;
-}
 
 export interface LoadedZone {
   manifest: ZoneManifest;
@@ -32,7 +26,6 @@ export interface LoadedZone {
    */
   seabed: GridField;
   shoreline: GridField;
-  tiles: TileRange;
 }
 
 /** Backdrop spacing in heightmap samples (32 m at the 4 m sailing grid). */
@@ -41,7 +34,7 @@ export const BACKDROP_STRIDE = 8;
 export const WATER_STRIDE = 2;
 
 /** Every `stride`-th sample of a grid, keeping its frame. */
-function subsample(field: GridField, stride: number): GridField {
+export function subsample(field: GridField, stride: number): GridField {
   const width = Math.floor((field.width - 1) / stride) + 1;
   const height = Math.floor((field.height - 1) / stride) + 1;
   const values = new Float32Array(width * height);
@@ -60,34 +53,20 @@ export function httpBytes(zoneUrl: URL): FetchBytes {
   };
 }
 
-export async function loadZoneTerrain(read: FetchBytes, tiles: TileRange): Promise<LoadedZone> {
+export async function loadZoneTerrain(read: FetchBytes): Promise<LoadedZone> {
   const manifest = zoneManifestSchema.parse(
     JSON.parse(new TextDecoder().decode(await read('manifest.json'))),
   );
   const { height: h, heightFormat, sdf, wind } = manifest;
   const n = heightFormat.tileSamples;
-  if (
-    tiles.tx0 < 0 ||
-    tiles.ty0 < 0 ||
-    tiles.tx1 >= h.tilesX ||
-    tiles.ty1 >= h.tilesY ||
-    tiles.tx0 > tiles.tx1 ||
-    tiles.ty0 > tiles.ty1
-  ) {
-    throw new RangeError(`terrain: tile range outside the ${h.tilesX}×${h.tilesY} zone`);
+  if (h.tilesX * n + 1 !== h.width || h.tilesY * n + 1 !== h.height) {
+    throw new RangeError(
+      `terrain: ${h.tilesX}×${h.tilesY} tiles don't make ${h.width}×${h.height}`,
+    );
   }
 
-  // Slice heights: tiles share their edge row and column, so k tiles are k·n + 1 samples.
-  const sliceW = (tiles.tx1 - tiles.tx0 + 1) * n + 1;
-  const sliceH = (tiles.ty1 - tiles.ty0 + 1) * n + 1;
-  const slice = new Float32Array(sliceW * sliceH);
-  const backW = Math.floor((h.width - 1) / BACKDROP_STRIDE) + 1;
-  const backH = Math.floor((h.height - 1) / BACKDROP_STRIDE) + 1;
-  const back = new Float32Array(backW * backH);
-  const midW = Math.floor((h.width - 1) / WATER_STRIDE) + 1;
-  const midH = Math.floor((h.height - 1) / WATER_STRIDE) + 1;
-  const mid = new Float32Array(midW * midH);
-
+  // Tiles share their edge row and column, so k tiles are k·n + 1 samples.
+  const heights = new Float32Array(h.width * h.height);
   const tileJobs: Promise<void>[] = [];
   for (let ty = 0; ty < h.tilesY; ty++) {
     for (let tx = 0; tx < h.tilesX; tx++) {
@@ -95,42 +74,11 @@ export async function loadZoneTerrain(read: FetchBytes, tiles: TileRange): Promi
       tileJobs.push(
         read(path).then((bytes) => {
           const tile = decodeGrid(bytes, (n + 1) * (n + 1), n + 1, heightFormat);
-          // The tile's samples on the backdrop and water grids.
-          const gi0 = tx * n;
-          const gj0 = ty * n;
-          for (
-            let j = Math.ceil(gj0 / WATER_STRIDE) * WATER_STRIDE;
-            j <= gj0 + n;
-            j += WATER_STRIDE
-          ) {
-            for (
-              let i = Math.ceil(gi0 / WATER_STRIDE) * WATER_STRIDE;
-              i <= gi0 + n;
-              i += WATER_STRIDE
-            ) {
-              mid[(j / WATER_STRIDE) * midW + i / WATER_STRIDE] =
-                tile[(j - gj0) * (n + 1) + (i - gi0)] ?? 0;
-            }
-          }
-          for (
-            let j = Math.ceil(gj0 / BACKDROP_STRIDE) * BACKDROP_STRIDE;
-            j <= gj0 + n;
-            j += BACKDROP_STRIDE
-          ) {
-            for (
-              let i = Math.ceil(gi0 / BACKDROP_STRIDE) * BACKDROP_STRIDE;
-              i <= gi0 + n;
-              i += BACKDROP_STRIDE
-            ) {
-              back[(j / BACKDROP_STRIDE) * backW + i / BACKDROP_STRIDE] =
-                tile[(j - gj0) * (n + 1) + (i - gi0)] ?? 0;
-            }
-          }
-          if (tx < tiles.tx0 || tx > tiles.tx1 || ty < tiles.ty0 || ty > tiles.ty1) return;
-          const si0 = (tx - tiles.tx0) * n;
-          const sj0 = (ty - tiles.ty0) * n;
           for (let j = 0; j <= n; j++) {
-            slice.set(tile.subarray(j * (n + 1), (j + 1) * (n + 1)), (sj0 + j) * sliceW + si0);
+            heights.set(
+              tile.subarray(j * (n + 1), (j + 1) * (n + 1)),
+              (ty * n + j) * h.width + tx * n,
+            );
           }
         }),
       );
@@ -149,29 +97,21 @@ export async function loadZoneTerrain(read: FetchBytes, tiles: TileRange): Promi
       ),
   );
 
-  // Wind cells covering the slice, plus one on each side for bilinear sampling.
-  const x0 = h.x0 + tiles.tx0 * n * h.step;
-  const z0 = h.z0 + tiles.ty0 * n * h.step;
-  const x1 = x0 + (sliceW - 1) * h.step;
-  const z1 = z0 + (sliceH - 1) * h.step;
-  const ci0 = Math.max(0, Math.floor((x0 - wind.x0) / wind.cellM) - 1);
-  const cj0 = Math.max(0, Math.floor((z0 - wind.z0) / wind.cellM) - 1);
-  const ci1 = Math.min(wind.width - 1, Math.ceil((x1 - wind.x0) / wind.cellM) + 1);
-  const cj1 = Math.min(wind.height - 1, Math.ceil((z1 - wind.z0) / wind.cellM) + 1);
   const cells = wind.width * wind.height;
   const windLayers = async (format: ZoneManifest['wind']['shelter']): Promise<GridField[]> => {
     const all = decodeGrid(await read(format.file), wind.directions * cells, wind.width, format);
     const layers: GridField[] = [];
     for (let k = 0; k < wind.directions; k++) {
-      const layer = new GridField(
-        wind.x0 + wind.cellM / 2,
-        wind.z0 + wind.cellM / 2,
-        wind.cellM,
-        wind.width,
-        wind.height,
-        all.subarray(k * cells, (k + 1) * cells),
+      layers.push(
+        new GridField(
+          wind.x0 + wind.cellM / 2,
+          wind.z0 + wind.cellM / 2,
+          wind.cellM,
+          wind.width,
+          wind.height,
+          all.subarray(k * cells, (k + 1) * cells),
+        ),
       );
-      layers.push(layer.crop(ci0, cj0, ci1 - ci0 + 1, cj1 - cj0 + 1));
     }
     return layers;
   };
@@ -184,23 +124,18 @@ export async function loadZoneTerrain(read: FetchBytes, tiles: TileRange): Promi
     ...tileJobs,
   ]);
 
-  const height = new GridField(x0, z0, h.step, sliceW, sliceH, slice);
-  const si0 = Math.round((x0 - sdf.x0) / sdf.step);
-  const sj0 = Math.round((z0 - sdf.z0) / sdf.step);
+  const height = new GridField(h.x0, h.z0, h.step, h.width, h.height, heights);
   const terrain = new ZoneTerrain(
     manifest.zone,
     height,
-    sdfField.crop(si0, sj0, sliceW, sliceH),
+    sdfField,
     new WindMaps(shelter, fetchMaps, funnel),
   );
-  const backdrop = new GridField(h.x0, h.z0, h.step * BACKDROP_STRIDE, backW, backH, back);
-  const seabed = new GridField(h.x0, h.z0, h.step * WATER_STRIDE, midW, midH, mid);
   return {
     manifest,
     terrain,
-    backdrop,
-    seabed,
+    backdrop: subsample(height, BACKDROP_STRIDE),
+    seabed: subsample(height, WATER_STRIDE),
     shoreline: subsample(sdfField, WATER_STRIDE),
-    tiles,
   };
 }

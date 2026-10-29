@@ -31,6 +31,7 @@ import { compileSailingClass } from '../src/sim/sailing/ship-class';
 import { sailShipRecord, T1_SCHOONER_ID } from '../src/sim/sailing/ships';
 import { loadZoneTerrain, type LoadedZone } from '../src/sim/terrain/load';
 import { TEST_BAY, type Dock } from '../src/sim/terrain/test-bay';
+import { APOSTLES_ID, spawnPose, zoneDef } from '../src/sim/terrain/zones';
 
 const DEG = Math.PI / 180;
 const DT = 1 / 30;
@@ -451,14 +452,11 @@ describe('test bay hazards', () => {
 
   beforeAll(async () => {
     if (!baked) return;
-    zone = await loadZoneTerrain(
-      async (path) => new Uint8Array(readFileSync(join(dir, path))),
-      TEST_BAY.tiles,
-    );
+    zone = await loadZoneTerrain(async (path) => new Uint8Array(readFileSync(join(dir, path))));
   });
 
   it.skipIf(!baked)('sails clear at the spawn but too deep to anchor', () => {
-    const { spawn } = TEST_BAY;
+    const spawn = spawnPose(zoneDef(APOSTLES_ID));
     const r = rig(spawn.x, spawn.z, spawn.heading / DEG, { terrain: zone.terrain });
     run(r, 1, wind(270, 12), {}, { anchor: true });
     expect(r.h.aground).toBe(false);

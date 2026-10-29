@@ -2,6 +2,14 @@
 
 All notable changes to this project are recorded here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow `0.<phase>.<patch>` until 1.0 ([plan 17 §7](plans/17-testing-performance-release.md)).
 
+## [Unreleased]
+
+### Added
+
+- **The whole Apostles zone:** all 56 tiles from Eagle Island to Outer Island and down to Ashland and the Bad River mouth, sailable with no loading screen. Terrain meshes stream around the camera with geomipmapped LOD built in a worker, over a whole-zone backdrop (at most 24 terrain draw calls on Medium). Fog closes in over the last kilometer of the zone, a "Zone edge" chip warns, and the ship is held at the very edge ([plan 03 §17](plans/03-world-scale-chart-travel.md)).
+- **`data/zones.json` and `data/islands.json`** with schemas; the geo bake reads them. Its new hand-edit layer raises Gull Island, keeps Long Island's clip, and flattens the Bayfield and Ashland set-piece footprints.
+- **`?spawn=x,z,heading`** starts anywhere in the zone, and **`/bench/stream/`** (`npm run bench:stream`) times streaming along the Bayfield–Ashland–Outer Island route.
+
 ## [0.1.0] - 2026-10-29
 
 The **Sailing Prototype** (Phase 1): one T1 schooner you can sail, tack, reef, ground, anchor and dock around a slice of the real Apostle Islands, with every handling number on a tuning panel. This is the first tagged build, so it also carries the Phase 0 foundations.

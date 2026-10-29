@@ -28,8 +28,12 @@ export interface QualityPreset {
   waterSegments: number;
   /** Bow spray puffs alive at once across all ships (plan 02 §13); 0 is off. */
   sprayParticles: number;
-  /** Heightmap samples per terrain vertex in the loaded slice (4 m each; plan 03 §8.3). */
+  /** Heightmap samples per terrain vertex for the nearest tiles (4 m each; plan 03 §8.3). */
   terrainStride: number;
+  /** Terrain tiles halve their detail every this many meters out (render/terrain/lod). */
+  terrainLodM: number;
+  /** Terrain tiles farther than this are left to the whole-zone backdrop, meters. */
+  terrainStreamM: number;
 }
 
 export const QUALITY_PRESETS: Record<QualityId, QualityPreset> = {
@@ -46,6 +50,8 @@ export const QUALITY_PRESETS: Record<QualityId, QualityPreset> = {
     waterSegments: 96,
     sprayParticles: 24,
     terrainStride: 4,
+    terrainLodM: 1200,
+    terrainStreamM: 1200,
   },
   medium: {
     id: 'medium',
@@ -60,6 +66,8 @@ export const QUALITY_PRESETS: Record<QualityId, QualityPreset> = {
     waterSegments: 144,
     sprayParticles: 64,
     terrainStride: 2,
+    terrainLodM: 1000,
+    terrainStreamM: 2000,
   },
   high: {
     id: 'high',
@@ -74,6 +82,8 @@ export const QUALITY_PRESETS: Record<QualityId, QualityPreset> = {
     waterSegments: 192,
     sprayParticles: 128,
     terrainStride: 1,
+    terrainLodM: 800,
+    terrainStreamM: 2400,
   },
 };
 

@@ -87,4 +87,25 @@ describe('sailing HUD model', () => {
     expect(damaged?.status).toEqual(['Aground', 'Anchored']);
     expect(sampleHud({ ship: {}, terrain: undefined, gameSeconds: 0, draftM: 1 })).toBeUndefined();
   });
+
+  it('warns near the soft zone edge', () => {
+    const cls = t1();
+    const terrain = {
+      bounds: { minX: -1000, minZ: -1000, maxX: 1000, maxZ: 1000 },
+      contains: () => true,
+      depthAt: () => 30,
+    } as unknown as Parameters<typeof sampleHud>[0]['terrain'];
+    const edge = { fogFadeM: 400, edgeVisibilityM: 300 };
+    const at = (x: number) =>
+      sampleHud({
+        ship: { sailing: { cls, state: createSailingState(x, 0, 0) } },
+        terrain,
+        gameSeconds: 0,
+        draftM: 1.5,
+        edge,
+      })?.status;
+    expect(at(0)).toEqual([]);
+    expect(at(750)).toEqual([]);
+    expect(at(850)).toEqual(['Zone edge']);
+  });
 });

@@ -1,10 +1,7 @@
-import type { TileRange } from './load';
-
 /**
- * The Phase 1 test bay (plan 02 §14.1): a 3 × 3 km slice of the real Apostles bake
- * rather than a synthetic bay (decided 2026-10-25). Tiles 2–4 east by 3–5 south cover
- * Bayfield and the North Channel, Red Cliff, Basswood and Hermit islands, Madeline Island
- * with La Pointe, and the shallows off its south shore. Zone x −1536…1536, z −1024…2048.
+ * The Phase 1 test bay's greybox pier (plan 02 §14.1). Phase 1 loaded a 3 × 3 km slice of
+ * the Apostles bake around Bayfield; Phase 2 loads the whole zone (data/zones.json has
+ * the spawn), and the Bayfield and Ashland harbor set pieces replace this pier.
  */
 
 const DEG = Math.PI / 180;
@@ -44,11 +41,6 @@ export interface Berth {
 
 export const TEST_BAY = {
   zone: 'zone.apostles',
-  /** Zone folder under the site root. */
-  path: 'world/apostles/',
-  tiles: { tx0: 2, ty0: 3, tx1: 4, ty1: 5 } satisfies TileRange,
-  /** Mid North Channel, 45 m deep, bow toward the Red Cliff–Basswood gap. */
-  spawn: { x: -640, z: 150, heading: 0.6 } satisfies Pose,
   /**
    * Bayfield city dock, from the foot of the town straight out to 25 m of water. The
    * shoreline here runs NNE, so the pier points ESE along the SDF normal.

@@ -4,6 +4,7 @@ import type { HazardState } from '../../sim/sailing/hazards';
 import { SAIL_LEVELS, speedKn } from '../../sim/sailing/controller';
 import { sampleCurve } from '../../sim/sailing/curve';
 import type { SailingClass } from '../../sim/sailing/ship-class';
+import { edgeFactor, type ZoneEdge } from '../../sim/terrain/zone-edge';
 import type { ZoneTerrain } from '../../sim/terrain/zone-terrain';
 import { moonPhase } from '../../sim/weather/celestial';
 
@@ -95,7 +96,12 @@ export interface HudSources {
   gameSeconds: number;
   /** Draft when the ship has no hazards component. */
   draftM: number;
+  /** The zone's soft edge; the HUD warns over the outer half of its fog fade. */
+  edge?: ZoneEdge | undefined;
 }
+
+/** Edge factor (sim/terrain/zone-edge) past which the "Zone edge" chip shows. */
+export const EDGE_CHIP = 0.5;
 
 /** The hazard and mooring states worth a chip on the HUD (plan 02 §6–7). */
 export function hazardStatus(h: HazardState): string[] {
@@ -130,6 +136,10 @@ export function sampleHud(src: HudSources): HudSnapshot | undefined {
   const probed = hz && Number.isFinite(hz.state.depth) ? hz.state.depth : undefined;
   const depthM = probed ?? (onTerrain ? src.terrain?.depthAt(s.x, s.z) : undefined);
   const draftM = hz ? hz.state.draft : src.draftM;
+  const status = hz ? hazardStatus(hz.state) : [];
+  if (src.terrain && src.edge && edgeFactor(src.terrain.bounds, src.edge, s.x, s.z) > EDGE_CHIP) {
+    status.push('Zone edge');
+  }
   return {
     headingDeg: heading,
     windAngleDeg: s.windAngle * DEG,
@@ -151,7 +161,7 @@ export function sampleHud(src: HudSources): HudSnapshot | undefined {
     depthM,
     draftM,
     shallow: hz ? hz.state.shallow : depthM !== undefined && depthM < SHALLOW_M,
-    status: hz ? hazardStatus(hz.state) : [],
+    status,
     dateText: weekLabel(src.gameSeconds),
     timeText: clockLabel(src.gameSeconds),
     moonPhase01: moonPhase(calendarDate(src.gameSeconds)),
