@@ -142,6 +142,10 @@ export function createWater(
   );
   // The vertex shader moves vertices outside the flat bounds.
   mesh.frustumCulled = false;
+  // Draw after the land and ships (renderOrder 0) and before the wake (1). The disc is
+  // centered on the camera, so by distance it would sort first and shade every pixel the
+  // land later covers; drawn after, the depth test skips those (plan 04 §23).
+  mesh.renderOrder = 0.5;
   mesh.name = 'water';
 
   let wavesVersion = sea.wavesVersion;

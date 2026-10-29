@@ -162,4 +162,18 @@ describe('wind cues', () => {
     cues.update(at, t + 48, 11);
     expect(u.uCatsPaws.value).toBe(0);
   });
+
+  it("drop the cat's-paws for the preset but keep the streaks in a blow", () => {
+    const weather = createLocalWeather(weatherPreset('gale'));
+    const material = createWaterMaterial();
+    const cues = createWindCues(material.uniforms, weather);
+    const u = material.uniforms;
+    cues.catsPaws = false;
+    cues.update({ x: 0, z: 0 }, 3600, 10);
+    expect(u.uCatsPaws.value).toBe(0);
+    expect(u.uStreaks.value).toBeGreaterThan(0);
+    cues.enabled = false;
+    cues.update({ x: 0, z: 0 }, 3610, 11);
+    expect(u.uStreaks.value).toBe(0);
+  });
 });
