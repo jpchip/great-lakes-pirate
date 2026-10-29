@@ -44,6 +44,30 @@ export interface IslandConfig extends Geo {
   name: string;
   /** Clip box for an island that the data joins to the mainland (Long Island). */
   bounds?: GeoBounds;
+  /** A rock raised for an island too small for the data (Gull Island); see edits.ts. */
+  rock?: RockEdit;
+}
+
+/** A rounded rock centered on the island's point. Sizes in game meters. */
+export interface RockEdit {
+  lengthM: number;
+  widthM: number;
+  /** Long axis, degrees clockwise from north. */
+  bearingDeg: number;
+  heightM: number;
+}
+
+/** A set piece's footprint, flattened by the hand-edit layer (data/schemas/zones.ts). */
+export interface SetPieceFootprint {
+  id: string;
+  at: Geo;
+  /** From the shore out over the water, degrees clockwise from north. */
+  bearingDeg: number;
+  alongM: number;
+  inlandM: number;
+  seawardM: number;
+  groundM: number;
+  blendM: number;
 }
 
 export interface ZoneConfig {
@@ -73,6 +97,52 @@ export interface ZoneConfig {
   /** Game meters of water kept around each island's on-foot footprint. */
   islandMarginM: number;
   islands: IslandConfig[];
+  setPieces: SetPieceFootprint[];
+}
+
+/** The zone's entry in data/zones.json and its islands from data/islands.json. */
+interface ZoneData {
+  id: string;
+  name: string;
+  compression: number;
+  center: Geo;
+  bake: Omit<ZoneConfig, 'id' | 'name' | 'compression' | 'center' | 'islands' | 'setPieces'>;
+  setPieces: SetPieceFootprint[];
+}
+interface IslandData {
+  id: string;
+  name: string;
+  zone: string;
+  at: Geo;
+  clip?: GeoBounds;
+  rock?: RockEdit;
+}
+
+/**
+ * The bake config for zone `id` from the parsed data files. The vitest data check
+ * validates both files against their schemas (data/schemas), so this only reshapes them.
+ */
+export function zoneConfigFromData(id: string, zones: unknown, islands: unknown): ZoneConfig {
+  const zone = (zones as ZoneData[]).find((z) => z.id === id);
+  if (!zone) throw new Error(`data/zones.json has no ${id}`);
+  return {
+    id: zone.id,
+    name: zone.name,
+    compression: zone.compression,
+    center: zone.center,
+    ...zone.bake,
+    islands: (islands as IslandData[])
+      .filter((i) => i.zone === id)
+      .map((i) => ({
+        id: i.id,
+        name: i.name,
+        lat: i.at.lat,
+        lon: i.at.lon,
+        ...(i.clip ? { bounds: i.clip } : {}),
+        ...(i.rock ? { rock: i.rock } : {}),
+      })),
+    setPieces: zone.setPieces,
+  };
 }
 
 export function geoToChart(geo: Geo): { x: number; y: number } {

@@ -5,7 +5,7 @@ import { dayAndHour, advanceClock, R_SAILING } from '../core/time';
 import { buoyancySystem } from '../gameplay/buoyancy';
 import { bobSystem, snapshotTransforms, velocitySystem, type Entity } from '../gameplay/ecs';
 import { hazardSystem, onShipJibed } from '../gameplay/hazards';
-import { heelSystem, sailingSystem, type WindSampler } from '../gameplay/sailing';
+import { heelSystem, sailingSystem, zoneEdgeSystem, type WindSampler } from '../gameplay/sailing';
 import { IDLE_COMMAND, type SailingCommand } from '../sim/sailing/controller';
 import {
   IDLE_MOORING,
@@ -165,6 +165,7 @@ export function createSailingMode(ctx: GameContext, options: SailingModeOptions)
       hazardSystem(ctx.world, mooringFor, hazardEnv, options.wind, scale, dt, (e, ev) =>
         emitHazard(ctx.events, e.id, ev),
       );
+      if (ctx.terrain) zoneEdgeSystem(ctx.world, ctx.terrain.bounds);
       velocitySystem(ctx.world, dt);
       bobSystem(ctx.world, elapsed);
       buoyancySystem(ctx.world, ctx.sea, dt);

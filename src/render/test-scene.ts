@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import type { AssetLoader } from '../core/assets';
 import type { LoadedZone } from '../sim/terrain/load';
 import { TEST_BAY } from '../sim/terrain/test-bay';
+import { edgeVisibility, type ZoneEdge } from '../sim/terrain/zone-edge';
 import { interpolateTransform, type Entity, type GameWorld, type Transform } from '../gameplay/ecs';
 import { sceneSpeed, DEFAULT_COMPRESSION } from '../core/coords';
 import { R_SAILING, type ClockState } from '../core/time';
@@ -14,10 +15,15 @@ import { createSchooner, styleSchooner, type SchoonerModel } from './ships/schoo
 import { T1_SCHOONER_LINES } from './ships/schooner-lines';
 import { OutlineSettings } from './style/outline';
 import { StyleLighting } from './style/stylized-material';
-import { createEnvironmentView, type EnvironmentView } from './environment';
+import {
+  createEnvironmentView,
+  fogDensity,
+  MAX_FOG_VISIBILITY_M,
+  type EnvironmentView,
+} from './environment';
 import { createSky } from './sky';
 import { createDockMesh } from './terrain/dock';
-import { createTerrainView } from './terrain/terrain-mesh';
+import { createTerrainView, type TerrainView } from './terrain/terrain-mesh';
 import { createShipWake, measureWaterline, type ShipWake, type WakeShip } from './water/wake';
 import { createWater, WATER_FAR_RADIUS_M, type Water } from './water/water';
 import { bakeShore } from './water/shore';
@@ -39,8 +45,9 @@ export interface TestScene {
   readonly environment: EnvironmentView;
   /** The sailing camera: chase/orbit, tactical zoom and spyglass (plan 02 §8). */
   readonly cameraRig: CameraRig;
-  /** The test bay's terrain, when it loaded. */
+  /** The zone's terrain data and its streamed meshes, when it loaded. */
   readonly zone: LoadedZone | undefined;
+  readonly terrain: TerrainView | undefined;
   render(alpha: number, seaTime: number, frameSeconds: number): void;
 }
 
@@ -68,9 +75,10 @@ function createStubIsland(island: StubIsland): THREE.Mesh {
  * matching fog, and the player schooner riding the waves. The plan 02 §8 camera follows
  * the ship, interpolated between ticks (render/camera-rig).
  *
- * With `zone`, it's the Phase 1 test bay: the Apostles slice's terrain and the greybox
- * Bayfield dock (plan 02 §14.1). Piece D adds day and night, fog and sea state from the
- * weather, and, without a zone, greybox islands for the stub lee.
+ * With `zone`, it's the whole Apostles zone, its terrain streamed around the camera
+ * (Phase 2 piece B), fog closing in at its soft edge, and the greybox Bayfield dock
+ * (plan 02 §14.1). Day and night, fog and sea state come from the weather, and, without
+ * a zone, greybox islands stand in for the stub lee.
  */
 export async function createTestScene(
   renderer: GameRenderer,
@@ -81,6 +89,7 @@ export async function createTestScene(
   clock: ClockState,
   zone?: LoadedZone,
   islands: readonly StubIsland[] = [],
+  edge?: ZoneEdge,
 ): Promise<TestScene> {
   const scene = new THREE.Scene();
   const sky = createSky(HORIZON.clone(), ZENITH.clone(), true);
@@ -111,15 +120,20 @@ export async function createTestScene(
   const environment = createEnvironmentView(scene, sky, hemi, sun, water, weather);
   environment.update(clock.gameSeconds, { x: 0, z: 0 });
 
+  let terrain: TerrainView | undefined;
   if (zone) {
-    const terrain = createTerrainView(
+    // The tiles around the player are built now, behind the load.
+    const start = world.with('playerControlled', 'transform').first?.transform.position;
+    terrain = createTerrainView(
       zone.terrain,
       zone.backdrop,
       zone.manifest.heightFormat.tileSamples,
       renderer.preset,
+      { x: start?.x ?? 0, y: 15, z: start?.z ?? 0 },
     );
     scene.add(terrain.group);
-    renderer.onPresetChange((preset) => terrain.applyPreset(preset));
+    const view = terrain;
+    renderer.onPresetChange((preset) => view.applyPreset(preset));
     for (const dock of TEST_BAY.docks) scene.add(createDockMesh(dock, zone.terrain));
   }
 
@@ -198,6 +212,7 @@ export async function createTestScene(
     environment,
     cameraRig,
     zone,
+    terrain,
     render(alpha, seaTime, frameSeconds) {
       now += frameSeconds;
       for (const [e, model] of objects) {
@@ -248,6 +263,12 @@ export async function createTestScene(
       // The tactical view thins the fog a little for readability (plan 02 §8).
       const f = fog();
       if (f) f.density *= 1 - 0.4 * cameraRig.ship.tactical01;
+      // The soft zone edge closes the fog in, tactical view or not (plan 03 §4).
+      if (f && zone && edge) {
+        const v = edgeVisibility(zone.terrain.bounds, edge, focus.x, focus.z, MAX_FOG_VISIBILITY_M);
+        if (Number.isFinite(v)) f.density = Math.max(f.density, fogDensity(v));
+      }
+      terrain?.update(camera.position.x, camera.position.y, camera.position.z);
       water.update(camera, seaTime);
       renderer.render(scene, camera, frameSeconds);
     },
