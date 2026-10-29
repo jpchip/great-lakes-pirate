@@ -351,7 +351,15 @@ All resolved. The final A-vs-B pick happens in spike S4 (shrunk scene).
 
 **Budget (computed over the whole zone on a 512 m grid, before frustum culling; `tests/vegetation.test.ts`):** at its worst spot, Medium's vegetation is 24 draw calls and 237k triangles, Low's 15 and 130k. With terrain's 40-call ceiling that leaves Medium well inside 150 calls; the triangle worst case sits deep in the mainland forest, and from the water about half of it is culled. In the cloud renderer (SwiftShader, so only the counts mean anything) the spawn view on Medium was 46 calls and 222k triangles for the whole frame.
 
-**Laptop bench still due.** The water bench (`?bench=water`, or **Measure water** in the dev overlay) now also times the terrain and the vegetation by hiding each; Jared's run on the baseline laptop decides whether Medium's density or distances need to come down, and reruns the water numbers plan 04 §23 asked for once trees arrived.
+**Laptop bench (2026-10-29, baseline laptop, Chrome 156 on Linux, ANGLE on radeonsi renoir, dev build, no MSAA):** the full zone with terrain and trees, ±0.3 ms.
+
+| Preset | Frame ms | Water ms | Terrain ms | Vegetation ms | Triangles | Draw calls |
+|---|---|---|---|---|---|---|
+| low | 2.60 | 1.20 | 0.40 | 0.20 | 114k | 41 |
+| medium | 4.70 | 2.50 | 0.40 | 0.30 | 173k | 44 |
+| high | 5.40 | 2.40 | 0.30 | 0.30 | 282k | 45 |
+
+Medium's whole frame is 4.7 ms of 16.7, with water at 2.5 ms (inside its 3 ms budget; §23 read 2.2 ms before the land came back, which is within the noise), terrain 0.4 ms and vegetation 0.3 ms, at 44 of 150 draw calls and 173k of 600k triangles. The land costs under 1 ms on every preset, so Medium's density (0.5) and distances have room to grow if the look wants more trees; they stay as they are until Jared signs off the look.
 
 **Shelter with the canopy.** `npm run geo:canopy` raised forested land by 15 m and rebaked the lee in place from the published tiles: shelter rose in 16% of the Apostles' water cells, by 0.26 on average where it did. A full `npm run geo:build` now bakes the canopy in too (`withCanopy` in `tools/geo/lib/wind.ts`). The canopy follows the density map, so changing the map needs a full rebake; the in-place tool only ever raises shelter.
 

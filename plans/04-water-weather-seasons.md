@@ -619,7 +619,7 @@ Before and after (left old, right new, the same frame on Medium): `/mnt/project-
 | Medium | 1920×1088 | 4.10 | 2.20 | 0.00 | 0.00 | 0.30 | 0.10 | 1.90 | 177,982 | 35 |
 | High | 1920×1088 | 4.80 | 2.60 | 0.00 | 0.00 | 0.30 | 0.10 | 2.20 | 489,230 | 35 |
 
-**Result:** water on Medium is **2.2 ms, back inside the 3 ms budget** with 0.8 ms of headroom (3.3–4.9 ms at the Phase 1 playtest, 2.7 ms at §22). The wind cues fell from 0.8 ms to 0.3 ms, and crest foam from 0.3 ms to under the noise floor. High is at 2.6 ms, also under 3 ms now. Low's water is 1.1 ms with the cat's-paws off. The §19 levers stay in reserve for when piece C's terrain shader and trees arrive; rerun this bench then. *(Piece C landed, [14 §17](14-art-direction-asset-pipeline.md); the bench now also has terrain and vegetation columns, and the laptop rerun is due.)*
+**Result:** water on Medium is **2.2 ms, back inside the 3 ms budget** with 0.8 ms of headroom (3.3–4.9 ms at the Phase 1 playtest, 2.7 ms at §22). The wind cues fell from 0.8 ms to 0.3 ms, and crest foam from 0.3 ms to under the noise floor. High is at 2.6 ms, also under 3 ms now. Low's water is 1.1 ms with the cat's-paws off. The §19 levers stay in reserve for when piece C's terrain shader and trees arrive; rerun this bench then. *(Piece C landed, [14 §17](14-art-direction-asset-pipeline.md); the bench now also has terrain and vegetation columns, and the laptop rerun read Medium water at 2.5 ms with the land and trees drawn, still inside 3 ms.)*
 
 ## 24. Phase 2 Piece D: Weather v1 in the Game (2026-10-29)
 
