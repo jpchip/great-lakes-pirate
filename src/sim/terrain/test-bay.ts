@@ -44,6 +44,11 @@ export interface Berth {
 
 export const TEST_BAY = {
   zone: 'zone.apostles',
+  /**
+   * The Apostles zone's frame, as its manifest gives it (tools/geo/zones/apostles.json
+   * centered on 46.835° N 90.72° W, C = 8). Used when the zone files can't be fetched.
+   */
+  frame: { origin: { x: -204_333, y: -73_945 }, compression: 8 },
   /** Zone folder under the site root. */
   path: 'world/apostles/',
   tiles: { tx0: 2, ty0: 3, tx1: 4, ty1: 5 } satisfies TileRange,

@@ -176,6 +176,8 @@ export interface MonthStats {
   days: number;
   /** Share of time the wind came from each of 8 sectors. */
   sectors: Record<(typeof SECTORS)[number], number>;
+  /** The vector-mean wind (x east, y north toward where it blows), knots. */
+  resultantToKn: { x: number; y: number };
 }
 
 function sector(fromDeg: number): (typeof SECTORS)[number] {
@@ -215,7 +217,13 @@ export function monthStats(run: SeasonRun, probe: ProbeSeries): MonthStats[] {
     const allDays = new Set<number>();
     let fog = 0;
     let thick = 0;
+    let rx = 0;
+    let ry = 0;
     for (const i of idx) {
+      const kn = probe.windKn[i] as number;
+      const from = ((probe.fromDeg[i] as number) * Math.PI) / 180;
+      rx -= (Math.sin(from) * kn) / idx.length;
+      ry -= (Math.cos(from) * kn) / idx.length;
       const day = Math.floor((run.t[i] as number) / SECONDS_PER_GAME_DAY);
       allDays.add(day);
       sectors[sector(probe.fromDeg[i] as number)] += 1 / idx.length;
@@ -243,6 +251,7 @@ export function monthStats(run: SeasonRun, probe: ProbeSeries): MonthStats[] {
       thickFogDays: fogDays.size,
       days: allDays.size,
       sectors,
+      resultantToKn: { x: rx, y: ry },
     });
   }
   return out;

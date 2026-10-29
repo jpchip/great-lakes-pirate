@@ -122,16 +122,23 @@ async function loadSettings(): Promise<SettingsStore> {
 
 /**
  * Dev and playtest URL switches for the weather (plan 02 §14.2): `?weather=gale` picks a
- * preset, `?gale` starts the scripted gale, `?wind=45` sets where it comes from,
- * `?knots=30` its speed, and `?day=1&hour=19.5` the game day and time of day.
+ * panel preset over the sim, `?gale` starts the scripted gale, `?wind=45` sets where it
+ * comes from, `?knots=30` its speed, and `?day=1&hour=19.5` the game day and time of day.
+ * Any of the wind switches takes the weather off the sim (plan 04 §23).
  */
 function applyWeatherParams(params: URLSearchParams, ctx: GameContext): void {
   const preset = params.get('weather');
   if (preset && preset in WEATHER_PRESETS) ctx.weather.applyPreset(preset as WeatherPresetId);
   const from = Number(params.get('wind'));
-  if (params.has('wind') && Number.isFinite(from)) ctx.weather.settings.fromDeg = from;
+  if (params.has('wind') && Number.isFinite(from)) {
+    ctx.weather.override();
+    ctx.weather.settings.fromDeg = from;
+  }
   const knots = Number(params.get('knots'));
-  if (params.has('knots') && Number.isFinite(knots)) ctx.weather.settings.speedKn = knots;
+  if (params.has('knots') && Number.isFinite(knots)) {
+    ctx.weather.override();
+    ctx.weather.settings.speedKn = knots;
+  }
   const clock = ctx.state.environment.clock;
   const now = dayAndHour(clock.gameSeconds);
   const day = params.has('day') ? Number(params.get('day')) : now.day;
@@ -181,9 +188,14 @@ async function boot(): Promise<void> {
     events: new EventBus<GameEvents>(),
     sea: createSea(),
     terrain: zone?.terrain,
-    // The baked shelter, fetch and funneling maps of the test bay, or the stub island's
-    // lee when the terrain didn't load.
-    weather: createLocalWeather(undefined, zone?.terrain ?? stubIslandShelter(TEST_BAY_ISLANDS)),
+    // The S9 sim's wind over the baked shelter, fetch and funneling maps of the test bay,
+    // or the stub island's lee when the terrain didn't load.
+    weather: createLocalWeather(
+      undefined,
+      zone?.terrain ?? stubIslandShelter(TEST_BAY_ISLANDS),
+      undefined,
+      { state: state.environment.weather, frame: zone?.manifest.frame ?? TEST_BAY.frame },
+    ),
   };
   applyWeatherParams(params, ctx);
 
@@ -403,6 +415,7 @@ async function boot(): Promise<void> {
             terrain: ctx.terrain,
             gameSeconds: state.environment.clock.gameSeconds,
             draftM,
+            barometer: ctx.weather.barometerAt(state.environment.clock.gameSeconds),
           }),
         );
       }

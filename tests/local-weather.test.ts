@@ -1,5 +1,6 @@
 import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
+import { zoneToChart } from '../src/core/coords';
 import { R_SAILING, SECONDS_PER_GAME_DAY } from '../src/core/time';
 import { buoyancySystem, schoonerBuoyancy } from '../src/gameplay/buoyancy';
 import { cloneTransform, createGameWorld } from '../src/gameplay/ecs';
@@ -31,6 +32,12 @@ import {
   seaScaleAt,
   uniformSeaScale,
 } from '../src/sim/weather/waves';
+import {
+  barometerAt,
+  createWeatherState,
+  simWindAt,
+  visibilityAt,
+} from '../src/sim/weather/weather';
 
 const DEG = Math.PI / 180;
 const island = TEST_BAY_ISLANDS[0] ?? { x: 700, z: -350, radius: 220, height: 55 };
@@ -426,5 +433,63 @@ describe('visibility', () => {
     expect(weather.fogVisibilityAt(0)).toBe(15_000);
     weather.startGale(0);
     expect(weather.fogVisibilityAt(6 * 60 * R_SAILING)).toBeLessThan(3000);
+  });
+});
+
+describe('weather from the S9 sim (plan 04 §23)', () => {
+  const frame = { origin: { x: -204_333, y: -73_945 }, compression: 8 };
+  const make = () => {
+    const state = createWeatherState('local-sim');
+    const weather = createLocalWeather(weatherPreset('moderate'), OPEN_WATER, 0x51ea, {
+      state,
+      frame,
+    });
+    weather.tick(0, { x: 0, z: 0 }, createSea());
+    return { state, weather };
+  };
+
+  it("blows the sim's wind at the player", () => {
+    const { state, weather } = make();
+    const sim = simWindAt(state, zoneToChart({ x: 0, z: 0 }, frame), 0);
+    const wind = weather.windAt({ x: 0, z: 0 }, 0);
+    expect(weather.source).toBe('sim');
+    expect(wind.speedKn).toBeCloseTo(sim.speedKn, 6);
+    expect(wind.fromRad).toBeCloseTo(sim.fromRad, 6);
+    // The panel follows the sim, so an override starts where the sim was.
+    expect(weather.settings.speedKn).toBeCloseTo(sim.speedKn, 6);
+  });
+
+  it('reads visibility and the barometer from the sim', () => {
+    const { state, weather } = make();
+    const at = zoneToChart({ x: 0, z: 0 }, frame);
+    expect(weather.fogVisibilityAt(0)).toBeCloseTo(Math.min(visibilityAt(state, at, 0), 25_000));
+    expect(weather.barometerAt(0)?.hpa).toBeCloseTo(barometerAt(state, at, 0).hpa, 6);
+  });
+
+  it('advances the sim on the world tick, through any gap', () => {
+    const { state, weather } = make();
+    weather.tick(3 * 3600 + 30, { x: 0, z: 0 }, createSea());
+    expect(state.tickSeconds).toBe(3 * 3600);
+  });
+
+  it('lets the dev panel override it, and hands back', () => {
+    const { weather } = make();
+    weather.applyPreset('gale');
+    expect(weather.source).toBe('panel');
+    expect(weather.barometerAt(0)).toBeUndefined();
+    expect(weather.windAt({ x: 0, z: 0 }, 0).speedKn).toBeGreaterThan(25);
+    weather.startGale(0);
+    expect(weather.source).toBe('gale');
+    weather.useSim();
+    expect(weather.source).toBe('sim');
+    expect(weather.barometerAt(0)).toBeDefined();
+  });
+
+  it('keeps the panel in charge when there is no sim', () => {
+    const weather = createLocalWeather();
+    expect(weather.source).toBe('panel');
+    weather.useSim();
+    expect(weather.source).toBe('panel');
+    expect(weather.barometerAt(0)).toBeUndefined();
   });
 });

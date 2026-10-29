@@ -1,0 +1,350 @@
+[
+  {
+    "id": "climate.jan",
+    "month": 1,
+    "airMaxC": -5.5,
+    "airMinC": -14.1,
+    "waterC": 2.8,
+    "observed": {
+      "meanWindKn": 13.8,
+      "p90WindKn": 23.3,
+      "over28KnPct": 3.2,
+      "over34KnPct": 0.55,
+      "resultantKn": 5.9,
+      "resultantFromDeg": 280
+    },
+    "sim": {
+      "prevailingKn": 5,
+      "prevailingFromDeg": 300,
+      "lowsPerDay": 1.0,
+      "deepShare": 0.25,
+      "highsPerDay": 0.8,
+      "tracks": {
+        "clipper": 0.6,
+        "panhandle": 0.25,
+        "pacific": 0.15
+      },
+      "advectionFog": 0.05,
+      "radiationFog": 0.05
+    }
+  },
+  {
+    "id": "climate.feb",
+    "month": 2,
+    "airMaxC": -3.1,
+    "airMinC": -14.1,
+    "waterC": 1.3,
+    "observed": {
+      "meanWindKn": 14.0,
+      "p90WindKn": 23.9,
+      "over28KnPct": 3.6,
+      "over34KnPct": 0.65,
+      "resultantKn": 4.9,
+      "resultantFromDeg": 287
+    },
+    "sim": {
+      "prevailingKn": 5,
+      "prevailingFromDeg": 300,
+      "lowsPerDay": 1.0,
+      "deepShare": 0.25,
+      "highsPerDay": 0.8,
+      "tracks": {
+        "clipper": 0.6,
+        "panhandle": 0.25,
+        "pacific": 0.15
+      },
+      "advectionFog": 0.05,
+      "radiationFog": 0.05
+    }
+  },
+  {
+    "id": "climate.mar",
+    "month": 3,
+    "airMaxC": 2.7,
+    "airMinC": -8.8,
+    "waterC": 1.0,
+    "observed": {
+      "meanWindKn": 12.2,
+      "p90WindKn": 22.2,
+      "over28KnPct": 2.6,
+      "over34KnPct": 0.73,
+      "resultantKn": 1.7,
+      "resultantFromDeg": 350
+    },
+    "sim": {
+      "prevailingKn": 5,
+      "prevailingFromDeg": 315,
+      "lowsPerDay": 1.0,
+      "deepShare": 0.25,
+      "highsPerDay": 0.7,
+      "tracks": {
+        "clipper": 0.45,
+        "panhandle": 0.35,
+        "pacific": 0.2
+      },
+      "advectionFog": 0.1,
+      "radiationFog": 0.05
+    }
+  },
+  {
+    "id": "climate.apr",
+    "month": 4,
+    "airMaxC": 9.1,
+    "airMinC": -2.3,
+    "waterC": 1.4,
+    "observed": {
+      "meanWindKn": 12.8,
+      "p90WindKn": 23.3,
+      "over28KnPct": 4.8,
+      "over34KnPct": 1.71,
+      "resultantKn": 3.7,
+      "resultantFromDeg": 33
+    },
+    "sim": {
+      "prevailingKn": 3,
+      "prevailingFromDeg": 45,
+      "lowsPerDay": 0.9,
+      "deepShare": 0.15,
+      "highsPerDay": 0.7,
+      "tracks": {
+        "clipper": 0.25,
+        "panhandle": 0.4,
+        "pacific": 0.35
+      },
+      "advectionFog": 0.6,
+      "radiationFog": 0.1
+    }
+  },
+  {
+    "id": "climate.may",
+    "month": 5,
+    "airMaxC": 16.2,
+    "airMinC": 3.6,
+    "waterC": 2.6,
+    "observed": {
+      "meanWindKn": 10.1,
+      "p90WindKn": 18.9,
+      "over28KnPct": 1.0,
+      "over34KnPct": 0.1,
+      "resultantKn": 2.3,
+      "resultantFromDeg": 58
+    },
+    "sim": {
+      "prevailingKn": 4,
+      "prevailingFromDeg": 50,
+      "lowsPerDay": 0.85,
+      "deepShare": 0.03,
+      "highsPerDay": 0.7,
+      "tracks": {
+        "clipper": 0.2,
+        "panhandle": 0.5,
+        "pacific": 0.3
+      },
+      "advectionFog": 1.0,
+      "radiationFog": 0.15
+    }
+  },
+  {
+    "id": "climate.jun",
+    "month": 6,
+    "airMaxC": 21.6,
+    "airMinC": 9.2,
+    "waterC": 5.4,
+    "observed": {
+      "meanWindKn": 8.8,
+      "p90WindKn": 15.9,
+      "over28KnPct": 0.2,
+      "over34KnPct": 0.06,
+      "resultantKn": 0.7,
+      "resultantFromDeg": 165
+    },
+    "sim": {
+      "prevailingKn": 2,
+      "prevailingFromDeg": 180,
+      "lowsPerDay": 0.7,
+      "deepShare": 0.02,
+      "highsPerDay": 0.7,
+      "tracks": {
+        "clipper": 0.15,
+        "panhandle": 0.25,
+        "pacific": 0.6
+      },
+      "advectionFog": 1.0,
+      "radiationFog": 0.25
+    }
+  },
+  {
+    "id": "climate.jul",
+    "month": 7,
+    "airMaxC": 24.9,
+    "airMinC": 13.3,
+    "waterC": 11.0,
+    "observed": {
+      "meanWindKn": 9.0,
+      "p90WindKn": 15.7,
+      "over28KnPct": 0.2,
+      "over34KnPct": 0.0,
+      "resultantKn": 2.5,
+      "resultantFromDeg": 229
+    },
+    "sim": {
+      "prevailingKn": 3.5,
+      "prevailingFromDeg": 225,
+      "lowsPerDay": 0.7,
+      "deepShare": 0.01,
+      "highsPerDay": 0.75,
+      "tracks": {
+        "clipper": 0.2,
+        "panhandle": 0.1,
+        "pacific": 0.7
+      },
+      "advectionFog": 0.6,
+      "radiationFog": 0.45
+    }
+  },
+  {
+    "id": "climate.aug",
+    "month": 8,
+    "airMaxC": 24.5,
+    "airMinC": 13.2,
+    "waterC": 15.8,
+    "observed": {
+      "meanWindKn": 9.5,
+      "p90WindKn": 16.3,
+      "over28KnPct": 0.3,
+      "over34KnPct": 0.04,
+      "resultantKn": 2.2,
+      "resultantFromDeg": 231
+    },
+    "sim": {
+      "prevailingKn": 3.5,
+      "prevailingFromDeg": 235,
+      "lowsPerDay": 0.75,
+      "deepShare": 0.02,
+      "highsPerDay": 0.75,
+      "tracks": {
+        "clipper": 0.25,
+        "panhandle": 0.1,
+        "pacific": 0.65
+      },
+      "advectionFog": 0.3,
+      "radiationFog": 0.8
+    }
+  },
+  {
+    "id": "climate.sep",
+    "month": 9,
+    "airMaxC": 20.0,
+    "airMinC": 9.1,
+    "waterC": 14.0,
+    "observed": {
+      "meanWindKn": 10.7,
+      "p90WindKn": 18.9,
+      "over28KnPct": 1.1,
+      "over34KnPct": 0.1,
+      "resultantKn": 0.9,
+      "resultantFromDeg": 228
+    },
+    "sim": {
+      "prevailingKn": 2,
+      "prevailingFromDeg": 240,
+      "lowsPerDay": 1.15,
+      "deepShare": 0.04,
+      "highsPerDay": 0.7,
+      "tracks": {
+        "clipper": 0.35,
+        "panhandle": 0.25,
+        "pacific": 0.4
+      },
+      "advectionFog": 0.15,
+      "radiationFog": 1.0
+    }
+  },
+  {
+    "id": "climate.oct",
+    "month": 10,
+    "airMaxC": 12.2,
+    "airMinC": 2.7,
+    "waterC": 9.7,
+    "observed": {
+      "meanWindKn": 13.2,
+      "p90WindKn": 23.1,
+      "over28KnPct": 3.1,
+      "over34KnPct": 0.95,
+      "resultantKn": 2.7,
+      "resultantFromDeg": 292
+    },
+    "sim": {
+      "prevailingKn": 6,
+      "prevailingFromDeg": 292,
+      "lowsPerDay": 1.5,
+      "deepShare": 0.18,
+      "highsPerDay": 0.7,
+      "tracks": {
+        "clipper": 0.35,
+        "panhandle": 0.4,
+        "pacific": 0.25
+      },
+      "advectionFog": 0.1,
+      "radiationFog": 0.8
+    }
+  },
+  {
+    "id": "climate.nov",
+    "month": 11,
+    "airMaxC": 4.2,
+    "airMinC": -3.2,
+    "waterC": 6.4,
+    "observed": {
+      "meanWindKn": 14.0,
+      "p90WindKn": 24.1,
+      "over28KnPct": 3.9,
+      "over34KnPct": 0.95,
+      "resultantKn": 5.8,
+      "resultantFromDeg": 275
+    },
+    "sim": {
+      "prevailingKn": 6,
+      "prevailingFromDeg": 290,
+      "lowsPerDay": 1.6,
+      "deepShare": 0.22,
+      "highsPerDay": 0.6,
+      "tracks": {
+        "clipper": 0.35,
+        "panhandle": 0.45,
+        "pacific": 0.2
+      },
+      "advectionFog": 0.05,
+      "radiationFog": 0.2
+    }
+  },
+  {
+    "id": "climate.dec",
+    "month": 12,
+    "airMaxC": -2.4,
+    "airMinC": -9.2,
+    "waterC": 4.2,
+    "observed": {
+      "meanWindKn": 14.2,
+      "p90WindKn": 25.3,
+      "over28KnPct": 6.1,
+      "over34KnPct": 1.5,
+      "resultantKn": 4.4,
+      "resultantFromDeg": 276
+    },
+    "sim": {
+      "prevailingKn": 6,
+      "prevailingFromDeg": 300,
+      "lowsPerDay": 1.2,
+      "deepShare": 0.25,
+      "highsPerDay": 0.7,
+      "tracks": {
+        "clipper": 0.55,
+        "panhandle": 0.3,
+        "pacific": 0.15
+      },
+      "advectionFog": 0.05,
+      "radiationFog": 0.05
+    }
+  }
+]

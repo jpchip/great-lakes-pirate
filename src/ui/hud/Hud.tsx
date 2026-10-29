@@ -1,6 +1,6 @@
 import type { ReadonlySignal } from '@preact/signals';
 import type { HudDensity } from '../../core/settings';
-import { COMPASS_POINTS, STRAIN_SHOW, type HudSnapshot } from './model';
+import { COMPASS_POINTS, STRAIN_SHOW, type BarometerSnapshot, type HudSnapshot } from './model';
 
 /**
  * Sailing HUD v1 (plan 13 §4.1, §12): the wind ring with speed and sail level bottom
@@ -168,6 +168,20 @@ function Clock({ hud }: { hud: HudSnapshot }) {
   );
 }
 
+/** Pressure in inches with the 3-hour trend; red when it's falling fast. */
+function Barometer({ baro }: { baro: BarometerSnapshot }) {
+  return (
+    <div
+      class={`hud-chip hud-baro${baro.trend === 'falling fast' ? ' danger' : ''}`}
+      data-testid="hud-barometer"
+      title={`${baro.hpa.toFixed(0)} hPa, ${baro.trend}`}
+      aria-label={`Barometer ${baro.inHgText} inches, ${baro.trend}`}
+    >
+      Barometer <span class="hud-num">{baro.inHgText}</span> {baro.arrow}
+    </div>
+  );
+}
+
 export function Hud({
   hud,
   density,
@@ -185,6 +199,7 @@ export function Hud({
       {h && mode !== 'off' && (
         <>
           <Clock hud={h} />
+          {h.barometer && <Barometer baro={h.barometer} />}
           <Compass headingDeg={h.headingDeg} />
           <div class="hud-status">
             {h.hull01 !== undefined && <Bar label="Hull" value={h.hull01} testid="hud-hull" />}

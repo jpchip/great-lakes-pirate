@@ -296,7 +296,18 @@ function capWind(kn: number): number {
   return kn <= WIND_KNEE_KN ? kn : WIND_KNEE_KN + 15 * Math.tanh((kn - WIND_KNEE_KN) / 15);
 }
 
+/** The wind, plus how gusty the air is before the gust noise (0–1). */
+export interface SimWind extends Wind {
+  gustiness: number;
+}
+
 export function windAt(state: WeatherState, p: Chart, t: number): Wind {
+  const w = simWindAt(state, p, t);
+  return { fromRad: w.fromRad, speedKn: w.speedKn, gust01: w.gust01, toKn: w.toKn };
+}
+
+/** `windAt` with the gustiness exposed, for a zone that adds its own gusts in the lee. */
+export function simWindAt(state: WeatherState, p: Chart, t: number): SimWind {
   const climate = climateAtTime(t);
   const base = baseWind(state, climate, p, t);
   // Slow drift: ±12° over a few hours and ±15% in speed.
@@ -323,21 +334,26 @@ export function windAt(state: WeatherState, p: Chart, t: number): Wind {
 
   // Meteorological "from": the opposite of the direction the air moves.
   const fromRad = (Math.atan2(-x, -y) + 2 * Math.PI) % (2 * Math.PI);
-  return { fromRad, speedKn, gust01, toKn: { x, y } };
+  return { fromRad, speedKn, gust01, toKn: { x, y }, gustiness };
 }
 
 // ---------------------------------------------------------------------------------
 // Air temperature, precipitation, visibility
 
-/** Air temperature, °C: the normal, a day/night swing, and warm or cold advection. */
+/**
+ * Air temperature, °C: the normal high and low as a day/night swing peaking at 15:00,
+ * plus warm or cold air carried by the wind.
+ */
 export function airTempAt(state: WeatherState, p: Chart, t: number): number {
   const climate = climateAtTime(t);
   const { hour } = dayAndHour(t);
-  const diurnal = 4 * Math.cos((2 * Math.PI * (hour - 15)) / 24);
+  const mean = (climate.airMaxC + climate.airMinC) / 2;
+  const swing = (climate.airMaxC - climate.airMinC) / 2;
+  const diurnal = swing * Math.cos((2 * Math.PI * (hour - 15)) / 24);
   const base = baseWind(state, climate, p, t);
   // Southerly flow brings warm air; northerly flow brings cold.
   const advection = Math.max(-7, Math.min(7, 0.3 * base.y));
-  return climate.airDayC - 4 + diurnal + advection;
+  return mean + diurnal + advection;
 }
 
 /** Rain or snow rate, 0–1, from lows. Heaviest just ahead (east and north) of the center. */
@@ -395,6 +411,29 @@ export function visibilityAt(state: WeatherState, p: Chart, t: number): number {
   return vis;
 }
 
+/**
+ * Cloud cover, 0–1: a deck that spreads well beyond a low's rain shield, broken cloud
+ * on an ordinary day, and clear skies under a high. A stand-in until the cloud layers of
+ * plan 04 §9 (piece E) model it properly.
+ */
+export function cloudAt(state: WeatherState, p: Chart, t: number): number {
+  let low = 0;
+  let high = 0;
+  for (const s of systemsAt(state, t)) {
+    const r2 = ((p.x - s.x) ** 2 + (p.y - s.y) ** 2) / (s.radius * s.radius);
+    if (s.anomalyHpa < 0) {
+      const cx = s.x + 0.2 * s.radius;
+      const cy = s.y + 0.1 * s.radius;
+      const rr = ((p.x - cx) ** 2 + (p.y - cy) ** 2) / (0.8 * s.radius) ** 2;
+      low = Math.max(low, Math.min(1, (-s.anomalyHpa - 2) / 14) * Math.exp(-rr));
+    } else {
+      high = Math.max(high, Math.min(1, s.anomalyHpa / 10) * Math.exp(-r2));
+    }
+  }
+  const fair = 0.3 * (1 - high);
+  return Math.max(0, Math.min(1, fair + (1 - fair) * low));
+}
+
 // ---------------------------------------------------------------------------------
 // The world tick
 
@@ -441,7 +480,7 @@ function spawnSystem(state: WeatherState, rng: Rng, climate: Climate, kind: 'low
   let peakHpa: number;
   let radius: number;
   if (kind === 'high') {
-    peakHpa = rng.range(6, 16) + (climate.airDayC < 5 ? 4 : 0);
+    peakHpa = rng.range(6, 16) + (climate.airMaxC < 5 ? 4 : 0);
     radius = rng.range(1000, 1500) * 1000;
   } else if (rng.chance(climate.deepShare)) {
     peakHpa = -rng.range(22, 34);
@@ -612,4 +651,17 @@ export function weatherTick(state: WeatherState, t: number): void {
   updateFog(state, climate, t, dt);
   spawnFog(state, rng, climate, t, dt);
   state.rng = rng.getState();
+}
+
+/**
+ * Bring the weather up to `t` one world tick at a time: catches up after a load, a
+ * migrated save or a jump in the clock. Returns the number of ticks run.
+ */
+export function advanceWeather(state: WeatherState, t: number): number {
+  let ticks = 0;
+  while (state.tickSeconds + WORLD_TICK_GAME_SECONDS <= t) {
+    weatherTick(state, state.tickSeconds + WORLD_TICK_GAME_SECONDS);
+    ticks++;
+  }
+  return ticks;
 }

@@ -4,6 +4,7 @@ import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import { migrateSave, SaveMigrationError } from '../src/core/save/migrate';
 import { CURRENT_SAVE_VERSION, migrations } from '../src/core/save/migrations';
+import { advanceWeather } from '../src/sim/weather/weather';
 import { worldStateSchema } from '../src/sim/world-state';
 
 const fixturesDir = join(import.meta.dirname, 'fixtures', 'saves');
@@ -42,5 +43,29 @@ describe('save migrations (properties)', () => {
         expect(migrateSave(state, CURRENT_SAVE_VERSION)).toEqual(state);
       }),
     );
+  });
+});
+
+describe('v1 → v2: weather joins the save (plan 04 §23)', () => {
+  const v1 = (): Record<string, unknown> =>
+    (JSON.parse(readFileSync(join(fixturesDir, 'v1.json'), 'utf8')) as Fixture).state;
+
+  it("gives a Phase 1 save a weather that catches up to the run's time", () => {
+    const state = worldStateSchema.parse(migrateSave(v1(), 1));
+    const { weather, clock } = state.environment;
+    expect(weather.systems).toEqual([]);
+    expect(weather.tickSeconds).toBeLessThan(clock.gameSeconds);
+    expect(advanceWeather(weather, clock.gameSeconds)).toBeGreaterThan(200);
+    expect(weather.tickSeconds).toBe(clock.gameSeconds);
+    expect(weather.systems.length).toBeGreaterThan(0);
+  });
+
+  it("leaves the run's own random stream alone and is deterministic", () => {
+    const before = v1();
+    const a = migrateSave(v1(), 1);
+    const b = migrateSave(v1(), 1);
+    expect(a).toEqual(b);
+    const env = a['environment'] as { rng: unknown };
+    expect(env.rng).toEqual((before['environment'] as { rng: unknown }).rng);
   });
 });

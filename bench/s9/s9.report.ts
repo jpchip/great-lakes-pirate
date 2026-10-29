@@ -10,6 +10,7 @@ import {
   type MonthStats,
   type ProbeSeries,
 } from '../../src/debug/weather-sim/season';
+import { CLIMATE_MONTHS } from '../../src/sim/weather/climate';
 import { createWeatherState, weatherTick } from '../../src/sim/weather/weather';
 
 /**
@@ -17,7 +18,7 @@ import { createWeatherState, weatherTick } from '../../src/sim/weather/weather';
  * and print how it scores. `npm run bench:weather` writes last-run.txt and .json here.
  */
 
-const SEEDS = Array.from({ length: 16 }, (_, i) => `s9-${i + 1}`);
+const SEEDS = Array.from({ length: Number(process.env.S9_SEEDS ?? 16) }, (_, i) => `s9-${i + 1}`);
 /** May 7 to early December: the whole MVP season (plan 04 §15). */
 const DAYS = 30;
 const MAIN_PROBE = 'bayfield';
@@ -118,6 +119,39 @@ test('S9 weather season report', () => {
         `  ${pct((allFog.get(month)?.[0] ?? 0) / (allFog.get(month)?.[1] ?? 1))}`,
     );
   }
+
+  // The NOAA check (plan 04 §23): the sim at Bayfield beside hourly Devils Island wind.
+  lines.push(`\nSim (Bayfield) vs observed (Devils Island, NDBC DISW3 2012–2023)`);
+  lines.push(
+    'month  mean kn sim/obs  p90 sim/obs  ≥28kn sim/obs   ≥34kn sim/obs   resultant sim / obs',
+  );
+  const fromOf = (v: { x: number; y: number }) =>
+    ((Math.atan2(-v.x, -v.y) * 180) / Math.PI + 360) % 360;
+  const observed: Record<string, unknown> = {};
+  for (const [month, list] of months) {
+    const obs = CLIMATE_MONTHS.find((m) => m.id === `climate.${month.toLowerCase()}`)?.observed;
+    if (!obs) continue;
+    const avg = (f: (m: MonthStats) => number) => list.reduce((s, m) => s + f(m), 0) / list.length;
+    const res = { x: avg((m) => m.resultantToKn.x), y: avg((m) => m.resultantToKn.y) };
+    const row = {
+      meanKn: avg((m) => m.meanWindKn),
+      p90Kn: avg((m) => m.p90WindKn),
+      over28Pct: avg((m) => m.strongShare) * 100,
+      over34Pct: avg((m) => m.galeShare) * 100,
+      resultantKn: Math.hypot(res.x, res.y),
+      resultantFromDeg: fromOf(res),
+    };
+    observed[month] = { sim: row, observed: obs };
+    lines.push(
+      `${month.padEnd(5)} ${`${f1(row.meanKn)} / ${f1(obs.meanWindKn)}`.padStart(15)} ` +
+        `${`${f1(row.p90Kn)} / ${f1(obs.p90WindKn)}`.padStart(12)} ` +
+        `${`${f1(row.over28Pct)}% / ${f1(obs.over28KnPct)}%`.padStart(15)} ` +
+        `${`${f1(row.over34Pct)}% / ${f1(obs.over34KnPct)}%`.padStart(15)}   ` +
+        `${f1(row.resultantKn)} kn from ${row.resultantFromDeg.toFixed(0)}° / ` +
+        `${f1(obs.resultantKn)} kn from ${obs.resultantFromDeg}°`,
+    );
+  }
+  json.observed = observed;
 
   lines.push(`\nWind direction share at Bayfield (from), by month`);
   for (const [month, list] of months) {

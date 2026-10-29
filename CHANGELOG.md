@@ -2,6 +2,19 @@
 
 All notable changes to this project are recorded here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow `0.<phase>.<patch>` until 1.0 ([plan 17 §7](plans/17-testing-performance-release.md)).
 
+## [Unreleased]
+
+### Added
+
+- **Weather v1:** the S9 weather sim now drives the wind, visibility and cloud while sailing, so the weather changes on its own as lows and highs cross the lake. The dev panel and the playtest switches still override it, and **Use sim weather** hands it back ([plan 04 §23](plans/04-water-weather-seasons.md)).
+- **Barometer** on the HUD, under the clock: inches of mercury with a trend arrow, red when it falls fast ([plan 04 §23](plans/04-water-weather-seasons.md)).
+- **`data/climate.json`:** monthly climate for western Superior from NOAA normals (Madeline Island air, GLERL lake temperature) and Devils Island wind, with the sim's tuning beside it.
+
+### Changed
+
+- **Saves are version 2:** the weather is saved with the run. A 0.1.0 save migrates and catches up on weather when loaded.
+- **Retuned climate:** colder spring lake, May winds from the northeast, and far fewer summer gales. November is still the stormy month, at about four times the observed gale time.
+
 ## [0.1.0] - 2026-10-29
 
 The **Sailing Prototype** (Phase 1): one T1 schooner you can sail, tack, reef, ground, anchor and dock around a slice of the real Apostle Islands, with every handling number on a tuning panel. This is the first tagged build, so it also carries the Phase 0 foundations.

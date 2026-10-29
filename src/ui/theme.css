@@ -65,6 +65,13 @@
   font-size: 14px;
 }
 
+/* Under the clock: the barometer (plan 13 §4.1, plan 04 §5.4). */
+.hud-baro {
+  position: absolute;
+  top: 48px;
+  left: 16px;
+}
+
 .hud-moon {
   width: 16px;
   height: 16px;

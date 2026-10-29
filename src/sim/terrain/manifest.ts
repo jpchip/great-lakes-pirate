@@ -26,7 +26,11 @@ export const zoneManifestSchema = z.looseObject({
   version: z.literal(1),
   zone: z.string(),
   name: z.string(),
-  frame: z.looseObject({ compression: z.number().positive() }),
+  /** Where the zone's origin sits on the chart (meters) and its compression C. */
+  frame: z.looseObject({
+    origin: z.object({ x: z.number(), y: z.number() }),
+    compression: z.number().positive(),
+  }),
   heightFormat: gridFormat.extend({ tileSamples: z.number().int().positive() }),
   height: z.looseObject({
     ...frame,
