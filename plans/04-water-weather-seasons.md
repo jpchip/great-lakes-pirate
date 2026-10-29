@@ -98,7 +98,7 @@ Alternatives (for the decision): 1 day = 1 day (year ≈ 365 h; seasons effectiv
 | **Nov** | 3 | 6 | **Strong** | NW (and dangerous NE) | **High (gale peak, first half)** | Low | — |
 | Dec | −6 | 3 | Strong | NW | High | Low | Bays begin freezing |
 
-❓ marks in R1 apply. These numbers are tuning placeholders until checked against NOAA normals.
+❓ marks in R1 apply. The table is the design intent; the numbers the game runs on are in `data/climate.json`, checked against NOAA normals and observations in §23 (2026-10-29).
 
 ### 4.2 Year-to-year variation
 At each new year (and at game start), roll seeded variation: ice-out date, freeze-up date, a winter severity index (ice extent, ice road reliability), and a fall storm intensity index. Every year feels a little different.
@@ -621,9 +621,70 @@ Before and after (left old, right new, the same frame on Medium): `/mnt/project-
 
 **Result:** water on Medium is **2.2 ms, back inside the 3 ms budget** with 0.8 ms of headroom (3.3–4.9 ms at the Phase 1 playtest, 2.7 ms at §22). The wind cues fell from 0.8 ms to 0.3 ms, and crest foam from 0.3 ms to under the noise floor. High is at 2.6 ms, also under 3 ms now. Low's water is 1.1 ms with the cat's-paws off. The §19 levers stay in reserve for when piece C's terrain shader and trees arrive; rerun this bench then.
 
+## 24. Phase 2 Piece D: Weather v1 in the Game (2026-10-29)
+
+**Scope** (Phase 2 scope doc, piece D; §15 Phase 2 row): the S9 systems drive `windAt` and `visibilityAt` behind the Phase 1 contract, `WorldState.environment` carries the weather with a save migration from v1, the climate numbers are checked against NOAA normals and moved to `data/climate.json`, a barometer goes on the HUD, and the dev panel stays as an override.
+
+### What was built
+| Piece | Where | Notes |
+|---|---|---|
+| Climate data | `data/climate.json`, `data/schemas/climate.ts` | Twelve mid-month entries. Air highs and lows and the lake temperature are measurements; an `observed` block holds the measured wind for checking; a `sim` block holds the sim's tuning (prevailing flow, lows and highs per game day, gale share, track and fog weights). Validated with the other data files in CI. `src/sim/weather/climate.ts` now reads it. |
+| Air temperature | `airTempAt()` | The day swings between the normal low (03:00) and high (15:00) instead of a fixed ±4 °C around a "day" value, plus warm or cold air carried by the wind. |
+| Weather in the zone | `createLocalWeather(…, sim)` in `local-weather.ts` | Given the saved `WeatherState` and the zone's frame (from the bake's manifest, with `defFrame()` from `data/zones.json` as the fallback), the wind, gustiness, visibility and cloud come from the sim, sampled once per tick at the player through `zoneToChart`. The whole zone shares that sample (§20: r = 0.97 between Bayfield and Duluth); the baked shelter, fetch and funneling maps still make the lees and channels. The sim's own drift replaces the panel's. Sailing, the sea, audio and rendering didn't change: they still call the 02 §11 queries. |
+| The world tick | `advanceWeather()` | `weather.tick()` runs the sim forward a world tick at a time whenever 10 game minutes have passed, so a load, a migrated save or a `?day=` jump catches up the same way. |
+| Cloud | `cloudAt()` in `weather.ts` | A stand-in until piece E: a deck spreading past a low's rain shield, broken cloud on an ordinary day, clear under a high. |
+| Save v2 | `src/sim/world-state.ts`, `src/core/save/migrations/index.ts` | `environment.weather` (the S9 state, about 1–3 KB) is in the WorldState schema. The v1 → v2 migration gives a Phase 1 save an empty sky set 48 game hours in the past, with its own random stream derived from the run's (the run's stream is untouched); the game runs those 288 ticks on load (a few ms), as a new run's spin-up does. Fixture `tests/fixtures/saves/v2.json`. |
+| Barometer | `src/ui/hud/` | Top left under the clock: inches of mercury, as a 1900 Great Lakes barometer read (29.92 is standard), and an arrow for the 3-hour trend (⬆ ↗ → ↘ ⬇ at ±1 and ±3 hPa). It turns red when falling fast. The hover title gives hPa. It's always shown for now; plan 13's "if owned" comes with the ship's instruments. |
+| Dev panel override | `src/debug/overlay.ts`, URL switches | While the sim drives, the wind sliders follow it live. A preset, the scripted gale, a wind slider or `?weather=`, `?gale`, `?wind=`, `?knots=` takes the weather off the sim; **Use sim weather** hands it back. The sim keeps running underneath, and the barometer hides while the panel drives (the panel has no pressure field). The readout shows the source (`[sim]`, `[panel]`, `[gale]`) and the barometer in hPa. |
+| NOAA check | `bench/s9/` (`npm run bench:weather`), `tests/climate.test.ts` | The report adds a sim-against-observed table. CI runs 8 seeds and checks each month's mean wind is within 2.5 kn of observed and gale time stays under 6× observed + 1 point. `S9_SEEDS=48 npm run bench:weather` gives the table below. |
+
+### Sources
+- **Air:** NOAA NCEI 1991–2020 monthly normals for **Madeline Island, WI** (USC00474953), in the middle of the zone. Daily highs run −5.5 °C (Jan) to 24.9 °C (Jul); lows −14.1 °C to 13.3 °C.
+- **Lake surface:** the GLERL long-term daily mean surface temperature of Lake Superior (ERDDAP `glerlLTAvgTemp`) on the 15th of each month: 2.8, 1.3, 1.0, 1.4, 2.6, 5.4, 11.0, 15.8, 14.0, 9.7, 6.4, 4.2 °C. This is a whole-lake mean; Chequamegon Bay warms earlier.
+- **Wind:** hourly NDBC observations at **Devils Island** (C-MAN station DISW3), 2012–2023: mean, 90th percentile, share of hours at 28 kn and 34 kn or more, and the vector mean. NDBC buoy 45006 (30 nm northeast of Outer Island, May–Nov) reads 1–3 kn lighter, as a 4 m anemometer should.
+- These are modern normals. Around 1900 the region ran about 1 °C cooler; not applied.
+
+### What the check found
+| | Placeholder | Measured | Effect |
+|---|---|---|---|
+| Winter air | Jan −10 °C as a "day" value | high −5.5, low −14.1 | The old model's day swing was ±4 °C around a too-cold mean. Now high and low come straight from the normals. |
+| Spring water | May 4 °C, Jun 8 °C | 2.6 and 5.4 °C | The lake is colder than assumed into June, so spring advection fog has more contrast. |
+| Late-summer water | Aug 15 °C | 15.8 °C | Close. |
+| May wind | from the SW | from the **NE** (vector mean 2.3 kn from 58°; NE is the most common sector, 27%) | The cold lake and lows passing south make May a northeaster month. Prevailing flow now 4 kn from 50°, more panhandle lows. |
+| Summer–fall storms | 2–3% of May and Sep time at 34 kn or more | 0.1% | Gales were 10–20× too common outside fall. `deepShare` cut in May–Sep. |
+| November | 7.8% of time at 34 kn or more, mean 15.6 kn | 0.95%, mean 14.0 kn | Cut to 4.4% (deepShare 0.55 → 0.22, more lows instead). |
+
+### Result: the sim at Bayfield against Devils Island (48 seeds)
+| Month | Mean wind sim / obs | 90th pct | ≥ 28 kn | ≥ 34 kn | Vector-mean wind sim / obs |
+|---|---|---|---|---|---|
+| May | 10.2 / 10.1 kn | 19.5 / 18.9 | 3.0% / 1.0% | 1.6% / 0.1% | 3.8 kn from 74° / 2.3 kn from 58° |
+| Jun | 8.5 / 8.8 | 17.2 / 15.9 | 1.4% / 0.2% | 0.3% / 0.1% | 2.6 from 154° / 0.7 from 165° |
+| Jul | 8.4 / 9.0 | 16.0 / 15.7 | 1.1% / 0.2% | 0.4% / 0.0% | 2.9 from 208° / 2.5 from 229° |
+| Aug | 8.8 / 9.5 | 16.7 / 16.3 | 1.4% / 0.3% | 0.5% / 0.0% | 3.4 from 220° / 2.2 from 231° |
+| Sep | 9.6 / 10.7 | 18.4 / 18.9 | 2.6% / 1.1% | 0.9% / 0.1% | 2.6 from 201° / 0.9 from 228° |
+| Oct | 12.1 / 13.2 | 23.0 / 23.1 | 5.3% / 3.1% | 2.4% / 0.9% | 4.4 from 262° / 2.7 from 292° |
+| **Nov** | **14.0 / 14.0** | 26.4 / 24.1 | 9.5% / 3.9% | **4.4% / 0.9%** | 4.8 from 254° / 5.8 from 275° |
+
+- **Mean wind is within 1.1 kn** of observed in every month, and the direction of the vector mean within about 30° where it is more than 2 kn.
+- **Storms lean deliberately stormy:** time at gale force is 2–5× observed. November gales are the season's signature (§4.1, §5.3), and a game November is only about 4 game days, so at the observed rate most players would never meet one. November still has the most gales (0.8 per seed), and July and August the fewest. The lever is `sim.deepShare` per month in `data/climate.json`.
+- **The barometer still warns:** a fall of 3 hPa or more in 3 game hours came before 87% of storms (162 of 187), about 9 game hours ahead. "Falling fast" carries a 27% chance of a storm in the next 12 game hours, against 4.6% for "steady".
+- **Fog** barely moved: thick fog on 14–25% of game days from May to August, and almost none in November.
+- **Cost:** 16 µs per world tick, 22 ms to fast-forward 12 game days.
+
+### Screenshots
+`/mnt/project-files/weather-v1/` in the project: a November gale on the HUD (barometer red and falling), the same with the dev panel showing `[sim]` and the barometer readout, and a May noon.
+
+### Not covered yet
+1. **Fog banks you can see coming, rain, cloud layers and thunderstorms** are piece E. Visibility already drops inside a bank and in rain, so piece E draws what the sim already has.
+2. **Port storm flags** (§5.4) are Phase 5.
+3. **Fast falls can be extreme:** two lows closing in can drop the barometer more than 10 hPa in 3 game hours, more than Superior's worst storms. It reads as a clear warning, but if it looks odd, cap the tendency or merge close lows (§20, item 5).
+4. **Year-to-year variation** (§4.2) and the **chart's weather** (Phase 3) aren't wired.
+5. **Lake temperature is one number** for the whole zone; Chequamegon Bay warms weeks before the open lake.
+
 ---
 
 ## Changelog
+- v0.9: Phase 2 piece D (§24): the S9 sim drives the zone's wind, visibility and cloud; weather in the save (v2, with a migration from v1); climate in `data/climate.json`, checked against NOAA normals and Devils Island wind and retuned; a barometer on the HUD; the dev panel as an override.
 - v0.8: Phase 2 piece A (§23): water drawn after the land, cat's-paws to one noise octave and off on Low, a two-tap gust lookup, noise only where it can show, and an arithmetic hash. Water on Medium is 2.2 ms on the baseline laptop.
 - v0.7: Phase 1 piece F (§22): depth bands and shore foam from a whole-zone shore texture, far water to 10 km with the fog floor at 6 km, bow wave and wake ribbons, bow spray, cat's-paws that show gusts before they arrive, wind streaks, and a per-feature water bench.
 - v0.6: Phase 1 piece D (§21): dev-panel wind with drift, gusts, lee and funneling behind the 02 §11 contract; fetch-limited wind seas with lag and a local shelter and fetch scale shared by the CPU and the water shader; a scripted November gale; sun, moon, stars, a sky palette by sun elevation, and exp² fog from visibility.

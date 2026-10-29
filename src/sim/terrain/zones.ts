@@ -28,6 +28,15 @@ export function manifestFrame(manifest: ZoneManifest): ZoneFrame {
   return { origin: manifest.frame.origin, compression: manifest.frame.compression };
 }
 
+/**
+ * The frame from the zone's definition: the same origin the bake rounds to whole chart
+ * meters. For weather and the like when the zone files didn't load.
+ */
+export function defFrame(def: ZoneDef): ZoneFrame {
+  const c = projection.geoToChart(def.center);
+  return { origin: { x: Math.round(c.x), y: Math.round(c.y) }, compression: def.compression };
+}
+
 /** A set piece's footprint in zone meters, as the bake flattened it. */
 export interface SetPieceFootprint {
   id: string;

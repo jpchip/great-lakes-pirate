@@ -1,7 +1,10 @@
+import climateJson from '../../../data/climate.json';
+import { climateFileSchema, type ClimateMonth } from '../../../data/schemas/climate';
+
 /**
- * Climate normals for western Lake Superior (plan 04 §4.1), interpolated by calendar
- * date. These are tuning placeholders until they're checked against NOAA normals; they
- * move to data/climate.json once the weather sim leaves the prototype stage.
+ * Climate normals for western Lake Superior (plan 04 §4.1, §24), interpolated by calendar
+ * date. The numbers live in data/climate.json: air and water temperatures from NOAA
+ * normals, and the sim's tuning beside the observed wind it was checked against.
  *
  * Rates marked "per game day" run on the day clock (plan 04 §3.2): a storm lasts game
  * hours, so a season's character is set by how often systems pass per game day.
@@ -11,8 +14,9 @@
 export type LowTrack = 'clipper' | 'panhandle' | 'pacific';
 
 export interface MonthNormals {
-  /** Daytime air temperature, °C. */
-  airDayC: number;
+  /** Normal daily high and low air temperature, °C. */
+  airMaxC: number;
+  airMinC: number;
   /** Lake surface temperature, °C. */
   waterC: number;
   /**
@@ -36,39 +40,16 @@ export interface MonthNormals {
   radiationFog: number;
 }
 
-const T = (clipper: number, panhandle: number, pacific: number) => ({
-  clipper,
-  panhandle,
-  pacific,
-});
+/** The validated data/climate.json, January first. */
+export const CLIMATE_MONTHS: readonly ClimateMonth[] = climateFileSchema.parse(climateJson);
 
-/** Mid-month normals, January first. */
-export const MONTHS: readonly MonthNormals[] = [
-  // prettier-ignore
-  { airDayC: -10, waterC: 1, prevailingKn: 5, prevailingFromDeg: 300, lowsPerDay: 1.0, deepShare: 0.25, highsPerDay: 0.8, tracks: T(0.6, 0.25, 0.15), advectionFog: 0.05, radiationFog: 0.05 },
-  // prettier-ignore
-  { airDayC: -9, waterC: 1, prevailingKn: 5, prevailingFromDeg: 300, lowsPerDay: 1.0, deepShare: 0.25, highsPerDay: 0.8, tracks: T(0.6, 0.25, 0.15), advectionFog: 0.05, radiationFog: 0.05 },
-  // prettier-ignore
-  { airDayC: -3, waterC: 1, prevailingKn: 5, prevailingFromDeg: 315, lowsPerDay: 1.0, deepShare: 0.25, highsPerDay: 0.7, tracks: T(0.45, 0.35, 0.2), advectionFog: 0.1, radiationFog: 0.05 },
-  // prettier-ignore
-  { airDayC: 5, waterC: 2, prevailingKn: 3, prevailingFromDeg: 45, lowsPerDay: 0.9, deepShare: 0.15, highsPerDay: 0.7, tracks: T(0.25, 0.4, 0.35), advectionFog: 0.6, radiationFog: 0.1 },
-  // prettier-ignore
-  { airDayC: 13, waterC: 4, prevailingKn: 3, prevailingFromDeg: 225, lowsPerDay: 0.75, deepShare: 0.07, highsPerDay: 0.7, tracks: T(0.2, 0.35, 0.45), advectionFog: 1.0, radiationFog: 0.15 },
-  // prettier-ignore
-  { airDayC: 19, waterC: 8, prevailingKn: 3.5, prevailingFromDeg: 225, lowsPerDay: 0.7, deepShare: 0.05, highsPerDay: 0.7, tracks: T(0.15, 0.25, 0.6), advectionFog: 1.0, radiationFog: 0.25 },
-  // prettier-ignore
-  { airDayC: 23, waterC: 13, prevailingKn: 3.5, prevailingFromDeg: 225, lowsPerDay: 0.55, deepShare: 0.03, highsPerDay: 0.75, tracks: T(0.2, 0.1, 0.7), advectionFog: 0.6, radiationFog: 0.45 },
-  // prettier-ignore
-  { airDayC: 22, waterC: 15, prevailingKn: 3.5, prevailingFromDeg: 235, lowsPerDay: 0.6, deepShare: 0.05, highsPerDay: 0.75, tracks: T(0.25, 0.1, 0.65), advectionFog: 0.3, radiationFog: 0.8 },
-  // prettier-ignore
-  { airDayC: 17, waterC: 13, prevailingKn: 4.5, prevailingFromDeg: 270, lowsPerDay: 0.85, deepShare: 0.12, highsPerDay: 0.7, tracks: T(0.35, 0.25, 0.4), advectionFog: 0.15, radiationFog: 1.0 },
-  // prettier-ignore
-  { airDayC: 11, waterC: 9, prevailingKn: 5, prevailingFromDeg: 290, lowsPerDay: 1.05, deepShare: 0.3, highsPerDay: 0.7, tracks: T(0.35, 0.4, 0.25), advectionFog: 0.1, radiationFog: 0.8 },
-  // prettier-ignore
-  { airDayC: 3, waterC: 6, prevailingKn: 6, prevailingFromDeg: 315, lowsPerDay: 1.5, deepShare: 0.55, highsPerDay: 0.6, tracks: T(0.35, 0.45, 0.2), advectionFog: 0.05, radiationFog: 0.2 },
-  // prettier-ignore
-  { airDayC: -6, waterC: 3, prevailingKn: 6, prevailingFromDeg: 300, lowsPerDay: 1.2, deepShare: 0.35, highsPerDay: 0.7, tracks: T(0.55, 0.3, 0.15), advectionFog: 0.05, radiationFog: 0.05 },
-];
+/** Mid-month normals as the sim reads them, January first. */
+export const MONTHS: readonly MonthNormals[] = CLIMATE_MONTHS.map((m) => ({
+  airMaxC: m.airMaxC,
+  airMinC: m.airMinC,
+  waterC: m.waterC,
+  ...m.sim,
+}));
 
 /** Interpolated normals for a moment, plus the prevailing wind as a vector. */
 export interface Climate extends Omit<MonthNormals, 'prevailingFromDeg'> {
@@ -109,7 +90,8 @@ export function climateAt(date: Date): Climate {
   const va = toVector(a);
   const vb = toVector(b);
   return {
-    airDayC: lerp(a.airDayC, b.airDayC, t),
+    airMaxC: lerp(a.airMaxC, b.airMaxC, t),
+    airMinC: lerp(a.airMinC, b.airMinC, t),
     waterC: lerp(a.waterC, b.waterC, t),
     prevailingKn: Math.hypot(lerp(va.x, vb.x, t), lerp(va.y, vb.y, t)),
     prevailingToKn: { x: lerp(va.x, vb.x, t), y: lerp(va.y, vb.y, t) },

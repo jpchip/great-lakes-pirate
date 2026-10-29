@@ -7,6 +7,7 @@ import type { SailingClass } from '../../sim/sailing/ship-class';
 import { edgeFactor, type ZoneEdge } from '../../sim/terrain/zone-edge';
 import type { ZoneTerrain } from '../../sim/terrain/zone-terrain';
 import { moonPhase } from '../../sim/weather/celestial';
+import type { BarometerReading, BarometerTrend } from '../../sim/weather/weather';
 
 /**
  * What the sailing HUD shows (plan 13 §4.1, plan 02 §9), sampled from the sim at most
@@ -50,6 +51,37 @@ export interface HudSnapshot {
   timeText: string;
   /** 0 new … 0.5 full … 1 new. */
   moonPhase01: number;
+  /** The barometer (plan 04 §5.4); absent while the dev panel drives the weather. */
+  barometer: BarometerSnapshot | undefined;
+}
+
+export interface BarometerSnapshot {
+  /** "29.85": inches of mercury, as an 1900 Great Lakes barometer read. */
+  inHgText: string;
+  hpa: number;
+  trend: BarometerTrend;
+  /** An arrow for the trend: ⬆ ↗ → ↘ ⬇. */
+  arrow: string;
+}
+
+/** hPa to inches of mercury. */
+export const INHG_PER_HPA = 0.02953;
+
+const TREND_ARROWS: Record<BarometerTrend, string> = {
+  'rising fast': '⬆',
+  rising: '↗',
+  steady: '→',
+  falling: '↘',
+  'falling fast': '⬇',
+};
+
+export function barometerSnapshot(reading: BarometerReading): BarometerSnapshot {
+  return {
+    inHgText: (reading.hpa * INHG_PER_HPA).toFixed(2),
+    hpa: reading.hpa,
+    trend: reading.trend,
+    arrow: TREND_ARROWS[reading.trend],
+  };
 }
 
 const DEG = 180 / Math.PI;
@@ -96,6 +128,8 @@ export interface HudSources {
   gameSeconds: number;
   /** Draft when the ship has no hazards component. */
   draftM: number;
+  /** The weather's barometer at the ship, if it has one. */
+  barometer?: BarometerReading | undefined;
   /** The zone's soft edge; the HUD warns over the outer half of its fog fade. */
   edge?: ZoneEdge | undefined;
 }
@@ -165,6 +199,7 @@ export function sampleHud(src: HudSources): HudSnapshot | undefined {
     dateText: weekLabel(src.gameSeconds),
     timeText: clockLabel(src.gameSeconds),
     moonPhase01: moonPhase(calendarDate(src.gameSeconds)),
+    barometer: src.barometer ? barometerSnapshot(src.barometer) : undefined,
   };
 }
 
