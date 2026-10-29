@@ -1,17 +1,28 @@
 import type { GameRenderer } from '../render/renderer';
 import { QUALITY_IDS, type QualityId } from '../render/quality';
 import type { TestScene } from '../render/test-scene';
+import { DEFAULT_COMPRESSION, sceneSpeed } from '../core/coords';
+import { R_SAILING } from '../core/time';
+import { FULL_SAIL } from '../sim/sailing/controller';
 
 /**
- * Spike S2 water benchmark (plan 04 §16). For each preset it times full frames with the
- * water on, with crest foam off, and with the water hidden; the water's cost is the
- * difference. Frames are timed on the CPU around render plus a 1-pixel readPixels, which
- * waits for the GPU to finish, so it measures GPU time without the timer extension.
- * Results are rough (±0.3 ms); run it a few times on the baseline laptop.
+ * Spike S2 water benchmark (plan 04 §16), extended for Phase 1 piece F. For each preset
+ * it times full frames with everything on, then with one feature off at a time (crest
+ * foam, depth bands and shore foam, the wind cues, the wake and spray), and with the
+ * water, wake and spray all hidden; each cost is the difference. Frames are timed on the
+ * CPU around render plus a 1-pixel readPixels, which waits for the GPU to finish, so it
+ * measures GPU time without the timer extension. Results are rough (±0.3 ms); run it a
+ * few times on the baseline laptop.
+ *
+ * So the wake has something to draw, it first puts the player's ship under full sail
+ * and lets it sail for WAKE_BUILD_S if it isn't already moving.
  */
 
 const WARMUP_FRAMES = 20;
 const FRAMES = 150;
+const WAKE_BUILD_S = 20;
+/** Scene speed (m/s) that counts as already sailing. */
+const SAILING_MS = 2;
 
 export interface WaterBenchRow {
   preset: QualityId;
@@ -22,12 +33,18 @@ export interface WaterBenchRow {
   frameMs: number;
   /** Median with crest foam off. */
   noFoamMs: number;
-  /** Median with the water hidden. */
+  /** Median with the water, wake and spray hidden. */
   noWaterMs: number;
-  /** frameMs − noWaterMs. */
+  /** frameMs − noWaterMs: everything on the water. */
   waterMs: number;
   /** frameMs − noFoamMs. */
   foamMs: number;
+  /** Depth bands and shore foam: frameMs − the median with them off. */
+  shoreMs: number;
+  /** Cat's-paws and wind streaks. */
+  windCuesMs: number;
+  /** Bow wave and wake ribbons plus spray. */
+  wakeMs: number;
   triangles: number;
   drawCalls: number;
 }
@@ -42,6 +59,7 @@ export interface WaterBenchResult {
 }
 
 const nextTask = (): Promise<void> => new Promise((resolve) => setTimeout(resolve, 0));
+const sleep = (ms: number): Promise<void> => new Promise((resolve) => setTimeout(resolve, ms));
 
 function median(values: number[]): number {
   const sorted = [...values].sort((a, b) => a - b);
@@ -62,7 +80,23 @@ export async function runWaterBench(
   const pixel = new Uint8Array(4);
   const startPreset = renderer.preset.id;
   const startDynamic = renderer.dynamicResolution.enabled;
-  const foam = scene.water.material.uniforms.uCrestFoam;
+  const uniforms = scene.water.material.uniforms;
+  const foam = uniforms.uCrestFoam;
+  const shore = uniforms.uShoreOn;
+
+  // Get the ship moving so the wake and spray are on screen.
+  const ships = [...scene.wakes.keys()].filter((e) => e.playerControlled && e.sailing);
+  if (
+    ships.every(
+      (e) =>
+        Math.abs(sceneSpeed(e.sailing?.state.speed ?? 0, R_SAILING, DEFAULT_COMPRESSION)) <
+        SAILING_MS,
+    )
+  ) {
+    for (const e of ships) if (e.sailing) e.sailing.state.sailLevel = FULL_SAIL;
+    onProgress?.(`Sailing for ${WAKE_BUILD_S} s to build a wake…`);
+    await sleep(WAKE_BUILD_S * 1000);
+  }
   renderer.dynamicResolution.enabled = false;
 
   const time = (frames: number): number[] => {
@@ -82,6 +116,11 @@ export async function runWaterBench(
     return median(time(FRAMES));
   };
 
+  const setWakes = (visible: boolean): void => {
+    for (const wake of scene.wakes.values()) wake.mesh.visible = visible;
+    scene.spray.points.visible = visible && renderer.preset.sprayParticles > 0;
+  };
+
   const rows: WaterBenchRow[] = [];
   try {
     for (const id of QUALITY_IDS) {
@@ -93,9 +132,19 @@ export async function runWaterBench(
       foam.value = 0;
       const noFoamMs = await measure();
       foam.value = stored;
+      const shoreStored = shore.value;
+      shore.value = 0;
+      const noShoreMs = await measure();
+      shore.value = shoreStored;
+      scene.windCues.enabled = false;
+      const noCuesMs = await measure();
+      scene.windCues.enabled = true;
+      setWakes(false);
+      const noWakeMs = await measure();
       scene.water.mesh.visible = false;
       const noWaterMs = await measure();
       scene.water.mesh.visible = true;
+      setWakes(true);
       rows.push({
         preset: id,
         width: stats.width,
@@ -106,12 +155,17 @@ export async function runWaterBench(
         noWaterMs,
         waterMs: frameMs - noWaterMs,
         foamMs: frameMs - noFoamMs,
+        shoreMs: frameMs - noShoreMs,
+        windCuesMs: frameMs - noCuesMs,
+        wakeMs: frameMs - noWakeMs,
         triangles: stats.triangles,
         drawCalls: stats.drawCalls,
       });
     }
   } finally {
     scene.water.mesh.visible = true;
+    scene.windCues.enabled = true;
+    setWakes(true);
     renderer.setQuality(startPreset);
     renderer.dynamicResolution.enabled = startDynamic;
   }
@@ -134,11 +188,11 @@ export function formatWaterBench(result: WaterBenchResult): string {
     `MSAA: ${result.antialias ? 'on' : 'off'}`,
     `Date: ${result.date}`,
     '',
-    '| Preset | Buffer | Waves | Frame ms | Water ms | Crest foam ms | No water ms | Triangles | Draw calls |',
-    '|---|---|---|---|---|---|---|---|---|',
+    '| Preset | Buffer | Waves | Frame ms | Water ms | Crest foam ms | Shore ms | Wind cues ms | Wake ms | No water ms | Triangles | Draw calls |',
+    '|---|---|---|---|---|---|---|---|---|---|---|---|',
     ...result.rows.map(
       (r) =>
-        `| ${r.preset} | ${r.width}×${r.height} | ${r.waves} | ${f(r.frameMs)} | ${f(r.waterMs)} | ${f(r.foamMs)} | ${f(r.noWaterMs)} | ${r.triangles} | ${r.drawCalls} |`,
+        `| ${r.preset} | ${r.width}×${r.height} | ${r.waves} | ${f(r.frameMs)} | ${f(r.waterMs)} | ${f(r.foamMs)} | ${f(r.shoreMs)} | ${f(r.windCuesMs)} | ${f(r.wakeMs)} | ${f(r.noWaterMs)} | ${r.triangles} | ${r.drawCalls} |`,
     ),
   ].join('\n');
 }

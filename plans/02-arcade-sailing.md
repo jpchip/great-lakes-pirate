@@ -35,7 +35,7 @@ Define how the schooner feels and handles: controls, the wind and speed model, w
 | Sweeps out / in | **R** | Row in a calm (§3.6). Added in Phase 1; plan 02 had no key for it |
 | Lantern on / off (dark running) | **L** | Running dark lowers visibility at night (plan 06) |
 | Spyglass | **Right mouse (hold)** | Zoomed view; identify ships, flags and lights at range |
-| Camera orbit / zoom | Mouse move (free cursor) / wheel | See §8 |
+| Camera orbit / zoom | Left or middle drag (free cursor) / wheel | See §8. Drag rather than plain mouse move, so the cursor stays free for the HUD (Phase 1) |
 | Interact (moor, go ashore, board) | **F** | Context-sensitive |
 | Chart | **M** | Locked while detected by a hostile ([03 §5.4](03-world-scale-chart-travel.md)) |
 | Combat aim / fire | Reserved: **Tab** aim mode, **LMB** fire | Defined in plan 07 |
@@ -311,7 +311,7 @@ Weapons, crew size for boarding and upgrade slots belong to plans 07 and 10 but 
   - Sail meshes with per-level shape states (furled, reefed, half, full).
   - **Static sail shapes per level (decided 2026-10-22: no billow shader).** Luffing in irons swaps to a slack-sail shape, plus the flapping audio.
   - Opaque or alpha-tested canvas to avoid transparency overdraw on the iGPU.
-- Wake and spray: a GPU particle budget per preset, plus a trailing decal/ribbon wake mesh (cheap).
+- Wake and spray: a GPU particle budget per preset, plus a trailing decal/ribbon wake mesh (cheap). **Built in Phase 1 (piece F):** bow-wave and stern ribbons per ship, spray puffs from a preset-sized pool, and cat's-paws on the water that show gusts before they arrive ([04 §22](04-water-weather-seasons.md)).
 
 ---
 
@@ -349,6 +349,12 @@ Weapons, crew size for boarding and upgrade slots belong to plans 07 and 10 but 
 - **Anchoring:** X held 0.5 s drops it within the rode (30 m for the T1) or refuses (`AnchorRefused`); held again it weighs over 6 s. At anchor the ship brings up over about 3 s, swings head to wind at 8°/s and lies 14 m downwind of the anchor. **Drag:** the anchor holds 30 kn of load in shallow ground, falling to 21 kn at the end of its rode; the load is the wind × (1 + 0.6 × the sail factor). Over that it drags downwind at up to 1.2 kn, which can put the ship aground. A 34 kn gale drags it in 20 m of open water; the same anchor holds in a lee at 15 kn (unit tested).
 - **Docking:** F within 12 m of a berth's zone at under 2 kn starts a 5 s eased auto-dock to the berth pose and furls the sails; any other press says why not (`DockRefused`: no berth, too fast, anchored, aground). F at the berth casts off: 1 kn ahead and a 3 m shove away from the pier over 3 s. Tested on the real Bayfield berths.
 - **Dev overlay:** a Hazards folder shows hull, rigging, strain, depth and draft, anchor holding and load, the berth and the last hazard event, with a repair button and every rule live. Damage isn't saved yet (plan 16 adds it with the ship record).
+
+**Camera (built 2026-10-25, Phase 1 piece G).** `gameplay/camera/ship-camera.ts` is the pure camera math, like the on-foot camera; `render/camera-rig.ts` feeds it the mouse and copies it into three.js, replacing the Phase 0 OrbitControls. Notes on how it reads §8:
+- **Chase/orbit:** a boom from 4 m above the waterline, 70 m long at start, 22–900 m with the wheel (18% per notch, eased). Left or middle drag orbits; it swings back behind the ship after 3 s without input (setting). The camera never rolls unless "roll with ship" is on. The FOV drops from 50° by up to 4° at hull speed.
+- **Terrain collision:** 12 samples along the boom against the terrain height (or 0.8 m over the water) plus 1.5 m of clearance; the boom snaps shorter and grows back at 30 m/s.
+- **Tactical view:** from 220 m out the look-down floor rises to about 54° by 900 m, and the fog density thins by up to 40%.
+- **Spyglass:** hold right mouse (or toggle, a setting): an 8° FOV from 4.5 m above the deck, aimed where the cursor met the water in the chase view (or along the ray above the horizon), with a slow sway, a round vignette, and the player's own ship hidden so the rig doesn't fill the glass. Dragging pans it.
 
 **Schooner and sails (built 2026-10-26, Phase 1 piece H).** `src/render/ships/schooner.ts` builds the T1 in code from one lines record (`schooner-lines.ts`: 20 × 5.6 m, 1.6 m draft, two raked masts with topmasts, a 7.5 m bowsprit), in style B. `/bench/ship/` is a contact sheet of every level and point of sail. Notes on how it reads this plan:
 - **Sail plan per level** (§3.2): Furled stows everything (canvas gathered on the booms and at the foot of the stays); Reefed sets the fore and main reefed to 60% of the luff plus the fore staysail; Half shakes the reefs out; Full adds the jib and both gaff topsails.
@@ -399,6 +405,7 @@ All resolved. Follow-ups for other plans: passage prices and shipless earning (0
 ---
 
 ## Changelog
+- v0.7: Phase 1 camera built (§14): drag to orbit (§2), boom, collision, tactical and spyglass numbers.
 - v0.6: Phase 1 hazards and mooring built (§14): rock vs. grounding by bottom slope, simplified kedging, damage effects, strain and knockdown thresholds, anchor holding and drag, auto-dock and cast off.
 - v0.5: Phase 1 controller built (§14): sweeps key (R), the ships.json fields as built (§12), how the controller reads §3–5, starting T1 values.
 - v0.4: §5.1 records the spike S2 buoyancy model and starting tuning values.
