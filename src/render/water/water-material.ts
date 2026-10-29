@@ -119,14 +119,12 @@ float below(float edge, float value, float aa) {
   return 1.0 - smoothstep(edge - aa, edge + aa, value);
 }
 
-// The gust that will reach the ship from this far upwind (wind-cues.ts).
+// The gust that will reach the ship from this far upwind (wind-cues.ts), interpolated
+// between the two samples either side.
 float gustAhead(float upwindM) {
   float f = clamp(upwindM / uGustOrigin.z, 0.0, ${GUST_SAMPLES - 1}.0);
-  float g = 0.0;
-  for (int k = 0; k < ${GUST_SAMPLES}; k++) {
-    g += uGustAhead[k] * max(0.0, 1.0 - abs(f - float(k)));
-  }
-  return g;
+  int k = min(int(f), ${GUST_SAMPLES - 2});
+  return mix(uGustAhead[k], uGustAhead[k + 1], f - float(k));
 }
 
 void main() {
@@ -169,26 +167,35 @@ void main() {
   color += uSunColor * step(0.35, glint) * 0.9;
 
   // Wind cues (plan 02 §9): darker cat's-paws where gusts are coming, and foam streaks
-  // along the wind in a blow. Both drift downwind with the air.
-  if (uCatsPaws > 0.0) {
+  // along the wind in a blow. Both drift downwind with the air. Each noise is only
+  // evaluated where it can show, to keep the cues inside the water budget (04 §23).
+  if (uCatsPaws > 0.0 || uStreaks > 0.0) {
     vec2 q = vec2(dot(vRestPos, uWindDir) - uWindOffset,
                   dot(vRestPos, vec2(-uWindDir.y, uWindDir.x)));
-    float g = gustAhead(dot(uGustOrigin.xy - vRestPos, uWindDir));
-    float patchy = valueNoise(q * vec2(0.022, 0.032)) * 0.65 + valueNoise(q * vec2(0.08, 0.11)) * 0.35;
-    float paw = step(0.97 - 0.45 * g, patchy) * step(0.08, g);
-    paw *= uCatsPaws * (1.0 - smoothstep(6.0, 16.0, footprint));
-    // Darker, with fine ripples across the wind, so a paw reads as wind, not depth.
-    float ripple = step(0.72, valueNoise(q * vec2(1.1, 0.3))) * (1.0 - smoothstep(0.3, 0.9, footprint));
-    color *= 1.0 - paw * (0.16 - 0.1 * ripple);
+    float pawFade = uCatsPaws * (1.0 - smoothstep(6.0, 16.0, footprint));
+    if (pawFade > 0.0) {
+      float g = gustAhead(dot(uGustOrigin.xy - vRestPos, uWindDir));
+      // One octave; the threshold curve keeps the patch coverage the old two-octave sum
+      // had at every gust strength.
+      float paw = g < 0.08 ? 0.0 : step(1.0 - g * (0.2 + 0.27 * g), valueNoise(q * vec2(0.022, 0.032)));
+      if (paw > 0.0) {
+        // Darker, with fine ripples across the wind, so a paw reads as wind, not depth.
+        float ripple = step(0.72, valueNoise(q * vec2(1.1, 0.3))) * (1.0 - smoothstep(0.3, 0.9, footprint));
+        color *= 1.0 - paw * pawFade * (0.16 - 0.1 * ripple);
+      }
+    }
     // Short, slightly wavy streaks, tens of meters long.
-    float streak = step(1.0 - 0.12 * uStreaks,
-                        valueNoise(vec2(q.x * 0.035, q.y * 0.4 + 0.8 * sin(q.x * 0.03))));
-    streak *= uCatsPaws * min(local, 1.0) * (1.0 - smoothstep(0.6, 2.0, footprint));
-    color = mix(color, uFoamColor, streak * 0.45);
+    float streakFade = min(local, 1.0) * (1.0 - smoothstep(0.6, 2.0, footprint));
+    if (uStreaks > 0.0 && streakFade > 0.0) {
+      float streak = step(1.0 - 0.12 * uStreaks,
+                          valueNoise(vec2(q.x * 0.035, q.y * 0.4 + 0.8 * sin(q.x * 0.03))));
+      color = mix(color, uFoamColor, streak * streakFade * 0.45);
+    }
   }
 
-  // Crest foam where the waves pinch, broken up by noise.
-  if (uCrestFoam > 0.5) {
+  // Crest foam where the waves pinch, broken up by noise. The noise moves the threshold
+  // by at most ±0.125, so lower crests skip it.
+  if (uCrestFoam > 0.5 && crestHere > uFoamThreshold - 0.125) {
     float noise = valueNoise(vWorldPos.xz * 0.6) * 0.5 + valueNoise(vWorldPos.xz * 2.1) * 0.5;
     float foam = step(uFoamThreshold, crestHere + (noise - 0.5) * 0.25);
     color = mix(color, uFoamColor, foam * 0.85);

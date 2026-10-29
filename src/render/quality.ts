@@ -23,6 +23,8 @@ export interface QualityPreset {
   waveCount: number;
   /** Foam on steep crests (plan 04 §7). */
   crestFoam: boolean;
+  /** Cat's-paws on the water ahead of gusts (plan 02 §9); wind streaks show on every preset. */
+  catsPaws: boolean;
   /** Water grid density: rings out from the camera and segments around each ring. */
   waterRings: number;
   waterSegments: number;
@@ -46,6 +48,7 @@ export const QUALITY_PRESETS: Record<QualityId, QualityPreset> = {
     targetFrameMs: 1000 / 30,
     waveCount: 4,
     crestFoam: false,
+    catsPaws: false,
     waterRings: 56,
     waterSegments: 96,
     sprayParticles: 24,
@@ -62,6 +65,7 @@ export const QUALITY_PRESETS: Record<QualityId, QualityPreset> = {
     targetFrameMs: 1000 / 60,
     waveCount: 6,
     crestFoam: true,
+    catsPaws: true,
     waterRings: 80,
     waterSegments: 144,
     sprayParticles: 64,
@@ -78,6 +82,7 @@ export const QUALITY_PRESETS: Record<QualityId, QualityPreset> = {
     targetFrameMs: 1000 / 60,
     waveCount: 8,
     crestFoam: true,
+    catsPaws: true,
     waterRings: 112,
     waterSegments: 192,
     sprayParticles: 128,
