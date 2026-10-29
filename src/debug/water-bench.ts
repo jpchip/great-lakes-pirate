@@ -16,6 +16,10 @@ import { FULL_SAIL } from '../sim/sailing/controller';
  *
  * So the wake has something to draw, it first puts the player's ship under full sail
  * and lets it sail for WAKE_BUILD_S if it isn't already moving.
+ *
+ * Phase 2 piece C adds the land: the terrain and the vegetation are each timed by hiding
+ * them. Hiding the terrain also uncovers water it was hiding, so its column reads a little
+ * low; the vegetation column is clean.
  */
 
 const WARMUP_FRAMES = 20;
@@ -45,6 +49,10 @@ export interface WaterBenchRow {
   windCuesMs: number;
   /** Bow wave and wake ribbons plus spray. */
   wakeMs: number;
+  /** The terrain shader and meshes: frameMs − the median with the terrain hidden. */
+  terrainMs: number;
+  /** Trees and rocks, meshes and impostors: frameMs − the median with them hidden. */
+  vegetationMs: number;
   triangles: number;
   drawCalls: number;
 }
@@ -139,6 +147,14 @@ export async function runWaterBench(
       scene.windCues.enabled = false;
       const noCuesMs = await measure();
       scene.windCues.enabled = true;
+      const land = scene.terrain?.group;
+      const plants = scene.vegetation?.group;
+      if (plants) plants.visible = false;
+      const noVegetationMs = plants ? await measure() : frameMs;
+      if (plants) plants.visible = true;
+      if (land) land.visible = false;
+      const noTerrainMs = land ? await measure() : frameMs;
+      if (land) land.visible = true;
       setWakes(false);
       const noWakeMs = await measure();
       scene.water.mesh.visible = false;
@@ -158,6 +174,8 @@ export async function runWaterBench(
         shoreMs: frameMs - noShoreMs,
         windCuesMs: frameMs - noCuesMs,
         wakeMs: frameMs - noWakeMs,
+        terrainMs: frameMs - noTerrainMs,
+        vegetationMs: frameMs - noVegetationMs,
         triangles: stats.triangles,
         drawCalls: stats.drawCalls,
       });
@@ -165,6 +183,8 @@ export async function runWaterBench(
   } finally {
     scene.water.mesh.visible = true;
     scene.windCues.enabled = true;
+    if (scene.terrain) scene.terrain.group.visible = true;
+    if (scene.vegetation) scene.vegetation.group.visible = true;
     setWakes(true);
     renderer.setQuality(startPreset);
     renderer.dynamicResolution.enabled = startDynamic;
@@ -188,11 +208,11 @@ export function formatWaterBench(result: WaterBenchResult): string {
     `MSAA: ${result.antialias ? 'on' : 'off'}`,
     `Date: ${result.date}`,
     '',
-    '| Preset | Buffer | Waves | Frame ms | Water ms | Crest foam ms | Shore ms | Wind cues ms | Wake ms | No water ms | Triangles | Draw calls |',
-    '|---|---|---|---|---|---|---|---|---|---|---|---|',
+    '| Preset | Buffer | Waves | Frame ms | Water ms | Crest foam ms | Shore ms | Wind cues ms | Wake ms | No water ms | Terrain ms | Vegetation ms | Triangles | Draw calls |',
+    '|---|---|---|---|---|---|---|---|---|---|---|---|---|---|',
     ...result.rows.map(
       (r) =>
-        `| ${r.preset} | ${r.width}×${r.height} | ${r.waves} | ${f(r.frameMs)} | ${f(r.waterMs)} | ${f(r.foamMs)} | ${f(r.shoreMs)} | ${f(r.windCuesMs)} | ${f(r.wakeMs)} | ${f(r.noWaterMs)} | ${r.triangles} | ${r.drawCalls} |`,
+        `| ${r.preset} | ${r.width}×${r.height} | ${r.waves} | ${f(r.frameMs)} | ${f(r.waterMs)} | ${f(r.foamMs)} | ${f(r.shoreMs)} | ${f(r.windCuesMs)} | ${f(r.wakeMs)} | ${f(r.noWaterMs)} | ${f(r.terrainMs)} | ${f(r.vegetationMs)} | ${r.triangles} | ${r.drawCalls} |`,
     ),
   ].join('\n');
 }

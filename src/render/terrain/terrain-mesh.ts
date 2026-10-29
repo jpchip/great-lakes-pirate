@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import type { GridField } from '../../sim/terrain/grid-field';
 import type { TerrainBounds, ZoneTerrain } from '../../sim/terrain/zone-terrain';
+import { plantTile, type Clearing, type TilePlants } from '../../sim/terrain/vegetation';
 import type { QualityPreset } from '../quality';
 import { nextStride, tileDistance, type TerrainLod } from './lod';
 import { buildTileArrays, type GridMeshOptions, type TileArrays } from './tile-mesh';
@@ -17,7 +18,8 @@ import type { TileWorkerRequest, TileWorkerResponse } from './tile-worker';
  * of tiles go on screen per frame, and they stay cached for a while; until a tile's mesh
  * is ready the backdrop keeps drawing it. Without workers (tests) tiles build on the
  * main thread within a per-frame budget.
- * Greybox colors by height and slope until the style B terrain shader (piece C).
+ * Tiles also plant their vegetation in the same worker (`plant`), for render/vegetation.
+ * The look is the style B terrain shader (terrain-material.ts, piece C).
  */
 
 /** Milliseconds of main-thread tile building per frame when there's no worker. */
@@ -40,7 +42,7 @@ export function tileGeometry(
   const geometry = new THREE.BufferGeometry();
   geometry.setAttribute('position', new THREE.BufferAttribute(a.positions, 3));
   geometry.setAttribute('normal', new THREE.BufferAttribute(a.normals, 3));
-  geometry.setAttribute('color', new THREE.BufferAttribute(a.colors, 3));
+  geometry.setAttribute('forest', new THREE.BufferAttribute(a.forest, 1));
   geometry.setIndex(new THREE.BufferAttribute(a.indices, 1));
   const box = new THREE.Box3(
     new THREE.Vector3(x0 + o.i0 * step, a.minY, z0 + o.j0 * step),
@@ -51,7 +53,7 @@ export function tileGeometry(
   return geometry;
 }
 
-/** A terrain patch with positions, normals and colors, in zone meters. */
+/** A terrain patch with positions, normals and forest density, in zone meters. */
 export function buildGridGeometry(field: GridField, o: GridMeshOptions): THREE.BufferGeometry {
   return tileGeometry(buildTileArrays(field, o), o, field.step, field.x0, field.z0);
 }
@@ -147,6 +149,13 @@ export interface TerrainStats {
 export interface TerrainView {
   readonly group: THREE.Group;
   readonly stats: TerrainStats;
+  /** Each sailing tile's bounds, by tile index (row-major, tilesX per row). */
+  readonly tileBounds: readonly TerrainBounds[];
+  /**
+   * The trees and rocks of tile `t`, planted in the worker (or on the main thread without
+   * one). The same tile always gets the same plants.
+   */
+  plant(t: number, clearings: readonly Clearing[]): Promise<TilePlants>;
   applyPreset(preset: QualityPreset): void;
   /**
    * Picks each tile's stride for a camera at (x, y, z), puts finished tiles on screen and
@@ -213,7 +222,8 @@ function startWorker(field: GridField): Worker | undefined {
  * `tileSamples` is the sailing tile size in samples (256), so each mesh matches one baked
  * tile and is culled on its own. `focus` is where the camera starts; the tiles around it
  * are built on the main thread before this returns, so the first frame has no holes.
- * `useWorker: false` keeps all building on the main thread.
+ * `useWorker: false` keeps all building on the main thread. `material` is the terrain
+ * shader (createTerrainMaterial); without one the terrain draws flat greybox green.
  */
 export function createTerrainView(
   terrain: ZoneTerrain,
@@ -222,10 +232,13 @@ export function createTerrainView(
   preset: QualityPreset,
   focus: { x: number; y: number; z: number } = { x: 0, y: 0, z: 0 },
   useWorker = true,
+  material: THREE.Material = new THREE.MeshLambertMaterial({
+    color: 0x5f7c46,
+    side: THREE.DoubleSide,
+  }),
 ): TerrainView {
   const group = new THREE.Group();
   group.name = 'terrain';
-  const material = new THREE.MeshLambertMaterial({ vertexColors: true, side: THREE.DoubleSide });
   const field = terrain.height;
   const tilesX = (field.width - 1) / tileSamples;
   const tilesY = (field.height - 1) / tileSamples;
@@ -313,9 +326,17 @@ export function createTerrainView(
   let nextId = 0;
   const inFlight = new Map<number, { t: number; stride: number; generation: number }>();
   const asked = new Set<string>();
+  const planting = new Map<number, (plants: TilePlants) => void>();
   if (worker) {
     worker.onmessage = (e: MessageEvent<TileWorkerResponse>) => {
-      const { id, buildMs, ...arrays } = e.data;
+      if (e.data.kind === 'plant') {
+        const { id, trees, rocks } = e.data;
+        planting.get(id)?.({ trees, rocks });
+        planting.delete(id);
+        return;
+      }
+      const { id, buildMs, positions, normals, forest, indices, minY, maxY } = e.data;
+      const arrays = { positions, normals, forest, indices, minY, maxY };
       const job = inFlight.get(id);
       inFlight.delete(id);
       if (!job) return;
@@ -440,7 +461,25 @@ export function createTerrainView(
   return {
     group,
     stats,
+    tileBounds: tiles.map((tile) => tile.bounds),
     update,
+    plant(t, clearings) {
+      const b = (tiles[t] as Tile).bounds;
+      const size = b.maxX - b.minX;
+      if (!worker) return Promise.resolve(plantTile(field, b.minX, b.minZ, size, clearings));
+      const id = nextId++;
+      return new Promise((resolve) => {
+        planting.set(id, resolve);
+        worker.postMessage({
+          kind: 'plant',
+          id,
+          minX: b.minX,
+          minZ: b.minZ,
+          size,
+          clearings,
+        } satisfies TileWorkerRequest);
+      });
+    },
     applyPreset(p) {
       const next = presetLod(p);
       if (next.stride === lod.stride && next.lodM === lod.lodM && next.streamM === lod.streamM) {

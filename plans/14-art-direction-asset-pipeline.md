@@ -281,7 +281,7 @@ This is a lot for one developer, which is why the pipeline is automated, kits ar
 |---|---|
 | **0** | **S4 style test** (pick A or B, shrunk scene §3.2), the T1 schooner through the full pipeline, the unified material v1, palette v1, the license gate for the chosen tools |
 | 1 | Placeholder-plus ship, water and sky look, sail meshes and shader |
-| 2 | Terrain shader (sandstone, beach, forest), vegetation plus impostors, the lighthouse kit, lighting LUTs |
+| 2 | Terrain shader (sandstone, beach, forest), vegetation plus impostors (built, §17), the lighthouse kit, lighting LUTs |
 | 4–6 | NPC ships, character base plus animations, props |
 | 7 | Docks-district kit, characters' period variants |
 | 8 | Hideout grid pieces (all materials), crafting stations |
@@ -334,7 +334,38 @@ All resolved. The final A-vs-B pick happens in spike S4 (shrunk scene).
 
 ---
 
+## 17. Phase 2 Piece C: Terrain Look and Vegetation (2026-10-29)
+
+**Scope** (Phase 2 scope doc, piece C; §13 Phase 2 row): the style B terrain shader (sandstone, beach, forest floor, slope rock), a vegetation density map from slope and height, instanced pines, birches and rocks with impostors far away, density and distance by preset, and the shelter maps rebaked with a +15 m canopy on forest ([03 §14.4](03-world-scale-chart-travel.md)).
+
+| Part | Where | How it works |
+|---|---|---|
+| Density map | `src/sim/terrain/vegetation.ts` | Pure functions of height, upness (the normal's y over 8 m, so it doesn't depend on a tile's stride) and seeded value noise. Forest rises from nothing at 1.6 m above the lake to full at 5 m, thins past about 37° and is gone past 52°, and has clearings (two noise octaves at 420 m and 130 m; never below 12% density, for 1900's logging and burns). Birch comes in stands and along the shore; rocks sit on the shore ledges, thickest under steep bluffs. No imports, so the geo tools load the same file and the runtime, the shader and the bake can't drift apart. |
+| Planting | `plantTile` in the same file, run in the terrain tile worker | One candidate per 8 m cell for trees and per 12 m cell for rocks, each hashed from its zone position, so tiles join with no seam and the same tile always grows the same trees. Instances carry position, scale, yaw, kind, tint and a rank, and are sorted by rank: a preset's density draws the prefix with rank below it, so thinning never moves a tree. Set-piece footprints (plus their blend margin) stay clear for the harbors (piece G). The Apostles plant about 250k trees and 3.6k rocks at full density, 5 ms a tile in the worker. |
+| Terrain shader | `src/render/terrain/terrain-material.ts` | No textures. Beach sand on low gentle ground (top edge wandering 0.95–1.7 m, darker where wet); red sandstone on steep ground near the lake in beds about 3 m thick, over dark wave-washed rock at the waterline, turning to gray rock above 18–30 m; meadow in clearings and a darker forest floor under the trees (the mesh's per-vertex `forest` attribute); shoals and seabed under the water. World-space value noise (an arithmetic hash, no `sin`) makes the band edges wander; its fine octave fades out past 300–900 m so it doesn't shimmer. Past the impostors' reach, forest takes the canopy color, so far islands still read as wooded. Lit with the unified material's toon bands, wrapped a little (`STYLE_WRAP`) so a hillside turned from the sun takes the mid band instead of going dark. No outlines on terrain (§14). |
+| Tree meshes | `src/render/vegetation/plant-models.ts` | Procedural: a pine of three stacked seven-sided cones on a trunk (about 14 m, 52 triangles), a birch of a white trunk and two faceted leaf clumps (about 11.5 m, 52 triangles), and a squashed jittered icosahedron rock (20 triangles). Palette vertex colors, per-instance scale and tint. Far under the §8 tree budget (300–800), which leaves room for more kinds. |
+| Impostors | `src/render/vegetation/impostors.ts` | Baked at load: each tree kind is drawn from the side into a 128 × 256 atlas cell, color (sRGB) in one target and normals in another. Far trees are quads turning about the vertical only, lit through the baked normals with the same toon bands, so the hand-over doesn't flash at dusk. A tile's planting array is the instance buffer as it is (interleaved, no copy). Alpha-tested at 0.4 with mipmaps. |
+| LOD and hand-over | `src/render/vegetation/vegetation.ts` | Near: one instanced mesh per kind (three draw calls), refilled from the tiles' plantings when the camera has moved 24 m. Far: one instanced impostor draw per tile in reach, culled with the tile's box. Meshes and impostors dither across a band (the last quarter of the mesh distance) with complementary tests on the same per-pixel threshold, so each pixel is drawn exactly once; impostors dither out over the last quarter of the far distance onto the canopy color. Rocks have no impostor and fade out at 80% of the mesh distance. |
+| Unified material | `src/render/style/stylized-material.ts` | Now handles instancing (instance matrices and colors), a distance fade, and exports its lighting (`STYLE_LIGHT_GLSL`) and dither (`DITHER_GLSL`) chunks for the terrain and impostor shaders. |
+| Presets | `src/render/quality.ts` | Density, mesh distance, far distance: Low 0.4, 110 m, 1.2 km; Medium 0.5, 200 m, 1.8 km; High 0.85, 280 m, 2.6 km. |
+
+**Budget (computed over the whole zone on a 512 m grid, before frustum culling; `tests/vegetation.test.ts`):** at its worst spot, Medium's vegetation is 24 draw calls and 237k triangles, Low's 15 and 130k. With terrain's 40-call ceiling that leaves Medium well inside 150 calls; the triangle worst case sits deep in the mainland forest, and from the water about half of it is culled. In the cloud renderer (SwiftShader, so only the counts mean anything) the spawn view on Medium was 46 calls and 222k triangles for the whole frame.
+
+**Laptop bench still due.** The water bench (`?bench=water`, or **Measure water** in the dev overlay) now also times the terrain and the vegetation by hiding each; Jared's run on the baseline laptop decides whether Medium's density or distances need to come down, and reruns the water numbers plan 04 §23 asked for once trees arrived.
+
+**Shelter with the canopy.** `npm run geo:canopy` raised forested land by 15 m and rebaked the lee in place from the published tiles: shelter rose in 16% of the Apostles' water cells, by 0.26 on average where it did. A full `npm run geo:build` now bakes the canopy in too (`withCanopy` in `tools/geo/lib/wind.ts`). The canopy follows the density map, so changing the map needs a full rebake; the in-place tool only ever raises shelter.
+
+**Seen in the renders:** the red bluffs read from across the channel, and the pines on the skyline give the islands their ragged tops. Set-piece footprints show as flat clear ground with a steep cut behind Bayfield until piece G builds the towns.
+
+**Left for later:**
+1. **Wind sway** for the near trees (a vertex shader nudge by wind speed) and fall colors are not in; plan 14 cut #6 keeps only snow for seasons.
+2. **Maples and shrubs** (§5 lists about ten vegetation kinds): the atlas has a cell per kind, so each is a model and a share in the density map.
+3. **Jared's look sign-off** on the shader colors and tree density, after a sail around the zone.
+
+---
+
 ## Changelog
+- v0.6: Phase 2 piece C (§17): the style B terrain shader, the vegetation density map, procedural pines, birches and rocks with baked impostors and a dithered hand-over, density and distance by preset, and the canopy in the shelter bake. Palette v1 gains the land colors.
 - v0.5: The procedural T1 schooner is built (§5) in style B; outline shells get a small depth offset.
 - v0.4: S4 results (§3.4): scene, benchmark on the baseline laptop, style B with per-object outlines picked. Ships move to a procedural hull generator; Meshy becomes optional for organic one-offs.
 - v0.3: Gap review: sourcing order (procedural/CC0 first, AI fills gaps), Meshy chosen, nano-banana approved for shipped outputs, shrunk S4 scene, Blender local only, static sails, A-or-B wording fixed.

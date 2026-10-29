@@ -72,6 +72,17 @@ function streamText(scene: TestScene): string {
   );
 }
 
+/** The vegetation line: near meshes by kind, impostor tiles and instances, the last refill. */
+function vegetationText(scene: TestScene): string {
+  const v = scene.vegetation?.stats;
+  if (!v) return '';
+  return (
+    `trees ${v.pines} pine ${v.birches} birch ${v.rocks} rock  ` +
+    `impostors ${(v.impostors / 1000).toFixed(1)}k in ${v.impostorTiles} tiles  ` +
+    `${v.drawCalls} calls  fill ${v.lastFillMs.toFixed(1)} ms`
+  );
+}
+
 export function createDevOverlay(options: OverlayOptions): DevOverlay {
   const { renderer, scene, weather, clock, probe, save } = options;
 
@@ -260,6 +271,7 @@ export function createDevOverlay(options: OverlayOptions): DevOverlay {
         `save ${save.status}  last ${saved}${save.lastError ? `  ERROR ${save.lastError}` : ''}`,
         terrain ? terrain.describe(at.x, at.z) : '',
         streamText(scene),
+        vegetationText(scene),
         benchText,
       ]
         .filter(Boolean)

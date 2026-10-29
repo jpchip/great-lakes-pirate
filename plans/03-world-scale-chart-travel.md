@@ -244,7 +244,7 @@ Spotted something (or something spotted you)
 - **Streaming:** tiles load by distance from the camera. A low-res whole-zone base mesh is always loaded, so distant islands show as silhouettes in fog.
 - **LOD:** geomipmapped tiles (or CDLOD) with skirts. The Medium preset aims for ≤ 40 terrain draw calls.
 - **Water depth** comes from the same height data (the shader samples a depth texture for color bands and shoals).
-- **Vegetation:** instanced stylized pines, birches and rocks from the density map, with distance-culled LOD and impostor billboards far away. Vegetation is the biggest draw-call and fill-rate risk on the iGPU, so the presets scale its density.
+- **Vegetation:** instanced stylized pines, birches and rocks from the density map, with distance-culled LOD and impostor billboards far away. Vegetation is the biggest draw-call and fill-rate risk on the iGPU, so the presets scale its density. **Built in Phase 2 (piece C, [14 §17](14-art-direction-asset-pipeline.md)):** the density map is derived from the height tiles at runtime (`src/sim/terrain/vegetation.ts`), each tile is planted in the terrain worker, near trees are three instanced draws and far trees one impostor draw per tile, and the style B terrain shader colors the ground from the same map. Medium's vegetation is at most 24 draw calls anywhere in the zone.
 - **Collision:**
   - Ship vs. terrain: depth query (aground when depth < draft) plus a shoreline SDF for "push back" and damage.
   - On foot: heightmap ground plus prop primitives ([01 §2.2](01-tech-architecture.md)).
@@ -371,9 +371,9 @@ The soft knee (`h' = 20·ln(1 + h/20)`) keeps low ground near full height, so be
 ### 14.4 Not done (follow-ups)
 - ~~`zones.json` in `data/` (the zone config lives in `tools/geo/zones/` for now), `islands.json`,~~ (done in Phase 2, §17) and the three mainland hideout pads, whose sites aren't placed yet (09).
 - Hand-edit layer (step 7): ~~set-piece footprints~~, 1900 harbor corrections, sea caves, ~~Gull Island~~. Footprints and Gull Island are done (§17).
-- Vegetation density and depth-band maps: both are cheap to derive from the height tiles at runtime or in a later bake, once the terrain shader exists (14).
+- ~~Vegetation density~~ (derived at runtime, Phase 2 piece C) and depth-band maps (the water's shore texture does the depth bands, [04 §22](04-water-weather-seasons.md)).
 - Chart data (step 9): the lake-wide grid the bake already builds is a starting point for S8.
-- Shelter maps ignore trees; the DEM is bare earth. A flat +15 m canopy on forested land would lengthen the lee.
+- ~~Shelter maps ignore trees; the DEM is bare earth. A flat +15 m canopy on forested land would lengthen the lee.~~ Done in Phase 2 piece C: the bake adds +15 m on forest from the density map, and `npm run geo:canopy` applied it to the published Apostles maps (shelter up in 16% of water cells; [14 §17](14-art-direction-asset-pipeline.md)).
 
 ---
 
@@ -560,6 +560,7 @@ Before the worker, building on the main thread cost up to 18 ms in one frame on 
 ---
 
 ## Changelog
+- v0.11: Phase 2 piece C: vegetation density and planting built (§8.3), and the canopy in the shelter maps (§14.4); details in [14 §17](14-art-direction-asset-pipeline.md).
 - v0.10: Phase 2 helm swap: the S7 greybox and the S8 arena sail on the plan 02 controller; the stand-in helms are deleted (§15, §16).
 - v0.9: Phase 2 piece B (§17): the whole Apostles zone loaded, terrain meshes streamed with geomipmapped LOD in a worker, soft zone edges, `zones.json` and `islands.json` in `data/`, and the hand-edit layer (Gull Island, Long Island's clip, set-piece footprints).
 - v0.8: Phase 1 runtime terrain for the test bay (§8.3): slice loader, terrain queries, tile meshes with a whole-zone backdrop.

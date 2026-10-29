@@ -23,11 +23,24 @@ export const PALETTE = {
   brick: 0x9a4a36,
   roofGray: 0x5b5f5d,
   weatheredWood: 0x8b857a,
-  // Shore
+  // Shore and land (the terrain shader and vegetation, Phase 2 piece C)
   sandstone: 0x9c4f37,
+  /** The darker beds in the Apostles' layered sandstone. */
+  sandstoneDark: 0x7a3a29,
   wetRock: 0x3d3833,
+  slopeRock: 0x77736a,
+  beachSand: 0xcdb98e,
+  wetSand: 0x9a8865,
+  shoal: 0x9a8c64,
+  seabed: 0x2f3f3b,
+  meadow: 0x6b7647,
+  forestFloor: 0x46512f,
   pine: 0x2f4a36,
+  /** Far forest, where the trees have blurred into one canopy. */
+  canopy: 0x2c4232,
   birch: 0xd9d4c4,
+  birchLeaf: 0x6a8442,
+  shoreRock: 0x6b655c,
   // Light
   lampAmber: 0xffc873,
   windowAmber: 0xf2a24e,

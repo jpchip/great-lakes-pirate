@@ -15,8 +15,10 @@ import type { TimeOfDay } from './time-of-day';
  * lighthouse lantern), a rim light for night silhouettes, an emissive term and scene fog.
  * Lighting uniforms are one shared object, so a time-of-day change updates every material.
  *
- * Still to come from plan 14 §4: the palette texture atlas, detail textures, season and
- * weather uniforms, and instancing. Assets use palette.ts colors as vertex colors until then.
+ * Instanced meshes work as they are (instance matrices and colors), and a distance fade
+ * dithers vegetation out where its impostors take over. Still to come from plan 14 §4: the
+ * palette texture atlas, detail textures, and season and weather uniforms. Assets use
+ * palette.ts colors as vertex colors until then.
  */
 
 export type StyleId = 'flat' | 'toon';
@@ -90,19 +92,38 @@ const vertexShader = /* glsl */ `
 #include <fog_pars_vertex>
 
 uniform vec3 uColor;
+#ifdef USE_DISTANCE_FADE
+  // Fully drawn out to uFadeStart, gone by uFadeEnd (meters from the camera).
+  uniform float uFadeStart;
+  uniform float uFadeEnd;
+  varying float vFade;
+#endif
 
 varying vec3 vWorldPos;
 varying vec3 vWorldNormal;
 varying vec3 vColor;
 
 void main() {
-  vec4 world = modelMatrix * vec4(position, 1.0);
+  #ifdef USE_INSTANCING
+    mat4 placed = modelMatrix * instanceMatrix;
+  #else
+    mat4 placed = modelMatrix;
+  #endif
+  vec4 world = placed * vec4(position, 1.0);
   vWorldPos = world.xyz;
-  // Assets are scaled uniformly, so the model matrix rotates normals correctly.
-  vWorldNormal = normalize(mat3(modelMatrix) * normal);
+  // Assets and instances are scaled uniformly, so the matrix rotates normals correctly.
+  vWorldNormal = normalize(mat3(placed) * normal);
   vColor = uColor;
   #ifdef USE_COLOR
     vColor *= color;
+  #endif
+  #ifdef USE_INSTANCING_COLOR
+    vColor *= instanceColor;
+  #endif
+  #ifdef USE_DISTANCE_FADE
+    // By the instance's origin, so a whole tree fades together.
+    vec3 origin = (placed * vec4(0.0, 0.0, 0.0, 1.0)).xyz;
+    vFade = 1.0 - smoothstep(uFadeStart, uFadeEnd, distance(origin, cameraPosition));
   #endif
   vec4 mvPosition = viewMatrix * world;
   gl_Position = projectionMatrix * mvPosition;
@@ -110,10 +131,13 @@ void main() {
 }
 `;
 
-const fragmentShader = /* glsl */ `
-#include <common>
-#include <fog_pars_fragment>
-
+/**
+ * The shared lighting as a GLSL chunk: the StyleLighting uniforms and `styleLight(n, pos)`,
+ * which returns ambient plus key plus lamp light for a world normal and position, banded
+ * when STYLE_TOON is defined and wrapped when STYLE_WRAP is. The terrain and vegetation
+ * shaders light with it too.
+ */
+export const STYLE_LIGHT_GLSL = /* glsl */ `
 uniform vec3 uKeyDirection;
 uniform vec3 uKeyColor;
 uniform vec3 uSkyAmbient;
@@ -122,13 +146,64 @@ uniform vec3 uRimColor;
 uniform vec3 uLampPosition;
 uniform vec3 uLampColor;
 uniform float uLampRange;
+
+vec3 styleLight(vec3 n, vec3 worldPos) {
+  #ifdef STYLE_WRAP
+    // Wrapped key light for broad surfaces (terrain), so a hillside turned a little from
+    // the sun takes the mid band instead of dropping straight to the dark one.
+    float key = clamp(dot(n, uKeyDirection) * 0.75 + 0.25, 0.0, 1.0);
+  #else
+    float key = max(dot(n, uKeyDirection), 0.0);
+  #endif
+  #ifdef STYLE_TOON
+    // Three bands (dark, mid, lit) with a sliver of smoothing so edges don't crawl.
+    key = 0.5 * smoothstep(0.02, 0.06, key) + 0.5 * smoothstep(0.42, 0.46, key);
+  #endif
+
+  vec3 ambient = mix(uGroundAmbient, uSkyAmbient, n.y * 0.5 + 0.5);
+
+  vec3 toLamp = uLampPosition - worldPos;
+  float lampDistance = length(toLamp);
+  float lamp = max(dot(n, toLamp / max(lampDistance, 1e-3)), 0.0);
+  float falloff = clamp(1.0 - lampDistance / uLampRange, 0.0, 1.0);
+  #ifdef STYLE_TOON
+    lamp = step(0.2, lamp);
+  #endif
+  return ambient + uKeyColor * key + uLampColor * lamp * falloff * falloff;
+}
+`;
+
+/**
+ * Screen-door dithering for distance fades (vegetation LODs): a stable per-pixel threshold
+ * in [0, 1). Two LODs that use the same threshold with complementary tests hand over
+ * without a gap or a double-drawn pixel.
+ */
+export const DITHER_GLSL = /* glsl */ `
+float ditherThreshold() {
+  // Interleaved gradient noise (Jimenez 2014).
+  return fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(0.06711056, 0.00583715))));
+}
+`;
+
+const fragmentShader = /* glsl */ `
+#include <common>
+#include <fog_pars_fragment>
+
+${STYLE_LIGHT_GLSL}
+${DITHER_GLSL}
 uniform vec3 uEmissive;
 
 varying vec3 vWorldPos;
 varying vec3 vWorldNormal;
 varying vec3 vColor;
+#ifdef USE_DISTANCE_FADE
+  varying float vFade;
+#endif
 
 void main() {
+  #ifdef USE_DISTANCE_FADE
+    if (ditherThreshold() >= vFade) discard;
+  #endif
   #ifdef STYLE_FLAT
     // Face normal from screen-space derivatives; it always faces the camera.
     vec3 n = normalize(cross(dFdx(vWorldPos), dFdy(vWorldPos)));
@@ -137,23 +212,7 @@ void main() {
     if (!gl_FrontFacing) n = -n;
   #endif
   vec3 toCamera = normalize(cameraPosition - vWorldPos);
-
-  float key = max(dot(n, uKeyDirection), 0.0);
-  #ifdef STYLE_TOON
-    // Three bands (dark, mid, lit) with a sliver of smoothing so edges don't crawl.
-    key = 0.5 * smoothstep(0.02, 0.06, key) + 0.5 * smoothstep(0.42, 0.46, key);
-  #endif
-
-  vec3 ambient = mix(uGroundAmbient, uSkyAmbient, n.y * 0.5 + 0.5);
-
-  vec3 toLamp = uLampPosition - vWorldPos;
-  float lampDistance = length(toLamp);
-  float lamp = max(dot(n, toLamp / max(lampDistance, 1e-3)), 0.0);
-  float falloff = clamp(1.0 - lampDistance / uLampRange, 0.0, 1.0);
-  #ifdef STYLE_TOON
-    lamp = step(0.2, lamp);
-  #endif
-  vec3 light = ambient + uKeyColor * key + uLampColor * lamp * falloff * falloff;
+  vec3 light = styleLight(n, vWorldPos);
 
   float rim = pow(1.0 - max(dot(n, toCamera), 0.0), 3.0);
   #ifdef STYLE_TOON
@@ -175,6 +234,11 @@ export interface StylizedMaterialOptions {
   /** Added after lighting: lantern glass, lit windows (plan 14 §4 emissive mask). */
   emissive?: THREE.ColorRepresentation;
   doubleSided?: boolean;
+  /**
+   * Dither out between these distances from the camera, meters (vegetation meshes handing
+   * over to impostors). The uniforms are shared, so one preset change moves them all.
+   */
+  fade?: { start: THREE.IUniform<number>; end: THREE.IUniform<number> };
 }
 
 export type StylizedMaterial = THREE.ShaderMaterial & {
@@ -196,8 +260,12 @@ export function createStylizedMaterial(
       ...lighting.uniforms,
       uColor: { value: new THREE.Color(options.color ?? 0xffffff) },
       uEmissive: { value: new THREE.Color(options.emissive ?? 0x000000) },
+      ...(options.fade ? { uFadeStart: options.fade.start, uFadeEnd: options.fade.end } : {}),
     },
-    defines: style === 'flat' ? { STYLE_FLAT: '' } : { STYLE_TOON: '' },
+    defines: {
+      ...(style === 'flat' ? { STYLE_FLAT: '' } : { STYLE_TOON: '' }),
+      ...(options.fade ? { USE_DISTANCE_FADE: '' } : {}),
+    },
     vertexShader,
     fragmentShader,
     vertexColors: options.vertexColors ?? false,

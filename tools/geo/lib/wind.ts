@@ -6,6 +6,7 @@
 // real meters, because the weather sim (plan 04) works in real geography. Lee length is in
 // game meters (see WindOptions.leeFactor).
 
+import { canopyHeight, upnessAt } from '../../../src/sim/terrain/vegetation.ts';
 import type { LakeGrid } from './gdal.ts';
 import type { Raster } from './raster.ts';
 import { zoneToChart, type GridFrame, type ZoneFrame } from './zone.ts';
@@ -48,7 +49,49 @@ export interface WindMaps {
   funnel: Float32Array;
 }
 
-interface Cells {
+/**
+ * The sailing heightmap with the forest canopy on it (plan 03 §14.4): +15 m wherever the
+ * vegetation density map grows forest, so the lee behind a wooded island is as long as the
+ * trees make it. The bare-earth DEM would leave it short. The runtime plants its trees from
+ * the same density map (src/sim/terrain/vegetation.ts).
+ */
+export function withCanopy(height: Raster, grid: GridFrame): Raster {
+  const at = (i: number, j: number): number => {
+    const ci = Math.min(Math.max(i, 0), grid.width - 1);
+    const cj = Math.min(Math.max(j, 0), grid.height - 1);
+    return height.data[cj * grid.width + ci] ?? 0;
+  };
+  const sampler = {
+    step: grid.step,
+    sample(x: number, z: number): number {
+      const fx = (x - grid.x0) / grid.step;
+      const fz = (z - grid.z0) / grid.step;
+      const i = Math.floor(fx);
+      const j = Math.floor(fz);
+      const u = fx - i;
+      const v = fz - j;
+      const a = at(i, j);
+      const b = at(i + 1, j);
+      const c = at(i, j + 1);
+      const d = at(i + 1, j + 1);
+      return a + (b - a) * u + (c - a) * v + (a - b - c + d) * u * v;
+    },
+  };
+  const data = height.data.slice();
+  for (let j = 0; j < grid.height; j++) {
+    for (let i = 0; i < grid.width; i++) {
+      const k = j * grid.width + i;
+      const h = data[k] ?? 0;
+      if (h <= 0) continue;
+      const x = grid.x0 + i * grid.step;
+      const z = grid.z0 + j * grid.step;
+      data[k] = h + canopyHeight(h, upnessAt(sampler, x, z), x, z);
+    }
+  }
+  return { width: height.width, height: height.height, data };
+}
+
+export interface Cells {
   width: number;
   height: number;
   /** Highest point in the cell above lake level (0 over water). */
@@ -58,7 +101,7 @@ interface Cells {
 }
 
 /** Pools the sailing heightmap into wind cells. */
-function poolCells(height: Raster, grid: GridFrame, cellM: number): Cells {
+export function poolCells(height: Raster, grid: GridFrame, cellM: number): Cells {
   const per = cellM / grid.step;
   const width = Math.floor((grid.width - 1) / per);
   const rows = Math.floor((grid.height - 1) / per);

@@ -36,6 +36,15 @@ export interface QualityPreset {
   terrainLodM: number;
   /** Terrain tiles farther than this are left to the whole-zone backdrop, meters. */
   terrainStreamM: number;
+  /**
+   * Share of the planted trees and rocks drawn, 0–1 (plan 03 §8.3: presets scale vegetation
+   * density). Thinning takes the lowest-ranked plants first, so no tree ever moves.
+   */
+  vegetationDensity: number;
+  /** Trees are meshes out to here, then impostors, meters (handed over by dithering). */
+  vegetationMeshM: number;
+  /** Impostors fade into the terrain's canopy color by here, meters. */
+  vegetationFarM: number;
 }
 
 export const QUALITY_PRESETS: Record<QualityId, QualityPreset> = {
@@ -55,6 +64,9 @@ export const QUALITY_PRESETS: Record<QualityId, QualityPreset> = {
     terrainStride: 4,
     terrainLodM: 1200,
     terrainStreamM: 1200,
+    vegetationDensity: 0.4,
+    vegetationMeshM: 110,
+    vegetationFarM: 1200,
   },
   medium: {
     id: 'medium',
@@ -72,6 +84,9 @@ export const QUALITY_PRESETS: Record<QualityId, QualityPreset> = {
     terrainStride: 2,
     terrainLodM: 1000,
     terrainStreamM: 2000,
+    vegetationDensity: 0.5,
+    vegetationMeshM: 200,
+    vegetationFarM: 1800,
   },
   high: {
     id: 'high',
@@ -89,6 +104,9 @@ export const QUALITY_PRESETS: Record<QualityId, QualityPreset> = {
     terrainStride: 1,
     terrainLodM: 800,
     terrainStreamM: 2400,
+    vegetationDensity: 0.85,
+    vegetationMeshM: 280,
+    vegetationFarM: 2600,
   },
 };
 

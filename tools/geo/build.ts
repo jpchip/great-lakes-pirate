@@ -27,7 +27,8 @@ import { mergeElevation } from './lib/merge.ts';
 import { applyHandEdits } from './lib/edits.ts';
 import { downsample, stats, type Raster } from './lib/raster.ts';
 import { shorelineSdf } from './lib/sdf.ts';
-import { DEFAULT_WIND, DIRECTIONS, bakeWindMaps } from './lib/wind.ts';
+import { CANOPY_M } from '../../src/sim/terrain/vegetation.ts';
+import { DEFAULT_WIND, DIRECTIONS, bakeWindMaps, withCanopy } from './lib/wind.ts';
 import { findIslands } from './lib/islands.ts';
 import {
   encode,
@@ -124,7 +125,8 @@ const sail = downsample(foot, ratio);
 const sdf = shorelineSdf(sail, config.sailingSampleM);
 lap('sailing heightmap and shoreline SDF');
 
-const wind = bakeWindMaps(sail, sailGrid, frame, config.windCellM, lake, {
+// Shelter sees the forest canopy; fetch and the land mask see bare earth.
+const wind = bakeWindMaps(withCanopy(sail, sailGrid), sailGrid, frame, config.windCellM, lake, {
   ...DEFAULT_WIND,
   lakeOffsetM: config.bathyDatumM - config.lakeLevelM,
 });
@@ -266,6 +268,7 @@ const manifest = {
     width: wind.width,
     height: wind.height,
     ...DEFAULT_WIND,
+    canopyM: CANOPY_M,
     shelter: { file: 'wind/shelter.bin', ...UNIT_Q, encoding: 'deflate' },
     fetch: { file: 'wind/fetch.bin', ...FETCH_Q, encoding: 'delta-deflate', unit: 'real meters' },
     funnel: { file: 'wind/funnel.bin', ...UNIT_Q, encoding: 'deflate' },
