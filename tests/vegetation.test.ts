@@ -263,56 +263,62 @@ describe('vegetation on the Apostles zone', () => {
     }
   });
 
-  it.skipIf(!baked)('fits its share of the frame budget anywhere in the zone', () => {
-    const f = zone.terrain.height;
-    const tris = {
-      [PlantKind.Pine]: createPine().geometry.getAttribute('position').count / 3,
-      [PlantKind.Birch]: createBirch().geometry.getAttribute('position').count / 3,
-      [PlantKind.Rock]: createRock().geometry.getAttribute('position').count / 3,
-    };
-    const worst: Record<string, { calls: number; triangles: number }> = {};
-    for (const id of QUALITY_IDS) {
-      const preset = QUALITY_PRESETS[id];
-      const far = preset.vegetationFarM;
-      const near = preset.vegetationMeshM + 48;
-      let calls = 0;
-      let triangles = 0;
-      for (let z = f.z0; z <= f.maxZ; z += 512) {
-        for (let x = f.x0; x <= f.maxX; x += 512) {
-          let c = 3;
-          let t = 0;
-          tiles.forEach((p, k) => {
-            const bx = f.x0 + (k % 7) * 1024;
-            const bz = f.z0 + Math.floor(k / 7) * 1024;
-            const d = Math.hypot(
-              Math.max(bx - x, 0, x - bx - 1024),
-              Math.max(bz - z, 0, z - bz - 1024),
-            );
-            const n = countAtDensity(p.trees, preset.vegetationDensity);
-            if (d < far && n > 0) {
-              c++;
-              t += 2 * n;
-            }
-            for (const list of [p.trees, p.rocks]) {
-              const m = countAtDensity(list, preset.vegetationDensity);
-              for (let i = 0; i < m; i++) {
-                const o = i * PLANT_STRIDE;
-                if (Math.hypot((list[o] ?? 0) - x, (list[o + 2] ?? 0) - z) <= near) {
-                  t += tris[list[o + 5] as 0 | 1 | 2];
+  it.skipIf(!baked)(
+    'fits its share of the frame budget anywhere in the zone',
+    () => {
+      const f = zone.terrain.height;
+      const tris = {
+        [PlantKind.Pine]: createPine().geometry.getAttribute('position').count / 3,
+        [PlantKind.Birch]: createBirch().geometry.getAttribute('position').count / 3,
+        [PlantKind.Rock]: createRock().geometry.getAttribute('position').count / 3,
+      };
+      const worst: Record<string, { calls: number; triangles: number }> = {};
+      for (const id of QUALITY_IDS) {
+        const preset = QUALITY_PRESETS[id];
+        const far = preset.vegetationFarM;
+        const near = preset.vegetationMeshM + 48;
+        let calls = 0;
+        let triangles = 0;
+        for (let z = f.z0; z <= f.maxZ; z += 512) {
+          for (let x = f.x0; x <= f.maxX; x += 512) {
+            let c = 3;
+            let t = 0;
+            tiles.forEach((p, k) => {
+              const bx = f.x0 + (k % 7) * 1024;
+              const bz = f.z0 + Math.floor(k / 7) * 1024;
+              const d = Math.hypot(
+                Math.max(bx - x, 0, x - bx - 1024),
+                Math.max(bz - z, 0, z - bz - 1024),
+              );
+              const n = countAtDensity(p.trees, preset.vegetationDensity);
+              if (d < far && n > 0) {
+                c++;
+                t += 2 * n;
+              }
+              if (d > near) return;
+              for (const list of [p.trees, p.rocks]) {
+                const m = countAtDensity(list, preset.vegetationDensity);
+                for (let i = 0; i < m; i++) {
+                  const o = i * PLANT_STRIDE;
+                  if (Math.hypot((list[o] ?? 0) - x, (list[o + 2] ?? 0) - z) <= near) {
+                    t += tris[list[o + 5] as 0 | 1 | 2];
+                  }
                 }
               }
-            }
-          });
-          calls = Math.max(calls, c);
-          triangles = Math.max(triangles, t);
+            });
+            calls = Math.max(calls, c);
+            triangles = Math.max(triangles, t);
+          }
         }
+        worst[id] = { calls, triangles };
       }
-      worst[id] = { calls, triangles };
-    }
-    // Before frustum culling. Medium's frame is 150 calls and 600k triangles (01 §5), and
-    // terrain takes up to 40 calls. Measured: Medium 24 calls and 237k triangles at worst.
-    expect(worst['medium']?.calls).toBeLessThanOrEqual(30);
-    expect(worst['medium']?.triangles).toBeLessThanOrEqual(270_000);
-    expect(worst['low']?.triangles).toBeLessThan(worst['medium']?.triangles ?? 0);
-  });
+      // Before frustum culling. Medium's frame is 150 calls and 600k triangles (01 §5), and
+      // terrain takes up to 40 calls. Measured: Medium 24 calls and 237k triangles at worst.
+      expect(worst['medium']?.calls).toBeLessThanOrEqual(30);
+      expect(worst['medium']?.triangles).toBeLessThanOrEqual(270_000);
+      expect(worst['low']?.triangles).toBeLessThan(worst['medium']?.triangles ?? 0);
+      // The sweep plants and scans the whole zone; a slow CI runner needs more than 5 s.
+    },
+    20_000,
+  );
 });
