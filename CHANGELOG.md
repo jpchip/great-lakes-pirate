@@ -27,5 +27,6 @@ The **Sailing Prototype** (Phase 1): one T1 schooner you can sail, tack, reef, g
 - The T1 is the only ship class; there are no NPC ships in the test bay.
 - Damage and tuning presets aren't part of the run save yet.
 - Volume sliders are only in the dev overlay's Audio folder; the settings screen gets them later.
+- The S7 scale greybox and the S8 chart arena still use their Phase 0 stand-in helms; moving them onto the plan 02 controller is carried over to Phase 2.
 
 [0.1.0]: https://github.com/jpchip/great-lakes-pirate/releases/tag/v0.1.0
