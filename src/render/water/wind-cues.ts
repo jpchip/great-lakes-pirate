@@ -38,8 +38,10 @@ export function windFlowMs(speedKn: number): number {
 }
 
 export interface WindCues {
-  /** Off while false (the water bench measures the cost this way). */
+  /** All cues off while false (the water bench measures the cost this way). */
   enabled: boolean;
+  /** Cat's-paws for the quality preset (off on Low); streaks don't depend on it. */
+  catsPaws: boolean;
   /**
    * Updates the uniforms for the wind at `at` (the ship) at game time `gameSeconds`;
    * `seaTime` is the water's clock, which the patches drift with.
@@ -54,6 +56,7 @@ export function createWindCues(u: WaterUniforms, weather: LocalWeather): WindCue
   let lastSeaTime: number | undefined;
   const cues: WindCues = {
     enabled: true,
+    catsPaws: true,
     update(at, gameSeconds, seaTime) {
       const wind = weather.windAt(at, gameSeconds);
       u.uWindDir.value.set(-Math.sin(wind.fromRad), Math.cos(wind.fromRad));
@@ -63,8 +66,11 @@ export function createWindCues(u: WaterUniforms, weather: LocalWeather): WindCue
       const dt = lastSeaTime === undefined ? 0 : Math.min(Math.max(seaTime - lastSeaTime, 0), 0.25);
       lastSeaTime = seaTime;
       u.uWindOffset.value = (u.uWindOffset.value + flow * dt) % OFFSET_WRAP_M;
-      u.uCatsPaws.value = cues.enabled ? smoothstep(PAWS_FROM_KN, PAWS_FULL_KN, wind.speedKn) : 0;
-      u.uStreaks.value = smoothstep(STREAKS_FROM_KN, STREAKS_FULL_KN, wind.speedKn);
+      u.uCatsPaws.value =
+        cues.enabled && cues.catsPaws ? smoothstep(PAWS_FROM_KN, PAWS_FULL_KN, wind.speedKn) : 0;
+      u.uStreaks.value = cues.enabled
+        ? smoothstep(STREAKS_FROM_KN, STREAKS_FULL_KN, wind.speedKn)
+        : 0;
       u.uGustOrigin.value.set(at.x, at.z, Math.max(1, flow * GUST_STEP_S));
       const ahead = u.uGustAhead.value;
       const gameStep = GUST_STEP_S * R_SAILING;

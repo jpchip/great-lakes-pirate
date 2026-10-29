@@ -101,6 +101,8 @@ export async function createTestScene(
   // Depth bands and shore foam over the whole zone, out to the far islands.
   if (zone) water.setShore(bakeShore(zone.seabed, zone.shoreline));
   const windCues = createWindCues(water.material.uniforms, weather);
+  windCues.catsPaws = renderer.preset.catsPaws;
+  renderer.onPresetChange((preset) => (windCues.catsPaws = preset.catsPaws));
   const spray = createSpray(renderer.preset.sprayParticles, water);
   scene.add(spray.points);
   renderer.onPresetChange((preset) => spray.setCapacity(preset.sprayParticles));
