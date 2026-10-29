@@ -611,18 +611,20 @@ Before and after (left old, right new, the same frame on Medium): `/mnt/project-
 
 **Per pixel, by instruction count:** before, every Medium water pixel ran the wave loop (6 waves), the 16-step gust loop, five value noises for the wind cues (20 `sin` hashes) and two for crest foam (8 more), about 1,000 ALU operations. Now a typical pixel in a moderate breeze runs the wave loop, the two-tap gust and one arithmetic noise: about 450. The wind cues, measured at 0.8 ms on the laptop at §22, should drop to around 0.1–0.2 ms.
 
-**Baseline laptop:** _to be filled in from Jared's `?bench=water` run on a production build (AMD Radeon Renoir, Chrome 156, MSAA off)._
+**Baseline laptop** (AMD Radeon Renoir, Chrome 156, ANGLE on OpenGL 4.6, MSAA off, 2026-10-29, `?bench=water` on a production build, run by Jared). Columns as in §22; treat each as ±0.2 ms.
 
 | Preset | Buffer | Frame ms | Water ms | Crest foam ms | Shore ms | Wind cues ms | Wake ms | No water ms | Triangles | Draw calls |
 |---|---|---|---|---|---|---|---|---|---|---|
-| Low | | | | | | | | | | |
-| Medium | | | | | | | | | | |
-| High | | | | | | | | | | |
+| Low | 1440×816 | 2.10 | 1.10 | 0.10 | 0.00 | 0.00 | 0.00 | 1.00 | 90,162 | 35 |
+| Medium | 1920×1088 | 4.10 | 2.20 | 0.00 | 0.00 | 0.30 | 0.10 | 1.90 | 177,982 | 35 |
+| High | 1920×1088 | 4.80 | 2.60 | 0.00 | 0.00 | 0.30 | 0.10 | 2.20 | 489,230 | 35 |
+
+**Result:** water on Medium is **2.2 ms, back inside the 3 ms budget** with 0.8 ms of headroom (3.3–4.9 ms at the Phase 1 playtest, 2.7 ms at §22). The wind cues fell from 0.8 ms to 0.3 ms, and crest foam from 0.3 ms to under the noise floor. High is at 2.6 ms, also under 3 ms now. Low's water is 1.1 ms with the cat's-paws off. The §19 levers stay in reserve for when piece C's terrain shader and trees arrive; rerun this bench then.
 
 ---
 
 ## Changelog
-- v0.8: Phase 2 piece A (§23): water drawn after the land, cat's-paws to one noise octave and off on Low, a two-tap gust lookup, noise only where it can show, and an arithmetic hash.
+- v0.8: Phase 2 piece A (§23): water drawn after the land, cat's-paws to one noise octave and off on Low, a two-tap gust lookup, noise only where it can show, and an arithmetic hash. Water on Medium is 2.2 ms on the baseline laptop.
 - v0.7: Phase 1 piece F (§22): depth bands and shore foam from a whole-zone shore texture, far water to 10 km with the fog floor at 6 km, bow wave and wake ribbons, bow spray, cat's-paws that show gusts before they arrive, wind streaks, and a per-feature water bench.
 - v0.6: Phase 1 piece D (§21): dev-panel wind with drift, gusts, lee and funneling behind the 02 §11 contract; fetch-limited wind seas with lag and a local shelter and fetch scale shared by the CPU and the water shader; a scripted November gale; sun, moon, stars, a sky palette by sun elevation, and exp² fog from visibility.
 - v0.5: Moving-camera wave stutter fixed (§19): geometry keeps only waves the grid can sample, shading is per pixel. Prototype S9 write-up (§20): pressure-gradient wind on three storm tracks, a barometer trend rebuilt from system tracks (92% of storms warned, about 9 game hours ahead), advection and radiation fog, and an 11 µs world tick.
