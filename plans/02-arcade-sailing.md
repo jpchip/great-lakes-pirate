@@ -379,7 +379,7 @@ Weapons, crew size for boarding and upgrade slots belong to plans 07 and 10 but 
 | Medium | 5.1–7.6 | 3.3–4.9 | 1.8–2.7 |
 | High | 5.9–8.3 | 4.0–5.2 | 1.9–3.1 |
 
-The ranges are two runs, at 02:22 and 11:10 UTC. Every frame is far inside the 16.7 ms Medium and 33 ms Low gates, but water on Medium now reads 3.3–4.9 ms against its 3 ms budget (2.7 ms at [04 §22](04-water-weather-seasons.md)): worth a look in Phase 2 before the terrain shader adds load. In the scripted gale at its peak on Medium (`?gale&quality=medium&debug`), the worst frame the overlay showed was 16.8 ms. The S7 greybox and S8 arena keep their stand-in helms until Phase 2 (decided 2026-10-29).
+The ranges are two runs, at 02:22 and 11:10 UTC. Every frame is far inside the 16.7 ms Medium and 33 ms Low gates, but water on Medium now reads 3.3–4.9 ms against its 3 ms budget (2.7 ms at [04 §22](04-water-weather-seasons.md)): worth a look in Phase 2 before the terrain shader adds load. In the scripted gale at its peak on Medium (`?gale&quality=medium&debug`), the worst frame the overlay showed was 16.8 ms. The S7 greybox and S8 arena kept their stand-in helms until Phase 2 (decided 2026-10-29); both now run this controller and the hazards, built through `createSchooner` in `src/gameplay/schooner.ts` like the game.
 
 ---
 
@@ -415,6 +415,7 @@ All resolved. Follow-ups for other plans: passage prices and shipless earning (0
 ---
 
 ## Changelog
+- v0.9: Helm swap done: the S7 greybox and S8 arena use the plan 02 controller (§14).
 - v0.8: Phase 1 playtest passed (§14): results, bench numbers, helm swap moved to Phase 2.
 - v0.7: Phase 1 camera built (§14): drag to orbit (§2), boom, collision, tactical and spyglass numbers.
 - v0.6: Phase 1 hazards and mooring built (§14): rock vs. grounding by bottom slope, simplified kedging, damage effects, strain and knockdown thresholds, anchor holding and drag, auto-dock and cast off.

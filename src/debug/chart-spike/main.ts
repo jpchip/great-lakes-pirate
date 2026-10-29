@@ -1,6 +1,6 @@
 import chartJson from '../../../data/chart.json';
 import { chartFileSchema } from '../../../data/schemas/chart';
-import { KNOT_MS, type Chart } from '../../core/coords';
+import { DEFAULT_COMPRESSION, KNOT_MS, sceneSpeed, type Chart } from '../../core/coords';
 import { EventBus } from '../../core/events';
 import { InputMapper } from '../../core/input';
 import { createLoop } from '../../core/loop';
@@ -8,6 +8,8 @@ import { Rng } from '../../core/rng';
 import { advanceClock, dayAndHour, R_SAILING } from '../../core/time';
 import { buoyancySystem } from '../../gameplay/buoyancy';
 import { createGameWorld, snapshotTransforms } from '../../gameplay/ecs';
+import { hazardSystem, onShipJibed } from '../../gameplay/hazards';
+import { heelSystem, sailingSystem } from '../../gameplay/sailing';
 import {
   CHART_TIME_SCALE,
   createChartMode,
@@ -16,6 +18,7 @@ import {
 } from '../../modes/chart';
 import type { GameContext, GameEvents } from '../../modes/context';
 import { ModeMachine, type Mode } from '../../modes/machine';
+import { playerCommand, playerMooring } from '../../modes/sailing';
 import { ChartView } from '../../render/chart/chart-view';
 import { initialQuality, browserStorage } from '../../render/quality';
 import { GameRenderer } from '../../render/renderer';
@@ -32,6 +35,14 @@ import {
   type LookoutPref,
 } from '../../sim/chart/traffic';
 import { chartSpeedKn, estimateSeconds, PROTOTYPE_SCHOONER } from '../../sim/chart/voyage';
+import {
+  IDLE_COMMAND,
+  SAIL_LEVELS,
+  speedKn,
+  type SailingCommand,
+  type SailingWind,
+} from '../../sim/sailing/controller';
+import { IDLE_MOORING, type MooringCommand } from '../../sim/sailing/hazards';
 import { createLocalWeather } from '../../sim/weather/local-weather';
 import { createSea } from '../../sim/weather/waves';
 import { createWorldState } from '../../sim/world-state';
@@ -140,6 +151,10 @@ let arenaScene: ArenaScene | undefined;
 let arenaRenderer: GameRenderer | undefined;
 let arena: ArenaState | undefined;
 const arenaWorld = createGameWorld();
+const ARENA_SCALE = { rate: R_SAILING, compression: DEFAULT_COMPRESSION };
+const OPEN_WATER = { docks: [], berths: [] };
+const helm: SailingCommand = { ...IDLE_COMMAND };
+const mooring: MooringCommand = { ...IDLE_MOORING };
 
 const arenaMode: Mode = {
   id: 'sailing',
@@ -155,8 +170,30 @@ const arenaMode: Mode = {
     for (let i = 0; i < ticks; i++)
       ctx.events.emit('WorldTick', { gameSeconds: clock.gameSeconds });
     stepContacts(session.contacts, dt * R_SAILING, session.wind, geo.charted);
+    const a = arena;
+    const wind = (): SailingWind => a.sailingWind;
+    sailingSystem(
+      arenaWorld,
+      (e) => (e.playerControlled ? playerCommand(input, helm) : IDLE_COMMAND),
+      wind,
+      arenaScene.sea,
+      ARENA_SCALE,
+      dt,
+      (e, ev) => {
+        if (ev.kind === 'jibe') onShipJibed(e, ev.uncontrolled);
+      },
+    );
+    hazardSystem(
+      arenaWorld,
+      (e) => (e.playerControlled ? playerMooring(input, mooring) : IDLE_MOORING),
+      OPEN_WATER,
+      wind,
+      ARENA_SCALE,
+      dt,
+    );
     stepArena(arena, input, dt);
     buoyancySystem(arenaWorld, arenaScene.sea, dt);
+    heelSystem(arenaWorld);
   },
   render(alpha, frameSeconds) {
     arenaScene?.render(arenaWorld, alpha, frameSeconds);
@@ -183,7 +220,7 @@ function enterArena(enc: Encounter): void {
   }
   arenaScene?.resize();
   arenaWorld.clear();
-  arena = createArenaState(enc, { ...session.wind }, session.ship);
+  arena = createArenaState(enc, { ...session.wind });
   addArenaEntities(arenaWorld, arena);
   arenaScene?.setup(arenaWorld, enc.contact.kind, daylight(hour()));
 }
@@ -550,15 +587,19 @@ function estimateRemainingM(): number {
 
 function updateArenaHud(a: ArenaState): void {
   const p = a.player;
+  const s = a.schooner.sailing.state;
+  const h = a.schooner.hazards.state;
+  const hz = a.schooner.hazards.cls;
   const c = a.contact;
   const edge = ARENA_HALF_M - Math.max(Math.abs(p.position.x), Math.abs(p.position.z));
   const lines = [
     `Open-water arena · ${clockText(clock.gameSeconds)} (R = 24)`,
     `${c.name}${a.target ? ` · ${distanceToTarget(a).toFixed(0)} m` : ''}`,
-    `Heading ${compassPoint(p.heading)} · ${p.speedKn.toFixed(1)} kn (${p.sceneSpeed.toFixed(1)} m/s on screen) · sails ${Math.round(p.trim * 100)}%`,
+    `Heading ${compassPoint(p.heading)} · ${speedKn(s).toFixed(1)} kn (${sceneSpeed(s.speed, R_SAILING, DEFAULT_COMPRESSION).toFixed(1)} m/s on screen) · ${SAIL_LEVELS[s.sailLevel]}${s.inIrons ? ' · IN IRONS' : ''}${s.sweepsOut ? ' · sweeps out' : ''}`,
     `Wind ${compassPoint(a.wind.from)} ${a.wind.speedKn.toFixed(0)} kn · arena edge ${Math.max(edge, 0).toFixed(0)} m`,
+    `Hull ${Math.round((100 * h.hull) / hz.hullHP)}% · rigging ${Math.round((100 * h.rigging) / hz.riggingHP)}%${h.strain > 0.05 ? ` · strain ${Math.round(h.strain * 100)}%: shorten sail` : ''}${h.anchor !== 'up' ? ` · anchor ${h.anchor}` : ''}`,
     '',
-    'A/D steer · W/S trim · F interact · wheel zoom',
+    'A/D steer · W/S sail · Q/E trim (manual) · R sweeps · F interact · wheel zoom',
   ];
   if (c.kind === 'storm' && !a.resolved) lines.push(`Ride it out: ${stormLeftS(a).toFixed(0)} s`);
   else if (!c.hostile && !a.resolved && a.target) {

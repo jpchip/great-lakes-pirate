@@ -2,6 +2,12 @@
 
 All notable changes to this project are recorded here. The format follows [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow `0.<phase>.<patch>` until 1.0 ([plan 17 §7](plans/17-testing-performance-release.md)).
 
+## [Unreleased]
+
+### Changed
+
+- The **S7 scale greybox** and the **S8 chart arena** now sail the T1 on the plan 02 controller and hazards instead of their Phase 0 stand-in helms, which are deleted. The greybox gets a steady test wind (`?wind=<deg>&windkn=<kn>` and a Wind folder) and the full sailing tuning panel; the arena sails in the chart's wind and shows hull, rigging and strain ([plan 02 §14](plans/02-arcade-sailing.md), [plan 03 §15–16](plans/03-world-scale-chart-travel.md)).
+
 ## [0.1.0] - 2026-10-29
 
 The **Sailing Prototype** (Phase 1): one T1 schooner you can sail, tack, reef, ground, anchor and dock around a slice of the real Apostle Islands, with every handling number on a tuning panel. This is the first tagged build, so it also carries the Phase 0 foundations.

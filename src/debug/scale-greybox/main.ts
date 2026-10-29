@@ -1,10 +1,10 @@
 import { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js';
-import { msToKnots, type Chart, type Zone } from '../../core/coords';
+import { msToKnots, sceneSpeed, type Chart, type Zone } from '../../core/coords';
 import { DEFAULT_BINDINGS, InputMapper } from '../../core/input';
 import { createLoop } from '../../core/loop';
 import { PointerLook } from '../../core/pointer-look';
 import { advanceClock, dayAndHour, R_ON_FOOT, R_SAILING } from '../../core/time';
-import { schoonerBuoyancy, buoyancySystem } from '../../gameplay/buoyancy';
+import { buoyancySystem } from '../../gameplay/buoyancy';
 import {
   cloneTransform,
   createGameWorld,
@@ -20,21 +20,27 @@ import {
   stepCharacter,
   type OnFootZone,
 } from '../../gameplay/onfoot/controller';
+import { hazardSystem, onShipJibed } from '../../gameplay/hazards';
+import { heelSystem, sailingSystem } from '../../gameplay/sailing';
+import { createSchooner } from '../../gameplay/schooner';
 import { ModeMachine, type Mode } from '../../modes/machine';
+import { playerCommand } from '../../modes/sailing';
 import { browserStorage, initialQuality } from '../../render/quality';
 import { GameRenderer } from '../../render/renderer';
+import {
+  IDLE_COMMAND,
+  SAIL_LEVELS,
+  speedKn,
+  wrapAngle,
+  type SailingCommand,
+  type SceneScale,
+} from '../../sim/sailing/controller';
+import { createHazardState, IDLE_MOORING, type MooringCommand } from '../../sim/sailing/hazards';
 import { createSea } from '../../sim/weather/waves';
+import { createSailingPanel } from '../sailing-panel';
 import { createFreighters, FREIGHTER_LENGTH_M, stepFreighter } from './freighters';
 import { chartOf, ISLANDS, landmassAt, PLACES, REFERENCE_LEGS, type Landmass } from './geography';
-import {
-  DEFAULT_HELM,
-  SAIL_LEVELS,
-  stepHelm,
-  targetSpeedKn,
-  turningCircle,
-  visualSpeed,
-  type ShipState,
-} from './helm';
+import { beamReachSpeed, greyboxDepth, steadyWind, turningCircle } from './sailing';
 import { applyTransform, createGreyboxView, placeCharacter } from './scene';
 import { snapToShore } from './setpieces';
 import { buildTerrain } from './terrain';
@@ -43,7 +49,11 @@ import { buildTerrain } from './terrain';
  * Spike S7 entry (dev only: `npm run dev`, then open /scale-greybox.html): a greybox
  * Apostles zone for judging C, R and the freighter scale by feel (plan 03 §11).
  *
- * Query options: `?c=8&r=24&rfoot=6&freighter=0.85` set the starting values.
+ * The schooner is the player's T1 on the plan 02 sailing model and hazards, in a steady
+ * test wind (the greybox has no weather).
+ *
+ * Query options: `?c=8&r=24&rfoot=6&freighter=0.85&wind=315&windkn=12` set the starting
+ * values (`wind` is where it blows from, in degrees; use 360 for north).
  */
 
 const params = new URLSearchParams(window.location.search);
@@ -53,7 +63,6 @@ const num = (key: string, fallback: number): number => {
 };
 
 const NM = 1852;
-const SCHOONER_LENGTH_M = 30;
 
 const tuning = {
   compression: num('c', 8),
@@ -62,8 +71,15 @@ const tuning = {
   freighterScale: num('freighter', 0.85),
   visibilityKm: 12,
   fov: 50,
+  // A northwest breeze, the Apostles' prevailing wind (plan 04 §6.1).
+  windFromDeg: num('wind', 315),
+  windKn: num('windkn', 12),
 };
-const helm = { ...DEFAULT_HELM };
+let wind = steadyWind(tuning.windFromDeg, tuning.windKn);
+const setWind = (): void => {
+  wind = steadyWind(tuning.windFromDeg, tuning.windKn);
+};
+const scale: SceneScale = { compression: tuning.compression, rate: tuning.rate };
 
 const container = document.getElementById('app');
 const hud = document.getElementById('hud');
@@ -80,14 +96,15 @@ const clock = { gameSeconds: 9 * 3600, worldTickAccumulator: 0 };
 
 // The schooner starts in the North Channel off Bayfield, heading north.
 const startChart = chartOf(46.8, -90.797);
-const ship: ShipState = {
-  x: startChart.x / tuning.compression,
-  z: -startChart.y / tuning.compression,
-  heading: 0.15,
-  speedKn: 0,
-  sailLevel: 2,
-  aground: false,
-};
+const schooner = createSchooner(
+  startChart.x / tuning.compression,
+  -startChart.y / tuning.compression,
+  0.15,
+);
+const { sailing: shipSailing, hazards } = schooner;
+const ship = shipSailing.state;
+// Under way at Half, as the stand-in helm started.
+ship.sailLevel = ship.sailSetting = 2;
 const shipTransform: Transform = {
   position: { x: ship.x, y: 0, z: ship.z },
   heading: ship.heading,
@@ -96,10 +113,23 @@ const shipEntity = world.add({
   id: 'ship.player',
   transform: shipTransform,
   previousTransform: cloneTransform(shipTransform),
-  buoyancy: schoonerBuoyancy(),
+  buoyancy: schooner.buoyancy,
+  sailing: shipSailing,
+  hazards,
   model: 'schooner',
   playerControlled: true,
 });
+
+const helmCommand: SailingCommand = { ...IDLE_COMMAND };
+// X anchors (or kedges off); F stays "go ashore", and the greybox has no piers.
+const mooring: MooringCommand = { ...IDLE_MOORING };
+const hazardEnv = {
+  get terrain() {
+    return greyboxDepth((x, z) => hf.heightAt(x, z));
+  },
+  docks: [],
+  berths: [],
+};
 
 const freighters = createFreighters();
 const controller = DEFAULT_CONTROLLER;
@@ -140,11 +170,14 @@ const say = (text: string): void => {
 function setCompression(c: number): void {
   const k = tuning.compression / c;
   tuning.compression = c;
+  scale.compression = c;
   hf = terrain.heightfield(c);
   zone.ground = hf;
   // Same chart position, new zone position.
   ship.x *= k;
   ship.z *= k;
+  hazards.state.anchorX *= k;
+  hazards.state.anchorZ *= k;
   shipTransform.position.x = ship.x;
   shipTransform.position.z = ship.z;
   shipEntity.previousTransform.position.x = ship.x;
@@ -187,23 +220,34 @@ const sailing: Mode = {
   update(dt) {
     snapshotTransforms(world);
     tickWorld(dt, tuning.rate);
-    stepHelm(
-      ship,
-      {
-        steer: (input.isDown('SteerStarboard') ? 1 : 0) - (input.isDown('SteerPort') ? 1 : 0),
-        raise: input.pressed('RaiseSail'),
-        lower: input.pressed('LowerSail'),
-        astern: input.isDown('LowerSail'),
-      },
-      helm,
-      { compression: tuning.compression, rate: tuning.rate },
-      (x, z) => hf.heightAt(x, z),
+    scale.rate = tuning.rate;
+    playerCommand(input, helmCommand);
+    mooring.anchor = input.isDown('Anchor');
+    sailingSystem(
+      world,
+      () => helmCommand,
+      () => wind,
+      sea,
+      scale,
       dt,
+      (e, ev) => {
+        if (ev.kind === 'jibe') onShipJibed(e, ev.uncontrolled);
+      },
     );
-    shipTransform.position.x = ship.x;
-    shipTransform.position.z = ship.z;
-    shipTransform.heading = ship.heading;
+    hazardSystem(
+      world,
+      () => mooring,
+      hazardEnv,
+      () => wind,
+      scale,
+      dt,
+      (_, ev) => {
+        if (ev.kind === 'grounded') say(`Aground at ${ev.speedKn.toFixed(1)} kn.`);
+        else if (ev.kind === 'anchorRefused') say(`Can't anchor: ${ev.reason}.`);
+      },
+    );
     buoyancySystem(world, sea, dt);
+    heelSystem(world);
     if (input.pressed('Interact')) goAshore();
   },
 };
@@ -308,7 +352,11 @@ function teleportShip(chart: Chart, heading: number): void {
   ship.x = chart.x / tuning.compression;
   ship.z = -chart.y / tuning.compression;
   ship.heading = heading;
-  ship.speedKn = 0;
+  ship.speed = 0;
+  ship.rudder = 0;
+  ship.windAngle = Number.NaN;
+  // A fresh start: afloat, anchor up, no damage.
+  Object.assign(hazards.state, createHazardState(hazards.cls));
   shipTransform.position.x = ship.x;
   shipTransform.position.z = ship.z;
   shipTransform.heading = heading;
@@ -384,18 +432,31 @@ function clearWater(x: number, z: number, bearing: number, max = 4000): number {
   const dx = Math.sin(bearing);
   const dz = -Math.cos(bearing);
   for (let d = 4; d <= max; d += 4) {
-    if (hf.heightAt(x + dx * d, z + dz * d) > -helm.draftM) return d;
+    if (hf.heightAt(x + dx * d, z + dz * d) > -hazards.state.draft) return d;
   }
   return Infinity;
 }
 
 function sailingLines(): string[] {
   const c = tuning.compression;
-  const scale = { compression: c, rate: tuning.rate };
-  const v3d = visualSpeed(ship.speedKn, scale);
-  const cruiseKn = targetSpeedKn({ ...ship, sailLevel: 3 }, helm);
-  // Show the circle at the current speed, or at Full while stopped.
-  const circle = turningCircle(Math.abs(ship.speedKn) > 0.5 ? ship.speedKn : cruiseKn, helm, scale);
+  const cls = shipSailing.cls;
+  const h = hazards.state;
+  const lengthM = schooner.record.lengthM;
+  const v3d = sceneSpeed(ship.speed, scale.rate, c);
+  const cruise = beamReachSpeed(cls, wind);
+  const cruiseKn = msToKnots(cruise);
+  const moving = Math.abs(speedKn(ship)) > 0.5;
+  // Show the circle at the current speed, or on a beam reach at Full while stopped.
+  const circle = turningCircle(cls, moving ? ship.speed : cruise, scale);
+  const offWind = Number.isFinite(ship.windAngle)
+    ? ` · ${Math.round((Math.abs(ship.windAngle) * 180) / Math.PI)}° off the wind`
+    : '';
+  const flags = [
+    ship.inIrons ? 'IN IRONS' : '',
+    ship.sweepsOut ? 'sweeps out' : '',
+    h.anchor !== 'up' ? `anchor ${h.anchor}${h.dragging ? ' (dragging)' : ''}` : '',
+    h.aground ? 'AGROUND (hold X to kedge off)' : h.shallow ? `shoal ${h.depth.toFixed(1)} m` : '',
+  ].filter(Boolean);
   const port = clearWater(ship.x, ship.z, ship.heading - Math.PI / 2);
   const stbd = clearWater(ship.x, ship.z, ship.heading + Math.PI / 2);
   const ahead = clearWater(ship.x, ship.z, ship.heading);
@@ -427,19 +488,20 @@ function sailingLines(): string[] {
   const legs = REFERENCE_LEGS.map((leg) => {
     const chartM = Math.hypot(leg.to.x - leg.from.x, leg.to.y - leg.from.y);
     // Real time is chart distance / (v × R): C cancels out.
-    const realS = chartM / (((cruiseKn * NM) / 3600) * tuning.rate);
+    const realS = chartM / (cruise * tuning.rate);
     return `  ${leg.name}: ${(chartM / NM).toFixed(1)} nm → ${fmtM(chartM / c)} on screen, ${fmtClock(realS)} real`;
   });
 
   return [
-    `W/S sail · A/D helm · hold S furled: sweeps astern · F go ashore · T trip timer · drag to orbit`,
+    `W/S sail · A/D helm · R sweeps · X anchor · Q/E trim (manual) · F go ashore · T trip timer · drag to orbit`,
     ``,
-    `speed ${ship.speedKn.toFixed(1)} kn game → ${v3d.toFixed(1)} m/s on screen (${msToKnots(v3d).toFixed(1)} visual kn) · ${SAIL_LEVELS[ship.sailLevel]}${ship.aground ? ' · AGROUND' : ''}`,
-    `turning circle${Math.abs(ship.speedKn) > 0.5 ? '' : ' at Full'} ${Number.isFinite(circle) ? `${fmtM(circle)} (${(circle / SCHOONER_LENGTH_M).toFixed(1)} ship lengths)` : '—'}`,
+    `wind from ${Math.round(tuning.windFromDeg) % 360}° at ${tuning.windKn.toFixed(0)} kn · heading ${Math.round(((wrapAngle(ship.heading) * 180) / Math.PI + 360) % 360)}°${offWind}`,
+    `speed ${speedKn(ship).toFixed(1)} kn game → ${v3d.toFixed(1)} m/s on screen (${msToKnots(v3d).toFixed(1)} visual kn) · ${SAIL_LEVELS[ship.sailLevel]}${flags.length ? ` · ${flags.join(' · ')}` : ''}`,
+    `turning circle${moving ? '' : ' at Full, beam reach'} ${Number.isFinite(circle) ? `${fmtM(circle)} (${(circle / lengthM).toFixed(1)} ship lengths)` : '—'}`,
     `channel abeam ${widthText} · port ${fmtM(port)} · stbd ${fmtM(stbd)} · ahead ${Number.isFinite(ahead) ? fmtM(ahead) : '> 4 km'}`,
     `nearest ${places.join(' · ')}`,
-    `freighter ${Math.round(FREIGHTER_LENGTH_M * tuning.freighterScale)} m (${((FREIGHTER_LENGTH_M * tuning.freighterScale) / SCHOONER_LENGTH_M).toFixed(1)}× the schooner) · nearest ${fmtM(nearestFreighter)}`,
-    `legs at Full (${cruiseKn.toFixed(1)} kn):`,
+    `freighter ${Math.round(FREIGHTER_LENGTH_M * tuning.freighterScale)} m (${((FREIGHTER_LENGTH_M * tuning.freighterScale) / lengthM).toFixed(1)}× the schooner) · nearest ${fmtM(nearestFreighter)}`,
+    `legs on a beam reach at Full (${cruiseKn.toFixed(1)} kn):`,
     ...legs,
   ];
 }
@@ -495,11 +557,17 @@ const pick = (c: number): void => {
 };
 for (const name of Object.keys(presets)) scaleFolder.add(presets, name as keyof typeof presets);
 
-const shipFolder = gui.addFolder('Schooner');
-shipFolder.add(helm, 'hullMaxSpeedKn', 4, 14, 0.5).name('Hull max (kn)');
-shipFolder.add(helm, 'windFactor', 0.2, 1, 0.05).name('Wind factor');
-shipFolder.add(helm, 'turnRateDeg', 2, 15, 0.5).name('Turn rate (°/s)');
-shipFolder.add(helm, 'accelTau', 2, 12, 0.5).name('Inertia (s)');
+const windFolder = gui.addFolder('Wind');
+windFolder.add(tuning, 'windFromDeg', 0, 360, 5).name('From (°)').onChange(setWind);
+windFolder.add(tuning, 'windKn', 0, 40, 1).name('Speed (kn)').onChange(setWind);
+// The full plan 02 tuning panel, as in the game's dev overlay.
+const sailingPanel = createSailingPanel({
+  gui,
+  ship: shipSailing,
+  record: schooner.record,
+  handling: schooner.handling,
+});
+gui.folders.at(-1)?.close();
 
 const viewFolder = gui.addFolder('View');
 viewFolder
@@ -593,6 +661,7 @@ const loop = createLoop({
     hudTimer += frameSeconds;
     if (hudTimer < 0.2) return;
     hudTimer = 0;
+    sailingPanel.update();
     const { day, hour } = dayAndHour(clock.gameSeconds);
     const hh = Math.floor(hour);
     const mm = Math.floor((hour - hh) * 60);
@@ -618,8 +687,11 @@ Object.assign(window, {
   greybox: {
     tuning,
     sea,
-    helm,
+    schooner,
     ship,
+    get wind() {
+      return wind;
+    },
     character,
     freighters,
     setCompression,
