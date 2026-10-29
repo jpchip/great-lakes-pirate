@@ -36,7 +36,7 @@ import { seaScaleAt, type PackedWave, type Sea } from './waves';
  * shape.
  *
  * The wind, visibility and cloud come from the S9 weather sim when it's given one
- * (Phase 2, plan 04 §23), sampled once per tick at the player: a pressure system is
+ * (Phase 2, plan 04 §24), sampled once per tick at the player: a pressure system is
  * hundreds of kilometers across, so the zone shares one sample and the shelter maps make
  * the local differences. The Phase 1 dev panel stays as an override: a preset, the
  * scripted gale or a panel change takes over until `useSim()` hands the sky back.

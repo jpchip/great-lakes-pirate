@@ -120,7 +120,7 @@ test('S9 weather season report', () => {
     );
   }
 
-  // The NOAA check (plan 04 §23): the sim at Bayfield beside hourly Devils Island wind.
+  // The NOAA check (plan 04 §24): the sim at Bayfield beside hourly Devils Island wind.
   lines.push(`\nSim (Bayfield) vs observed (Devils Island, NDBC DISW3 2012–2023)`);
   lines.push(
     'month  mean kn sim/obs  p90 sim/obs  ≥28kn sim/obs   ≥34kn sim/obs   resultant sim / obs',

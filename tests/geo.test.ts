@@ -4,13 +4,21 @@ import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import { ChartProjection } from '../src/core/coords';
 import { decodeGrid, type GridFormat } from '../src/core/terrain-grid';
+import { flattenFootprint, raiseRock } from '../tools/geo/lib/edits';
 import { encode, quantize, tileWindow } from '../tools/geo/lib/encode';
 import { labelLand } from '../tools/geo/lib/islands';
 import { mergeElevation } from '../tools/geo/lib/merge';
 import { downsample, raster } from '../tools/geo/lib/raster';
 import { distanceTransform, shorelineSdf } from '../tools/geo/lib/sdf';
 import { bakeWindMaps, DEFAULT_WIND } from '../tools/geo/lib/wind';
-import { geoToChart, warpExtent, zoneGrid, type ZoneFrame } from '../tools/geo/lib/zone';
+import {
+  chartToZone,
+  geoToChart,
+  warpExtent,
+  zoneConfigFromData,
+  zoneGrid,
+  type ZoneFrame,
+} from '../tools/geo/lib/zone';
 
 describe('geo pipeline projection', () => {
   it('matches the game chart projection', () => {
@@ -185,12 +193,98 @@ describe('wind maps', () => {
   });
 });
 
+describe('hand-edit layer', () => {
+  // A 201 m square at 1 m around a point at the zone origin: land rising east from x = 0.
+  const frame: ZoneFrame = { origin: { x: 0, y: 0 }, compression: 8, sizeX: 200, sizeZ: 200 };
+  const grid = zoneGrid(frame, 1);
+  const at = { lat: 47.5, lon: -88 }; // the chart reference, so zone (0, 0)
+  const slope = () => {
+    const r = raster(grid.width, grid.height);
+    for (let j = 0; j < grid.height; j++) {
+      for (let i = 0; i < grid.width; i++) r.data[j * grid.width + i] = (i - 100) * 0.2;
+    }
+    return r;
+  };
+  const h = (r: ReturnType<typeof raster>, x: number, z: number) =>
+    r.data[(z + 100) * grid.width + (x + 100)] ?? NaN;
+
+  it('flattens the land in a footprint and leaves the water', () => {
+    const r = slope();
+    // Facing west (out over the water at x < 0), 30 m inland, 40 m along the shore.
+    const fp = {
+      id: 'setpiece.test',
+      at,
+      bearingDeg: 270,
+      alongM: 40,
+      inlandM: 30,
+      seawardM: 20,
+      groundM: 2,
+      blendM: 10,
+    };
+    expect(flattenFootprint(r, grid, frame, fp)).toBeGreaterThan(0);
+    expect(h(r, 15, 0)).toBeCloseTo(2);
+    expect(h(r, 30, 19)).toBeCloseTo(2);
+    // Water inside the footprint is untouched.
+    expect(h(r, -10, 0)).toBeCloseTo(-2);
+    // The blend meets the real slope again past blendM.
+    expect(h(r, 45, 0)).toBeCloseTo(9);
+    expect(h(r, 15, 35)).toBeCloseTo(3);
+    const mid = h(r, 35, 0);
+    expect(mid).toBeGreaterThan(2);
+    expect(mid).toBeLessThan(7);
+  });
+
+  it('raises a rock where the data has none', () => {
+    const r = raster(grid.width, grid.height, -3);
+    const island = {
+      id: 'island.test',
+      name: 'Test',
+      ...at,
+      rock: { lengthM: 40, widthM: 20, bearingDeg: 90, heightM: 6 },
+    };
+    raiseRock(r, grid, frame, island);
+    expect(h(r, 0, 0)).toBeCloseTo(6);
+    // Long axis east–west: land 18 m east, water 12 m north.
+    expect(h(r, 18, 0)).toBeGreaterThan(0);
+    expect(h(r, 0, -12)).toBe(-3);
+    expect(h(r, 25, 0)).toBe(-3);
+  });
+
+  it('reads the bake config from data/zones.json and data/islands.json', () => {
+    const read = (f: string) =>
+      JSON.parse(readFileSync(join(__dirname, '..', 'data', f), 'utf8')) as unknown;
+    const config = zoneConfigFromData('zone.apostles', read('zones.json'), read('islands.json'));
+    expect(config.tilesX * config.tileSamples * config.sailingSampleM).toBe(7168);
+    expect(config.islands).toHaveLength(22);
+    expect(config.islands.find((i) => i.id === 'island.long')?.bounds).toBeDefined();
+    expect(config.islands.find((i) => i.id === 'island.gull')?.rock).toBeDefined();
+    expect(config.setPieces.map((p) => p.id)).toEqual(['setpiece.bayfield', 'setpiece.ashland']);
+  });
+});
+
 describe('baked Apostles zone', () => {
   const dir = join(__dirname, '..', 'public', 'world', 'apostles');
   const manifestPath = join(dir, 'manifest.json');
   // LFS pointer files are ~130 bytes; skip when the bake isn't checked out.
   const baked =
     existsSync(manifestPath) && readFileSync(join(dir, 'height', '0-0.bin')).byteLength > 200;
+
+  it.skipIf(!baked)('has Gull Island and the flattened set pieces', () => {
+    const m = JSON.parse(readFileSync(manifestPath, 'utf8'));
+    const gull = m.islands.find((i: { id: string }) => i.id === 'island.gull');
+    expect(gull.found).toBe('component');
+    expect(gull.maxHeightM).toBeGreaterThan(4);
+    expect(m.handEdits.map((e: { id: string }) => e.id)).toEqual([
+      'island.gull',
+      'setpiece.bayfield',
+      'setpiece.ashland',
+    ]);
+    for (const e of m.handEdits) expect(e.samples).toBeGreaterThan(500);
+    const p = geoToChart({ lat: 46.9065, lon: -90.4435 });
+    const z = chartToZone(m.frame, p.x, p.y);
+    expect(z.x).toBeGreaterThan(gull.x0);
+    expect(z.z).toBeGreaterThan(gull.z0);
+  });
 
   it.skipIf(!baked)('decodes a height tile within the manifest range', () => {
     const m = JSON.parse(readFileSync(manifestPath, 'utf8'));

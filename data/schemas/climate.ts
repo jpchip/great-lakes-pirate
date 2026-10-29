@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { idOf } from './common';
 
 /**
- * Monthly climate for western Lake Superior (plan 04 §4.1, §23), one entry per month at
+ * Monthly climate for western Lake Superior (plan 04 §4.1, §24), one entry per month at
  * mid-month. The temperatures and the `observed` block are measurements; `sim` is the
  * weather sim's tuning, checked against `observed` by tests/climate.test.ts.
  *

@@ -1,0 +1,69 @@
+[
+  {
+    "id": "zone.apostles",
+    "name": "Apostle Islands",
+    "world": "world/apostles/",
+    "compression": 8,
+    "center": {
+      "lat": 46.835,
+      "lon": -90.72
+    },
+    "bake": {
+      "tilesX": 7,
+      "tilesY": 8,
+      "tileSamples": 256,
+      "sailingSampleM": 4,
+      "onFootSampleM": 1,
+      "windCellM": 32,
+      "lakeLevelM": 183.5,
+      "bathyDatumM": 183.2,
+      "landThresholdM": 0.5,
+      "landCurve": {
+        "kind": "soft-knee",
+        "kneeM": 20
+      },
+      "islandMarginM": 64
+    },
+    "edge": {
+      "fogFadeM": 1000,
+      "edgeVisibilityM": 350
+    },
+    "spawn": {
+      "x": -640,
+      "z": 150,
+      "headingDeg": 34.4
+    },
+    "setPieces": [
+      {
+        "id": "setpiece.bayfield",
+        "name": "Bayfield waterfront",
+        "port": "port.bayfield",
+        "at": {
+          "lat": 46.8107,
+          "lon": -90.8137
+        },
+        "bearingDeg": 112,
+        "alongM": 360,
+        "inlandM": 120,
+        "seawardM": 200,
+        "groundM": 1.8,
+        "blendM": 60
+      },
+      {
+        "id": "setpiece.ashland",
+        "name": "Ashland ore docks",
+        "port": "port.ashland",
+        "at": {
+          "lat": 46.5929,
+          "lon": -90.8861
+        },
+        "bearingDeg": 320,
+        "alongM": 640,
+        "inlandM": 160,
+        "seawardM": 600,
+        "groundM": 2.5,
+        "blendM": 80
+      }
+    ]
+  }
+]

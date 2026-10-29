@@ -19,7 +19,7 @@ export const CURRENT_SAVE_VERSION = 2;
 const WEATHER_SPIN_UP_HOURS = 48;
 
 /**
- * v1 → v2 (plan 04 §23): the S9 weather joins `environment`. A Phase 1 save has no
+ * v1 → v2 (plan 04 §24): the S9 weather joins `environment`. A Phase 1 save has no
  * weather, so it gets an empty sky set two game days in the past, with its own random
  * stream derived from the run's. The game brings it up to the present on load, so the
  * player sails into weather that formed while they were away.

@@ -35,6 +35,7 @@ import { compileSailingClass } from './sim/sailing/ship-class';
 import { sailShipRecord, T1_SCHOONER_ID } from './sim/sailing/ships';
 import { httpBytes, loadZoneTerrain, type LoadedZone } from './sim/terrain/load';
 import { TEST_BAY } from './sim/terrain/test-bay';
+import { APOSTLES_ID, defFrame, manifestFrame, spawnPose, zoneDef } from './sim/terrain/zones';
 import {
   WEATHER_PRESETS,
   createLocalWeather,
@@ -124,7 +125,7 @@ async function loadSettings(): Promise<SettingsStore> {
  * Dev and playtest URL switches for the weather (plan 02 §14.2): `?weather=gale` picks a
  * panel preset over the sim, `?gale` starts the scripted gale, `?wind=45` sets where it
  * comes from, `?knots=30` its speed, and `?day=1&hour=19.5` the game day and time of day.
- * Any of the wind switches takes the weather off the sim (plan 04 §23).
+ * Any of the wind switches takes the weather off the sim (plan 04 §24).
  */
 function applyWeatherParams(params: URLSearchParams, ctx: GameContext): void {
   const preset = params.get('weather');
@@ -167,13 +168,13 @@ async function boot(): Promise<void> {
   document.body.dataset['save'] = status;
   if (saver) document.body.dataset['runId'] = saver.run.runId;
 
-  // The Phase 1 test bay: a slice of the real Apostles bake (plan 02 §14.1). Gameplay
-  // needs it with or without a renderer; without it the bay is open water.
+  // The whole Apostles zone (Phase 2 piece B; data/zones.json). Gameplay needs it with
+  // or without a renderer; without it the zone is open water.
+  const zoneData = zoneDef(APOSTLES_ID);
   const zone: LoadedZone | undefined = await loadZoneTerrain(
-    httpBytes(new URL(TEST_BAY.path, document.baseURI)),
-    TEST_BAY.tiles,
+    httpBytes(new URL(zoneData.world, document.baseURI)),
   ).catch((err: unknown) => {
-    console.warn('Test bay terrain unavailable; sailing on open water', err);
+    console.warn('Zone terrain unavailable; sailing on open water', err);
     return undefined;
   });
   document.body.dataset['terrain'] = zone ? 'loaded' : 'unavailable';
@@ -194,16 +195,26 @@ async function boot(): Promise<void> {
       undefined,
       zone?.terrain ?? stubIslandShelter(TEST_BAY_ISLANDS),
       undefined,
-      { state: state.environment.weather, frame: zone?.manifest.frame ?? TEST_BAY.frame },
+      {
+        state: state.environment.weather,
+        frame: zone ? manifestFrame(zone.manifest) : defFrame(zoneData),
+      },
     ),
   };
   applyWeatherParams(params, ctx);
 
-  // The player's T1 schooner on the plan 02 sailing model at the test bay's spawn, in
-  // the weather's wind.
+  // The player's T1 schooner on the plan 02 sailing model at the zone's spawn, in the
+  // weather's wind.
   const shipRecord = sailShipRecord(T1_SCHOONER_ID);
   const handling = defaultHandling();
-  const { spawn } = TEST_BAY;
+  // `?spawn=x,z,heading` (zone meters, degrees) starts elsewhere in the zone, for checks.
+  const spawn = spawnPose(zoneData);
+  const [sx, sz, sh] = (params.get('spawn') ?? '').split(',').map(Number);
+  if (Number.isFinite(sx) && Number.isFinite(sz) && params.get('spawn')) {
+    spawn.x = sx ?? spawn.x;
+    spawn.z = sz ?? spawn.z;
+    if (Number.isFinite(sh)) spawn.heading = ((sh ?? 0) * Math.PI) / 180;
+  }
   const shipTransform = { position: { x: spawn.x, y: 0, z: spawn.z }, heading: spawn.heading };
   const sailing = {
     cls: compileSailingClass(shipRecord, handling),
@@ -281,6 +292,7 @@ async function boot(): Promise<void> {
       state.environment.clock,
       zone,
       TEST_BAY_ISLANDS,
+      zoneData.edge,
     );
     view = scene;
 
@@ -416,6 +428,7 @@ async function boot(): Promise<void> {
             gameSeconds: state.environment.clock.gameSeconds,
             draftM,
             barometer: ctx.weather.barometerAt(state.environment.clock.gameSeconds),
+            edge: zoneData.edge,
           }),
         );
       }

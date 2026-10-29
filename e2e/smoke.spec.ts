@@ -48,7 +48,7 @@ test('shows the sailing HUD and answers the helm', async ({ page }) => {
   await page.goto('/?renderer=null');
   await expect(page.getByTestId('hud-wind')).toBeVisible();
   await expect(page.getByTestId('hud-clock')).toContainText('1900');
-  // Weather v1 (plan 04 §23): the sim drives the wind, so the barometer reads.
+  // Weather v1 (plan 04 §24): the sim drives the wind, so the barometer reads.
   await expect(page.getByTestId('hud-barometer')).toContainText(/Barometer \d\d\.\d\d/);
   await expect(page.getByTestId('hud-sail')).toHaveText('Furled');
   await page.keyboard.press('KeyW');

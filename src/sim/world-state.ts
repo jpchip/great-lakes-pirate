@@ -43,7 +43,7 @@ const fogBankSchema = z.object({
   life: z.number().positive(),
 });
 
-/** The S9 weather sim's state (plan 04 §13, §23): plain data, at most a few KB. */
+/** The S9 weather sim's state (plan 04 §13, §24): plain data, at most a few KB. */
 export const weatherStateSchema: z.ZodType<WeatherState> = z.object({
   rng: rngState,
   noiseSeed: uint32,

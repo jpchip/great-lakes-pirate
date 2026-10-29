@@ -46,7 +46,7 @@ describe('save migrations (properties)', () => {
   });
 });
 
-describe('v1 → v2: weather joins the save (plan 04 §23)', () => {
+describe('v1 → v2: weather joins the save (plan 04 §24)', () => {
   const v1 = (): Record<string, unknown> =>
     (JSON.parse(readFileSync(join(fixturesDir, 'v1.json'), 'utf8')) as Fixture).state;
 

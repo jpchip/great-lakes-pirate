@@ -24,6 +24,9 @@ describe('quality presets', () => {
     expect(QUALITY_PRESETS.low.resolutionScale).toEqual({ min: 0.6, max: 0.75 });
     expect(QUALITY_PRESETS.medium.resolutionScale).toEqual({ min: 0.85, max: 1 });
     expect(QUALITY_PRESETS.medium.crestFoam).toBe(true);
+    // Cat's-paws are the first water cut on Low (plan 04 §23).
+    expect(QUALITY_PRESETS.low.catsPaws).toBe(false);
+    expect(QUALITY_PRESETS.medium.catsPaws).toBe(true);
     for (const id of QUALITY_IDS) {
       const p = QUALITY_PRESETS[id];
       expect(p.waveCount).toBeGreaterThanOrEqual(GAMEPLAY_WAVES);

@@ -59,6 +59,19 @@ function baroText(b: BarometerReading | undefined): string {
   return `barometer ${b.hpa.toFixed(1)} hPa  ${sign}${b.tendency3h.toFixed(1)} / 3 h  ${b.trend}`;
 }
 
+/** The zone streaming line: tiles drawn by stride, waiting tiles and the slowest frames. */
+function streamText(scene: TestScene): string {
+  const t = scene.terrain?.stats;
+  if (!t) return '';
+  const strides = Object.entries(t.strides)
+    .map(([stride, n]) => `${n}×${Number(stride) * 4}m`)
+    .join(' ');
+  return (
+    `tiles ${strides || 'none'}  wait ${t.pending}  built ${t.builds}` +
+    `  ${t.worker ? 'worker' : 'main'} ${t.maxBuildMs.toFixed(1)} ms  update ≤${t.maxUpdateMs.toFixed(1)} ms`
+  );
+}
+
 export function createDevOverlay(options: OverlayOptions): DevOverlay {
   const { renderer, scene, weather, clock, probe, save } = options;
 
@@ -246,6 +259,7 @@ export function createDevOverlay(options: OverlayOptions): DevOverlay {
         `${clockText}  sun ${scene.environment.sunElevationDeg.toFixed(0)}°  vis ${(weather.visibilityAt(at, clock.gameSeconds) / 1000).toFixed(1)} km`,
         `save ${save.status}  last ${saved}${save.lastError ? `  ERROR ${save.lastError}` : ''}`,
         terrain ? terrain.describe(at.x, at.z) : '',
+        streamText(scene),
         benchText,
       ]
         .filter(Boolean)

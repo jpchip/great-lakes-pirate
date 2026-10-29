@@ -6,12 +6,16 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ### Added
 
-- **Weather v1:** the S9 weather sim now drives the wind, visibility and cloud while sailing, so the weather changes on its own as lows and highs cross the lake. The dev panel and the playtest switches still override it, and **Use sim weather** hands it back ([plan 04 §23](plans/04-water-weather-seasons.md)).
-- **Barometer** on the HUD, under the clock: inches of mercury with a trend arrow, red when it falls fast ([plan 04 §23](plans/04-water-weather-seasons.md)).
+- **The whole Apostles zone:** all 56 tiles from Eagle Island to Outer Island and down to Ashland and the Bad River mouth, sailable with no loading screen. Terrain meshes stream around the camera with geomipmapped LOD built in a worker, over a whole-zone backdrop (at most 24 terrain draw calls on Medium). Fog closes in over the last kilometer of the zone, a "Zone edge" chip warns, and the ship is held at the very edge ([plan 03 §17](plans/03-world-scale-chart-travel.md)).
+- **`data/zones.json` and `data/islands.json`** with schemas; the geo bake reads them. Its new hand-edit layer raises Gull Island, keeps Long Island's clip, and flattens the Bayfield and Ashland set-piece footprints.
+- **`?spawn=x,z,heading`** starts anywhere in the zone, and **`/bench/stream/`** (`npm run bench:stream`) times streaming along the Bayfield–Ashland–Outer Island route.
+- **Weather v1:** the S9 weather sim now drives the wind, visibility and cloud while sailing, so the weather changes on its own as lows and highs cross the lake. The dev panel and the playtest switches still override it, and **Use sim weather** hands it back ([plan 04 §24](plans/04-water-weather-seasons.md)).
+- **Barometer** on the HUD, under the clock: inches of mercury with a trend arrow, red when it falls fast ([plan 04 §24](plans/04-water-weather-seasons.md)).
 - **`data/climate.json`:** monthly climate for western Superior from NOAA normals (Madeline Island air, GLERL lake temperature) and Devils Island wind, with the sim's tuning beside it.
 
 ### Changed
 
+- **Water is cheaper on every preset:** it draws after the land and ships so hidden water isn't shaded, cat's-paws use one noise octave and are off on Low, and the water's noise skips pixels where it can't show ([plan 04 §23](plans/04-water-weather-seasons.md)).
 - **Saves are version 2:** the weather is saved with the run. A 0.1.0 save migrates and catches up on weather when loaded.
 - **Retuned climate:** colder spring lake, May winds from the northeast, and far fewer summer gales. November is still the stormy month, at about four times the observed gale time.
 

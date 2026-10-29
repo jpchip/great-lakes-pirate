@@ -5,7 +5,7 @@ import { CLIMATE_MONTHS, climateAt } from '../src/sim/weather/climate';
 import { LAKE_CENTER } from '../src/sim/weather/geography';
 import { airTempAt, createWeatherState } from '../src/sim/weather/weather';
 
-/** The NOAA check (plan 04 §23): the sim against data/climate.json's observations. */
+/** The NOAA check (plan 04 §24): the sim against data/climate.json's observations. */
 
 const observed = (month: string) => {
   const m = CLIMATE_MONTHS.find((c) => c.id === `climate.${month.toLowerCase()}`);
@@ -55,12 +55,22 @@ describe('the sim against observed wind (Devils Island)', () => {
   );
 
   it('leans stormy but within reason: gale time at most a few times observed', () => {
-    // A deliberate lean toward gameplay (plan 04 §23): November gales should be met.
+    // A deliberate lean toward gameplay (plan 04 §24): November gales should be met.
     for (const month of ['Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov']) {
       expect(avg(month, (m) => m.galeShare) * 100, month).toBeLessThan(
         6 * observed(month).over34KnPct + 1,
       );
     }
     expect(avg('Nov', (m) => m.galeShare)).toBeGreaterThan(avg('Aug', (m) => m.galeShare));
+  });
+});
+
+describe('zone frame for the weather', () => {
+  it("builds the bake's origin from the zone definition", async () => {
+    const { APOSTLES_ID, defFrame, zoneDef } = await import('../src/sim/terrain/zones');
+    expect(defFrame(zoneDef(APOSTLES_ID))).toEqual({
+      origin: { x: -204_333, y: -73_945 },
+      compression: 8,
+    });
   });
 });

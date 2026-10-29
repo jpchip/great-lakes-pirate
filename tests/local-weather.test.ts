@@ -436,7 +436,7 @@ describe('visibility', () => {
   });
 });
 
-describe('weather from the S9 sim (plan 04 §23)', () => {
+describe('weather from the S9 sim (plan 04 §24)', () => {
   const frame = { origin: { x: -204_333, y: -73_945 }, compression: 8 };
   const make = () => {
     const state = createWeatherState('local-sim');

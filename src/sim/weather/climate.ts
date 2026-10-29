@@ -2,7 +2,7 @@ import climateJson from '../../../data/climate.json';
 import { climateFileSchema, type ClimateMonth } from '../../../data/schemas/climate';
 
 /**
- * Climate normals for western Lake Superior (plan 04 §4.1, §23), interpolated by calendar
+ * Climate normals for western Lake Superior (plan 04 §4.1, §24), interpolated by calendar
  * date. The numbers live in data/climate.json: air and water temperatures from NOAA
  * normals, and the sim's tuning beside the observed wind it was checked against.
  *

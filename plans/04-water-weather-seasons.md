@@ -1,6 +1,6 @@
 # 04 — Water, Weather, Seasons & Day/Night
 
-Status: DRAFT v0.7 (decisions confirmed; gap review applied; spike S2 and prototype S9 done; moving-camera wave fix; Phase 1 wind, waves and sky built; Phase 1 water look and speed cues built)
+Status: DRAFT v0.7 (decisions confirmed; gap review applied; spike S2 and prototype S9 done; moving-camera wave fix; Phase 1 wind, waves and sky built; Phase 1 water look and speed cues built; Phase 2 water budget cuts)
 Parent: [00-master-plan.md](00-master-plan.md)
 Inputs:
 - [01 tech/architecture](01-tech-architecture.md): layers, budgets, the shared wave function, the iGPU baseline
@@ -588,7 +588,40 @@ Baseline laptop (AMD Radeon Renoir, Chrome 156, MSAA off, 2026-10-29, `?bench=wa
 4. **Wake on other ships** works the same way but is untested until NPC ships exist.
 5. **Waves don't shoal:** they keep their open-water length and height into the shallows; the sea scale already calms lees and short fetch.
 
-## 23. Phase 2 Piece D: Weather v1 in the Game (2026-10-29)
+## 23. Phase 2 Piece A: Water Back in Budget (2026-10-29)
+
+**Scope** (Phase 2 scope doc, piece A): the Phase 1 playtest ([02 §14](02-arcade-sailing.md)) read water on Medium at 3.3–4.9 ms against its 3 ms budget, up from 2.7 ms at §22, and Phase 2's terrain shader and vegetation will add load. Apply the §22 levers (cat's-paws to one noise octave, then off on Low, then the §19 levers) until water is at most 3 ms on Medium, and rerun the bench.
+
+### What changed
+| Change | Where | Effect on the look |
+|---|---|---|
+| **Water drawn after the land and ships** | `water.ts` (`renderOrder` 0.5) | None. The disc is centered on the camera, so three.js sorted it first among the opaque objects and the water shader ran on every pixel the land and hull later covered. Drawn after them (and before the wake, at 1), the depth test skips those pixels. The saving grows with how much land is on screen, so it matters more as the whole zone and its trees arrive. |
+| **Cat's-paws to one noise octave** (the first §22 lever) | `water-material.ts` | The patches have smoother edges. A new threshold curve, `1 − g(0.2 + 0.27g)`, keeps the patch coverage of the old two-octave sum at every gust strength (fitted on 400k samples), so a gust shows as much dark water as before. |
+| **Gust lookup in two taps** | `water-material.ts` `gustAhead` | None: the same linear interpolation between the two nearest of the 16 samples, instead of a 16-step loop per pixel. |
+| **Cat's-paws off on Low** (the second §22 lever) | `quality.ts` `catsPaws`, `wind-cues.ts` | No cat's-paws on Low. Wind streaks stay on every preset, since they read the wind in a blow. |
+| **Noise only where it can show** | `water-material.ts` | None. Ripples are only computed inside a paw, streaks only from 14 kn, and crest foam noise only where the crest is within the noise's ±0.125 of the threshold. Before, every pixel paid for all of them. |
+| **Arithmetic hash** | `wave-glsl.ts` `hash` | Same character, different pattern. Value noise used `fract(sin(…))` at each of its four corners; it now uses an arithmetic hash (Dave Hoskins' hash12), with no `sin`, which is cheaper on iGPUs and keeps its precision 10 km from the origin. The wake shares it. |
+
+The §19 levers (per-pixel shading of the detail waves only, or 4 per-pixel waves on Medium) aren't used yet. They're next if the laptop still reads over 3 ms.
+
+Before and after (left old, right new, the same frame on Medium): `/mnt/project-files/water-budget/` in the project, cat's-paws at a building gust and wind streaks in a blow.
+
+### Cost
+**Cloud container (SwiftShader, CPU only, 2026-10-29), `?bench=water` on a production build at 960×540:** water on Medium went from 143.5 ms to 90.2 ms (−37%), and the wind cues from 44.9 ms to 4.3 ms. SwiftShader is a CPU rasterizer, its run-to-run spread is ±20 ms, and its cost balance isn't an iGPU's (smaller buffers in daylight showed only −10% to +3%), so these say the direction, not the laptop's number.
+
+**Per pixel, by instruction count:** before, every Medium water pixel ran the wave loop (6 waves), the 16-step gust loop, five value noises for the wind cues (20 `sin` hashes) and two for crest foam (8 more), about 1,000 ALU operations. Now a typical pixel in a moderate breeze runs the wave loop, the two-tap gust and one arithmetic noise: about 450. The wind cues, measured at 0.8 ms on the laptop at §22, should drop to around 0.1–0.2 ms.
+
+**Baseline laptop** (AMD Radeon Renoir, Chrome 156, ANGLE on OpenGL 4.6, MSAA off, 2026-10-29, `?bench=water` on a production build, run by Jared). Columns as in §22; treat each as ±0.2 ms.
+
+| Preset | Buffer | Frame ms | Water ms | Crest foam ms | Shore ms | Wind cues ms | Wake ms | No water ms | Triangles | Draw calls |
+|---|---|---|---|---|---|---|---|---|---|---|
+| Low | 1440×816 | 2.10 | 1.10 | 0.10 | 0.00 | 0.00 | 0.00 | 1.00 | 90,162 | 35 |
+| Medium | 1920×1088 | 4.10 | 2.20 | 0.00 | 0.00 | 0.30 | 0.10 | 1.90 | 177,982 | 35 |
+| High | 1920×1088 | 4.80 | 2.60 | 0.00 | 0.00 | 0.30 | 0.10 | 2.20 | 489,230 | 35 |
+
+**Result:** water on Medium is **2.2 ms, back inside the 3 ms budget** with 0.8 ms of headroom (3.3–4.9 ms at the Phase 1 playtest, 2.7 ms at §22). The wind cues fell from 0.8 ms to 0.3 ms, and crest foam from 0.3 ms to under the noise floor. High is at 2.6 ms, also under 3 ms now. Low's water is 1.1 ms with the cat's-paws off. The §19 levers stay in reserve for when piece C's terrain shader and trees arrive; rerun this bench then.
+
+## 24. Phase 2 Piece D: Weather v1 in the Game (2026-10-29)
 
 **Scope** (Phase 2 scope doc, piece D; §15 Phase 2 row): the S9 systems drive `windAt` and `visibilityAt` behind the Phase 1 contract, `WorldState.environment` carries the weather with a save migration from v1, the climate numbers are checked against NOAA normals and moved to `data/climate.json`, a barometer goes on the HUD, and the dev panel stays as an override.
 
@@ -597,7 +630,7 @@ Baseline laptop (AMD Radeon Renoir, Chrome 156, MSAA off, 2026-10-29, `?bench=wa
 |---|---|---|
 | Climate data | `data/climate.json`, `data/schemas/climate.ts` | Twelve mid-month entries. Air highs and lows and the lake temperature are measurements; an `observed` block holds the measured wind for checking; a `sim` block holds the sim's tuning (prevailing flow, lows and highs per game day, gale share, track and fog weights). Validated with the other data files in CI. `src/sim/weather/climate.ts` now reads it. |
 | Air temperature | `airTempAt()` | The day swings between the normal low (03:00) and high (15:00) instead of a fixed ±4 °C around a "day" value, plus warm or cold air carried by the wind. |
-| Weather in the zone | `createLocalWeather(…, sim)` in `local-weather.ts` | Given the saved `WeatherState` and the zone's frame (from the bake's manifest, with a fallback in `TEST_BAY.frame`), the wind, gustiness, visibility and cloud come from the sim, sampled once per tick at the player through `zoneToChart`. The whole zone shares that sample (§20: r = 0.97 between Bayfield and Duluth); the baked shelter, fetch and funneling maps still make the lees and channels. The sim's own drift replaces the panel's. Sailing, the sea, audio and rendering didn't change: they still call the 02 §11 queries. |
+| Weather in the zone | `createLocalWeather(…, sim)` in `local-weather.ts` | Given the saved `WeatherState` and the zone's frame (from the bake's manifest, with `defFrame()` from `data/zones.json` as the fallback), the wind, gustiness, visibility and cloud come from the sim, sampled once per tick at the player through `zoneToChart`. The whole zone shares that sample (§20: r = 0.97 between Bayfield and Duluth); the baked shelter, fetch and funneling maps still make the lees and channels. The sim's own drift replaces the panel's. Sailing, the sea, audio and rendering didn't change: they still call the 02 §11 queries. |
 | The world tick | `advanceWeather()` | `weather.tick()` runs the sim forward a world tick at a time whenever 10 game minutes have passed, so a load, a migrated save or a `?day=` jump catches up the same way. |
 | Cloud | `cloudAt()` in `weather.ts` | A stand-in until piece E: a deck spreading past a low's rain shield, broken cloud on an ordinary day, clear under a high. |
 | Save v2 | `src/sim/world-state.ts`, `src/core/save/migrations/index.ts` | `environment.weather` (the S9 state, about 1–3 KB) is in the WorldState schema. The v1 → v2 migration gives a Phase 1 save an empty sky set 48 game hours in the past, with its own random stream derived from the run's (the run's stream is untouched); the game runs those 288 ticks on load (a few ms), as a new run's spin-up does. Fixture `tests/fixtures/saves/v2.json`. |
@@ -651,7 +684,8 @@ Baseline laptop (AMD Radeon Renoir, Chrome 156, MSAA off, 2026-10-29, `?bench=wa
 ---
 
 ## Changelog
-- v0.8: Phase 2 piece D (§23): the S9 sim drives the zone's wind, visibility and cloud; weather in the save (v2, with a migration from v1); climate in `data/climate.json`, checked against NOAA normals and Devils Island wind and retuned; a barometer on the HUD; the dev panel as an override.
+- v0.9: Phase 2 piece D (§24): the S9 sim drives the zone's wind, visibility and cloud; weather in the save (v2, with a migration from v1); climate in `data/climate.json`, checked against NOAA normals and Devils Island wind and retuned; a barometer on the HUD; the dev panel as an override.
+- v0.8: Phase 2 piece A (§23): water drawn after the land, cat's-paws to one noise octave and off on Low, a two-tap gust lookup, noise only where it can show, and an arithmetic hash. Water on Medium is 2.2 ms on the baseline laptop.
 - v0.7: Phase 1 piece F (§22): depth bands and shore foam from a whole-zone shore texture, far water to 10 km with the fog floor at 6 km, bow wave and wake ribbons, bow spray, cat's-paws that show gusts before they arrive, wind streaks, and a per-feature water bench.
 - v0.6: Phase 1 piece D (§21): dev-panel wind with drift, gusts, lee and funneling behind the 02 §11 contract; fetch-limited wind seas with lag and a local shelter and fetch scale shared by the CPU and the water shader; a scripted November gale; sun, moon, stars, a sky palette by sun elevation, and exp² fog from visibility.
 - v0.5: Moving-camera wave stutter fixed (§19): geometry keeps only waves the grid can sample, shading is per pixel. Prototype S9 write-up (§20): pressure-gradient wind on three storm tracks, a barometer trend rebuilt from system tracks (92% of storms warned, about 9 game hours ahead), advection and radiation fog, and an 11 µs world tick.

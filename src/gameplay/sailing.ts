@@ -9,6 +9,8 @@ import {
 } from '../sim/sailing/controller';
 import type { SailingClass } from '../sim/sailing/ship-class';
 import type { Sea } from '../sim/weather/waves';
+import { holdInside } from '../sim/terrain/zone-edge';
+import type { TerrainBounds } from '../sim/terrain/zone-terrain';
 import type { Entity, GameWorld } from './ecs';
 
 /** A ship sailing under the plan 02 model: its class and its live state. */
@@ -57,5 +59,18 @@ export function sailingSystem(
 export function heelSystem(world: GameWorld): void {
   for (const { transform, sailing } of world.with('transform', 'sailing')) {
     transform.roll = (transform.roll ?? 0) + sailing.state.heel;
+  }
+}
+
+/**
+ * Holds every sailing ship inside the zone's terrain (plan 03 §4): the one invisible
+ * wall, at the very edge past the fog. Run after the hazards, which can move ships too.
+ */
+export function zoneEdgeSystem(world: GameWorld, bounds: TerrainBounds): void {
+  for (const e of world.with('transform', 'sailing')) {
+    const s = e.sailing.state;
+    if (!holdInside(bounds, s)) continue;
+    e.transform.position.x = s.x;
+    e.transform.position.z = s.z;
   }
 }
