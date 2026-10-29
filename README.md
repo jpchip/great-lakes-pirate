@@ -39,7 +39,7 @@ Start on western Lake Superior; all five Great Lakes and the connecting waters (
 
 ## Project status
 
-**Phase 0 (Foundations) is under way.** Every system plan (00–17) and the research docs (R1, R1a) are drafted with their decisions recorded, the project scaffold is in place (see [Development](#development)), and the core skeleton (fixed-step loop, game clock, modes, events, seeded RNG, coords, input map, miniplex entities and the IndexedDB save layer) has landed. Spikes S1–S9 come next; there is no playable build yet. The MVP region is **western Lake Superior**: Duluth, Superior, Two Harbors, Ashland, Bayfield, Washburn, La Pointe, Siskiwit Bay and the Apostle Islands, with the Red Cliff and Bad River Ojibwe communities as trading partners.
+**Phase 1 (Sailing Prototype) is built, as version 0.1.0.** One T1 schooner sails a slice of the real Apostle Islands around Bayfield with the plan 02 handling model, wind shadow in island lees, a scripted gale, grounding, damage, anchoring and docking, a HUD and settings screen, and sailing audio. See the [changelog](CHANGELOG.md). Phase 0 (plans, scaffold, core skeleton, spikes S1–S9) is done, and Phase 2 (the Superior slice) comes next. The MVP region is **western Lake Superior**: Duluth, Superior, Two Harbors, Ashland, Bayfield, Washburn, La Pointe, Siskiwit Bay and the Apostle Islands, with the Red Cliff and Bad River Ojibwe communities as trading partners.
 
 **MVP scope:** arcade sailing with weather, hybrid travel (detailed coasts plus chart travel), trading, Fame/Wanted with the revenue cutter and lighthouses, freighter piracy, one docks district (Bayfield, whose lockup holds every MVP prisoner), one fully walkable island, two hideouts with grid building (Stockton Island and the Siskiwit camp), and the season from the May 1900 start through freeze-up.
 
@@ -137,7 +137,7 @@ npm run build
 npm run e2e        # Playwright: null-renderer smoke (CI) plus WebGL check (local only)
 ```
 
-The app boots into the Phase 0 test scene: a schooner riding Gerstner waves (drag to orbit, wheel to zoom). URL options: `?quality=low|medium|high` picks a preset, `?debug` shows the dev overlay on a production build (it is always on in `npm run dev`), `?bench=water` runs the spike S2 water benchmark ([plan 04 §19](plans/04-water-weather-seasons.md)), and `?renderer=null` boots without WebGL.
+The app boots into the Phase 1 test bay at the helm of the T1 schooner. Keys: A/D steer, W/S raise and lower sail, Q/E trim (with manual trim on), X anchor, F dock or cast off, R sweeps, drag to orbit, wheel to zoom, right mouse for the spyglass, Esc for settings. URL options: `?quality=low|medium|high` picks a preset, `?weather=calm|light|moderate|fresh|strong|gale` sets the wind, `?gale` starts the scripted gale, `?wind=<degrees>` and `?knots=<kn>` set where the wind comes from and how hard, `?day=<n>&hour=<h>` sets the time, `?debug` shows the dev overlay on a production build (it is always on in `npm run dev`), `?bench=water` runs the spike S2 water benchmark ([plan 04 §19](plans/04-water-weather-seasons.md)), and `?renderer=null` boots without WebGL.
 
 Spike pages are dev-only: with `npm run dev` running, open `/onfoot-spike.html` for the on-foot controller spike S5 ([plan 08 §19](plans/08-docks-district-stealth.md)), `/chart-spike.html` for the chart mode prototype S8 ([plan 03 §14](plans/03-world-scale-chart-travel.md)), or `/weather-sim.html` for the weather sim prototype S9 ([plan 04 §20](plans/04-water-weather-seasons.md)). `npm run bench:weather` prints the S9 season report.
 

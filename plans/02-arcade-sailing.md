@@ -1,6 +1,6 @@
 # 02 — Arcade Sailing & Ship Handling
 
-Status: DRAFT v0.6 (decisions made; gap review applied; S2 buoyancy notes; Phase 1 controller, hazards and mooring built)
+Status: DRAFT v0.6 (decisions made; gap review applied; S2 buoyancy notes; Phase 1 built and playtested; 0.1.0)
 Parent: [00-master-plan.md](00-master-plan.md)
 Inputs:
 - [01 tech/architecture](01-tech-architecture.md): minimal physics, 30–60 Hz tick, budgets, shared wave function
@@ -371,6 +371,16 @@ Weapons, crew size for boarding and upgrade slots belong to plans 07 and 10 but 
 - Frame time stays within the Medium budget on the baseline laptop (60 fps target; never below 30 on Low).
 - It's fun to just sail for 10 minutes (subjective gate; the developer decides).
 
+**Playtest (2026-10-29): passed, signed off by Jared; tagged 0.1.0.** Every acceptance criterion above and the full feature walk-through were checked on the baseline laptop (AMD Radeon Renoir, Chrome 156, MSAA off) against a production build. The sailing audio mix, whose levels were set from measurements, passed a listen by ear with no changes. Course times for the skilled and novice beats weren't written down; the criterion was judged passed in play. Frame times from the water bench at the playtest (2026-10-29, full Phase 1 scene with the procedural schooner):
+
+| Preset | Frame ms | Water ms | No water ms |
+|---|---|---|---|
+| Low | 3.0–4.4 | 2.0 | 1.0–2.4 |
+| Medium | 5.1–7.6 | 3.3–4.9 | 1.8–2.7 |
+| High | 5.9–8.3 | 4.0–5.2 | 1.9–3.1 |
+
+The ranges are two runs, at 02:22 and 11:10 UTC. Every frame is far inside the 16.7 ms Medium and 33 ms Low gates, but water on Medium now reads 3.3–4.9 ms against its 3 ms budget (2.7 ms at [04 §22](04-water-weather-seasons.md)): worth a look in Phase 2 before the terrain shader adds load. In the scripted gale at its peak on Medium (`?gale&quality=medium&debug`), the worst frame the overlay showed was 16.8 ms. The S7 greybox and S8 arena keep their stand-in helms until Phase 2 (decided 2026-10-29).
+
 ---
 
 ## 15. Cut List
@@ -405,6 +415,7 @@ All resolved. Follow-ups for other plans: passage prices and shipless earning (0
 ---
 
 ## Changelog
+- v0.8: Phase 1 playtest passed (§14): results, bench numbers, helm swap moved to Phase 2.
 - v0.7: Phase 1 camera built (§14): drag to orbit (§2), boom, collision, tactical and spyglass numbers.
 - v0.6: Phase 1 hazards and mooring built (§14): rock vs. grounding by bottom slope, simplified kedging, damage effects, strain and knockdown thresholds, anchor holding and drag, auto-dock and cast off.
 - v0.5: Phase 1 controller built (§14): sweeps key (R), the ships.json fields as built (§12), how the controller reads §3–5, starting T1 values.
