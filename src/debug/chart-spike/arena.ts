@@ -3,14 +3,16 @@ import type { InputMapper } from '../../core/input';
 import { R_SAILING } from '../../core/time';
 import { schoonerBuoyancy } from '../../gameplay/buoyancy';
 import { cloneTransform, type GameWorld, type Transform } from '../../gameplay/ecs';
+import { createSchooner, type Schooner } from '../../gameplay/schooner';
 import type { Contact, Encounter } from '../../sim/chart/traffic';
-import { chartSpeedKn, type ChartShip, type ChartWind } from '../../sim/chart/voyage';
+import type { ChartWind } from '../../sim/chart/voyage';
+import { FULL_SAIL, updateTargetSpeed, type SailingWind } from '../../sim/sailing/controller';
 
 /**
  * The open-water arena for prototype S8 (plan 03 §6.3): an empty ~3 × 3 km patch of
- * compressed water with the player and whatever was met. The schooner is a kinematic
- * stand-in (steer and trim, speed from the same wind model as the chart) until the
- * plan 02 sailing controller lands.
+ * compressed water with the player and whatever was met. The player's T1 schooner sails
+ * on the plan 02 controller and hazards (open water: no ground), in the chart's wind;
+ * the arena mode runs the sailing and hazard systems and `stepArena` does the rest.
  */
 
 /** Half the arena's side: leave by sailing past ±1.5 km (plan 03 §6.3). */
@@ -24,7 +26,6 @@ export const INTERACT_RANGE_M = 140;
 const INTERACT_HOLD_S = 1.5;
 /** Riding out a squall takes this long. */
 const STORM_RIDE_S = 40;
-const TURN_RATE = 0.3;
 
 export type ArenaResult = 'left' | 'resolved' | 'caught';
 
@@ -32,8 +33,10 @@ export interface ArenaState {
   contact: Contact;
   forced: boolean;
   wind: ChartWind;
-  ship: ChartShip;
-  player: Transform & { trim: number; speedKn: number; sceneSpeed: number };
+  /** The same wind, as the sailing model takes it. */
+  sailingWind: SailingWind;
+  player: Transform;
+  schooner: Schooner;
   target: Transform | undefined;
   targetSpeed: number;
   elapsed: number;
@@ -47,33 +50,34 @@ const scene = (kn: number): number => sceneSpeed(knotsToMs(kn), R_SAILING, DEFAU
 
 /**
  * Lay out an arena: the contact near the middle, the player ~650 m off on the bearing
- * they were sighted from, bow toward the contact. A squall surrounds you instead.
+ * they were sighted from, bow toward the contact, under full sail at the speed the wind
+ * gives that heading. A squall surrounds you instead.
  */
-export function createArenaState(enc: Encounter, wind: ChartWind, ship: ChartShip): ArenaState {
+export function createArenaState(enc: Encounter, chartWind: ChartWind): ArenaState {
   const c = enc.contact;
-  const range = enc.forced ? 520 : 650;
+  const hasTarget = c.kind !== 'storm';
+  const range = !hasTarget ? 0 : enc.forced ? 520 : 650;
   // enc.bearing is player → contact; the player sits on the reciprocal.
   const px = -Math.sin(enc.bearing) * range;
   const pz = Math.cos(enc.bearing) * range;
-  const player = {
-    position: { x: px, y: 0, z: pz },
-    heading: enc.bearing,
-    trim: 1,
-    speedKn: 0,
-    sceneSpeed: 0,
-  };
-  const hasTarget = c.kind !== 'storm';
-  if (!hasTarget) {
-    player.position.x = 0;
-    player.position.z = 0;
-  }
+  // A squall brings its own wind.
+  const wind =
+    c.kind === 'storm'
+      ? { from: chartWind.from, speedKn: Math.max(chartWind.speedKn, 26) }
+      : chartWind;
+  const sailingWind: SailingWind = { fromRad: wind.from, speedKn: wind.speedKn, gust01: 0 };
+  const schooner = createSchooner(px, pz, enc.bearing);
+  const s = schooner.sailing.state;
+  // Arrive as you sailed on the chart: everything set, already making way.
+  s.sailLevel = s.sailSetting = FULL_SAIL;
+  s.speed = Math.max(updateTargetSpeed(s, schooner.sailing.cls, sailingWind, 0), 0);
   return {
     contact: c,
     forced: enc.forced,
-    // A squall brings its own wind.
-    wind: c.kind === 'storm' ? { from: wind.from, speedKn: Math.max(wind.speedKn, 26) } : wind,
-    ship,
-    player,
+    wind,
+    sailingWind,
+    player: { position: { x: px, y: 0, z: pz }, heading: enc.bearing },
+    schooner,
     target: hasTarget ? { position: { x: 0, y: 0, z: 0 }, heading: c.heading } : undefined,
     // Laden ships plod in the arena so the prototype schooner can catch them; plan 07
     // owns real intercepts. The steam cutter holds one speed; the schooner outruns it only
@@ -94,7 +98,9 @@ export function addArenaEntities(world: GameWorld, state: ArenaState): void {
     id: 'ship.player',
     transform: state.player,
     previousTransform: cloneTransform(state.player),
-    buoyancy: schoonerBuoyancy(),
+    buoyancy: state.schooner.buoyancy,
+    sailing: state.schooner.sailing,
+    hazards: state.schooner.hazards,
     model: 'schooner',
     playerControlled: true,
   });
@@ -124,22 +130,14 @@ export function distanceToTarget(state: ArenaState): number {
   );
 }
 
-/** One fixed tick of arena gameplay. Sets `result` when the arena is over. */
+/**
+ * One fixed tick of arena gameplay, after the sailing and hazard systems have moved the
+ * player. Sets `result` when the arena is over.
+ */
 export function stepArena(state: ArenaState, input: InputMapper, dt: number): void {
   if (state.result) return;
   state.elapsed += dt;
   const p = state.player;
-
-  const steer = (input.isDown('SteerStarboard') ? 1 : 0) - (input.isDown('SteerPort') ? 1 : 0);
-  if (input.pressed('RaiseSail')) p.trim = Math.min(p.trim + 0.25, 1);
-  if (input.pressed('LowerSail')) p.trim = Math.max(p.trim - 0.25, 0.25);
-  p.speedKn = chartSpeedKn(p.heading, state.wind, state.ship) * p.trim;
-  p.sceneSpeed = scene(p.speedKn);
-  p.heading =
-    (p.heading + steer * TURN_RATE * Math.min(p.sceneSpeed / 6, 1) * dt + Math.PI * 2) %
-    (Math.PI * 2);
-  p.position.x += Math.sin(p.heading) * p.sceneSpeed * dt;
-  p.position.z -= Math.cos(p.heading) * p.sceneSpeed * dt;
 
   const t = state.target;
   const c = state.contact;

@@ -18,6 +18,7 @@ All notable changes to this project are recorded here. The format follows [Keep 
 - **Water is cheaper on every preset:** it draws after the land and ships so hidden water isn't shaded, cat's-paws use one noise octave and are off on Low, and the water's noise skips pixels where it can't show ([plan 04 §23](plans/04-water-weather-seasons.md)).
 - **Saves are version 2:** the weather is saved with the run. A 0.1.0 save migrates and catches up on weather when loaded.
 - **Retuned climate:** colder spring lake, May winds from the northeast, and far fewer summer gales. November is still the stormy month, at about four times the observed gale time.
+- The **S7 scale greybox** and the **S8 chart arena** now sail the T1 on the plan 02 controller and hazards instead of their Phase 0 stand-in helms, which are deleted. The greybox gets a steady test wind (`?wind=<deg>&windkn=<kn>` and a Wind folder) and the full sailing tuning panel; the arena sails in the chart's wind and shows hull, rigging and strain ([plan 02 §14](plans/02-arcade-sailing.md), [plan 03 §15–16](plans/03-world-scale-chart-travel.md)).
 
 ## [0.1.0] - 2026-10-29
 

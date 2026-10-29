@@ -17,8 +17,8 @@ import { loadRun } from './core/save/load';
 import { RunSaver } from './core/save/run-saver';
 import { AssetLoader, EMPTY_MANIFEST } from './core/assets';
 import { createGameAudio, type GameAudio } from './audio/game-audio';
-import { createBuoyancy } from './gameplay/buoyancy';
 import { cloneTransform, createGameWorld } from './gameplay/ecs';
+import { createSchooner } from './gameplay/schooner';
 import type { SaveControls } from './debug/overlay';
 import type { GameContext, GameEvents } from './modes/context';
 import { ModeMachine } from './modes/machine';
@@ -27,12 +27,7 @@ import { loadAssets } from './render/assets';
 import { browserStorage, isQualityId } from './render/quality';
 import { GameRenderer } from './render/renderer';
 import { createTestScene } from './render/test-scene';
-import { createSailingState } from './sim/sailing/controller';
-import { defaultHandling } from './sim/sailing/handling';
-import { defaultHazardRules } from './sim/sailing/hazard-rules';
-import { compileHazardClass, createHazardState, mooringBerths } from './sim/sailing/hazards';
-import { compileSailingClass } from './sim/sailing/ship-class';
-import { sailShipRecord, T1_SCHOONER_ID } from './sim/sailing/ships';
+import { mooringBerths } from './sim/sailing/hazards';
 import { httpBytes, loadZoneTerrain, type LoadedZone } from './sim/terrain/load';
 import { TEST_BAY } from './sim/terrain/test-bay';
 import { APOSTLES_ID, defFrame, manifestFrame, spawnPose, zoneDef } from './sim/terrain/zones';
@@ -205,8 +200,6 @@ async function boot(): Promise<void> {
 
   // The player's T1 schooner on the plan 02 sailing model at the zone's spawn, in the
   // weather's wind.
-  const shipRecord = sailShipRecord(T1_SCHOONER_ID);
-  const handling = defaultHandling();
   // `?spawn=x,z,heading` (zone meters, degrees) starts elsewhere in the zone, for checks.
   const spawn = spawnPose(zoneData);
   const [sx, sz, sh] = (params.get('spawn') ?? '').split(',').map(Number);
@@ -215,20 +208,15 @@ async function boot(): Promise<void> {
     spawn.z = sz ?? spawn.z;
     if (Number.isFinite(sh)) spawn.heading = ((sh ?? 0) * Math.PI) / 180;
   }
+  const schooner = createSchooner(spawn.x, spawn.z, spawn.heading);
+  const { record: shipRecord, handling, hazardRules, sailing, hazards } = schooner;
   const shipTransform = { position: { x: spawn.x, y: 0, z: spawn.z }, heading: spawn.heading };
-  const sailing = {
-    cls: compileSailingClass(shipRecord, handling),
-    state: createSailingState(spawn.x, spawn.z, spawn.heading),
-  };
   sailing.state.manualTrim = settings.value.sailing.manualTrim;
-  const hazardRules = defaultHazardRules();
-  const hazardClass = compileHazardClass(shipRecord, hazardRules);
-  const hazards = { cls: hazardClass, state: createHazardState(hazardClass) };
   const playerShip = ctx.world.add({
     id: 'ship.player',
     transform: shipTransform,
     previousTransform: cloneTransform(shipTransform),
-    buoyancy: createBuoyancy(shipRecord.buoyancy),
+    buoyancy: schooner.buoyancy,
     sailing,
     hazards,
     model: 'schooner',

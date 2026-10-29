@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import type { Chart } from '../src/core/coords';
+import { knotsToMs, sceneSpeed, type Chart } from '../src/core/coords';
 import {
   chartOf,
   FREIGHTER_ROUTES,
@@ -10,14 +10,16 @@ import {
 } from '../src/debug/scale-greybox/geography';
 import { createFreighters, stepFreighter } from '../src/debug/scale-greybox/freighters';
 import {
-  DEFAULT_HELM,
-  stepHelm,
+  beamReachSpeed,
+  greyboxDepth,
+  steadyWind,
   turningCircle,
-  visualSpeed,
-  type ShipState,
-} from '../src/debug/scale-greybox/helm';
+} from '../src/debug/scale-greybox/sailing';
 import { snapToShore } from '../src/debug/scale-greybox/setpieces';
 import { buildTerrain } from '../src/debug/scale-greybox/terrain';
+import { createSchooner } from '../src/gameplay/schooner';
+import { IDLE_COMMAND, stepSailing } from '../src/sim/sailing/controller';
+import { IDLE_MOORING, stepHazards, type HazardEvent } from '../src/sim/sailing/hazards';
 
 const NM = 1852;
 const dist = (a: Chart, b: Chart): number => Math.hypot(b.x - a.x, b.y - a.y);
@@ -60,7 +62,7 @@ describe('S7 greybox geography', () => {
 
   it('starts the schooner in open water off Bayfield', () => {
     const start = chartOf(46.8, -90.797);
-    expect(landHeight(start.x, start.y)).toBeLessThan(-DEFAULT_HELM.draftM);
+    expect(landHeight(start.x, start.y)).toBeLessThan(-createSchooner(0, 0, 0).record.draftFullM);
     expect(landmassAt(start.x, start.y)).toBeUndefined();
   });
 });
@@ -75,10 +77,19 @@ describe('S7 scale model', () => {
     for (const h of heights) expect(h).toBeCloseTo(heights[0] as number, 3);
   });
 
+  const { cls } = createSchooner(0, 0, 0).sailing;
+
   it('moves the ship at v = v_game × R / C', () => {
     // 8 kn at C = 8, R = 24 is ×3: about 12.3 m/s (plan 02 §3.1).
-    expect(visualSpeed(8, { compression: 8, rate: 24 })).toBeCloseTo(12.35, 1);
-    expect(visualSpeed(8, { compression: 6, rate: 24 })).toBeCloseTo(16.46, 1);
+    expect(sceneSpeed(knotsToMs(8), 24, 8)).toBeCloseTo(12.35, 1);
+    expect(sceneSpeed(knotsToMs(8), 24, 6)).toBeCloseTo(16.46, 1);
+  });
+
+  it('reaches at a working schooner speed in the default breeze', () => {
+    // Plan 03 §3.3: a schooner makes 7–8 kn on a beam reach.
+    const kn = beamReachSpeed(cls, steadyWind(315, 12)) / knotsToMs(1);
+    expect(kn).toBeGreaterThan(6);
+    expect(kn).toBeLessThanOrEqual(8);
   });
 
   it('keeps real travel time independent of C', () => {
@@ -86,44 +97,51 @@ describe('S7 scale model', () => {
     if (!leg) throw new Error('missing leg');
     const times = [6, 8, 10].map((c) => {
       const onScreen = dist(leg.from, leg.to) / c;
-      return onScreen / visualSpeed(7.65, { compression: c, rate: 24 });
+      return onScreen / sceneSpeed(knotsToMs(7.65), 24, c);
     });
     for (const t of times) expect(t).toBeCloseTo(times[0] as number, 6);
   });
 
   it('turns tighter as C grows, at the same game speed', () => {
     const at = (c: number): number =>
-      turningCircle(7.65, DEFAULT_HELM, { compression: c, rate: 24 });
+      turningCircle(cls, knotsToMs(7.65), { compression: c, rate: 24 });
     expect(at(6)).toBeGreaterThan(at(8));
     expect(at(8)).toBeGreaterThan(at(10));
   });
 
-  it('runs aground instead of sailing onto land', () => {
+  it('stops the ship at the greybox shore under the plan 02 hazards', () => {
     const c = 8;
     const hf = terrain.heightfield(c);
-    // Off Bayfield, heading straight at the shore (west).
+    const scale = { compression: c, rate: 24 };
+    const env = { terrain: greyboxDepth((x, z) => hf.heightAt(x, z)), docks: [], berths: [] };
+    // Off Bayfield, heading straight at the shore (west) on a beam reach.
+    const wind = steadyWind(360, 12);
     const start = chartOf(46.811, -90.79);
-    const ship: ShipState = {
-      x: start.x / c,
-      z: -start.y / c,
-      heading: -Math.PI / 2,
-      speedKn: 7,
-      sailLevel: 3,
-      aground: false,
-    };
-    const input = { steer: 0, raise: false, lower: false, astern: false };
-    for (let i = 0; i < 60 * 120 && !ship.aground; i++) {
-      stepHelm(
-        ship,
-        input,
-        DEFAULT_HELM,
-        { compression: c, rate: 24 },
-        (x, z) => hf.heightAt(x, z),
+    const { sailing, hazards } = createSchooner(start.x / c, -start.y / c, -Math.PI / 2);
+    const s = sailing.state;
+    s.sailLevel = s.sailSetting = 3;
+    const events: HazardEvent[] = [];
+    for (let i = 0; i < 60 * 60; i++) {
+      const prev = { x: s.x, z: s.z, heading: s.heading };
+      stepSailing(s, IDLE_COMMAND, sailing.cls, wind, 0, scale, 1 / 60);
+      stepHazards(
+        s,
+        hazards.state,
+        hazards.cls,
+        IDLE_MOORING,
+        env,
+        prev,
+        wind,
+        scale,
         1 / 60,
+        events,
       );
+      expect(hf.heightAt(s.x, s.z)).toBeLessThan(0);
     }
-    expect(ship.aground).toBe(true);
-    expect(hf.heightAt(ship.x, ship.z)).toBeLessThan(0);
+    // Compressed 8×, the Bayfield shore is steep enough to count as rock.
+    const hit = events.find((e) => e.kind === 'grounded' || e.kind === 'struck');
+    expect(hit).toBeDefined();
+    expect(hazards.state.hull).toBeLessThan(hazards.cls.hullHP);
   });
 
   it('steams freighters along their lanes at R × 9 kn', () => {
