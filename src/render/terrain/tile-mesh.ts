@@ -1,4 +1,5 @@
 import { GridField } from '../../sim/terrain/grid-field';
+import { forestDensity, upnessAt } from '../../sim/terrain/vegetation';
 
 /**
  * Terrain patch geometry as plain typed arrays (plan 03 §8.3), so it can be built in the
@@ -24,7 +25,8 @@ export interface GridMeshOptions {
 export interface TileArrays {
   positions: Float32Array;
   normals: Float32Array;
-  colors: Float32Array;
+  /** Forest density 0–1 per vertex (sim/terrain/vegetation), for the terrain shader. */
+  forest: Float32Array;
   indices: Uint32Array;
   /** Height range of the patch's surface, for its bounding sphere. */
   minY: number;
@@ -45,49 +47,7 @@ export function gridField(g: HeightGrid): GridField {
   return new GridField(g.x0, g.z0, g.step, g.width, g.height, g.values);
 }
 
-/** An sRGB hex color as linear RGB, the way three.js's color management reads it. */
-function linear(hex: number): number[] {
-  return [16, 8, 0].map((shift) => {
-    const c = ((hex >> shift) & 255) / 255;
-    return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4;
-  });
-}
-
-// Greybox palette: seabed, shoals, beach, grass to forest, rock on steep ground.
-const DEEP = linear(0x2f3f3b);
-const SHOAL = linear(0x9a8c64);
-const BEACH = linear(0xcdbd8e);
-const GRASS = linear(0x5f7c46);
-const FOREST = linear(0x3f5a35);
-const ROCK = linear(0x77736a);
-
-function smoothstep(a: number, b: number, x: number): number {
-  const t = Math.min(1, Math.max(0, (x - a) / (b - a)));
-  return t * t * (3 - 2 * t);
-}
-
-function mix(a: number[], b: number[], t: number, out: Float32Array, k: number): void {
-  for (let c = 0; c < 3; c++) out[k + c] = (a[c] ?? 0) + ((b[c] ?? 0) - (a[c] ?? 0)) * t;
-}
-
-/** Greybox terrain color by height and upness (the normal's y), into `out` at `k`. */
-export function terrainColor(height: number, upness: number, out: Float32Array, k: number): void {
-  if (height < -8) mix(DEEP, DEEP, 0, out, k);
-  else if (height < -1) mix(DEEP, SHOAL, (height + 8) / 7, out, k);
-  else if (height < 1.2) mix(SHOAL, BEACH, Math.min(1, (height + 1) / 1.2), out, k);
-  else if (height < 3) mix(BEACH, GRASS, (height - 1.2) / 1.8, out, k);
-  else mix(GRASS, FOREST, Math.min(1, (height - 3) / 20), out, k);
-  if (height > 0.5) {
-    // Faces steeper than ~40° turn to rock.
-    const rock = smoothstep(0, 0.15, 0.85 - upness);
-    for (let c = 0; c < 3; c++) {
-      const v = out[k + c] ?? 0;
-      out[k + c] = v + ((ROCK[c] ?? 0) - v) * rock;
-    }
-  }
-}
-
-/** A terrain patch with positions, normals and colors, in zone meters. */
+/** A terrain patch with positions, normals and forest density, in zone meters. */
 export function buildTileArrays(field: GridField, o: GridMeshOptions): TileArrays {
   const s = o.stride;
   const cols = (o.i1 - o.i0) / s + 1;
@@ -96,7 +56,7 @@ export function buildTileArrays(field: GridField, o: GridMeshOptions): TileArray
   const count = cols * rows + ring;
   const positions = new Float32Array(count * 3);
   const normals = new Float32Array(count * 3);
-  const colors = new Float32Array(count * 3);
+  const forest = new Float32Array(count);
   const span = 2 * s * field.step;
   let minY = Number.POSITIVE_INFINITY;
   let maxY = Number.NEGATIVE_INFINITY;
@@ -119,7 +79,9 @@ export function buildTileArrays(field: GridField, o: GridMeshOptions): TileArray
       normals[k3] = nx * inv;
       normals[k3 + 1] = span * inv;
       normals[k3 + 2] = nz * inv;
-      terrainColor(h, span * inv, colors, k3);
+      const x = positions[k3] ?? 0;
+      const z = positions[k3 + 2] ?? 0;
+      forest[r * cols + c] = forestDensity(h, upnessAt(field, x, z), x, z);
     }
   }
 
@@ -159,7 +121,7 @@ export function buildTileArrays(field: GridField, o: GridMeshOptions): TileArray
       positions[k3 + 1] = (positions[top + 1] ?? 0) - SKIRT_M;
       positions[k3 + 2] = positions[top + 2] ?? 0;
       normals.copyWithin(k3, top, top + 3);
-      colors.copyWithin(k3, top, top + 3);
+      forest[base + q] = forest[loop[q] ?? 0] ?? 0;
     }
     for (let q = 0; q < ring; q++) {
       const a = loop[q] ?? 0;
@@ -178,5 +140,5 @@ export function buildTileArrays(field: GridField, o: GridMeshOptions): TileArray
     minY -= SKIRT_M;
   }
 
-  return { positions, normals, colors, indices: indices.slice(0, n), minY, maxY };
+  return { positions, normals, forest, indices: indices.slice(0, n), minY, maxY };
 }

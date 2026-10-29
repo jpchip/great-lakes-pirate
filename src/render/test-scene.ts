@@ -3,6 +3,8 @@ import type { AssetLoader } from '../core/assets';
 import type { LoadedZone } from '../sim/terrain/load';
 import { TEST_BAY } from '../sim/terrain/test-bay';
 import { edgeVisibility, type ZoneEdge } from '../sim/terrain/zone-edge';
+import { manifestFrame, setPieceFootprint, zoneDef } from '../sim/terrain/zones';
+import { clearingFromFootprint, type Clearing } from '../sim/terrain/vegetation';
 import { interpolateTransform, type Entity, type GameWorld, type Transform } from '../gameplay/ecs';
 import { sceneSpeed, DEFAULT_COMPRESSION } from '../core/coords';
 import { R_SAILING, type ClockState } from '../core/time';
@@ -23,7 +25,14 @@ import {
 } from './environment';
 import { createSky } from './sky';
 import { createDockMesh } from './terrain/dock';
+import { createTerrainMaterial } from './terrain/terrain-material';
 import { createTerrainView, type TerrainView } from './terrain/terrain-mesh';
+import {
+  createPlantModels,
+  createVegetationView,
+  vegetationFades,
+  type VegetationView,
+} from './vegetation/vegetation';
 import { createShipWake, measureWaterline, type ShipWake, type WakeShip } from './water/wake';
 import { createWater, WATER_FAR_RADIUS_M, type Water } from './water/water';
 import { bakeShore } from './water/shore';
@@ -48,6 +57,8 @@ export interface TestScene {
   /** The zone's terrain data and its streamed meshes, when it loaded. */
   readonly zone: LoadedZone | undefined;
   readonly terrain: TerrainView | undefined;
+  /** Trees and rocks on the zone's land, when it loaded. */
+  readonly vegetation: VegetationView | undefined;
   render(alpha: number, seaTime: number, frameSeconds: number): void;
 }
 
@@ -120,29 +131,67 @@ export async function createTestScene(
   const environment = createEnvironmentView(scene, sky, hemi, sun, water, weather);
   environment.update(clock.gameSeconds, { x: 0, z: 0 });
 
+  // Ships, terrain and vegetation are drawn in style B (plan 14 §16): toon bands, and ink
+  // outlines on the ships. The style lighting follows the environment's sun, moon and sky.
+  const lighting = new StyleLighting();
+  const outlines = new OutlineSettings();
+  const rim = new THREE.Color();
+
   let terrain: TerrainView | undefined;
+  let vegetation: VegetationView | undefined;
   if (zone) {
     // The tiles around the player are built now, behind the load.
     const start = world.with('playerControlled', 'transform').first?.transform.position;
+    const terrainMaterial = createTerrainMaterial(lighting);
+    const setCanopy = (preset: typeof renderer.preset): void => {
+      // The terrain turns forest to canopy color under the impostors' far fade.
+      const f = vegetationFades(preset);
+      terrainMaterial.uniforms.uCanopyStart.value = f.farStart * 0.9;
+      terrainMaterial.uniforms.uCanopyEnd.value = f.farEnd;
+    };
+    setCanopy(renderer.preset);
     terrain = createTerrainView(
       zone.terrain,
       zone.backdrop,
       zone.manifest.heightFormat.tileSamples,
       renderer.preset,
       { x: start?.x ?? 0, y: 15, z: start?.z ?? 0 },
+      true,
+      terrainMaterial,
     );
     scene.add(terrain.group);
     const view = terrain;
-    renderer.onPresetChange((preset) => view.applyPreset(preset));
+    renderer.onPresetChange((preset) => {
+      view.applyPreset(preset);
+      setCanopy(preset);
+    });
+
+    // Set-piece footprints stay clear of trees for the harbors (piece G).
+    const frame = manifestFrame(zone.manifest);
+    const clearings: Clearing[] = zoneDef(zone.manifest.zone).setPieces.map((def) => {
+      const f = setPieceFootprint(def, frame);
+      return clearingFromFootprint(
+        f.anchor,
+        f.bearing,
+        def.alongM + def.blendM,
+        def.inlandM + def.blendM,
+        def.seawardM,
+      );
+    });
+    vegetation = createVegetationView(
+      terrain,
+      createPlantModels(renderer.renderer),
+      lighting,
+      renderer.preset,
+      clearings,
+    );
+    scene.add(vegetation.group);
+    const plants = vegetation;
+    renderer.onPresetChange((preset) => plants.applyPreset(preset));
     for (const dock of TEST_BAY.docks) scene.add(createDockMesh(dock, zone.terrain));
   }
 
-  // Ships are procedural (plan 14 §5), drawn in style B: toon bands and ink outlines (§16).
-  // The style lighting follows the environment's sun, moon and sky each frame.
-  const lighting = new StyleLighting();
-  const outlines = new OutlineSettings();
-  const rim = new THREE.Color();
-
+  // Ships are procedural (plan 14 §5).
   const drawn = world.with('transform', 'model');
   // Each ship has its own model: the sails and booms pose to its own sailing state.
   const objects = new Map<Entity, SchoonerModel>();
@@ -213,6 +262,7 @@ export async function createTestScene(
     cameraRig,
     zone,
     terrain,
+    vegetation,
     render(alpha, seaTime, frameSeconds) {
       now += frameSeconds;
       for (const [e, model] of objects) {
@@ -269,6 +319,7 @@ export async function createTestScene(
         if (Number.isFinite(v)) f.density = Math.max(f.density, fogDensity(v));
       }
       terrain?.update(camera.position.x, camera.position.y, camera.position.z);
+      vegetation?.update(camera.position.x, camera.position.y, camera.position.z);
       water.update(camera, seaTime);
       renderer.render(scene, camera, frameSeconds);
     },

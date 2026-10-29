@@ -7,6 +7,7 @@ npm run geo:build                 # zone.apostles in data/zones.json → public/
 npm run geo:build -- apostles --compare            # also compare tile formats
 npm run geo:build -- apostles --land-curve=none    # try another land height curve
 npm run geo:build -- apostles --refetch            # re-download and re-warp the sources
+npm run geo:canopy                # add the forest canopy to an existing bake's shelter maps
 ```
 
 It runs locally, not in CI (plan 01 §11). The baked files are committed through Git LFS.
@@ -44,7 +45,8 @@ Apostles, ~1.2 GB). A cached rebuild takes about 35 seconds.
 4. Downsamples to the 4 m sailing grid and cuts it into 257 × 257 tiles (256 plus a shared
    edge).
 5. Bakes the shoreline signed distance field, and shelter, fetch and funneling maps for 16
-   wind directions on 32 m cells. Rays that leave the zone continue on a 1 km lake-wide grid,
+   wind directions on 32 m cells. Shelter counts a 15 m canopy on forested land, from the
+   runtime's vegetation density map (`src/sim/terrain/vegetation.ts`). Rays that leave the zone continue on a 1 km lake-wide grid,
    so fetch from the open lake is real.
 6. Finds each named island's land component, and cuts 1 m on-foot tiles for its footprint
    plus a 64 m margin.

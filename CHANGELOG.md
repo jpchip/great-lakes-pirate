@@ -11,6 +11,9 @@ All notable changes to this project are recorded here. The format follows [Keep 
 - **`?spawn=x,z,heading`** starts anywhere in the zone, and **`/bench/stream/`** (`npm run bench:stream`) times streaming along the Bayfield–Ashland–Outer Island route.
 - **Weather v1:** the S9 weather sim now drives the wind, visibility and cloud while sailing, so the weather changes on its own as lows and highs cross the lake. The dev panel and the playtest switches still override it, and **Use sim weather** hands it back ([plan 04 §24](plans/04-water-weather-seasons.md)).
 - **Barometer** on the HUD, under the clock: inches of mercury with a trend arrow, red when it falls fast ([plan 04 §24](plans/04-water-weather-seasons.md)).
+- **The Apostles' look:** a style B terrain shader with pale beaches, red sandstone bluffs in beds over dark wave-washed rock, meadows and forest floor, and a canopy color on far forest; and about 250k pines, birches and shore rocks planted from a vegetation density map, as instanced meshes near the ship and baked impostors out to 1.8 km on Medium. Each preset sets the density and distances ([plan 14 §17](plans/14-art-direction-asset-pipeline.md)).
+- **Lees behind wooded islands are longer:** the shelter maps count a 15 m forest canopy (`npm run geo:canopy` applies it to an existing bake).
+- The water bench also times the terrain and the vegetation.
 - **`data/climate.json`:** monthly climate for western Superior from NOAA normals (Madeline Island air, GLERL lake temperature) and Devils Island wind, with the sim's tuning beside it.
 
 ### Changed
