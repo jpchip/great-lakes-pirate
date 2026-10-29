@@ -35,7 +35,7 @@ Define how the schooner feels and handles: controls, the wind and speed model, w
 | Sweeps out / in | **R** | Row in a calm (§3.6). Added in Phase 1; plan 02 had no key for it |
 | Lantern on / off (dark running) | **L** | Running dark lowers visibility at night (plan 06) |
 | Spyglass | **Right mouse (hold)** | Zoomed view; identify ships, flags and lights at range |
-| Camera orbit / zoom | Mouse move (free cursor) / wheel | See §8 |
+| Camera orbit / zoom | Left or middle drag (free cursor) / wheel | See §8. Drag rather than plain mouse move, so the cursor stays free for the HUD (Phase 1) |
 | Interact (moor, go ashore, board) | **F** | Context-sensitive |
 | Chart | **M** | Locked while detected by a hostile ([03 §5.4](03-world-scale-chart-travel.md)) |
 | Combat aim / fire | Reserved: **Tab** aim mode, **LMB** fire | Defined in plan 07 |
@@ -350,6 +350,12 @@ Weapons, crew size for boarding and upgrade slots belong to plans 07 and 10 but 
 - **Docking:** F within 12 m of a berth's zone at under 2 kn starts a 5 s eased auto-dock to the berth pose and furls the sails; any other press says why not (`DockRefused`: no berth, too fast, anchored, aground). F at the berth casts off: 1 kn ahead and a 3 m shove away from the pier over 3 s. Tested on the real Bayfield berths.
 - **Dev overlay:** a Hazards folder shows hull, rigging, strain, depth and draft, anchor holding and load, the berth and the last hazard event, with a repair button and every rule live. Damage isn't saved yet (plan 16 adds it with the ship record).
 
+**Camera (built 2026-10-25, Phase 1 piece G).** `gameplay/camera/ship-camera.ts` is the pure camera math, like the on-foot camera; `render/camera-rig.ts` feeds it the mouse and copies it into three.js, replacing the Phase 0 OrbitControls. Notes on how it reads §8:
+- **Chase/orbit:** a boom from 4 m above the waterline, 70 m long at start, 22–900 m with the wheel (18% per notch, eased). Left or middle drag orbits; it swings back behind the ship after 3 s without input (setting). The camera never rolls unless "roll with ship" is on. The FOV drops from 50° by up to 4° at hull speed.
+- **Terrain collision:** 12 samples along the boom against the terrain height (or 0.8 m over the water) plus 1.5 m of clearance; the boom snaps shorter and grows back at 30 m/s.
+- **Tactical view:** from 220 m out the look-down floor rises to about 54° by 900 m, and the fog density thins by up to 40%.
+- **Spyglass:** hold right mouse (or toggle, a setting): an 8° FOV from 4.5 m above the deck, aimed where the cursor met the water in the chase view (or along the ray above the horizon), with a slow sway, a round vignette, and the player's own ship hidden so the rig doesn't fill the glass. Dragging pans it.
+
 **Acceptance criteria:**
 - A first-time player can sail around the bay and dock within **2 minutes** without instructions beyond the key list.
 - Beating upwind to a target by tacking is clearly slower than reaching, and a skilled run is ≥ 15% faster than a novice run on the same course.
@@ -392,6 +398,7 @@ All resolved. Follow-ups for other plans: passage prices and shipless earning (0
 ---
 
 ## Changelog
+- v0.7: Phase 1 camera built (§14): drag to orbit (§2), boom, collision, tactical and spyglass numbers.
 - v0.6: Phase 1 hazards and mooring built (§14): rock vs. grounding by bottom slope, simplified kedging, damage effects, strain and knockdown thresholds, anchor holding and drag, auto-dock and cast off.
 - v0.5: Phase 1 controller built (§14): sweeps key (R), the ships.json fields as built (§12), how the controller reads §3–5, starting T1 values.
 - v0.4: §5.1 records the spike S2 buoyancy model and starting tuning values.

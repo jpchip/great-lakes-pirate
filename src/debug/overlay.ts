@@ -36,10 +36,12 @@ export interface OverlayOptions {
   autoBench: boolean;
   /** Where to read the wind, sea and terrain for the stats (the player ship). */
   probe: () => { x: number; z: number };
+  /** Save a preset pick through the settings store; it applies it to the renderer. */
+  setQuality?: (id: QualityId) => void;
 }
 
 const STYLE = `
-  position: fixed; top: 8px; left: 8px; z-index: 10; margin: 0; padding: 6px 8px;
+  position: fixed; top: 52px; left: 16px; z-index: 10; margin: 0; padding: 6px 8px;
   font: 11px/1.4 ui-monospace, monospace; color: #e8eef0; background: rgba(15, 25, 32, 0.78);
   border-radius: 4px; pointer-events: none; white-space: pre;
 `;
@@ -69,6 +71,10 @@ export function createDevOverlay(options: OverlayOptions): DevOverlay {
     .add(quality, 'preset', [...QUALITY_IDS])
     .name('Preset')
     .onChange((id: QualityId) => {
+      if (options.setQuality) {
+        options.setQuality(id);
+        return;
+      }
       storeQuality(id, browserStorage());
       if (renderer.setQuality(id)) {
         console.info('Antialiasing changes on reload for this preset.');

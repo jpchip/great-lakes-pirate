@@ -1,7 +1,7 @@
 /**
  * Input action map (plan 01 §4.8): physical keys and mouse buttons map to semantic
- * actions, with one binding context per mode. Bindings are plain data so rebinding
- * can be saved in the settings store later (plan 13).
+ * actions, with one binding context per mode. Bindings are plain data, so the player's
+ * rebinds are saved as overrides in the settings store (plan 13 §9, core/settings).
  *
  * Keys use KeyboardEvent.code (layout-independent); mouse buttons are `Mouse0`…`Mouse4`.
  */
@@ -143,4 +143,91 @@ export class InputMapper {
   private codes(action: Action): readonly string[] {
     return this.bindings[this.context][action] ?? [];
   }
+}
+
+/**
+ * The actions the settings screen lets the player rebind (plan 13 §9), per context, in
+ * the order it lists them. Combat stays reserved until plan 07.
+ */
+export const REBINDABLE: Partial<Record<InputContext, readonly Action[]>> = {
+  sailing: [
+    'SteerPort',
+    'SteerStarboard',
+    'RaiseSail',
+    'LowerSail',
+    'TrimIn',
+    'TrimOut',
+    'Anchor',
+    'Sweeps',
+    'Lantern',
+    'Spyglass',
+    'Interact',
+    'ToggleChart',
+  ],
+};
+
+/** Keys a rebind may not take: Escape always opens and closes the menu. */
+export const RESERVED_CODES: readonly string[] = ['Escape'];
+
+/**
+ * Bind `code` as the primary input for `action` in `context`. The action keeps its
+ * other inputs (the arrow keys beside WASD), and any other action in the same context
+ * that used `code` loses it, so one key never means two things. Returns new bindings.
+ */
+export function rebind(
+  bindings: Bindings,
+  context: InputContext,
+  action: Action,
+  code: string,
+): Bindings {
+  if (RESERVED_CODES.includes(code)) return bindings;
+  const next: Partial<Record<Action, readonly string[]>> = {};
+  for (const [other, codes] of Object.entries(bindings[context]) as [Action, string[]][]) {
+    next[other] = other === action ? codes : codes.filter((c) => c !== code);
+  }
+  const current = (next[action] ?? []).filter((c) => c !== code);
+  next[action] = [code, ...current.slice(1)];
+  return { ...bindings, [context]: next };
+}
+
+/**
+ * The per-context differences between `bindings` and `defaults`, for the settings store.
+ */
+export function bindingOverrides(
+  bindings: Bindings,
+  defaults: Bindings = DEFAULT_BINDINGS,
+): Partial<Record<InputContext, Partial<Record<Action, string[]>>>> {
+  const out: Partial<Record<InputContext, Partial<Record<Action, string[]>>>> = {};
+  for (const context of Object.keys(bindings) as InputContext[]) {
+    const actions = new Set([
+      ...Object.keys(bindings[context]),
+      ...Object.keys(defaults[context]),
+    ] as Action[]);
+    for (const action of actions) {
+      const now = bindings[context][action] ?? [];
+      const was = defaults[context][action] ?? [];
+      if (now.length === was.length && now.every((c, i) => c === was[i])) continue;
+      (out[context] ??= {})[action] = [...now];
+    }
+  }
+  return out;
+}
+
+const MOUSE_LABELS: Record<string, string> = {
+  Mouse0: 'Left mouse',
+  Mouse1: 'Middle mouse',
+  Mouse2: 'Right mouse',
+  Mouse3: 'Mouse 4',
+  Mouse4: 'Mouse 5',
+};
+
+/** A readable name for a KeyboardEvent.code or mouse button. */
+export function codeLabel(code: string): string {
+  const mouse = MOUSE_LABELS[code];
+  if (mouse) return mouse;
+  if (code.startsWith('Key')) return code.slice(3);
+  if (code.startsWith('Digit')) return code.slice(5);
+  if (code.startsWith('Arrow')) return `${code.slice(5)} arrow`;
+  if (code.startsWith('Numpad')) return `Num ${code.slice(6)}`;
+  return code.replace(/(Left|Right)$/, ' ($1)').replace(/([a-z])([A-Z])/g, '$1 $2');
 }

@@ -79,8 +79,8 @@ export const QUALITY_PRESETS: Record<QualityId, QualityPreset> = {
 
 export const DEFAULT_QUALITY: QualityId = 'medium';
 
-// Phase 0 keeps the choice in localStorage; it moves to the IndexedDB settings store
-// with the settings screen in Phase 1 (plan 16 §2).
+// The Phase 0 key. The settings store (core/settings) owns the choice now and reads this
+// once to carry it over; the dev overlay still writes it when no store is wired in.
 const STORAGE_KEY = 'glp.quality';
 
 /** window.localStorage, or undefined where touching it throws (some private modes). */
