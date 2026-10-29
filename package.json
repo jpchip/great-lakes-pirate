@@ -20,6 +20,7 @@
     "e2e": "playwright test",
     "bench:save": "playwright test --config bench/s6/playwright.config.ts",
     "bench:weather": "vitest run --config bench/s9/vitest.config.ts",
+    "bench:stream": "playwright test --config bench/stream/playwright.config.ts",
     "geo:build": "node tools/geo/build.ts",
     "assets:hull": "node tools/assets/build-hull.ts",
     "audio": "node tools/audio/build.ts"

@@ -1,3 +1,4 @@
+import { zoneToChart, type ZoneFrame } from '../../core/coords';
 import { R_SAILING } from '../../core/time';
 import { fractalNoise, valueNoise } from './noise';
 import {
@@ -15,14 +16,30 @@ import {
 } from './sea-state';
 import { OPEN_WATER, type ShelterField } from './shelter';
 import { moonAt, sunAt } from './celestial';
-import { CLEAR_VISIBILITY_M, type Wind } from './weather';
+import {
+  CLEAR_VISIBILITY_M,
+  advanceWeather,
+  barometerAt,
+  cloudAt,
+  simWindAt,
+  visibilityAt,
+  type BarometerReading,
+  type Wind,
+  type WeatherState,
+} from './weather';
 import { seaScaleAt, type PackedWave, type Sea } from './waves';
 
 /**
- * The Phase 1 weather (plan 02 §11, plan 04 §15): one dev-panel wind for the whole zone
- * with slow drift and gusts, the island lee and channel funneling from the baked maps, a
- * sea that builds from that wind, and a scripted gale. It answers the plan 02 §11 queries
- * with the same Wind shape as the S9 sim, so Phase 2 can swap the source underneath.
+ * The zone's weather (plan 02 §11, plan 04 §15): one wind for the whole zone with gusts,
+ * the island lee and channel funneling from the baked maps, a sea that builds from that
+ * wind, and a scripted gale. It answers the plan 02 §11 queries with the S9 sim's Wind
+ * shape.
+ *
+ * The wind, visibility and cloud come from the S9 weather sim when it's given one
+ * (Phase 2, plan 04 §24), sampled once per tick at the player: a pressure system is
+ * hundreds of kilometers across, so the zone shares one sample and the shelter maps make
+ * the local differences. The Phase 1 dev panel stays as an override: a preset, the
+ * scripted gale or a panel change takes over until `useSim()` hands the sky back.
  *
  * Positions are zone meters (x east, z south). Time is game seconds, the clock the S9 sim
  * runs on: at R = 24 a game hour is 2.5 real minutes.
@@ -128,8 +145,29 @@ export interface WaveParams {
   hsM: number;
 }
 
+/** The S9 sim behind a zone: its saved state and where the zone sits on the chart. */
+export interface SimWeatherSource {
+  state: WeatherState;
+  frame: ZoneFrame;
+}
+
+/** What drives the zone's weather right now. */
+export type WeatherSource = 'sim' | 'panel' | 'gale';
+
 export interface LocalWeather {
+  /** The panel's values; while the sim drives, they follow it so the panel shows it live. */
   readonly settings: WeatherSettings;
+  readonly sim: SimWeatherSource | undefined;
+  readonly source: WeatherSource;
+  /** Hand the weather back to the sim after a panel override (no-op without one). */
+  useSim(): void;
+  /** Take the weather off the sim and onto the panel, keeping its current values. */
+  override(): void;
+  /**
+   * The barometer at the player (plan 04 §5.4): pressure, its 3-hour change and trend.
+   * Undefined while the panel or the gale drives, since they have no pressure field.
+   */
+  barometerAt(gameSeconds: number): BarometerReading | undefined;
   /** Shelter, fetch and funneling. Swap in the real maps when the terrain loads. */
   shelter: ShelterField;
   /** Seed for the stateless drift and gust noise. */
@@ -203,8 +241,33 @@ export function createLocalWeather(
   settings: WeatherSettings = weatherPreset('moderate'),
   shelter: ShelterField = OPEN_WATER,
   noiseSeed = 0x51ea,
+  sim?: SimWeatherSource,
 ): LocalWeather {
   let galeStart: number | undefined;
+  let overridden = sim === undefined;
+  /** Where the sim is sampled: the last tick's anchor (the player), zone meters. */
+  let probe = { x: 0, z: 0 };
+  let sampled: { t: number; x: number; z: number; base: Base } | undefined;
+
+  const simBase = (t: number): Base => {
+    const src = sim as SimWeatherSource;
+    if (sampled && sampled.t === t && sampled.x === probe.x && sampled.z === probe.z) {
+      return sampled.base;
+    }
+    const at = zoneToChart(probe, src.frame);
+    const wind = simWindAt(src.state, at, t);
+    const base: Base = {
+      fromRad: wind.fromRad,
+      speedKn: wind.speedKn,
+      gustiness: wind.gustiness,
+      visibilityM: visibilityAt(src.state, at, t),
+      cloud01: cloudAt(src.state, at, t),
+    };
+    sampled = { t, x: probe.x, z: probe.z, base };
+    return base;
+  };
+
+  const fromSim = (): boolean => sim !== undefined && !overridden && galeStart === undefined;
   let shape: SeaShape | undefined;
   let bakedFromRad: number | undefined;
   let referenceFetchM = 0;
@@ -225,6 +288,7 @@ export function createLocalWeather(
         };
       }
     }
+    if (fromSim()) return simBase(t);
     return {
       fromRad: (settings.fromDeg * Math.PI) / 180,
       speedKn: settings.speedKn,
@@ -234,9 +298,10 @@ export function createLocalWeather(
     };
   };
 
-  /** The open-water wind before shelter: base plus slow drift (as S9's windAt). */
+  /** The open-water wind before shelter: base plus slow drift (the sim drifts its own). */
   const openWind = (t: number): { fromRad: number; speedKn: number; gustiness: number } => {
     const base = baseAt(t);
+    if (fromSim()) return base;
     const hours = t / HOUR;
     const veer = ((settings.driftDeg * Math.PI) / 180) * fractalNoise(noiseSeed, hours / 3);
     const surge = 1 + settings.surge * fractalNoise(noiseSeed + 7, hours / 2);
@@ -251,6 +316,27 @@ export function createLocalWeather(
     settings,
     shelter,
     noiseSeed,
+    sim,
+
+    get source(): WeatherSource {
+      if (galeStart !== undefined) return 'gale';
+      return fromSim() ? 'sim' : 'panel';
+    },
+
+    useSim() {
+      if (!sim) return;
+      overridden = false;
+      galeStart = undefined;
+    },
+
+    override() {
+      overridden = true;
+    },
+
+    barometerAt(t) {
+      if (!sim || !fromSim()) return undefined;
+      return barometerAt(sim.state, zoneToChart(probe, sim.frame), t);
+    },
 
     windAt(p, t) {
       const open = openWind(t);
@@ -303,10 +389,12 @@ export function createLocalWeather(
     applyPreset(id) {
       Object.assign(settings, WEATHER_PRESETS[id]);
       galeStart = undefined;
+      overridden = true;
     },
 
     startGale(t) {
       galeStart = t;
+      overridden = true;
     },
 
     get galeActive() {
@@ -315,6 +403,19 @@ export function createLocalWeather(
 
     tick(t, anchor, sea) {
       seaRef = sea;
+      probe = { x: anchor.x, z: anchor.z };
+      // The sim keeps running under an override, so handing back finds the sky moved on.
+      if (sim && advanceWeather(sim.state, t) > 0) sampled = undefined;
+      if (fromSim()) {
+        // Keep the panel on the sim's values: it shows them live, and an override starts
+        // from here rather than jumping.
+        const b = simBase(t);
+        settings.fromDeg = (b.fromRad * 180) / Math.PI;
+        settings.speedKn = b.speedKn;
+        settings.gustiness = b.gustiness;
+        settings.visibilityM = b.visibilityM;
+        settings.cloud01 = b.cloud01;
+      }
       const dtGame = lastTick === undefined ? 0 : Math.max(0, t - lastTick);
       lastTick = t;
       if (galeStart !== undefined && !galeAt(t - galeStart)) {

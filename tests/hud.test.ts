@@ -6,7 +6,13 @@ import { defaultHazardRules } from '../src/sim/sailing/hazard-rules';
 import { compileHazardClass, createHazardState } from '../src/sim/sailing/hazards';
 import { compileSailingClass } from '../src/sim/sailing/ship-class';
 import { sailShipRecord, T1_SCHOONER_ID } from '../src/sim/sailing/ships';
-import { bestAngleBand, clockLabel, sampleHud, weekLabel } from '../src/ui/hud/model';
+import {
+  barometerSnapshot,
+  bestAngleBand,
+  clockLabel,
+  sampleHud,
+  weekLabel,
+} from '../src/ui/hud/model';
 
 const DEG = Math.PI / 180;
 const t1 = (): ReturnType<typeof compileSailingClass> =>
@@ -20,6 +26,13 @@ describe('sailing HUD model', () => {
     expect(band.fromDeg).toBeLessThanOrEqual(95);
     expect(band.toDeg).toBeGreaterThanOrEqual(135);
     expect(band.toDeg).toBeLessThanOrEqual(150);
+  });
+
+  it('reads the barometer in inches of mercury with a trend arrow', () => {
+    const baro = barometerSnapshot({ hpa: 1013.25, tendency3h: -3.4, trend: 'falling fast' });
+    expect(baro.inHgText).toBe('29.92');
+    expect(baro.arrow).toBe('⬇');
+    expect(barometerSnapshot({ hpa: 998, tendency3h: 0.2, trend: 'steady' }).arrow).toBe('→');
   });
 
   it('writes the week and the clock in the 1900 calendar', () => {
@@ -86,5 +99,26 @@ describe('sailing HUD model', () => {
     expect(damaged?.shallow).toBe(true);
     expect(damaged?.status).toEqual(['Aground', 'Anchored']);
     expect(sampleHud({ ship: {}, terrain: undefined, gameSeconds: 0, draftM: 1 })).toBeUndefined();
+  });
+
+  it('warns near the soft zone edge', () => {
+    const cls = t1();
+    const terrain = {
+      bounds: { minX: -1000, minZ: -1000, maxX: 1000, maxZ: 1000 },
+      contains: () => true,
+      depthAt: () => 30,
+    } as unknown as Parameters<typeof sampleHud>[0]['terrain'];
+    const edge = { fogFadeM: 400, edgeVisibilityM: 300 };
+    const at = (x: number) =>
+      sampleHud({
+        ship: { sailing: { cls, state: createSailingState(x, 0, 0) } },
+        terrain,
+        gameSeconds: 0,
+        draftM: 1.5,
+        edge,
+      })?.status;
+    expect(at(0)).toEqual([]);
+    expect(at(750)).toEqual([]);
+    expect(at(850)).toEqual(['Zone edge']);
   });
 });

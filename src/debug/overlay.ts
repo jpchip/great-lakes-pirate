@@ -5,6 +5,7 @@ import {
   type LocalWeather,
   type WeatherPresetId,
 } from '../sim/weather/local-weather';
+import type { BarometerReading } from '../sim/weather/weather';
 import type { GameRenderer } from '../render/renderer';
 import { browserStorage, QUALITY_IDS, storeQuality, type QualityId } from '../render/quality';
 import type { TestScene } from '../render/test-scene';
@@ -50,6 +51,25 @@ export interface DevOverlay {
   /** The root panel, for other dev panels to add folders to. */
   gui: GUI;
   update(frameSeconds: number): void;
+}
+
+function baroText(b: BarometerReading | undefined): string {
+  if (!b) return 'barometer: off (panel weather)';
+  const sign = b.tendency3h >= 0 ? '+' : '';
+  return `barometer ${b.hpa.toFixed(1)} hPa  ${sign}${b.tendency3h.toFixed(1)} / 3 h  ${b.trend}`;
+}
+
+/** The zone streaming line: tiles drawn by stride, waiting tiles and the slowest frames. */
+function streamText(scene: TestScene): string {
+  const t = scene.terrain?.stats;
+  if (!t) return '';
+  const strides = Object.entries(t.strides)
+    .map(([stride, n]) => `${n}×${Number(stride) * 4}m`)
+    .join(' ');
+  return (
+    `tiles ${strides || 'none'}  wait ${t.pending}  built ${t.builds}` +
+    `  ${t.worker ? 'worker' : 'main'} ${t.maxBuildMs.toFixed(1)} ms  update ≤${t.maxUpdateMs.toFixed(1)} ms`
+  );
 }
 
 export function createDevOverlay(options: OverlayOptions): DevOverlay {
@@ -105,6 +125,22 @@ export function createDevOverlay(options: OverlayOptions): DevOverlay {
   windFolder.add(settings, 'visibilityM', 100, 25_000, 100).name('Visibility (m)');
   windFolder.add(settings, 'cloud01', 0, 1, 0.01).name('Cloud');
   windFolder.controllers.forEach((c) => c.listen());
+  // While the sim drives, the wind sliders follow it; touching one takes the weather over.
+  const windKeys = [
+    'fromDeg',
+    'speedKn',
+    'driftDeg',
+    'surge',
+    'gustiness',
+    'visibilityM',
+    'cloud01',
+  ];
+  for (const c of windFolder.controllers) {
+    if (windKeys.includes(c.property)) c.onChange(() => weather.override());
+  }
+  if (weather.sim) {
+    windFolder.add({ sim: () => weather.useSim() }, 'sim').name('Use sim weather');
+  }
 
   const time = {
     get hour(): number {
@@ -217,11 +253,13 @@ export function createDevOverlay(options: OverlayOptions): DevOverlay {
         `${s.drawCalls} calls  ${(s.triangles / 1000).toFixed(1)}k tris`,
         `${renderer.preset.label}  scale ${s.scale.toFixed(2)}  ${s.width}×${s.height}`,
         heap ? `heap ${(heap.usedJSHeapSize / 1048576).toFixed(0)} MB` : '',
-        `wind ${((wind.fromRad * 180) / Math.PI).toFixed(0)}° ${wind.speedKn.toFixed(1)} kn  gust ${wind.gust01.toFixed(2)}  lee ${wind.shelter01.toFixed(2)}${weather.galeActive ? '  GALE' : ''}`,
+        `wind ${((wind.fromRad * 180) / Math.PI).toFixed(0)}° ${wind.speedKn.toFixed(1)} kn  gust ${wind.gust01.toFixed(2)}  lee ${wind.shelter01.toFixed(2)}  [${weather.source}]`,
+        baroText(weather.barometerAt(clock.gameSeconds)),
         `sea Hs ${waves.hsM.toFixed(2)} m  ×${waves.scale.toFixed(2)}  λ ${weather.seaShape.peakWavelengthM.toFixed(0)} m`,
         `${clockText}  sun ${scene.environment.sunElevationDeg.toFixed(0)}°  vis ${(weather.visibilityAt(at, clock.gameSeconds) / 1000).toFixed(1)} km`,
         `save ${save.status}  last ${saved}${save.lastError ? `  ERROR ${save.lastError}` : ''}`,
         terrain ? terrain.describe(at.x, at.z) : '',
+        streamText(scene),
         benchText,
       ]
         .filter(Boolean)

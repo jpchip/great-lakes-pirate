@@ -129,7 +129,7 @@ Derived from the [R1a distances](R1a-western-superior-gazetteer.md#distances-est
 
 - **Mainland on-foot exception (decided 2026-10-22):** the mainland isn't walkable except docks districts and the **build pads of the three mainland hideout sites** ([09 §2.1](09-hideouts-building-crafting.md)). A pad is the site's build bounds plus a small margin, loaded like an island.
 - **The Apostles is the main playground** (start area, most content). It's large enough that it streams by tile rather than being a single loaded scene.
-- **Zone edges** are soft: the water continues ~1 km past the authored area, fog thickens, and a "Take to the chart" prompt appears. There are no invisible walls except at the very edge.
+- **Zone edges** are soft: the water continues ~1 km past the authored area, fog thickens, and a "Take to the chart" prompt appears. There are no invisible walls except at the very edge. *Built in Phase 2 (§17):* the bake has no water past its edge, so its last 1 km plays that part; a "Zone edge" chip stands in for the chart prompt until Phase 3.
 
 ### 4.1 Ojibwe community access
 - Red Cliff: a landing set piece on the Bayfield peninsula coast north of Bayfield. Trade only (no crime interactions available).
@@ -249,6 +249,7 @@ Spotted something (or something spotted you)
   - Ship vs. terrain: depth query (aground when depth < draft) plus a shoreline SDF for "push back" and damage.
   - On foot: heightmap ground plus prop primitives ([01 §2.2](01-tech-architecture.md)).
 - **Phase 1 runtime (built for the test bay, 2026-10-25):** `src/sim/terrain/` loads one slice of a baked zone up front: its sailing tiles at 4 m, the SDF and the 16-direction wind maps cropped to it, and a 32 m backdrop of the whole zone so land past the slice still shows in the fog. `ZoneTerrain` answers `heightAt`, `depthAt`, `shoreDistanceAt`, `shoreNormalAt`, and `shelterAt` / `fetchAt` / `funnelAt` (two nearest directions blended, land cells ignored). `src/render/terrain/` draws one mesh per tile at the preset's stride (16 m Low, 8 m Medium, 4 m High) with skirts, skips cells more than 12 m deep, and colors by height and slope until the art style pick. The test bay is tiles 2–4 × 3–5 of the Apostles (Bayfield, the North Channel, Red Cliff, Basswood, Hermit and Madeline; [02 §14](02-arcade-sailing.md)), with a greybox Bayfield pier and two berths. Streaming and geomipmapping stay Phase 2 work.
+- **Phase 2 runtime (whole zone, 2026-10-29; §17):** the loader reads every tile of the zone, so gameplay can query anywhere with no loading while sailing. Tile *meshes* stream: each tile within the preset's stream radius gets a geomipmapped mesh whose stride doubles with distance, built in a worker and cached, with skirts over the cracks; everything else is the 32 m backdrop, which leaves out the cells under drawn tiles. Medium draws at most 24 terrain meshes anywhere in the Apostles, against the 40 budget.
 
 ### 8.4 Memory estimate (Apostles, Medium preset)
 | Item | Estimate |
@@ -264,9 +265,9 @@ Spotted something (or something spotted you)
 ## 9. World Data Model (additions to `data/` and `WorldState`)
 
 **Static data:**
-- `zones.json`: id, geo bounds, C, origin, tile manifest path, set pieces[], walkable islands[], entry points[], region mapping.
+- `zones.json`: id, geo bounds, C, origin, tile manifest path, set pieces[], walkable islands[], entry points[], region mapping. *Built (§17):* id, name, world folder, C, center (the bake rounds it to the origin), the bake settings, the soft edge, the spawn, and set pieces with their footprints. Entry points come with chart travel (Phase 3) and the region mapping with plan 06.
 - `setpieces.json`: id, zone, 1:1 footprint, placement, linked port and docks district.
-- `islands.json`: id, name, zone, footprint, landing points, POIs (filled by plan 11).
+- `islands.json`: id, name, zone, footprint, landing points, POIs (filled by plan 11). *Built (§17):* id, name, zone, center point, and the hand edits (Long Island's clip box, Gull Island's rock). The footprint the bake found is in the zone manifest; landings and POIs come with plan 11.
 - `routes.json`: route graph nodes (ports, zone entries, waypoints) and edges (lanes) with traffic weights by season.
 - `chart.json`: chart extents, projection, charted vs. uncharted areas.
 
@@ -368,8 +369,8 @@ Squeezing 8× sideways while keeping heights 1:1 makes every slope 8× steeper (
 The soft knee (`h' = 20·ln(1 + h/20)`) keeps low ground near full height, so beaches, shore cliffs and sea caves still read right from the water, and flattens high ground the most. Lower land also shortens the lee. **Decided 2026-10-23: soft knee at 20 m** (§13).
 
 ### 14.4 Not done (follow-ups)
-- `zones.json` in `data/` (the zone config lives in `tools/geo/zones/` for now), `islands.json`, and the three mainland hideout pads, whose sites aren't placed yet (09).
-- Hand-edit layer (step 7): set-piece footprints, 1900 harbor corrections, sea caves, Gull Island.
+- ~~`zones.json` in `data/` (the zone config lives in `tools/geo/zones/` for now), `islands.json`,~~ (done in Phase 2, §17) and the three mainland hideout pads, whose sites aren't placed yet (09).
+- Hand-edit layer (step 7): ~~set-piece footprints~~, 1900 harbor corrections, sea caves, ~~Gull Island~~. Footprints and Gull Island are done (§17).
 - Vegetation density and depth-band maps: both are cheap to derive from the height tiles at runtime or in a later bake, once the terrain shader exists (14).
 - Chart data (step 9): the lake-wide grid the bake already builds is a starting point for S8.
 - Shelter maps ignore trees; the DEM is bare earth. A flat +15 m canopy on forested land would lengthen the lee.
@@ -508,8 +509,59 @@ Done on 2026-10-24: all four values confirmed, and the stutter fixed (plan 04 §
 
 ---
 
+## 17. Phase 2 Piece B: Whole-Zone Streaming (2026-10-29)
+
+**Goal** (Phase 2 scope, piece B): sail the whole Apostles zone, Bayfield to Ashland and out to Outer Island, with no loading screen and no streaming hitch over 33 ms on Medium, in at most 40 terrain draw calls.
+
+**Result:** built. The game now loads all 56 tiles and spawns in the North Channel as before; the whole map is sailable, terrain meshes stream around the camera, and fog closes in at the zone edge. The laptop load and hitch check is still to do (below).
+
+### 17.1 What was built
+| Piece | Where | Notes |
+|---|---|---|
+| Zone data | `data/zones.json`, `data/islands.json`, `data/schemas/zones.ts`, `islands.ts` | The bake config moved out of `tools/geo/zones/`. A zone has its world folder, C, center, bake settings, soft edge, spawn and set pieces; an island has its center point and optional hand edits. zod-validated with the other data files, plus cross-checks (every port, island and set piece points at a known zone or port). Ashland's port now names `zone.apostles`, as §4 has it. |
+| Hand-edit layer | `tools/geo/lib/edits.ts` | Step 7 of §8.2, applied to the 1 m grid right after the merge, so the sailing tiles, SDF, wind maps and island tiles all agree. **Gull Island** is raised as a 40 × 24 m rock up to 6 m (it was below the land threshold), and now has land in its on-foot tile. **Long Island** keeps its clip box, now in `islands.json`. **Set-piece footprints** for Bayfield and Ashland: a rectangle anchored on the shore, facing the water, whose land is flattened to a ground height with a soft blend back to the real terrain; water is left alone. The manifest lists the edits and the report counts the samples each changed. |
+| Whole-zone loader | `src/sim/terrain/load.ts` | Reads every tile, the full SDF and the full wind maps; `ZoneTerrain` covers the whole zone. 3.5 MB on the wire, about 50 MB decoded (4 m heights and SDF 15 MB each, wind maps 11 MB, the 8 m water grids 7 MB, the backdrop under 1 MB), plus a 15 MB copy of the heights in the tile worker. |
+| LOD and streaming | `src/render/terrain/lod.ts`, `terrain-mesh.ts` | Each tile within the preset's stream radius gets its own mesh; its stride doubles every `terrainLodM` meters from the camera, with 64 m of hysteresis, and a tile whose stride would reach the backdrop's 32 m is left to the backdrop. Skirts hide the cracks between strides. The backdrop is one mesh whose index buffer holds each tile's cells as a run, so drawing a tile just drops its run. Meshes stay cached (40 tiles, least recently used out) so turning back is free. |
+| Tile worker | `src/render/terrain/tile-worker.ts`, `tile-mesh.ts` | Tiles build off the main thread, nearest first, three in flight; at most two finished tiles go on screen per frame to spread the GPU uploads. The tiles around the spawn build on the main thread behind the load, so the first frame has no holes. Without workers (tests) tiles build on the main thread within a 4 ms budget. |
+| Presets | `src/render/quality.ts` | Low: 16 m within 1.2 km. Medium: 8 m to 1 km, 16 m to 2 km. High: 4 m to 0.8 km, 8 m to 1.6 km, 16 m to 2.4 km. Past that, the backdrop. |
+| Soft zone edge | `src/sim/terrain/zone-edge.ts`, `gameplay/sailing.ts`, `test-scene.ts`, `ui/hud/model.ts` | Over the last 1 km of the bake, visibility falls geometrically to 350 m; a "Zone edge" chip shows over the outer half; at the very edge (20 m in) the ship is held. Chart travel takes over there in Phase 3. |
+| Dev tools | `src/debug/overlay.ts`, `src/main.ts`, `bench/stream/` | The overlay shows tiles by stride, tiles waiting, builds and the slowest build and update. `?spawn=x,z,heading` starts anywhere in the zone. `/bench/stream/` (and `npm run bench:stream` in Chromium) flies the schooner along the exit-criteria route and reports frame times, streaming time and hitches. |
+| Tests | `tests/zone-streaming.test.ts`, `geo.test.ts`, `terrain.test.ts`, `data-validation.test.ts`, `hud.test.ts` | LOD and hysteresis, streaming and the backdrop on a synthetic zone, the draw-call budget on the real bake from every point of the zone, the soft edge, the hand edits, the whole-zone load, and the data cross-references. |
+
+### 17.2 Results
+**Draw calls.** Worst case anywhere in the zone, from a chase camera 15 m up, before frustum culling, counting the backdrop: **Low 13, Medium 24, High 30** (budget 40 on Medium). All-deep tiles draw nothing, which is most of the open lake. The full scene at the spawn on Medium is 34 calls and 163k triangles with the water, ship and sky.
+
+**Streaming cost** (`npm run bench:stream`, Medium, flying the route at 8× Full sail, about 94 m/s, in headless Chromium on the cloud box):
+
+| Measure | Result |
+|---|---|
+| Zone load (fetch and decode) | 0.7–1.1 s |
+| Scene build (backdrop and the spawn's tiles) | 0.3–0.4 s |
+| Main-thread streaming per frame | p50 0.1 ms, p99 0.8 ms, **max 6 ms** |
+| Tile build in the worker | 2.3 ms for an 8 m tile and 15 ms for a 4 m (High) tile uncontended; up to 23 ms here, sharing the CPU with SwiftShader |
+| Tile meshes built over the route | 104 |
+| Most terrain draw calls on the route | 23 |
+
+Before the worker, building on the main thread cost up to 18 ms in one frame on this box. Headless Chromium renders with SwiftShader on the CPU, so its frame times (about 200 ms) say nothing about the laptop.
+
+### 17.3 Decisions made in the piece
+- **Tile data is all resident; meshes stream.** The whole zone's data is 3.5 MB on the wire and the backdrop needs every tile anyway, so streaming the files by distance would save nothing. Gameplay gets the whole map at once (grounding, wind, the HUD's depth), and the loading cost that matters, mesh building, is what streams.
+- **Geomipmapping with skirts, not CDLOD.** One mesh per 1 km tile at one stride keeps draw calls low and fits the cached, worker-built approach; skirts were already in place. CDLOD's morphing would hide the pop between strides, which may matter once the terrain shader lands (piece C).
+- **The bake's last kilometer is the soft edge.** The baked terrain ends at the zone edge, so the fog fade runs inside it rather than past it.
+- **Set-piece footprints live in `zones.json`.** Piece G builds on them; the numbers (Bayfield 360 × 120 m flattened to 1.8 m, Ashland 640 × 160 m to 2.5 m, with 200 m and 600 m of water in front) are first guesses for piece G to adjust and rebake. The flattening cuts into the bluff behind Bayfield's waterfront, which is how the real town sits.
+- **Gull Island is 40 × 24 m game** (320 × 190 m real), a little bigger than the real rock, so it reads from the water and has a walkable top.
+
+### 17.4 Still to do
+- ~~**Laptop load and hitch check (Jared)**~~ **Passed 2026-10-29** on the baseline laptop (`/bench/stream/`, Medium, 8× Full sail): zone load 0.33 s and scene build 0.12 s; frame time p50 16.7 ms, p95 16.8 ms, max 16.8 ms over 6,493 frames, **no frame over 33 ms**; main-thread streaming p99 0.3 ms, max 1.2 ms; 104 tiles built, the slowest 12.5 ms in the worker; at most 23 terrain draw calls.
+- A "Take to the chart" prompt at the edge (Phase 3, with chart travel) and entry points in `zones.json`.
+- The Wanted region mapping in `zones.json` (plan 06).
+- The other four set pieces in the Apostles (Washburn, La Pointe, Red Cliff, Bad River) get footprints when they're built (Phase 4).
+
+---
+
 ## Changelog
-- v0.9: Phase 2 helm swap: the S7 greybox and the S8 arena sail on the plan 02 controller; the stand-in helms are deleted (§15, §16).
+- v0.10: Phase 2 helm swap: the S7 greybox and the S8 arena sail on the plan 02 controller; the stand-in helms are deleted (§15, §16).
+- v0.9: Phase 2 piece B (§17): the whole Apostles zone loaded, terrain meshes streamed with geomipmapped LOD in a worker, soft zone edges, `zones.json` and `islands.json` in `data/`, and the hand-edit layer (Gull Island, Long Island's clip, set-piece footprints).
 - v0.8: Phase 1 runtime terrain for the test bay (§8.3): slice loader, terrain queries, tile meshes with a whole-zone backdrop.
 - v0.7: Restored the S7 write-up (§15: what was built, the speed, channel, walk and R tables, findings, feel check), which a merge had dropped; S8 renumbered to §16.
 - v0.5: Prototype S8 written up (§14) and playtested as fun: chart mode with plotting, compressed voyages and encounter arenas works; pacing guard and 6 nm day lookout range added.

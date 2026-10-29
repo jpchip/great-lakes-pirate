@@ -4,6 +4,7 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import { GridField } from '../src/sim/terrain/grid-field';
 import { loadZoneTerrain, type LoadedZone } from '../src/sim/terrain/load';
 import { dockBerths, dockPoint, TEST_BAY } from '../src/sim/terrain/test-bay';
+import { APOSTLES_ID, spawnPose, zoneDef } from '../src/sim/terrain/zones';
 import { WindMaps } from '../src/sim/terrain/zone-terrain';
 
 const DEG = Math.PI / 180;
@@ -81,25 +82,25 @@ describe('Apostles test bay', () => {
 
   beforeAll(async () => {
     if (!baked) return;
-    zone = await loadZoneTerrain(
-      async (path) => new Uint8Array(readFileSync(join(dir, path))),
-      TEST_BAY.tiles,
-    );
+    zone = await loadZoneTerrain(async (path) => new Uint8Array(readFileSync(join(dir, path))));
   });
 
-  it.skipIf(!baked)('loads the 3 × 3 km slice', () => {
+  it.skipIf(!baked)('loads the whole zone', () => {
     const { terrain, backdrop } = zone;
-    expect(terrain.zoneId).toBe(TEST_BAY.zone);
-    expect(terrain.bounds).toEqual({ minX: -1536, minZ: -1024, maxX: 1536, maxZ: 2048 });
-    expect(terrain.height.width).toBe(769);
-    expect(terrain.sdf.width).toBe(769);
+    expect(terrain.zoneId).toBe(APOSTLES_ID);
+    expect(terrain.bounds).toEqual({ minX: -3584, minZ: -4096, maxX: 3584, maxZ: 4096 });
+    expect(terrain.height.width).toBe(1793);
+    expect(terrain.height.height).toBe(2049);
+    expect(terrain.sdf.width).toBe(1793);
+    expect(terrain.wind.shelter[0]?.width).toBe(224);
     expect(backdrop.step).toBe(32);
-    // The backdrop agrees with the full-resolution slice on shared samples.
+    // The backdrop agrees with the full-resolution grid on shared samples, tile seams too.
     for (const [x, z] of [
-      [-1536, -1024],
+      [-3584, -4096],
       [-896, 320],
       [0, 0],
-      [1536, 2048],
+      [-1536, 3072],
+      [3584, 4096],
     ] as const) {
       expect(backdrop.sample(x, z)).toBeCloseTo(terrain.heightAt(x, z), 3);
     }
@@ -111,7 +112,7 @@ describe('Apostles test bay', () => {
     expect(shoreline.step).toBe(8);
     expect([seabed.width, seabed.height]).toEqual([shoreline.width, shoreline.height]);
     expect(seabed.maxX).toBe(manifest.height.x0 + (manifest.height.width - 1) * 4);
-    // They agree with the full-resolution slice on shared samples.
+    // They agree with the full-resolution grid on shared samples.
     for (const [x, z] of [
       [-1536, -1024],
       [-640, 152],
@@ -125,21 +126,23 @@ describe('Apostles test bay', () => {
 
   it.skipIf(!baked)('puts the spawn in deep open water and Bayfield ashore', () => {
     const { terrain } = zone;
-    const { spawn } = TEST_BAY;
+    const spawn = spawnPose(zoneDef(APOSTLES_ID));
     expect(terrain.depthAt(spawn.x, spawn.z)).toBeGreaterThan(20);
     expect(terrain.shoreDistanceAt(spawn.x, spawn.z)).toBeGreaterThan(60);
-    // Downtown Bayfield, 30 m inland of the dock.
-    expect(terrain.heightAt(-910, 339)).toBeGreaterThan(5);
+    // Downtown Bayfield, 30 m inland of the dock, on the set piece's flattened ground.
+    expect(terrain.heightAt(-910, 339)).toBeCloseTo(1.8, 0);
     expect(terrain.depthAt(-910, 339)).toBe(0);
     expect(terrain.shoreDistanceAt(-910, 339)).toBeLessThan(0);
+    // Up the hill behind the footprint the bluff is untouched.
+    expect(terrain.heightAt(-1060, 300)).toBeGreaterThan(15);
   });
 
   it.skipIf(!baked)('has depth and SDF that agree on the shoreline', () => {
     const { terrain } = zone;
     let mismatches = 0;
     let samples = 0;
-    for (let z = -1000; z < 2040; z += 37) {
-      for (let x = -1530; x < 1530; x += 37) {
+    for (let z = -4090; z < 4090; z += 37) {
+      for (let x = -3580; x < 3580; x += 37) {
         const d = terrain.shoreDistanceAt(x, z);
         if (Math.abs(d) < 12) continue; // the two grids round the shore differently
         samples++;

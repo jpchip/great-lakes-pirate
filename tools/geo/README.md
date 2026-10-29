@@ -3,13 +3,16 @@
 Bakes a coastal zone's terrain from public US government data (plan 03 §8, spike S3):
 
 ```sh
-npm run geo:build                 # zones/apostles.json → public/world/apostles/
+npm run geo:build                 # zone.apostles in data/zones.json → public/world/apostles/
 npm run geo:build -- apostles --compare            # also compare tile formats
 npm run geo:build -- apostles --land-curve=none    # try another land height curve
 npm run geo:build -- apostles --refetch            # re-download and re-warp the sources
 ```
 
 It runs locally, not in CI (plan 01 §11). The baked files are committed through Git LFS.
+
+The zone's settings and set pieces come from `data/zones.json`, and its islands from
+`data/islands.json` (schemas in `data/schemas/`).
 
 ## Requirements
 
@@ -36,14 +39,16 @@ Apostles, ~1.2 GB). A cached rebuild takes about 35 seconds.
    equirectangular projection in `src/core/coords.ts`), at 1 game meter (8 real meters).
 2. Merges them: land from the DEM, depth from the bathymetry, 0 = mean lake level
    (183.5 m). A land height curve can trade height for walkability (see below).
-3. Downsamples to the 4 m sailing grid and cuts it into 257 × 257 tiles (256 plus a shared
+3. Applies the hand-edit layer (`lib/edits.ts`): flattens the land in each set piece's
+   footprint and raises rocks for islands too small for the data (Gull Island).
+4. Downsamples to the 4 m sailing grid and cuts it into 257 × 257 tiles (256 plus a shared
    edge).
-4. Bakes the shoreline signed distance field, and shelter, fetch and funneling maps for 16
+5. Bakes the shoreline signed distance field, and shelter, fetch and funneling maps for 16
    wind directions on 32 m cells. Rays that leave the zone continue on a 1 km lake-wide grid,
    so fetch from the open lake is real.
-5. Finds each named island's land component, and cuts 1 m on-foot tiles for its footprint
+6. Finds each named island's land component, and cuts 1 m on-foot tiles for its footprint
    plus a 64 m margin.
-6. Writes `manifest.json`, a report (`reports/<zone>.md`) and preview images.
+7. Writes `manifest.json` (with the hand edits it applied), a report (`reports/<zone>.md`) and preview images.
 
 ## Output format
 
@@ -72,4 +77,9 @@ avoids the browser's 8-bit canvas when decoding PNGs.
   limit.
 - **Lee length** is 15× the obstacle height in game meters (`DEFAULT_WIND` in `lib/wind.ts`).
 - **Funneling** starts in channels narrower than 8 km real, full strength at 1.5 km.
-- **Islands** joined to the mainland in the data need a `bounds` clip box (Long Island).
+- **Islands** joined to the mainland in the data need a `clip` box in `data/islands.json`
+  (Long Island); one too small to show up gets a `rock` (Gull Island).
+- **Set-piece footprints** (`setPieces` in `data/zones.json`): a rectangle anchored on the
+  shore at `at`, facing `bearingDeg` out over the water, `inlandM` deep behind the anchor,
+  `seawardM` out in front and `alongM` wide. Land inside is flattened to `groundM`, blending
+  back over `blendM`; water inside is left as it is.
