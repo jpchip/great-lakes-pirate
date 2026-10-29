@@ -3,6 +3,7 @@ import { moonAt, sunAt } from '../sim/weather/celestial';
 import type { LocalWeather } from '../sim/weather/local-weather';
 import type { Sky } from './sky';
 import type { Water } from './water/water';
+import { SAND_HEX, SHALLOW_HEX } from './water/water-material';
 
 /**
  * Basic day and night (plan 04 §9, §10, §15 Phase 1): the sky gradient, sun and moon,
@@ -79,6 +80,8 @@ const OVERCAST = new THREE.Color(0x8d969c);
 const DEEP = new THREE.Color(0x1d3a4a);
 const CREST = new THREE.Color(0x4f7f8c);
 const FOAM = new THREE.Color(0xe8eef0);
+const SHALLOW = new THREE.Color(SHALLOW_HEX);
+const SAND = new THREE.Color(SAND_HEX);
 const NIGHT_TINT = new THREE.Color(0x6f88b8);
 /** Crest foam threshold in light air and in a gale. */
 const FOAM_CALM = 0.6;
@@ -87,10 +90,10 @@ const FOAM_GALE = 0.3;
 /** exp² fog reaches 2% transmission at visibility V when density = √(ln 50) / V. */
 const FOG_K = Math.sqrt(Math.log(50));
 /**
- * The draw-distance floor: even clear air fogs out by here (plan 04 §10), inside the
- * 2.5 km water disc. Piece F's far-water LOD can push this out.
+ * The draw-distance floor: even clear air fogs out by here (plan 04 §10). The far-water
+ * LOD (water.ts) runs to 10 km, where this leaves under 0.1% of the color.
  */
-export const MAX_FOG_VISIBILITY_M = 1800;
+export const MAX_FOG_VISIBILITY_M = 6000;
 
 export function fogDensity(visibilityM: number): number {
   return FOG_K / Math.min(Math.max(visibilityM, 30), MAX_FOG_VISIBILITY_M);
@@ -222,6 +225,14 @@ export function createEnvironmentView(
         .multiplyScalar(brightness);
       w.uCrestColor.value
         .copy(CREST)
+        .lerp(NIGHT_TINT, night * 0.15)
+        .multiplyScalar(brightness);
+      w.uShallowColor.value
+        .copy(SHALLOW)
+        .lerp(NIGHT_TINT, night * 0.15)
+        .multiplyScalar(brightness);
+      w.uSandColor.value
+        .copy(SAND)
         .lerp(NIGHT_TINT, night * 0.15)
         .multiplyScalar(brightness);
       w.uFoamColor.value.copy(FOAM).multiplyScalar(Math.min(1, brightness * brightness * 1.1));

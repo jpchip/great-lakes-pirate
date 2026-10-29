@@ -105,6 +105,24 @@ describe('Apostles test bay', () => {
     }
   });
 
+  it.skipIf(!baked)('keeps 8 m heights and shore distances of the whole zone for the water', () => {
+    const { terrain, seabed, shoreline, manifest } = zone;
+    expect(seabed.step).toBe(8);
+    expect(shoreline.step).toBe(8);
+    expect([seabed.width, seabed.height]).toEqual([shoreline.width, shoreline.height]);
+    expect(seabed.maxX).toBe(manifest.height.x0 + (manifest.height.width - 1) * 4);
+    // They agree with the full-resolution slice on shared samples.
+    for (const [x, z] of [
+      [-1536, -1024],
+      [-640, 152],
+      [-880, 336],
+      [1536, 2048],
+    ] as const) {
+      expect(seabed.sample(x, z)).toBeCloseTo(terrain.heightAt(x, z), 3);
+      expect(shoreline.sample(x, z)).toBeCloseTo(terrain.shoreDistanceAt(x, z), 3);
+    }
+  });
+
   it.skipIf(!baked)('puts the spawn in deep open water and Bayfield ashore', () => {
     const { terrain } = zone;
     const { spawn } = TEST_BAY;

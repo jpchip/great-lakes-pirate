@@ -29,7 +29,9 @@ describe('quality presets', () => {
       expect(p.waveCount).toBeGreaterThanOrEqual(GAMEPLAY_WAVES);
       expect(p.waveCount).toBeLessThanOrEqual(MAX_WAVES);
       expect(p.resolutionScale.min).toBeLessThanOrEqual(p.resolutionScale.max);
+      expect(p.sprayParticles).toBeGreaterThan(0);
     }
+    expect(QUALITY_PRESETS.low.sprayParticles).toBeLessThan(QUALITY_PRESETS.high.sprayParticles);
   });
 
   it('picks the URL, then the stored choice, then the default', () => {
