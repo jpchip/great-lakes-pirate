@@ -22,6 +22,7 @@ All notable changes to this project are recorded here. The format follows [Keep 
 ### Changed
 
 - The greybox pier in the Bayfield test bay is replaced by the harbor piers.
+- **Docking along the whole pier:** every pier has berths on both sides from its end back toward the shore wherever the water is deep enough, not just one pair at the end. A refused F or anchor press now says why on the HUD ("No berth in reach", "Too fast to dock").
 - **Water is cheaper on every preset:** it draws after the land and ships so hidden water isn't shaded, cat's-paws use one noise octave and are off on Low, and the water's noise skips pixels where it can't show ([plan 04 §23](plans/04-water-weather-seasons.md)).
 - **Saves are version 2:** the weather is saved with the run. A 0.1.0 save migrates and catches up on weather when loaded.
 - **Retuned climate:** colder spring lake, May winds from the northeast, and far fewer summer gales. November is still the stormy month, at about four times the observed gale time.

@@ -125,10 +125,25 @@ describe('the harbors on the Apostles zone', () => {
 
   it.skipIf(!baked)('puts every pier’s berths in water deep enough for the schooner', () => {
     for (const l of layouts) {
-      for (const b of mooringBerths(l.piers)) {
+      for (const b of mooringBerths(l.piers, zone.terrain)) {
         expect(zone.terrain.heightAt(b.pose.x, b.pose.z), b.id).toBeLessThan(-3);
       }
     }
+  });
+
+  it.skipIf(!baked)('offers berths down the length of the long piers, not only at the end', () => {
+    const ash = layouts.find((l) => l.def.id === 'harbor.ashland');
+    const city = ash?.piers.find((p) => p.kind === 'city');
+    if (!city) throw new Error('no Ashland city dock');
+    const berths = mooringBerths([city], zone.terrain);
+    // 166 m of pier: a pair every 36 m from the end, all in deep enough water.
+    expect(berths.length).toBeGreaterThanOrEqual(6);
+    const alongs = berths.map(
+      (b) =>
+        (b.pose.x - city.root.x) * Math.sin(city.bearing) -
+        (b.pose.z - city.root.z) * Math.cos(city.bearing),
+    );
+    expect(Math.min(...alongs)).toBeLessThan(city.lengthM / 2);
   });
 
   it.skipIf(!baked)('stands the buildings on dry ground and fills the towns', () => {
@@ -166,41 +181,47 @@ describe('the harbors on the Apostles zone', () => {
     const sailing = compileSailingClass(record, defaultHandling());
     const c = compileHazardClass(record, defaultHazardRules());
     const docks = layouts.flatMap((l) => l.piers);
-    const env: HazardEnv = { terrain: zone.terrain, docks, berths: mooringBerths(docks) };
+    const env: HazardEnv = {
+      terrain: zone.terrain,
+      docks,
+      berths: mooringBerths(docks, zone.terrain),
+    };
     const wind = { fromRad: 270 * DEG, speedKn: 10, gust01: 0 };
     for (const l of layouts) {
       for (const pier of l.piers) {
-        const berth = env.berths.find((b) => b.id.startsWith(pier.id));
-        if (!berth) throw new Error(`no berth at ${pier.id}`);
-        // Drifting in at a knot, 8 m off the berth.
-        const s = createSailingState(
-          berth.pose.x + berth.awayX * 8,
-          berth.pose.z + berth.awayZ * 8,
-          berth.pose.heading,
-        );
-        s.speed = knotsToMs(1);
-        const h = createHazardState(c);
-        const events: HazardEvent[] = [];
-        for (let i = 0; i < 240; i++) {
-          const prev = { x: s.x, z: s.z, heading: s.heading };
-          stepSailing(s, IDLE_COMMAND, sailing, wind, 0, { rate: 24, compression: 8 }, 1 / 30);
-          stepHazards(
-            s,
-            h,
-            c,
-            { ...IDLE_MOORING, interact: i === 0 },
-            env,
-            prev,
-            wind,
-            { rate: 24, compression: 8 },
-            1 / 30,
-            events,
+        const own = env.berths.filter((b) => b.dockId === pier.id);
+        expect(own.length, pier.id).toBeGreaterThan(0);
+        for (const berth of own) {
+          // Drifting in at a knot, 8 m off the berth.
+          const s = createSailingState(
+            berth.pose.x + berth.awayX * 8,
+            berth.pose.z + berth.awayZ * 8,
+            berth.pose.heading,
           );
+          s.speed = knotsToMs(1);
+          const h = createHazardState(c);
+          const events: HazardEvent[] = [];
+          for (let i = 0; i < 240; i++) {
+            const prev = { x: s.x, z: s.z, heading: s.heading };
+            stepSailing(s, IDLE_COMMAND, sailing, wind, 0, { rate: 24, compression: 8 }, 1 / 30);
+            stepHazards(
+              s,
+              h,
+              c,
+              { ...IDLE_MOORING, interact: i === 0 },
+              env,
+              prev,
+              wind,
+              { rate: 24, compression: 8 },
+              1 / 30,
+              events,
+            );
+          }
+          expect(h.mooring, berth.id).toBe('docked');
+          expect(events, berth.id).toContainEqual({ kind: 'docked', berthId: berth.id });
+          expect(h.aground, berth.id).toBe(false);
+          expect(h.hull, berth.id).toBe(100);
         }
-        expect(h.mooring, pier.id).toBe('docked');
-        expect(events, pier.id).toContainEqual({ kind: 'docked', berthId: berth.id });
-        expect(h.aground, pier.id).toBe(false);
-        expect(h.hull, pier.id).toBe(100);
       }
     }
   });

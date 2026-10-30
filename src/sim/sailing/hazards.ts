@@ -140,11 +140,19 @@ export interface MooringBerth extends Berth {
   awayZ: number;
 }
 
-export function mooringBerths(docks: readonly Dock[]): MooringBerth[] {
+/** Water a berth needs under its middle to be offered, meters. */
+const BERTH_MIN_DEPTH_M = 3;
+
+/**
+ * Every pier's berths with their away directions. With the terrain, berths in water
+ * shallower than 3 m are left out (the inner ones on a pier over a shoaling bottom).
+ */
+export function mooringBerths(docks: readonly Dock[], terrain?: HazardTerrain): MooringBerth[] {
   const out: MooringBerth[] = [];
   for (const dock of docks) {
     const f = bearingVector(dock.bearing);
     for (const berth of dockBerths(dock)) {
+      if (terrain && terrain.depthAt(berth.pose.x, berth.pose.z) < BERTH_MIN_DEPTH_M) continue;
       const dx = berth.pose.x - dock.root.x;
       const dz = berth.pose.z - dock.root.z;
       const along = dx * f.x + dz * f.z;

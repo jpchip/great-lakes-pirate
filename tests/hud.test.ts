@@ -9,7 +9,9 @@ import { sailShipRecord, T1_SCHOONER_ID } from '../src/sim/sailing/ships';
 import {
   barometerSnapshot,
   bestAngleBand,
+  anchorRefusedNotice,
   clockLabel,
+  dockRefusedNotice,
   sampleHud,
   weekLabel,
 } from '../src/ui/hud/model';
@@ -98,6 +100,18 @@ describe('sailing HUD model', () => {
     expect(damaged?.depthM).toBe(3.1);
     expect(damaged?.shallow).toBe(true);
     expect(damaged?.status).toEqual(['Aground', 'Anchored']);
+
+    // A refused order adds its chip, once.
+    const refused = sampleHud({
+      ship: { sailing: { cls, state }, hazards: { cls: hcls, state: hstate } },
+      terrain: undefined,
+      gameSeconds: 0,
+      draftM: 1.5,
+      notice: dockRefusedNotice('noBerth'),
+    });
+    expect(refused?.status).toEqual(['Aground', 'Anchored', 'No berth in reach']);
+    expect(dockRefusedNotice('tooFast')).toBe('Too fast to dock');
+    expect(anchorRefusedNotice('tooDeep')).toBe('Too deep to anchor');
     expect(sampleHud({ ship: {}, terrain: undefined, gameSeconds: 0, draftM: 1 })).toBeUndefined();
   });
 

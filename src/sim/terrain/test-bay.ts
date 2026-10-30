@@ -58,9 +58,13 @@ export const TEST_BAY = {
   ] satisfies Dock[],
 } as const;
 
-/** Clearance between the pier and a ship's side, plus half a T1 beam (~6 m). */
-const BERTH_OFFSET_M = 3 + 0.5 + 3;
+/** Clearance between the pier's side and a ship's, plus half a T1 beam: 3.5 m. */
+const BERTH_CLEARANCE_M = 0.5 + 3;
 const BERTH_LENGTH_M = 34;
+/** Berths step this far apart down the pier, a ship's length and a little. */
+const BERTH_STEP_M = 36;
+/** No berth reaches closer than this to the pier's root. */
+const BERTH_ROOT_CLEAR_M = 10;
 
 /** Unit vector for a bearing on the water plane (x east, z south). */
 export function bearingVector(bearing: number): { x: number; z: number } {
@@ -77,19 +81,30 @@ export function dockPoint(dock: Dock, along: number, across: number): { x: numbe
 }
 
 /**
- * The two berths along the outer part of the pier, bow out so casting off is a straight
- * run to open water. Auto-dock (piece E) snaps a ship into one of these.
+ * The berths along a pier, a pair (one each side) every ship's length from the outer end
+ * back toward the shore, bow out so casting off is a straight run to open water. The
+ * outer pair keep the plain `.north` / `.south` ids; the ones further in add 2, 3, …
+ * Auto-dock (piece E) snaps a ship into one of these. `mooringBerths` drops the ones
+ * too shallow to lie at.
  */
 export function dockBerths(dock: Dock): Berth[] {
-  const along = dock.lengthM - BERTH_LENGTH_M / 2;
-  return (['north', 'south'] as const).map((side) => {
-    const p = dockPoint(dock, along, side === 'north' ? -BERTH_OFFSET_M : BERTH_OFFSET_M);
-    return {
-      id: `${dock.id}.${side}`,
-      dockId: dock.id,
-      pose: { x: p.x, z: p.z, heading: dock.bearing },
-      lengthM: BERTH_LENGTH_M,
-      halfWidthM: 6,
-    };
-  });
+  const offset = dock.widthM / 2 + BERTH_CLEARANCE_M;
+  const out: Berth[] = [];
+  for (
+    let along = dock.lengthM - BERTH_LENGTH_M / 2, k = 1;
+    k === 1 || along - BERTH_LENGTH_M / 2 >= BERTH_ROOT_CLEAR_M;
+    along -= BERTH_STEP_M, k++
+  ) {
+    for (const side of ['north', 'south'] as const) {
+      const p = dockPoint(dock, along, side === 'north' ? -offset : offset);
+      out.push({
+        id: `${dock.id}.${side}${k === 1 ? '' : String(k)}`,
+        dockId: dock.id,
+        pose: { x: p.x, z: p.z, heading: dock.bearing },
+        lengthM: BERTH_LENGTH_M,
+        halfWidthM: 6,
+      });
+    }
+  }
+  return out;
 }

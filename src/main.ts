@@ -43,7 +43,7 @@ import { TEST_BAY_ISLANDS, stubIslandShelter } from './sim/weather/shelter';
 import { advanceWeather, placeFogBank } from './sim/weather/weather';
 import { createSea } from './sim/weather/waves';
 import { createWorldState, parseWorldState, type WorldState } from './sim/world-state';
-import { sampleHud } from './ui/hud/model';
+import { anchorRefusedNotice, dockRefusedNotice, NOTICE_S, sampleHud } from './ui/hud/model';
 import { mountGameUi } from './ui/mount';
 
 /** Periodic autosave while safe (plan 16 §4.1). */
@@ -464,9 +464,18 @@ async function boot(): Promise<void> {
       view,
       wind: (x, z) => ctx.weather.windAt({ x, z }, state.environment.clock.gameSeconds),
       docks,
-      berths: mooringBerths(docks),
+      berths: mooringBerths(docks, ctx.terrain),
     }),
   );
+  // A refused F or anchor order says why on the HUD for a few seconds.
+  let notice: { text: string; untilS: number } | undefined;
+  let hudSeconds = 0;
+  const showNotice = (text: string): void => {
+    notice = { text, untilS: hudSeconds + NOTICE_S };
+    hudClock = HUD_INTERVAL_S;
+  };
+  ctx.events.on('DockRefused', (e) => showNotice(dockRefusedNotice(e.reason)));
+  ctx.events.on('AnchorRefused', (e) => showNotice(anchorRefusedNotice(e.reason)));
   // Phase 0 has no danger states yet, so every moment is safe to save (plan 16 §4.2).
   window.setInterval(saveNow, AUTOSAVE_INTERVAL_MS);
   document.addEventListener('visibilitychange', () => {
@@ -485,6 +494,11 @@ async function boot(): Promise<void> {
       audio?.update(frameSeconds, machine.mode);
       ui.setSpyglass(cameraRig?.ship.spyglass ?? false);
       hudClock += frameSeconds;
+      hudSeconds += frameSeconds;
+      if (notice && hudSeconds > notice.untilS) {
+        notice = undefined;
+        hudClock = HUD_INTERVAL_S;
+      }
       if (hudClock >= HUD_INTERVAL_S) {
         hudClock = 0;
         ui.setHud(
@@ -495,6 +509,7 @@ async function boot(): Promise<void> {
             draftM,
             barometer: ctx.weather.barometerAt(state.environment.clock.gameSeconds),
             edge: zoneData.edge,
+            notice: notice?.text,
           }),
         );
       }
