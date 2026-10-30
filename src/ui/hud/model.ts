@@ -166,7 +166,7 @@ export function hazardStatus(h: HazardState): string[] {
   const out: string[] = [];
   if (h.foundering) out.push('Foundering');
   if (h.knockdown > 0) out.push('Knocked down');
-  if (h.aground) out.push(h.kedging ? 'Kedging off' : 'Aground');
+  if (h.aground) out.push(h.kedging ? 'Kedging off' : 'Aground: hold X to kedge');
   if (h.anchor === 'down') out.push(h.dragging ? 'Anchor dragging' : 'Anchored');
   if (h.anchor === 'weighing') out.push('Weighing anchor');
   if (h.mooring === 'docking') out.push('Docking');
