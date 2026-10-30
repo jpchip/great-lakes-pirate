@@ -30,7 +30,8 @@ import { GameRenderer } from './render/renderer';
 import { createTestScene } from './render/test-scene';
 import { mooringBerths } from './sim/sailing/hazards';
 import { httpBytes, loadZoneTerrain, type LoadedZone } from './sim/terrain/load';
-import { TEST_BAY } from './sim/terrain/test-bay';
+import { TEST_BAY, type Dock } from './sim/terrain/test-bay';
+import { layoutHarbors } from './sim/harbors';
 import { LIGHTHOUSES, placeLights, viewingSpot } from './sim/lighthouses';
 import { APOSTLES_ID, defFrame, manifestFrame, spawnPose, zoneDef } from './sim/terrain/zones';
 import {
@@ -42,7 +43,7 @@ import { TEST_BAY_ISLANDS, stubIslandShelter } from './sim/weather/shelter';
 import { advanceWeather, placeFogBank } from './sim/weather/weather';
 import { createSea } from './sim/weather/waves';
 import { createWorldState, parseWorldState, type WorldState } from './sim/world-state';
-import { sampleHud } from './ui/hud/model';
+import { anchorRefusedNotice, dockRefusedNotice, NOTICE_S, sampleHud } from './ui/hud/model';
 import { mountGameUi } from './ui/mount';
 
 /** Periodic autosave while safe (plan 16 §4.1). */
@@ -232,6 +233,18 @@ async function boot(): Promise<void> {
     spawn.x = sx ?? spawn.x;
     spawn.z = sz ?? spawn.z;
     if (Number.isFinite(sh)) spawn.heading = ((sh ?? 0) * Math.PI) / 180;
+  }
+  // `?harbor=bayfield` (or `ashland`, with `,2` for a pier by its order in data/harbors.json)
+  // starts the ship 120 m off that pier's outer end, bow toward it, to try docking.
+  const harborLayouts = zone ? layoutHarbors(manifestFrame(zone.manifest), zone.terrain) : [];
+  const [harborKey, pierIndex] = (params.get('harbor') ?? '').split(',');
+  const harbor = harborKey ? harborLayouts.find((l) => l.def.id.includes(harborKey)) : undefined;
+  const pier = harbor?.piers[Number(pierIndex) || 0];
+  if (pier) {
+    const out = pier.lengthM + 120;
+    spawn.x = pier.root.x + Math.sin(pier.bearing) * out;
+    spawn.z = pier.root.z - Math.cos(pier.bearing) * out;
+    spawn.heading = pier.bearing + Math.PI;
   }
   // `?light=raspberry` (an id fragment, `light.raspberry` or just `raspberry`) spawns the ship
   // in open water with a clear line to that light, looking at it; `?light=outer,1500` sets the distance in
@@ -442,16 +455,27 @@ async function boot(): Promise<void> {
   applySettings(settings.value, undefined);
   settings.subscribe(applySettings);
   const draftM = shipRecord.draftEmptyM;
+  // The harbors' piers (Phase 2 piece G); the greybox pier only without the zone.
+  const docks: readonly Dock[] = zone ? harborLayouts.flatMap((l) => l.piers) : TEST_BAY.docks;
   let hudClock = HUD_INTERVAL_S;
 
   machine.register({ id: 'mainMenu', enter: () => (input.context = 'menu') }).register(
     createSailingMode(ctx, {
       view,
       wind: (x, z) => ctx.weather.windAt({ x, z }, state.environment.clock.gameSeconds),
-      docks: TEST_BAY.docks,
-      berths: mooringBerths(TEST_BAY.docks),
+      docks,
+      berths: mooringBerths(docks, ctx.terrain),
     }),
   );
+  // A refused F or anchor order says why on the HUD for a few seconds.
+  let notice: { text: string; untilS: number } | undefined;
+  let hudSeconds = 0;
+  const showNotice = (text: string): void => {
+    notice = { text, untilS: hudSeconds + NOTICE_S };
+    hudClock = HUD_INTERVAL_S;
+  };
+  ctx.events.on('DockRefused', (e) => showNotice(dockRefusedNotice(e.reason)));
+  ctx.events.on('AnchorRefused', (e) => showNotice(anchorRefusedNotice(e.reason)));
   // Phase 0 has no danger states yet, so every moment is safe to save (plan 16 §4.2).
   window.setInterval(saveNow, AUTOSAVE_INTERVAL_MS);
   document.addEventListener('visibilitychange', () => {
@@ -470,6 +494,11 @@ async function boot(): Promise<void> {
       audio?.update(frameSeconds, machine.mode);
       ui.setSpyglass(cameraRig?.ship.spyglass ?? false);
       hudClock += frameSeconds;
+      hudSeconds += frameSeconds;
+      if (notice && hudSeconds > notice.untilS) {
+        notice = undefined;
+        hudClock = HUD_INTERVAL_S;
+      }
       if (hudClock >= HUD_INTERVAL_S) {
         hudClock = 0;
         ui.setHud(
@@ -480,6 +509,7 @@ async function boot(): Promise<void> {
             draftM,
             barometer: ctx.weather.barometerAt(state.environment.clock.gameSeconds),
             edge: zoneData.edge,
+            notice: notice?.text,
           }),
         );
       }

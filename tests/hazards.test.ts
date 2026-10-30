@@ -387,6 +387,34 @@ describe('docking', () => {
     expect(north.pose.z).toBeCloseTo(-6.5, 6);
   });
 
+  it('lays berths down a long pier, clear of a wide deck, and drops the shallow ones', () => {
+    const long: Dock = { ...dock, id: 'dock.long', lengthM: 160, widthM: 16 };
+    const all = mooringBerths([long]);
+    // Pairs every 36 m from the end while the berth stays 10 m off the root.
+    expect(all.map((b) => b.id)).toEqual([
+      'dock.long.north',
+      'dock.long.south',
+      'dock.long.north2',
+      'dock.long.south2',
+      'dock.long.north3',
+      'dock.long.south3',
+      'dock.long.north4',
+      'dock.long.south4',
+    ]);
+    // Half the deck plus 3.5 m off the centerline.
+    expect(all[0]?.pose.z).toBeCloseTo(-11.5, 6);
+    // Water shoaling to 2 m within 60 m of the root keeps only the outer berths.
+    const shoal: HazardTerrain = { depthAt: (x) => (x < 60 ? 2 : 10) };
+    expect(mooringBerths([long], shoal).map((b) => b.id)).toEqual([
+      'dock.long.north',
+      'dock.long.south',
+      'dock.long.north2',
+      'dock.long.south2',
+      'dock.long.north3',
+      'dock.long.south3',
+    ]);
+  });
+
   it('brings a slow ship alongside with F and furls the sails', () => {
     const r = rig(north.pose.x - 8, north.pose.z - 10, 60, {
       sail: 1,

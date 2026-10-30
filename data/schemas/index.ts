@@ -2,6 +2,7 @@ import type { z } from 'zod';
 import { chartFileSchema } from './chart';
 import { climateFileSchema } from './climate';
 import { goodsFileSchema } from './goods';
+import { harborsFileSchema } from './harbors';
 import { islandsFileSchema } from './islands';
 import { lighthousesFileSchema } from './lighthouses';
 import { portsFileSchema } from './ports';
@@ -13,6 +14,7 @@ export const dataFileSchemas: Readonly<Record<string, z.ZodType>> = {
   'chart.json': chartFileSchema,
   'climate.json': climateFileSchema,
   'goods.json': goodsFileSchema,
+  'harbors.json': harborsFileSchema,
   'islands.json': islandsFileSchema,
   'lighthouses.json': lighthousesFileSchema,
   'ports.json': portsFileSchema,

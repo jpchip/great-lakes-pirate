@@ -9,7 +9,12 @@ import { COMPASS_POINTS, STRAIN_SHOW, type BarometerSnapshot, type HudSnapshot }
  * CSS transforms only, re-rendered at the 10 Hz the snapshot updates (plan 13 §10).
  */
 
-const DANGER_STATUS = new Set(['Foundering', 'Knocked down', 'Aground', 'Anchor dragging']);
+const DANGER_STATUS = new Set([
+  'Foundering',
+  'Knocked down',
+  'Aground: hold X to kedge',
+  'Anchor dragging',
+]);
 
 const RING = 64;
 const R_OUT = 56;

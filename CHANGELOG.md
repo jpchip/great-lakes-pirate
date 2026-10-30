@@ -15,11 +15,14 @@ All notable changes to this project are recorded here. The format follows [Keep 
 - **Lees behind wooded islands are longer:** the shelter maps count a 15 m forest canopy (`npm run geo:canopy` applies it to an existing bake).
 - **Weather you can see:** lighting by sun height and weather (clear, overcast, thunderstorm and fog columns drawn from the photochrom palette), two drifting cloud layers, rain streaks with wet surfaces, fog bank walls you can watch come across the water, and summer thunderstorms with lightning. The dev panel gets Rain and Thunderstorm sliders, and `?rain`, `?storm`, `?fog`, `?cloud`, `?fogbank` and `?seed` set the sky for a look ([plan 04 §25](plans/04-water-weather-seasons.md)).
 - **The seven lighthouses of 1900:** Raspberry, Sand, Devils, Outer and Michigan Islands, La Pointe and Chequamegon Point stand on the Apostles' shores in three tower styles. From dusk their lanterns and windows glow, Raspberry and Outer Island flash a sweeping beam every 90 s, Sand Island shows a fixed white light and Devils Island its temporary fixed red, and the nearest light lights the ground around it. `?light=raspberry` spawns you in front of one ([plan 14 §18](plans/14-art-direction-asset-pipeline.md)).
+- **Harbors at Bayfield and Ashland:** Bayfield's waterfront with the city dock, fish company dock and mill dock, the fish packing house, cooperage, sawmill and a town of about 70 houses up the hill; Ashland's 520 m Soo Line ore dock at full size, its lumber and city docks, and a bigger town. Windows light up from dusk. You can dock at every pier, and `?harbor=bayfield` (or `ashland`, `,1`, `,2`) starts you off one ([plan 03 §18](plans/03-world-scale-chart-travel.md)).
 - The water bench also times the terrain and the vegetation.
 - **`data/climate.json`:** monthly climate for western Superior from NOAA normals (Madeline Island air, GLERL lake temperature) and Devils Island wind, with the sim's tuning beside it.
 
 ### Changed
 
+- The greybox pier in the Bayfield test bay is replaced by the harbor piers.
+- **Docking along the whole pier:** every pier has berths on both sides from its end back toward the shore wherever the water is deep enough, not just one pair at the end. A refused F or anchor press now says why on the HUD ("No berth in reach", "Too fast to dock").
 - **Water is cheaper on every preset:** it draws after the land and ships so hidden water isn't shaded, cat's-paws use one noise octave and are off on Low, and the water's noise skips pixels where it can't show ([plan 04 §23](plans/04-water-weather-seasons.md)).
 - **Saves are version 2:** the weather is saved with the run. A 0.1.0 save migrates and catches up on weather when loaded.
 - **Retuned climate:** colder spring lake, May winds from the northeast, and far fewer summer gales. November is still the stormy month, at about four times the observed gale time.

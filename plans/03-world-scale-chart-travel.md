@@ -557,9 +557,29 @@ Before the worker, building on the main thread cost up to 18 ms in one frame on 
 - The Wanted region mapping in `zones.json` (plan 06).
 - The other four set pieces in the Apostles (Washburn, La Pointe, Red Cliff, Bad River) get footprints when they're built (Phase 4).
 
+## 18. Phase 2 Piece G: Harbors (2026-10-30)
+
+Bayfield and Ashland built as 1:1 set pieces on the §17 footprints. Exit criterion met: the T1 docks at every pier in both towns (`tests/harbors.test.ts`, on the real zone through the plan 02 hazards).
+
+### 18.1 What was built
+- **`data/harbors.json`** (schema `data/schemas/harbors.ts`): per harbor, its set piece, piers (kind, position along and inland of the footprint anchor, optional bearing, length, width, deck height), named buildings, and a seeded town (house count, area, highest ground). Positions are in the footprint's own frame, so moving a footprint moves its town.
+- **`src/sim/harbors.ts`:** pure, deterministic layout. Each pier walks out from its inland start to the waterline and bites 6 m into the bank, so it meets the shore wherever the bake put it. Buildings sit on the highest ground under their corners with a foundation down to the lowest; houses only go on dry, fairly level ground, clear of each other and of the pier roots. The placed piers are plan 02 `Dock`s: the berths you auto-dock at and the footprints you can hit are the piers you see. `harborClearings` keeps trees off the buildings and pier roots.
+- **Meshes** (`src/render/harbors/`, shared box, gable and frustum parts moved to `render/style/parts.ts`): plank piers on piles down to the bottom with bollards, fish houses and lumber piles; Bayfield's fish packing house with cupola, cooperage, fish sheds, warehouses, false-front store, depot, sawmill with stack, sawdust burner and log ladder, and church; Ashland's ore dock (pocket body on bents, rails, an approach trestle climbing from the land, chutes on both sides), sawmill, freight house, depot, hotel and stores; and the houses. Windows are split into dark glass and lit panes; the lit panes glow amber with the lighthouse `lampLevel` from dusk. Both towns are four draw calls (a body and a window mesh each), no outlines.
+- **`?harbor=bayfield`** (or `ashland`, and `,1` / `,2` for the other piers) starts the ship 120 m off a pier's end, bow toward it. The greybox test-bay pier mesh is deleted; the greybox `TEST_BAY` dock is only used without the zone.
+
+### 18.2 Decisions made in the piece
+- **The Ashland "lens" is the open water, not a rebake.** The Soo Line ore dock is 1:1 (520 m deck plus a 140 m approach) on bearing 10°, out into the kilometer of bay the §17 footprint left in front of the town. That keeps it at 1:1 without carving a locally uncompressed region into the terrain. If it crowds the bay once freighters are in (Phase 4), the real lens is a GDAL rebake that widens the bay locally.
+- **Piers carry their own bearings.** Ashland's footprint bearing doesn't match the shore that faces the ore dock, so its piers set theirs and the houses are filtered onto dry ground rather than laid out on the footprint grid.
+- **Bayfield's mill end moved inland.** East of the city dock the shore recedes 60–80 m from the footprint's line, so the mill dock, sawmill and lumber shed start further back.
+
+### 18.3 Still to do
+- Ashland's water off the city and lumber docks is 3–6 m deep, enough for the T1 (draft about 2 m) but not for the bigger classes. Check the T2/T3 drafts when they're built.
+- Docks district transitions ("Go ashore") come with plan 11.
+
 ---
 
 ## Changelog
+- v0.12: Phase 2 piece G: Bayfield and Ashland harbors (§18), the Ashland ore dock at 1:1 in open water in place of a rebaked lens.
 - v0.11: Phase 2 piece C: vegetation density and planting built (§8.3), and the canopy in the shelter maps (§14.4); details in [14 §17](14-art-direction-asset-pipeline.md).
 - v0.10: Phase 2 helm swap: the S7 greybox and the S8 arena sail on the plan 02 controller; the stand-in helms are deleted (§15, §16).
 - v0.9: Phase 2 piece B (§17): the whole Apostles zone loaded, terrain meshes streamed with geomipmapped LOD in a worker, soft zone edges, `zones.json` and `islands.json` in `data/`, and the hand-edit layer (Gull Island, Long Island's clip, set-piece footprints).

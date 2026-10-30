@@ -210,10 +210,16 @@ export function createDevOverlay(options: OverlayOptions): DevOverlay {
     const params = new URLSearchParams(window.location.search);
     const map = params.get('overlay');
     const windFrom = Number(params.get('windfrom') ?? 315);
-    terrain = createTerrainOverlay(scene.scene, scene.zone.terrain, gui, {
-      map: map === 'shelter' || map === 'fetch' || map === 'funnel' ? map : 'off',
-      windFromDeg: Number.isFinite(windFrom) ? windFrom : 315,
-    });
+    terrain = createTerrainOverlay(
+      scene.scene,
+      scene.zone.terrain,
+      gui,
+      {
+        map: map === 'shelter' || map === 'fetch' || map === 'funnel' ? map : 'off',
+        windFromDeg: Number.isFinite(windFrom) ? windFrom : 315,
+      },
+      scene.harborLayouts.flatMap((l) => l.piers),
+    );
   }
 
   const saveFolder = gui.addFolder('Save');

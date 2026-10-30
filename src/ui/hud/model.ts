@@ -132,6 +132,30 @@ export interface HudSources {
   barometer?: BarometerReading | undefined;
   /** The zone's soft edge; the HUD warns over the outer half of its fog fade. */
   edge?: ZoneEdge | undefined;
+  /** A short-lived chip saying why the last F or anchor order was refused. */
+  notice?: string | undefined;
+}
+
+/** Seconds a refusal chip stays up. */
+export const NOTICE_S = 3;
+
+/** Why a dock order was refused, as a HUD chip (plan 02 §7: "any other press says why not"). */
+export function dockRefusedNotice(reason: 'noBerth' | 'tooFast' | 'anchored' | 'aground'): string {
+  switch (reason) {
+    case 'noBerth':
+      return 'No berth in reach';
+    case 'tooFast':
+      return 'Too fast to dock';
+    case 'anchored':
+      return 'Weigh anchor first';
+    case 'aground':
+      return 'Aground';
+  }
+}
+
+/** Why an anchor order was refused, as a HUD chip. */
+export function anchorRefusedNotice(reason: 'tooDeep' | 'moored'): string {
+  return reason === 'tooDeep' ? 'Too deep to anchor' : 'Moored';
 }
 
 /** Edge factor (sim/terrain/zone-edge) past which the "Zone edge" chip shows. */
@@ -142,7 +166,7 @@ export function hazardStatus(h: HazardState): string[] {
   const out: string[] = [];
   if (h.foundering) out.push('Foundering');
   if (h.knockdown > 0) out.push('Knocked down');
-  if (h.aground) out.push(h.kedging ? 'Kedging off' : 'Aground');
+  if (h.aground) out.push(h.kedging ? 'Kedging off' : 'Aground: hold X to kedge');
   if (h.anchor === 'down') out.push(h.dragging ? 'Anchor dragging' : 'Anchored');
   if (h.anchor === 'weighing') out.push('Weighing anchor');
   if (h.mooring === 'docking') out.push('Docking');
@@ -174,6 +198,7 @@ export function sampleHud(src: HudSources): HudSnapshot | undefined {
   if (src.terrain && src.edge && edgeFactor(src.terrain.bounds, src.edge, s.x, s.z) > EDGE_CHIP) {
     status.push('Zone edge');
   }
+  if (src.notice && !status.includes(src.notice)) status.push(src.notice);
   return {
     headingDeg: heading,
     windAngleDeg: s.windAngle * DEG,
