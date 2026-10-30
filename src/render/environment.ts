@@ -1,82 +1,23 @@
 import * as THREE from 'three';
 import { moonAt, sunAt } from '../sim/weather/celestial';
 import type { LocalWeather } from '../sim/weather/local-weather';
+import { R_SAILING } from '../core/time';
+import { createLightingSample, fogAmount, sampleLighting } from './style/lighting-luts';
 import type { Sky } from './sky';
 import type { Water } from './water/water';
 import { SAND_HEX, SHALLOW_HEX } from './water/water-material';
 
 /**
- * Basic day and night (plan 04 §9, §10, §15 Phase 1): the sky gradient, sun and moon,
+ * Day, night and weather (plan 04 §9, §10, §15): the sky gradient, clouds, sun and moon,
  * hemisphere and directional light, global exp² fog and the water's colors, all from the
- * sun's elevation, the moon and the weather's cloud and visibility. The palette is a
- * stand-in until the art style test (S4) picks one; plan 04's lighting LUTs replace it.
+ * sun's elevation, the moon and the weather's cloud, storm and visibility. The colors come
+ * from the lighting LUTs (style/lighting-luts), keyed by elevation and weather type.
  */
 
-interface PaletteKey {
-  /** Sun elevation, degrees. */
-  at: number;
-  zenith: number;
-  horizon: number;
-  hemiSky: number;
-  hemiGround: number;
-  hemiIntensity: number;
-}
-
-const PALETTE: readonly PaletteKey[] = [
-  {
-    at: -18,
-    zenith: 0x05080f,
-    horizon: 0x0c121c,
-    hemiSky: 0x26324c,
-    hemiGround: 0x04070a,
-    hemiIntensity: 0.22,
-  },
-  {
-    at: -9,
-    zenith: 0x111b2f,
-    horizon: 0x27324a,
-    hemiSky: 0x34436a,
-    hemiGround: 0x070b10,
-    hemiIntensity: 0.32,
-  },
-  {
-    at: -3,
-    zenith: 0x2b4166,
-    horizon: 0xb07258,
-    hemiSky: 0x7d7f9a,
-    hemiGround: 0x141a20,
-    hemiIntensity: 0.6,
-  },
-  {
-    at: 3,
-    zenith: 0x56789e,
-    horizon: 0xdcaa84,
-    hemiSky: 0xd8c8b4,
-    hemiGround: 0x22303a,
-    hemiIntensity: 1.0,
-  },
-  {
-    at: 12,
-    zenith: 0x6f8ea3,
-    horizon: 0xb7c6cf,
-    hemiSky: 0xdfe9f0,
-    hemiGround: 0x2a3a44,
-    hemiIntensity: 1.4,
-  },
-  {
-    at: 45,
-    zenith: 0x5b83a8,
-    horizon: 0xbfcdd6,
-    hemiSky: 0xe6eef3,
-    hemiGround: 0x2e3e48,
-    hemiIntensity: 1.5,
-  },
-];
-
+const WHITE = new THREE.Color(0xffffff);
 const SUN_LOW = new THREE.Color(0xffa865);
 const SUN_HIGH = new THREE.Color(0xfff2d6);
 const MOON_LIGHT = new THREE.Color(0x9fb6dc);
-const OVERCAST = new THREE.Color(0x8d969c);
 const DEEP = new THREE.Color(0x1d3a4a);
 const CREST = new THREE.Color(0x4f7f8c);
 const FOAM = new THREE.Color(0xe8eef0);
@@ -104,38 +45,16 @@ function smoothstep(a: number, b: number, x: number): number {
   return t * t * (3 - 2 * t);
 }
 
-const ca = new THREE.Color();
-const cb = new THREE.Color();
-
-function samplePalette(
-  elevationDeg: number,
-  out: { zenith: THREE.Color; horizon: THREE.Color; hemiSky: THREE.Color; hemiGround: THREE.Color },
-): number {
-  let i = 0;
-  while (i < PALETTE.length - 2 && (PALETTE[i + 1] as PaletteKey).at < elevationDeg) i++;
-  const a = PALETTE[i] as PaletteKey;
-  const b = PALETTE[i + 1] as PaletteKey;
-  const t = Math.min(1, Math.max(0, (elevationDeg - a.at) / (b.at - a.at)));
-  const mix = (x: number, y: number, target: THREE.Color): void => {
-    target.copy(ca.setHex(x)).lerp(cb.setHex(y), t);
-  };
-  mix(a.zenith, b.zenith, out.zenith);
-  mix(a.horizon, b.horizon, out.horizon);
-  mix(a.hemiSky, b.hemiSky, out.hemiSky);
-  mix(a.hemiGround, b.hemiGround, out.hemiGround);
-  return a.hemiIntensity + (b.hemiIntensity - a.hemiIntensity) * t;
-}
-
-/** Grays and darkens a color toward overcast, keeping some of its brightness. */
-function cloudify(color: THREE.Color, cloud01: number, darkness: number): void {
-  const luminance = 0.2126 * color.r + 0.7152 * color.g + 0.0722 * color.b;
-  cb.copy(OVERCAST).multiplyScalar(luminance / 0.27);
-  color.lerp(cb, cloud01 * 0.85).multiplyScalar(1 - darkness * cloud01);
-}
-
 export interface EnvironmentView {
   /** `at` is where the camera looks; whitecaps follow the wind there. */
   update(gameSeconds: number, at: { x: number; z: number }): void;
+  /**
+   * A lightning flash lighting the scene, 0–1, from the direction it struck (render/
+   * atmosphere/lightning). Set it before `update`; it adds to the ambient light and lights
+   * the clouds on that side.
+   */
+  flash01: number;
+  readonly flashDirection: THREE.Vector3;
   /** The last frame's light state, for the debug readout. */
   readonly sunElevationDeg: number;
 }
@@ -152,16 +71,19 @@ export function createEnvironmentView(
   scene.fog = fog;
   const u = sky.material.uniforms;
   const w = water.material.uniforms;
-  const colors = {
-    zenith: new THREE.Color(),
-    horizon: new THREE.Color(),
-    hemiSky: new THREE.Color(),
-    hemiGround: new THREE.Color(),
-  };
+  const colors = createLightingSample();
   const sunColor = new THREE.Color();
+  const cloudLit = new THREE.Color();
+  const cloudShade = new THREE.Color();
   let sunElevationDeg = 0;
+  // Where the clouds have drifted to, accumulated so a change of wind doesn't jump them.
+  let driftX = 0;
+  let driftY = 0;
+  let lastT: number | undefined;
 
   return {
+    flash01: 0,
+    flashDirection: new THREE.Vector3(0, 0.3, -1).normalize(),
     get sunElevationDeg() {
       return sunElevationDeg;
     },
@@ -169,14 +91,14 @@ export function createEnvironmentView(
       const sun = sunAt(t);
       const moon = moonAt(t);
       const cloud = weather.cloudAt(t);
+      const storm = weather.stormAt(t);
       sunElevationDeg = (sun.elevationRad * 180) / Math.PI;
       const moonDeg = (moon.elevationRad * 180) / Math.PI;
 
-      let ambient = samplePalette(sunElevationDeg, colors);
-      cloudify(colors.zenith, cloud, 0.5);
-      cloudify(colors.horizon, cloud, 0.4);
-      cloudify(colors.hemiSky, cloud, 0.25);
-      ambient *= 1 - 0.35 * cloud;
+      const fog01 = fogAmount(weather.fogVisibilityAt(t));
+      sampleLighting(sunElevationDeg, { cloud01: cloud, storm01: storm, fog01 }, colors);
+      let ambient = colors.hemi;
+      const flash = this.flash01;
 
       // Moonlight floor so a clear night stays playable (plan 04 §9 night readability).
       const sunUp = smoothstep(-2, 10, sunElevationDeg);
@@ -191,19 +113,47 @@ export function createEnvironmentView(
       u.uMoonPhase.value = moon.phase01;
       sunColor.copy(SUN_LOW).lerp(SUN_HIGH, smoothstep(0, 20, sunElevationDeg));
       u.uSunColor.value.copy(sunColor);
-      u.uSunVisible.value = (1 - cloud ** 1.5) * smoothstep(-3, 0, sunElevationDeg);
-      u.uMoonVisible.value = (1 - cloud) * smoothstep(-2, 1, moonDeg) * (1 - 0.7 * sunUp);
-      u.uStars.value = (1 - smoothstep(-12, -4, sunElevationDeg)) * (1 - cloud) ** 2;
+      // The cloud layers hide the sun, moon and stars where they are, so these only say
+      // whether the body is up.
+      u.uSunVisible.value = smoothstep(-3, 0, sunElevationDeg);
+      u.uMoonVisible.value = smoothstep(-2, 1, moonDeg) * (1 - 0.7 * sunUp);
+      u.uStars.value = 1 - smoothstep(-12, -4, sunElevationDeg);
+
+      // Clouds: cover from the weather, drifting with the wind (about 0.0004 noise units
+      // per real second per knot), lit from the horizon color and shaded from the zenith.
+      const open = weather.windAt(at, t);
+      const dtReal = lastT === undefined ? 0 : Math.min(1, Math.max(0, (t - lastT) / R_SAILING));
+      lastT = t;
+      driftX -= open.toKn.x * 0.0004 * dtReal;
+      driftY += open.toKn.y * 0.0004 * dtReal;
+      u.uCloudCover.value = cloud;
+      u.uCloudStorm.value = storm;
+      u.uCloudOffset.value.set(driftX, driftY);
+      // Fair-weather cloud is whiter than the sky behind it; a lid of overcast is gray.
+      const white = 0.5 * smoothstep(-4, 10, sunElevationDeg) * (1 - cloud ** 1.5) * (1 - storm);
+      cloudLit
+        .copy(colors.horizon)
+        .lerp(WHITE, white)
+        .multiplyScalar(1.1 - 0.2 * storm);
+      cloudShade
+        .copy(colors.zenith)
+        .lerp(colors.horizon, 0.3)
+        .multiplyScalar(0.8 - 0.3 * storm);
+      u.uCloudLit.value.copy(cloudLit);
+      u.uCloudShade.value.copy(cloudShade);
+      u.uFlash.value = flash;
+      u.uFlashDirection.value.copy(this.flashDirection);
 
       fog.color.copy(colors.horizon);
       fog.density = fogDensity(weather.fogVisibilityAt(t));
 
       hemi.color.copy(colors.hemiSky);
       hemi.groundColor.copy(colors.hemiGround);
-      hemi.intensity = ambient;
+      // Lightning lights the whole scene for a moment through the ambient light.
+      hemi.intensity = ambient + 2.2 * flash;
 
       // One directional light: the sun by day, the moon by night.
-      const sunIntensity = 2 * sunUp * (1 - 0.75 * cloud);
+      const sunIntensity = 2 * sunUp * (1 - 0.75 * cloud) * (1 - 0.35 * storm) * (1 - 0.3 * fog01);
       const lit = sunIntensity >= moonlight ? sun : moon;
       light.position
         .set(lit.direction.x, Math.max(lit.direction.y, 0.05), lit.direction.z)

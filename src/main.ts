@@ -1,3 +1,4 @@
+import { zoneToChart } from './core/coords';
 import { SECONDS_PER_GAME_DAY, dayAndHour } from './core/time';
 import { EventBus } from './core/events';
 import { DEFAULT_BINDINGS, InputMapper, type InputContext } from './core/input';
@@ -37,6 +38,7 @@ import {
   type WeatherPresetId,
 } from './sim/weather/local-weather';
 import { TEST_BAY_ISLANDS, stubIslandShelter } from './sim/weather/shelter';
+import { advanceWeather, placeFogBank } from './sim/weather/weather';
 import { createSea } from './sim/weather/waves';
 import { createWorldState, parseWorldState, type WorldState } from './sim/world-state';
 import { sampleHud } from './ui/hud/model';
@@ -89,7 +91,8 @@ async function openRun(): Promise<OpenedRun> {
     return { state: createWorldState(crypto.randomUUID()), saver: undefined, status: 'error' };
   }
 
-  const seed = crypto.randomUUID();
+  // `?seed=abc` starts a new run from that seed, so the same weather can be revisited.
+  const seed = new URLSearchParams(window.location.search).get('seed') ?? crypto.randomUUID();
   const run = {
     runId: crypto.randomUUID(),
     seed,
@@ -119,8 +122,10 @@ async function loadSettings(): Promise<SettingsStore> {
 /**
  * Dev and playtest URL switches for the weather (plan 02 §14.2): `?weather=gale` picks a
  * panel preset over the sim, `?gale` starts the scripted gale, `?wind=45` sets where it
- * comes from, `?knots=30` its speed, and `?day=1&hour=19.5` the game day and time of day.
- * Any of the wind switches takes the weather off the sim (plan 04 §24).
+ * comes from, `?knots=30` its speed, `?rain=0.8` the rain, `?storm=1` a thunderstorm (with
+ * rain), `?fog=800` the visibility in meters, `?cloud=0.9` the cover, and `?day=1&hour=19.5`
+ * the game day and time of day. Any of the wind and sky switches takes the weather off the
+ * sim (plan 04 §24).
  */
 function applyWeatherParams(params: URLSearchParams, ctx: GameContext): void {
   const preset = params.get('weather');
@@ -134,6 +139,25 @@ function applyWeatherParams(params: URLSearchParams, ctx: GameContext): void {
   if (params.has('knots') && Number.isFinite(knots)) {
     ctx.weather.override();
     ctx.weather.settings.speedKn = knots;
+  }
+  const sky: [string, 'rain01' | 'storm01' | 'visibilityM' | 'cloud01'][] = [
+    ['rain', 'rain01'],
+    ['storm', 'storm01'],
+    ['fog', 'visibilityM'],
+    ['cloud', 'cloud01'],
+  ];
+  for (const [name, key] of sky) {
+    const value = Number(params.get(name));
+    if (!params.has(name) || !Number.isFinite(value)) continue;
+    ctx.weather.override();
+    ctx.weather.settings[key] = value;
+    // A storm without rain isn't one: give it a downpour and a dark sky unless told otherwise.
+    if (key === 'storm01' && value > 0) {
+      if (!params.has('rain'))
+        ctx.weather.settings.rain01 = Math.max(ctx.weather.settings.rain01, 0.7);
+      if (!params.has('cloud'))
+        ctx.weather.settings.cloud01 = Math.max(ctx.weather.settings.cloud01, 0.9);
+    }
   }
   const clock = ctx.state.environment.clock;
   const now = dayAndHour(clock.gameSeconds);
@@ -207,6 +231,29 @@ async function boot(): Promise<void> {
     spawn.x = sx ?? spawn.x;
     spawn.z = sz ?? spawn.z;
     if (Number.isFinite(sh)) spawn.heading = ((sh ?? 0) * Math.PI) / 180;
+  }
+  // `?fogbank=2000` stands a fog bank dead ahead of the spawn with its wall that many meters
+  // away (`?fogkind=radiation` for the shallow kind), to watch one from outside.
+  const fogAhead = Number(params.get('fogbank'));
+  if (params.has('fogbank') && Number.isFinite(fogAhead) && zone) {
+    const frame = manifestFrame(zone.manifest);
+    const radiusM = params.get('fogkind') === 'radiation' ? 6_000 : 24_000;
+    const wall = (radiusM / frame.compression) * 0.75;
+    const along = fogAhead + wall;
+    const centre = {
+      x: spawn.x + Math.sin(spawn.heading) * along,
+      z: spawn.z - Math.cos(spawn.heading) * along,
+    };
+    const state = ctx.weather.sim?.state;
+    if (state) {
+      // Catch the sim up to now first, or its first tick would age the bank by days (and
+      // wind would lift it) before it was ever seen.
+      advanceWeather(state, ctx.state.environment.clock.gameSeconds);
+      placeFogBank(state, zoneToChart(centre, frame), {
+        radiusM,
+        kind: params.get('fogkind') === 'radiation' ? 'radiation' : 'advection',
+      });
+    }
   }
   const schooner = createSchooner(spawn.x, spawn.z, spawn.heading);
   const { record: shipRecord, handling, hazardRules, sailing, hazards } = schooner;

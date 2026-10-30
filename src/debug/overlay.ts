@@ -83,6 +83,21 @@ function vegetationText(scene: TestScene): string {
   );
 }
 
+/** The weather-you-see line: fog banks drawn, rain streaks, storm, wetness and strikes. */
+function atmosphereText(
+  scene: TestScene,
+  rain: number,
+  storm: number,
+  nearestBankM: number | undefined,
+): string {
+  const a = scene.atmosphere;
+  const bank = nearestBankM === undefined ? '' : ` (nearest wall ${nearestBankM.toFixed(0)} m)`;
+  return (
+    `sky  banks ${a.fogBanks.drawn}${bank}  rain ${rain.toFixed(2)} (${a.rain.drawn} streaks)  ` +
+    `storm ${storm.toFixed(2)}  wet ${a.wetness01.toFixed(2)}  strikes ${a.lightning.strikes}`
+  );
+}
+
 export function createDevOverlay(options: OverlayOptions): DevOverlay {
   const { renderer, scene, weather, clock, probe, save } = options;
 
@@ -135,6 +150,8 @@ export function createDevOverlay(options: OverlayOptions): DevOverlay {
   windFolder.add(settings, 'seaLagMin', 0, 180, 5).name('Sea lag (game min)');
   windFolder.add(settings, 'visibilityM', 100, 25_000, 100).name('Visibility (m)');
   windFolder.add(settings, 'cloud01', 0, 1, 0.01).name('Cloud');
+  windFolder.add(settings, 'rain01', 0, 1, 0.01).name('Rain');
+  windFolder.add(settings, 'storm01', 0, 1, 0.01).name('Thunderstorm');
   windFolder.controllers.forEach((c) => c.listen());
   // While the sim drives, the wind sliders follow it; touching one takes the weather over.
   const windKeys = [
@@ -145,6 +162,8 @@ export function createDevOverlay(options: OverlayOptions): DevOverlay {
     'gustiness',
     'visibilityM',
     'cloud01',
+    'rain01',
+    'storm01',
   ];
   for (const c of windFolder.controllers) {
     if (windKeys.includes(c.property)) c.onChange(() => weather.override());
@@ -272,6 +291,15 @@ export function createDevOverlay(options: OverlayOptions): DevOverlay {
         terrain ? terrain.describe(at.x, at.z) : '',
         streamText(scene),
         vegetationText(scene),
+        atmosphereText(
+          scene,
+          weather.rainAt(clock.gameSeconds),
+          weather.stormAt(clock.gameSeconds),
+          weather
+            .fogBanks(clock.gameSeconds)
+            .map((b) => Math.hypot(b.x - at.x, b.z - at.z) - 0.75 * b.radiusM)
+            .sort((x, y) => x - y)[0],
+        ),
         benchText,
       ]
         .filter(Boolean)

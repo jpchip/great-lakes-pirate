@@ -411,6 +411,101 @@ export function visibilityAt(state: WeatherState, p: Chart, t: number): number {
   return vis;
 }
 
+/** A summer storm needs air this warm (the day's mean high, °C) to turn convective. */
+const STORM_WARM_C = 14;
+const STORM_HOT_C = 22;
+/** Thunderstorm cells are tens of kilometers across and drift with the weather. */
+const STORM_CELL_M = 45_000;
+const STORM_CELL_DRIFT_M_PER_H = 30_000;
+
+/**
+ * Thunderstorm intensity, 0–1 (plan 04 §9, §11; Phase 2 piece E): summer cells in the
+ * rain ahead of a low. None until the air is warm (the late-May highs are 10–13 °C, so
+ * spring is quiet), and then a cell of noise decides where in the rain the storms stand,
+ * so the same low brings storms to one shore and plain rain to another. Cells drift east
+ * with the prevailing flow.
+ */
+export function thunderstormAt(state: WeatherState, p: Chart, t: number): number {
+  const warm = smoothstep(STORM_WARM_C, STORM_HOT_C, climateAtTime(t).airMaxC);
+  if (warm <= 0) return 0;
+  const rain = precipitationAt(state, p, t);
+  if (rain < 0.1) return 0;
+  const drift = (STORM_CELL_DRIFT_M_PER_H * t) / 3600;
+  const cx = (p.x - drift) / STORM_CELL_M;
+  const cy = p.y / STORM_CELL_M;
+  // Value noise in x and y from the 1D noise: rows by y, blended along x.
+  const row = Math.floor(cy);
+  const f = cy - row;
+  const along = (r: number): number => 0.5 + 0.5 * valueNoise(state.noiseSeed + 101 * r, cx);
+  const cell = along(row) * (1 - f) + along(row + 1) * f;
+  return warm * smoothstep(0.1, 0.4, rain) * smoothstep(0.4, 0.7, cell);
+}
+
+/**
+ * Puts a fog bank at a chart point, formed and standing still, for playtests and checks
+ * (`?fogbank=` in main.ts). It lives out `lifeHours` like any other and is saved with the
+ * state, so the sim's own spawning and lifting treat it as theirs.
+ */
+export function placeFogBank(
+  state: WeatherState,
+  at: Chart,
+  options: {
+    radiusM?: number;
+    kind?: FogBank['kind'];
+    coreVisibilityM?: number;
+    lifeHours?: number;
+  } = {},
+): FogBank {
+  const life = (options.lifeHours ?? 12) * HOUR;
+  const bank: FogBank = {
+    id: state.nextId++,
+    kind: options.kind ?? 'advection',
+    x: at.x,
+    y: at.y,
+    vx: 0,
+    vy: 0,
+    radius: options.radiusM ?? 24_000,
+    coreVisibilityM: options.coreVisibilityM ?? 150,
+    // Past its hour of forming, so it stands at full strength.
+    age: Math.max(HOUR, life / 4),
+    life,
+  };
+  // The sim holds at most MAX_FOG_BANKS; make room by dropping the oldest.
+  while (state.fogBanks.length >= MAX_FOG_BANKS) state.fogBanks.shift();
+  state.fogBanks.push(bank);
+  return bank;
+}
+
+/** A fog bank as the renderer draws it: where it is now and how thick, chart meters. */
+export interface FogBankView {
+  id: number;
+  kind: FogBank['kind'];
+  x: number;
+  y: number;
+  radius: number;
+  /** 0–1: how formed the bank is (it forms over an hour and lifts over ninety minutes). */
+  strength: number;
+}
+
+/** Every living fog bank at game time `t`, so the renderer can show them coming. */
+export function fogBanksAt(state: WeatherState, t: number): FogBankView[] {
+  const dt = t - state.tickSeconds;
+  const out: FogBankView[] = [];
+  for (const b of state.fogBanks) {
+    const strength = fogEnvelope(b, b.age + dt);
+    if (strength <= 0) continue;
+    out.push({
+      id: b.id,
+      kind: b.kind,
+      x: b.x + b.vx * dt,
+      y: b.y + b.vy * dt,
+      radius: b.radius,
+      strength,
+    });
+  }
+  return out;
+}
+
 /**
  * Cloud cover, 0–1: a deck that spreads well beyond a low's rain shield, broken cloud
  * on an ordinary day, and clear skies under a high. A stand-in until the cloud layers of

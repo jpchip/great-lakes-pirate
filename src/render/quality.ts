@@ -45,6 +45,14 @@ export interface QualityPreset {
   vegetationMeshM: number;
   /** Impostors fade into the terrain's canopy color by here, meters. */
   vegetationFarM: number;
+  /** Cloud layers on the sky dome (plan 04 §9): 1 is the low deck, 2 adds a high one. */
+  cloudLayers: 1 | 2;
+  /** Noise octaves per cloud layer. */
+  cloudOctaves: 2 | 3;
+  /** Fog banks drawn as slabs you can see coming (plan 04 §10); Low has global fog only. */
+  fogBankSlabs: boolean;
+  /** Rain streaks around the camera at full rain (plan 04 §11); 0 is off. */
+  rainStreaks: number;
 }
 
 export const QUALITY_PRESETS: Record<QualityId, QualityPreset> = {
@@ -67,6 +75,10 @@ export const QUALITY_PRESETS: Record<QualityId, QualityPreset> = {
     vegetationDensity: 0.4,
     vegetationMeshM: 110,
     vegetationFarM: 1200,
+    cloudLayers: 1,
+    cloudOctaves: 2,
+    fogBankSlabs: false,
+    rainStreaks: 900,
   },
   medium: {
     id: 'medium',
@@ -87,6 +99,10 @@ export const QUALITY_PRESETS: Record<QualityId, QualityPreset> = {
     vegetationDensity: 0.5,
     vegetationMeshM: 200,
     vegetationFarM: 1800,
+    cloudLayers: 2,
+    cloudOctaves: 3,
+    fogBankSlabs: true,
+    rainStreaks: 3500,
   },
   high: {
     id: 'high',
@@ -107,6 +123,10 @@ export const QUALITY_PRESETS: Record<QualityId, QualityPreset> = {
     vegetationDensity: 0.85,
     vegetationMeshM: 280,
     vegetationFarM: 2600,
+    cloudLayers: 2,
+    cloudOctaves: 3,
+    fogBankSlabs: true,
+    rainStreaks: 8000,
   },
 };
 

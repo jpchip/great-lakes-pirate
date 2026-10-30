@@ -1,4 +1,4 @@
-import { zoneToChart, type ZoneFrame } from '../../core/coords';
+import { chartToZone, zoneToChart, type ZoneFrame } from '../../core/coords';
 import { R_SAILING } from '../../core/time';
 import { fractalNoise, valueNoise } from './noise';
 import {
@@ -21,9 +21,13 @@ import {
   advanceWeather,
   barometerAt,
   cloudAt,
+  fogBanksAt,
+  precipitationAt,
   simWindAt,
+  thunderstormAt,
   visibilityAt,
   type BarometerReading,
+  type FogBankView,
   type Wind,
   type WeatherState,
 } from './weather';
@@ -60,6 +64,10 @@ export interface WeatherSettings {
   visibilityM: number;
   /** Cloud cover, 0–1: darkens and grays the sky. */
   cloud01: number;
+  /** Rain, 0–1: streaks around the camera and wet surfaces (plan 04 §11). */
+  rain01: number;
+  /** Thunderstorm, 0–1: darker sky and lightning; needs rain to show. */
+  storm01: number;
   /** Wave height multiplier on top of the wind sea (dev panel). */
   seaGain: number;
   /** Game minutes for the sea to catch up with the wind (e-folding); 0 is instant. */
@@ -76,6 +84,8 @@ const BASE: WeatherSettings = {
   gustiness: 0.35,
   visibilityM: 20_000,
   cloud01: 0.3,
+  rain01: 0,
+  storm01: 0,
   seaGain: 1,
   seaLagMin: 45,
 };
@@ -87,7 +97,7 @@ export const WEATHER_PRESETS: Record<WeatherPresetId, WeatherSettings> = {
   moderate: { ...BASE },
   fresh: { ...BASE, speedKn: 21, gustiness: 0.5, cloud01: 0.45 },
   strong: { ...BASE, speedKn: 26, gustiness: 0.6, cloud01: 0.7, visibilityM: 12_000 },
-  gale: { ...BASE, speedKn: 36, gustiness: 0.8, cloud01: 0.95, visibilityM: 4_000 },
+  gale: { ...BASE, speedKn: 36, gustiness: 0.8, cloud01: 0.95, visibilityM: 4_000, rain01: 0.6 },
 };
 
 export function weatherPreset(id: WeatherPresetId): WeatherSettings {
@@ -102,6 +112,7 @@ export interface GaleKey {
   gustiness: number;
   visibilityM: number;
   cloud01: number;
+  rain01: number;
 }
 
 /**
@@ -111,12 +122,60 @@ export interface GaleKey {
  * side and eases. About eleven real minutes from first warning to moderate.
  */
 export const GALE_SCRIPT: readonly GaleKey[] = [
-  { atMin: 0, fromDeg: 120, speedKn: 14, gustiness: 0.3, visibilityM: 15_000, cloud01: 0.6 },
-  { atMin: 1.5, fromDeg: 90, speedKn: 26, gustiness: 0.55, visibilityM: 8_000, cloud01: 0.85 },
-  { atMin: 3, fromDeg: 60, speedKn: 38, gustiness: 0.8, visibilityM: 2_500, cloud01: 1 },
-  { atMin: 6, fromDeg: 35, speedKn: 44, gustiness: 0.9, visibilityM: 2_000, cloud01: 1 },
-  { atMin: 8, fromDeg: 330, speedKn: 38, gustiness: 0.8, visibilityM: 6_000, cloud01: 0.85 },
-  { atMin: 11, fromDeg: 315, speedKn: 20, gustiness: 0.45, visibilityM: 15_000, cloud01: 0.5 },
+  {
+    atMin: 0,
+    fromDeg: 120,
+    speedKn: 14,
+    gustiness: 0.3,
+    visibilityM: 15_000,
+    cloud01: 0.6,
+    rain01: 0,
+  },
+  {
+    atMin: 1.5,
+    fromDeg: 90,
+    speedKn: 26,
+    gustiness: 0.55,
+    visibilityM: 8_000,
+    cloud01: 0.85,
+    rain01: 0.3,
+  },
+  {
+    atMin: 3,
+    fromDeg: 60,
+    speedKn: 38,
+    gustiness: 0.8,
+    visibilityM: 2_500,
+    cloud01: 1,
+    rain01: 0.8,
+  },
+  {
+    atMin: 6,
+    fromDeg: 35,
+    speedKn: 44,
+    gustiness: 0.9,
+    visibilityM: 2_000,
+    cloud01: 1,
+    rain01: 0.9,
+  },
+  {
+    atMin: 8,
+    fromDeg: 330,
+    speedKn: 38,
+    gustiness: 0.8,
+    visibilityM: 6_000,
+    cloud01: 0.85,
+    rain01: 0.5,
+  },
+  {
+    atMin: 11,
+    fromDeg: 315,
+    speedKn: 20,
+    gustiness: 0.45,
+    visibilityM: 15_000,
+    cloud01: 0.5,
+    rain01: 0.05,
+  },
 ];
 
 /** The wind's speed loss at full shelter: a deep lee keeps a breath of air (plan 02 §11). */
@@ -183,6 +242,15 @@ export interface LocalWeather {
   /** Fog and haze alone, for the renderer; the night is drawn, not fogged. */
   fogVisibilityAt(gameSeconds: number): number;
   cloudAt(gameSeconds: number): number;
+  /** Rain, 0–1, at the player: from the sim's rain shields, or the panel's slider. */
+  rainAt(gameSeconds: number): number;
+  /** Thunderstorm, 0–1, at the player: summer cells in the rain, or the panel's slider. */
+  stormAt(gameSeconds: number): number;
+  /**
+   * The living fog banks around the player, for the renderer to draw coming (plan 04 §10),
+   * in zone meters. Empty while the panel or the gale drives, since fog there is global.
+   */
+  fogBanks(gameSeconds: number): ZoneFogBank[];
   /** The sea's current shape, after lag. */
   readonly seaShape: SeaShape;
   applyPreset(id: WeatherPresetId): void;
@@ -198,12 +266,24 @@ export interface LocalWeather {
   invalidate(): void;
 }
 
+/** A fog bank in zone meters. */
+export interface ZoneFogBank {
+  id: number;
+  kind: FogBankView['kind'];
+  x: number;
+  z: number;
+  radiusM: number;
+  strength: number;
+}
+
 interface Base {
   fromRad: number;
   speedKn: number;
   gustiness: number;
   visibilityM: number;
   cloud01: number;
+  rain01: number;
+  storm01: number;
 }
 
 function smoothstep(t: number): number {
@@ -234,6 +314,7 @@ export function galeAt(elapsedGameS: number): GaleKey | undefined {
     gustiness: mix(a.gustiness, b.gustiness),
     visibilityM: Math.exp(mix(Math.log(a.visibilityM), Math.log(b.visibilityM))),
     cloud01: mix(a.cloud01, b.cloud01),
+    rain01: mix(a.rain01, b.rain01),
   };
 }
 
@@ -262,6 +343,8 @@ export function createLocalWeather(
       gustiness: wind.gustiness,
       visibilityM: visibilityAt(src.state, at, t),
       cloud01: cloudAt(src.state, at, t),
+      rain01: precipitationAt(src.state, at, t),
+      storm01: thunderstormAt(src.state, at, t),
     };
     sampled = { t, x: probe.x, z: probe.z, base };
     return base;
@@ -285,6 +368,8 @@ export function createLocalWeather(
           gustiness: g.gustiness,
           visibilityM: g.visibilityM,
           cloud01: g.cloud01,
+          rain01: g.rain01,
+          storm01: 0,
         };
       }
     }
@@ -295,6 +380,8 @@ export function createLocalWeather(
       gustiness: settings.gustiness,
       visibilityM: settings.visibilityM,
       cloud01: settings.cloud01,
+      rain01: settings.rain01,
+      storm01: settings.storm01,
     };
   };
 
@@ -382,6 +469,30 @@ export function createLocalWeather(
       return baseAt(t).cloud01;
     },
 
+    rainAt(t) {
+      return baseAt(t).rain01;
+    },
+
+    stormAt(t) {
+      return baseAt(t).storm01;
+    },
+
+    fogBanks(t) {
+      if (!sim || !fromSim()) return [];
+      const c = sim.frame.compression;
+      return fogBanksAt(sim.state, t).map((b) => {
+        const z = chartToZone({ x: b.x, y: b.y }, sim.frame);
+        return {
+          id: b.id,
+          kind: b.kind,
+          x: z.x,
+          z: z.z,
+          radiusM: b.radius / c,
+          strength: b.strength,
+        };
+      });
+    },
+
     get seaShape() {
       return shape ?? targetSeaShape(settings.speedKn, 0, referenceFetchM || 1, settings.seaGain);
     },
@@ -415,6 +526,8 @@ export function createLocalWeather(
         settings.gustiness = b.gustiness;
         settings.visibilityM = b.visibilityM;
         settings.cloud01 = b.cloud01;
+        settings.rain01 = b.rain01;
+        settings.storm01 = b.storm01;
       }
       const dtGame = lastTick === undefined ? 0 : Math.max(0, t - lastTick);
       lastTick = t;
@@ -427,6 +540,8 @@ export function createLocalWeather(
           gustiness: last.gustiness,
           visibilityM: last.visibilityM,
           cloud01: last.cloud01,
+          rain01: last.rain01,
+          storm01: 0,
         });
         galeStart = undefined;
       }

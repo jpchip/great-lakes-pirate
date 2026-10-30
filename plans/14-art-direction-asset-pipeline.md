@@ -281,7 +281,7 @@ This is a lot for one developer, which is why the pipeline is automated, kits ar
 |---|---|
 | **0** | **S4 style test** (pick A or B, shrunk scene §3.2), the T1 schooner through the full pipeline, the unified material v1, palette v1, the license gate for the chosen tools |
 | 1 | Placeholder-plus ship, water and sky look, sail meshes and shader |
-| 2 | Terrain shader (sandstone, beach, forest), vegetation plus impostors (built, §17), the lighthouse kit, lighting LUTs |
+| 2 | Terrain shader (sandstone, beach, forest), vegetation plus impostors (built, §17), the lighthouse kit, lighting LUTs (built, [04 §25](04-water-weather-seasons.md)) |
 | 4–6 | NPC ships, character base plus animations, props |
 | 7 | Docks-district kit, characters' period variants |
 | 8 | Hideout grid pieces (all materials), crafting stations |
@@ -373,6 +373,7 @@ Medium's whole frame is 4.7 ms of 16.7, with water at 2.5 ms (inside its 3 ms bu
 ---
 
 ## Changelog
+- v0.7: Phase 2 piece E: the lighting LUTs (clear, overcast, storm, fog by sun elevation) are built from the photochrom palette ([04 §25](04-water-weather-seasons.md)).
 - v0.6: Phase 2 piece C (§17): the style B terrain shader, the vegetation density map, procedural pines, birches and rocks with baked impostors and a dithered hand-over, density and distance by preset, and the canopy in the shelter bake. Palette v1 gains the land colors.
 - v0.5: The procedural T1 schooner is built (§5) in style B; outline shells get a small depth offset.
 - v0.4: S4 results (§3.4): scene, benchmark on the baseline laptop, style B with per-object outlines picked. Ships move to a procedural hull generator; Meshy becomes optional for organic one-offs.
