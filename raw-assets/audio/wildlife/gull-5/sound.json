@@ -1,0 +1,12 @@
+{
+  "id": "amb.wildlife.gull-5",
+  "name": "gull-5",
+  "description": "Gull calls",
+  "source": "source.wav",
+  "kind": "oneshot",
+  "bus": "ambience",
+  "bundles": [
+    "world-audio"
+  ],
+  "highpassHz": 450
+}

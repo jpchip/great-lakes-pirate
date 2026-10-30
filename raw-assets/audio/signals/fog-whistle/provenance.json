@@ -1,0 +1,10 @@
+{
+  "source": "procedural",
+  "tool": "tools/audio/synth.ts (tools/audio/lib/synth.ts)",
+  "author": "Great Lakes Pirate contributors",
+  "reference": "Additive steam bell whistle at 196 Hz with pressure-following pitch and band-passed steam noise",
+  "date": "2026-10-30",
+  "license": "CC BY 4.0",
+  "attribution": "Great Lakes Pirate contributors",
+  "modifications": []
+}

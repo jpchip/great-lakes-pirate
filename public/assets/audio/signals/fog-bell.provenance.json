@@ -1,0 +1,19 @@
+{
+  "source": "procedural",
+  "tool": "tools/audio/synth.ts (tools/audio/lib/synth.ts)",
+  "author": "Great Lakes Pirate contributors",
+  "reference": "Additive bronze bell partials (hum, prime, tierce, quint, nominal and up) on a 247 Hz prime, with a clapper click",
+  "date": "2026-10-30",
+  "license": "CC BY 4.0",
+  "attribution": "Great Lakes Pirate contributors",
+  "modifications": [],
+  "description": "Lighthouse fog bell, one stroke",
+  "durationS": 6,
+  "pipeline": [
+    "decoded to mono 48000 Hz",
+    "edge fades",
+    "peak-normalized toward -1 dB (-0.1 dB)",
+    "Opus 56 kbps mono in Ogg (ffmpeg libopus)"
+  ],
+  "inputHash": "6538181b09c5096c"
+}

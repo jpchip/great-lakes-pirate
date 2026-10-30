@@ -44,8 +44,14 @@
     "lens": "unknown",
     "keepers": 1,
     "reporting": "fast",
+    "fogSignal": {
+      "kind": "bell",
+      "pattern": [[0, 4]],
+      "periodS": 15,
+      "confidence": "unknown"
+    },
     "confidence": "unknown",
-    "notes": "R1 lists the 1858 Long Island light as active but with the lens and the site unknown; it may have been retired when the 1897 Chequamegon Point light was built. Placed on Long Island's harbor shore as a small fixed white light until the sources say more."
+    "notes": "R1 lists the 1858 Long Island light as active but with the lens and the site unknown; it may have been retired when the 1897 Chequamegon Point light was built. Placed on Long Island's harbor shore as a small fixed white light until the sources say more. Fog signal: a bell, one stroke every 15 s, assumed for the harbor approach."
   },
   {
     "id": "light.raspberry",
@@ -69,8 +75,17 @@
     "lens": "5th-order",
     "keepers": 2,
     "reporting": "fast",
+    "fogSignal": {
+      "kind": "bell",
+      "pattern": [
+        [0, 2.5],
+        [3, 2.5]
+      ],
+      "periodS": 20,
+      "confidence": "unknown"
+    },
     "confidence": "confirmed",
-    "notes": "Lit 1863. West channel near Bayfield: a weak beam, but the keeper reports fast."
+    "notes": "Lit 1863. West channel near Bayfield: a weak beam, but the keeper reports fast. Fog signal: a hand-rung bell, two strokes every 20 s. Assumed for the busy west channel: R1 doesn't record the station's fog signal yet."
   },
   {
     "id": "light.outer",
@@ -94,8 +109,14 @@
     "lens": "3rd-order Sautter",
     "keepers": 3,
     "reporting": "slow",
+    "fogSignal": {
+      "kind": "whistle",
+      "pattern": [[0, 5]],
+      "periodS": 30,
+      "confidence": "approximate"
+    },
     "confidence": "confirmed",
-    "notes": "Lit 1874. The most remote light, on a tall tower."
+    "notes": "Lit 1874. The most remote light, on a tall tower. Fog signal: a steam whistle, one 5 s blast every 30 s. Assumed: R1 doesn't record the station's fog signal or its code yet."
   },
   {
     "id": "light.sand",

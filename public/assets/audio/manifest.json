@@ -70,6 +70,86 @@
       "type": "audio",
       "url": "sailing/windlass.ogg",
       "bytes": 27905
+    },
+    "music.open-water.day": {
+      "type": "audio",
+      "url": "music/open-water-day.ogg",
+      "bytes": 1476207
+    },
+    "music.open-water.night": {
+      "type": "audio",
+      "url": "music/open-water-night.ogg",
+      "bytes": 1717252
+    },
+    "sfx.signal.fog-bell": {
+      "type": "audio",
+      "url": "signals/fog-bell.ogg",
+      "bytes": 45880
+    },
+    "sfx.signal.fog-whistle": {
+      "type": "audio",
+      "url": "signals/fog-whistle.ogg",
+      "bytes": 54123
+    },
+    "amb.weather.rain": {
+      "type": "audio",
+      "url": "weather/rain.ogg",
+      "bytes": 180087
+    },
+    "sfx.weather.thunder-far": {
+      "type": "audio",
+      "url": "weather/thunder-far.ogg",
+      "bytes": 28058
+    },
+    "sfx.weather.thunder-near": {
+      "type": "audio",
+      "url": "weather/thunder-near.ogg",
+      "bytes": 159978
+    },
+    "amb.wildlife.gull-1": {
+      "type": "audio",
+      "url": "wildlife/gull-1.ogg",
+      "bytes": 29560
+    },
+    "amb.wildlife.gull-2": {
+      "type": "audio",
+      "url": "wildlife/gull-2.ogg",
+      "bytes": 12348
+    },
+    "amb.wildlife.gull-3": {
+      "type": "audio",
+      "url": "wildlife/gull-3.ogg",
+      "bytes": 9140
+    },
+    "amb.wildlife.gull-4": {
+      "type": "audio",
+      "url": "wildlife/gull-4.ogg",
+      "bytes": 12413
+    },
+    "amb.wildlife.gull-5": {
+      "type": "audio",
+      "url": "wildlife/gull-5.ogg",
+      "bytes": 7160
+    },
+    "amb.wildlife.loon-1": {
+      "type": "audio",
+      "url": "wildlife/loon-1.ogg",
+      "bytes": 12268
+    },
+    "amb.wildlife.loon-2": {
+      "type": "audio",
+      "url": "wildlife/loon-2.ogg",
+      "bytes": 12766
+    },
+    "amb.wildlife.loon-3": {
+      "type": "audio",
+      "url": "wildlife/loon-3.ogg",
+      "bytes": 6776
+    },
+    "amb.wildlife.loon-4": {
+      "type": "audio",
+      "url": "wildlife/loon-4.ogg",
+      "bytes": 5623
     }
   },
   "bundles": {
@@ -88,6 +168,26 @@
       "amb.hull.wash",
       "sfx.sea.wave-break",
       "sfx.anchor.windlass"
+    ],
+    "music-open-water": [
+      "music.open-water.day",
+      "music.open-water.night"
+    ],
+    "world-audio": [
+      "sfx.signal.fog-bell",
+      "sfx.signal.fog-whistle",
+      "amb.weather.rain",
+      "sfx.weather.thunder-far",
+      "sfx.weather.thunder-near",
+      "amb.wildlife.gull-1",
+      "amb.wildlife.gull-2",
+      "amb.wildlife.gull-3",
+      "amb.wildlife.gull-4",
+      "amb.wildlife.gull-5",
+      "amb.wildlife.loon-1",
+      "amb.wildlife.loon-2",
+      "amb.wildlife.loon-3",
+      "amb.wildlife.loon-4"
     ]
   }
 }

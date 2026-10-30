@@ -1,0 +1,12 @@
+{
+  "id": "amb.weather.rain",
+  "name": "rain",
+  "description": "Rain falling (loop)",
+  "source": "source.ogg",
+  "kind": "loop",
+  "bus": "ambience",
+  "bundles": [
+    "world-audio"
+  ],
+  "loopCrossfadeS": 2
+}

@@ -1,0 +1,15 @@
+{
+  "id": "amb.wildlife.loon-4",
+  "name": "loon-4",
+  "description": "A loon's tremolo",
+  "source": "source.ogg",
+  "kind": "oneshot",
+  "bus": "ambience",
+  "bundles": [
+    "world-audio"
+  ],
+  "trimStartS": 2.9,
+  "trimEndS": 3.55,
+  "fadeOutS": 0.12,
+  "highpassHz": 600
+}

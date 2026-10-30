@@ -8,6 +8,7 @@ import {
   type Action,
   type Bindings,
 } from '../../core/input';
+import type { AudioSettings, VolumeId } from '../../audio/settings';
 import {
   HUD_DENSITIES,
   RESOLUTION_SCALES,
@@ -17,10 +18,18 @@ import {
 
 /**
  * The settings screen (plan 13 §12 Phase 1): graphics preset, resolution scale and HUD
- * density; camera and sailing options; and basic key rebinding for sailing. It opens
+ * density; camera and sailing options; sound volumes (plan 15 §7, Phase 2 piece H); and
+ * basic key rebinding for sailing. It opens
  * over the game with Esc, which pauses the tick, and every change applies and saves at
  * once (core/settings).
  */
+
+/** The sound volumes, kept apart from the other settings (audio/settings). */
+export interface AudioControls {
+  settings: ReadonlySignal<AudioSettings>;
+  setVolume(id: VolumeId, volume: number): void;
+  setMuted(muted: boolean): void;
+}
 
 export interface SettingsMenuProps {
   settings: ReadonlySignal<Settings>;
@@ -31,6 +40,8 @@ export interface SettingsMenuProps {
   close(): void;
   /** Shown under the preset picker when antialiasing waits for a reload. */
   reloadNote: ReadonlySignal<boolean>;
+  /** Undefined when the browser has no Web Audio. */
+  audio?: AudioControls | undefined;
 }
 
 const ACTION_LABELS: Partial<Record<Action, string>> = {
@@ -54,7 +65,15 @@ const HUD_LABELS: Record<HudDensity, string> = {
   off: 'Off',
 };
 
-type Tab = 'graphics' | 'camera' | 'controls';
+type Tab = 'graphics' | 'camera' | 'sound' | 'controls';
+
+/** The sliders, in order. Voice and UI join when shouts and interface sounds exist. */
+const VOLUMES: [VolumeId, string][] = [
+  ['master', 'Master'],
+  ['music', 'Music'],
+  ['ambience', 'Weather & wildlife'],
+  ['sfx', 'Ship & signals'],
+];
 
 function Toggle(props: { label: string; checked: boolean; onChange(on: boolean): void }) {
   return (
@@ -174,6 +193,40 @@ function Camera({ settings, update }: SettingsMenuProps) {
   );
 }
 
+function Sound({ audio }: SettingsMenuProps) {
+  if (!audio) {
+    return (
+      <div class="menu-section">
+        <p class="menu-note">This browser has no Web Audio, so the game runs silent.</p>
+      </div>
+    );
+  }
+  const a = audio.settings.value;
+  return (
+    <div class="menu-section">
+      {VOLUMES.map(([id, label]) => (
+        <label class="menu-row menu-volume" key={id}>
+          <span>{label}</span>
+          <input
+            type="range"
+            min="0"
+            max="1"
+            step="0.01"
+            value={a[id]}
+            data-testid={`volume-${id}`}
+            aria-label={`${label} volume`}
+            onInput={(e) =>
+              audio.setVolume(id, Number((e.currentTarget as HTMLInputElement).value))
+            }
+          />
+          <span class="menu-value">{Math.round(a[id] * 100)}%</span>
+        </label>
+      ))}
+      <Toggle label="Mute all sound" checked={a.muted} onChange={(on) => audio.setMuted(on)} />
+    </div>
+  );
+}
+
 function Controls({ bindings, rebind, resetBindings }: SettingsMenuProps) {
   const [listening, setListening] = useState<Action | undefined>(undefined);
 
@@ -245,6 +298,7 @@ export function SettingsMenu(props: SettingsMenuProps) {
   const tabs: [Tab, string][] = [
     ['graphics', 'Graphics'],
     ['camera', 'Camera & sailing'],
+    ['sound', 'Sound'],
     ['controls', 'Controls'],
   ];
   return (
@@ -269,6 +323,7 @@ export function SettingsMenu(props: SettingsMenuProps) {
         </nav>
         {tab === 'graphics' && <Graphics {...props} />}
         {tab === 'camera' && <Camera {...props} />}
+        {tab === 'sound' && <Sound {...props} />}
         {tab === 'controls' && <Controls {...props} />}
         <footer class="menu-footer">
           <button

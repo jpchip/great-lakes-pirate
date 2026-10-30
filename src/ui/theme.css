@@ -409,6 +409,16 @@
   font: 14px var(--serif);
 }
 
+.menu-volume > span:first-child {
+  flex: 1;
+}
+
+.menu-value {
+  min-width: 3.2em;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
 .menu-note {
   margin: 0 0 4px;
   font-size: 13px;

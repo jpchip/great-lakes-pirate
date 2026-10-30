@@ -17,8 +17,20 @@ const RAMP_S = 0.05;
 
 export type MixerContext = Pick<
   BaseAudioContext,
-  'createGain' | 'createBufferSource' | 'createBiquadFilter' | 'currentTime' | 'destination'
+  | 'createGain'
+  | 'createBufferSource'
+  | 'createBiquadFilter'
+  | 'createPanner'
+  | 'currentTime'
+  | 'destination'
 >;
+
+/** A point in zone meters (x east, y up, z south), for positional sounds. */
+export interface AudioPoint {
+  x: number;
+  y: number;
+  z: number;
+}
 
 export interface OneShot {
   buffer: AudioBuffer;
@@ -31,6 +43,14 @@ export interface OneShot {
   offset?: number;
   /** Play only this long (buffer seconds), with a short fade-out. */
   duration?: number;
+  /** With `duration`: fade out over this long (real seconds) instead of the short default. */
+  fadeOutS?: number;
+  /**
+   * Pan the voice toward this point from the listener (plan 15 §7: equal-power panning).
+   * Only the direction: distance is the caller's `gain` and `lowpassHz`, since the zone's
+   * distances are compressed and each kind of sound carries differently.
+   */
+  at?: AudioPoint;
   /** Seconds from now. */
   delay?: number;
   /** Low-pass the voice at this frequency, Hz (distance, muffling). */
@@ -99,13 +119,24 @@ export class AudioMixer {
       head = filter;
     }
     head.connect(gain);
-    gain.connect(this.buses[shot.bus]);
+    let panner: PannerNode | undefined;
+    if (shot.at) {
+      panner = ctx.createPanner();
+      panner.panningModel = 'equalpower';
+      panner.distanceModel = 'linear';
+      panner.rolloffFactor = 0;
+      setPosition(panner, shot.at);
+      gain.connect(panner);
+      panner.connect(this.buses[shot.bus]);
+    } else {
+      gain.connect(this.buses[shot.bus]);
+    }
 
     const start = ctx.currentTime + (shot.delay ?? 0);
     const offset = Math.min(shot.offset ?? 0, Math.max(shot.buffer.duration - 0.01, 0));
     if (shot.duration !== undefined) {
       const real = shot.duration / (shot.rate ?? 1);
-      const fade = Math.min(0.08, real / 3);
+      const fade = Math.min(shot.fadeOutS ?? 0.08, real / 3);
       gain.gain.setValueAtTime(shot.gain ?? 1, start + real - fade);
       gain.gain.linearRampToValueAtTime(0, start + real);
       source.start(start, offset, shot.duration);
@@ -120,6 +151,7 @@ export class AudioMixer {
       if (i >= 0) this.voices.splice(i, 1);
       source.disconnect();
       gain.disconnect();
+      panner?.disconnect();
     };
     return source;
   }
@@ -154,6 +186,43 @@ export class AudioMixer {
     };
     set(this.master, s.muted ? 0 : volumeToGain(s.master));
     for (const id of BUS_IDS) set(this.buses[id], volumeToGain(s[id]));
+  }
+}
+
+/** Moves a panner, with the AudioParams where the browser has them. */
+export function setPosition(node: PannerNode, p: AudioPoint): void {
+  if (node.positionX) {
+    node.positionX.value = p.x;
+    node.positionY.value = p.y;
+    node.positionZ.value = p.z;
+  } else {
+    node.setPosition(p.x, p.y, p.z);
+  }
+}
+
+/**
+ * Puts the Web Audio listener at the camera, facing `forward` (zone axes; y up), so
+ * positional sounds pan by where the player is looking. Call once a frame.
+ */
+export function placeListener(
+  ctx: Pick<BaseAudioContext, 'listener'>,
+  at: AudioPoint,
+  forward: AudioPoint,
+): void {
+  const l = ctx.listener;
+  if (l.positionX) {
+    l.positionX.value = at.x;
+    l.positionY.value = at.y;
+    l.positionZ.value = at.z;
+    l.forwardX.value = forward.x;
+    l.forwardY.value = forward.y;
+    l.forwardZ.value = forward.z;
+    l.upX.value = 0;
+    l.upY.value = 1;
+    l.upZ.value = 0;
+  } else {
+    l.setPosition(at.x, at.y, at.z);
+    l.setOrientation(forward.x, forward.y, forward.z, 0, 1, 0);
   }
 }
 

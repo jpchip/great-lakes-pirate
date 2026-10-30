@@ -3,8 +3,9 @@ import type { GameAudio } from '../audio/game-audio';
 import { BUS_IDS, type VolumeId } from '../audio/settings';
 
 /**
- * Audio in the dev overlay: bus volumes and mute until the settings menu (plan 13 §12)
- * has them, buttons for the event sounds, and a live readout of the sailing mix.
+ * Audio in the dev overlay: bus volumes and mute (also on the settings screen), buttons
+ * for the event sounds, and a live readout of the sailing mix, the world around the ship
+ * and the music.
  */
 export interface AudioPanelOptions {
   gui: GUI;
@@ -29,6 +30,13 @@ export function createAudioPanel(options: AudioPanelOptions): { update(): void }
     tack: () => audio.sailing.tacked(),
     jibe: () => audio.sailing.jibed(false),
     uncontrolledJibe: () => audio.sailing.jibed(true),
+    thunderNear: () => audio.world.thunder(Math.random() * Math.PI * 2, 1200, true),
+    thunderFar: () => audio.world.thunder(Math.random() * Math.PI * 2, 5000, false),
+    fogSignal: () => audio.world.signalNow(),
+    gull: () => audio.world.callNow('gull'),
+    loon: () => audio.world.callNow('loon'),
+    musicDay: () => audio.music.playNow('day'),
+    musicNight: () => audio.music.playNow('night'),
   };
   const events = folder.addFolder('Play').close();
   events.add(actions, 'dropAnchor').name('Drop anchor');
@@ -36,8 +44,15 @@ export function createAudioPanel(options: AudioPanelOptions): { update(): void }
   events.add(actions, 'tack').name('Tack');
   events.add(actions, 'jibe').name('Jibe');
   events.add(actions, 'uncontrolledJibe').name('Uncontrolled jibe');
+  events.add(actions, 'thunderNear').name('Thunder, 1.2 km');
+  events.add(actions, 'thunderFar').name('Thunder, 5 km');
+  events.add(actions, 'fogSignal').name('Nearest fog signal');
+  events.add(actions, 'gull').name('Gull');
+  events.add(actions, 'loon').name('Loon');
+  events.add(actions, 'musicDay').name('Music: day');
+  events.add(actions, 'musicNight').name('Music: night');
 
-  const status = { context: '' };
+  const status = { context: '', music: '', mood: '' };
   const readout = {
     voices: 0,
     sounds: audio.bank.size,
@@ -47,9 +62,16 @@ export function createAudioPanel(options: AudioPanelOptions): { update(): void }
     creakPerS: 0,
     luffPerS: 0,
     slapPerS: 0,
+    rain: 0,
+    fogHush: 0,
+    gullsPerS: 0,
+    loonsPerS: 0,
+    signalsHeard: 0,
   };
   const mix = folder.addFolder('Mix').close();
   mix.add(status, 'context').disable().listen();
+  mix.add(status, 'music').disable().listen();
+  mix.add(status, 'mood').disable().listen();
   for (const key of Object.keys(readout) as (keyof typeof readout)[]) {
     mix.add(readout, key).disable().listen();
   }
@@ -59,6 +81,15 @@ export function createAudioPanel(options: AudioPanelOptions): { update(): void }
     update() {
       status.context = (audio.mixer.ctx as BaseAudioContext).state;
       readout.voices = audio.mixer.voiceCount;
+      const w = audio.world.levels;
+      readout.rain = round(w.rain);
+      readout.fogHush = round(w.hush);
+      readout.gullsPerS = round(w.gullsPerS);
+      readout.loonsPerS = round(w.loonsPerS);
+      readout.signalsHeard = w.signalsHeard;
+      status.mood = audio.mood;
+      status.music =
+        audio.music.current ?? `silent ${Math.max(0, Math.round(audio.music.waitS))} s`;
       const m = audio.sailing.levels;
       if (!m) return;
       readout.wind = round(m.windGain);

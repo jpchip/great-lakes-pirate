@@ -1,0 +1,19 @@
+{
+  "source": "procedural",
+  "tool": "tools/audio/synth.ts (tools/audio/lib/synth.ts)",
+  "author": "Great Lakes Pirate contributors",
+  "reference": "Original tune; synthesized free-reed concertina (additive), Karplus-Strong guitar, Freeverb-style reverb",
+  "date": "2026-10-30",
+  "license": "CC BY 4.0",
+  "attribution": "Great Lakes Pirate contributors",
+  "modifications": [],
+  "description": "Open-water music v1, day: \"The Chequamegon Waltz\" on concertina and guitar",
+  "durationS": 91.038,
+  "pipeline": [
+    "decoded to mono 48000 Hz",
+    "edge fades",
+    "RMS-normalized toward -18 dB (+0.5 dB)",
+    "Opus 112 kbps mono in Ogg (ffmpeg libopus)"
+  ],
+  "inputHash": "d264e4a3be14a3c5"
+}

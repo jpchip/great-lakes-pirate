@@ -13,7 +13,7 @@ export type SoundBank = ReadonlyMap<string, AudioBuffer>;
 
 export async function loadSoundBank(
   ctx: BaseAudioContext,
-  bundle: string,
+  bundles: string | readonly string[],
   baseUrl: string,
   fetchFn: typeof fetch = fetch,
 ): Promise<SoundBank> {
@@ -31,7 +31,9 @@ export async function loadSoundBank(
     },
   });
   const bank = new Map<string, AudioBuffer>();
-  const ids = manifest.bundles[bundle] ?? [];
+  const ids = (typeof bundles === 'string' ? [bundles] : bundles).flatMap(
+    (b) => manifest.bundles[b] ?? [],
+  );
   await Promise.all(
     ids.map(async (id) => {
       try {
@@ -42,4 +44,23 @@ export async function loadSoundBank(
     }),
   );
   return bank;
+}
+
+/**
+ * URLs of the sounds in `bundle` without decoding them: music streams from media
+ * elements instead of sitting decoded in memory (plan 15 §8).
+ */
+export async function soundUrls(
+  bundle: string,
+  baseUrl: string,
+  fetchFn: typeof fetch = fetch,
+): Promise<ReadonlyMap<string, string>> {
+  const manifestUrl = new URL(AUDIO_MANIFEST_URL, baseUrl).href;
+  const manifest = await fetchManifest(manifestUrl, fetchFn);
+  const urls = new Map<string, string>();
+  for (const id of manifest.bundles[bundle] ?? []) {
+    const entry = manifest.assets[id];
+    if (entry) urls.set(id, new URL(entry.url, manifestUrl).href);
+  }
+  return urls;
 }

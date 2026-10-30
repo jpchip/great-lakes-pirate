@@ -1,0 +1,20 @@
+{
+  "source": "cc0",
+  "tool": "OpenGameArt: Rain + long thunder",
+  "author": "WuxiaScrub",
+  "reference": "https://opengameart.org/content/rain-long-thunder",
+  "date": "2026-10-30",
+  "license": "CC0 1.0",
+  "modifications": [],
+  "originalFile": "rain-thunder.ogg",
+  "description": "A close thunderclap and its long rumble",
+  "durationS": 23.6,
+  "pipeline": [
+    "decoded to mono 48000 Hz, high-passed at 30 Hz",
+    "trimmed to 20.7–44.3 s",
+    "edge fades (3 s out)",
+    "RMS-normalized toward -24 dB (-6.4 dB)",
+    "Opus 64 kbps mono in Ogg (ffmpeg libopus)"
+  ],
+  "inputHash": "cf13bc5ecd279da3"
+}

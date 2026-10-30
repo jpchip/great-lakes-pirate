@@ -1,0 +1,15 @@
+{
+  "id": "sfx.weather.thunder-near",
+  "name": "thunder-near",
+  "description": "A close thunderclap and its long rumble",
+  "source": "source.ogg",
+  "kind": "oneshot",
+  "bus": "ambience",
+  "bundles": [
+    "world-audio"
+  ],
+  "trimStartS": 20.7,
+  "trimEndS": 44.3,
+  "fadeOutS": 3,
+  "highpassHz": 30
+}

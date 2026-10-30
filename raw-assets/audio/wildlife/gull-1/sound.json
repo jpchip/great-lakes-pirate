@@ -1,0 +1,12 @@
+{
+  "id": "amb.wildlife.gull-1",
+  "name": "gull-1",
+  "description": "A gull's laughing long call",
+  "source": "source.wav",
+  "kind": "oneshot",
+  "bus": "ambience",
+  "bundles": [
+    "world-audio"
+  ],
+  "highpassHz": 450
+}

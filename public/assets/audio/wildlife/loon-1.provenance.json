@@ -1,0 +1,20 @@
+{
+  "source": "cc0",
+  "tool": "Wikimedia Commons: Loons.ogg (US Fish and Wildlife Service, 44loons.mp3)",
+  "author": "U.S. Fish and Wildlife Service",
+  "reference": "https://commons.wikimedia.org/wiki/File:Loons.ogg",
+  "date": "2026-10-30",
+  "license": "Public domain",
+  "modifications": [],
+  "originalFile": "Loons.ogg",
+  "description": "A loon's yodel",
+  "durationS": 1.45,
+  "pipeline": [
+    "decoded to mono 48000 Hz, high-passed at 600 Hz",
+    "trimmed to 12.15–13.6 s",
+    "edge fades (0.12 s out)",
+    "RMS-normalized toward -24 dB (-3.1 dB)",
+    "Opus 64 kbps mono in Ogg (ffmpeg libopus)"
+  ],
+  "inputHash": "10cfb2773c00f2c9"
+}

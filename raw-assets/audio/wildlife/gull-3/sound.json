@@ -1,0 +1,12 @@
+{
+  "id": "amb.wildlife.gull-3",
+  "name": "gull-3",
+  "description": "Gull mewing",
+  "source": "source.wav",
+  "kind": "oneshot",
+  "bus": "ambience",
+  "bundles": [
+    "world-audio"
+  ],
+  "highpassHz": 450
+}
