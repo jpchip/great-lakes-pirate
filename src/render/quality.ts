@@ -53,6 +53,8 @@ export interface QualityPreset {
   fogBankSlabs: boolean;
   /** Rain streaks around the camera at full rain (plan 04 §11); 0 is off. */
   rainStreaks: number;
+  /** Rotating lights draw their beam cone (plan 14 §10); Low keeps the lamp glow only. */
+  lighthouseBeams: boolean;
 }
 
 export const QUALITY_PRESETS: Record<QualityId, QualityPreset> = {
@@ -79,6 +81,7 @@ export const QUALITY_PRESETS: Record<QualityId, QualityPreset> = {
     cloudOctaves: 2,
     fogBankSlabs: false,
     rainStreaks: 900,
+    lighthouseBeams: false,
   },
   medium: {
     id: 'medium',
@@ -103,6 +106,7 @@ export const QUALITY_PRESETS: Record<QualityId, QualityPreset> = {
     cloudOctaves: 3,
     fogBankSlabs: true,
     rainStreaks: 3500,
+    lighthouseBeams: true,
   },
   high: {
     id: 'high',
@@ -127,6 +131,7 @@ export const QUALITY_PRESETS: Record<QualityId, QualityPreset> = {
     cloudOctaves: 3,
     fogBankSlabs: true,
     rainStreaks: 8000,
+    lighthouseBeams: true,
   },
 };
 

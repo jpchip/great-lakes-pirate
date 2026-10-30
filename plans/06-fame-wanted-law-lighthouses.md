@@ -187,6 +187,7 @@ Each lighthouse (from [R1 §2.1](R1-western-superior-1900-research.md)) has:
 | **Reporting speed** | Signal visible from town = fast; remote = rows at dawn ([2.4](#24-report-delay-the-intervention-window)) |
 | **Fog signal** | Horn or bell in fog (audio nav aid; [04 §10](04-water-weather-seasons.md)) |
 
+- **Built (Phase 2 piece F, [14 §18](14-art-direction-asset-pipeline.md)):** `data/lighthouses.json` holds the seven Apostles lights with the tier, characteristic, keepers and reporting speed above, and `src/sim/lighthouses.ts` has the fixed and flashing lights, tier ranges (strong 6 km, medium 4.5 km, weak 3 km in the zone) and the lamp schedule. They are visual only until Phase 5 adds keepers and detection.
 - At **day**, a keeper is a normal observer with a high vantage point (long sight range in clear weather).
 - **Vigilance scales with regional Wanted:** at tier 3+ keepers watch more and signal faster.
 - **Devils Island in 1900** has a weak temporary light ([R1a snapshot](R1a-western-superior-gazetteer.md)), a historical blind spot.
@@ -308,6 +309,7 @@ All resolved.
 ---
 
 ## Changelog
+- v0.4: Phase 2 piece F: lights built from `data/lighthouses.json` ([14 §18](14-art-direction-asset-pipeline.md)); visual only.
 - v0.3: Gap review: seven Wanted regions, Respectable Captain Fame, no disguise items, hideouts end pursuit, bail source from 12, MVP lockup at Bayfield, light characteristics and the Duluth life-saving station researched.
 - v0.2: Decisions: six tiers, heat spread, no inspections at tier 0, no ship disguise (only replacing the ship), one jailbreak before execution, copycat rivals; removed company guards and the bank freeze.
 - v0.1: Initial law plan: crime pipeline, severity, identification and ship profiles, report delays, regional tiers, decay and reduction, heat spread, Fame tiers and effects, Standing link, cutter behavior, harbor law, marshals, lighthouses (detection, raids, false lights, investigations), the detection model, capture outcomes, newspapers, data/state, Phase 5 acceptance.

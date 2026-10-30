@@ -254,7 +254,7 @@ Sources
 
 | # | Question | Feeds | Priority / Status |
 |---|---|---|---|
-| 1 | Verify the remaining lighthouse dates and characteristics; lens order or beam range for each | 06 | **Mostly done** (v0.3). Raspberry, Outer, Sand and Devils characteristics done (2026-10-22). Open: La Pointe, Chequamegon Point and Duluth breakwater lenses; Michigan Island characteristic; Superior Entry light in 1900 |
+| 1 | Verify the remaining lighthouse dates and characteristics; lens order or beam range for each | 06 | **Mostly done** (v0.3). Raspberry, Outer, Sand and Devils characteristics done (2026-10-22). Open: La Pointe, Chequamegon Point and Duluth breakwater lenses; Michigan Island characteristic; Superior Entry light in 1900. *Phase 2 piece F built these three Apostles lights on assumptions (fixed white; La Pointe may have been retired by the 1897 light): [14 §18](14-art-direction-asset-pipeline.md)* |
 | 2 | Water distances between MVP ports and islands; channel and shoal locations | 03 | **Distances estimated** (v0.3). Open: verify on a NOAA chart; map shoals and channels |
 | 3 | Shipping-season dates, ice-out and freeze-up, fog and storm seasons | 04 | **Done** (v0.3), with a proposed calendar |
 | 4 | Port profiles (template above) for all MVP ports | 05, 08 | **First pass done** (R1a). Open: Two Harbors, Washburn and Bayfield populations; Ashland dock count; Washburn details |
