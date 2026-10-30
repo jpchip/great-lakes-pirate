@@ -31,6 +31,7 @@ import { createTestScene } from './render/test-scene';
 import { mooringBerths } from './sim/sailing/hazards';
 import { httpBytes, loadZoneTerrain, type LoadedZone } from './sim/terrain/load';
 import { TEST_BAY } from './sim/terrain/test-bay';
+import { LIGHTHOUSES, placeLights, viewingSpot } from './sim/lighthouses';
 import { APOSTLES_ID, defFrame, manifestFrame, spawnPose, zoneDef } from './sim/terrain/zones';
 import {
   WEATHER_PRESETS,
@@ -231,6 +232,21 @@ async function boot(): Promise<void> {
     spawn.x = sx ?? spawn.x;
     spawn.z = sz ?? spawn.z;
     if (Number.isFinite(sh)) spawn.heading = ((sh ?? 0) * Math.PI) / 180;
+  }
+  // `?light=raspberry` (an id fragment, `light.raspberry` or just `raspberry`) spawns the ship
+  // in open water with a clear line to that light, looking at it; `?light=outer,1500` sets the distance in
+  // meters (default 500), for checking a lighthouse by day and by night.
+  const [lightKey, lightDistance] = (params.get('light') ?? '').split(',');
+  if (lightKey && zone) {
+    const found = placeLights(LIGHTHOUSES, manifestFrame(zone.manifest), zone.terrain).find((p) =>
+      p.def.id.includes(lightKey),
+    );
+    const at = found && viewingSpot(found, zone.terrain, Number(lightDistance) || 500);
+    if (at) {
+      spawn.x = at.x;
+      spawn.z = at.z;
+      spawn.heading = at.heading;
+    }
   }
   // `?fogbank=2000` stands a fog bank dead ahead of the spawn with its wall that many meters
   // away (`?fogkind=radiation` for the shallow kind), to watch one from outside.

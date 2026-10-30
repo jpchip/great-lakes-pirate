@@ -25,6 +25,8 @@ import {
 } from './environment';
 import { createSky, setSkyQuality } from './sky';
 import { createAtmosphere, type Atmosphere } from './atmosphere/atmosphere';
+import { createLighthouses, type LighthouseView } from './lighthouses/lighthouses';
+import { lightClearing } from '../sim/lighthouses';
 import { createDockMesh } from './terrain/dock';
 import { createTerrainMaterial } from './terrain/terrain-material';
 import { createTerrainView, type TerrainView } from './terrain/terrain-mesh';
@@ -62,6 +64,8 @@ export interface TestScene {
   readonly vegetation: VegetationView | undefined;
   /** Fog banks, rain and lightning (Phase 2 piece E). */
   readonly atmosphere: Atmosphere;
+  /** The Apostles' lights, when the zone loaded (Phase 2 piece F). */
+  readonly lighthouses: LighthouseView | undefined;
   render(alpha: number, seaTime: number, frameSeconds: number): void;
 }
 
@@ -149,6 +153,7 @@ export async function createTestScene(
 
   let terrain: TerrainView | undefined;
   let vegetation: VegetationView | undefined;
+  let lighthouses: LighthouseView | undefined;
   if (zone) {
     // The tiles around the player are built now, behind the load.
     const start = world.with('playerControlled', 'transform').first?.transform.position;
@@ -178,6 +183,10 @@ export async function createTestScene(
 
     // Set-piece footprints stay clear of trees for the harbors (piece G).
     const frame = manifestFrame(zone.manifest);
+    lighthouses = createLighthouses(frame, zone.terrain, lighting, outlines, renderer.preset);
+    scene.add(lighthouses.group);
+    const lights = lighthouses;
+    renderer.onPresetChange((preset) => lights.applyPreset(preset));
     const clearings: Clearing[] = zoneDef(zone.manifest.zone).setPieces.map((def) => {
       const f = setPieceFootprint(def, frame);
       return clearingFromFootprint(
@@ -188,6 +197,7 @@ export async function createTestScene(
         def.seawardM,
       );
     });
+    clearings.push(...lighthouses.placed.map(lightClearing));
     vegetation = createVegetationView(
       terrain,
       createPlantModels(renderer.renderer),
@@ -274,6 +284,7 @@ export async function createTestScene(
     terrain,
     vegetation,
     atmosphere,
+    lighthouses,
     render(alpha, seaTime, frameSeconds) {
       now += frameSeconds;
       for (const [e, model] of objects) {
@@ -330,6 +341,7 @@ export async function createTestScene(
         const v = edgeVisibility(zone.terrain.bounds, edge, focus.x, focus.z, MAX_FOG_VISIBILITY_M);
         if (Number.isFinite(v)) f.density = Math.max(f.density, fogDensity(v));
       }
+      lighthouses?.update(now, camera.position, environment.sunElevationDeg, f?.density ?? 0);
       terrain?.update(camera.position.x, camera.position.y, camera.position.z);
       vegetation?.update(camera.position.x, camera.position.y, camera.position.z);
       water.update(camera, seaTime);

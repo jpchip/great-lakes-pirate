@@ -92,9 +92,14 @@ function atmosphereText(
 ): string {
   const a = scene.atmosphere;
   const bank = nearestBankM === undefined ? '' : ` (nearest wall ${nearestBankM.toFixed(0)} m)`;
+  const l = scene.lighthouses;
+  const light = l?.nearest
+    ? `  lights ${l.lit} lit, ${l.drawn} calls, nearest ${l.nearest.name} ${l.nearest.distanceM.toFixed(0)} m ` +
+      `(${l.nearest.flashing ? 'flashing' : 'fixed'}, lamp ${l.nearest.level.toFixed(2)})`
+    : '';
   return (
     `sky  banks ${a.fogBanks.drawn}${bank}  rain ${rain.toFixed(2)} (${a.rain.drawn} streaks)  ` +
-    `storm ${storm.toFixed(2)}  wet ${a.wetness01.toFixed(2)}  strikes ${a.lightning.strikes}`
+    `storm ${storm.toFixed(2)}  wet ${a.wetness01.toFixed(2)}  strikes ${a.lightning.strikes}${light}`
   );
 }
 

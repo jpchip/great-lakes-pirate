@@ -281,7 +281,7 @@ This is a lot for one developer, which is why the pipeline is automated, kits ar
 |---|---|
 | **0** | **S4 style test** (pick A or B, shrunk scene §3.2), the T1 schooner through the full pipeline, the unified material v1, palette v1, the license gate for the chosen tools |
 | 1 | Placeholder-plus ship, water and sky look, sail meshes and shader |
-| 2 | Terrain shader (sandstone, beach, forest), vegetation plus impostors (built, §17), the lighthouse kit, lighting LUTs (built, [04 §25](04-water-weather-seasons.md)) |
+| 2 | Terrain shader (sandstone, beach, forest), vegetation plus impostors (built, §17), the lighthouse kit (built, §18), lighting LUTs (built, [04 §25](04-water-weather-seasons.md)) |
 | 4–6 | NPC ships, character base plus animations, props |
 | 7 | Docks-district kit, characters' period variants |
 | 8 | Hideout grid pieces (all materials), crafting stations |
@@ -372,7 +372,35 @@ Medium's whole frame is 4.7 ms of 16.7, with water at 2.5 ms (inside its 3 ms bu
 
 ---
 
+## 18. Phase 2 Piece F: Lighthouses (2026-10-30)
+
+**Scope** (Phase 2 scope doc, piece F; §13 Phase 2 row): `lighthouses.json` from R1 §2.1, a shared kit of two or three tower styles, a beam cone shader plus one real lamp near the player, and emissive lanterns, for the seven lights of the Apostles in spring 1900. Visual only: keepers and detection are Phase 5 ([06 §6](06-fame-wanted-law-lighthouses.md)).
+
+| Part | Where | How it works |
+|---|---|---|
+| Data | `data/lighthouses.json`, `data/schemas/lighthouses.ts` | One entry per light: site (lat and lon), tower style, height and finish, tier (strong, medium or weak), characteristic (fixed or flashing, white or red, a period for flashing), lens, keepers, reporting speed, and R1's confidence in the site and characteristic. Michigan Island, La Pointe and Chequamegon Point are the three R1 marks unknown, and each carries an assumption in its notes. |
+| Light sim | `src/sim/lighthouses.ts` | Pure functions the renderer and, later, Phase 5 share. `lampLevel(sunElevation)` lights the lamps from sunset to sunrise. `beamBearing` and `flashSeen` turn a flashing lens once per period (90 s for Raspberry and Outer Island, each with its own phase) and say how much of the flash a viewer sees. Tiers set how far a light shows in the zone: strong 6 km, medium 4.5 km, weak 3 km (the zone's fog floor is 6 km, so a real 15 nautical-mile range would add nothing). `placeLights` puts each light on the zone's land: its coordinates, moved to the nearest ground at least 1.5 m above the lake when they land offshore, turned to face the nearest open water. |
+| Kit | `src/render/lighthouses/kit.ts` | Three tower styles at 1:1 scale, each scaled to its own tower height: **conical** (a tapering round tower, a keeper's house and an oil house: Outer and Michigan Island), **dwelling** (a two-storey house with the square tower through its seaward end: Raspberry, and Sand Island in brownstone) and **skeleton** (a braced frame with a watch house at its foot: Devils Island, Chequamegon Point and La Pointe). Each station is three meshes: the body (everything solid, merged, with vertex colors), the lantern glass and the lit windows. Under 1,300 triangles a station. |
+| Look | `src/render/lighthouses/lighthouses.ts` | The unified toon material, with ink outlines on the body (lighthouses are hero objects; terrain is not). The lantern glows from dusk to dawn whether the lens flashes or not, in ruby glass for Devils Island's temporary red light. A glare sprite sits at the lamp and is drawn out to the light's range: a fixed light is a steady glow, a flashing one swells as its beam sweeps past the viewer. Fog dims it by the scene's fog density, so a light shows less far in fog. Flashing lights also draw a beam cone (the S4 cone shader, now 5° wide) on Medium and High; Low keeps the glow only. |
+| One real lamp | `StyleLighting.setLamp` | The nearest lit light within 260 m lights the ground, the tower and the ship through the style lighting's local lamp, so the lit windows and the grass around a station show at night. |
+| Trees | `lightClearing` | A 52 m square around each light is kept clear of trees and rocks, as the set pieces are. |
+| Switches | `src/main.ts`, overlay | `?light=raspberry` (or `outer,1500`, a distance in meters) spawns the ship on the water side of that light looking at it; the dev overlay line reports lights lit, draw calls and the nearest light. |
+
+**Cost:** seven lights are at most about 35 draw calls (3 for the station, 1 glare, 1 beam, plus the outline shells), fewer by culling: stations stop drawing past 9 km and a light's glare and beam past its range. Medium stays under 150 calls with room to spare. The cost on the laptop is not measured yet: rerun the water bench.
+
+**Seen in the renders** (`/mnt/project-files/lighthouses/`): the four styles from 150 m by day, and by night Sand Island's lit windows with the ground lit around it, Raspberry's beam sweeping at dusk, Outer Island's beam, and Devils Island's red light. The towers are 1:1 on islands compressed eight times, so a 27 m tower on a small island looks large (plan 03 §3.4 accepts this).
+
+**Open:**
+1. **La Pointe:** R1 lists the 1858 Long Island light as active in 1900 with its lens unknown, but it may have been retired when the 1897 Chequamegon Point light replaced it. It is built as a small fixed white light on Long Island's harbor shore.
+2. **Michigan Island and Chequamegon Point** are assumed fixed white (R1 marks the characteristic unknown).
+3. **Devils Island's tower** is built as a steel skeleton from memory; check it against the NPS photos.
+4. **Positions** came from approximate coordinates and were snapped to land; a pass against NOAA charts would tighten them.
+5. **Fog signals and the lights in storms** (lamps lit by day under a dark sky) are for pieces H and later; so are keepers, detection and dousing (Phase 5).
+
+---
+
 ## Changelog
+- v0.8: Phase 2 piece F (§18): the seven Apostles lights from `lighthouses.json` and a three-style tower kit, fixed and flashing characteristics, a beam cone, lit lanterns and windows, and one real lamp near the ship.
 - v0.7: Phase 2 piece E: the lighting LUTs (clear, overcast, storm, fog by sun elevation) are built from the photochrom palette ([04 §25](04-water-weather-seasons.md)).
 - v0.6: Phase 2 piece C (§17): the style B terrain shader, the vegetation density map, procedural pines, birches and rocks with baked impostors and a dithered hand-over, density and distance by preset, and the canopy in the shelter bake. Palette v1 gains the land colors.
 - v0.5: The procedural T1 schooner is built (§5) in style B; outline shells get a small depth offset.

@@ -1,0 +1,172 @@
+[
+  {
+    "id": "light.michigan",
+    "name": "Michigan Island Light",
+    "zone": "zone.apostles",
+    "at": {
+      "lat": 46.8756,
+      "lon": -90.4972
+    },
+    "tower": {
+      "style": "conical",
+      "heightM": 18,
+      "finish": "white"
+    },
+    "tier": "strong",
+    "characteristic": {
+      "kind": "fixed",
+      "color": "white"
+    },
+    "lens": "3½-order since 1869",
+    "keepers": 3,
+    "reporting": "slow",
+    "confidence": "unknown",
+    "notes": "R1 has the characteristic as unknown; fixed white is the assumption. The 1869 tower (the 1929 skeleton tower isn't built yet). 'The unwanted lighthouse'."
+  },
+  {
+    "id": "light.lapointe",
+    "name": "La Pointe Light",
+    "zone": "zone.apostles",
+    "at": {
+      "lat": 46.7305,
+      "lon": -90.8045
+    },
+    "tower": {
+      "style": "skeleton",
+      "heightM": 11,
+      "finish": "white"
+    },
+    "tier": "weak",
+    "characteristic": {
+      "kind": "fixed",
+      "color": "white"
+    },
+    "lens": "unknown",
+    "keepers": 1,
+    "reporting": "fast",
+    "confidence": "unknown",
+    "notes": "R1 lists the 1858 Long Island light as active but with the lens and the site unknown; it may have been retired when the 1897 Chequamegon Point light was built. Placed on Long Island's harbor shore as a small fixed white light until the sources say more."
+  },
+  {
+    "id": "light.raspberry",
+    "name": "Raspberry Island Light",
+    "zone": "zone.apostles",
+    "at": {
+      "lat": 46.9722,
+      "lon": -90.8072
+    },
+    "tower": {
+      "style": "dwelling",
+      "heightM": 12,
+      "finish": "white"
+    },
+    "tier": "weak",
+    "characteristic": {
+      "kind": "flashing",
+      "color": "white",
+      "periodS": 90
+    },
+    "lens": "5th-order",
+    "keepers": 2,
+    "reporting": "fast",
+    "confidence": "confirmed",
+    "notes": "Lit 1863. West channel near Bayfield: a weak beam, but the keeper reports fast."
+  },
+  {
+    "id": "light.outer",
+    "name": "Outer Island Light",
+    "zone": "zone.apostles",
+    "at": {
+      "lat": 47.0772,
+      "lon": -90.4285
+    },
+    "tower": {
+      "style": "conical",
+      "heightM": 27,
+      "finish": "white"
+    },
+    "tier": "strong",
+    "characteristic": {
+      "kind": "flashing",
+      "color": "white",
+      "periodS": 90
+    },
+    "lens": "3rd-order Sautter",
+    "keepers": 3,
+    "reporting": "slow",
+    "confidence": "confirmed",
+    "notes": "Lit 1874. The most remote light, on a tall tower."
+  },
+  {
+    "id": "light.sand",
+    "name": "Sand Island Light",
+    "zone": "zone.apostles",
+    "at": {
+      "lat": 47.0052,
+      "lon": -90.9358
+    },
+    "tower": {
+      "style": "dwelling",
+      "heightM": 13,
+      "finish": "brownstone"
+    },
+    "tier": "medium",
+    "characteristic": {
+      "kind": "fixed",
+      "color": "white"
+    },
+    "lens": "4th-order Lepaute",
+    "keepers": 2,
+    "reporting": "medium",
+    "confidence": "confirmed",
+    "notes": "Lit 1881, fixed white until 1921. Brownstone dwelling; guards the Sevona shoal."
+  },
+  {
+    "id": "light.devils",
+    "name": "Devils Island Light",
+    "zone": "zone.apostles",
+    "at": {
+      "lat": 47.0797,
+      "lon": -90.7303
+    },
+    "tower": {
+      "style": "skeleton",
+      "heightM": 25,
+      "finish": "iron"
+    },
+    "tier": "weak",
+    "characteristic": {
+      "kind": "fixed",
+      "color": "red"
+    },
+    "lens": "4th-order, temporary",
+    "keepers": 3,
+    "reporting": "slow",
+    "confidence": "confirmed",
+    "notes": "The tower stands but the 3rd-order lens doesn't arrive until June 1901, so in 1900 it shows a temporary fixed red light: a known gap in coverage on the exposed north edge. The tower's build (a steel skeleton) is ⚠️ from memory, to check against NPS photos."
+  },
+  {
+    "id": "light.chequamegon",
+    "name": "Chequamegon Point Light",
+    "zone": "zone.apostles",
+    "at": {
+      "lat": 46.7273,
+      "lon": -90.8147
+    },
+    "tower": {
+      "style": "skeleton",
+      "heightM": 13,
+      "finish": "iron"
+    },
+    "tier": "weak",
+    "characteristic": {
+      "kind": "fixed",
+      "color": "white"
+    },
+    "lens": "unknown",
+    "keepers": 2,
+    "reporting": "medium",
+    "confidence": "unknown",
+    "notes": "Lit 1896-97 on the tip of Long Island, eroding. R1 has the lens and the characteristic as unknown; fixed white is the assumption."
+  }
+]
