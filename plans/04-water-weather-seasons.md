@@ -683,7 +683,44 @@ Before and after (left old, right new, the same frame on Medium): `/mnt/project-
 
 ---
 
+## 25. Phase 2 Piece E: Sky and Atmosphere (2026-10-30)
+
+**Scope** (Phase 2 scope doc, piece E): lighting LUTs from the photochrom palette, 2–3 cloud layers, fog bank slabs on Medium and up, rain and wetness, summer thunderstorms with lightning, all driven by the weather sim (§24).
+
+### What was built
+
+| Part | Where | How it works |
+|---|---|---|
+| Lighting LUTs | `src/render/style/lighting-luts.ts` | Four columns (clear, overcast, storm, fog) by six sun-elevation rows (−18° to 45°), each with zenith, horizon, hemisphere sky and ground colors and the ambient intensity. `sampleLighting` blends clear toward overcast by cloud cover (nothing until 20%, full at 100%), then toward storm by the storm amount, then toward fog by 80% of the fog amount, so thick fog keeps a hint of the hour. The old palette in `environment.ts` is gone; the sky, hemisphere light and scene fog all read this one table. |
+| Clouds | `src/render/sky.ts` | Two scrolling layers on the dome (a thin high deck and a lower, larger-scaled layer), shaded in a lit band and a shadow body. Cover sets the threshold, a storm lowers and darkens the low layer, and the layers drift with the wind (0.0004 noise units per knot per real second). Low draws one layer at two noise octaves; Medium and High draw two at three. |
+| Fog banks from outside | `src/render/atmosphere/fog-banks.ts` | One open cylinder per living bank (twelve at most, one geometry, one material each) standing where the sim's fog is half strength (three-quarters of the bank's radius): about 150 m tall for advection fog with a billowy top, 30 m for radiation fog. The wall softens toward its silhouette, fades out once the camera is well inside (the scene fog takes over), shades from gray at the water to bright at the top, and is dimmed at night. Not drawn on Low, which has the global fog only. |
+| Rain | `src/render/atmosphere/rain.ts` | Up to 8,000 line-segment streaks in one draw, wrapped in a 56 × 40 × 56 m box around the camera in the vertex shader (no per-frame CPU work). They fall at 11 m/s, slant with the wind, and thin by prefix as the rain eases. Low 900, Medium 3,500, High 8,000. |
+| Wetness | `stylized-material.ts`, `atmosphere.ts` | A `uWet` uniform darkens every toon-lit surface by up to 22%. It rises over 20 s of rain and dries over 150 s. |
+| Thunderstorms | `thunderstormAt` in `src/sim/weather/weather.ts` | A sim query: warm air (mean high from 14 to 22 °C), real rain, and noise cells of about 25 km that drift east, so storms are summer cells inside a low's rain and not a winter event. January has none. |
+| Lightning | `src/render/atmosphere/lightning.ts` | A seeded scheduler (a strike every 5–25 s, sooner the stronger the storm). Each strike picks a bearing and a distance of 0.9–6.5 km, flashes the hemisphere light and lights the clouds from that bearing (a strong stroke, then a weaker return inside 0.8 s), and 60% of strikes draw a forked bolt to the water. Listeners get the bearing, the distance and whether it reached the water, so thunder (piece H) can wait `distance / 343` seconds. |
+| Sim to renderer | `src/sim/weather/local-weather.ts` | `LocalWeather.rainAt`, `stormAt` and `fogBanks` (zone meters). The panel presets and the scripted gale carry `rain01` (the gale's rain reaches 0.9). |
+| Switches | `src/main.ts`, overlay | `?rain=`, `?storm=`, `?fog=` (meters), `?cloud=`, `?seed=` and `?fogbank=<m>` (`?fogkind=radiation`) put the weather where you want it for a look; the dev panel has Rain and Thunderstorm sliders and a line showing banks, streaks, wetness and strikes. |
+
+### Cost
+
+On the software renderer, only counts mean anything: Medium draws 43–45 calls and 146k triangles with banks, rain and sky on, about 2 draws for banks plus 1 for rain plus 1 for a bolt. The bolt and the walls are alpha-blended and fill-light, but the laptop rerun of the water bench is the real check (budget: 150 calls, 600k triangles).
+
+### Notes
+
+- Clear and overcast days look right; a thunderstorm goes dark green-gray with rain, and the lightning lights the clouds from the strike's bearing. The flash lights the sky and the hemisphere term but barely moves the toon-lit water, which reads as lightning far off.
+- A fog wall is the color of the haze behind it at midday, so it reads as a pale band against the sky rather than a hard edge. It reads best at dusk and at dawn.
+
+### Not covered yet
+
+1. **Moon path on the water:** the moon is a lit disc with a phase; a reflected moon path is not drawn.
+2. **Thunder and rain audio** and **fog signals** are piece H, which will use the strike listener.
+3. **Snow and the aurora** are Phase 6 (§8, §11).
+4. **Storm warnings** to the player (falling glass, the lightning-ahead cue) wait for the forecast UI.
+
+---
+
 ## Changelog
+- v0.10: Phase 2 piece E (§25): lighting LUTs (clear, overcast, storm, fog), two cloud layers, fog bank walls, rain streaks and wetness, summer thunderstorms and lightning, all from the weather sim; Rain and Thunderstorm in the dev panel.
 - v0.9: Phase 2 piece D (§24): the S9 sim drives the zone's wind, visibility and cloud; weather in the save (v2, with a migration from v1); climate in `data/climate.json`, checked against NOAA normals and Devils Island wind and retuned; a barometer on the HUD; the dev panel as an override.
 - v0.8: Phase 2 piece A (§23): water drawn after the land, cat's-paws to one noise octave and off on Low, a two-tap gust lookup, noise only where it can show, and an arithmetic hash. Water on Medium is 2.2 ms on the baseline laptop.
 - v0.7: Phase 1 piece F (§22): depth bands and shore foam from a whole-zone shore texture, far water to 10 km with the fog floor at 6 km, bow wave and wake ribbons, bow spray, cat's-paws that show gusts before they arrive, wind streaks, and a per-feature water bench.

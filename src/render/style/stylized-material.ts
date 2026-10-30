@@ -36,6 +36,8 @@ export interface StyleLightingUniforms {
   uLampColor: THREE.IUniform<THREE.Color>;
   /** Lamp light reaches zero at this distance, meters. */
   uLampRange: THREE.IUniform<number>;
+  /** How wet surfaces are, 0–1: rain darkens everything lit by the style (plan 04 §11). */
+  uWet: THREE.IUniform<number>;
 }
 
 export class StyleLighting {
@@ -48,6 +50,7 @@ export class StyleLighting {
     uLampPosition: { value: new THREE.Vector3(0, -1e4, 0) },
     uLampColor: { value: new THREE.Color(0, 0, 0) },
     uLampRange: { value: 40 },
+    uWet: { value: 0 },
   };
 
   apply(tod: TimeOfDay): void {
@@ -146,6 +149,7 @@ uniform vec3 uRimColor;
 uniform vec3 uLampPosition;
 uniform vec3 uLampColor;
 uniform float uLampRange;
+uniform float uWet;
 
 vec3 styleLight(vec3 n, vec3 worldPos) {
   #ifdef STYLE_WRAP
@@ -169,7 +173,8 @@ vec3 styleLight(vec3 n, vec3 worldPos) {
   #ifdef STYLE_TOON
     lamp = step(0.2, lamp);
   #endif
-  return ambient + uKeyColor * key + uLampColor * lamp * falloff * falloff;
+  // Wet surfaces are darker (rain, spray and wet rock), and so are their colors' lights.
+  return (ambient + uKeyColor * key + uLampColor * lamp * falloff * falloff) * (1.0 - 0.22 * uWet);
 }
 `;
 

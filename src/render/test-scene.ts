@@ -23,7 +23,8 @@ import {
   MAX_FOG_VISIBILITY_M,
   type EnvironmentView,
 } from './environment';
-import { createSky } from './sky';
+import { createSky, setSkyQuality } from './sky';
+import { createAtmosphere, type Atmosphere } from './atmosphere/atmosphere';
 import { createDockMesh } from './terrain/dock';
 import { createTerrainMaterial } from './terrain/terrain-material';
 import { createTerrainView, type TerrainView } from './terrain/terrain-mesh';
@@ -59,6 +60,8 @@ export interface TestScene {
   readonly terrain: TerrainView | undefined;
   /** Trees and rocks on the zone's land, when it loaded. */
   readonly vegetation: VegetationView | undefined;
+  /** Fog banks, rain and lightning (Phase 2 piece E). */
+  readonly atmosphere: Atmosphere;
   render(alpha: number, seaTime: number, frameSeconds: number): void;
 }
 
@@ -103,8 +106,10 @@ export async function createTestScene(
   edge?: ZoneEdge,
 ): Promise<TestScene> {
   const scene = new THREE.Scene();
-  const sky = createSky(HORIZON.clone(), ZENITH.clone(), true);
+  const sky = createSky(HORIZON.clone(), ZENITH.clone(), true, true);
+  setSkyQuality(sky, renderer.preset);
   scene.add(sky);
+  renderer.onPresetChange((preset) => setSkyQuality(sky, preset));
 
   // Far enough for the far-water LOD and the far islands behind it.
   const camera = new THREE.PerspectiveCamera(50, renderer.aspect, 0.5, WATER_FAR_RADIUS_M * 1.05);
@@ -136,6 +141,11 @@ export async function createTestScene(
   const lighting = new StyleLighting();
   const outlines = new OutlineSettings();
   const rim = new THREE.Color();
+
+  // Fog banks, rain and lightning over the sky and light the environment sets.
+  const atmosphere = createAtmosphere(scene, weather, environment, lighting, hemi, renderer.preset);
+  scene.add(atmosphere.group);
+  renderer.onPresetChange((preset) => atmosphere.applyPreset(preset));
 
   let terrain: TerrainView | undefined;
   let vegetation: VegetationView | undefined;
@@ -263,6 +273,7 @@ export async function createTestScene(
     zone,
     terrain,
     vegetation,
+    atmosphere,
     render(alpha, seaTime, frameSeconds) {
       now += frameSeconds;
       for (const [e, model] of objects) {
@@ -301,6 +312,7 @@ export async function createTestScene(
       spray.update(frameSeconds);
       cameraRig.update(pose, surface, frameSeconds);
       sky.position.copy(camera.position);
+      atmosphere.update(frameSeconds, clock.gameSeconds, camera.position, focus);
       environment.update(clock.gameSeconds, focus);
       lighting.fromSceneLights(
         hemi,

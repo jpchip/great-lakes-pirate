@@ -492,4 +492,13 @@ describe('weather from the S9 sim (plan 04 §24)', () => {
     expect(weather.source).toBe('panel');
     expect(weather.barometerAt(0)).toBeUndefined();
   });
+
+  it('rains in a gale and is dry and storm-free in a calm, with no sky banks on a panel', () => {
+    const gale = createLocalWeather(weatherPreset('gale'));
+    expect(gale.rainAt(0)).toBeCloseTo(0.6, 5);
+    expect(gale.stormAt(0)).toBe(0);
+    const calm = createLocalWeather(weatherPreset('calm'));
+    expect(calm.rainAt(0)).toBe(0);
+    expect(calm.fogBanks(0)).toEqual([]);
+  });
 });
