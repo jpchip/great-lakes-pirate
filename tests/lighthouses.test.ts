@@ -17,6 +17,7 @@ import {
   lightClearing,
   lightRangeM,
   placeLights,
+  viewingSpot,
   type LightTerrain,
 } from '../src/sim/lighthouses';
 import { loadZoneTerrain, type LoadedZone } from '../src/sim/terrain/load';
@@ -202,6 +203,21 @@ describe('the lights on the Apostles zone', () => {
     for (const p of placed) {
       expect(zone.terrain.heightAt(p.x, p.z), p.def.id).toBeGreaterThanOrEqual(1.5);
       expect(zone.terrain.contains(p.x, p.z), p.def.id).toBe(true);
+    }
+  });
+
+  it('finds open water to view every light from, facing it', () => {
+    if (!baked) return;
+    const placed = placeLights(LIGHTHOUSES, manifestFrame(zone.manifest), zone.terrain);
+    for (const p of placed) {
+      const spot = need(viewingSpot(p, zone.terrain, 500), p.def.id);
+      expect(zone.terrain.heightAt(spot.x, spot.z), p.def.id).toBeLessThanOrEqual(-6);
+      const d = Math.hypot(spot.x - p.x, spot.z - p.z);
+      expect(d, p.def.id).toBeGreaterThan(100);
+      expect(d, p.def.id).toBeLessThanOrEqual(500 + 1);
+      // Facing the light: the heading points from the ship at the tower.
+      const toLight = Math.atan2(p.x - spot.x, -(p.z - spot.z));
+      expect(Math.cos(spot.heading - toLight), p.def.id).toBeGreaterThan(0.999);
     }
   });
 

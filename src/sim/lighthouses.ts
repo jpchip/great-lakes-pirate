@@ -160,3 +160,48 @@ export function lightClearing(p: Pick<PlacedLight, 'x' | 'z'>): Clearing {
     halfAcross: LIGHT_CLEARING_M,
   };
 }
+
+/** Open water for a ship to sit in: this deep, with the same all round it. */
+const SHIP_WATER_M = -6;
+
+/**
+ * Where to put a ship to look at a light from the water, about `distanceM` off: deep water
+ * with a clear line of water to the light's shore (no island in between), as near the
+ * seaward bearing as it can find, then nearer in if the far spots are all blocked. The
+ * heading faces the light. Undefined when no water is found (a light up a creek).
+ */
+export function viewingSpot(
+  p: Pick<PlacedLight, 'x' | 'z' | 'seaward'>,
+  terrain: Pick<LightTerrain, 'heightAt'>,
+  distanceM: number,
+): { x: number; z: number; heading: number } | undefined {
+  const clearTo = (x: number, z: number, bearing: number, d: number): boolean => {
+    const dx = Math.sin(bearing);
+    const dz = -Math.cos(bearing);
+    // Water at the ship and round it, then every 20 m back toward the shore.
+    for (const [ox, oz] of [
+      [0, 0],
+      [25, 0],
+      [-25, 0],
+      [0, 25],
+      [0, -25],
+    ] as const) {
+      if (terrain.heightAt(x + ox, z + oz) > SHIP_WATER_M) return false;
+    }
+    for (let k = 20; k < d - 60; k += 20) {
+      if (terrain.heightAt(p.x + dx * (d - k), p.z + dz * (d - k)) > -1.5) return false;
+    }
+    return true;
+  };
+  for (let d = distanceM; d >= 120; d *= 0.8) {
+    for (let step = 0; step <= 12; step++) {
+      for (const sign of step === 0 ? [1] : [1, -1]) {
+        const bearing = p.seaward + sign * step * ((15 * Math.PI) / 180);
+        const x = p.x + Math.sin(bearing) * d;
+        const z = p.z - Math.cos(bearing) * d;
+        if (clearTo(x, z, bearing, d)) return { x, z, heading: bearing + Math.PI };
+      }
+    }
+  }
+  return undefined;
+}
