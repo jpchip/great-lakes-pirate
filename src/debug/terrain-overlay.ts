@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import type { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js';
-import { dockBerths, TEST_BAY } from '../sim/terrain/test-bay';
+import { dockBerths, TEST_BAY, type Dock } from '../sim/terrain/test-bay';
 import type { ZoneTerrain } from '../sim/terrain/zone-terrain';
 
 /**
@@ -59,6 +59,7 @@ export function createTerrainOverlay(
   terrain: ZoneTerrain,
   gui: GUI,
   initial: { map: TerrainMap; windFromDeg: number },
+  docks: readonly Dock[] = TEST_BAY.docks,
 ): TerrainOverlay {
   const { minX, minZ, maxX, maxZ } = terrain.bounds;
   const cols = Math.ceil((maxX - minX) / TEXEL_M);
@@ -88,7 +89,7 @@ export function createTerrainOverlay(
   berths.name = 'berth-zones';
   berths.visible = false;
   const berthMaterial = new THREE.LineBasicMaterial({ color: 0xffffff, fog: false });
-  for (const dock of TEST_BAY.docks) {
+  for (const dock of docks) {
     for (const berth of dockBerths(dock)) {
       const { x, z, heading } = berth.pose;
       const box = new THREE.LineLoop(

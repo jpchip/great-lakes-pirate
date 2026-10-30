@@ -1,7 +1,6 @@
 import * as THREE from 'three';
 import type { AssetLoader } from '../core/assets';
 import type { LoadedZone } from '../sim/terrain/load';
-import { TEST_BAY } from '../sim/terrain/test-bay';
 import { edgeVisibility, type ZoneEdge } from '../sim/terrain/zone-edge';
 import { manifestFrame, setPieceFootprint, zoneDef } from '../sim/terrain/zones';
 import { clearingFromFootprint, type Clearing } from '../sim/terrain/vegetation';
@@ -27,7 +26,8 @@ import { createSky, setSkyQuality } from './sky';
 import { createAtmosphere, type Atmosphere } from './atmosphere/atmosphere';
 import { createLighthouses, type LighthouseView } from './lighthouses/lighthouses';
 import { lightClearing } from '../sim/lighthouses';
-import { createDockMesh } from './terrain/dock';
+import { createHarbors, type HarborView } from './harbors/harbors';
+import { harborClearings, layoutHarbors, type HarborLayout } from '../sim/harbors';
 import { createTerrainMaterial } from './terrain/terrain-material';
 import { createTerrainView, type TerrainView } from './terrain/terrain-mesh';
 import {
@@ -66,6 +66,9 @@ export interface TestScene {
   readonly atmosphere: Atmosphere;
   /** The Apostles' lights, when the zone loaded (Phase 2 piece F). */
   readonly lighthouses: LighthouseView | undefined;
+  /** Bayfield and Ashland, when the zone loaded (Phase 2 piece G). */
+  readonly harbors: HarborView | undefined;
+  readonly harborLayouts: readonly HarborLayout[];
   render(alpha: number, seaTime: number, frameSeconds: number): void;
 }
 
@@ -154,6 +157,8 @@ export async function createTestScene(
   let terrain: TerrainView | undefined;
   let vegetation: VegetationView | undefined;
   let lighthouses: LighthouseView | undefined;
+  let harbors: HarborView | undefined;
+  let harborLayouts: HarborLayout[] = [];
   if (zone) {
     // The tiles around the player are built now, behind the load.
     const start = world.with('playerControlled', 'transform').first?.transform.position;
@@ -198,6 +203,9 @@ export async function createTestScene(
       );
     });
     clearings.push(...lighthouses.placed.map(lightClearing));
+    // The harbors' buildings and pier ends stay clear of trees too.
+    harborLayouts = layoutHarbors(frame, zone.terrain);
+    for (const layout of harborLayouts) clearings.push(...harborClearings(layout));
     vegetation = createVegetationView(
       terrain,
       createPlantModels(renderer.renderer),
@@ -208,7 +216,9 @@ export async function createTestScene(
     scene.add(vegetation.group);
     const plants = vegetation;
     renderer.onPresetChange((preset) => plants.applyPreset(preset));
-    for (const dock of TEST_BAY.docks) scene.add(createDockMesh(dock, zone.terrain));
+    const terrainData = zone.terrain;
+    harbors = createHarbors(harborLayouts, (x, z) => terrainData.heightAt(x, z), lighting);
+    scene.add(harbors.group);
   }
 
   // Ships are procedural (plan 14 §5).
@@ -285,6 +295,8 @@ export async function createTestScene(
     vegetation,
     atmosphere,
     lighthouses,
+    harbors,
+    harborLayouts,
     render(alpha, seaTime, frameSeconds) {
       now += frameSeconds;
       for (const [e, model] of objects) {
@@ -341,6 +353,7 @@ export async function createTestScene(
         const v = edgeVisibility(zone.terrain.bounds, edge, focus.x, focus.z, MAX_FOG_VISIBILITY_M);
         if (Number.isFinite(v)) f.density = Math.max(f.density, fogDensity(v));
       }
+      harbors?.update(environment.sunElevationDeg);
       lighthouses?.update(now, camera.position, environment.sunElevationDeg, f?.density ?? 0);
       terrain?.update(camera.position.x, camera.position.y, camera.position.z);
       vegetation?.update(camera.position.x, camera.position.y, camera.position.z);

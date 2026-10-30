@@ -1,7 +1,7 @@
 import * as THREE from 'three';
-import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import type { LighthouseDef, TowerStyle } from '../../../data/schemas/lighthouses';
 import { PALETTE } from '../style/palette';
+import { box, frustum, gable, merged, part, place, strut } from '../style/parts';
 
 /**
  * The lighthouse station kit (plan 14 §8, §13; Phase 2 piece F): three tower styles that
@@ -44,94 +44,6 @@ const glassOf = (def: LighthouseDef): number =>
 
 const foundationColor = PALETTE.slopeRock;
 const trimColor = PALETTE.lanternBlack;
-
-/** A solid part: non-indexed, positions and normals only, painted one color. */
-function part(geometry: THREE.BufferGeometry, color: number): THREE.BufferGeometry {
-  const g = geometry.index ? geometry.toNonIndexed() : geometry;
-  g.deleteAttribute('uv');
-  const count = g.getAttribute('position').count;
-  const c = new THREE.Color(color);
-  const colors = new Float32Array(count * 3);
-  for (let i = 0; i < count; i++) c.toArray(colors, i * 3);
-  g.setAttribute('color', new THREE.BufferAttribute(colors, 3));
-  return g;
-}
-
-/** Moves a part: position, then yaw about y. */
-function place(
-  g: THREE.BufferGeometry,
-  x: number,
-  y: number,
-  z: number,
-  yaw = 0,
-): THREE.BufferGeometry {
-  if (yaw) g.rotateY(yaw);
-  return g.translate(x, y, z);
-}
-
-function box(
-  w: number,
-  h: number,
-  d: number,
-  x: number,
-  y: number,
-  z: number,
-  color: number,
-): THREE.BufferGeometry {
-  // `y` is the bottom of the box.
-  return place(part(new THREE.BoxGeometry(w, h, d), color), x, y + h / 2, z);
-}
-
-function frustum(
-  rTop: number,
-  rBottom: number,
-  h: number,
-  sides: number,
-  x: number,
-  y: number,
-  z: number,
-  color: number,
-): THREE.BufferGeometry {
-  return place(
-    part(new THREE.CylinderGeometry(rTop, rBottom, h, sides, 1), color),
-    x,
-    y + h / 2,
-    z,
-  );
-}
-
-/** A gable roof over a w × d footprint, ridge along x, its eave at `y`. */
-function gable(
-  w: number,
-  d: number,
-  rise: number,
-  x: number,
-  y: number,
-  z: number,
-  color: number,
-): THREE.BufferGeometry {
-  const shape = new THREE.Shape([
-    new THREE.Vector2(-d / 2 - 0.3, 0),
-    new THREE.Vector2(d / 2 + 0.3, 0),
-    new THREE.Vector2(0, rise),
-  ]);
-  const prism = new THREE.ExtrudeGeometry(shape, { depth: w + 0.6, bevelEnabled: false });
-  prism.translate(0, 0, -(w + 0.6) / 2);
-  prism.rotateY(Math.PI / 2);
-  return place(part(prism, color), x, y, z);
-}
-
-/** A thin strut between two points. */
-function strut(a: THREE.Vector3, b: THREE.Vector3, r: number, color: number): THREE.BufferGeometry {
-  const length = a.distanceTo(b);
-  const g = new THREE.CylinderGeometry(r, r, length, 4, 1);
-  g.rotateX(Math.PI / 2);
-  const m = new THREE.Matrix4().lookAt(a, b, new THREE.Vector3(0, 1, 0));
-  const q = new THREE.Quaternion().setFromRotationMatrix(m);
-  g.applyQuaternion(q);
-  const mid = a.clone().add(b).multiplyScalar(0.5);
-  return part(g.translate(mid.x, mid.y, mid.z), color);
-}
 
 /** The lantern room and its roof: glass is the lantern mesh, the frame joins the body. */
 function lantern(
@@ -260,13 +172,6 @@ function skeleton(def: LighthouseDef): StationParts {
   body.push(gable(4.2, 3.6, 1.4, 0, 2.8, 7, PALETTE.roofGray));
   windows.push(box(0.9, 1.1, 0.2, -0.8, 1.0, 5.12, PALETTE.windowAmber));
   return assemble(body, glass, windows, H);
-}
-
-function merged(parts: THREE.BufferGeometry[]): THREE.BufferGeometry {
-  const g = mergeGeometries(parts, false);
-  if (!g) throw new Error('lighthouse kit: could not merge parts');
-  for (const p of parts) p.dispose();
-  return g;
 }
 
 const triangles = (g: THREE.BufferGeometry): number => g.getAttribute('position').count / 3;

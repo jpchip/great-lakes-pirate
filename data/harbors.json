@@ -1,0 +1,245 @@
+[
+  {
+    "id": "harbor.bayfield",
+    "name": "Bayfield",
+    "setPiece": "setpiece.bayfield",
+    "piers": [
+      {
+        "id": "pier.bayfield_city",
+        "name": "City dock",
+        "kind": "city",
+        "alongM": 0,
+        "inlandM": 40,
+        "lengthM": 56,
+        "widthM": 6,
+        "deckM": 1.6
+      },
+      {
+        "id": "pier.bayfield_fish",
+        "name": "Fish company dock",
+        "kind": "fish",
+        "alongM": -120,
+        "inlandM": 40,
+        "lengthM": 50,
+        "widthM": 9,
+        "deckM": 1.6
+      },
+      {
+        "id": "pier.bayfield_lumber",
+        "name": "Mill dock",
+        "kind": "lumber",
+        "alongM": 125,
+        "inlandM": 90,
+        "lengthM": 46,
+        "widthM": 12,
+        "deckM": 1.8
+      }
+    ],
+    "buildings": [
+      {
+        "kind": "packingHouse",
+        "name": "Fish packing house",
+        "alongM": -120,
+        "inlandM": 22,
+        "widthM": 18,
+        "depthM": 30,
+        "heightM": 7
+      },
+      {
+        "kind": "cooperage",
+        "name": "Cooperage",
+        "alongM": -75,
+        "inlandM": 45,
+        "widthM": 14,
+        "depthM": 22,
+        "heightM": 6
+      },
+      {
+        "kind": "fishShed",
+        "alongM": -160,
+        "inlandM": 10,
+        "widthM": 10,
+        "depthM": 8,
+        "heightM": 4
+      },
+      {
+        "kind": "fishShed",
+        "alongM": -180,
+        "inlandM": 24,
+        "widthM": 8,
+        "depthM": 8,
+        "heightM": 4
+      },
+      {
+        "kind": "warehouse",
+        "name": "Dock warehouse",
+        "alongM": -25,
+        "inlandM": 18,
+        "widthM": 14,
+        "depthM": 12,
+        "heightM": 6
+      },
+      {
+        "kind": "store",
+        "name": "General store",
+        "alongM": 25,
+        "inlandM": 55,
+        "widthM": 12,
+        "depthM": 16,
+        "heightM": 8
+      },
+      {
+        "kind": "depot",
+        "name": "Railroad depot",
+        "alongM": 60,
+        "inlandM": 70,
+        "widthM": 10,
+        "depthM": 26,
+        "heightM": 5
+      },
+      {
+        "kind": "sawmill",
+        "name": "Sawmill",
+        "alongM": 150,
+        "inlandM": 95,
+        "widthM": 30,
+        "depthM": 16,
+        "heightM": 9
+      },
+      {
+        "kind": "warehouse",
+        "name": "Lumber shed",
+        "alongM": 100,
+        "inlandM": 80,
+        "widthM": 18,
+        "depthM": 10,
+        "heightM": 5
+      },
+      {
+        "kind": "church",
+        "alongM": -40,
+        "inlandM": 115,
+        "widthM": 10,
+        "depthM": 18,
+        "heightM": 8
+      }
+    ],
+    "town": {
+      "houses": 70,
+      "alongM": [-230, 220],
+      "inlandM": [70, 330],
+      "maxGroundM": 45,
+      "seed": 1900
+    }
+  },
+  {
+    "id": "harbor.ashland",
+    "name": "Ashland",
+    "setPiece": "setpiece.ashland",
+    "piers": [
+      {
+        "id": "pier.ashland_ore",
+        "name": "Ore dock",
+        "kind": "ore",
+        "alongM": 200,
+        "inlandM": 60,
+        "bearingDeg": 10,
+        "lengthM": 520,
+        "widthM": 16,
+        "deckM": 18
+      },
+      {
+        "id": "pier.ashland_lumber",
+        "name": "Lumber dock",
+        "kind": "lumber",
+        "alongM": 30,
+        "inlandM": 40,
+        "bearingDeg": 340,
+        "lengthM": 150,
+        "widthM": 14,
+        "deckM": 1.8
+      },
+      {
+        "id": "pier.ashland_city",
+        "name": "City dock",
+        "kind": "city",
+        "alongM": -120,
+        "inlandM": 40,
+        "lengthM": 160,
+        "widthM": 7,
+        "deckM": 1.6
+      }
+    ],
+    "buildings": [
+      {
+        "kind": "sawmill",
+        "name": "Sawmill",
+        "alongM": 40,
+        "inlandM": 45,
+        "widthM": 36,
+        "depthM": 18,
+        "heightM": 10
+      },
+      {
+        "kind": "warehouse",
+        "name": "Lumber shed",
+        "alongM": -10,
+        "inlandM": 30,
+        "widthM": 24,
+        "depthM": 12,
+        "heightM": 5
+      },
+      {
+        "kind": "warehouse",
+        "name": "Freight house",
+        "alongM": -150,
+        "inlandM": 25,
+        "widthM": 20,
+        "depthM": 14,
+        "heightM": 6
+      },
+      {
+        "kind": "depot",
+        "name": "Railroad depot",
+        "alongM": -60,
+        "inlandM": 80,
+        "widthM": 12,
+        "depthM": 30,
+        "heightM": 6
+      },
+      {
+        "kind": "store",
+        "name": "Hardware store",
+        "alongM": -200,
+        "inlandM": 90,
+        "widthM": 14,
+        "depthM": 18,
+        "heightM": 9
+      },
+      {
+        "kind": "store",
+        "name": "Hotel",
+        "alongM": -120,
+        "inlandM": 110,
+        "widthM": 20,
+        "depthM": 16,
+        "heightM": 12
+      },
+      {
+        "kind": "church",
+        "alongM": -260,
+        "inlandM": 160,
+        "widthM": 11,
+        "depthM": 20,
+        "heightM": 9
+      }
+    ],
+    "town": {
+      "houses": 110,
+      "alongM": [-390, 320],
+      "inlandM": [60, 420],
+      "maxGroundM": 30,
+      "seed": 1854
+    }
+  }
+]
