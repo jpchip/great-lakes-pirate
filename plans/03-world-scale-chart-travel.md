@@ -329,6 +329,7 @@ All resolved. S7 settled the freighter scale (0.85×) and R_foot (6). S3 handles
 | 2026-10-22 | S7 and S8 are Phase 0 prototypes; S3 bakes funneling maps. |
 | 2026-10-23 | Land heights use a **soft knee at 20 m** (`h' = 20·ln(1 + h/20)`), not 1:1, so compressed islands stay walkable; water depth stays 1:1 (S3, §14.3). |
 | 2026-10-24 | Spike S7 confirmed by playtest: **C = 8**, **R = 24**, **R_foot = 6**, big freighters' `displayScale` **0.85** (§15). |
+| 2026-10-31 | Phase 3: the Twin Ports and Two Harbors get **dockable harbors** (the Duluth canal and Superior Entry at 1:1, piers with berths, the 1900 lights, town silhouettes); full waterfronts come with Phase 4 (§20.6). |
 
 ---
 
@@ -613,7 +614,7 @@ Phase 2 (the Superior Slice) is pieces A–I of the Phase 2 scope doc: water bud
 | 10 | Done in the helm swap. |
 | 12 | Plans updated, CI green; 0.2.0 tagged on the merge. |
 
-## 20. Phase 3 Scope: Hybrid Travel (proposed 2026-10-31)
+## 20. Phase 3 Scope: Hybrid Travel (2026-10-31)
 
 Phase 3 is the **Hybrid Travel** build (version 0.3.0), with one goal from the [00 §7](00-master-plan.md) roadmap: **"big-world feel."** It takes the S8 chart prototype (§16) into the game, adds the Twin Ports and Two Harbors zones, and fills the open water between them with traffic and weather you meet in open-water arenas. The scope comes from the Phase 3 row in the master plan and the Phase 3 rows in plans 04 §15 (weather on the chart), 13 §12 (chart mode, encounter popups, lookout setting), 15 §11 (chart music, steam whistles, encounter stingers) and 16 §12 (voyage slice, autosave triggers, migrations), plus the S8 findings (§16) and the Phase 2 leftovers (§17.4).
 
@@ -647,7 +648,7 @@ Sail out of the Apostles onto the chart, plot a course to Duluth, Superior or Tw
 | Traffic | `routes.json` (ports, zone entries, lanes with seasonal weights), abstract ships on it, and an encounter director with a per-voyage budget | §6, 01 §3.4 |
 | Arenas | Open-water arenas in the game: the sim's weather at that point, ships materialized from traffic, the coastline in view, back to the chart at the edge | §6.3 |
 | NPC ships | Steam ore freighter, schooner-barge, package steamer, fishing tug and the revenue cutter *Morrill*, from the hull generator, with smoke and running lights | 14 §5, §3.5 |
-| Harbors | Duluth Ship Canal and Superior Entry at 1:1, berths at Duluth, Superior and Two Harbors, and their 1900 lights (depends on decision 1, §20.6) | §3.4, R1a |
+| Harbors | Duluth Ship Canal and Superior Entry at 1:1, berths at Duluth, Superior and Two Harbors, and their 1900 lights (dockable harbors, decided 2026-10-31, §20.6) | §3.4, R1a |
 | Saves | Location and voyage saved, autosave on zone and chart transitions, a v2 save migrates | 16 §4.1, §12 |
 | Audio | Chart music, steam whistles you can hear in fog, encounter stingers | 15 §11 |
 
@@ -694,7 +695,7 @@ Eleven pieces, each sized to be one thread. Four can start at once (A, B, C, H).
 | F | Traffic on the route graph | `data/routes.json` (ports, zone entries, waypoints, lanes with seasonal weights) with a schema and land-mask checks. Abstract ships on lanes as `{leg, progress}` on the world tick (01 §3.4), without manifests (those are Phase 4's). An encounter director with a per-voyage budget by route and season (finding 2). Avoiding costs time on a detour (finding 4). The *Morrill* patrols and can be sighted, but forces nothing until Phase 5 gates it by Wanted (finding 3); a dev flag turns hunting on for criterion 7. Derelicts as static points of interest | D (can start against the spike) | — |
 | G | Open-water arenas in the game | The arena as the sailing mode with no terrain tiles: the sim's weather, sky and time at the encounter point, the ships materialized from traffic on their lanes' headings with simple steering and collision avoidance, the coastline in view as low silhouettes from the chart (cut list #1 if it costs too much), the pursuit lock within the threat radius, and back to the chart at the edge (finding 7). `?encounter=<kind>` for checks | D, F, H | Arena feel |
 | H | NPC ships v0 | Hulls from the procedural generator (14 §5) for a steam ore freighter (`displayScale` 0.85), a schooner-barge, a package steamer, a fishing tug and the cutter *Morrill*, in style B with outlines. Funnel smoke, running lights at night, wakes. `ships.json` entries with draft, speed and conspicuity. A draw-call budget for five ships in an arena | — | Look sign-off |
-| I | Twin Ports and Two Harbors harbors | Depends on decision 1. Recommended: the Duluth Ship Canal and Superior Entry as 1:1 set pieces you can sail through, piers with berths at Duluth, Superior and Two Harbors (Two Harbors' wooden ore docks at 1:1), and the 1900 lights into `lighthouses.json` (the Duluth South Breakwater temporary light, the Superior Entry pierhead light, Two Harbors Light, and Minnesota Point standing dark). Town silhouettes with lit windows from the Phase 2 kit | C | — |
+| I | Twin Ports and Two Harbors harbors | Dockable harbors (decided 2026-10-31, §20.6): the Duluth Ship Canal and Superior Entry as 1:1 set pieces you can sail through, piers with berths at Duluth, Superior and Two Harbors (Two Harbors' wooden ore docks at 1:1), and the 1900 lights into `lighthouses.json` (the Duluth South Breakwater temporary light, the Superior Entry pierhead light, Two Harbors Light, and Minnesota Point standing dark). Town silhouettes with lit windows from the Phase 2 kit | C | — |
 | J | Chart and encounter audio | Chart music, steam whistles for NPC ships (and the cutter's own) that carry in fog, encounter stingers, and the loading-screen transition sound. Every file in `CREDITS.md` | D, H | Listen by ear |
 | K | Phase 3 playtest | The §20.3 scenarios, the benches on each zone, the arena and the chart, plans updated, tag 0.3.0 | All | Playtest, sign-off |
 
@@ -710,7 +711,7 @@ Eleven pieces, each sized to be one thread. Four can start at once (A, B, C, H).
 
 ### 20.6 Decisions for Jared
 
-1. **How much harbor do the new zones get in Phase 3?** The canal and Superior Entry are needed just to get into the Twin Ports (§3.4), so some set piece work is unavoidable.
+1. **How much harbor do the new zones get in Phase 3?** **Decided 2026-10-31: dockable harbors.** The canal and Superior Entry are needed just to get into the Twin Ports (§3.4), so some set piece work is unavoidable.
    - **Dockable harbors (recommended):** the canal and Superior Entry at 1:1, a few piers with berths at Duluth, Superior and Two Harbors, the 1900 lights, and town silhouettes. Full waterfront dressing comes when Phase 4 trading needs it.
    - **Full set pieces like Bayfield and Ashland:** the zones are finished in one pass, but piece I roughly doubles, and Duluth would be the biggest set piece in the game.
    - **Terrain and entries only:** you can sail in but not dock outside the Apostles until Phase 4. The smallest Phase 3, and criterion 1 becomes "arrive in the zone".
@@ -724,7 +725,7 @@ Eleven pieces, each sized to be one thread. Four can start at once (A, B, C, H).
 ---
 
 ## Changelog
-- v0.14: Phase 3 scope proposed (§20): what Phase 2 changes, deliverables, exit criteria, eleven work pieces, assumed calls and one decision on the new zones' harbors.
+- v0.14: Phase 3 scope proposed (§20): what Phase 2 changes, deliverables, exit criteria, eleven work pieces, assumed calls, and the new zones get dockable harbors (decided 2026-10-31).
 - v0.13: Phase 2 exit criteria and playtest (§19), passed 2026-10-31; `?timewarp=` for the week-of-weather check.
 - v0.12: Phase 2 piece G: Bayfield and Ashland harbors (§18), the Ashland ore dock at 1:1 in open water in place of a rebaked lens.
 - v0.11: Phase 2 piece C: vegetation density and planting built (§8.3), and the canopy in the shelter maps (§14.4); details in [14 §17](14-art-direction-asset-pipeline.md).
