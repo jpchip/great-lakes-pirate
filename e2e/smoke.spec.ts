@@ -129,3 +129,51 @@ test('sets a volume on the settings screen and keeps it after a reload', async (
   await expect(page.getByTestId('volume-music')).toHaveValue('0.25');
   expect(errors).toEqual([]);
 });
+
+// Phase 3 piece A: Continue puts the ship back where the run was saved, not at the spawn.
+test('continues from where the ship was saved', async ({ page }) => {
+  const errors = collectErrors(page);
+  const body = page.locator('body');
+  await page.goto('/?renderer=null');
+  await expect(body).toHaveAttribute('data-start', 'spawn');
+  const spawn = await body.getAttribute('data-start-pose');
+  // Make sail and let her move off the spawn, then save as the tab hides.
+  await page.keyboard.press('KeyW');
+  await page.keyboard.press('KeyW');
+  await page.waitForTimeout(3000);
+  await page.evaluate(() => window.dispatchEvent(new Event('pagehide')));
+  await expect(body).toHaveAttribute('data-saved-pose', /.+/);
+  const saved = await body.getAttribute('data-saved-pose');
+  expect(saved).not.toBe(spawn);
+
+  await page.reload();
+  await expect(body).toHaveAttribute('data-save', 'loaded');
+  await expect(body).toHaveAttribute('data-start', 'saved');
+  await expect(body).toHaveAttribute('data-start-pose', saved ?? '');
+  expect(errors).toEqual([]);
+});
+
+// Phase 3 piece A: a zone loads by id behind the fade to fog, at an entry point, and the
+// run saves on arrival so a reload comes back there.
+test('enters a zone by id at an entry point and saves on arrival', async ({ page }) => {
+  const errors = collectErrors(page);
+  const body = page.locator('body');
+  await page.goto('/?renderer=null&debug');
+  await expect(body).toHaveAttribute('data-mode', 'sailing');
+  await page.evaluate(() =>
+    (
+      window as unknown as { __glpZones: { enter(id: string, entry: string): Promise<void> } }
+    ).__glpZones.enter('zone.apostles', 'north'),
+  );
+  await expect(body).toHaveAttribute('data-zone-load', 'done');
+  await expect(body).toHaveAttribute('data-zone', 'zone.apostles');
+  await expect(body).toHaveAttribute('data-terrain', 'loaded');
+  await expect(page.getByTestId('loading-screen')).toHaveAttribute('aria-hidden', 'true');
+  // The north entry, heading south (data/zones.json).
+  await expect(body).toHaveAttribute('data-saved-pose', /^-1000\.\d\d,-3500\.\d\d,3\.14\d\d$/);
+
+  await page.reload();
+  await expect(body).toHaveAttribute('data-start', 'saved');
+  await expect(body).toHaveAttribute('data-start-pose', /^-1000\.\d\d,-3500\.\d\d,3\.14\d\d$/);
+  expect(errors).toEqual([]);
+});

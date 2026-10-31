@@ -44,6 +44,11 @@ export interface GameAudio {
   update(frameSeconds: number, mode: string | undefined): void;
   /** Hear from the camera instead of the ship once there is one. */
   setListener(pose: () => ListenerPose): void;
+  /** A new zone's fog signals and harbors (Phase 3 piece A). */
+  setZone(zone: {
+    stations: readonly SignalStation[];
+    harbors: readonly { x: number; z: number }[];
+  }): void;
   setVolume(id: VolumeId, volume: number): void;
   setMuted(muted: boolean): void;
 }
@@ -116,7 +121,7 @@ export async function createGameAudio(options: GameAudioOptions): Promise<GameAu
   let nowS = 0;
   let listener: (() => ListenerPose) | undefined;
   const towardShore = { x: 0, z: 0 };
-  const harbors = options.harbors ?? [];
+  let harbors = options.harbors ?? [];
   const persist = (): void => saveAudioSettings(settings, storage);
 
   return {
@@ -200,6 +205,10 @@ export async function createGameAudio(options: GameAudioOptions): Promise<GameAu
     },
     setListener(pose) {
       listener = pose;
+    },
+    setZone(zone) {
+      world.setStations(zone.stations);
+      harbors = zone.harbors;
     },
     setVolume(id, volume) {
       mixer.setVolume(id, volume);

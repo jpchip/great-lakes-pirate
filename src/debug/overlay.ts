@@ -9,6 +9,7 @@ import type { BarometerReading } from '../sim/weather/weather';
 import type { GameRenderer } from '../render/renderer';
 import { browserStorage, QUALITY_IDS, storeQuality, type QualityId } from '../render/quality';
 import type { TestScene } from '../render/test-scene';
+import type { ZoneManagerStats } from '../sim/terrain/zone-manager';
 import { createTerrainOverlay, type TerrainOverlay } from './terrain-overlay';
 import { formatWaterBench, runWaterBench } from './water-bench';
 
@@ -27,6 +28,19 @@ export interface SaveControls {
   saveNow(): Promise<void>;
 }
 
+/** Zones by id for the dev panel (Phase 3 piece A). */
+export interface ZoneControls {
+  ids: readonly string[];
+  /** Entry point short names, e.g. `west`. */
+  entries(id: string): readonly string[];
+  current(): string;
+  /** Leave and enter `id` at an entry, or at its spawn with `spawn`; `fresh` skips the cache. */
+  enter(id: string, entry: string, fresh: boolean): Promise<void>;
+  stats(): ZoneManagerStats;
+  /** Frees the cached zone now, for the heap round trip. */
+  free(): void;
+}
+
 export interface OverlayOptions {
   renderer: GameRenderer;
   scene: TestScene;
@@ -41,6 +55,7 @@ export interface OverlayOptions {
   setQuality?: (id: QualityId) => void;
   /** The playtest clock speed-up the sailing mode reads (`?timewarp=`). */
   timeWarp?: { factor: number };
+  zones?: ZoneControls;
 }
 
 const STYLE = `
@@ -103,6 +118,11 @@ function atmosphereText(
     `sky  banks ${a.fogBanks.drawn}${bank}  rain ${rain.toFixed(2)} (${a.rain.drawn} streaks)  ` +
     `storm ${storm.toFixed(2)}  wet ${a.wetness01.toFixed(2)}  strikes ${a.lightning.strikes}${light}`
   );
+}
+
+function zoneText(z: ZoneManagerStats): string {
+  const cached = z.cached ? `  cached ${z.cached} ${z.cachedForS.toFixed(0)} s` : '';
+  return `zone ${z.current ?? 'none'}${cached}  loads ${z.loads}  cache hits ${z.cacheHits}`;
 }
 
 export function createDevOverlay(options: OverlayOptions): DevOverlay {
@@ -210,21 +230,45 @@ export function createDevOverlay(options: OverlayOptions): DevOverlay {
   // For scripted screenshots and poking around in the console.
   (window as unknown as { __glpScene: TestScene }).__glpScene = scene;
 
+  // Rebuilt for each zone, so it never holds a zone that's been left.
   let terrain: TerrainOverlay | undefined;
-  if (scene.zone) {
-    const params = new URLSearchParams(window.location.search);
-    const map = params.get('overlay');
-    const windFrom = Number(params.get('windfrom') ?? 315);
+  const params = new URLSearchParams(window.location.search);
+  const map = params.get('overlay');
+  const windFrom = Number(params.get('windfrom') ?? 315);
+  const terrainSettings = {
+    map: map === 'shelter' || map === 'fetch' || map === 'funnel' ? map : 'off',
+    windFromDeg: Number.isFinite(windFrom) ? windFrom : 315,
+  } as const;
+  const buildTerrainOverlay = (): void => {
+    const last = terrain?.settings;
+    terrain?.dispose();
+    terrain = undefined;
+    if (!scene.zone) return;
     terrain = createTerrainOverlay(
       scene.scene,
       scene.zone.terrain,
       gui,
-      {
-        map: map === 'shelter' || map === 'fetch' || map === 'funnel' ? map : 'off',
-        windFromDeg: Number.isFinite(windFrom) ? windFrom : 315,
-      },
+      last ? { map: last.map, windFromDeg: last.windFromDeg } : terrainSettings,
       scene.harborLayouts.flatMap((l) => l.piers),
     );
+  };
+  buildTerrainOverlay();
+  scene.onZoneChange(buildTerrainOverlay);
+
+  // Zones by id (Phase 3 piece A): enter one at an entry, from the cache or a fresh load.
+  // Watch the heap line across a round trip: it should come back within 20 MB.
+  const zones = options.zones;
+  if (zones) {
+    const pick = { zone: zones.current(), entry: 'spawn', fresh: false };
+    const folder = gui.addFolder('Zone');
+    folder.add(pick, 'zone', [...zones.ids]).name('Zone');
+    const entryNames = (): string[] => ['spawn', ...zones.entries(pick.zone)];
+    folder.add(pick, 'entry', entryNames()).name('Arrive at');
+    folder.add(pick, 'fresh').name('Skip the cache');
+    folder
+      .add({ enter: () => void zones.enter(pick.zone, pick.entry, pick.fresh) }, 'enter')
+      .name('Enter zone');
+    folder.add({ free: () => zones.free() }, 'free').name('Free cached zone');
   }
 
   const saveFolder = gui.addFolder('Save');
@@ -304,6 +348,7 @@ export function createDevOverlay(options: OverlayOptions): DevOverlay {
         `sea Hs ${waves.hsM.toFixed(2)} m  ×${waves.scale.toFixed(2)}  λ ${weather.seaShape.peakWavelengthM.toFixed(0)} m`,
         `${clockText}  sun ${scene.environment.sunElevationDeg.toFixed(0)}°  vis ${(weather.visibilityAt(at, clock.gameSeconds) / 1000).toFixed(1)} km`,
         `save ${save.status}  last ${saved}${save.lastError ? `  ERROR ${save.lastError}` : ''}`,
+        zones ? zoneText(zones.stats()) : '',
         terrain ? terrain.describe(at.x, at.z) : '',
         streamText(scene),
         vegetationText(scene),

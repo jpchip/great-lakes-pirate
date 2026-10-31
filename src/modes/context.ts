@@ -18,6 +18,9 @@ export interface GameEvents {
   EncounterSpotted: { contactId: string; forced: boolean };
   EncounterEngaged: { contactId: string; forced: boolean };
   EncounterAvoided: { contactId: string; escaped: boolean };
+  /** Zones (plan 03 §9): the player left one or arrived in one (Phase 3 piece A). */
+  ZoneExited: { zoneId: string };
+  ZoneEntered: { zoneId: string; from: 'saved' | 'spawn' | 'entry' | 'dev' };
   /** Sailing (plan 02 §4): the bow or the stern crossed the wind. */
   ShipTacked: { shipId: string | undefined };
   ShipJibed: { shipId: string | undefined; uncontrolled: boolean };
