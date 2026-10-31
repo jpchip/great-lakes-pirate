@@ -177,3 +177,30 @@ test('enters a zone by id at an entry point and saves on arrival', async ({ page
   await expect(body).toHaveAttribute('data-start-pose', /^-1000\.\d\d,-3500\.\d\d,3\.14\d\d$/);
   expect(errors).toEqual([]);
 });
+
+// Phase 3 piece G: `?encounter=` drops into an open-water arena with the ship met, and
+// sailing off its edge ends it, back to where it was entered from (the chart, once piece D
+// is in). Nothing in the arena overwrites the run's saved place.
+test('drops into an arena and leaves it off the edge', async ({ page }) => {
+  const errors = collectErrors(page);
+  const body = page.locator('body');
+  await page.goto('/?renderer=null&debug&encounter=convoy');
+  await expect(body).toHaveAttribute('data-arena', 'ship');
+  await expect(body).toHaveAttribute('data-arena-ships', '3');
+  await expect(body).toHaveAttribute('data-zone', 'arena');
+  const saved = await body.getAttribute('data-saved-pose');
+  await page.evaluate(() => window.dispatchEvent(new Event('pagehide')));
+  await page.waitForTimeout(300);
+  expect(await body.getAttribute('data-saved-pose')).toBe(saved);
+
+  await page.evaluate(() =>
+    (window as unknown as { __glpArena: { place(x: number, z: number): void } }).__glpArena.place(
+      0,
+      -1600,
+    ),
+  );
+  await expect(body).toHaveAttribute('data-arena-result', 'left');
+  await expect(body).toHaveAttribute('data-zone', 'zone.apostles');
+  await expect(body).not.toHaveAttribute('data-arena', /.+/);
+  expect(errors).toEqual([]);
+});

@@ -79,7 +79,11 @@ export function createNpcView(env: NpcViewEnv): NpcView {
       scene.add(model.group);
       const wake = createShipWake(measureWaterline(model.group), water);
       scene.add(wake.mesh);
-      drawn.set(e, { model, wake, sources: model.stacks.map(() => ({ owed: 0 })) });
+      // A wreck (Phase 3 piece G) has lost her canvas, her lamps and her fires.
+      const derelict = e.npc?.derelict === true;
+      if (derelict && model.sails) model.sails.visible = false;
+      const sources = derelict ? [] : model.stacks.map(() => ({ owed: 0 }));
+      drawn.set(e, { model, wake, sources });
       models.set(e, model);
     },
     remove(e) {
@@ -97,10 +101,12 @@ export function createNpcView(env: NpcViewEnv): NpcView {
         const object = model.group;
         object.position.set(t.position.x, t.position.y, t.position.z);
         // Heading is clockwise from north; three.js yaw is counter-clockwise.
-        object.rotation.set(t.pitch ?? 0, -t.heading, t.roll ?? 0);
+        object.rotation.set(t.pitch ?? 0, -t.heading, (t.roll ?? 0) + (e.npc?.listRad ?? 0));
         const wind = env.windAt(t.position);
-        // Booms to leeward: the wind's bearing off the bow, starboard positive.
-        model.update(sunElevationDeg, fogDensity, Math.sin(wind.fromRad - t.heading) > 0);
+        // Booms to leeward: the wind's bearing off the bow, starboard positive. A wreck
+        // shows no lights: it's lit as at noon.
+        const sun = e.npc?.derelict ? 90 : sunElevationDeg;
+        model.update(sun, fogDensity, Math.sin(wind.fromRad - t.heading) > 0);
         const v = e.velocity ?? still;
         ship.x = t.position.x;
         ship.z = t.position.z;

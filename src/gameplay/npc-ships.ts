@@ -1,5 +1,5 @@
 import type { ShipRecord } from '../../data/schemas/ships';
-import { DEFAULT_COMPRESSION, sceneSpeed } from '../core/coords';
+import { DEFAULT_COMPRESSION, knotsToMs, sceneSpeed } from '../core/coords';
 import { R_SAILING } from '../core/time';
 import { SHIP_RECORDS } from '../sim/sailing/ships';
 import { createBuoyancy } from './buoyancy';
@@ -7,8 +7,8 @@ import { cloneTransform, type Entity } from './ecs';
 
 /**
  * NPC ships in a zone (Phase 3 piece H): a traffic class from ships.json holding a course
- * at its service speed, riding the swell on its record's buoyancy. Piece G gives them
- * steering in the arenas; until then they steam straight on.
+ * at its service speed, riding the swell on its record's buoyancy. In an arena,
+ * gameplay/arena steers them (piece G); in a zone they steam straight on.
  */
 
 /** Every traffic class, in ships.json order. */
@@ -27,7 +27,7 @@ export function createNpcShipEntity(
   speedKn = serviceSpeedKn(record),
 ): Entity {
   const transform = { position: { x, y: 0, z }, heading };
-  const v = sceneSpeed(speedKn, R_SAILING, DEFAULT_COMPRESSION);
+  const v = sceneSpeed(knotsToMs(speedKn), R_SAILING, DEFAULT_COMPRESSION);
   return {
     id: `npc.${record.id.replace(/^ship\./, '')}`,
     transform,

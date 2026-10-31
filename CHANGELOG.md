@@ -12,6 +12,11 @@ All notable changes to this project are recorded here. The format follows [Keep 
 - **The Twin Ports and Two Harbors zones** baked from NOAA and USGS data (not loaded in the game yet): Duluth, Superior, Minnesota and Wisconsin Points and St. Louis Bay in 16 tiles, and Agate Bay and the North Shore bluffs in 9. The Duluth Ship Canal and Superior Entry are dredged through at their real widths, and Agate Bay is widened into a basin for the ore docks. Duluth, Superior and Two Harbors join `data/ports.json` ([plan 03 §23](plans/03-world-scale-chart-travel.md)).
 - **Ship whistles you hear in fog:** the NPC ships sound their fog signals under the 1895 Great Lakes rules, three blasts a minute from a steamer and one, two or three on the fog horn from the schooner-barge by her tack, with a bell from a ship lying stopped. Each class has its own whistle: the freighter's deep one, the package steamer's chime, the tug's shrill one and the revenue cutter _Morrill_'s warble. In clear weather a steamer meeting you gives the passing signal. `?npcs&fog=600` to hear them ([plan 15 §15](plans/15-audio.md)).
 - **Cuts** in the geo bake's hand-edit layer: a set piece can dredge a channel to a depth, which opens 1:1 harbor entries through compressed land.
+- **Open-water arenas:** a 3 × 3 km patch of lake at the encounter point, with the weather sim's wind, sea and sky there, the ships met on their courses (giving way to each other and to you, and steering clear of land), the coast in view as low silhouettes, and fog closing in at the edge. Sail off the edge to leave; the revenue cutter, when hunting, locks you in until you shake her off. Hold F alongside a ship to look her over. `?encounter=freighter` (or `barge`, `steamer`, `tug`, `cutter`, `derelict`, `squall`, `fogbank`, `convoy`) drops into one, with `?at=lat,lon`, `?heading=` and `?cutter=hunt` ([plan 03 §24](plans/03-world-scale-chart-travel.md)).
+
+### Fixed
+
+- NPC ships steamed about twice as fast as their class speed.
 
 ## [0.2.0] - 2026-10-31
 
