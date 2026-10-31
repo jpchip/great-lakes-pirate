@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { createClockState } from '../core/time';
 import { Rng } from '../core/rng';
+import { APOSTLES_ID } from './terrain/zones';
 import { createWeatherState, type WeatherState } from './weather/weather';
 
 /**
@@ -53,8 +54,29 @@ export const weatherStateSchema: z.ZodType<WeatherState> = z.object({
   fogBanks: z.array(fogBankSchema),
 });
 
+/** A ship's place in a zone: zone meters, heading in radians clockwise from north. */
+export const poseSchema = z.object({ x: z.number(), z: z.number(), heading: z.number() });
+
+/**
+ * Where the player is (plan 03 §9 `player.location`; added in save v3). In a zone, with
+ * the ship's pose there; no pose means the zone's spawn, which is what a new run and a
+ * migrated v2 save get. On the chart (piece D), with the chart position and heading.
+ */
+export const locationSchema = z.discriminatedUnion('mode', [
+  z.object({ mode: z.literal('zone'), zoneId: z.string(), pose: poseSchema.optional() }),
+  z.object({
+    mode: z.literal('chart'),
+    chartPos: z.object({ x: z.number(), y: z.number() }),
+    heading: z.number(),
+    /** The zone the voyage left, for the way back. */
+    fromZoneId: z.string().optional(),
+  }),
+]);
+
+export type PlayerLocation = z.infer<typeof locationSchema>;
+
 export const worldStateSchema = z.object({
-  player: z.looseObject({}),
+  player: z.looseObject({ location: locationSchema }),
   environment: z.looseObject({
     clock: clockStateSchema,
     /** Saved so a reload continues the same random sequence (plan 16 §4.4). */
@@ -69,7 +91,8 @@ export type WorldState = z.infer<typeof worldStateSchema>;
 export function createWorldState(seed: string): WorldState {
   const clock = createClockState();
   return {
-    player: {},
+    // A new run starts at the Apostles spawn.
+    player: { location: { mode: 'zone', zoneId: APOSTLES_ID } },
     environment: {
       clock,
       rng: Rng.fromSeed(seed).getState(),

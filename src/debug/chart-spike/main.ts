@@ -1,5 +1,3 @@
-import chartJson from '../../../data/chart.json';
-import { chartFileSchema } from '../../../data/schemas/chart';
 import { DEFAULT_COMPRESSION, KNOT_MS, sceneSpeed, type Chart } from '../../core/coords';
 import { EventBus } from '../../core/events';
 import { InputMapper } from '../../core/input';
@@ -22,7 +20,8 @@ import { playerCommand, playerMooring } from '../../modes/sailing';
 import { ChartView } from '../../render/chart/chart-view';
 import { initialQuality, browserStorage } from '../../render/quality';
 import { GameRenderer } from '../../render/renderer';
-import { buildGeography, distance, zoneById, type ChartZone } from '../../sim/chart/geography';
+import { westernSuperiorChart } from '../../sim/chart/chart-data';
+import { distance, zoneById, type ChartZone } from '../../sim/chart/geography';
 import {
   avoidChance,
   createContacts,
@@ -86,15 +85,15 @@ const $ = <T extends HTMLElement>(id: string): T => {
   return el as T;
 };
 
-const geo = buildGeography(chartFileSchema.parse(chartJson));
+const geo = westernSuperiorChart();
 const at = (lat: number, lon: number): Chart => geo.projection.geoToChart({ lat, lon });
 
 /** Departure points just outside each zone's soft edge (plan 03 §5.3 step 1). */
 const DEPARTURES: Record<string, Chart> = {
   duluth: at(46.8, -91.96),
   two_harbors: at(46.96, -91.62),
-  siskiwit: at(46.95, -91.1),
-  apostles: at(47.13, -90.75),
+  siskiwit: at(46.95, -91.2),
+  apostles: at(47.15, -90.75),
 };
 
 const state = createWorldState(seed);

@@ -90,6 +90,20 @@ export const setPieceSchema = z.object({
   cuts: z.array(cutSchema).optional(),
 });
 
+/**
+ * Where a ship sailing in from the chart arrives (plan 03 §7, Phase 3 piece A): a point in
+ * zone meters just inside the soft edge, clear of the fog chip, with the heading into the
+ * zone in degrees from north. `toward` names what lies off that edge on the chart.
+ */
+export const entryPointSchema = z.object({
+  id: idOf('entry'),
+  name: z.string().min(1),
+  toward: z.string().min(1),
+  x: z.number(),
+  z: z.number(),
+  headingDeg: z.number().min(0).max(360),
+});
+
 export const zoneSchema = z.object({
   id: idOf('zone'),
   name: z.string().min(1),
@@ -110,10 +124,13 @@ export const zoneSchema = z.object({
   }),
   /** Where a new run starts, in zone meters, and the heading in degrees from north. */
   spawn: z.object({ x: z.number(), z: z.number(), headingDeg: z.number() }),
+  /** Arrival points from the chart, one per open-water side. */
+  entries: z.array(entryPointSchema).min(1),
   setPieces: z.array(setPieceSchema),
 });
 
 export const zonesFileSchema = z.array(zoneSchema);
 export type ZoneDef = z.infer<typeof zoneSchema>;
+export type EntryPointDef = z.infer<typeof entryPointSchema>;
 export type SetPieceDef = z.infer<typeof setPieceSchema>;
 export type CutDef = z.infer<typeof cutSchema>;

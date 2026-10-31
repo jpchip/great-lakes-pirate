@@ -23,6 +23,8 @@ export interface TerrainOverlay {
   readonly settings: { map: TerrainMap; windFromDeg: number; opacity: number };
   /** One line about the terrain at (x, z) for the stats readout. */
   describe(x: number, z: number): string;
+  /** Takes it out of the scene and the panel, when the zone changes. */
+  dispose(): void;
 }
 
 const ramp = new THREE.Color();
@@ -154,6 +156,15 @@ export function createTerrainOverlay(
 
   return {
     settings,
+    dispose() {
+      scene.remove(plane, berths);
+      texture.dispose();
+      material.dispose();
+      geometry.dispose();
+      berthMaterial.dispose();
+      for (const box of berths.children) (box as THREE.LineLoop).geometry.dispose();
+      folder.destroy();
+    },
     describe(x, z) {
       const from = settings.windFromDeg * DEG;
       const depth = terrain.depthAt(x, z);

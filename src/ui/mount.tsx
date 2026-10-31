@@ -6,6 +6,8 @@ import { Hud } from './hud/Hud';
 import type { HudSnapshot } from './hud/model';
 import { SettingsMenu, type AudioControls } from './settings/SettingsMenu';
 import type { AudioSettings, VolumeId } from '../audio/settings';
+import { LoadingScreen } from './loading/LoadingScreen';
+import type { LoadingScreen as LoadingModel } from './loading/model';
 import './theme.css';
 
 /**
@@ -34,6 +36,8 @@ export interface GameUi {
   setSpyglass(on: boolean): void;
   /** Show the "antialiasing needs a reload" note under the preset picker. */
   setReloadNote(on: boolean): void;
+  /** The fade to fog while a zone loads; undefined lifts it. */
+  setLoading(screen: LoadingModel | undefined): void;
   readonly menuOpen: boolean;
   openMenu(): void;
   closeMenu(): void;
@@ -44,6 +48,7 @@ export function mountGameUi({ root, settings, onMenu, audio }: GameUiOptions): G
   const spyglass = signal(false);
   const menuOpen = signal(false);
   const reloadNote = signal(false);
+  const loading = signal<LoadingModel | undefined>(undefined);
   const current = signal(settings.value);
   settings.subscribe((s) => (current.value = s));
   const density = computed(() => current.value.ui.hudDensity);
@@ -112,6 +117,7 @@ export function mountGameUi({ root, settings, onMenu, audio }: GameUiOptions): G
             audio={audioControls}
           />
         )}
+        <LoadingScreen screen={loading} />
       </>
     );
   }
@@ -127,6 +133,9 @@ export function mountGameUi({ root, settings, onMenu, audio }: GameUiOptions): G
     },
     setReloadNote(on) {
       reloadNote.value = on;
+    },
+    setLoading(screen) {
+      loading.value = screen;
     },
     get menuOpen() {
       return menuOpen.value;

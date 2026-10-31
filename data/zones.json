@@ -33,6 +33,32 @@
       "z": 150,
       "headingDeg": 34.4
     },
+    "entries": [
+      {
+        "id": "entry.apostles_west",
+        "name": "North of Sand Island, from the west",
+        "toward": "Duluth and the Twin Ports",
+        "x": -3000,
+        "z": -2500,
+        "headingDeg": 90
+      },
+      {
+        "id": "entry.apostles_north",
+        "name": "North of Bear Island, from the open lake",
+        "toward": "Two Harbors and the North Shore",
+        "x": -1000,
+        "z": -3500,
+        "headingDeg": 180
+      },
+      {
+        "id": "entry.apostles_east",
+        "name": "South of Michigan Island, from the east",
+        "toward": "Ontonagon and the Keweenaw",
+        "x": 3000,
+        "z": 300,
+        "headingDeg": 270
+      }
+    ],
     "setPieces": [
       {
         "id": "setpiece.bayfield",

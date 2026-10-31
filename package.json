@@ -21,8 +21,10 @@
     "bench:save": "playwright test --config bench/s6/playwright.config.ts",
     "bench:weather": "vitest run --config bench/s9/vitest.config.ts",
     "bench:stream": "playwright test --config bench/stream/playwright.config.ts",
+    "bench:chart": "playwright test --config bench/chart/playwright.config.ts",
     "geo:build": "node tools/geo/build.ts",
     "geo:canopy": "node tools/geo/canopy.ts",
+    "geo:chart": "node tools/geo/chart.ts",
     "assets:hull": "node tools/assets/build-hull.ts",
     "audio": "node tools/audio/build.ts",
     "audio:synth": "node tools/audio/synth.ts"
