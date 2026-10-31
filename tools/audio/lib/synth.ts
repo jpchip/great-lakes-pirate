@@ -158,6 +158,173 @@ export function fogWhistle(rate: number, seconds = 7, seed = 1): Float32Array {
   return lowpass(out, 6000, rate);
 }
 
+/** A steam whistle's voice (plan 15 §4.3): one bell, or a chime of several bells in one. */
+export interface ShipWhistleVoice {
+  /** The bells' fundamentals, Hz: one for a plain whistle, three or five for a chime. */
+  notesHz: readonly number[];
+  /** How fast the valve opens and shuts, seconds. */
+  attackS: number;
+  releaseS: number;
+  /** Harmonic weights of each bell: more upper harmonics for a shriller whistle. */
+  harmonics: readonly number[];
+  /** Steam breath and hiss, relative to the tone. */
+  steam: number;
+  /** How far the pitch sags while the pressure comes up (0.14 for a big lighthouse whistle). */
+  sag: number;
+  /** A slow two-tone warble, cents (0 for none): the cutter's own sound. */
+  warbleCents?: number;
+  warbleHz?: number;
+}
+
+/**
+ * A ship's steam whistle, one blast `seconds` long (cut shorter at runtime), built like
+ * the lighthouse whistle: each bell an additive tone whose pitch follows the steam
+ * pressure, a chime's bells a few cents apart and off in phase, and breathy steam over it.
+ */
+export function shipWhistle(
+  rate: number,
+  voice: ShipWhistleVoice,
+  seconds = 5,
+  seed = 3,
+): Float32Array {
+  const random = seeded(seed);
+  const n = Math.round(seconds * rate);
+  const out = new Float32Array(n);
+  const waver = wander(n, 5, rate, random);
+  const drift = wander(n, 0.7, rate, random);
+  const env = new Float32Array(n);
+  const press = new Float32Array(n);
+  for (let i = 0; i < n; i++) {
+    const t = i / rate;
+    const rise = Math.min(1, t / voice.attackS);
+    const fall = Math.min(1, Math.max(0, (seconds - t) / voice.releaseS));
+    env[i] = Math.sin((rise * Math.PI) / 2) ** 2 * fall ** 1.5;
+    press[i] =
+      (1 - voice.sag + voice.sag * Math.sqrt(rise)) * (1 - voice.sag / 2 + (voice.sag / 2) * fall);
+  }
+  const warble = voice.warbleCents ?? 0;
+  const warbleHz = voice.warbleHz ?? 0;
+  voice.notesHz.forEach((f0, b) => {
+    const detune = 2 ** (((random() - 0.5) * 6) / 1200);
+    const phases = voice.harmonics.map(() => random() * TAU);
+    const bellGain = 1 / Math.sqrt(voice.notesHz.length);
+    let phase = 0;
+    for (let i = 0; i < n; i++) {
+      const t = i / rate;
+      const w = warble === 0 ? 1 : 2 ** ((warble * Math.sin(TAU * warbleHz * t + b)) / 1200);
+      const hz =
+        f0 *
+        detune *
+        (press[i] as number) *
+        w *
+        (1 + 0.004 * (waver[i] as number) + 0.003 * (drift[i] as number));
+      phase += (TAU * hz) / rate;
+      let s = 0;
+      for (let h = 0; h < voice.harmonics.length; h++) {
+        s += (voice.harmonics[h] as number) * Math.sin((h + 1) * phase + (phases[h] as number));
+      }
+      out[i] = (out[i] as number) + s * bellGain * (env[i] as number);
+    }
+  });
+  const white = Float32Array.from({ length: n }, () => random() * 2 - 1);
+  const breath = bandpass(white, (voice.notesHz[0] as number) * 2, 1.2, rate);
+  const hiss = bandpass(white, 3600, 0.7, rate);
+  for (let i = 0; i < n; i++) {
+    const t = i / rate;
+    const edge =
+      Math.exp(-t / 0.2) + Math.exp(-(seconds - t) / 0.25) * Math.min(1, (seconds - t) / 0.12);
+    const e = env[i] as number;
+    out[i] =
+      (out[i] as number) +
+      voice.steam *
+        (1.2 * (breath[i] as number) * e +
+          0.5 * (hiss[i] as number) * (0.25 * e + 0.6 * edge * Math.min(1, t / 0.05)));
+  }
+  return lowpass(out, 7000, rate);
+}
+
+/** The NPC classes' whistles (Phase 3 piece J). Pitches are by ear, not from records. */
+export const SHIP_WHISTLES = {
+  /** A big ore carrier: one deep bell, slow to open, lots of steam. */
+  freighter: {
+    notesHz: [138],
+    attackS: 0.6,
+    releaseS: 0.8,
+    harmonics: [1, 0.7, 0.45, 0.3, 0.18, 0.1, 0.06, 0.04],
+    steam: 1.3,
+    sag: 0.12,
+  },
+  /** A package steamer's three-bell chime, a minor triad: the passenger boats' sound. */
+  chime: {
+    notesHz: [262, 311, 392],
+    attackS: 0.35,
+    releaseS: 0.5,
+    harmonics: [1, 0.5, 0.3, 0.16, 0.08, 0.04],
+    steam: 0.9,
+    sag: 0.08,
+  },
+  /** A fish tug: a small, shrill bell that opens fast. */
+  tug: {
+    notesHz: [587],
+    attackS: 0.12,
+    releaseS: 0.25,
+    harmonics: [1, 0.55, 0.42, 0.3, 0.2, 0.12],
+    steam: 0.8,
+    sag: 0.06,
+  },
+  /** The revenue cutter *Morrill*: a two-bell whistle with a slow warble, unlike any other. */
+  cutter: {
+    notesHz: [349, 415],
+    attackS: 0.25,
+    releaseS: 0.4,
+    harmonics: [1, 0.55, 0.35, 0.2, 0.1, 0.05],
+    steam: 0.8,
+    sag: 0.08,
+    warbleCents: 40,
+    warbleHz: 2.2,
+  },
+} as const satisfies Record<string, ShipWhistleVoice>;
+
+/**
+ * A sailing vessel's fog horn (plan 15 §4.3): a hand-pumped reed horn, buzzy and nasal,
+ * swelling as the bellows push and fading as they run out. One blast, `seconds` long.
+ */
+export function foghorn(rate: number, seconds = 3, seed = 4): Float32Array {
+  const random = seeded(seed);
+  const n = Math.round(seconds * rate);
+  const out = new Float32Array(n);
+  const f0 = 233;
+  const waver = wander(n, 3, rate, random);
+  const maxH = Math.floor(6000 / f0);
+  const offs = Array.from({ length: maxH }, () => random() * TAU);
+  let phase = 0;
+  for (let i = 0; i < n; i++) {
+    const t = i / rate;
+    const rise = Math.min(1, t / 0.18);
+    const fall = Math.min(1, Math.max(0, (seconds - t) / 0.35));
+    // The bellows: a swell through the push, a little unsteady.
+    const push = (0.75 + 0.25 * Math.sin(Math.PI * Math.min(1, t / seconds))) * rise * fall ** 1.3;
+    const hz = f0 * (0.97 + 0.03 * rise) * (1 + 0.006 * (waver[i] as number));
+    phase += (TAU * hz) / rate;
+    let s = 0;
+    for (let h = 1; h <= maxH; h++) {
+      const f = hz * h;
+      const formant =
+        1 + 1.6 * Math.exp(-(((f - 900) / 450) ** 2)) + 0.6 * Math.exp(-(((f - 2400) / 600) ** 2));
+      s += (formant / h ** 0.9) * Math.sin(h * phase + (offs[h - 1] as number));
+    }
+    out[i] = s * push * 0.25;
+  }
+  const white = Float32Array.from({ length: n }, () => random() * 2 - 1);
+  const air = bandpass(white, 1400, 0.9, rate);
+  for (let i = 0; i < n; i++) {
+    const t = i / rate;
+    const e = Math.min(1, t / 0.1) * Math.min(1, Math.max(0, (seconds - t) / 0.3));
+    out[i] = (out[i] as number) + 0.12 * (air[i] as number) * e;
+  }
+  return lowpass(out, 5000, rate);
+}
+
 /**
  * A fog bell struck once (plan 15 §4.3): the partials of a cast bronze bell (hum, prime,
  * minor-third tierce, quint, nominal and the upper partials), each with its own decay,

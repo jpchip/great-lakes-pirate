@@ -1,9 +1,11 @@
 #!/usr/bin/env node
 // Renders the synthesized raw sounds (tools/audio/lib/synth.ts) into raw-assets/audio/ as
 // FLAC sources with their sound.json and provenance.json, ready for `npm run audio`:
-// the lighthouse fog whistle and fog bell, and the two open-water music v1 cues.
+// the lighthouse fog whistle and fog bell, the two open-water music v1 cues, and the NPC
+// ships' whistles and the schooner-barge's fog horn (Phase 3 piece J).
 //
 //   npm run audio:synth            # render all, then run `npm run audio`
+//   npm run audio:synth -- ships   # render one category only
 //
 // Needs ffmpeg on the PATH (or FFMPEG=...), like the pipeline. Seeded, so a rerun writes
 // the same samples.
@@ -21,6 +23,7 @@ import {
   fiddleDrone,
   fogBell,
   fogWhistle,
+  foghorn,
   mixInto,
   noteHz,
   peak,
@@ -29,6 +32,8 @@ import {
   renderMelody,
   reverb,
   seeded,
+  SHIP_WHISTLES,
+  shipWhistle,
   waltzForm,
   whistleNote,
 } from './lib/synth.ts';
@@ -38,13 +43,18 @@ const RAW = join(ROOT, 'raw-assets', 'audio');
 const FFMPEG = process.env['FFMPEG'] ?? 'ffmpeg';
 const RATE = SAMPLE_RATE;
 const TODAY = '2026-10-30';
+const TODAY_J = '2026-10-31';
+/** Render only this category (e.g. `ships`), leaving the other sources untouched. */
+const ONLY = process.argv[2];
 
 function writeSound(
   category: string,
   hints: Omit<SoundHints, 'source' | 'trimStartS' | 'loopCrossfadeS'>,
   samples: Float32Array,
   how: string,
+  date = TODAY,
 ): void {
+  if (ONLY && category !== ONLY) return;
   const dir = join(RAW, category, hints.name);
   mkdirSync(dir, { recursive: true });
   const p = peak(samples);
@@ -83,7 +93,7 @@ function writeSound(
         tool: 'tools/audio/synth.ts (tools/audio/lib/synth.ts)',
         author: 'Great Lakes Pirate contributors',
         reference: how,
-        date: TODAY,
+        date,
         license: 'CC BY 4.0',
         attribution: 'Great Lakes Pirate contributors',
         modifications: [],
@@ -217,6 +227,50 @@ function main(): void {
     },
     renderAir(),
     'Original tune; synthesized tin whistle and bowed fiddle drone (additive with body resonances), Freeverb-style reverb',
+  );
+  const whistles: [keyof typeof SHIP_WHISTLES, string, string][] = [
+    ['freighter', 'Steam ore freighter whistle: one deep bell, one long blast', 'One 138 Hz bell'],
+    [
+      'chime',
+      'Package steamer chime whistle: three bells, one long blast',
+      'A three-bell chime at 262, 311 and 392 Hz',
+    ],
+    ['tug', 'Fish tug whistle: a small shrill bell, one long blast', 'One 587 Hz bell, fast valve'],
+    [
+      'cutter',
+      "Revenue cutter Morrill's whistle: two bells with a slow warble, one long blast",
+      'Two bells at 349 and 415 Hz with a 40-cent warble at 2.2 Hz',
+    ],
+  ];
+  whistles.forEach(([name, description, how], k) => {
+    writeSound(
+      'ships',
+      {
+        id: `sfx.ship.whistle-${name}`,
+        name: `whistle-${name}`,
+        description: `${description} (cut short at runtime)`,
+        kind: 'oneshot',
+        bus: 'sfx',
+        bundles: ['world-audio'],
+      },
+      shipWhistle(RATE, SHIP_WHISTLES[name], 5, 10 + k),
+      `Additive steam whistle: ${how}, pressure-following pitch, band-passed steam noise`,
+      TODAY_J,
+    );
+  });
+  writeSound(
+    'ships',
+    {
+      id: 'sfx.ship.foghorn',
+      name: 'foghorn',
+      description: "A sailing vessel's hand-pumped fog horn, one blast (cut short at runtime)",
+      kind: 'oneshot',
+      bus: 'sfx',
+      bundles: ['world-audio'],
+    },
+    foghorn(RATE, 3),
+    'Additive reed horn at 233 Hz with nasal formants, bellows swell and breath noise',
+    TODAY_J,
   );
 }
 

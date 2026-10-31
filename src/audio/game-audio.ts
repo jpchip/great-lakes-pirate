@@ -9,13 +9,16 @@ import { AudioMixer, placeListener, unlockAudio, type AudioPoint, type AudioStat
 import { MusicDirector, createStreamPlayer, type MusicPlayer } from './music';
 import { SailingSoundscape } from './sailing-audio';
 import { loadAudioSettings, saveAudioSettings, type VolumeId } from './settings';
+import { SHIP_RECORDS } from '../sim/sailing/ships';
+import { ShipWhistles, type WhistleShip } from './ship-whistles';
 import { WorldSoundscape, type SignalStation } from './world-audio';
-import { musicMood, type MusicMood } from './world-mix';
+import { fogMix, musicMood, type MusicMood } from './world-mix';
 
 /**
  * Audio for the running game: the mixer on three.js's shared AudioContext (plan 01 §2),
  * the autoplay unlock, the sailing soundscape fed from the player's ship each frame, the
- * world around it (weather, fog signals, birds; Phase 2 piece H), and open-water music.
+ * world around it (weather, fog signals, birds; Phase 2 piece H), the NPC ships' whistles
+ * (Phase 3 piece J), and open-water music.
  */
 
 export const SAILING_AUDIO_BUNDLE = 'sailing-audio';
@@ -37,6 +40,7 @@ export interface GameAudio {
   bank: SoundBank;
   sailing: SailingSoundscape;
   world: WorldSoundscape;
+  whistles: ShipWhistles;
   music: MusicDirector;
   /** The music mood now, for the dev panel. */
   readonly mood: MusicMood;
@@ -88,6 +92,9 @@ export async function createGameAudio(options: GameAudioOptions): Promise<GameAu
   ]);
   const sailing = new SailingSoundscape(mixer, bank);
   const world = new WorldSoundscape(mixer, bank, options.stations);
+  const whistles = new ShipWhistles(mixer, bank);
+  const records = new Map(SHIP_RECORDS.map((r) => [r.id, r]));
+  const whistleShips: WhistleShip[] = [];
   const players: Partial<Record<Exclude<MusicMood, 'quiet'>, MusicPlayer>> = {};
   for (const [mood, id] of Object.entries(MUSIC_CUES) as [Exclude<MusicMood, 'quiet'>, string][]) {
     const url = musicUrls.get(id);
@@ -129,6 +136,7 @@ export async function createGameAudio(options: GameAudioOptions): Promise<GameAu
     bank,
     sailing,
     world,
+    whistles,
     music,
     get mood() {
       return mood;
@@ -200,8 +208,35 @@ export async function createGameAudio(options: GameAudioOptions): Promise<GameAu
         },
         frameSeconds,
       );
+
+      whistleShips.length = 0;
+      for (const e of game.world.with('npc', 'transform')) {
+        const record = records.get(e.npc.classId);
+        if (!record?.whistle) continue;
+        whistleShips.push({
+          id: e.id ?? e.npc.classId,
+          record,
+          x: e.transform.position.x,
+          z: e.transform.position.z,
+          headingRad: e.transform.heading,
+          speedKn: e.npc.speedKn,
+        });
+      }
+      whistles.update(
+        {
+          listener: pose.at,
+          player: { x: state.x, z: state.z, headingRad: state.heading },
+          nowS,
+          windFromRad: wind.fromRad,
+          fogVisibilityM,
+          fogBanks: game.weather.fogBanks(gameSeconds),
+          damping: fogMix(fogVisibilityM, state.windKn).damping,
+        },
+        whistleShips,
+      );
+
       mood = musicMood({ sunElevationDeg, fogVisibilityM, windKn: state.windKn, rain01, storm01 });
-      music.update(frameSeconds, mood, world.signalHeard);
+      music.update(frameSeconds, mood, world.signalHeard || whistles.heard);
     },
     setListener(pose) {
       listener = pose;

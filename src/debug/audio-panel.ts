@@ -4,8 +4,8 @@ import { BUS_IDS, type VolumeId } from '../audio/settings';
 
 /**
  * Audio in the dev overlay: bus volumes and mute (also on the settings screen), buttons
- * for the event sounds, and a live readout of the sailing mix, the world around the ship
- * and the music.
+ * for the event sounds, and a live readout of the sailing mix, the world around the ship,
+ * the ships' whistles and the music.
  */
 export interface AudioPanelOptions {
   gui: GUI;
@@ -33,6 +33,8 @@ export function createAudioPanel(options: AudioPanelOptions): { update(): void }
     thunderNear: () => audio.world.thunder(Math.random() * Math.PI * 2, 1200, true),
     thunderFar: () => audio.world.thunder(Math.random() * Math.PI * 2, 5000, false),
     fogSignal: () => audio.world.signalNow(),
+    shipFogSignal: () => audio.whistles.fogSignalNow(),
+    shipPassing: () => audio.whistles.passingNow(),
     gull: () => audio.world.callNow('gull'),
     loon: () => audio.world.callNow('loon'),
     musicDay: () => audio.music.playNow('day'),
@@ -47,12 +49,14 @@ export function createAudioPanel(options: AudioPanelOptions): { update(): void }
   events.add(actions, 'thunderNear').name('Thunder, 1.2 km');
   events.add(actions, 'thunderFar').name('Thunder, 5 km');
   events.add(actions, 'fogSignal').name('Nearest fog signal');
+  events.add(actions, 'shipFogSignal').name("Nearest ship's fog signal");
+  events.add(actions, 'shipPassing').name('Nearest ship: passing blast');
   events.add(actions, 'gull').name('Gull');
   events.add(actions, 'loon').name('Loon');
   events.add(actions, 'musicDay').name('Music: day');
   events.add(actions, 'musicNight').name('Music: night');
 
-  const status = { context: '', music: '', mood: '' };
+  const status = { context: '', music: '', mood: '', lastWhistle: '' };
   const readout = {
     voices: 0,
     sounds: audio.bank.size,
@@ -67,11 +71,13 @@ export function createAudioPanel(options: AudioPanelOptions): { update(): void }
     gullsPerS: 0,
     loonsPerS: 0,
     signalsHeard: 0,
+    shipsSounding: 0,
   };
   const mix = folder.addFolder('Mix').close();
   mix.add(status, 'context').disable().listen();
   mix.add(status, 'music').disable().listen();
   mix.add(status, 'mood').disable().listen();
+  mix.add(status, 'lastWhistle').disable().listen();
   for (const key of Object.keys(readout) as (keyof typeof readout)[]) {
     mix.add(readout, key).disable().listen();
   }
@@ -87,6 +93,8 @@ export function createAudioPanel(options: AudioPanelOptions): { update(): void }
       readout.gullsPerS = round(w.gullsPerS);
       readout.loonsPerS = round(w.loonsPerS);
       readout.signalsHeard = w.signalsHeard;
+      readout.shipsSounding = audio.whistles.levels.shipsSounding;
+      status.lastWhistle = audio.whistles.levels.lastSignal;
       status.mood = audio.mood;
       status.music =
         audio.music.current ?? `silent ${Math.max(0, Math.round(audio.music.waitS))} s`;
