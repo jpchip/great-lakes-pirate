@@ -14,6 +14,7 @@ import {
   type MooringCommand,
 } from '../sim/sailing/hazards';
 import type { Dock } from '../sim/terrain/test-bay';
+import type { TerrainBounds } from '../sim/terrain/zone-terrain';
 import { seaScaleAt } from '../sim/weather/waves';
 import type { GameContext, GameEvents } from './context';
 import type { Mode } from './machine';
@@ -34,6 +35,17 @@ export interface SailingModeOptions {
   berths?: readonly MooringBerth[];
   /** A playtest speed-up for the clock and the weather only (`?timewarp=`); 1 by default. */
   timeWarp?: { factor: number };
+  /**
+   * An open-water arena in play (Phase 3 piece G): steers its ships and applies its rules
+   * after the player's ship has moved, and holds the player inside while pursued.
+   * Swappable: set while an arena runs, undefined in a zone.
+   */
+  arena?: SailingArena | undefined;
+}
+
+export interface SailingArena {
+  step(dt: number): void;
+  holdBounds(): TerrainBounds | undefined;
 }
 
 /** The player's helm orders from the plan 02 §2 bindings. */
@@ -173,7 +185,10 @@ export function createSailingMode(ctx: GameContext, options: SailingModeOptions)
       hazardSystem(ctx.world, mooringFor, hazardEnv, options.wind, scale, dt, (e, ev) =>
         emitHazard(ctx.events, e.id, ev),
       );
+      options.arena?.step(dt);
       if (ctx.terrain) zoneEdgeSystem(ctx.world, ctx.terrain.bounds);
+      const held = options.arena?.holdBounds();
+      if (held) zoneEdgeSystem(ctx.world, held);
       velocitySystem(ctx.world, dt);
       bobSystem(ctx.world, elapsed);
       buoyancySystem(ctx.world, ctx.sea, dt);

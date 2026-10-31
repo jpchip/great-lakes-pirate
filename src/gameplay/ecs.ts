@@ -50,12 +50,16 @@ export interface Entity {
   playerControlled?: true;
 }
 
-/** An NPC ship holding a course: no helm yet (piece G steers them in the arenas). */
+/** An NPC ship: holding a course in a zone; steered by gameplay/arena in an arena. */
 export interface NpcShip {
   /** ships.json id. */
   classId: string;
   /** Speed through the water, game knots. */
   speedKn: number;
+  /** A wreck (Phase 3 piece G): no lamps, no smoke, no canvas. */
+  derelict?: true;
+  /** A standing list to starboard, radians, on top of the swell's roll. */
+  listRad?: number;
 }
 
 export type GameWorld = World<Entity>;

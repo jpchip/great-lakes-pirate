@@ -2,6 +2,9 @@ import * as THREE from 'three';
 import type { AssetLoader } from '../core/assets';
 import type { LoadedZone } from '../sim/terrain/load';
 import { edgeVisibility, type ZoneEdge } from '../sim/terrain/zone-edge';
+import type { TerrainBounds } from '../sim/terrain/zone-terrain';
+import type { CoastRun } from '../sim/arena/coast';
+import { createCoastMesh, disposeCoastMesh } from './arena/coast-view';
 import { manifestFrame, setPieceFootprint, zoneDef } from '../sim/terrain/zones';
 import { clearingFromFootprint, type Clearing } from '../sim/terrain/vegetation';
 import { interpolateTransform, type Entity, type GameWorld, type Transform } from '../gameplay/ecs';
@@ -79,7 +82,18 @@ export interface TestScene {
   setZone(zone: LoadedZone | undefined, edge?: ZoneEdge): void;
   /** Called after each setZone, e.g. for the dev overlay's terrain maps. */
   onZoneChange(listener: () => void): void;
+  /**
+   * An open-water arena (Phase 3 piece G): no zone, the chart's coast in view as low
+   * silhouettes, and fog closing in toward the arena's edge. Undefined ends it.
+   */
+  setArena(arena: SceneArena | undefined): void;
   render(alpha: number, seaTime: number, frameSeconds: number): void;
+}
+
+export interface SceneArena {
+  coast: readonly CoastRun[];
+  bounds: TerrainBounds;
+  edge: ZoneEdge;
 }
 
 /** What the scene draws for one zone; all of it goes when the zone does. */
@@ -262,11 +276,22 @@ export async function createTestScene(
   scene.add(stubs);
   let layer: ZoneLayer | undefined;
   const zoneListeners: (() => void)[] = [];
+  let arena: { def: SceneArena; coast: THREE.Mesh } | undefined;
+  const setArena = (def: SceneArena | undefined): void => {
+    if (arena) {
+      scene.remove(arena.coast);
+      disposeCoastMesh(arena.coast);
+    }
+    arena = def ? { def, coast: createCoastMesh(def.coast) } : undefined;
+    if (arena) scene.add(arena.coast);
+    stubs.visible = !layer && !arena;
+  };
   const setZone = (zone: LoadedZone | undefined, edge?: ZoneEdge): void => {
     layer?.dispose();
     layer = zone ? buildLayer(zone, edge) : undefined;
-    // The greybox islands stand in for the stub lee only when there's no zone.
-    stubs.visible = !zone;
+    if (zone) setArena(undefined);
+    // The greybox islands stand in for the stub lee only when there's no zone or arena.
+    stubs.visible = !zone && !arena;
     for (const listener of zoneListeners) listener();
   };
   setZone(zone, edge);
@@ -390,6 +415,7 @@ export async function createTestScene(
       return layer?.harborLayouts ?? [];
     },
     setZone,
+    setArena,
     onZoneChange(listener) {
       zoneListeners.push(listener);
     },
@@ -450,6 +476,16 @@ export async function createTestScene(
       if (f && layer?.edge) {
         const bounds = layer.zone.terrain.bounds;
         const v = edgeVisibility(bounds, layer.edge, focus.x, focus.z, MAX_FOG_VISIBILITY_M);
+        if (Number.isFinite(v)) f.density = Math.max(f.density, fogDensity(v));
+      }
+      if (f && arena) {
+        const v = edgeVisibility(
+          arena.def.bounds,
+          arena.def.edge,
+          focus.x,
+          focus.z,
+          MAX_FOG_VISIBILITY_M,
+        );
         if (Number.isFinite(v)) f.density = Math.max(f.density, fogDensity(v));
       }
       layer?.harbors.update(environment.sunElevationDeg);

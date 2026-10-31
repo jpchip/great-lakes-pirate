@@ -134,6 +134,8 @@ export interface HudSources {
   edge?: ZoneEdge | undefined;
   /** A short-lived chip saying why the last F or anchor order was refused. */
   notice?: string | undefined;
+  /** Standing chips from the mode, e.g. an arena's pursuit lock (Phase 3 piece G). */
+  extraStatus?: readonly string[] | undefined;
 }
 
 /** Seconds a refusal chip stays up. */
@@ -198,6 +200,7 @@ export function sampleHud(src: HudSources): HudSnapshot | undefined {
   if (src.terrain && src.edge && edgeFactor(src.terrain.bounds, src.edge, s.x, s.z) > EDGE_CHIP) {
     status.push('Zone edge');
   }
+  for (const chip of src.extraStatus ?? []) if (!status.includes(chip)) status.push(chip);
   if (src.notice && !status.includes(src.notice)) status.push(src.notice);
   return {
     headingDeg: heading,
