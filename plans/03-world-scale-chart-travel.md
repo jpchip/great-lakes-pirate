@@ -599,12 +599,24 @@ Phase 2 (the Superior Slice) is pieces A–I of the Phase 2 scope doc: water bud
 
 ### 19.1 Results
 
-Filled in from the playtest.
+**Passed 2026-10-31**, signed off by Jared on the baseline laptop (Ryzen 7 7730U, Radeon renoir, Chrome 156 on Linux, ANGLE OpenGL, MSAA off). Every criterion was ticked.
+
+| # | Result |
+|---|---|
+| 1 | `/bench/stream/` on Medium at 8× Full sail: 6,493 frames, p50 16.7 ms, p95 16.8 ms, max 16.8 ms (vsync), **no frame over 33 ms**; main-thread streaming p99 0.2 ms, max 1.1 ms; 105 tiles built, the slowest 9.6 ms in the worker; at most 23 terrain draw calls. |
+| 2 | Zone load 0.31 s and scene build 0.27 s, far under 8 s. |
+| 3, 11 | Recognizable, and it feels like the Apostles (Jared). |
+| 4 | Weather changed on its own over a week at `?timewarp=60`, with the barometer falling ahead of blows. |
+| 5 | Checked after `?fogbank` was fixed to stand the bank upwind so the wind brings it in (it had stood dead ahead and drifted away downwind). |
+| 6–8 | Lights, docking at all six piers, save and reload: pass. |
+| 9 | `?bench=water` (mean ms per frame over the bench; two runs): Medium 5.7–6.1 ms a frame, **water 1.7–2.4 ms**, 55–56 draw calls, 213k triangles; Low 3.2–3.4 ms (far above 30 fps); High 6.6–6.8 ms. Terrain is 0.6–1.0 ms and vegetation 0.7–1.1 ms on Medium. Bayfield at night and a thunderstorm stayed in budget with no hitches. |
+| 10 | Done in the helm swap. |
+| 12 | Plans updated, CI green; 0.2.0 tagged on the merge. |
 
 ---
 
 ## Changelog
-- v0.13: Phase 2 exit criteria and playtest (§19), and `?timewarp=` for the week-of-weather check.
+- v0.13: Phase 2 exit criteria and playtest (§19), passed 2026-10-31; `?timewarp=` for the week-of-weather check.
 - v0.12: Phase 2 piece G: Bayfield and Ashland harbors (§18), the Ashland ore dock at 1:1 in open water in place of a rebaked lens.
 - v0.11: Phase 2 piece C: vegetation density and planting built (§8.3), and the canopy in the shelter maps (§14.4); details in [14 §17](14-art-direction-asset-pipeline.md).
 - v0.10: Phase 2 helm swap: the S7 greybox and the S8 arena sail on the plan 02 controller; the stand-in helms are deleted (§15, §16).
