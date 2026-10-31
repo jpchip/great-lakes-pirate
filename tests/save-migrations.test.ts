@@ -4,6 +4,8 @@ import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import { migrateSave, SaveMigrationError } from '../src/core/save/migrate';
 import { CURRENT_SAVE_VERSION, migrations } from '../src/core/save/migrations';
+import { resolveStart } from '../src/sim/location';
+import { APOSTLES_ID, spawnPose, zoneDef } from '../src/sim/terrain/zones';
 import { advanceWeather } from '../src/sim/weather/weather';
 import { worldStateSchema } from '../src/sim/world-state';
 
@@ -67,5 +69,32 @@ describe('v1 → v2: weather joins the save (plan 04 §24)', () => {
     expect(a).toEqual(b);
     const env = a['environment'] as { rng: unknown };
     expect(env.rng).toEqual((before['environment'] as { rng: unknown }).rng);
+  });
+});
+
+describe("v2 → v3: the player's location joins the save (plan 03 §20, piece A)", () => {
+  const v2 = (): Record<string, unknown> =>
+    (JSON.parse(readFileSync(join(fixturesDir, 'v2.json'), 'utf8')) as Fixture).state;
+
+  it('puts a 0.2.0 run at the Apostles spawn and keeps the rest', () => {
+    const before = v2();
+    const state = worldStateSchema.parse(migrateSave(v2(), 2));
+    expect(state.player.location).toEqual({ mode: 'zone', zoneId: 'zone.apostles' });
+    expect(state.environment).toEqual(before['environment']);
+    expect(resolveStart(state.player.location)).toEqual({
+      zoneId: 'zone.apostles',
+      pose: spawnPose(zoneDef(APOSTLES_ID)),
+      from: 'spawn',
+    });
+  });
+
+  it('a v3 save comes back where it was saved', () => {
+    const fixture = JSON.parse(readFileSync(join(fixturesDir, 'v3.json'), 'utf8')) as Fixture;
+    const state = worldStateSchema.parse(migrateSave(fixture.state, 3));
+    expect(resolveStart(state.player.location)).toEqual({
+      zoneId: 'zone.apostles',
+      pose: { x: 1530.25, z: -412.5, heading: 4.712 },
+      from: 'saved',
+    });
   });
 });

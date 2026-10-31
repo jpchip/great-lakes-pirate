@@ -56,7 +56,7 @@ Apostles, ~1.2 GB). A cached rebuild takes about 35 seconds.
 ## The chart bake
 
 `npm run geo:chart` (`chart.ts`, `lib/coast.ts`) bakes the chart mode's geography for the
-whole western lake from the same two sources (plan 03 §8.2 step 9, §21):
+whole western lake from the same two sources (plan 03 §8.2 step 9, §22):
 
 1. Warps the DEM (averaged) and the bathymetry onto 50 m cells of the chart projection over
    92.35°W–89.9°W, 46.4°N–47.85°N. The first run reads about 4 minutes of DEM blocks into

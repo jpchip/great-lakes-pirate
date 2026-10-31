@@ -1,3 +1,4 @@
+import { loadingScreen } from '../src/ui/loading/model';
 import { describe, expect, it } from 'vitest';
 import { SECONDS_PER_GAME_DAY } from '../src/core/time';
 import { createSailingState } from '../src/sim/sailing/controller';
@@ -134,5 +135,20 @@ describe('sailing HUD model', () => {
     expect(at(0)).toEqual([]);
     expect(at(750)).toEqual([]);
     expect(at(850)).toEqual(['Zone edge']);
+  });
+});
+
+describe('loading screen (Phase 3 piece A)', () => {
+  it('names the place and how the ship comes in', () => {
+    expect(
+      loadingScreen('Apostle Islands', {
+        kind: 'entry',
+        entryName: 'North of Bear Island, from the open lake',
+      }),
+    ).toEqual({
+      title: 'Apostle Islands',
+      line: 'Out of the fog, north of Bear Island.',
+    });
+    expect(loadingScreen('Apostle Islands', { kind: 'return' }).title).toBe('Apostle Islands');
   });
 });

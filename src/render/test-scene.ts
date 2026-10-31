@@ -69,7 +69,26 @@ export interface TestScene {
   /** Bayfield and Ashland, when the zone loaded (Phase 2 piece G). */
   readonly harbors: HarborView | undefined;
   readonly harborLayouts: readonly HarborLayout[];
+  /**
+   * Swaps the zone drawn (Phase 3 piece A): disposes the last zone's meshes, textures and
+   * tile worker, and builds the new one's around the player ship. Undefined is open water.
+   */
+  setZone(zone: LoadedZone | undefined, edge?: ZoneEdge): void;
+  /** Called after each setZone, e.g. for the dev overlay's terrain maps. */
+  onZoneChange(listener: () => void): void;
   render(alpha: number, seaTime: number, frameSeconds: number): void;
+}
+
+/** What the scene draws for one zone; all of it goes when the zone does. */
+interface ZoneLayer {
+  zone: LoadedZone;
+  edge: ZoneEdge | undefined;
+  terrain: TerrainView;
+  vegetation: VegetationView;
+  lighthouses: LighthouseView;
+  harbors: HarborView;
+  harborLayouts: HarborLayout[];
+  dispose(): void;
 }
 
 /** Greybox stand-ins for the islands the stub shelter field blocks wind with. */
@@ -130,15 +149,12 @@ export async function createTestScene(
   const water = createWater(sea, renderer.preset);
   scene.add(water.mesh);
   renderer.onPresetChange((preset) => water.applyPreset(preset));
-  // Depth bands and shore foam over the whole zone, out to the far islands.
-  if (zone) water.setShore(bakeShore(zone.seabed, zone.shoreline));
   const windCues = createWindCues(water.material.uniforms, weather);
   windCues.catsPaws = renderer.preset.catsPaws;
   renderer.onPresetChange((preset) => (windCues.catsPaws = preset.catsPaws));
   const spray = createSpray(renderer.preset.sprayParticles, water);
   scene.add(spray.points);
   renderer.onPresetChange((preset) => spray.setCapacity(preset.sprayParticles));
-  if (!zone) for (const island of islands) scene.add(createStubIsland(island));
 
   const environment = createEnvironmentView(scene, sky, hemi, sun, water, weather);
   environment.update(clock.gameSeconds, { x: 0, z: 0 });
@@ -154,12 +170,11 @@ export async function createTestScene(
   scene.add(atmosphere.group);
   renderer.onPresetChange((preset) => atmosphere.applyPreset(preset));
 
-  let terrain: TerrainView | undefined;
-  let vegetation: VegetationView | undefined;
-  let lighthouses: LighthouseView | undefined;
-  let harbors: HarborView | undefined;
-  let harborLayouts: HarborLayout[] = [];
-  if (zone) {
+  const buildLayer = (zone: LoadedZone, edge: ZoneEdge | undefined): ZoneLayer => {
+    const unsubscribe: (() => void)[] = [];
+    const onPreset = (listener: (preset: typeof renderer.preset) => void): void => {
+      unsubscribe.push(renderer.onPresetChange(listener));
+    };
     // The tiles around the player are built now, behind the load.
     const start = world.with('playerControlled', 'transform').first?.transform.position;
     const terrainMaterial = createTerrainMaterial(lighting);
@@ -170,7 +185,7 @@ export async function createTestScene(
       terrainMaterial.uniforms.uCanopyEnd.value = f.farEnd;
     };
     setCanopy(renderer.preset);
-    terrain = createTerrainView(
+    const terrain = createTerrainView(
       zone.terrain,
       zone.backdrop,
       zone.manifest.heightFormat.tileSamples,
@@ -180,18 +195,16 @@ export async function createTestScene(
       terrainMaterial,
     );
     scene.add(terrain.group);
-    const view = terrain;
-    renderer.onPresetChange((preset) => {
-      view.applyPreset(preset);
+    onPreset((preset) => {
+      terrain.applyPreset(preset);
       setCanopy(preset);
     });
 
     // Set-piece footprints stay clear of trees for the harbors (piece G).
     const frame = manifestFrame(zone.manifest);
-    lighthouses = createLighthouses(frame, zone.terrain, lighting, outlines, renderer.preset);
+    const lighthouses = createLighthouses(frame, zone.terrain, lighting, outlines, renderer.preset);
     scene.add(lighthouses.group);
-    const lights = lighthouses;
-    renderer.onPresetChange((preset) => lights.applyPreset(preset));
+    onPreset((preset) => lighthouses.applyPreset(preset));
     const clearings: Clearing[] = zoneDef(zone.manifest.zone).setPieces.map((def) => {
       const f = setPieceFootprint(def, frame);
       return clearingFromFootprint(
@@ -204,9 +217,9 @@ export async function createTestScene(
     });
     clearings.push(...lighthouses.placed.map(lightClearing));
     // The harbors' buildings and pier ends stay clear of trees too.
-    harborLayouts = layoutHarbors(frame, zone.terrain);
+    const harborLayouts = layoutHarbors(frame, zone.terrain);
     for (const layout of harborLayouts) clearings.push(...harborClearings(layout));
-    vegetation = createVegetationView(
+    const vegetation = createVegetationView(
       terrain,
       createPlantModels(renderer.renderer),
       lighting,
@@ -214,12 +227,46 @@ export async function createTestScene(
       clearings,
     );
     scene.add(vegetation.group);
-    const plants = vegetation;
-    renderer.onPresetChange((preset) => plants.applyPreset(preset));
+    onPreset((preset) => vegetation.applyPreset(preset));
     const terrainData = zone.terrain;
-    harbors = createHarbors(harborLayouts, (x, z) => terrainData.heightAt(x, z), lighting);
+    const harbors = createHarbors(harborLayouts, (x, z) => terrainData.heightAt(x, z), lighting);
     scene.add(harbors.group);
-  }
+    // Depth bands and shore foam over the whole zone, out to the far islands.
+    water.setShore(bakeShore(zone.seabed, zone.shoreline));
+
+    return {
+      zone,
+      edge,
+      terrain,
+      vegetation,
+      lighthouses,
+      harbors,
+      harborLayouts,
+      dispose() {
+        for (const off of unsubscribe) off();
+        scene.remove(terrain.group, vegetation.group, lighthouses.group, harbors.group);
+        vegetation.dispose();
+        terrain.dispose();
+        lighthouses.dispose();
+        harbors.dispose();
+        water.clearShore();
+      },
+    };
+  };
+  const stubs = new THREE.Group();
+  stubs.name = 'stub-islands';
+  for (const island of islands) stubs.add(createStubIsland(island));
+  scene.add(stubs);
+  let layer: ZoneLayer | undefined;
+  const zoneListeners: (() => void)[] = [];
+  const setZone = (zone: LoadedZone | undefined, edge?: ZoneEdge): void => {
+    layer?.dispose();
+    layer = zone ? buildLayer(zone, edge) : undefined;
+    // The greybox islands stand in for the stub lee only when there's no zone.
+    stubs.visible = !zone;
+    for (const listener of zoneListeners) listener();
+  };
+  setZone(zone, edge);
 
   // Ships are procedural (plan 14 §5).
   const drawn = world.with('transform', 'model');
@@ -258,7 +305,7 @@ export async function createTestScene(
   // The camera stays above the hills, and a little above the mean water so swell
   // crests don't cut through it.
   const surface = (x: number, z: number): number =>
-    Math.max(zone && zone.terrain.contains(x, z) ? zone.terrain.heightAt(x, z) : 0, 0.8);
+    Math.max(layer?.zone.terrain.contains(x, z) ? layer.zone.terrain.heightAt(x, z) : 0, 0.8);
   const pose = { position: { x: 0, y: 0, z: 0 }, heading: 0, roll: 0, speed01: 0 };
   const fog = (): THREE.FogExp2 | undefined =>
     scene.fog instanceof THREE.FogExp2 ? scene.fog : undefined;
@@ -290,13 +337,29 @@ export async function createTestScene(
     wakes,
     environment,
     cameraRig,
-    zone,
-    terrain,
-    vegetation,
+    get zone() {
+      return layer?.zone;
+    },
+    get terrain() {
+      return layer?.terrain;
+    },
+    get vegetation() {
+      return layer?.vegetation;
+    },
     atmosphere,
-    lighthouses,
-    harbors,
-    harborLayouts,
+    get lighthouses() {
+      return layer?.lighthouses;
+    },
+    get harbors() {
+      return layer?.harbors;
+    },
+    get harborLayouts() {
+      return layer?.harborLayouts ?? [];
+    },
+    setZone,
+    onZoneChange(listener) {
+      zoneListeners.push(listener);
+    },
     render(alpha, seaTime, frameSeconds) {
       now += frameSeconds;
       for (const [e, model] of objects) {
@@ -349,14 +412,15 @@ export async function createTestScene(
       const f = fog();
       if (f) f.density *= 1 - 0.4 * cameraRig.ship.tactical01;
       // The soft zone edge closes the fog in, tactical view or not (plan 03 §4).
-      if (f && zone && edge) {
-        const v = edgeVisibility(zone.terrain.bounds, edge, focus.x, focus.z, MAX_FOG_VISIBILITY_M);
+      if (f && layer?.edge) {
+        const bounds = layer.zone.terrain.bounds;
+        const v = edgeVisibility(bounds, layer.edge, focus.x, focus.z, MAX_FOG_VISIBILITY_M);
         if (Number.isFinite(v)) f.density = Math.max(f.density, fogDensity(v));
       }
-      harbors?.update(environment.sunElevationDeg);
-      lighthouses?.update(now, camera.position, environment.sunElevationDeg, f?.density ?? 0);
-      terrain?.update(camera.position.x, camera.position.y, camera.position.z);
-      vegetation?.update(camera.position.x, camera.position.y, camera.position.z);
+      layer?.harbors.update(environment.sunElevationDeg);
+      layer?.lighthouses.update(now, camera.position, environment.sunElevationDeg, f?.density ?? 0);
+      layer?.terrain.update(camera.position.x, camera.position.y, camera.position.z);
+      layer?.vegetation.update(camera.position.x, camera.position.y, camera.position.z);
       water.update(camera, seaTime);
       renderer.render(scene, camera, frameSeconds);
     },

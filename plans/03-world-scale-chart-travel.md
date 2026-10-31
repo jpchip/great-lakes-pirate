@@ -238,7 +238,7 @@ Spotted something (or something spotted you)
 6. **Derive:** land/water mask, **shoreline signed distance field**, depth bands, slope (for vegetation and walkability), a vegetation density map (from slope plus elevation; hand-paintable override), **wind shelter maps** for 16 wind directions, and **channel funneling maps** (S3 bakes these; see [02 §11](02-arcade-sailing.md#11-wind-interface-contract-with-plan-04)).
 7. **Hand-edit layer:** set-piece footprints (flatten or warp), 1900-era harbor corrections, sea-cave insertion points. Edits are stored as vector or mask data, so re-running the pipeline is repeatable.
 8. **Tile and encode:** e.g., 256×256-sample tiles as 16-bit PNG or raw plus fflate compression, with a tile manifest. Output to `public/world/<zone>/` (Git LFS).
-9. **Chart data:** a simplified coastline polygon set and depth shading for the whole lake (low resolution) for chart mode and arena silhouettes. *Built in Phase 3 (§21): `npm run geo:chart` writes `data/chart-coast.json`.*
+9. **Chart data:** a simplified coastline polygon set and depth shading for the whole lake (low resolution) for chart mode and arena silhouettes. *Built in Phase 3 (§22): `npm run geo:chart` writes `data/chart-coast.json`.*
 
 ### 8.3 Runtime terrain
 - **Streaming:** tiles load by distance from the camera. A low-res whole-zone base mesh is always loaded, so distant islands show as silhouettes in fog.
@@ -265,7 +265,7 @@ Spotted something (or something spotted you)
 ## 9. World Data Model (additions to `data/` and `WorldState`)
 
 **Static data:**
-- `zones.json`: id, geo bounds, C, origin, tile manifest path, set pieces[], walkable islands[], entry points[], region mapping. *Built (§17):* id, name, world folder, C, center (the bake rounds it to the origin), the bake settings, the soft edge, the spawn, and set pieces with their footprints. Entry points come with chart travel (Phase 3) and the region mapping with plan 06.
+- `zones.json`: id, geo bounds, C, origin, tile manifest path, set pieces[], walkable islands[], entry points[], region mapping. *Built (§17):* id, name, world folder, C, center (the bake rounds it to the origin), the bake settings, the soft edge, the spawn, and set pieces with their footprints. Entry points came with Phase 3 piece A (§21); the region mapping comes with plan 06.
 - `setpieces.json`: id, zone, 1:1 footprint, placement, linked port and docks district.
 - `islands.json`: id, name, zone, footprint, landing points, POIs (filled by plan 11). *Built (§17):* id, name, zone, center point, and the hand edits (Long Island's clip box, Gull Island's rock). The footprint the bake found is in the zone manifest; landings and POIs come with plan 11.
 - `routes.json`: route graph nodes (ports, zone entries, waypoints) and edges (lanes) with traffic weights by season.
@@ -373,7 +373,7 @@ The soft knee (`h' = 20·ln(1 + h/20)`) keeps low ground near full height, so be
 - ~~`zones.json` in `data/` (the zone config lives in `tools/geo/zones/` for now), `islands.json`,~~ (done in Phase 2, §17) and the three mainland hideout pads, whose sites aren't placed yet (09).
 - Hand-edit layer (step 7): ~~set-piece footprints~~, 1900 harbor corrections, sea caves, ~~Gull Island~~. Footprints and Gull Island are done (§17).
 - ~~Vegetation density~~ (derived at runtime, Phase 2 piece C) and depth-band maps (the water's shore texture does the depth bands, [04 §22](04-water-weather-seasons.md)).
-- ~~Chart data (step 9): the lake-wide grid the bake already builds is a starting point for S8.~~ Done in Phase 3 (§21).
+- ~~Chart data (step 9): the lake-wide grid the bake already builds is a starting point for S8.~~ Done in Phase 3 (§22).
 - ~~Shelter maps ignore trees; the DEM is bare earth. A flat +15 m canopy on forested land would lengthen the lee.~~ Done in Phase 2 piece C: the bake adds +15 m on forest from the density map, and `npm run geo:canopy` applied it to the published Apostles maps (shelter up in 16% of water cells; [14 §17](14-art-direction-asset-pipeline.md)).
 
 ---
@@ -475,7 +475,7 @@ Done on 2026-10-24: all four values confirmed, and the stutter fixed (plan 04 §
 ### What was built
 | Piece | Where | Notes |
 |---|---|---|
-| Chart data | `data/chart.json`, `data/schemas/chart.ts` | Western Superior: the lake outline, 17 Apostle Islands, 10 ports, 10 lights as they stood in spring 1900 (Minnesota Point dark, Devils Island on its temporary light, no Split Rock), the four MVP zones, and the charted bounds. **Hand-traced by eye at about 1 km accuracy** until S3 step 9 bakes the real coastline (done in Phase 3, §21: the outline and islands are now baked). It is zod-validated like the other data files. |
+| Chart data | `data/chart.json`, `data/schemas/chart.ts` | Western Superior: the lake outline, 17 Apostle Islands, 10 ports, 10 lights as they stood in spring 1900 (Minnesota Point dark, Devils Island on its temporary light, no Split Rock), the four MVP zones, and the charted bounds. **Hand-traced by eye at about 1 km accuracy** until S3 step 9 bakes the real coastline (done in Phase 3, §22: the outline and islands are now baked). It is zod-validated like the other data files. |
 | Geography | `src/sim/chart/geography.ts` | Projects the data to chart meters (equirectangular around 47° N, 91° W) and answers the land-mask questions: is this water, where does this leg first touch land (exact edge intersection, so thin spits count), and where does a leg enter a zone. |
 | Voyage | `src/sim/chart/voyage.ts` | Plots a course from the ship through the waypoints, refuses legs that run aground, and **stops the sailed course where it enters the destination zone**, since the zone takes over there (§5.3 step 5). Speed comes from a point-of-sail table (fastest on a beam reach, upwind folds tacking into the made-good speed) and a wind-strength table, on a 7.5 kn schooner. |
 | Traffic and encounters | `src/sim/chart/traffic.ts` | Eight abstract contacts on hand-placed lanes, each checked against the land mask in tests: two ore and grain freighters, a package steamer, two fishing tugs, the *Morrill*, a derelict scow and a drifting squall. The lookout check runs on each world tick: day 6 nm and night 3 nm, scaled by how conspicuous the contact is (smoke 1.3, a tug 0.8) and halved inside a squall. The cutter **forces** an encounter when it spots you first (you're 0.75 as conspicuous). Ships you've lost sight of stay on the chart as grey ghosts with their age and a "could be anywhere in here" circle. |
@@ -504,8 +504,8 @@ Done on 2026-10-24: all four values confirmed, and the stutter fixed (plan 04 §
 5. **Zones the course passes through** (Siskiwit Bay on the way to the Apostles) don't stop you. That seems right for open-water transits, but it should be a decision: the alternative is that every zone edge you cross offers "enter the zone?".
 6. **The chart clock holds while you plot.** It's simple and readable, but it means pulling up the chart mid-zone pauses the world. Plan 13 should decide whether the chart is a pause from a zone (M) and only a voyage runs time.
 7. **The arena return point.** You come back to the chart where you left it, even after sailing 1.5 km of compressed space (12 km real). That's fine at chart scale, but say so in the plan.
-8. **Chart data from S3** must keep the islands as separate rings and close the lake ring along the charted edge. Then `buildGeography` and the land checks work unchanged. Real soundings replace the illustrative ones. *Done in Phase 3 (§21).*
-9. **Rendering:** cache the coast, soundings and graticule in an offscreen layer while the view isn't moving, if the laptop shows the 5 ms redraw matters. *Done in Phase 3 (§21).*
+8. **Chart data from S3** must keep the islands as separate rings and close the lake ring along the charted edge. Then `buildGeography` and the land checks work unchanged. Real soundings replace the illustrative ones. *Done in Phase 3 (§22).*
+9. **Rendering:** cache the coast, soundings and graticule in an offscreen layer while the view isn't moving, if the laptop shows the 5 ms redraw matters. *Done in Phase 3 (§22).*
 10. **Not built:** saving the voyage (`player.location`, `voyage`), shoals, fog of war, ice, rumor markers from plan 05, the real sailing controller and arena coastline silhouettes. The arena drops into the `sailing` mode as plan 01 intends, so the plan 02 controller slots in later.
 
 ---
@@ -722,11 +722,45 @@ Eleven pieces, each sized to be one thread. Four can start at once (A, B, C, H).
 - The master plan's §11 Next Steps still lists Phase 0 work.
 - Plan 17 wants a tracking issue per phase with the acceptance checklist. The §20.3 table can become that issue once approved.
 
-## 21. Phase 3 Piece B: The Real Chart (2026-10-31)
+## 21. Phase 3 Piece A: Zones by Id and the Saved Location (2026-10-31)
+
+**Goal** (§20.4, piece A): load and unload a zone by id behind a period loading screen, keeping the last zone cached briefly; entry points in `zones.json`; the player's location and the ship's pose in the save, so Continue goes back where you were.
+
+**Result:** built. The game no longer always starts at the North Channel spawn: a reload puts the ship back where the last save left it. Zones load by id through a zone manager, and a zone change fades to fog, swaps the zone out of sight, and saves on the way out and on arrival. The chart (piece D) is what will call it; until then the dev panel and the console do.
+
+### 21.1 What was built
+| Piece | Where | Notes |
+|---|---|---|
+| Entry points | `data/zones.json` `entries`, `data/schemas/zones.ts`, `src/sim/terrain/zones.ts` | Each has an id, a name, what lies off that edge (`toward`), a point in zone meters and a heading in. The Apostles have three, about 600 m inside the open-water edges: **west** (north of Sand Island, toward Duluth), **north** (north of Bear Island, toward Two Harbors) and **east** (south of Michigan Island, toward the Keweenaw); the south edge is land. `nearestEntry` picks the one nearest a chart point, for piece D's arrivals. A test checks each sits in the fog fade but short of the "Zone edge" chip, faces into the zone, and has 1.5 km of water at least 6 m deep ahead. |
+| Zone manager | `src/sim/terrain/zone-manager.ts` | `enter(id)` loads a zone's files by id, or takes it from the cache. One zone is resident at a time: `leave()` keeps the last one for 60 s (`ZONE_KEEP_MS`) and `sweep()` frees it after; entering another zone frees the cached one before decoding the new one. Overlapping loads: the later one wins. |
+| Location in the save | `src/sim/world-state.ts`, `src/sim/location.ts` | `player.location` is `{mode: 'zone', zoneId, pose?}` or `{mode: 'chart', chartPos, heading, fromZoneId?}`. No pose means the zone's spawn. `resolveStart` turns it into a zone and a pose: the saved pose, the spawn for a new run or a zone the data no longer has, and for a chart location (piece D) the entry nearest its chart position. Each save writes the ship's pose first. |
+| Save v3 | `src/core/save/migrations/index.ts`, `tests/fixtures/saves/v3.json` | v2 → v3 adds `player.location` at the Apostles with no pose, so a 0.2.0 run starts at the spawn, as every reload did before. |
+| Zone swap | `src/main.ts`, `src/render/test-scene.ts`, `src/audio/` | The scene's zone layer (terrain meshes and their tile worker, trees, lighthouses, harbors, the water's shore texture) is built and disposed as one, and its preset listeners go with it. On a zone change the terrain, the wind maps, the weather's frame, the piers and berths, the fog signals and gull points, and the HUD's edge all follow the new zone; the ship is placed at its pose with way off, keeping its sails, damage and cargo. `ZoneExited` and `ZoneEntered` go on the bus. |
+| Loading screen | `src/ui/loading/` | A fade to fog with a logbook card: "Making for / Apostle Islands / Out of the fog, north of Bear Island." The gameplay tick pauses under it (a `loading` overlay) and the keys do nothing. |
+| Checks | `?zone=<id>`, `?entry=west` | Start in a zone, or at one of its entries. With `?debug` (or in dev builds), `__glpZones.enter('zone.apostles', 'north')` from the console, and the dev panel's **Zone** folder (zone, entry, "Skip the cache") with a zone line in the readout. |
+
+### 21.2 Results
+- **Continue:** saving, reloading and coming back to the same pose is an e2e test, and so is entering a zone at an entry and reloading there.
+- **Memory round trip** (criterion 9 at the data level): `tests/zone-manager.test.ts` decodes the real Apostles (about 48 MB), enters a second zone id over the same files, comes back, lets the cache expire, and checks the memory falls back within 20 MB. In headless Chromium with the WebGL build, three uncached reloads of the Apostles left the JS heap at 10–11 MB and array buffers at 59–61 MB, the same as before the first, so nothing from a left zone is kept. The tile worker's copy goes with the worker, which is terminated on dispose.
+- **Load time:** 1.5–2.2 s from the fade starting to the ship in the new zone, uncached, in the cloud container on Low (the 0.65 s fade included). The 8 s budget is checked on the laptop in piece K, with the new zones.
+
+### 21.3 Decisions made in the piece
+- **The pose lives in `player.location`,** not a separate ship slice: it is where the player is. The ship slice (plan 10) keeps its upgrades and condition.
+- **Damage isn't saved yet.** A reload brings back the pose with full hull and rigging, as before; a moored or anchored ship comes back free and stopped. The ship's condition joins the save with plan 10's slice.
+- **Entries are 600 m inside the edge,** in the fog but short of the "Zone edge" chip, so arriving never offers to leave.
+- **The boot load has no loading screen.** The UI mounts after the first zone; the fade covers every zone change after that.
+
+### 21.4 Still to do
+- Piece D calls `enterZone` on arrival from the chart, with `nearestEntry` for the point where the course crosses the zone's outline, and saves `{mode: 'chart'}` while under way.
+- The 8 s warm-cache load is measured on the laptop with the Twin Ports and Two Harbors (piece C), and the heap round trip in the dev overlay with two real zones.
+
+---
+
+## 22. Phase 3 Piece B: The Real Chart (2026-10-31)
 
 The chart is now baked from the same NOAA bathymetry and USGS DEM as the zones (§8.2 step 9), replacing the hand-traced S8 geometry (§16, finding 8). `buildGeography` and the land checks work unchanged, and the zone outlines on the chart come from the zones' bake settings, so they meet the baked zone edges exactly.
 
-### 21.1 What was built
+### 22.1 What was built
 | Piece | Where | Notes |
 |---|---|---|
 | Chart bake | `tools/geo/chart.ts`, `tools/geo/lib/coast.ts`, `npm run geo:chart` | Warps the DEM (average) and the bathymetry (bilinear) onto 50 m cells of the chart projection over 92.35°W–89.9°W, 46.4°N–47.85°N, the charted area plus a margin. Land is the DEM above lake level + 0.5 m (the zones' threshold), water depth is the bathymetry. A flood fill from open water keeps only the lake (inland lakes and cut-off rivers become land) and land under 0.75 ha sinks. Marching squares trace the shoreline with the land on the left, so the lake is the one clockwise ring and every island is counter-clockwise; Douglas–Peucker at 40 m, tightened ring by ring until no two rings cross. Depth contours at 3, 10 and 30 fathoms come from 100 m blocks at 120 m. Soundings sit on a 1 nm grid at least 450 m from shore, each tagged with the coarsest grid (16, 8, 4, 2 or 1 nm) it falls on. The first run reads about 4 minutes of DEM blocks; a cached rebuild takes 5 s. Report: [`tools/geo/reports/chart.md`](../tools/geo/reports/chart.md) |
@@ -737,7 +771,7 @@ The chart is now baked from the same NOAA bathymetry and USGS DEM as the zones (
 | Bench | `bench/chart/`, `npm run bench:chart` | Draws 240 frames per pass at 1920 × 1080: still, panning and a forced full redraw, at the whole-lake zoom and zoomed on the Apostles. Open `/bench/chart/` in `npm run dev` on the laptop for real numbers |
 | Tests | `tests/chart-bake.test.ts` | Ring tracing on small grids (lake clockwise, islands counter-clockwise, corner-touching islands apart, ponds filled, specks sunk, simplification without crossings), and the baked chart: Apostle Islands within 6% of their published areas, Minnesota Point an island, every island inside the lake, soundings over water, zones at their bake bounds, every port in its own zone and no zones overlapping |
 
-### 21.2 Results
+### 22.2 Results
 | Check | Result |
 |---|---|
 | Island areas | Madeline 59.6 km² (published 62.2), Stockton 39.7 (40.7), Outer 31.5 (32.4), Oak 20.5 (20.6), Sand 11.8 (11.9), the same as the S3 zone bake (§14.2) |
@@ -745,7 +779,7 @@ The chart is now baked from the same NOAA bathymetry and USGS DEM as the zones (
 | Course checks and pacing | All chart and pacing tests pass on the real coast after moving three test points and two traffic lane points that now touched land. Pacing with the default lookout: **2.0** encounters on Duluth → Apostles, 0.7 to Two Harbors, 1.8 Two Harbors → Apostles and 1.3 to Siskiwit Bay (S8: 2.1–2.3 on the Apostles crossings, 0.7 to Two Harbors and 1.3 to Siskiwit Bay) |
 | Redraw, headless Chromium at 1920 × 1080 (software canvas) | Still view **0.8 ms p95**; while dragging **0.7 ms p95** (the shifted layer); the one full redraw when the view settles **78 ms median, 130 ms p95** at the whole-lake zoom and 65 / 98 ms zoomed in. These times include rasterizing the layer, which S8's 5.2 ms did not, so they aren't comparable. **Re-check on the laptop**, where the canvas is GPU-backed |
 
-### 21.3 Findings
+### 22.3 Findings
 1. **The baked Apostles zone is bigger than S8's hand-drawn rectangle.** It reaches 91.10°W (S8 drew 90.99°W) and 47.13°N (47.11°N). That puts Cornucopia on its west edge, so the Siskiwit Bay chart area moved west to 91.30°W–91.10°W to stop the two overlapping, and Duluth → the Apostles edge is shorter: **16.5 real seconds** by the north route at the default compression (S8: 21 s). Criterion 2 asks for 20–30 s. Piece D or K should either slow the chart clock slightly (about 2 s per game hour instead of 2.5) or accept the shorter crossing.
 2. **Long Island is fragments.** The Chequamegon Point spit is about 100 m wide, so at 50 m it breaks into pieces with gaps a course can pass through, and the islands.json point for Long Island falls in water. That's close to 1900, when Long Island was cut off from the point, but if it matters, bake Chequamegon Bay at 25 m or add a hand-drawn spit.
 3. **A full redraw is expensive with the real coast.** Three wide strokes and a fill of a 4,000-point ring cost far more than the hand outline did, which is why dragging shifts the old layer instead of redrawing. If the laptop shows the settle redraw as a hitch, the next steps are to drop the two-stroke offshore waterline (about a third of the cost) or bake a lower-detail coast for the whole-lake zoom.
@@ -755,7 +789,8 @@ The chart is now baked from the same NOAA bathymetry and USGS DEM as the zones (
 ---
 
 ## Changelog
-- v0.15: Phase 3 piece B (§21): the chart is baked from NOAA and USGS data (`npm run geo:chart`), zone outlines come from the bake settings, real soundings and depth shading, a cached static layer, and a chart redraw bench. The Siskiwit Bay chart area moved west of the larger baked Apostles zone.
+- v0.16: Phase 3 piece B (§22): the chart is baked from NOAA and USGS data (`npm run geo:chart`), zone outlines come from the bake settings, real soundings and depth shading, a cached static layer, and a chart redraw bench. The Siskiwit Bay chart area moved west of the larger baked Apostles zone.
+- v0.15: Phase 3 piece A built (§21): zones by id with the last one cached, entry points, `player.location` in save v3, Continue back to the saved pose, and the fade to fog between zones.
 - v0.14: Phase 3 scope proposed (§20): what Phase 2 changes, deliverables, exit criteria, eleven work pieces, assumed calls, and the new zones get dockable harbors (decided 2026-10-31).
 - v0.13: Phase 2 exit criteria and playtest (§19), passed 2026-10-31; `?timewarp=` for the week-of-weather check.
 - v0.12: Phase 2 piece G: Bayfield and Ashland harbors (§18), the Ashland ore dock at 1:1 in open water in place of a rebaked lens.
