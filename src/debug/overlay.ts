@@ -1,5 +1,5 @@
 import { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js';
-import { dayAndHour, SECONDS_PER_GAME_DAY, type ClockState } from '../core/time';
+import { dayAndHour, MAX_TIME_WARP, SECONDS_PER_GAME_DAY, type ClockState } from '../core/time';
 import {
   WEATHER_PRESETS,
   type LocalWeather,
@@ -39,6 +39,8 @@ export interface OverlayOptions {
   probe: () => { x: number; z: number };
   /** Save a preset pick through the settings store; it applies it to the renderer. */
   setQuality?: (id: QualityId) => void;
+  /** The playtest clock speed-up the sailing mode reads (`?timewarp=`). */
+  timeWarp?: { factor: number };
 }
 
 const STYLE = `
@@ -188,6 +190,9 @@ export function createDevOverlay(options: OverlayOptions): DevOverlay {
   };
   const timeFolder = gui.addFolder('Time');
   timeFolder.add(time, 'hour', 0, 23.99, 0.05).name('Hour').listen();
+  if (options.timeWarp) {
+    timeFolder.add(options.timeWarp, 'factor', 1, MAX_TIME_WARP, 1).name('Clock speed ×').listen();
+  }
 
   const seaParams = { foam: renderer.preset.crestFoam };
   const uniforms = scene.water.material.uniforms;
