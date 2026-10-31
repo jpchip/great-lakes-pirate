@@ -97,8 +97,8 @@ test('settings pause the game, persist, and rebind keys', async ({ page }) => {
   expect(errors).toEqual([]);
 });
 
-// Plan 15 §8: the sailing and world sounds decode up front (14 each) and audio starts on
-// the first key.
+// Plan 15 §8: the sailing (14) and world (19, with the ships' whistles) sounds decode up
+// front and audio starts on the first key.
 test('loads the sailing and world sounds and unlocks audio on the first key press', async ({
   page,
 }) => {
@@ -106,7 +106,7 @@ test('loads the sailing and world sounds and unlocks audio on the first key pres
   const body = page.locator('body');
   await page.goto('/?renderer=null');
   await expect(body).toHaveAttribute('data-mode', 'sailing');
-  await expect(body).toHaveAttribute('data-audio-bank', '28');
+  await expect(body).toHaveAttribute('data-audio-bank', '33');
   await page.keyboard.press('KeyW');
   await expect(body).toHaveAttribute('data-audio', 'running');
   expect(errors).toEqual([]);

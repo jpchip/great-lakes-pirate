@@ -1,0 +1,11 @@
+{
+  "id": "sfx.ship.foghorn",
+  "name": "foghorn",
+  "description": "A sailing vessel's hand-pumped fog horn, one blast (cut short at runtime)",
+  "kind": "oneshot",
+  "bus": "sfx",
+  "bundles": [
+    "world-audio"
+  ],
+  "source": "source.flac"
+}

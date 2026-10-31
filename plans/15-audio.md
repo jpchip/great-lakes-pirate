@@ -1,6 +1,6 @@
 # 15 — Audio
 
-Status: DRAFT v0.5 (decisions made; Phase 1 sailing audio and Phase 2 weather and harbor audio built)
+Status: DRAFT v0.6 (decisions made; Phase 1 sailing audio, Phase 2 weather and harbor audio, and Phase 3 ship whistles built)
 Parent: [00-master-plan.md](00-master-plan.md)
 Inputs:
 - Master plan: AI-generated audio
@@ -275,9 +275,31 @@ All resolved.
 3. **Music:** the synthesized tunes are placeholders, and the *Red Iron Ore* motif waits for R1 to confirm which Great Lakes melodies are public domain (§2).
 4. **Storm music and harbor work sounds** (hammering, the sawmill) are later phases (§11).
 
+## 15. Phase 3 Piece J, Part 1: Ship Whistles (2026-10-31)
+
+**Scope** (plan 03 §20.4 piece J; §11 Phase 3 row; §4.3): steam whistles for the NPC ships, and the cutter's own, that carry in fog. Piece J also holds chart music, encounter stingers and the loading-screen sound. Those need piece D's chart mode and encounter card, which isn't merged yet, so they are part 2. The whistles need only piece H's ships, which is.
+
+| Part | Where | What it does |
+|---|---|---|
+| Sounds | `tools/audio/lib/synth.ts` (`shipWhistle`, `SHIP_WHISTLES`, `foghorn`), `raw-assets/audio/ships/` | Five synthesized sounds, built like the lighthouse whistle (additive bells whose pitch follows the steam pressure, with breathy steam): the ore freighter's deep single bell (138 Hz, slow valve, lots of steam), the package steamer's three-bell chime (a minor triad, the passenger boats' sound), the fish tug's small shrill bell (587 Hz, fast valve), and the *Morrill*'s two bells with a slow warble that no other ship has. The schooner-barge has no steam, so it gets a hand-pumped reed fog horn. `npm run audio:synth -- ships` renders just these. All in the world bundle (+5 sounds, 33 in the bank, about 200 KB). |
+| Data | `data/ships.json`, `data/schemas/ships.ts` | Each NPC class has `whistle: { soundId, kind, rangeM }`: the freighter carries 6 km, the cutter 5.5, the steamer 5, the tug 3 and the barge's horn 2. The schema refuses a steam whistle on a sailing vessel and a horn on a steamer. |
+| Rules | `src/audio/ship-whistle-mix.ts` | Pure functions, unit-tested. **Fog signals** from the Great Lakes rules (Act of 8 February 1895, in force on the lakes in 1900): a steamer under way sounds three distinct blasts at intervals of not more than a minute (every 50 s here; the lakes used three, where the international rules had one prolonged blast); a sailing vessel sounds her fog horn once on the starboard tack, twice on the port tack and three times with the wind abaft the beam, read from the sim's wind; a ship lying stopped rings her bell for about five seconds a minute. **Passing signals:** a steamer meeting you in sight (you within 35° of her bow, within 1.5 km, courses more than 110° apart) gives one short blast to pass port to port, or two for starboard to starboard if you're well on her starboard bow; once per meeting, never in fog, never from sail. **Level:** the same shape as a lighthouse signal, so a freighter in fog sits under Outer Island's whistle. |
+| Playback | `src/audio/ship-whistles.ts`, `game-audio.ts` | Each frame the NPC ships hand over their place, heading and speed. A ship sounds its fog signal when the fog at the listener is under 3 km or a fog bank covers the ship, on the same clock and scheduling as the lights' signals, with its own phase. Each blast leaves the funnel top and arrives at the speed of sound, panned from the camera and dulled by the fog, so the direction you hear it from is where the ship is. Music ducks under a whistle as under a fog signal. |
+| Dev panel | `src/debug/audio-panel.ts` | Audio → Play: "Nearest ship's fog signal" and "Nearest ship: passing blast". Audio → Mix: ships sounding and the last signal heard. |
+
+**Checked:** the rules (cases, patterns, ranges, meetings) and the synthesis pitches by unit tests; every class's sound in the bundle with a credit by the pipeline tests; and in the game with Playwright: `?npcs&fog=600` played the freighter, steamer, tug and cutter's three blasts and the barge's two (port tack) at the speed of sound, and `?npcs=meet` in clear air gave one steamer's passing signal and nothing from the barge. A 78-second preview (`ship-whistles/preview-78s.mp3` in the project files) runs through an unseen freighter closing, the steamer's chime, the tug, the barge's horn, a ship's bell, the *Morrill*, and a passing blast as the fog lifts. Levels are set by measurement and need a listen in the game.
+
+### Still to do
+
+1. **Part 2, after piece D:** chart music, encounter stingers, and the loading-screen transition sound.
+2. **Captions** (§5): whistles, like the fog signals, have no caption or direction arrow yet (plan 13 §9).
+3. **R1 checks:** the 1895 rule for sailing vessels' fog horns (the tack code here is the international one), whether a stopped steamer rang her bell, and what the *Morrill*'s whistle actually sounded like. The pitches are by ear.
+4. **Piece G's arenas** use the same `game.world` NPC entities, so their ships whistle with no more work; a steamer that turns to pass should then also give the passing signal at the turn.
+
 ---
 
 ## Changelog
+- v0.6: Phase 3 piece J part 1 built (§15): the NPC ships' steam whistles and the schooner-barge's fog horn, fog signals from the 1895 Great Lakes rules, passing signals, and a whistle per class in `ships.json`.
 - v0.5: Phase 2 piece H built (§14): rain, thunder after the lightning, fog hush and damping, directional fog signals with a rhythm per station, gulls and loons, open-water music v1, the Sound tab. Decision row for the Phase 2 sources.
 - v0.4: Phase 1 sailing audio built (piece I): pipeline, mixer and buses, autoplay unlock, the sailing soundscape. Decision row for procedural wind beds.
 - v0.3: Gap review: master plan aligned to this plan's sourcing order; no content change here.
