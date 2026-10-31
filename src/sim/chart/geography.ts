@@ -17,7 +17,13 @@ interface GeoBounds {
 export type ChartFeatureInput =
   | { id: string; kind: 'charted'; name: string; bounds: GeoBounds }
   | { id: string; kind: 'water'; name: string; ring: readonly LonLat[] }
-  | { id: string; kind: 'land'; name: string; ring: readonly LonLat[] }
+  | { id: string; kind: 'land'; name?: string | undefined; ring: readonly LonLat[] }
+  | { id: string; kind: 'depth'; fathoms: number; rings: readonly (readonly LonLat[])[] }
+  | {
+      id: string;
+      kind: 'soundings';
+      points: readonly (readonly [number, number, number, number])[];
+    }
   | { id: string; kind: 'port'; name: string; at: LonLat; zone: string }
   | { id: string; kind: 'light'; name: string; at: LonLat; status: 'lit' | 'dark' }
   | { id: string; kind: 'zone'; name: string; bounds: GeoBounds };
@@ -29,7 +35,8 @@ export interface Rect {
 
 export interface Ring {
   id: string;
-  name: string;
+  /** Unnamed for most baked islets. */
+  name?: string;
   points: Chart[];
   bounds: Rect;
 }
@@ -48,6 +55,19 @@ export interface ChartLight {
   status: 'lit' | 'dark';
 }
 
+/** Rings around everything shallower than `fathoms`, land included (plan 03 §8.2 step 9). */
+export interface DepthContour {
+  fathoms: number;
+  rings: Ring[];
+}
+
+export interface ChartSounding {
+  pos: Chart;
+  fathoms: number;
+  /** 0 on the 16 nm grid, then 8, 4, 2 and 1 nm. */
+  level: number;
+}
+
 export interface ChartZone extends Rect {
   id: string;
   name: string;
@@ -61,6 +81,9 @@ export interface ChartGeography {
   readonly ports: readonly ChartPort[];
   readonly lights: readonly ChartLight[];
   readonly zones: readonly ChartZone[];
+  /** Shallowest first. */
+  readonly depths: readonly DepthContour[];
+  readonly soundings: readonly ChartSounding[];
 }
 
 /** Middle of the western Superior chart; keeps projection distortion small. */
@@ -75,9 +98,9 @@ export function buildGeography(
     min: projection.geoToChart({ lat: b.south, lon: b.west }),
     max: projection.geoToChart({ lat: b.north, lon: b.east }),
   });
-  const ring = (id: string, name: string, lonLats: readonly LonLat[]): Ring => {
+  const ring = (id: string, name: string | undefined, lonLats: readonly LonLat[]): Ring => {
     const points = lonLats.map(at);
-    return { id, name, points, bounds: boundsOf(points) };
+    return { id, ...(name ? { name } : {}), points, bounds: boundsOf(points) };
   };
 
   let charted: Rect | undefined;
@@ -86,6 +109,8 @@ export function buildGeography(
   const ports: ChartPort[] = [];
   const lights: ChartLight[] = [];
   const zones: ChartZone[] = [];
+  const depths: DepthContour[] = [];
+  const soundings: ChartSounding[] = [];
   for (const f of features) {
     switch (f.kind) {
       case 'charted':
@@ -106,10 +131,32 @@ export function buildGeography(
       case 'zone':
         zones.push({ id: f.id, name: f.name, ...rect(f.bounds) });
         break;
+      case 'depth':
+        depths.push({
+          fathoms: f.fathoms,
+          rings: f.rings.map((r, k) => ring(`${f.id}.${k}`, undefined, r)),
+        });
+        break;
+      case 'soundings':
+        for (const [lon, lat, fathoms, level] of f.points) {
+          soundings.push({ pos: at([lon, lat]), fathoms, level });
+        }
+        break;
     }
   }
   if (!water) throw new Error('Chart data has no water ring');
-  return { projection, charted: charted ?? water.bounds, water, islands, ports, lights, zones };
+  depths.sort((a, b) => a.fathoms - b.fathoms);
+  return {
+    projection,
+    charted: charted ?? water.bounds,
+    water,
+    islands,
+    ports,
+    lights,
+    zones,
+    depths,
+    soundings,
+  };
 }
 
 function boundsOf(points: readonly Chart[]): Rect {

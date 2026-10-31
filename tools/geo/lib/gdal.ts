@@ -162,3 +162,47 @@ export function warpLake(bathyTif: string, out: string, cellM: number, refetch: 
   }
   return { ...readEnvi(out, width, height), xmin, ymax, cellM };
 }
+
+/**
+ * Warps a source onto a chart-space cell grid (pixel-is-area: the grid's cells are GDAL's
+ * pixels) as an ENVI Float32 raster, and reads it back. For the lake-wide chart bake.
+ */
+export function warpCells(
+  src: string,
+  out: string,
+  grid: { width: number; height: number; cellM: number; x0: number; y1: number },
+  resampling: 'bilinear' | 'average',
+  refetch: boolean,
+): Raster {
+  if (!existsSync(out) || refetch) {
+    const { width, height, cellM, x0, y1 } = grid;
+    run('gdalwarp', [
+      ...GDAL_HTTP,
+      '-q',
+      '-overwrite',
+      '-t_srs',
+      CHART_PROJ,
+      '-te',
+      String(x0),
+      String(y1 - height * cellM),
+      String(x0 + width * cellM),
+      String(y1),
+      '-ts',
+      String(width),
+      String(height),
+      '-r',
+      resampling,
+      '-ot',
+      'Float32',
+      '-dstnodata',
+      '-9999',
+      '-wm',
+      '1024',
+      '-multi',
+      src,
+      `${out}.tif`,
+    ]);
+    toEnvi(`${out}.tif`, out);
+  }
+  return readEnvi(out, grid.width, grid.height);
+}

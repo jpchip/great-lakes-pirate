@@ -152,6 +152,13 @@ export function geoToChart(geo: Geo): { x: number; y: number } {
   };
 }
 
+export function chartToGeo(c: { x: number; y: number }): Geo {
+  return {
+    lat: CHART_REF.lat + c.y / (EARTH_RADIUS_M * DEG),
+    lon: CHART_REF.lon + c.x / (EARTH_RADIUS_M * DEG * Math.cos(CHART_REF.lat * DEG)),
+  };
+}
+
 /**
  * A grid of samples in zone space. Samples sit on vertices (pixel-is-point): sample (0, 0)
  * is the north-west corner and sample (i, j) is at zone x = x0 + i·step, z = z0 + j·step.

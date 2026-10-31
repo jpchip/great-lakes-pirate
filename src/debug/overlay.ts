@@ -16,9 +16,10 @@ import { formatWaterBench, runWaterBench } from './water-bench';
 /**
  * The dev overlay (plan 01 §5, §11.1 task 4): a stats readout plus lil-gui panels for
  * quality, wind and sea (plan 02 §14.2), time of day, terrain, saving and the S2 water
- * benchmark. Loaded only in dev builds or with `?debug` / `?bench=water`, as a separate
- * chunk. `?overlay=shelter` (or `fetch`, `funnel`) and `?windfrom=<degrees>` open the
- * terrain overlay straight away.
+ * benchmark. The Dev panel's Stats readout checkbox hides the upper-left block; the
+ * choice is kept in localStorage. Loaded only in dev builds or with `?debug` /
+ * `?bench=water`, as a separate chunk. `?overlay=shelter` (or `fetch`, `funnel`) and
+ * `?windfrom=<degrees>` open the terrain overlay straight away.
  */
 
 export interface SaveControls {
@@ -63,6 +64,25 @@ const STYLE = `
   font: 11px/1.4 ui-monospace, monospace; color: #e8eef0; background: rgba(15, 25, 32, 0.78);
   border-radius: 4px; pointer-events: none; white-space: pre;
 `;
+
+/** `0` hides the upper-left fps block; anything else (including a missing key) shows it. */
+const STATS_KEY = 'glp.dev.stats';
+
+function statsReadoutVisible(storage: Pick<Storage, 'getItem'> | undefined): boolean {
+  try {
+    return storage?.getItem(STATS_KEY) !== '0';
+  } catch {
+    return true;
+  }
+}
+
+function storeStatsReadout(storage: Pick<Storage, 'setItem'> | undefined, on: boolean): void {
+  try {
+    storage?.setItem(STATS_KEY, on ? '1' : '0');
+  } catch {
+    // Private windows can refuse storage; the checkbox still works this session.
+  }
+}
 
 export interface DevOverlay {
   /** The root panel, for other dev panels to add folders to. */
@@ -128,12 +148,22 @@ function zoneText(z: ZoneManagerStats): string {
 export function createDevOverlay(options: OverlayOptions): DevOverlay {
   const { renderer, scene, weather, clock, probe, save } = options;
 
+  const storage = browserStorage();
+  const view = { stats: statsReadoutVisible(storage) };
   const readout = document.createElement('pre');
   readout.style.cssText = STYLE;
   readout.dataset['testid'] = 'dev-stats';
+  readout.hidden = !view.stats;
   document.body.appendChild(readout);
 
   const gui = new GUI({ title: 'Dev' });
+  gui
+    .add(view, 'stats')
+    .name('Stats readout')
+    .onChange((on: boolean) => {
+      readout.hidden = !on;
+      storeStatsReadout(storage, on);
+    });
 
   const quality = {
     preset: renderer.preset.id as QualityId,
