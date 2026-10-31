@@ -9,3 +9,5 @@ playwright-report/
 test-results/
 # Written by tools/geo/build.ts
 tools/geo/reports/
+# Written by tools/geo/chart.ts
+data/chart-coast.json

@@ -1,7 +1,4 @@
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { chartFileSchema } from '../data/schemas/chart';
 import { KNOT_MS, METERS_PER_NAUTICAL_MILE, type Chart } from '../src/core/coords';
 import { EventBus } from '../src/core/events';
 import { InputMapper } from '../src/core/input';
@@ -9,8 +6,8 @@ import { Rng } from '../src/core/rng';
 import { createGameWorld } from '../src/gameplay/ecs';
 import { CHART_TIME_SCALE, createChartMode, type ChartSession } from '../src/modes/chart';
 import type { GameContext, GameEvents } from '../src/modes/context';
+import { westernSuperiorChart } from '../src/sim/chart/chart-data';
 import {
-  buildGeography,
   firstLandHit,
   inRing,
   isWater,
@@ -42,10 +39,7 @@ import { createLocalWeather } from '../src/sim/weather/local-weather';
 import { createSea } from '../src/sim/weather/waves';
 import { createWorldState } from '../src/sim/world-state';
 
-const features = chartFileSchema.parse(
-  JSON.parse(readFileSync(join(import.meta.dirname, '..', 'data', 'chart.json'), 'utf8')),
-);
-const geo: ChartGeography = buildGeography(features);
+const geo: ChartGeography = westernSuperiorChart();
 const at = (lat: number, lon: number): Chart => geo.projection.geoToChart({ lat, lon });
 const nm = (m: number): number => m / METERS_PER_NAUTICAL_MILE;
 
@@ -54,8 +48,10 @@ const offDuluth = at(46.8, -91.96);
 const bayfield = geo.ports.find((p) => p.id === 'port.bayfield')?.pos as Chart;
 /** Off the Two Harbors waterfront (the port marker itself sits on the shore). */
 const offTwoHarbors = at(46.99, -91.65);
-/** Clear of the Bayfield peninsula, north of Sand Island. */
-const northOfSand = at(47.05, -91.0);
+/** Clear of the Bayfield peninsula, north of Sand Island and the Apostles zone. */
+const northOfSand = at(47.17, -91.0);
+/** Off Siskiwit Bay, west of the Apostles zone. */
+const offSiskiwit = at(47.0, -91.2);
 
 describe('chart geography', () => {
   it('keeps islands inside the lake and apart from each other', () => {
@@ -73,7 +69,8 @@ describe('chart geography', () => {
     expect(isWater(geo, offDuluth)).toBe(true);
     expect(isWater(geo, at(47.0, -90.2))).toBe(true); // open lake
     expect(isWater(geo, at(46.5, -91.5))).toBe(false); // Wisconsin, inland
-    expect(isWater(geo, at(46.81, -90.67))).toBe(false); // Madeline Island
+    expect(isWater(geo, at(46.8, -90.72))).toBe(false); // Madeline Island
+    expect(isWater(geo, at(46.81, -90.67))).toBe(true); // Big Bay, open to the lake
     expect(isWater(geo, at(46.9, -90.9))).toBe(false); // Bayfield peninsula
   });
 
@@ -116,7 +113,7 @@ describe('course plotting', () => {
   });
 
   it('stops the sailed course at the destination zone edge', () => {
-    const course = planCourse(geo, offDuluth, [northOfSand, at(47.0, -90.9), bayfield]);
+    const course = planCourse(geo, offDuluth, [offSiskiwit, at(47.0, -90.9), bayfield]);
     expect(course.problem).toBeUndefined();
     // The leg into the zone is cut at its edge; later waypoints are inside the zone.
     expect(course.legs).toHaveLength(2);
@@ -321,7 +318,8 @@ describe('chart mode', () => {
     expect(real).toBeGreaterThan(10);
     expect(real).toBeLessThan(35);
     expect(ticks.length).toBeGreaterThan(30);
-    expect(session.position.x).toBeCloseTo(zoneById(geo, 'zone.apostles')?.min.x ?? NaN, 0);
+    // The course comes in from the north, so it stops on the zone's north edge.
+    expect(session.position.y).toBeCloseTo(zoneById(geo, 'zone.apostles')?.max.y ?? NaN, 0);
   });
 
   it('pauses for an encounter and resumes after the choice', () => {

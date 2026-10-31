@@ -8,6 +8,7 @@ npm run geo:build -- apostles --compare            # also compare tile formats
 npm run geo:build -- apostles --land-curve=none    # try another land height curve
 npm run geo:build -- apostles --refetch            # re-download and re-warp the sources
 npm run geo:canopy                # add the forest canopy to an existing bake's shelter maps
+npm run geo:chart                 # the chart's coast, islands, depths and soundings → data/chart-coast.json
 ```
 
 It runs locally, not in CI (plan 01 §11). The baked files are committed through Git LFS.
@@ -51,6 +52,28 @@ Apostles, ~1.2 GB). A cached rebuild takes about 35 seconds.
 6. Finds each named island's land component, and cuts 1 m on-foot tiles for its footprint
    plus a 64 m margin.
 7. Writes `manifest.json` (with the hand edits it applied), a report (`reports/<zone>.md`) and preview images.
+
+## The chart bake
+
+`npm run geo:chart` (`chart.ts`, `lib/coast.ts`) bakes the chart mode's geography for the
+whole western lake from the same two sources (plan 03 §8.2 step 9, §21):
+
+1. Warps the DEM (averaged) and the bathymetry onto 50 m cells of the chart projection over
+   92.35°W–89.9°W, 46.4°N–47.85°N. The first run reads about 4 minutes of DEM blocks into
+   `.cache/chart/`; a cached rebuild takes about 5 seconds.
+2. Land is the DEM at least 0.5 m above lake level; water depth comes from the bathymetry.
+   A flood fill from open water keeps only the lake, so inland lakes become land, and land
+   smaller than 0.75 ha sinks.
+3. Traces the shoreline with marching squares (the lake is one clockwise ring, islands are
+   counter-clockwise) and simplifies it at 40 m, tightening any ring that would cross
+   another.
+4. Traces depth contours at 3, 10 and 30 fathoms, and samples soundings on a 1 nm grid away
+   from the shore.
+5. Names islands from `data/islands.json` (plus a short list in `chart.ts`, e.g. Minnesota
+   Point) and writes `data/chart-coast.json`, `reports/chart.md` and `reports/chart-relief.png`.
+
+The runtime merges it with the hand-authored `data/chart.json` in
+`src/sim/chart/chart-data.ts`. Don't edit `chart-coast.json` by hand; rerun the bake.
 
 ## Output format
 

@@ -57,3 +57,24 @@ export function setPieceFootprint(def: SetPieceDef, frame: ZoneFrame): SetPieceF
     def,
   };
 }
+
+/**
+ * The zone's extent as the bake cut it, in degrees: the frame's origin plus half the
+ * tile grid (times C) each way. The chart draws zone outlines from it, so they meet the
+ * baked zone edges exactly.
+ */
+export function zoneGeoBounds(def: ZoneDef): {
+  west: number;
+  south: number;
+  east: number;
+  north: number;
+} {
+  const { origin, compression } = defFrame(def);
+  const halfX =
+    (def.bake.tilesX * def.bake.tileSamples * def.bake.sailingSampleM * compression) / 2;
+  const halfY =
+    (def.bake.tilesY * def.bake.tileSamples * def.bake.sailingSampleM * compression) / 2;
+  const sw = projection.chartToGeo({ x: origin.x - halfX, y: origin.y - halfY });
+  const ne = projection.chartToGeo({ x: origin.x + halfX, y: origin.y + halfY });
+  return { west: sw.lon, south: sw.lat, east: ne.lon, north: ne.lat };
+}

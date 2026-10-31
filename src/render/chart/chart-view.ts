@@ -1,12 +1,7 @@
 import { METERS_PER_NAUTICAL_MILE, type Chart } from '../../core/coords';
 import { Rng } from '../../core/rng';
-import {
-  distance,
-  inRect,
-  isWater,
-  type ChartGeography,
-  type Ring,
-} from '../../sim/chart/geography';
+import { simplifyRing } from '../../core/simplify';
+import { isWater, type ChartGeography, type Rect, type Ring } from '../../sim/chart/geography';
 import type { Contact } from '../../sim/chart/traffic';
 import type { PlannedCourse, Voyage } from '../../sim/chart/voyage';
 
@@ -49,11 +44,6 @@ export interface ChartFrame {
   etaLabel: string | undefined;
 }
 
-interface Sounding {
-  pos: Chart;
-  fathoms: number;
-}
-
 const FONT = '"Libre Caslon Text", "Iowan Old Style", Georgia, serif';
 
 export class ChartView {
@@ -61,16 +51,38 @@ export class ChartView {
   center: Chart = { x: 0, y: 0 };
   /** Chart meters per CSS pixel. */
   metersPerPx = 200;
-  private readonly ctx: CanvasRenderingContext2D;
+  /** The context the draw calls use: the screen's, or the static layer's while it is drawn. */
+  private ctx: CanvasRenderingContext2D;
+  private readonly screen: CanvasRenderingContext2D;
   private readonly parchment: CanvasPattern | null;
-  private soundings: Sounding[] = [];
-  private soundingsFor: ChartGeography | undefined;
+  /**
+   * The static layer (plan 03 §16, finding 9): paper, coast, depths, soundings, graticule,
+   * zones and labels depend only on the view, so they're drawn offscreen once per view and
+   * copied while the view holds still. Night, lights, ships and the course go on top.
+   */
+  private readonly layer: HTMLCanvasElement;
+  private readonly layerCtx: CanvasRenderingContext2D;
+  private layerKey = '';
+  private layerGeo: ChartGeography | undefined;
+  /** The view the static layer was drawn for, to place it while the view moves. */
+  private layerView = { center: { x: 0, y: 0 }, metersPerPx: 1, w: 0, h: 0, dpr: 1 };
+  /** The last frame's view key and when the view last changed (ms). */
+  private lastKey = '';
+  private viewChangedAt = 0;
+  private readonly lodCache = new WeakMap<Ring, { tol: number; points: Chart[] }>();
+  /** Static-layer redraws since construction (for the bench and tests). */
+  layerDraws = 0;
 
   constructor(readonly canvas: HTMLCanvasElement) {
     const ctx = canvas.getContext('2d');
     if (!ctx) throw new Error('2D canvas unavailable');
     this.ctx = ctx;
+    this.screen = ctx;
     this.parchment = ctx.createPattern(createParchment(), 'repeat');
+    this.layer = document.createElement('canvas');
+    const layerCtx = this.layer.getContext('2d');
+    if (!layerCtx) throw new Error('2D canvas unavailable');
+    this.layerCtx = layerCtx;
   }
 
   get width(): number {
@@ -121,26 +133,51 @@ export class ChartView {
     };
   }
 
+  /** Forget the static layer, e.g. after the chart data changes in place. */
+  invalidate(): void {
+    this.layerKey = '';
+  }
+
   draw(frame: ChartFrame): void {
-    const { ctx, canvas } = this;
+    const { canvas } = this;
     const dpr = window.devicePixelRatio || 1;
     const w = this.width;
     const h = this.height;
-    if (canvas.width !== Math.round(w * dpr) || canvas.height !== Math.round(h * dpr)) {
-      canvas.width = Math.round(w * dpr);
-      canvas.height = Math.round(h * dpr);
+    const pw = Math.round(w * dpr);
+    const ph = Math.round(h * dpr);
+    if (canvas.width !== pw || canvas.height !== ph) {
+      canvas.width = pw;
+      canvas.height = ph;
     }
-    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    ctx.lineJoin = 'round';
-    ctx.lineCap = 'round';
-
     const geo = frame.geo;
-    this.drawBase(geo);
-    this.drawSoundings(geo);
-    this.drawGraticule(geo);
-    this.drawZones(geo);
-    this.drawUncharted(geo);
-    this.drawLabels(geo);
+
+    // The static layer is redrawn only when the view moves. While the view is moving
+    // (a drag or a wheel zoom), the last layer is shifted and scaled into place instead,
+    // which costs a copy; the real redraw waits until the view has held still for
+    // LAYER_SETTLE_MS. With the baked coast a full redraw is far over a frame's budget on
+    // a software canvas, so redrawing on every drag frame would stutter.
+    const key = `${this.center.x},${this.center.y},${this.metersPerPx},${w},${h},${dpr}`;
+    const now = performance.now();
+    if (key !== this.lastKey) {
+      this.lastKey = key;
+      this.viewChangedAt = now;
+    }
+    const lv = this.layerView;
+    const canShift =
+      this.layerKey !== '' && geo === this.layerGeo && lv.w === w && lv.h === h && lv.dpr === dpr;
+    const stale = key !== this.layerKey || geo !== this.layerGeo;
+    if (stale && canShift && now - this.viewChangedAt < LAYER_SETTLE_MS) {
+      this.drawShiftedLayer(dpr);
+    } else {
+      if (stale) this.redrawLayer(geo, key, pw, ph, dpr);
+      const { ctx } = this;
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.globalCompositeOperation = 'copy';
+      ctx.drawImage(this.layer, 0, 0);
+      ctx.globalCompositeOperation = 'source-over';
+    }
+    this.begin(dpr);
+    const { ctx } = this;
 
     // Night falls over the paper; lights, ships and the course stay readable on top.
     if (frame.daylight < 1) {
@@ -157,27 +194,72 @@ export class ChartView {
     this.drawScaleBar(h);
   }
 
-  private ringPath(ring: Ring): void {
-    const { ctx } = this;
-    ring.points.forEach((p, i) => {
-      const s = this.toScreen(p);
-      if (i === 0) ctx.moveTo(s.x, s.y);
-      else ctx.lineTo(s.x, s.y);
-    });
-    ctx.closePath();
+  private redrawLayer(geo: ChartGeography, key: string, pw: number, ph: number, dpr: number): void {
+    if (this.layer.width !== pw || this.layer.height !== ph) {
+      this.layer.width = pw;
+      this.layer.height = ph;
+    }
+    this.ctx = this.layerCtx;
+    this.begin(dpr);
+    this.drawBase(geo);
+    this.drawSoundings(geo);
+    this.drawGraticule(geo);
+    this.drawZones(geo);
+    this.drawUncharted(geo);
+    this.drawLabels(geo);
+    this.ctx = this.screen;
+    this.layerKey = key;
+    this.layerGeo = geo;
+    const view = { w: this.width, h: this.height, dpr };
+    this.layerView = { center: { ...this.center }, metersPerPx: this.metersPerPx, ...view };
+    this.layerDraws++;
   }
 
-  private waterPath(geo: ChartGeography): Path2D {
-    const path = new Path2D();
-    for (const ring of [geo.water, ...geo.islands]) {
-      ring.points.forEach((p, i) => {
-        const s = this.toScreen(p);
-        if (i === 0) path.moveTo(s.x, s.y);
-        else path.lineTo(s.x, s.y);
-      });
-      path.closePath();
+  /** The last static layer, moved and scaled to where the current view puts it. */
+  private drawShiftedLayer(dpr: number): void {
+    const { ctx } = this;
+    const lv = this.layerView;
+    const k = lv.metersPerPx / this.metersPerPx;
+    const tx = lv.w / 2 - (k * lv.w) / 2 + (lv.center.x - this.center.x) / this.metersPerPx;
+    const ty = lv.h / 2 - (k * lv.h) / 2 - (lv.center.y - this.center.y) / this.metersPerPx;
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.fillStyle = CHART_COLORS.land;
+    ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
+    ctx.setTransform(k, 0, 0, k, tx * dpr, ty * dpr);
+    ctx.drawImage(this.layer, 0, 0);
+  }
+
+  private begin(dpr: number): void {
+    const { ctx } = this;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.lineJoin = 'round';
+    ctx.lineCap = 'round';
+    ctx.setLineDash([]);
+    ctx.globalAlpha = 1;
+  }
+
+  /**
+   * A ring simplified to about half a pixel at the current zoom. The baked coast holds
+   * detail to 40 m, which is wasted (and slow to fill and stroke) at the full-lake zoom.
+   */
+  private lod(ring: Ring): readonly Chart[] {
+    const tol = 2 ** Math.floor(Math.log2(Math.max(this.metersPerPx * 0.5, 1)));
+    let cached = this.lodCache.get(ring);
+    if (cached?.tol !== tol) {
+      cached = { tol, points: simplifyRing(ring.points, tol) };
+      this.lodCache.set(ring, cached);
     }
-    return path;
+    return cached.points;
+  }
+
+  /** Rings worth drawing in view: on screen and at least `minPx` across. */
+  private visibleRings(rings: readonly Ring[], view: Rect, minPx: number): Ring[] {
+    const min = minPx * this.metersPerPx;
+    return rings.filter(
+      (r) =>
+        overlaps(r.bounds, view) &&
+        Math.max(r.bounds.max.x - r.bounds.min.x, r.bounds.max.y - r.bounds.min.y) >= min,
+    );
   }
 
   private drawBase(geo: ChartGeography): void {
@@ -187,43 +269,58 @@ export class ChartView {
     ctx.fillStyle = CHART_COLORS.land;
     ctx.fillRect(0, 0, w, h);
 
-    const water = this.waterPath(geo);
+    // One path for the whole coast: filled, clipped to and stroked three times.
+    const view = this.viewRect(8);
+    const water = new Path2D();
+    for (const ring of [geo.water, ...this.visibleRings(geo.islands, view, 1.5)]) {
+      this.addPath(water, this.lod(ring));
+    }
     ctx.fillStyle = CHART_COLORS.water;
     ctx.fill(water, 'evenodd');
 
-    // Depth vignette: the classic chart shading that hugs the shore, inside the water.
+    // Depth shading from the baked contours, inside the water: each contour's shallow side
+    // gets a wash of lake teal, so the shallows build up darkest, and a dotted line marks
+    // the contour itself, as on the Lake Survey charts.
     ctx.save();
     ctx.clip(water, 'evenodd');
-    const coast = (): void => {
-      ctx.beginPath();
-      for (const ring of [geo.water, ...geo.islands]) this.ringPath(ring);
-    };
-    const bands: [number, number][] = [
-      [26, 0.05],
-      [14, 0.07],
-      [6, 0.1],
-    ];
-    for (const [width, alpha] of bands) {
-      coast();
-      ctx.strokeStyle = `rgba(47, 111, 115, ${alpha})`;
-      ctx.lineWidth = width;
-      ctx.stroke();
+    for (const contour of geo.depths) {
+      const path = new Path2D();
+      // Nonzero winding: the view rectangle counter-clockwise (in chart space) makes
+      // everything shallow; each deep basin's clockwise ring takes its inside back out,
+      // and shallow banks inside a basin (counter-clockwise again) put theirs back.
+      const corners: Chart[] = [
+        { x: view.min.x, y: view.min.y },
+        { x: view.max.x, y: view.min.y },
+        { x: view.max.x, y: view.max.y },
+        { x: view.min.x, y: view.max.y },
+      ];
+      this.addPath(path, corners);
+      const lines = new Path2D();
+      for (const ring of this.visibleRings(contour.rings, view, 3)) {
+        const points = this.lod(ring);
+        this.addPath(path, points);
+        this.addPath(lines, points);
+      }
+      ctx.fillStyle = 'rgba(47, 111, 115, 0.07)';
+      ctx.fill(path, 'nonzero');
+      ctx.setLineDash([1.5, 3]);
+      ctx.strokeStyle = 'rgba(47, 111, 115, 0.45)';
+      ctx.lineWidth = 0.9;
+      ctx.stroke(lines);
+      ctx.setLineDash([]);
     }
     // A thin waterline a few pixels offshore.
-    coast();
     ctx.strokeStyle = 'rgba(43, 33, 24, 0.25)';
     ctx.lineWidth = 7;
-    ctx.stroke();
-    coast();
+    ctx.stroke(water);
     ctx.strokeStyle = CHART_COLORS.water;
     ctx.lineWidth = 5;
-    ctx.stroke();
+    ctx.stroke(water);
     ctx.restore();
 
-    coast();
     ctx.strokeStyle = CHART_COLORS.ink;
     ctx.lineWidth = 1.3;
-    ctx.stroke();
+    ctx.stroke(water);
 
     // Paper grain over everything drawn so far.
     if (this.parchment) {
@@ -236,29 +333,46 @@ export class ChartView {
   }
 
   /**
-   * Illustrative soundings until S3 bakes real depths: deeper away from shore, in
-   * fathoms like the 1900 Lake Survey charts.
+   * Soundings in fathoms from the NOAA bathymetry (plan 03 §8.2 step 9), thinned by their
+   * grid level so they stay about the same distance apart on screen at any zoom.
    */
   private drawSoundings(geo: ChartGeography): void {
-    if (this.soundingsFor !== geo) {
-      this.soundings = makeSoundings(geo);
-      this.soundingsFor = geo;
-    }
     const { ctx } = this;
     const minGapPx = 46;
-    const step = Math.max(1, Math.round((minGapPx * this.metersPerPx) / SOUNDING_SPACING_M));
+    let maxLevel = -1;
+    for (let level = 0; level <= 4; level++) {
+      const spacingM = (SOUNDING_GRID_NM[level] as number) * METERS_PER_NAUTICAL_MILE;
+      if (spacingM / this.metersPerPx >= minGapPx) maxLevel = level;
+    }
+    if (maxLevel < 0) return;
+    const view = this.viewRect(20);
     ctx.fillStyle = 'rgba(43, 33, 24, 0.55)';
     ctx.font = `italic 10px ${FONT}`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    for (const s of this.soundings) {
-      const gx = Math.round(s.pos.x / SOUNDING_SPACING_M);
-      const gy = Math.round(s.pos.y / SOUNDING_SPACING_M);
-      if (gx % step !== 0 || gy % step !== 0) continue;
+    for (const s of geo.soundings) {
+      if (s.level > maxLevel) continue;
+      const { x, y } = s.pos;
+      if (x < view.min.x || x > view.max.x || y < view.min.y || y > view.max.y) continue;
       const p = this.toScreen(s.pos);
-      if (p.x < 0 || p.y < 0 || p.x > this.width || p.y > this.height) continue;
       ctx.fillText(String(s.fathoms), p.x, p.y);
     }
+  }
+
+  /** The visible chart rectangle, grown by `marginPx` on each side. */
+  private viewRect(marginPx: number): Rect {
+    const a = this.toChart(-marginPx, this.height + marginPx);
+    const b = this.toChart(this.width + marginPx, -marginPx);
+    return { min: a, max: b };
+  }
+
+  private addPath(path: Path2D, points: readonly Chart[]): void {
+    points.forEach((p, i) => {
+      const s = this.toScreen(p);
+      if (i === 0) path.moveTo(s.x, s.y);
+      else path.lineTo(s.x, s.y);
+    });
+    path.closePath();
   }
 
   private drawGraticule(geo: ChartGeography): void {
@@ -271,9 +385,9 @@ export class ChartView {
     ctx.fillStyle = 'rgba(43, 33, 24, 0.6)';
     ctx.font = `10px ${FONT}`;
     const label = (deg: number, hemi: [string, string]): string => {
-      const a = Math.abs(deg);
-      const d = Math.floor(a + 1e-6);
-      const m = Math.round((a - d) * 60);
+      const minutes = Math.round(Math.abs(deg) * 60);
+      const d = Math.floor(minutes / 60);
+      const m = minutes % 60;
       return `${d}°${m > 0 ? ` ${String(m).padStart(2, '0')}′` : ''} ${deg >= 0 ? hemi[0] : hemi[1]}`;
     };
     ctx.beginPath();
@@ -370,11 +484,13 @@ export class ChartView {
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     for (const island of geo.islands) {
+      if (!island.name) continue;
       const c = centroid(island.points);
       const sizePx = (island.bounds.max.x - island.bounds.min.x) / this.metersPerPx;
       if (sizePx < 14) continue;
       const s = this.toScreen(c);
-      ctx.fillText(island.name, s.x, s.y);
+      // Period chart style: "Madeline I." rather than "Madeline Island".
+      ctx.fillText(island.name.replace(/ Island$/, ' I.'), s.x, s.y);
     }
   }
 
@@ -690,30 +806,19 @@ export class ChartView {
   }
 }
 
-const SOUNDING_SPACING_M = 4000;
+/** How long the view must hold still before the static layer is redrawn, ms. */
+export const LAYER_SETTLE_MS = 120;
+
+/** Sounding grid spacing by level (tools/geo/chart.ts). */
+const SOUNDING_GRID_NM = [16, 8, 4, 2, 1];
+
+function overlaps(r: Rect, s: Rect): boolean {
+  return r.min.x <= s.max.x && r.max.x >= s.min.x && r.min.y <= s.max.y && r.max.y >= s.min.y;
+}
 /** Sightings older than this drop off the chart; plan 05's rumors take over. */
 const GHOST_MAX_AGE_S = 6 * 3600;
 /** Cap on a ghost's "could be anywhere in here" circle. */
 const GHOST_MAX_REACH_M = 15 * METERS_PER_NAUTICAL_MILE;
-
-function makeSoundings(geo: ChartGeography): Sounding[] {
-  const rng = Rng.fromSeed('chart-soundings');
-  const coast = [geo.water, ...geo.islands].flatMap((r) => r.points);
-  const out: Sounding[] = [];
-  const { min, max } = geo.charted;
-  for (let y = Math.ceil(min.y / SOUNDING_SPACING_M); y * SOUNDING_SPACING_M <= max.y; y++) {
-    for (let x = Math.ceil(min.x / SOUNDING_SPACING_M); x * SOUNDING_SPACING_M <= max.x; x++) {
-      const pos = { x: x * SOUNDING_SPACING_M, y: y * SOUNDING_SPACING_M };
-      if (!inRect(pos, geo.charted) || !isWater(geo, pos)) continue;
-      let d = Infinity;
-      for (const c of coast) d = Math.min(d, distance(pos, c));
-      if (d < 1200) continue;
-      const fathoms = Math.round(Math.min(3 + (d / 1000) * 4.5, 120) * rng.range(0.8, 1.2));
-      out.push({ pos, fathoms });
-    }
-  }
-  return out;
-}
 
 function centroid(points: readonly Chart[]): Chart {
   let x = 0;

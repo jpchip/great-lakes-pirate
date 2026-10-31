@@ -1,14 +1,11 @@
-import { readFileSync } from 'node:fs';
-import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
-import { chartFileSchema } from '../data/schemas/chart';
 import { EventBus } from '../src/core/events';
 import { InputMapper } from '../src/core/input';
 import { Rng } from '../src/core/rng';
 import { createGameWorld } from '../src/gameplay/ecs';
 import { CHART_TIME_SCALE, createChartMode, type ChartSession } from '../src/modes/chart';
 import type { GameContext, GameEvents } from '../src/modes/context';
-import { buildGeography } from '../src/sim/chart/geography';
+import { westernSuperiorChart } from '../src/sim/chart/chart-data';
 import { createContacts, type LookoutPref } from '../src/sim/chart/traffic';
 import { PROTOTYPE_SCHOONER } from '../src/sim/chart/voyage';
 import { createLocalWeather } from '../src/sim/weather/local-weather';
@@ -21,11 +18,7 @@ import { createWorldState } from '../src/sim/world-state';
  * encounter with "ignore" (or a quick arena and back), and counts interruptions.
  */
 
-const geo = buildGeography(
-  chartFileSchema.parse(
-    JSON.parse(readFileSync(join(import.meta.dirname, '..', 'data', 'chart.json'), 'utf8')),
-  ),
-);
+const geo = westernSuperiorChart();
 const at = (lat: number, lon: number) => geo.projection.geoToChart({ lat, lon });
 
 const ROUTES: Record<string, { from: [number, number]; via: [number, number][] }> = {
@@ -44,7 +37,7 @@ const ROUTES: Record<string, { from: [number, number]; via: [number, number][] }
       [46.812, -90.822],
     ],
   },
-  'Duluth to Siskiwit Bay': { from: [46.8, -91.96], via: [[46.87, -91.1]] },
+  'Duluth to Siskiwit Bay': { from: [46.8, -91.96], via: [[46.88, -91.2]] },
 };
 
 interface Pacing {

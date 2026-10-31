@@ -12,6 +12,7 @@ import { zonesFileSchema } from './zones';
 /** Every data/*.json file and the schema that validates it. */
 export const dataFileSchemas: Readonly<Record<string, z.ZodType>> = {
   'chart.json': chartFileSchema,
+  'chart-coast.json': chartFileSchema,
   'climate.json': climateFileSchema,
   'goods.json': goodsFileSchema,
   'harbors.json': harborsFileSchema,

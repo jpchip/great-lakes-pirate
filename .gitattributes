@@ -28,3 +28,6 @@ references/** -filter -diff -merge
 
 # Asset hints and provenance records are small text that reviewers read; keep them in plain git.
 raw-assets/**/*.json -filter -diff -merge
+
+# Baked by tools/geo/chart.ts (npm run geo:chart)
+data/chart-coast.json linguist-generated=true
