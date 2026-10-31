@@ -1,0 +1,15 @@
+{
+  "id": "amb.wildlife.loon-3",
+  "name": "loon-3",
+  "description": "A loon calling",
+  "source": "source.ogg",
+  "kind": "oneshot",
+  "bus": "ambience",
+  "bundles": [
+    "world-audio"
+  ],
+  "trimStartS": 17.1,
+  "trimEndS": 17.9,
+  "fadeOutS": 0.12,
+  "highpassHz": 600
+}

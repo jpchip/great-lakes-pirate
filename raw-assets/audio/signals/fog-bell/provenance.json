@@ -1,0 +1,10 @@
+{
+  "source": "procedural",
+  "tool": "tools/audio/synth.ts (tools/audio/lib/synth.ts)",
+  "author": "Great Lakes Pirate contributors",
+  "reference": "Additive bronze bell partials (hum, prime, tierce, quint, nominal and up) on a 247 Hz prime, with a clapper click",
+  "date": "2026-10-30",
+  "license": "CC BY 4.0",
+  "attribution": "Great Lakes Pirate contributors",
+  "modifications": []
+}

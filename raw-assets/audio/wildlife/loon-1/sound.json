@@ -1,0 +1,15 @@
+{
+  "id": "amb.wildlife.loon-1",
+  "name": "loon-1",
+  "description": "A loon's yodel",
+  "source": "source.ogg",
+  "kind": "oneshot",
+  "bus": "ambience",
+  "bundles": [
+    "world-audio"
+  ],
+  "trimStartS": 12.15,
+  "trimEndS": 13.6,
+  "fadeOutS": 0.12,
+  "highpassHz": 600
+}

@@ -1,0 +1,20 @@
+{
+  "source": "cc0",
+  "tool": "OpenGameArt: 100 CC0 SFX #2",
+  "author": "rubberduck",
+  "reference": "https://opengameart.org/content/100-cc0-sfx-2",
+  "date": "2026-10-30",
+  "license": "CC0 1.0",
+  "modifications": [],
+  "originalFile": "sfx100v2_thunder_01.ogg",
+  "description": "Distant thunder rolling",
+  "durationS": 4.865,
+  "pipeline": [
+    "decoded to mono 48000 Hz",
+    "trimmed to 0.4–end s",
+    "edge fades (0.8 s out)",
+    "RMS-normalized toward -24 dB (-1.8 dB)",
+    "Opus 64 kbps mono in Ogg (ffmpeg libopus)"
+  ],
+  "inputHash": "ad019b4bf783ec14"
+}

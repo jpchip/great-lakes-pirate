@@ -1,0 +1,11 @@
+{
+  "id": "music.open-water.day",
+  "name": "open-water-day",
+  "description": "Open-water music v1, day: \"The Chequamegon Waltz\" on concertina and guitar",
+  "kind": "oneshot",
+  "bus": "music",
+  "bundles": [
+    "music-open-water"
+  ],
+  "source": "source.flac"
+}

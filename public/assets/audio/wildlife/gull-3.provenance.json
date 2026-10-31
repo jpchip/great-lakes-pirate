@@ -1,0 +1,19 @@
+{
+  "source": "cc0",
+  "tool": "OpenGameArt: Solo Seagull Sound Effects",
+  "author": "Rango Mango",
+  "reference": "https://opengameart.org/content/solo-seagull-sound-effects",
+  "date": "2026-10-30",
+  "license": "CC0 1.0",
+  "modifications": [],
+  "originalFile": "Seagull Ambient 3.wav",
+  "description": "Gull mewing",
+  "durationS": 1.127,
+  "pipeline": [
+    "decoded to mono 48000 Hz, high-passed at 450 Hz",
+    "edge fades",
+    "RMS-normalized toward -24 dB (+2.6 dB)",
+    "Opus 64 kbps mono in Ogg (ffmpeg libopus)"
+  ],
+  "inputHash": "6c73460984f765eb"
+}

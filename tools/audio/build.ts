@@ -103,6 +103,7 @@ function build(dir: string, manifest: AudioManifest, force: boolean): AudioManif
   const pcm = ffmpeg([
     '-i',
     sourcePath,
+    ...(hints.highpassHz !== undefined ? ['-af', `highpass=f=${hints.highpassHz}`] : []),
     '-ac',
     '1',
     '-ar',

@@ -1,0 +1,19 @@
+{
+  "source": "cc0",
+  "tool": "OpenGameArt: Solo Seagull Sound Effects",
+  "author": "Rango Mango",
+  "reference": "https://opengameart.org/content/solo-seagull-sound-effects",
+  "date": "2026-10-30",
+  "license": "CC0 1.0",
+  "modifications": [],
+  "originalFile": "Seagull Ambient 1.wav",
+  "description": "A gull's laughing long call",
+  "durationS": 3.892,
+  "pipeline": [
+    "decoded to mono 48000 Hz, high-passed at 450 Hz",
+    "edge fades",
+    "RMS-normalized toward -24 dB (+10.7 dB)",
+    "Opus 64 kbps mono in Ogg (ffmpeg libopus)"
+  ],
+  "inputHash": "4b1411e6a1d3d404"
+}

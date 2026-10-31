@@ -1,0 +1,19 @@
+{
+  "source": "cc0",
+  "tool": "OpenGameArt: Rain (loopable)",
+  "author": "Ylmir",
+  "reference": "https://opengameart.org/content/rain-loopable",
+  "date": "2026-10-30",
+  "license": "CC0 1.0",
+  "modifications": [],
+  "originalFile": "Rain OGG.zip: 1.ogg",
+  "description": "Rain falling (loop)",
+  "durationS": 25,
+  "pipeline": [
+    "decoded to mono 48000 Hz",
+    "loop seam crossfaded over 2 s",
+    "RMS-normalized toward -24 dB (-2.6 dB)",
+    "Opus 64 kbps mono in Ogg (ffmpeg libopus)"
+  ],
+  "inputHash": "475af3fea4491985"
+}

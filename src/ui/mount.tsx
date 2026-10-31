@@ -4,7 +4,8 @@ import { bindingOverrides, DEFAULT_BINDINGS, rebind, type Action } from '../core
 import { applyBindingOverrides, type SettingsStore } from '../core/settings';
 import { Hud } from './hud/Hud';
 import type { HudSnapshot } from './hud/model';
-import { SettingsMenu } from './settings/SettingsMenu';
+import { SettingsMenu, type AudioControls } from './settings/SettingsMenu';
+import type { AudioSettings, VolumeId } from '../audio/settings';
 import './theme.css';
 
 /**
@@ -18,6 +19,14 @@ export interface GameUiOptions {
   settings: SettingsStore;
   /** The menu opened or closed: pause or resume the game. */
   onMenu(open: boolean): void;
+  /** The game's sound volumes, when it has Web Audio. */
+  audio?:
+    | {
+        settings: AudioSettings;
+        setVolume(id: VolumeId, volume: number): void;
+        setMuted(muted: boolean): void;
+      }
+    | undefined;
 }
 
 export interface GameUi {
@@ -30,7 +39,7 @@ export interface GameUi {
   closeMenu(): void;
 }
 
-export function mountGameUi({ root, settings, onMenu }: GameUiOptions): GameUi {
+export function mountGameUi({ root, settings, onMenu, audio }: GameUiOptions): GameUi {
   const hud = signal<HudSnapshot | undefined>(undefined);
   const spyglass = signal(false);
   const menuOpen = signal(false);
@@ -51,6 +60,22 @@ export function mountGameUi({ root, settings, onMenu }: GameUiOptions): GameUi {
     settings.update((s) => (s.bindings = bindingOverrides(next)));
   };
   const resetBindings = (): void => settings.update((s) => (s.bindings = {}));
+  // The volumes live in the mixer; a signal copy re-renders the sliders as they move.
+  const audioSettings = audio ? signal<AudioSettings>({ ...audio.settings }) : undefined;
+  const audioControls: AudioControls | undefined =
+    audio && audioSettings
+      ? {
+          settings: audioSettings,
+          setVolume(id, volume) {
+            audio.setVolume(id, volume);
+            audioSettings.value = { ...audio.settings };
+          },
+          setMuted(muted) {
+            audio.setMuted(muted);
+            audioSettings.value = { ...audio.settings };
+          },
+        }
+      : undefined;
 
   // Esc closes the menu (plan 13 §6); opening is the sailing Pause action, in main.
   window.addEventListener('keydown', (e) => {
@@ -84,6 +109,7 @@ export function mountGameUi({ root, settings, onMenu }: GameUiOptions): GameUi {
             resetBindings={resetBindings}
             close={() => setMenu(false)}
             reloadNote={reloadNote}
+            audio={audioControls}
           />
         )}
       </>

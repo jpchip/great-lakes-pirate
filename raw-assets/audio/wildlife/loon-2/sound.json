@@ -1,0 +1,15 @@
+{
+  "id": "amb.wildlife.loon-2",
+  "name": "loon-2",
+  "description": "A loon's wail",
+  "source": "source.ogg",
+  "kind": "oneshot",
+  "bus": "ambience",
+  "bundles": [
+    "world-audio"
+  ],
+  "trimStartS": 21.5,
+  "trimEndS": 23.0,
+  "fadeOutS": 0.12,
+  "highpassHz": 600
+}

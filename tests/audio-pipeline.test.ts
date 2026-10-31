@@ -2,7 +2,13 @@ import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { SOUND } from '../src/audio/sailing-audio';
-import { SAILING_AUDIO_BUNDLE } from '../src/audio/game-audio';
+import {
+  MUSIC_BUNDLE,
+  MUSIC_CUES,
+  SAILING_AUDIO_BUNDLE,
+  WORLD_AUDIO_BUNDLE,
+} from '../src/audio/game-audio';
+import { WORLD_SOUND } from '../src/audio/world-audio';
 import { assetManifestSchema } from '../src/core/assets';
 import {
   ALLOWED_AUDIO_LICENSES,
@@ -62,6 +68,21 @@ describe('audio pipeline steps (plan 15 §9)', () => {
     const spiky = new Float32Array(1000);
     spiky[10] = 0.5;
     expect(peakDb(normalize(spiky, 'ambience').samples)).toBeLessThanOrEqual(-0.99);
+  });
+
+  it('records a high-pass and a long fade-out when the hints ask for them', () => {
+    const hints = soundHintsSchema.parse({
+      ...loopHints,
+      kind: 'oneshot',
+      bus: 'sfx',
+      highpassHz: 450,
+      fadeOutS: 0.5,
+    });
+    const { samples, steps } = processSound(sine(2000), hints, RATE);
+    expect(steps[0]).toContain('high-passed at 450 Hz');
+    expect(steps.join(' ')).toContain('edge fades (0.5 s out)');
+    // The last half second ramps down to silence.
+    expect(Math.abs(samples[samples.length - 250] as number)).toBeLessThan(0.5);
   });
 
   it('records each step it took', () => {
@@ -126,7 +147,22 @@ describe('shipped sounds (plan 15 §3.2, §8)', () => {
     for (const id of ids) expect(bundle, id).toContain(id);
   });
 
-  it('keeps the initial audio download within 5 MB', () => {
+  it('has every sound the world soundscape plays in its bundle, and both music cues', () => {
+    const bundle = manifest.bundles[WORLD_AUDIO_BUNDLE] ?? [];
+    for (const id of Object.values(WORLD_SOUND).flat()) expect(bundle, id).toContain(id);
+    const music = manifest.bundles[MUSIC_BUNDLE] ?? [];
+    for (const id of Object.values(MUSIC_CUES)) expect(music, id).toContain(id);
+  });
+
+  it('keeps the initial audio download within 5 MB, music streaming on top', () => {
+    const size = (bundle: string): number =>
+      (manifest.bundles[bundle] ?? []).reduce(
+        (sum, id) => sum + (manifest.assets[id]?.bytes ?? 0),
+        0,
+      );
+    expect(size(SAILING_AUDIO_BUNDLE) + size(WORLD_AUDIO_BUNDLE)).toBeLessThanOrEqual(
+      1.5 * 1024 * 1024,
+    );
     const bytes = Object.values(manifest.assets).reduce((sum, a) => sum + (a.bytes ?? 0), 0);
     expect(bytes).toBeLessThanOrEqual(5 * 1024 * 1024);
   });

@@ -1,0 +1,13 @@
+{
+  "id": "sfx.weather.thunder-far",
+  "name": "thunder-far",
+  "description": "Distant thunder rolling",
+  "source": "source.ogg",
+  "kind": "oneshot",
+  "bus": "ambience",
+  "bundles": [
+    "world-audio"
+  ],
+  "trimStartS": 0.4,
+  "fadeOutS": 0.8
+}

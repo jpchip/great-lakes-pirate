@@ -26,6 +26,10 @@ export const soundHintsSchema = z.object({
   trimEndS: z.number().positive().optional(),
   /** Loops only: how much of the tail is crossfaded into the head. */
   loopCrossfadeS: z.number().nonnegative().default(0),
+  /** One-shots only: a longer fade-out than the default 30 ms, for clips cut mid-sound. */
+  fadeOutS: z.number().positive().optional(),
+  /** High-pass the source at this frequency while decoding, Hz (wind rumble, hum). */
+  highpassHz: z.number().positive().optional(),
   bundles: z.array(z.string().min(1)).min(1),
 });
 export type SoundHints = z.infer<typeof soundHintsSchema>;
@@ -75,10 +79,14 @@ export function trim(samples: Float32Array, hints: SoundHints, rate = SAMPLE_RAT
 }
 
 /** Short linear fades so a one-shot never starts or stops with a click. */
-export function fadeEdges(samples: Float32Array, rate = SAMPLE_RATE): Float32Array {
+export function fadeEdges(
+  samples: Float32Array,
+  rate = SAMPLE_RATE,
+  fadeOutS = EDGE_FADE_OUT_S,
+): Float32Array {
   const out = samples.slice();
   const fadeIn = Math.min(out.length, Math.round(EDGE_FADE_IN_S * rate));
-  const fadeOut = Math.min(out.length, Math.round(EDGE_FADE_OUT_S * rate));
+  const fadeOut = Math.min(out.length, Math.round(fadeOutS * rate));
   for (let i = 0; i < fadeIn; i++) out[i] = (out[i] as number) * (i / fadeIn);
   for (let i = 0; i < fadeOut; i++) {
     const j = out.length - 1 - i;
@@ -141,7 +149,10 @@ export function processSound(
   hints: SoundHints,
   rate = SAMPLE_RATE,
 ): { samples: Float32Array; steps: string[] } {
-  const steps = [`decoded to mono ${rate} Hz`];
+  const steps = [
+    `decoded to mono ${rate} Hz` +
+      (hints.highpassHz !== undefined ? `, high-passed at ${hints.highpassHz} Hz` : ''),
+  ];
   let out = trim(samples, hints, rate);
   if (hints.trimStartS > 0 || hints.trimEndS !== undefined) {
     steps.push(`trimmed to ${hints.trimStartS}–${hints.trimEndS ?? 'end'} s`);
@@ -150,8 +161,10 @@ export function processSound(
     out = crossfadeLoop(out, hints.loopCrossfadeS, rate);
     if (hints.loopCrossfadeS > 0) steps.push(`loop seam crossfaded over ${hints.loopCrossfadeS} s`);
   } else {
-    out = fadeEdges(out, rate);
-    steps.push('edge fades');
+    out = fadeEdges(out, rate, hints.fadeOutS);
+    steps.push(
+      hints.fadeOutS !== undefined ? `edge fades (${hints.fadeOutS} s out)` : 'edge fades',
+    );
   }
   const normalized = normalize(out, hints.bus);
   const level = LEVELS[hints.bus];

@@ -1,0 +1,11 @@
+{
+  "id": "sfx.signal.fog-whistle",
+  "name": "fog-whistle",
+  "description": "Lighthouse steam fog whistle, one long blast (cut short at runtime)",
+  "kind": "oneshot",
+  "bus": "sfx",
+  "bundles": [
+    "world-audio"
+  ],
+  "source": "source.flac"
+}

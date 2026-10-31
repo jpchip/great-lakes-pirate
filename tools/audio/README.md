@@ -20,6 +20,9 @@ public/assets/audio/<category>/<name>.provenance.json   raw provenance plus the 
 public/assets/audio/manifest.json                       ids, urls, sizes and bundles
 ```
 
+`sound.json` can also ask for `highpassHz` (filtered while decoding, for wind rumble or hum) and,
+for one-shots, `fadeOutS` (a longer fade for clips cut mid-sound).
+
 Unchanged sounds are skipped (the sidecar keeps a hash of the inputs); `--force` rebuilds all,
 and a folder path rebuilds just that one: `npm run audio -- raw-assets/audio/sailing/luff`.
 
@@ -51,3 +54,27 @@ they follow wind and gusts smoothly and cost nothing to download.
 | `windlass`      | Anchor windlass ratchet when weighing anchor                         |
 | `chain-1…3`     | Anchor chain running out, as a burst of links                        |
 | `anchor-splash` | The anchor hitting the water                                         |
+
+## Synthesized sources (Phase 2)
+
+`npm run audio:synth` renders the sounds no free library had into `raw-assets/audio/` as FLAC
+sources with `source: "procedural"` provenance (CC BY 4.0, like the repo's other original assets),
+then `npm run audio` encodes them as usual. The code is `tools/audio/synth.ts` and the DSP in
+`tools/audio/lib/synth.ts`; it is seeded, so a rerun writes the same samples.
+
+| Sound                    | Plays as                                                                 |
+| ------------------------ | ------------------------------------------------------------------------ |
+| `signals/fog-whistle`    | A lighthouse steam whistle blast, cut to each station's blast length     |
+| `signals/fog-bell`       | One stroke of a lighthouse fog bell                                      |
+| `music/open-water-day`   | "The Chequamegon Waltz" (concertina, guitar): open-water music v1 by day |
+| `music/open-water-night` | "Devils Island Air" (tin whistle, fiddle drone): v1 at night             |
+
+## The weather and wildlife set (Phase 2)
+
+| Sound                  | Source                                                            | Plays as                                           |
+| ---------------------- | ----------------------------------------------------------------- | -------------------------------------------------- |
+| `weather/rain`         | OpenGameArt, CC0                                                  | Loop: rain, louder and brighter as it rains harder |
+| `weather/thunder-near` | OpenGameArt, CC0                                                  | A clap and long rumble, for strikes inside 2.5 km  |
+| `weather/thunder-far`  | OpenGameArt, CC0                                                  | A distant roll                                     |
+| `wildlife/gull-1…5`    | OpenGameArt, CC0                                                  | Gull calls along the shores and at the harbors     |
+| `wildlife/loon-1…4`    | US Fish and Wildlife Service via Wikimedia Commons, public domain | Loon calls across the water at dusk and night      |

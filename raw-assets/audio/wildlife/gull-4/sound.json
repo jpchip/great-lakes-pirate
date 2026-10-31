@@ -1,0 +1,12 @@
+{
+  "id": "amb.wildlife.gull-4",
+  "name": "gull-4",
+  "description": "A gull's long mew",
+  "source": "source.wav",
+  "kind": "oneshot",
+  "bus": "ambience",
+  "bundles": [
+    "world-audio"
+  ],
+  "highpassHz": 450
+}

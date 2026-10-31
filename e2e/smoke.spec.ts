@@ -97,14 +97,35 @@ test('settings pause the game, persist, and rebind keys', async ({ page }) => {
   expect(errors).toEqual([]);
 });
 
-// Plan 15 §8: the sailing sounds decode up front and audio starts on the first key.
-test('loads the sailing sounds and unlocks audio on the first key press', async ({ page }) => {
+// Plan 15 §8: the sailing and world sounds decode up front (14 each) and audio starts on
+// the first key.
+test('loads the sailing and world sounds and unlocks audio on the first key press', async ({
+  page,
+}) => {
   const errors = collectErrors(page);
   const body = page.locator('body');
   await page.goto('/?renderer=null');
   await expect(body).toHaveAttribute('data-mode', 'sailing');
-  await expect(body).toHaveAttribute('data-audio-bank', '14');
+  await expect(body).toHaveAttribute('data-audio-bank', '28');
   await page.keyboard.press('KeyW');
   await expect(body).toHaveAttribute('data-audio', 'running');
+  expect(errors).toEqual([]);
+});
+
+// Plan 15 §7, Phase 2 piece H: the volume sliders are on the settings screen and persist.
+test('sets a volume on the settings screen and keeps it after a reload', async ({ page }) => {
+  const errors = collectErrors(page);
+  const body = page.locator('body');
+  await page.goto('/?renderer=null');
+  await expect(body).toHaveAttribute('data-mode', 'sailing');
+  await page.getByTestId('open-settings').click();
+  await page.getByTestId('tab-sound').click();
+  await page.getByTestId('volume-music').fill('0.25');
+  await expect(page.getByTestId('settings-menu')).toContainText('25%');
+  await page.reload();
+  await expect(body).toHaveAttribute('data-mode', 'sailing');
+  await page.getByTestId('open-settings').click();
+  await page.getByTestId('tab-sound').click();
+  await expect(page.getByTestId('volume-music')).toHaveValue('0.25');
   expect(errors).toEqual([]);
 });

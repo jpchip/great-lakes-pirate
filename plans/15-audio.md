@@ -1,6 +1,6 @@
 # 15 — Audio
 
-Status: DRAFT v0.4 (decisions made; Phase 1 sailing audio built)
+Status: DRAFT v0.5 (decisions made; Phase 1 sailing audio and Phase 2 weather and harbor audio built)
 Parent: [00-master-plan.md](00-master-plan.md)
 Inputs:
 - Master plan: AI-generated audio
@@ -151,7 +151,7 @@ Paper rustle (journal, chart unrolling), ledger pen scratch (trade), coin clinks
 | Voice | Barks and shouts |
 | UI | Interface sounds |
 
-- **Settings:** per-bus volume ([13 §5](13-ui-ux.md)) stored in settings, outside the run save.
+- **Settings:** per-bus volume ([13 §5](13-ui-ux.md)) stored in settings, outside the run save; on the settings screen's Sound tab since Phase 2 (§14).
 - **3D:** three.js PositionalAudio (HRTF optional on High; equal-power panning by default) with distance attenuation curves per category.
 - **Cheap occlusion:** a low-pass filter when the source is behind walls or the player is indoors (from the same occlusion raycasts as perception, [08 §4.1](08-docks-district-stealth.md)), and when underwater.
 - **Reverb presets** (a few shared convolver impulse responses): open water (none), forest, interior wood, saloon, cave, underwater. Switched by zone or volume.
@@ -239,11 +239,46 @@ All resolved.
 | 2026-10-22 | SFX and ambience: **free CC0 libraries first**, AI generation to fill gaps. |
 | 2026-10-22 | **Period folk** score style. |
 | 2026-10-22 | **Plan 15 wins on sourcing:** CC0 first for SFX, ambience and shouts, AI generation fills gaps. The master plan now matches. |
+| 2026-10-30 | **Phase 2 sources** (§14): rain, thunder and gulls are CC0 from OpenGameArt; loons are public domain (US Fish and Wildlife Service, via Wikimedia Commons; the Yellowstone loon recordings were rate-limited from the cloud machine). No free fog signal recordings were found, so the **fog whistle and fog bell are synthesized**, and with no AI music tool reachable, **open-water music v1 is two original tunes rendered by a synthesizer** in `tools/audio/synth.ts`. Both are CC BY 4.0 placeholders to replace with recordings or license-checked AI generation (§3.1) once a source is chosen. |
 | 2026-10-25 | **Phase 1 sailing audio:** 14 CC0 clips from OpenGameArt (hull wash, slaps, breaking sea, creak, luff, sail fill, halyard and anchor sounds), all in `CREDITS.md`. The **wind, rigging whistle and swell beds are procedural** (filtered noise, §3.1's fallback): the one CC0 wind recording found had bag rustle in it, and noise follows wind and gusts smoothly at zero download. Freesound needs an account, so it wasn't used yet. Pipeline in `tools/audio/`, runtime in `src/audio/`. |
 
 ---
 
+## 14. Phase 2 Piece H: Weather and Harbor Audio (2026-10-30)
+
+**Scope** (Phase 2 scope doc, piece H; §11 Phase 2 row): rain, thunder (delayed by distance) and fog ambience, directional fog signals at the lights, gulls and loons, open-water music v1, volume sliders on the settings screen, and every file in `CREDITS.md`.
+
+| Part | Where | What it does |
+|---|---|---|
+| Rules | `src/audio/world-mix.ts` | Pure functions from the weather, the sky and the ship's place to levels and rates, tested without Web Audio: rain level and brightness, how foggy it sounds, thunder delay and level, fog signal reach and timing, gull and loon call rates, and the music mood. |
+| Rain | `world-audio.ts` | The CC0 rain loop, louder and brighter with `rainAt`, a little more in a thunderstorm. |
+| Thunder | `world-audio.ts`, `src/main.ts` | Each lightning strike (piece E's listener) plays a clap and long rumble inside 2.5 km or a distant roll beyond, placed at the strike's bearing and `distance / 343` s late (about 3 s a kilometer), quieter and duller with distance, softer for strikes that stay in the cloud. |
+| Fog | `world-audio.ts` | Once fog visibility drops under 4 km: a low procedural hush and drips off the rigging (fewer in a breeze), and the §7 damping: every distant cue (signals, thunder, birds) loses top end in thick air. |
+| Fog signals | `data/lighthouses.json` (`fogSignal`), `world-audio.ts` | Two shared sounds (§12 cut #4) with a rhythm per station: Outer Island's steam whistle, one 5 s blast every 30 s, carrying 7 km; Raspberry Island's bell, two strokes every 20 s, and La Pointe's, one every 15 s, carrying 2.5 km. A keeper sounds the signal when fog visibility is under 3 km or a fog bank covers the station. Each blast is placed at the top of the tower, panned from the camera, and arrives at the speed of sound, so the direction you hear it from is the direction of the light. R1 doesn't record 1900 fog signals, so all three are marked as assumptions in the data, and Devils Island stays silent to keep its 1900 coverage gap. |
+| Gulls | `world-audio.ts` | Five CC0 calls. A few over open water, more within about 700 m of shore and most within 1.5 km of the Bayfield and Ashland piers, by day and in fair weather; placed toward the shore, 30–220 m off and in the air. |
+| Loons | `world-audio.ts` | Four public-domain calls. At dusk, through the night and at dawn, on calm water, from May to September (fewer in October, almost none in November); a call or a short series from 400–1800 m off across the water. |
+| Music v1 | `src/audio/music.ts`, `tools/audio/synth.ts` | "The Chequamegon Waltz" (concertina and guitar, day) and "Devils Island Air" (tin whistle over a fiddle drone, night), both original. A cue plays whole after 20–45 s at sea, then 90–240 s of silence. Fog under 2.5 km, a thunderstorm, heavy rain or 28 kn of wind fade it out (§6.1: the music thins so the foghorns lead); it ducks to 30% under a fog signal. The cues stream from media elements (§8) and are not decoded up front. |
+| Positional sound | `src/audio/mixer.ts` | One-shots can carry a world position: an equal-power panner per voice (§7), with distance handled by the caller since the zone is compressed. The listener follows the camera each frame (or the ship without a renderer). |
+| Beds budget | `world-audio.ts` | The rain and fog beds start only when audible and stop after 3 s of silence, so with the four sailing beds the usual count stays at four to five (§8 asks for four; a foggy drizzle briefly runs six). |
+| Settings | `src/ui/settings/SettingsMenu.tsx` | A Sound tab: Master, Music, Weather & wildlife (ambience bus), Ship & signals (SFX bus), and Mute. Voice and UI join when those sounds exist. |
+| Synthesis | `tools/audio/synth.ts`, `tools/audio/lib/synth.ts` | `npm run audio:synth` renders the fog whistle (additive bell whistle with pressure-following pitch and steam noise), the fog bell (bronze bell partials with a clapper click) and both tunes (additive free reed, Karplus–Strong guitar, tin whistle, bowed drone, a Freeverb-style room) into `raw-assets/audio/` with procedural provenance; `npm run audio` then encodes them like any other source. |
+| Pipeline | `tools/audio/` | Two new hints: `highpassHz` (gull wind rumble, the loon recording's hum) and `fadeOutS` (clips cut mid-sound). |
+
+**Download:** the sailing and world bundles that load up front are about 0.8 MB; the two music cues add 3.0 MB, streamed. **Dev panel:** Audio → Play has thunder at 1.2 and 5 km, the nearest fog signal, a gull, a loon, and each music cue; Audio → Mix shows rain, fog, call rates, stations heard and the music state.
+
+**Checked:** the rules and the music scheduling by unit tests, the bank (28 sounds) and the sliders' persistence by the smoke tests, and a 78-second preview rendered offline through the real soundscapes (harbor by day with the waltz, a thunderstorm, fog with Outer's whistle at 1.6 km and Raspberry's bell at 500 m, then night with loons and the air). Levels are set by measurement and need a listen in the game.
+
+### Not covered yet
+
+1. **Captions for directional cues** (§5): the fog signals have no caption or arrow yet. They belong with the UI captions of plan 13 §9.
+2. **Fog signal history:** which Apostles stations had signals in 1900, and their codes, need R1 sources; the data marks all three as assumptions.
+3. **Music:** the synthesized tunes are placeholders, and the *Red Iron Ore* motif waits for R1 to confirm which Great Lakes melodies are public domain (§2).
+4. **Storm music and harbor work sounds** (hammering, the sawmill) are later phases (§11).
+
+---
+
 ## Changelog
+- v0.5: Phase 2 piece H built (§14): rain, thunder after the lightning, fog hush and damping, directional fog signals with a rhythm per station, gulls and loons, open-water music v1, the Sound tab. Decision row for the Phase 2 sources.
 - v0.4: Phase 1 sailing audio built (piece I): pipeline, mixer and buses, autoplay unlock, the sailing soundscape. Decision row for procedural wind beds.
 - v0.3: Gap review: master plan aligned to this plan's sourcing order; no content change here.
 - v0.2: Decisions: traditional song motifs, no spoken dialogue, instrumental saloon music, CC0-first SFX, period folk style.

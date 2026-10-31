@@ -1,3 +1,4 @@
+import { Vector3 } from 'three';
 import { zoneToChart } from './core/coords';
 import { SECONDS_PER_GAME_DAY, dayAndHour } from './core/time';
 import { EventBus } from './core/events';
@@ -18,6 +19,7 @@ import { loadRun } from './core/save/load';
 import { RunSaver } from './core/save/run-saver';
 import { AssetLoader, EMPTY_MANIFEST } from './core/assets';
 import { createGameAudio, type GameAudio } from './audio/game-audio';
+import type { SignalStation } from './audio/world-audio';
 import { cloneTransform, createGameWorld } from './gameplay/ecs';
 import { createSchooner } from './gameplay/schooner';
 import type { SaveControls } from './debug/overlay';
@@ -299,12 +301,29 @@ async function boot(): Promise<void> {
     playerControlled: true,
   });
 
-  // Sailing audio (plan 15 §11). It loads alongside everything else and starts on the
-  // first key or click; without Web Audio the game just runs silent.
+  // Sailing and world audio (plan 15 §11). It loads alongside everything else and starts
+  // on the first key or click; without Web Audio the game just runs silent. The lights'
+  // fog signals sound from the tops of their towers; gulls gather at the harbors' piers.
+  const stations: SignalStation[] = zone
+    ? placeLights(LIGHTHOUSES, manifestFrame(zone.manifest), zone.terrain).flatMap((p) =>
+        p.def.fogSignal
+          ? [
+              {
+                id: p.def.id,
+                name: p.def.name,
+                signal: p.def.fogSignal,
+                at: { x: p.x, y: p.groundM + p.def.tower.heightM, z: p.z },
+              },
+            ]
+          : [],
+      )
+    : [];
   const audio: GameAudio | undefined = await createGameAudio({
     game: ctx,
     target: window,
     storage: browserStorage(),
+    stations,
+    harbors: harborLayouts.flatMap((l) => l.piers.map((p) => p.root)),
     onState: (s) => (document.body.dataset['audio'] = s),
   }).catch((err: unknown) => {
     console.warn('Audio unavailable; running silent', err);
@@ -359,6 +378,19 @@ async function boot(): Promise<void> {
       zoneData.edge,
     );
     view = scene;
+
+    // Hear from the camera, and thunder after the lightning the sky draws.
+    if (audio) {
+      const camera = scene.camera;
+      const forward = new Vector3();
+      audio.setListener(() => {
+        camera.getWorldDirection(forward);
+        return { at: camera.position, forward };
+      });
+      scene.atmosphere.lightning.onStrike((s) =>
+        audio.world.thunder(s.bearingRad, s.distanceM, s.toWater),
+      );
+    }
 
     // Dev overlay: dev builds, or `?debug` / `?bench=water` on a production build.
     const bench = params.get('bench') === 'water';
@@ -437,6 +469,11 @@ async function boot(): Promise<void> {
   const ui = mountGameUi({
     root: uiRoot,
     settings,
+    audio: audio && {
+      settings: audio.mixer.settings,
+      setVolume: (id, volume) => audio.setVolume(id, volume),
+      setMuted: (muted) => audio.setMuted(muted),
+    },
     onMenu(open) {
       if (open) {
         machine.pushOverlay('pause');

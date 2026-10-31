@@ -1,0 +1,20 @@
+{
+  "source": "cc0",
+  "tool": "Wikimedia Commons: Loons.ogg (US Fish and Wildlife Service, 44loons.mp3)",
+  "author": "U.S. Fish and Wildlife Service",
+  "reference": "https://commons.wikimedia.org/wiki/File:Loons.ogg",
+  "date": "2026-10-30",
+  "license": "Public domain",
+  "modifications": [],
+  "originalFile": "Loons.ogg",
+  "description": "A loon calling",
+  "durationS": 0.8,
+  "pipeline": [
+    "decoded to mono 48000 Hz, high-passed at 600 Hz",
+    "trimmed to 17.1–17.9 s",
+    "edge fades (0.12 s out)",
+    "RMS-normalized toward -24 dB (-8.6 dB)",
+    "Opus 64 kbps mono in Ogg (ffmpeg libopus)"
+  ],
+  "inputHash": "67c70f3ce157707e"
+}
