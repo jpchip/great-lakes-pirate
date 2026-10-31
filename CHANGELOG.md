@@ -4,6 +4,10 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ## [Unreleased]
 
+## [0.2.0] - 2026-10-31
+
+The **Superior Slice** (Phase 2): the whole Apostles zone and Chequamegon Bay to sail with no loading screen, the weather sim running the sky, the seven lighthouses of 1900, harbors at Bayfield and Ashland, and the sounds of weather, shore and harbor.
+
 ### Added
 
 - **The whole Apostles zone:** all 56 tiles from Eagle Island to Outer Island and down to Ashland and the Bad River mouth, sailable with no loading screen. Terrain meshes stream around the camera with geomipmapped LOD built in a worker, over a whole-zone backdrop (at most 24 terrain draw calls on Medium). Fog closes in over the last kilometer of the zone, a "Zone edge" chip warns, and the ship is held at the very edge ([plan 03 §17](plans/03-world-scale-chart-travel.md)).
@@ -20,6 +24,7 @@ All notable changes to this project are recorded here. The format follows [Keep 
 - **Open-water music v1:** a waltz on concertina and guitar by day and a slow tin-whistle air over a fiddle drone at night, each followed by a long silence. It fades out in fog and heavy weather, and dips under the fog signals. Both tunes are original and synthesized for now (`npm run audio:synth`).
 - **Sound settings:** a Sound tab on the settings screen with Master, Music, Weather & wildlife, and Ship & signals volumes and a mute, kept between sessions.
 - The water bench also times the terrain and the vegetation.
+- **`?timewarp=<n>`** and a **Clock speed** slider in the dev panel's Time folder run the clock and weather up to 120× faster while the ship sails at normal speed, so a game week of weather fits in a playtest (60× is a game day a real minute).
 - **`data/climate.json`:** monthly climate for western Superior from NOAA normals (Madeline Island air, GLERL lake temperature) and Devils Island wind, with the sim's tuning beside it.
 
 ### Changed
@@ -30,6 +35,16 @@ All notable changes to this project are recorded here. The format follows [Keep 
 - **Saves are version 2:** the weather is saved with the run. A 0.1.0 save migrates and catches up on weather when loaded.
 - **Retuned climate:** colder spring lake, May winds from the northeast, and far fewer summer gales. November is still the stormy month, at about four times the observed gale time.
 - The **S7 scale greybox** and the **S8 chart arena** now sail the T1 on the plan 02 controller and hazards instead of their Phase 0 stand-in helms, which are deleted. The greybox gets a steady test wind (`?wind=<deg>&windkn=<kn>` and a Wind folder) and the full sailing tuning panel; the arena sails in the chart's wind and shows hull, rigging and strain ([plan 02 §14](plans/02-arcade-sailing.md), [plan 03 §15–16](plans/03-world-scale-chart-travel.md)).
+- The HUD speed reads 0.0 at rest instead of -0.0 while the ship drifts.
+
+### Known limitations
+
+- The zone ends at a fog wall: there's no chart travel yet to Duluth, Superior or Two Harbors (Phase 3).
+- Washburn, La Pointe, Red Cliff and Bad River have no set pieces yet (Phase 4, with trading).
+- The lighthouses are scenery: no keepers and no detection until Phase 5.
+- The open-water music is two synthesized placeholder tunes, and the fog signals have no on-screen caption.
+- There are no NPC ships yet, so Ashland's ore dock stands empty.
+- Weather is one sample for the whole zone; lees and channels still shape it locally.
 
 ## [0.1.0] - 2026-10-29
 
@@ -58,4 +73,6 @@ The **Sailing Prototype** (Phase 1): one T1 schooner you can sail, tack, reef, g
 - Volume sliders are only in the dev overlay's Audio folder; the settings screen gets them later.
 - The S7 scale greybox and the S8 chart arena still use their Phase 0 stand-in helms; moving them onto the plan 02 controller is carried over to Phase 2.
 
-[0.1.0]: https://github.com/jpchip/great-lakes-pirate/releases/tag/v0.1.0
+[Unreleased]: https://github.com/jpchip/great-lakes-pirate/compare/0.2.0...HEAD
+[0.2.0]: https://github.com/jpchip/great-lakes-pirate/compare/0.1.0...0.2.0
+[0.1.0]: https://github.com/jpchip/great-lakes-pirate/releases/tag/0.1.0

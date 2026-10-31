@@ -1,6 +1,6 @@
 import { Vector3 } from 'three';
 import { zoneToChart } from './core/coords';
-import { SECONDS_PER_GAME_DAY, dayAndHour } from './core/time';
+import { SECONDS_PER_GAME_DAY, dayAndHour, parseTimeWarp } from './core/time';
 import { EventBus } from './core/events';
 import { DEFAULT_BINDINGS, InputMapper, type InputContext } from './core/input';
 import { createLoop } from './core/loop';
@@ -182,6 +182,8 @@ async function boot(): Promise<void> {
   const params = new URLSearchParams(window.location.search);
   const rendererKind = params.get('renderer');
   document.body.dataset['renderer'] = rendererKind === 'null' ? 'null' : 'webgl';
+  // `?timewarp=60` runs the clock and weather 60× for the playtest (a game day a minute).
+  const timeWarp = { factor: parseTimeWarp(params.get('timewarp')) };
 
   const machine = new ModeMachine();
   machine.onTransition((_, to) => (document.body.dataset['mode'] = to));
@@ -405,6 +407,7 @@ async function boot(): Promise<void> {
         autoBench: bench,
         probe: () => shipTransform.position,
         setQuality: (id) => settings.update((s) => (s.graphics.quality = id)),
+        timeWarp,
       });
       const { createSailingPanel } = await import('./debug/sailing-panel');
       const panel = createSailingPanel({
@@ -502,6 +505,7 @@ async function boot(): Promise<void> {
       wind: (x, z) => ctx.weather.windAt({ x, z }, state.environment.clock.gameSeconds),
       docks,
       berths: mooringBerths(docks, ctx.terrain),
+      timeWarp,
     }),
   );
   // A refused F or anchor order says why on the HUD for a few seconds.

@@ -39,6 +39,20 @@ export function advanceClock(clock: ClockState, realSeconds: number, rate: numbe
   return advanceGameTime(clock, realSeconds * rate);
 }
 
+/**
+ * A playtest clock speed-up (`?timewarp=60`, the dev panel's Time folder): the clock and
+ * the weather run this many times faster while the ship still sails at R. At 60 a game
+ * day passes in a real minute, so a week of weather plays out in seven.
+ */
+export const MAX_TIME_WARP = 120;
+
+/** Reads a `?timewarp=` value: 1 when missing or bad, otherwise clamped to 1–120. */
+export function parseTimeWarp(value: string | null): number {
+  const n = Number(value);
+  if (value === null || !Number.isFinite(n)) return 1;
+  return Math.min(MAX_TIME_WARP, Math.max(1, n));
+}
+
 /** Advance by game seconds directly (chart travel, waiting). Returns world ticks due. */
 export function advanceGameTime(clock: ClockState, gameSeconds: number): number {
   if (gameSeconds <= 0) return 0;

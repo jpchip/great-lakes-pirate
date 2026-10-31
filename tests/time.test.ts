@@ -5,6 +5,8 @@ import {
   createClockState,
   dayAndHour,
   fastForward,
+  MAX_TIME_WARP,
+  parseTimeWarp,
   R_ON_FOOT,
   R_SAILING,
   SECONDS_PER_GAME_DAY,
@@ -48,5 +50,20 @@ describe('game clock', () => {
     const ticks = fastForward(clock, 12 * SECONDS_PER_GAME_DAY, () => ran++);
     expect(ticks).toBe(1728);
     expect(ran).toBe(ticks);
+  });
+});
+
+describe('playtest time warp', () => {
+  it('runs a game day in a real minute at 60', () => {
+    const clock = createClockState();
+    advanceClock(clock, 60, R_SAILING * parseTimeWarp('60'));
+    expect(clock.gameSeconds).toBe(SECONDS_PER_GAME_DAY);
+  });
+
+  it('falls back to 1 and stays within 1–120', () => {
+    expect(parseTimeWarp(null)).toBe(1);
+    expect(parseTimeWarp('fast')).toBe(1);
+    expect(parseTimeWarp('0.2')).toBe(1);
+    expect(parseTimeWarp('1000')).toBe(MAX_TIME_WARP);
   });
 });
