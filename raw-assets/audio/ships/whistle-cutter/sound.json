@@ -1,0 +1,11 @@
+{
+  "id": "sfx.ship.whistle-cutter",
+  "name": "whistle-cutter",
+  "description": "Revenue cutter Morrill's whistle: two bells with a slow warble, one long blast (cut short at runtime)",
+  "kind": "oneshot",
+  "bus": "sfx",
+  "bundles": [
+    "world-audio"
+  ],
+  "source": "source.flac"
+}

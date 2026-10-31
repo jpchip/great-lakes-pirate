@@ -82,6 +82,7 @@
     },
     "visibilityProfile": "high",
     "conspicuity": 1.3,
+    "whistle": { "soundId": "sfx.ship.whistle-freighter", "kind": "steam", "rangeM": 6000 },
     "modelId": "ship.ore_freighter",
     "LODs": []
   },
@@ -129,6 +130,7 @@
     },
     "visibilityProfile": "medium",
     "conspicuity": 1.1,
+    "whistle": { "soundId": "sfx.ship.foghorn", "kind": "horn", "rangeM": 2000 },
     "modelId": "ship.schooner_barge",
     "LODs": []
   },
@@ -163,6 +165,7 @@
     },
     "visibilityProfile": "high",
     "conspicuity": 1.2,
+    "whistle": { "soundId": "sfx.ship.whistle-chime", "kind": "steam", "rangeM": 5000 },
     "modelId": "ship.package_steamer",
     "LODs": []
   },
@@ -197,6 +200,7 @@
     },
     "visibilityProfile": "medium",
     "conspicuity": 0.8,
+    "whistle": { "soundId": "sfx.ship.whistle-tug", "kind": "steam", "rangeM": 3000 },
     "modelId": "ship.fish_tug",
     "LODs": []
   },
@@ -231,6 +235,7 @@
     },
     "visibilityProfile": "high",
     "conspicuity": 1.2,
+    "whistle": { "soundId": "sfx.ship.whistle-cutter", "kind": "steam", "rangeM": 5500 },
     "modelId": "ship.cutter_morrill",
     "LODs": []
   }

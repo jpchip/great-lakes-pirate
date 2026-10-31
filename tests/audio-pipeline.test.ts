@@ -9,6 +9,7 @@ import {
   WORLD_AUDIO_BUNDLE,
 } from '../src/audio/game-audio';
 import { WORLD_SOUND } from '../src/audio/world-audio';
+import { NPC_RECORDS } from '../src/gameplay/npc-ships';
 import { assetManifestSchema } from '../src/core/assets';
 import {
   ALLOWED_AUDIO_LICENSES,
@@ -152,6 +153,14 @@ describe('shipped sounds (plan 15 §3.2, §8)', () => {
     for (const id of Object.values(WORLD_SOUND).flat()) expect(bundle, id).toContain(id);
     const music = manifest.bundles[MUSIC_BUNDLE] ?? [];
     for (const id of Object.values(MUSIC_CUES)) expect(music, id).toContain(id);
+  });
+
+  it("has every NPC class's whistle or fog horn in the world bundle (Phase 3 piece J)", () => {
+    const bundle = manifest.bundles[WORLD_AUDIO_BUNDLE] ?? [];
+    for (const r of NPC_RECORDS) {
+      expect(r.whistle, r.id).toBeDefined();
+      expect(bundle, r.id).toContain(r.whistle?.soundId);
+    }
   });
 
   it('keeps the initial audio download within 5 MB, music streaming on top', () => {

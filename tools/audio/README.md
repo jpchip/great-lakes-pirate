@@ -68,6 +68,8 @@ then `npm run audio` encodes them as usual. The code is `tools/audio/synth.ts` a
 | `signals/fog-bell`       | One stroke of a lighthouse fog bell                                      |
 | `music/open-water-day`   | "The Chequamegon Waltz" (concertina, guitar): open-water music v1 by day |
 | `music/open-water-night` | "Devils Island Air" (tin whistle, fiddle drone): v1 at night             |
+| `ships/whistle-*`        | The NPC ships' steam whistles (freighter, chime, tug, cutter), Phase 3   |
+| `ships/foghorn`          | The schooner-barge's hand-pumped fog horn, Phase 3                       |
 
 ## The weather and wildlife set (Phase 2)
 

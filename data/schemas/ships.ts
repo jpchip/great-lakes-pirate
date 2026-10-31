@@ -60,6 +60,17 @@ const shipBase = {
    * size carry further, a low tug less far. The chart's lookout and traffic read it.
    */
   conspicuity: z.number().positive().default(1),
+  /**
+   * What the ship sounds in fog and when meeting (plan 15 §4.3; Phase 3 piece J): a steam
+   * whistle or a sailing vessel's fog horn, and how far it carries, zone meters.
+   */
+  whistle: z
+    .object({
+      soundId: z.string().min(1),
+      kind: z.enum(['steam', 'horn']),
+      rangeM: z.number().positive(),
+    })
+    .optional(),
   modelId: z.string().min(1),
   /** Lower-detail model ids, nearest first. */
   LODs: z.array(z.string().min(1)),
@@ -94,6 +105,10 @@ export const shipSchema = z
   .refine(
     (s) => (s.role === 'player') === (s.tier !== undefined),
     'Player classes, and only they, have a tier',
+  )
+  .refine(
+    (s) => !s.whistle || (s.whistle.kind === 'steam') === (s.propulsion === 'steam'),
+    'Steamers blow a steam whistle; sailing vessels a fog horn',
   );
 
 export const shipsFileSchema = z.array(shipSchema);
