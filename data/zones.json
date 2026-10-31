@@ -126,6 +126,16 @@
       "z": -100,
       "headingDeg": 280
     },
+    "entries": [
+      {
+        "id": "entry.twin_ports_east",
+        "name": "East of Minnesota Point, from the open lake",
+        "toward": "the Apostle Islands",
+        "x": 1700,
+        "z": -100,
+        "headingDeg": 270
+      }
+    ],
     "setPieces": [
       {
         "id": "setpiece.duluth_canal",
@@ -266,6 +276,24 @@
       "z": 90,
       "headingDeg": 318
     },
+    "entries": [
+      {
+        "id": "entry.two_harbors_east",
+        "name": "East of Agate Bay, from the open lake",
+        "toward": "the Apostle Islands",
+        "x": 1200,
+        "z": 100,
+        "headingDeg": 270
+      },
+      {
+        "id": "entry.two_harbors_south",
+        "name": "South of Agate Bay, from Duluth",
+        "toward": "Duluth and the Twin Ports",
+        "x": 200,
+        "z": 1200,
+        "headingDeg": 0
+      }
+    ],
     "setPieces": [
       {
         "id": "setpiece.two_harbors",
