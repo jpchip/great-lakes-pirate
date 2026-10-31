@@ -49,6 +49,13 @@ const sailingSchema = z.object({
   manualTrim: z.boolean().catch(false),
 });
 
+export const LOOKOUT_PREFS = ['all', 'threatsAndPrizes', 'threats'] as const;
+
+const chartSchema = z.object({
+  /** What the lookouts interrupt a voyage for (plan 03 §6.2, plan 13 §4.3). */
+  lookout: z.enum(LOOKOUT_PREFS).catch('threatsAndPrizes'),
+});
+
 const uiSchema = z.object({
   hudDensity: z.enum(HUD_DENSITIES).catch('minimal'),
 });
@@ -57,6 +64,7 @@ export const settingsSchema = z.object({
   graphics: graphicsSchema.catch(() => graphicsSchema.parse({})),
   camera: cameraSchema.catch(() => cameraSchema.parse({})),
   sailing: sailingSchema.catch(() => sailingSchema.parse({})),
+  chart: chartSchema.catch(() => chartSchema.parse({})),
   ui: uiSchema.catch(() => uiSchema.parse({})),
   bindings: bindingOverridesSchema,
 });

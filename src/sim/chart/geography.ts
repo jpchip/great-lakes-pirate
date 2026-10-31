@@ -86,6 +86,22 @@ export interface ChartGeography {
   readonly soundings: readonly ChartSounding[];
 }
 
+/**
+ * The world chart frame the zones, their entries, the weather sim and the save use:
+ * core/coords' default projection, around the middle of Lake Superior.
+ */
+export const WORLD_PROJECTION = new ChartProjection();
+
+/** A point on this chart in the world chart frame (zones, weather, the save). */
+export function toWorldChart(geo: ChartGeography, p: Chart): Chart {
+  return WORLD_PROJECTION.geoToChart(geo.projection.chartToGeo(p));
+}
+
+/** A world chart frame point on this chart. */
+export function fromWorldChart(geo: ChartGeography, p: Chart): Chart {
+  return geo.projection.geoToChart(WORLD_PROJECTION.chartToGeo(p));
+}
+
 /** Middle of the western Superior chart; keeps projection distortion small. */
 export const WESTERN_SUPERIOR_REFERENCE: Geo = { lat: 47, lon: -91 };
 

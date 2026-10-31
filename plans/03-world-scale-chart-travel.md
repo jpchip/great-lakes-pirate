@@ -830,7 +830,54 @@ The chart is now baked from the same NOAA bathymetry and USGS DEM as the zones (
 
 ---
 
+## 24. Phase 3 Piece D: Chart Mode in the Game (2026-10-31)
+
+**Goal** (§20.4, piece D): bring the S8 chart mode into the game's mode machine with its HUD in Preact, "Take to the chart" at the soft edge, M from open water, no chart in a harbor, plotting, the ETA, the lookout setting, the encounter card and the "chart locked" banner; arrival loads the destination zone at the matching entry; the `voyage` slice in the save.
+
+**Result:** built. Sail out of the Apostles into the west edge's fog, press M (or click **Take to the chart**), lay a course to Duluth, set sail, and the Twin Ports load at their east entry with the ship heading in. A reload mid-voyage comes back on the chart, under way where the save left it.
+
+### 24.1 What was built
+| Piece | Where | Notes |
+|---|---|---|
+| Chart travel | `src/modes/chart-travel.ts` | Wraps `createChartMode` (S8) for the game: the chart canvas in a full-screen layer over the 3D view, plotting on it, the HUD, the keys (Enter sets sail, Backspace takes off the last waypoint, M goes back), arrival, and what goes in the save. The 3D scene isn't drawn while the chart is up |
+| Two ways onto the chart | same, `src/main.ts` | **M in a zone opens the chart as a look** (§20.5): the world holds, a course can be laid and its ETA read, but **Set sail** says "Sail out to the zone edge to set out", and M goes back to the helm. **At the soft edge** (past half the fog fade, where Phase 2 showed "Zone edge"), M or the **Take to the chart** button takes the ship onto the chart for a voyage, keeping any course laid on a look. M straight back puts her where she was; if she has sailed, **Into the Apostle Islands** (or whichever zone the ship is in on the chart) brings her in at the nearest entry |
+| No chart in a harbor | `setPieceAt` in `src/sim/terrain/zones.ts` | Inside a harbor set piece's footprint, M says "Not in the harbor: put out to open water first" |
+| Arrival | `chart-travel.ts`, `enterZone` in `main.ts` | A course into another zone stops where it crosses the zone's outline (S8); the zone loads behind the fade to fog at its entry nearest that point (`nearestEntry`, piece A), and the mode changes to sailing under the fog. The loading overlay now survives a mode change (`ModeMachine`). A course ending in open water leaves the ship hove to on the chart |
+| Chart HUD | `src/ui/chart/` | `model.ts` (pure, tested) samples the session at 10 Hz into a logbook card: the date and time, the wind, the lookouts' range, the course or the voyage with an **ETA in game time**, why a course is refused, **Set sail / Undo / Clear** or **Heave to**, the lookout setting, and the way back. `ChartHud.tsx` draws it; `plotting.ts` is S8's click, drag, Shift-click and right-click plotting; `text.ts` moved from the spike |
+| Encounter card | `ChartHud.tsx`, `encounterCard` | Engage (or Investigate, Sail through, Close and hail), Avoid with the odds for a hostile or Steer clear for the rest, Ignore for anything that isn't a threat; a forced meeting shows only "Into the arena". Without piece G, an arena meeting is noted ("You close and look her over") and the voyage carries on; `enterArena` on the host is the hook G fills |
+| Chart locked | `ChartLockedBanner` in `src/ui/hud/Hud.tsx` | "Chart locked: you are being pursued" on the sailing HUD and the chart; M, Take to the chart and Set sail are refused while it shows. Nothing pursues yet: piece G's arena sets it, and `__glpChart.setPursued(true)` shows it |
+| Lookout setting | `chart.lookout` in `src/core/settings.ts` | In the settings store, so it survives the run (plan 13 §4.3). On the chart card and under **Camera & sailing** in settings |
+| Voyage in the save | `voyage` in `src/sim/world-state.ts`, save v4 | `{points, leg, progressM, startedAt}`: the plotted points and how far along. On load the course is planned again from the points (`restoreVoyage`); if it no longer plans (the chart data changed), the ship stays hove to where it was. `player.location` is `{mode: 'chart', chartPos, heading, fromZoneId}` while on the chart. v3 → v4 adds `voyage: null`; `tests/fixtures/saves/v4.json` is a run saved mid-voyage |
+| Autosave | `chart-travel.ts` | On taking to the chart, setting sail, heaving to, going back and arriving (with piece A's saves on the zone change), plus the two-minute timer |
+| Checks | `__glpChart` with `?debug` | `plot([[lat, lon], …])`, `setSail()`, `secondsPerHour(s)` to hurry a voyage, `setPursued(on)` |
+
+### 24.2 Results
+| Check | Result |
+|---|---|
+| Criterion 2: Duluth → the Apostles edge | **23.1 real seconds** at the new default of 3.5 s per game hour (was 16.5 s at 2.5 s, §22.3), unit-tested at 20–30 s. The ETA is the sailed time at the current wind, from the same speed table |
+| The whole trip | An e2e test (`e2e/smoke.spec.ts`) takes to the chart at the Apostles' west edge, goes back and out again, plots to the Twin Ports, saves and reloads mid-voyage, answers the lookouts, and arrives at the Twin Ports' east entry heading west, saved there. Then M is a look with Set sail disabled, and the pursued banner locks the chart |
+| Arrival load | 1.3 s from the fade to the ship in the Twin Ports, uncached, with the null renderer in the cloud container. The 8 s budget is checked on the laptop in piece K |
+| Chart redraw in the game | 0.3–0.7 ms per frame at 1600 × 900 with the view still (headless Chromium, software canvas), as piece B's bench found |
+
+Screenshots are in the project files (`chart-in-game/`).
+
+### 24.3 Decisions made in the piece
+- **The chart clock is 3.5 real seconds per game hour** (`CHART_SECONDS_PER_HOUR`). §22.3 suggested about 2 s, but that shortens the crossing; 3.5 s puts Duluth → Apostles in the middle of 20–30 s. §5.3's "2–3 s" reads as about 3.5 s now.
+- **A voyage only sets out from the soft edge.** M anywhere in a zone's open water is a look with the world held (§20.5); plotting is allowed so the course is ready at the edge.
+- **The chart and the zones use different projections.** The chart geography is centered at 47° N 91° W, while zone frames, entries, the weather sim and the save use core/coords' default around the middle of the lake. `toWorldChart` and `fromWorldChart` (`src/sim/chart/geography.ts`) convert, and the save keeps world-frame points, so it doesn't depend on the chart's projection.
+- **The zone left behind stays loaded** while the ship is on the chart, for the way straight back; arrival swaps it through the zone manager like any zone change. A run saved on the chart loads its `fromZoneId` zone behind the chart.
+- **Contacts aren't saved.** The S8 stand-in traffic is rebuilt from the run's seed on load; piece F's route graph replaces it.
+
+### 24.4 Still to do
+- Piece E: the chart's wind from the sim (it's sampled from the zone's weather when the ship takes to the chart, then drifts as in S8), and weather drawn on the chart.
+- Piece F: the route graph traffic and a detour cost for Avoid.
+- Piece G: the arena behind `enterArena`, the pursuit lock from it, and retiring `chart-spike.html` (its arena code is what G ports).
+- Piece J: chart music and the transition sound.
+
+---
+
 ## Changelog
+- v0.18: Phase 3 piece D (§24): chart mode in the game, taking to the chart at the soft edge, M as a look, the encounter card and the chart locked banner, arrival at a zone's entry, the voyage in save v4, and the chart clock slowed to 3.5 s per game hour for criterion 2.
 - v0.17: Phase 3 piece C (§23): the Twin Ports and Two Harbors zones baked, with set-piece footprints, dredged cuts for the Duluth canal, Superior Entry and Agate Bay, and their ports.
 - v0.16: Phase 3 piece B (§22): the chart is baked from NOAA and USGS data (`npm run geo:chart`), zone outlines come from the bake settings, real soundings and depth shading, a cached static layer, and a chart redraw bench. The Siskiwit Bay chart area moved west of the larger baked Apostles zone.
 - v0.15: Phase 3 piece A built (§21): zones by id with the last one cached, entry points, `player.location` in save v3, Continue back to the saved pose, and the fade to fog between zones.

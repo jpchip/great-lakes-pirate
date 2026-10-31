@@ -73,10 +73,13 @@ export const DEFAULT_BINDINGS: Bindings = {
     Sprint: ['ShiftLeft'],
     Interact: ['KeyE'],
   },
+  // Phase 3 piece D. Clicks plot on the chart canvas itself; M goes back to the helm and
+  // follows the sailing binding when that is rebound. Backspace takes the last waypoint off.
   chart: {
     Pause: ['Escape'],
-    Cancel: ['KeyM'],
-    Confirm: ['Enter', 'Mouse0'],
+    ToggleChart: ['KeyM'],
+    Confirm: ['Enter'],
+    Cancel: ['Backspace'],
   },
 };
 

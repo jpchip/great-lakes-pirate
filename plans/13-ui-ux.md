@@ -234,7 +234,7 @@ UI and settings preferences are stored **outside the run save** (a separate Inde
 | Phase | UI scope |
 |---|---|
 | 1 | Sailing HUD v1 (wind ring, speed, sails, hull/rigging, depth, clock), settings (graphics presets, resolution scale, key rebinding basics), dev overlay |
-| 3 | Chart mode, encounter popups, lookout setting |
+| 3 | Chart mode, encounter popups, lookout setting. Piece D (2026-10-31): the chart HUD as a logbook card with the ETA, Set sail, Undo, Clear and Heave to, the encounter card, the lookout setting in the settings store, "Take to the chart" at the soft edge and the "chart locked" banner ([03 §24](03-world-scale-chart-travel.md)) |
 | 4 | Main menu, character creation, trade, contracts, shipyard, storage transfer, journal v1 |
 | 5 | Wanted indicator, report eye, tier-5 warning, jail screens, newspaper reader v1, end-of-run screen |
 | 6 | Aim HUD, target info, boarding panel, looting, aftermath |
@@ -273,6 +273,7 @@ All resolved.
 ---
 
 ## Changelog
+- v0.5: Phase 3 piece D: chart HUD, encounter card, lookout setting and chart locked banner built (§12).
 - v0.4: Phase 1 HUD v1 and settings screen built (§12).
 - v0.3: Gap review: removed the stale minimap mention in §2.1; §11 links to plan 16 directly.
 - v0.2: Decisions: period type, minimal HUD default, no minimap, auto-logbook, damage numbers off by default (optional).

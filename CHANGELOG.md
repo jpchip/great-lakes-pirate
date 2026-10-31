@@ -10,7 +10,12 @@ All notable changes to this project are recorded here. The format follows [Keep 
 - **Zones load by id** behind a fade to fog, with the zone just left kept for a minute in case you turn back. The Apostles have entry points on their west, north and east edges for arrivals from the chart. `?zone=` and `?entry=west` start there; with `?debug`, the dev panel's Zone folder changes zone.
 - **The real chart:** chart mode's coastline, 173 islands, depth contours and 3,400 soundings are baked from the NOAA bathymetry and USGS DEM for the whole western lake (`npm run geo:chart`), replacing the hand-traced outline. Shallows are shaded by depth, the zone outlines come from the zones' bake settings, and the chart keeps its unchanging layer offscreen so a still or dragged chart redraws in under a millisecond. `/bench/chart/` (`npm run bench:chart`) times it ([plan 03 §22](plans/03-world-scale-chart-travel.md)).
 - **The Twin Ports and Two Harbors zones** baked from NOAA and USGS data (not loaded in the game yet): Duluth, Superior, Minnesota and Wisconsin Points and St. Louis Bay in 16 tiles, and Agate Bay and the North Shore bluffs in 9. The Duluth Ship Canal and Superior Entry are dredged through at their real widths, and Agate Bay is widened into a basin for the ore docks. Duluth, Superior and Two Harbors join `data/ports.json` ([plan 03 §23](plans/03-world-scale-chart-travel.md)).
+- **Chart mode in the game:** sail into a zone's edge fog and press M (or click **Take to the chart**) to take to the chart, lay a course with the mouse, read its ETA and set sail with the clock running about 3.5 seconds a game hour. Lookouts call ships and squalls on an encounter card (Engage, Avoid with the odds, or Ignore), and a course into another zone loads it at the matching entry. M anywhere else in a zone is a look at the chart with the world held; there's no chart inside a harbor. The lookout setting is in settings, and a voyage under way is saved, so a reload comes back on the chart ([plan 03 §24](plans/03-world-scale-chart-travel.md)).
 - **Cuts** in the geo bake's hand-edit layer: a set piece can dredge a channel to a depth, which opens 1:1 harbor entries through compressed land.
+
+### Changed
+
+- The "Zone edge" chip is now a **Take to the chart** button, and the save format is version 4 (0.2.0 saves still load).
 
 ## [0.2.0] - 2026-10-31
 

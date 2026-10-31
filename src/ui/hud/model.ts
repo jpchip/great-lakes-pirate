@@ -53,6 +53,13 @@ export interface HudSnapshot {
   moonPhase01: number;
   /** The barometer (plan 04 §5.4); absent while the dev panel drives the weather. */
   barometer: BarometerSnapshot | undefined;
+  /**
+   * Out in the soft edge's fog, where the HUD offers "Take to the chart" (plan 03 §20,
+   * Phase 3 piece D; it replaced the Phase 2 "Zone edge" chip).
+   */
+  atEdge: boolean;
+  /** A hostile has the ship in sight within its threat radius: the chart is locked. */
+  chartLocked: boolean;
 }
 
 export interface BarometerSnapshot {
@@ -134,6 +141,8 @@ export interface HudSources {
   edge?: ZoneEdge | undefined;
   /** A short-lived chip saying why the last F or anchor order was refused. */
   notice?: string | undefined;
+  /** Pursued: the chart is locked (plan 13 §4.3). */
+  chartLocked?: boolean | undefined;
 }
 
 /** Seconds a refusal chip stays up. */
@@ -158,7 +167,7 @@ export function anchorRefusedNotice(reason: 'tooDeep' | 'moored'): string {
   return reason === 'tooDeep' ? 'Too deep to anchor' : 'Moored';
 }
 
-/** Edge factor (sim/terrain/zone-edge) past which the "Zone edge" chip shows. */
+/** Edge factor (sim/terrain/zone-edge) past which "Take to the chart" shows. */
 export const EDGE_CHIP = 0.5;
 
 /** The hazard and mooring states worth a chip on the HUD (plan 02 §6–7). */
@@ -195,9 +204,8 @@ export function sampleHud(src: HudSources): HudSnapshot | undefined {
   const depthM = probed ?? (onTerrain ? src.terrain?.depthAt(s.x, s.z) : undefined);
   const draftM = hz ? hz.state.draft : src.draftM;
   const status = hz ? hazardStatus(hz.state) : [];
-  if (src.terrain && src.edge && edgeFactor(src.terrain.bounds, src.edge, s.x, s.z) > EDGE_CHIP) {
-    status.push('Zone edge');
-  }
+  const atEdge =
+    !!src.terrain && !!src.edge && edgeFactor(src.terrain.bounds, src.edge, s.x, s.z) > EDGE_CHIP;
   if (src.notice && !status.includes(src.notice)) status.push(src.notice);
   return {
     headingDeg: heading,
@@ -225,6 +233,8 @@ export function sampleHud(src: HudSources): HudSnapshot | undefined {
     timeText: clockLabel(src.gameSeconds),
     moonPhase01: moonPhase(calendarDate(src.gameSeconds)),
     barometer: src.barometer ? barometerSnapshot(src.barometer) : undefined,
+    atEdge,
+    chartLocked: src.chartLocked ?? false,
   };
 }
 

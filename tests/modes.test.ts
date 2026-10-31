@@ -55,4 +55,16 @@ describe('ModeMachine', () => {
     m.transition('chart');
     expect(m.gameplayPaused).toBe(false);
   });
+
+  it('keeps the loading fade over a mode change (Phase 3 piece D)', () => {
+    const m = new ModeMachine().register({ id: 'sailing' }).register({ id: 'chart' });
+    m.transition('chart');
+    m.pushOverlay('pause');
+    m.pushOverlay('loading');
+    m.transition('sailing');
+    expect(m.topOverlay).toBe('loading');
+    expect(m.gameplayPaused).toBe(true);
+    m.removeOverlay('loading');
+    expect(m.gameplayPaused).toBe(false);
+  });
 });

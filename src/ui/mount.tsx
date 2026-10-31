@@ -7,6 +7,8 @@ import type { HudSnapshot } from './hud/model';
 import { SettingsMenu, type AudioControls } from './settings/SettingsMenu';
 import type { AudioSettings, VolumeId } from '../audio/settings';
 import { LoadingScreen } from './loading/LoadingScreen';
+import { ChartHud, type ChartHudActions } from './chart/ChartHud';
+import type { ChartHudSnapshot } from './chart/model';
 import type { LoadingScreen as LoadingModel } from './loading/model';
 import './theme.css';
 
@@ -21,6 +23,10 @@ export interface GameUiOptions {
   settings: SettingsStore;
   /** The menu opened or closed: pause or resume the game. */
   onMenu(open: boolean): void;
+  /** The chart HUD's buttons (Phase 3 piece D). */
+  chart?: ChartHudActions | undefined;
+  /** "Take to the chart" at the soft edge. */
+  onTakeToChart?: (() => void) | undefined;
   /** The game's sound volumes, when it has Web Audio. */
   audio?:
     | {
@@ -33,6 +39,8 @@ export interface GameUiOptions {
 
 export interface GameUi {
   setHud(snapshot: HudSnapshot | undefined): void;
+  /** The chart HUD; undefined hides it. */
+  setChart(snapshot: ChartHudSnapshot | undefined): void;
   setSpyglass(on: boolean): void;
   /** Show the "antialiasing needs a reload" note under the preset picker. */
   setReloadNote(on: boolean): void;
@@ -43,8 +51,16 @@ export interface GameUi {
   closeMenu(): void;
 }
 
-export function mountGameUi({ root, settings, onMenu, audio }: GameUiOptions): GameUi {
+export function mountGameUi({
+  root,
+  settings,
+  onMenu,
+  audio,
+  chart: chartActions,
+  onTakeToChart,
+}: GameUiOptions): GameUi {
   const hud = signal<HudSnapshot | undefined>(undefined);
+  const chart = signal<ChartHudSnapshot | undefined>(undefined);
   const spyglass = signal(false);
   const menuOpen = signal(false);
   const reloadNote = signal(false);
@@ -93,7 +109,8 @@ export function mountGameUi({ root, settings, onMenu, audio }: GameUiOptions): G
   function App() {
     return (
       <>
-        <Hud hud={hud} density={density} spyglass={spyglass} />
+        <Hud hud={hud} density={density} spyglass={spyglass} onTakeToChart={onTakeToChart} />
+        {chartActions && <ChartHud chart={chart} actions={chartActions} />}
         {!menuOpen.value && (
           <button
             type="button"
@@ -127,6 +144,9 @@ export function mountGameUi({ root, settings, onMenu, audio }: GameUiOptions): G
   return {
     setHud(snapshot) {
       hud.value = snapshot;
+    },
+    setChart(snapshot) {
+      chart.value = snapshot;
     },
     setSpyglass(on) {
       spyglass.value = on;

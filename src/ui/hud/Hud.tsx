@@ -187,20 +187,44 @@ function Barometer({ baro }: { baro: BarometerSnapshot }) {
   );
 }
 
+/** "Chart locked: you are being pursued" (plan 13 §4.3), on the HUD and the chart. */
+export function ChartLockedBanner() {
+  return (
+    <div class="chart-locked" data-testid="chart-locked" role="alert">
+      Chart locked: you are being pursued
+    </div>
+  );
+}
+
 export function Hud({
   hud,
   density,
   spyglass,
+  onTakeToChart,
 }: {
   hud: ReadonlySignal<HudSnapshot | undefined>;
   density: ReadonlySignal<HudDensity>;
   spyglass: ReadonlySignal<boolean>;
+  /** The "Take to the chart" button at the soft edge (Phase 3 piece D). */
+  onTakeToChart?: (() => void) | undefined;
 }) {
   const h = hud.value;
   const mode = density.value;
   return (
     <div class="hud" data-testid="hud" data-density={mode}>
       {spyglass.value && <div class="hud-spyglass" data-testid="hud-spyglass" />}
+      {h?.chartLocked && <ChartLockedBanner />}
+      {h?.atEdge && !h.chartLocked && (
+        // Shown at any HUD density: it is the way off the zone.
+        <button
+          type="button"
+          class="hud-take-chart"
+          data-testid="take-to-chart"
+          onClick={() => onTakeToChart?.()}
+        >
+          Take to the chart <span class="hud-key">M</span>
+        </button>
+      )}
       {h && mode !== 'off' && (
         <>
           <Clock hud={h} />

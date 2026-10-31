@@ -301,7 +301,7 @@ describe('chart mode', () => {
     expect(clock.gameSeconds).toBeCloseTo(8 * 3600 + CHART_TIME_SCALE);
   });
 
-  it('sails from Duluth to the Apostles in about half a minute of real time', () => {
+  it('sails from Duluth to the Apostles edge in 20–30 real seconds (criterion 2)', () => {
     const { session, ctx } = setup('arrive');
     let arrived: string | undefined;
     const mode = createChartMode(ctx, session, { onArrived: (z) => (arrived = z?.id) });
@@ -314,9 +314,9 @@ describe('chart mode', () => {
       real += 1 / 60;
     }
     expect(arrived).toBe('zone.apostles');
-    // Plan 03 §5.3: Duluth → Bayfield takes ~20–30 s plus encounters.
-    expect(real).toBeGreaterThan(10);
-    expect(real).toBeLessThan(35);
+    // Plan 03 §20.3 criterion 2: Duluth → the Apostles edge in 20–30 s plus stops.
+    expect(real).toBeGreaterThan(20);
+    expect(real).toBeLessThan(30);
     expect(ticks.length).toBeGreaterThan(30);
     // The course comes in from the north, so it stops on the zone's north edge.
     expect(session.position.y).toBeCloseTo(zoneById(geo, 'zone.apostles')?.max.y ?? NaN, 0);

@@ -76,8 +76,11 @@ export class ModeMachine {
       throw new ModeTransitionError(`Illegal transition ${from.id} → ${to}`);
     }
     from?.exit?.(to);
-    // Overlays belong to the mode they were opened in.
+    // Overlays belong to the mode they were opened in, except the loading fade, which
+    // covers the change from the chart to a zone (Phase 3 piece D).
+    const loading = this.overlays.filter((o) => o.id === 'loading');
     this.overlays.length = 0;
+    this.overlays.push(...loading);
     this.current = next;
     next.enter?.(from?.id);
     for (const listener of this.listeners) listener(from?.id, to);
