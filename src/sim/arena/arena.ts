@@ -211,13 +211,12 @@ export function stepArenaRun(run: ArenaRun, inputs: ArenaInputs, dt: number): vo
   }
 }
 
-/** HUD chips for the arena: the lock, the look, the squall and the edge. */
+/** HUD chips for the arena: the look, the squall and the edge (the lock has its banner). */
 export function arenaStatus(
   run: ArenaRun,
   inputs: Pick<ArenaInputs, 'player' | 'ships'>,
 ): string[] {
   const out: string[] = [];
-  if (run.pursued) out.push('Chart locked: the cutter has you');
   const kind = run.encounter.kind;
   if (!run.resolved && kind === 'squall') {
     out.push(`Squall: ride it out ${Math.ceil(SQUALL_RIDE_S - run.elapsedS)} s`);

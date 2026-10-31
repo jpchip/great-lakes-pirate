@@ -119,8 +119,11 @@ export interface ChartTravel {
   clear(): void;
   answer(choice: EncounterChoice): void;
   dismissNotice(): void;
-  /** Back on the chart from an arena: the contact is dealt with and the voyage carries on. */
-  resumeFrom(contactId: string): void;
+  /**
+   * Back on the chart from an arena: the contact is dealt with and the voyage carries on,
+   * unless the cutter caught the ship, which ends it where it stands.
+   */
+  resumeFrom(contactId: string, result?: 'left' | 'resolved' | 'caught'): void;
   /** Continue a run saved on the chart. */
   resume(location: Extract<PlayerLocation, { mode: 'chart' }>, voyage: SavedVoyage | null): void;
   /**
@@ -406,8 +409,19 @@ export function createChartTravel(host: ChartTravelHost): ChartTravel {
     dismissNotice() {
       notice = undefined;
     },
-    resumeFrom(contactId) {
+    resumeFrom(contactId, result) {
       chart.resumeFrom(contactId);
+      if (result === 'caught') {
+        // Boarded and searched; with no Wanted until Phase 5 she lets you go, voyage over.
+        session.voyage = undefined;
+        session.waypoints = [];
+        chart.replot();
+        const name = session.contacts.find((c) => c.id === contactId)?.name ?? 'The cutter';
+        notice = {
+          title: 'Boarded',
+          text: `${name} put a boarding party aboard, searched the hold and let you go. Plot your next leg.`,
+        };
+      }
       if (machine.mode !== 'chart') machine.transition('chart');
     },
     resume(location, saved) {

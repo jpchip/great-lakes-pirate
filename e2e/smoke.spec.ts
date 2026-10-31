@@ -182,6 +182,12 @@ interface ChartHook {
   plot(points: [number, number][]): string;
   secondsPerHour(s: number): void;
   setPursued(on: boolean): void;
+  meet(kind: string, forced?: boolean): string | undefined;
+}
+
+interface ArenaHook {
+  place(x: number, z: number): void;
+  state(): { ships: { x: number; z: number }[] } | undefined;
 }
 
 /**
@@ -321,5 +327,58 @@ test('drops into an arena and leaves it off the edge', async ({ page }) => {
   await expect(body).toHaveAttribute('data-arena-result', 'left');
   await expect(body).toHaveAttribute('data-zone', 'zone.apostles');
   await expect(body).not.toHaveAttribute('data-arena', /.+/);
+  expect(errors).toEqual([]);
+});
+
+// Phase 3 piece G with D: Engage on the chart drops into an arena; sailing off its edge
+// resumes the voyage. A hunting cutter that catches you ends the voyage instead.
+test('meets a ship from the chart in an arena and sails on', async ({ page }) => {
+  const errors = collectErrors(page);
+  const body = page.locator('body');
+  await page.goto('/?renderer=null&debug&zone=zone.apostles&spawn=-3350,-2450,270');
+  await expect(page.getByTestId('take-to-chart')).toBeVisible();
+  await page.getByTestId('take-to-chart').click();
+  await expect(body).toHaveAttribute('data-mode', 'chart');
+  await page.evaluate(() =>
+    (window as unknown as { __glpChart: ChartHook }).__glpChart.plot([
+      [46.97, -91.6],
+      [46.85, -91.95],
+    ]),
+  );
+  await page.keyboard.press('Enter');
+  await expect(page.getByTestId('chart-status')).toContainText('Under way');
+
+  // Close with a freighter.
+  const met = await page.evaluate(() =>
+    (window as unknown as { __glpChart: ChartHook }).__glpChart.meet('freighter'),
+  );
+  expect(met).toBeTruthy();
+  await page.getByTestId('encounter-engage').click();
+  await expect(body).toHaveAttribute('data-arena', 'ship');
+  await expect(body).toHaveAttribute('data-mode', 'sailing');
+  await page.evaluate(() =>
+    (window as unknown as { __glpArena: ArenaHook }).__glpArena.place(0, -1600),
+  );
+  await expect(body).toHaveAttribute('data-arena-result', 'left');
+  await expect(body).toHaveAttribute('data-mode', 'chart');
+  await expect(body).toHaveAttribute('data-zone', 'zone.apostles');
+  await expect(page.getByTestId('chart-status')).toContainText('Under way');
+
+  // The cutter closes and won't be avoided; caught, the voyage ends.
+  await page.evaluate(() =>
+    (window as unknown as { __glpChart: ChartHook }).__glpChart.meet('cutter', true),
+  );
+  await page.getByTestId('encounter-engage').click();
+  await expect(body).toHaveAttribute('data-arena', 'cutter');
+  await expect(page.getByTestId('chart-locked')).toBeVisible();
+  await page.evaluate(() => {
+    const a = (window as unknown as { __glpArena: ArenaHook }).__glpArena;
+    const s = a.state()?.ships[0];
+    if (s) a.place(s.x, s.z + 10);
+  });
+  await expect(body).toHaveAttribute('data-arena-result', 'caught');
+  await expect(body).toHaveAttribute('data-mode', 'chart');
+  await expect(page.getByTestId('chart-notice')).toContainText('Boarded');
+  await expect(page.getByTestId('chart-status')).not.toContainText('Under way');
   expect(errors).toEqual([]);
 });
