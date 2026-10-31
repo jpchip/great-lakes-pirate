@@ -137,7 +137,7 @@ One custom GLSL material (spike S1 picked `WebGLRenderer` + GLSL; [01 §14](01-t
 |---|---|---|
 | **Player ships** (T1–T3 + variants) | **Procedural parametric hull generator** (decided 2026-10-25): hull lines from per-class parameters (length, beam, sheer, draft, stem and transom shape) plus deckhouse and hatch parts, an upgrade of the S2 placeholder schooner. Reference: `references/schooner.png` and the R1 photos | **Masts, spars and sails are procedural** (generated from per-class parameters: mast count, heights, sail plan, per-level sail shapes; [02 §13](02-arcade-sailing.md)). **Rigging lines are procedural** too. Attachment points come from a **per-class template** in data, so no manual placement is needed. |
 | | **Built 2026-10-26 (T1, Phase 1 piece H):** `src/render/ships/` (`schooner-lines.ts` per-class record, `schooner-hull.ts`, `schooner.ts`). About 2.6k triangles and 16 meshes with every sail set, before outlines; outline shells on the hull, spars and furled canvas, 1 px edge lines on the sails, rigging as ink lines. The shell now sits 0.15 m behind the surface along the view ray (`outline.ts uDepthOffset`), which hides flipped slivers on thin or flared faces that otherwise showed as black streaks on the hull. | |
-| **NPC ships** (package and bulk freighters, whaleback, sidewheel steamer, tug, fishing boats, cutter, schooner-barge) | **The same parametric generator**, with steamer parts (stacks, pilothouses, paddle boxes) | Lower budgets; reuse parts (deckhouses, stacks). Mostly boxy shapes, which suit code |
+| **NPC ships** (package and bulk freighters, whaleback, sidewheel steamer, tug, fishing boats, cutter, schooner-barge) | **The same parametric generator**, with steamer parts (stacks, pilothouses, paddle boxes) | Lower budgets; reuse parts (deckhouses, stacks). Mostly boxy shapes, which suit code. **First five built 2026-10-31** (Phase 3 piece H, §19). |
 | **Characters** | One **CC0 base humanoid** (e.g., Quaternius-style) with period clothing variants (AI-generated accessories: hats, coats) | Shared skeleton for all ([08 §13](08-docks-district-stealth.md)) |
 | **Animations** | **CC0 animation libraries** (e.g., Quaternius Universal Animation Library) plus a few custom ones | Avoid Mixamo-style terms that restrict redistributing raw files in a public repo |
 | **Animals** (deer, bear, wolf) | CC0 packs, or AI plus auto-rig | Low poly |
@@ -397,9 +397,37 @@ Medium's whole frame is 4.7 ms of 16.7, with water at 2.5 ms (inside its 3 ms bu
 4. **Positions** came from approximate coordinates and were snapped to land; a pass against NOAA charts would tighten them.
 5. **Fog signals and the lights in storms** (lamps lit by day under a dark sky) are for pieces H and later; so are keepers, detection and dousing (Phase 5).
 
+## 19. Phase 3 Piece H: NPC Ships v0 (2026-10-31)
+
+The first NPC hulls ([03 §20.4](03-world-scale-chart-travel.md), piece H), brought forward from Phases 4–6 because every Phase 3 encounter needs them. They come from the same parametric generator as the T1 schooner (§5), in style B with outlines.
+
+| Class | `ships.json` | Drawn | Look | Triangles |
+|---|---|---|---|---|
+| Steam ore freighter | `ship.ore_freighter`, steam 10 kn, conspicuity 1.3 | 104 m (122 m at `displayScale` 0.85, [03 §3.5](03-world-scale-chart-travel.md)) | A 400 ft laker after `references/freighter1.png` and `freighter2.png`: pilothouse on a forecastle house, twelve hatches, the after cabin and a black stack with a red band, two pole masts, oxide-red topsides | 1.6k |
+| Schooner-barge | `ship.schooner_barge`, sail 7 kn, 1.1 | 61 m | A three-master cut down to sail under tow: bare lower masts, gaff sails and a jib set, black hull | 1.5k |
+| Package steamer | `ship.package_steamer`, steam 11 kn, 1.2 | 76 m | After `references/ferry.png`: black hull, two tiers of white cabins with rows of windows, the pilothouse forward, one tall stack, lifeboats | 1.7k |
+| Fishing tug | `ship.fish_tug`, steam 8 kn, 0.8 | 18 m | A Bayfield fish tug: dark green hull, a long white house closed in against the spray, a raised pilothouse, a short stack | 1.3k |
+| Revenue cutter *Morrill* | `ship.cutter_morrill`, steam 12 kn, 1.2 | 44 m | White hull, clipper bow and bowsprit, a schooner rig with its canvas furled, a buff stack with a black top, a bow gun | 1.6k |
+
+| Part | Where | How |
+|---|---|---|
+| Hull lines | `src/render/ships/hull-lines.ts`, `schooner-hull.ts` | The schooner's hull generator takes any `HullLines`. Optional shape fields (run, a parallel midbody, section fullness, forefoot, the boot-top band and level heights) default to the schooner's, so the T1 builds exactly as before (checked vertex for vertex). |
+| NPC lines and parts | `npc-lines.ts`, `npc-ship.ts` | One record per class: deckhouses (stacked tiers, a row of windows), hatches, raked stacks with a band and a soot top, pole masts with shrouds and stays, gaffs with canvas furled or set, lifeboats, the cutter's gun. Built at full size and drawn at `displayScale`. |
+| Windows | `npc-ship.ts` | Dark glass by day. A share of each house's panes (by a fixed hash, so the same ones every night) light amber from dusk with the harbors' `lampLevel`. |
+| Running lights | `running-lights.ts` | The 1900 rules: a white masthead light on steamers, the Great Lakes range light aft and higher on the lakers and the package steamer, red and green sidelights each screened to its side, a white stern light. One point sprite per lamp, screened to its arc in the shader, a few pixels at any range, dimmed by fog like the lighthouses' glare. |
+| Funnel smoke | `funnel-smoke.ts` | Toon puffs from every stack, all ships in one draw call. A puff leaves with the ship's way and some lift, then eases onto the wind's drift and swells, so the plume trails downwind. Opaque, with holes opening in noise blobs as it ages (no blending to sort). Coal black by day; after dark it takes some of the sky's color. |
+| Wakes | `npc-view.ts` | The player's wake ribbons (`wake.ts`) on each NPC, measured from its own waterline. |
+| In the scene | `npc-view.ts`, `render/test-scene.ts`, `gameplay/npc-ships.ts` | Entities with `model: 'npc'` and an `npc` component; the view loads with the first one, so the main bundle stays under 1 MB. They hold a course at service speed on their record's buoyancy until piece G steers them. |
+| Checks | `/bench/npc/`, `?npcs` | The contact sheet: every class, `?time=day|dusk|night`, `?view=`, `?scale=1` for one scale. In the game, `?npcs` puts all five abreast ahead (`=stop` lays them to, `=meet` brings them toward you, sidelights on). |
+
+**Budgets.** Every class is under 2k triangles (the §8 NPC budget is 8k at LOD0). A steamer is 5 draw calls (body and its shell, windows, rigging, lamps) and the barge 7 (plus its sails and their edge lines), so five ships, their wakes and the shared smoke come to 33, inside the 40 the test allows of the arena's 150 (`tests/npc-ships.test.ts`). LOD1 and impostors wait for the arenas' frame times (piece G).
+
+**Not yet:** whalebacks and the sidewheeler (the other classes of §11), flags and the revenue ensign, steam whistles (piece J), smoke that thins with speed or banks down in a gale, and towing (the barge has no steamer on a hawser yet; plan 07 wants the pair).
+
 ---
 
 ## Changelog
+- v0.9: Phase 3 piece H (§19): five NPC classes from the parametric generator, the hull generator opened up to lakers, lit windows, running lights by the 1900 rules, funnel smoke, wakes, the NPC contact sheet and `?npcs`. Palette v1 gains the NPC colors.
 - v0.8: Phase 2 piece F (§18): the seven Apostles lights from `lighthouses.json` and a three-style tower kit, fixed and flashing characteristics, a beam cone, lit lanterns and windows, and one real lamp near the ship.
 - v0.7: Phase 2 piece E: the lighting LUTs (clear, overcast, storm, fog by sun elevation) are built from the photochrom palette ([04 §25](04-water-weather-seasons.md)).
 - v0.6: Phase 2 piece C (§17): the style B terrain shader, the vegetation density map, procedural pines, birches and rocks with baked impostors and a dithered hand-over, density and distance by preset, and the canopy in the shelter bake. Palette v1 gains the land colors.

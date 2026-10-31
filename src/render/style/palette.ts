@@ -17,6 +17,19 @@ export const PALETTE = {
   canvas: 0xe2d6bc,
   /** Pennant and wool telltales: the one saturated accent, so the wind reads. */
   flagRed: 0xb3392b,
+  // NPC ships (Phase 3 piece H)
+  /** The lakers' red-brown oxide topsides. */
+  hullOxide: 0x4e2b23,
+  /** A fish tug's dark green. */
+  hullGreen: 0x34463b,
+  /** Painted steel decks and hatch covers. */
+  deckSteel: 0x6f6a62,
+  /** The Revenue Cutter Service's buff stack, and deckhouse trim. */
+  stackBuff: 0xc4a06a,
+  /** Window glass by day. */
+  glass: 0x2b3438,
+  /** Coal smoke from the stacks. */
+  coalSmoke: 0x34312e,
   // Lighthouses and buildings
   towerWhite: 0xe6e0d0,
   lanternBlack: 0x23282a,

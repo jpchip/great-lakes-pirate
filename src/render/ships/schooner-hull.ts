@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { hullShapeParams, type HullLines } from './hull-lines';
 import type { SchoonerLines } from './schooner-lines';
 import { TriangleSoup } from './soup';
 
@@ -6,15 +7,12 @@ import { TriangleSoup } from './soup';
  * The parametric hull (plan 14 §5): a grid of stations from the transom (t = 0) to the
  * stem (t = 1) and levels from the keel to the sheer, shaped by the class's lines. The
  * stem rakes forward and the transom aft as the levels rise, the entrance is finer low
- * down, and the paint bands sit at fixed heights, so the waterline reads straight.
+ * down, and the paint bands sit at fixed heights, so the waterline reads straight. The
+ * same generator builds the NPC hulls (npc-ship.ts) from their own lines: a parallel
+ * midbody and a box section make a laker out of it.
  */
 
 const STATIONS = 26;
-/** Fixed level heights between the keel and the sheer, meters above the waterline. */
-const LEVELS = [-1.1, -0.6, -0.22, 0.1, 0.32, 0.75];
-/** Paint bands by height: bottom paint, the black boot top, then the topsides. */
-const BOOT_BOTTOM = -0.22;
-const BOOT_TOP = 0.32;
 const RAIL_WIDTH = 0.14;
 /** Thinnest half-width, at the keel, the stem and the sternpost. */
 const KEEL_HALF = 0.09;
@@ -32,7 +30,7 @@ export interface HullShape {
 const smooth = (t: number): number => t * t * (3 - 2 * t);
 const clamp01 = (v: number): number => Math.min(Math.max(v, 0), 1);
 
-export function hullShape(l: SchoonerLines): HullShape {
+export function hullShape(l: HullLines): HullShape {
   const half = l.length / 2;
   const tAt = (z: number): number => clamp01((half - z) / l.length);
   const sheer = (t: number): number => sheerAt(l, t);
@@ -45,38 +43,43 @@ export function hullShape(l: SchoonerLines): HullShape {
 }
 
 /** Keel depth (negative) at t: a little drag aft, the forefoot rounding up at the bow. */
-function keelAt(l: SchoonerLines, t: number): number {
+function keelAt(l: HullLines, t: number): number {
+  const start = hullShapeParams(l).forefootStart;
   const drag = 1.06 - 0.12 * t;
-  const forefoot = t > 0.7 ? 1 - smooth((t - 0.7) / 0.3) * 0.75 : 1;
+  const forefoot = t > start ? 1 - smooth((t - start) / (1 - start)) * 0.75 : 1;
   return -l.draft * drag * forefoot;
 }
 
 /** Half-breadth at station t and level v (0 keel … 1 sheer). */
-function halfBreadth(l: SchoonerLines, t: number, v: number): number {
-  const section = Math.sin((Math.min(v, 1) * Math.PI) / 2) ** 0.42;
+function halfBreadth(l: HullLines, t: number, v: number): number {
+  const p = hullShapeParams(l);
+  const section = Math.sin((Math.min(v, 1) * Math.PI) / 2) ** p.sectionPower;
   const full = (l.beam / 2) * section;
   let plan: number;
-  if (t < 0.42) {
+  if (t < p.runEnd) {
     // The run: the transom is narrow low down and wide at the rail.
     const transom = (l.transomWidth * clamp01((v - 0.3) / 0.7) ** 0.65) / Math.max(section, 1e-3);
-    plan = transom + (1 - transom) * Math.sin(((t / 0.42) * Math.PI) / 2);
+    plan = transom + (1 - transom) * Math.sin(((t / p.runEnd) * Math.PI) / 2);
+  } else if (t < p.entranceStart) {
+    // Parallel midbody (lakers).
+    plan = 1;
   } else {
     // The entrance: hollower near the keel than at the rail.
-    const k = (t - 0.42) / 0.58;
+    const k = (t - p.entranceStart) / (1 - p.entranceStart);
     plan = Math.max(0, Math.cos((k * Math.PI) / 2)) ** (0.75 + 0.55 * (1 - v));
   }
   return Math.max(full * plan, KEEL_HALF);
 }
 
 /** Bow and stern ends of a level: the stem rakes forward, the transom aft, going up. */
-function zAt(l: SchoonerLines, t: number, v: number): number {
+function zAt(l: HullLines, t: number, v: number): number {
   const half = l.length / 2;
   const stern = half - l.transomRake * (1 - v);
   const bow = -half + l.stemRake * (1 - v) ** 1.7;
   return stern + (bow - stern) * t;
 }
 
-function sheerAt(l: SchoonerLines, t: number): number {
+function sheerAt(l: HullLines, t: number): number {
   return (
     l.freeboard +
     l.sheerBow * Math.max(0, (t - 0.45) / 0.55) ** 2 +
@@ -85,7 +88,9 @@ function sheerAt(l: SchoonerLines, t: number): number {
 }
 
 /** Builds the hull, bulwarks, rail cap and deck into `soup`. */
-export function buildHull(l: SchoonerLines, soup: TriangleSoup): void {
+export function buildHull(l: HullLines, soup: TriangleSoup): void {
+  const p = hullShapeParams(l);
+  const levelHeights = p.levels;
   const topsides = new THREE.Color(l.paint.topsides);
   const boot = new THREE.Color(l.paint.boot);
   const bottom = new THREE.Color(l.paint.bottom);
@@ -111,9 +116,9 @@ export function buildHull(l: SchoonerLines, soup: TriangleSoup): void {
         zAt(l, t, vDeck),
       ),
     );
-    const ys = [keel, ...LEVELS.filter((y) => y > keel + 0.02 && y < top - 0.05), top];
+    const ys = [keel, ...levelHeights.filter((y) => y > keel + 0.02 && y < top - 0.05), top];
     // Every column has the same number of points: collapsed levels repeat the keel.
-    while (ys.length < LEVELS.length + 2) ys.splice(1, 0, keel);
+    while (ys.length < levelHeights.length + 2) ys.splice(1, 0, keel);
     columns.push(
       ys.map((y) => {
         const v = (y - keel) / (top - keel);
@@ -124,7 +129,7 @@ export function buildHull(l: SchoonerLines, soup: TriangleSoup): void {
   const mirror = (p: THREE.Vector3): THREE.Vector3 => new THREE.Vector3(-p.x, p.y, p.z);
   const bandColor = (a: THREE.Vector3, b: THREE.Vector3): THREE.Color => {
     const y = (a.y + b.y) / 2;
-    return y < BOOT_BOTTOM ? bottom : y < BOOT_TOP ? boot : topsides;
+    return y < p.bootBottom ? bottom : y < p.bootTop ? boot : topsides;
   };
 
   const levels = (columns[0] as THREE.Vector3[]).length;
