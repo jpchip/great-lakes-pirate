@@ -576,9 +576,35 @@ Bayfield and Ashland built as 1:1 set pieces on the §17 footprints. Exit criter
 - Ashland's water off the city and lumber docks is 3–6 m deep, enough for the T1 (draft about 2 m) but not for the bigger classes. Check the T2/T3 drafts when they're built.
 - Docks district transitions ("Go ashore") come with plan 11.
 
+## 19. Phase 2 Exit Criteria and Playtest (2026-10-31)
+
+Phase 2 (the Superior Slice) is pieces A–I of the Phase 2 scope doc: water budget (04 §23), whole-zone streaming (§17), terrain look (14 §17), weather v1 (04 §24), sky and atmosphere (04 §25), lighthouses (14 §18), harbors (§18), weather and harbor audio (15 §14) and the helm swap (§15–16). No plan had Phase 2 acceptance criteria, so the scope doc proposed these; piece J checks them, and Phase 2 is done when they pass on the baseline laptop and Jared signs off the playtest.
+
+| # | Criterion | How it's checked |
+|---|---|---|
+| 1 | Sail from Bayfield to Ashland and out to Outer Island without a loading screen, with no streaming hitch over 33 ms on Medium | `/bench/stream/` on the laptop (passed at piece B, §17.4; rerun with trees, harbors and lights) |
+| 2 | The zone loads in 8 s or less on a warm cache (01 §5) | The same bench's zone load time, and a reload of the game |
+| 3 | The main islands, Bayfield and Chequamegon Bay are recognizable from the water by their shapes | Jared, by eye |
+| 4 | Over a game week the weather changes on its own, and the barometer falls before a gale arrives | `?timewarp=60` from late October; the sim's own check is 04 §24 (a 3 hPa fall in 3 game hours before 87% of storms) |
+| 5 | A fog bank can be seen coming across the water on Medium, and visibility drops inside it | `?fogbank=<km>`, then sailing into it |
+| 6 | At night every lighthouse shows its 1900 characteristic | `?light=<name>&hour=23` for each; `tests/lighthouses.test.ts` |
+| 7 | Docking works at Bayfield and at Ashland | `?harbor=` for each pier; `tests/harbors.test.ts` docks at every pier on the real zone |
+| 8 | Save and reload keeps the time, date and weather, and a Phase 1 save migrates | Dev panel Save and reload; `tests/save-migrations.test.ts` with the v1 fixture |
+| 9 | Full zone with terrain and trees: Medium p95 frame at most 16.7 ms, water at most 3 ms, at most 150 draw calls; Low never below 30 fps | `?bench=water` on Medium and Low on the laptop |
+| 10 | The S7 greybox and S8 arena use the plan 02 controller | Done in the helm swap (§15–16); the stand-in helms are deleted |
+| 11 | It feels like the Apostles | Jared decides |
+| 12 | Plans 03, 04, 14 and 15 record what was built, CI is green, and 0.2.0 is tagged | §17–19, 04 §23–25, 14 §17–18, 15 §14; the release PR |
+
+**Added for the playtest:** `?timewarp=<n>` (and Clock speed in the dev panel's Time folder) runs the game clock and the weather up to 120× faster without changing the ship's speed, so criterion 4 takes minutes instead of seven real hours.
+
+### 19.1 Results
+
+Filled in from the playtest.
+
 ---
 
 ## Changelog
+- v0.13: Phase 2 exit criteria and playtest (§19), and `?timewarp=` for the week-of-weather check.
 - v0.12: Phase 2 piece G: Bayfield and Ashland harbors (§18), the Ashland ore dock at 1:1 in open water in place of a rebaked lens.
 - v0.11: Phase 2 piece C: vegetation density and planting built (§8.3), and the canopy in the shelter maps (§14.4); details in [14 §17](14-art-direction-asset-pipeline.md).
 - v0.10: Phase 2 helm swap: the S7 greybox and the S8 arena sail on the plan 02 controller; the stand-in helms are deleted (§15, §16).

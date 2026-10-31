@@ -227,7 +227,8 @@ export function Hud({
             <WindRing hud={h} />
             <div class="hud-readout">
               <span class="hud-speed hud-num" data-testid="hud-speed">
-                {h.speedKn.toFixed(1)}
+                {/* Sternway reads negative, but drifting at rest shouldn't show "-0.0". */}
+                {(Math.abs(h.speedKn) < 0.05 ? 0 : h.speedKn).toFixed(1)}
                 <small> kn</small>
               </span>
               <span class="hud-sail" data-testid="hud-sail">

@@ -1,6 +1,6 @@
 import { Vector3 } from 'three';
 import { zoneToChart } from './core/coords';
-import { SECONDS_PER_GAME_DAY, dayAndHour } from './core/time';
+import { SECONDS_PER_GAME_DAY, dayAndHour, parseTimeWarp } from './core/time';
 import { EventBus } from './core/events';
 import { DEFAULT_BINDINGS, InputMapper, type InputContext } from './core/input';
 import { createLoop } from './core/loop';
@@ -182,6 +182,8 @@ async function boot(): Promise<void> {
   const params = new URLSearchParams(window.location.search);
   const rendererKind = params.get('renderer');
   document.body.dataset['renderer'] = rendererKind === 'null' ? 'null' : 'webgl';
+  // `?timewarp=60` runs the clock and weather 60× for the playtest (a game day a minute).
+  const timeWarp = { factor: parseTimeWarp(params.get('timewarp')) };
 
   const machine = new ModeMachine();
   machine.onTransition((_, to) => (document.body.dataset['mode'] = to));
@@ -263,23 +265,26 @@ async function boot(): Promise<void> {
       spawn.heading = at.heading;
     }
   }
-  // `?fogbank=2000` stands a fog bank dead ahead of the spawn with its wall that many meters
-  // away (`?fogkind=radiation` for the shallow kind), to watch one from outside.
+  // `?fogbank=2000` stands a fog bank upwind with its wall that many meters away, and turns
+  // the ship to face it, so the wind carries it across the water to you (`?fogkind=radiation`
+  // for the shallow kind, which barely drifts). A wind of 20 kn or more mixes it out.
   const fogAhead = Number(params.get('fogbank'));
   if (params.has('fogbank') && Number.isFinite(fogAhead) && zone) {
     const frame = manifestFrame(zone.manifest);
     const radiusM = params.get('fogkind') === 'radiation' ? 6_000 : 24_000;
     const wall = (radiusM / frame.compression) * 0.75;
-    const along = fogAhead + wall;
-    const centre = {
-      x: spawn.x + Math.sin(spawn.heading) * along,
-      z: spawn.z - Math.cos(spawn.heading) * along,
-    };
     const state = ctx.weather.sim?.state;
     if (state) {
       // Catch the sim up to now first, or its first tick would age the bank by days (and
       // wind would lift it) before it was ever seen.
-      advanceWeather(state, ctx.state.environment.clock.gameSeconds);
+      const now = ctx.state.environment.clock.gameSeconds;
+      advanceWeather(state, now);
+      spawn.heading = ctx.weather.windAt(spawn, now).fromRad;
+      const along = fogAhead + wall;
+      const centre = {
+        x: spawn.x + Math.sin(spawn.heading) * along,
+        z: spawn.z - Math.cos(spawn.heading) * along,
+      };
       placeFogBank(state, zoneToChart(centre, frame), {
         radiusM,
         kind: params.get('fogkind') === 'radiation' ? 'radiation' : 'advection',
@@ -405,6 +410,7 @@ async function boot(): Promise<void> {
         autoBench: bench,
         probe: () => shipTransform.position,
         setQuality: (id) => settings.update((s) => (s.graphics.quality = id)),
+        timeWarp,
       });
       const { createSailingPanel } = await import('./debug/sailing-panel');
       const panel = createSailingPanel({
@@ -502,6 +508,7 @@ async function boot(): Promise<void> {
       wind: (x, z) => ctx.weather.windAt({ x, z }, state.environment.clock.gameSeconds),
       docks,
       berths: mooringBerths(docks, ctx.terrain),
+      timeWarp,
     }),
   );
   // A refused F or anchor order says why on the HUD for a few seconds.

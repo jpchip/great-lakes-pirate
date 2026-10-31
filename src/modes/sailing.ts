@@ -32,6 +32,8 @@ export interface SailingModeOptions {
   /** Piers and their berths in the zone (plan 02 §7); none means open water. */
   docks?: readonly Dock[];
   berths?: readonly MooringBerth[];
+  /** A playtest speed-up for the clock and the weather only (`?timewarp=`); 1 by default. */
+  timeWarp?: { factor: number };
 }
 
 /** The player's helm orders from the plan 02 §2 bindings. */
@@ -135,7 +137,8 @@ export function createSailingMode(ctx: GameContext, options: SailingModeOptions)
 
       const clock = ctx.state.environment.clock;
       const dayBefore = dayAndHour(clock.gameSeconds).day;
-      const worldTicks = advanceClock(clock, dt, R_SAILING);
+      const warp = options.timeWarp?.factor ?? 1;
+      const worldTicks = advanceClock(clock, dt, R_SAILING * warp);
       for (let i = 0; i < worldTicks; i++) {
         ctx.events.emit('WorldTick', { gameSeconds: clock.gameSeconds });
       }
