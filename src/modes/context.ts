@@ -18,6 +18,9 @@ export interface GameEvents {
   EncounterSpotted: { contactId: string; forced: boolean };
   EncounterEngaged: { contactId: string; forced: boolean };
   EncounterAvoided: { contactId: string; escaped: boolean };
+  /** Open-water arenas (plan 03 §6.3, Phase 3 piece G). */
+  ArenaEntered: { contactId: string; kind: string; ships: number };
+  ArenaExited: { contactId: string; result: 'left' | 'resolved' | 'caught'; elapsedS: number };
   /** Zones (plan 03 §9): the player left one or arrived in one (Phase 3 piece A). */
   ZoneExited: { zoneId: string };
   ZoneEntered: { zoneId: string; from: 'saved' | 'spawn' | 'entry' | 'dev' };

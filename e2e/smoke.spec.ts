@@ -97,8 +97,8 @@ test('settings pause the game, persist, and rebind keys', async ({ page }) => {
   expect(errors).toEqual([]);
 });
 
-// Plan 15 §8: the sailing and world sounds decode up front (14 each) and audio starts on
-// the first key.
+// Plan 15 §8: the sailing (14) and world (19, with the ships' whistles) sounds decode up
+// front and audio starts on the first key.
 test('loads the sailing and world sounds and unlocks audio on the first key press', async ({
   page,
 }) => {
@@ -106,7 +106,7 @@ test('loads the sailing and world sounds and unlocks audio on the first key pres
   const body = page.locator('body');
   await page.goto('/?renderer=null');
   await expect(body).toHaveAttribute('data-mode', 'sailing');
-  await expect(body).toHaveAttribute('data-audio-bank', '28');
+  await expect(body).toHaveAttribute('data-audio-bank', '33');
   await page.keyboard.press('KeyW');
   await expect(body).toHaveAttribute('data-audio', 'running');
   expect(errors).toEqual([]);
@@ -184,9 +184,22 @@ interface ChartHook {
   setPursued(on: boolean): void;
 }
 
-/** Answers whatever the lookouts call until `done` holds: avoid where offered, else engage. */
+/**
+ * Answers whatever the lookouts call until `done` holds: avoid where offered, else engage.
+ * A meeting that puts the ship in an arena is left off the edge, and the voyage goes on.
+ */
 async function sailThrough(page: Page, done: () => Promise<boolean>): Promise<void> {
+  const body = page.locator('body');
   for (let i = 0; i < 240 && !(await done()); i++) {
+    if ((await body.getAttribute('data-arena')) !== null) {
+      await page.evaluate(() =>
+        (
+          window as unknown as { __glpArena: { place(x: number, z: number): void } }
+        ).__glpArena.place(0, -1600),
+      );
+      await page.waitForTimeout(250);
+      continue;
+    }
     for (const id of ['encounter-avoid', 'encounter-engage', 'chart-notice-ok']) {
       const button = page.getByTestId(id);
       if (await button.isVisible()) {
@@ -267,5 +280,32 @@ test('sails from the Apostles to the Twin Ports on the chart, through a reload',
   await page.keyboard.press('KeyM');
   await page.waitForTimeout(300);
   await expect(body).toHaveAttribute('data-mode', 'sailing');
+  expect(errors).toEqual([]);
+});
+
+// Phase 3 piece G: `?encounter=` drops into an open-water arena with the ship met, and
+// sailing off its edge ends it, back in the zone it was entered from. An arena entered
+// from the chart returns there instead. Nothing in the arena overwrites the run's saved place.
+test('drops into an arena and leaves it off the edge', async ({ page }) => {
+  const errors = collectErrors(page);
+  const body = page.locator('body');
+  await page.goto('/?renderer=null&debug&encounter=convoy');
+  await expect(body).toHaveAttribute('data-arena', 'ship');
+  await expect(body).toHaveAttribute('data-arena-ships', '3');
+  await expect(body).toHaveAttribute('data-zone', 'arena');
+  const saved = await body.getAttribute('data-saved-pose');
+  await page.evaluate(() => window.dispatchEvent(new Event('pagehide')));
+  await page.waitForTimeout(300);
+  expect(await body.getAttribute('data-saved-pose')).toBe(saved);
+
+  await page.evaluate(() =>
+    (window as unknown as { __glpArena: { place(x: number, z: number): void } }).__glpArena.place(
+      0,
+      -1600,
+    ),
+  );
+  await expect(body).toHaveAttribute('data-arena-result', 'left');
+  await expect(body).toHaveAttribute('data-zone', 'zone.apostles');
+  await expect(body).not.toHaveAttribute('data-arena', /.+/);
   expect(errors).toEqual([]);
 });

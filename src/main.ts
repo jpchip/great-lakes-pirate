@@ -23,17 +23,39 @@ import type { SignalStation } from './audio/world-audio';
 import { cloneTransform, createGameWorld } from './gameplay/ecs';
 import { createSchooner } from './gameplay/schooner';
 import { npcParade } from './gameplay/npc-ships';
+import { clearArena, materializeArena, type ArenaPlay } from './gameplay/arena';
+import {
+  ARENA_BOUNDS,
+  ARENA_HALF_M,
+  arenaStatus,
+  layoutArena,
+  type ArenaExit,
+  type ArenaResult,
+} from './sim/arena/arena';
+import { coastRuns } from './sim/arena/coast';
+import {
+  DEV_ARENA_AT_GEO,
+  arenaFromChartEncounter,
+  devEncounter,
+  isDevEncounter,
+  type ArenaEncounter,
+} from './sim/arena/encounter';
+import { clearArenaCentre, sampleArenaLand } from './sim/arena/land';
+import { westernSuperiorChart } from './sim/chart/chart-data';
+import { OPEN_WATER } from './sim/weather/shelter';
+import { FULL_SAIL, updateTargetSpeed } from './sim/sailing/controller';
 import type { SaveControls } from './debug/overlay';
 import type { GameContext, GameEvents } from './modes/context';
 import { ModeMachine } from './modes/machine';
-import { createSailingMode, type SailingView } from './modes/sailing';
+import { createSailingMode, type SailingModeOptions, type SailingView } from './modes/sailing';
 import { createChartTravel, type ChartTravel } from './modes/chart-travel';
 import { loadAssets } from './render/assets';
 import { browserStorage, isQualityId } from './render/quality';
 import { GameRenderer } from './render/renderer';
 import { createTestScene } from './render/test-scene';
 import { createSailingState } from './sim/sailing/controller';
-import { createHazardState, mooringBerths } from './sim/sailing/hazards';
+import type { ZoneFrame } from './core/coords';
+import { createHazardState, mooringBerths, type MooringBerth } from './sim/sailing/hazards';
 import { httpBytes, loadZoneTerrain, type LoadedZone } from './sim/terrain/load';
 import { TEST_BAY, type Dock, type Pose } from './sim/terrain/test-bay';
 import { layoutHarbors } from './sim/harbors';
@@ -69,7 +91,7 @@ import {
   sampleHud,
 } from './ui/hud/model';
 import { edgeFactor } from './sim/terrain/zone-edge';
-import { loadingScreen, type Arrival } from './ui/loading/model';
+import { arenaLoadingScreen, loadingScreen, type Arrival } from './ui/loading/model';
 import { mountGameUi } from './ui/mount';
 
 /** Periodic autosave while safe (plan 16 §4.1). */
@@ -406,6 +428,10 @@ async function boot(): Promise<void> {
   let changingZone = false;
   // Chart travel (Phase 3 piece D); built once the UI is up.
   const travelRef: { current: ChartTravel | undefined } = { current: undefined };
+  /** The open-water arena in play (Phase 3 piece G), if any. */
+  let arena: ArenaPlay | undefined;
+  /** The ship's pose is in an arena's frame: from entering one until back in a zone. */
+  let inArenaSpace = false;
   const shipPose = (): Pose => ({
     x: sailing.state.x,
     z: sailing.state.z,
@@ -419,9 +445,10 @@ async function boot(): Promise<void> {
       if (!saver) return;
       state.environment.rng = ctx.rng.getState();
       // Where the ship is, so Continue comes back here (Phase 3 piece A): on the chart with
-      // the voyage (piece D), or in the zone. Not mid-load: the location already names the
-      // zone being entered.
-      if (!changingZone && !travelRef.current?.record(state))
+      // the voyage (piece D), including while an arena entered from it is in play, or in the
+      // zone. Not mid-load: the location already names the zone being entered. An arena
+      // entered from a zone keeps the place recorded on the way in; its frame isn't the zone's.
+      if (!changingZone && !travelRef.current?.record(state) && !inArenaSpace)
         recordZonePose(state, zoneData.id, shipPose());
       try {
         await saver.save(state);
@@ -613,7 +640,10 @@ async function boot(): Promise<void> {
   const docks = zoneDocks(zone);
   let hudClock = HUD_INTERVAL_S;
 
-  const sailingOptions = {
+  const sailingOptions: SailingModeOptions & {
+    docks: readonly Dock[];
+    berths: readonly MooringBerth[];
+  } = {
     view,
     wind: (x: number, z: number) =>
       ctx.weather.windAt({ x, z }, state.environment.clock.gameSeconds),
@@ -631,7 +661,10 @@ async function boot(): Promise<void> {
     notice = { text, untilS: hudSeconds + NOTICE_S };
     hudClock = HUD_INTERVAL_S;
   };
-  ctx.events.on('DockRefused', (e) => showNotice(dockRefusedNotice(e.reason)));
+  // In an arena F is "look her over", not a dock order, so its refusal says nothing.
+  ctx.events.on('DockRefused', (e) => {
+    if (!arena) showNotice(dockRefusedNotice(e.reason));
+  });
   ctx.events.on('AnchorRefused', (e) => showNotice(anchorRefusedNotice(e.reason)));
   /**
    * Leaves the zone and enters `id` with the ship at `pose`, behind the fade to fog
@@ -738,10 +771,223 @@ async function boot(): Promise<void> {
       fresh,
     );
   };
+  /**
+   * Open-water arenas (plan 03 §6.3, Phase 3 piece G). `enterArena` drops the ship into a
+   * ~3 × 3 km patch of water at the encounter point, behind the same fade as a zone: no
+   * terrain, the sim's weather and sky there, the ships met on their headings, and the
+   * coast in view. The arena ends when its rules say so; `arenaHooks.onExit` then takes
+   * the ship back to the chart (piece D sets it). Without a chart it returns to the zone
+   * the arena was entered from.
+   */
+  let arenaFrom: { zoneId: string; pose: Pose } | undefined;
+  let leavingArena = false;
+  const arenaHooks: {
+    onExit?: ((exit: ArenaExit) => void | Promise<void>) | undefined;
+  } = {};
+  /** The fade to fog with a logbook line, for an arena's way in. */
+  const arenaFade = async (title: string, line: string, work: () => void): Promise<void> => {
+    changingZone = true;
+    machine.pushOverlay('loading');
+    const inputBefore = input.context;
+    input.context = 'menu';
+    ui.setLoading({ title, line });
+    document.body.dataset['zoneLoad'] = 'loading';
+    const startedAt = performance.now();
+    try {
+      await new Promise((resolve) => window.setTimeout(resolve, FADE_MS));
+      work();
+    } finally {
+      changingZone = false;
+      ui.setLoading(undefined);
+      // work() may have left the chart for the helm; follow the mode, not the context from before.
+      input.context =
+        machine.mode === 'sailing' ? 'sailing' : machine.mode === 'chart' ? 'chart' : inputBefore;
+      input.endTick();
+      machine.removeOverlay('loading');
+      document.body.dataset['zoneLoad'] = 'done';
+      document.body.dataset['zoneLoadMs'] = String(Math.round(performance.now() - startedAt));
+    }
+  };
+  let squallOverride = false;
+  const enterArena = async (enc: ArenaEncounter, fromChart = false): Promise<void> => {
+    if (changingZone || arena) return;
+    // A zone entry (the `?encounter=` checks) returns to that zone. The chart sets its own exit.
+    if (!fromChart) arenaHooks.onExit = undefined;
+    // The run's last place is saved on the way in; nothing is saved inside the arena frame.
+    await saveControls.saveNow();
+    arenaFrom = { zoneId: zoneData.id, pose: shipPose() };
+    const geo = westernSuperiorChart();
+    const screen = arenaLoadingScreen(enc);
+    await arenaFade(screen.title, screen.line, () => {
+      ctx.events.emit('ZoneExited', { zoneId: zoneData.id });
+      scene?.setZone(undefined);
+      zones.leave();
+      zone = undefined;
+      ctx.terrain = undefined;
+      harborLayouts = [];
+      sailingOptions.docks = [];
+      sailingOptions.berths = [];
+      audio?.setZone({ stations: [], harbors: [] });
+
+      // The arena sits at the encounter point, nudged off any shore, in its own frame.
+      const centre = clearArenaCentre(geo, enc.at, ARENA_HALF_M * 0.6);
+      const land = sampleArenaLand(geo, { origin: centre, compression: 8 }, ARENA_HALF_M + 400);
+      const layout = layoutArena(enc, centre, land);
+      weatherSource.frame = layout.frame;
+      ctx.weather.shelter = OPEN_WATER;
+      ctx.weather.invalidate();
+      const now = state.environment.clock.gameSeconds;
+      const wind = ctx.weather.windAt(layout.player, now);
+      if (enc.kind === 'squall' && ctx.weather.source === 'sim') {
+        // The sim has no squall line yet (piece E brings them from it): blow one up here.
+        ctx.weather.override();
+        Object.assign(ctx.weather.settings, {
+          speedKn: Math.max(ctx.weather.settings.speedKn, 30),
+          rain01: 0.9,
+          storm01: 0.7,
+          cloud01: 1,
+          visibilityM: 1200,
+        });
+        squallOverride = true;
+      }
+      if (enc.kind === 'fogbank') standFogBank(layout.player, 700, layout.frame);
+
+      placeShip(layout.player);
+      // Arrive as she sailed the chart: everything set and making way.
+      const s = sailing.state;
+      s.sailLevel = s.sailSetting = FULL_SAIL;
+      const sw = { fromRad: wind.fromRad, speedKn: wind.speedKn, gust01: 0 };
+      s.speed = Math.max(updateTargetSpeed(s, sailing.cls, sw, 0), 0);
+
+      inArenaSpace = true;
+      arena = materializeArena(ctx.world, enc, layout, land);
+      const play = arena;
+      sailingOptions.arena = {
+        step: (dt) =>
+          play.step(dt, playerShip, {
+            lookHeld: input.isDown('Interact'),
+            chartPressed: input.pressed('ToggleChart'),
+          }),
+        holdBounds: () => play.holdBounds(),
+      };
+      scene?.setArena({
+        coast: coastRuns(geo, layout.frame),
+        bounds: ARENA_BOUNDS,
+        edge: { fogFadeM: 500, edgeVisibilityM: 700 },
+      });
+      document.body.dataset['zone'] = 'arena';
+      document.body.dataset['terrain'] = 'arena';
+      document.body.dataset['arena'] = enc.kind;
+      document.body.dataset['arenaShips'] = String(play.ships.length);
+      delete document.body.dataset['arenaResult'];
+      // Off the chart and onto the helm, under the fade (piece D).
+      if (fromChart && machine.mode === 'chart') machine.transition('sailing');
+    });
+    const entered = arena as ArenaPlay | undefined;
+    ctx.events.emit('ArenaEntered', {
+      contactId: enc.contactId,
+      kind: enc.kind,
+      ships: entered?.ships.length ?? 0,
+    });
+  };
+
+  /**
+   * Stands a fog bank across the bow with its wall `wallM` ahead, for the `fogbank` check
+   * (piece E brings fog banks met on the chart from the sim itself). The sim drifts it on
+   * the wind, and a wind of 20 kn or more mixes it out, as it would any bank.
+   */
+  const standFogBank = (at: Pose, wallM: number, frame: ZoneFrame): void => {
+    const sim = ctx.weather.sim?.state;
+    if (!sim) return;
+    advanceWeather(sim, state.environment.clock.gameSeconds);
+    const radiusM = 24_000;
+    const along = wallM + (radiusM / frame.compression) * 0.75;
+    const c = { x: at.x + Math.sin(at.heading) * along, z: at.z - Math.cos(at.heading) * along };
+    placeFogBank(sim, zoneToChart(c, frame), { radiusM, kind: 'advection' });
+  };
+
+  const leaveArena = (result: ArenaResult): void => {
+    const play = arena;
+    if (!play || leavingArena) return;
+    leavingArena = true;
+    const exit: ArenaExit = {
+      contactId: play.encounter.contactId,
+      result,
+      at: play.encounter.at,
+      elapsedS: play.run.elapsedS,
+    };
+    clearArena(ctx.world, play);
+    sailingOptions.arena = undefined;
+    scene?.setArena(undefined);
+    if (squallOverride) {
+      ctx.weather.useSim();
+      squallOverride = false;
+    }
+    arena = undefined;
+    document.body.dataset['arenaResult'] = result;
+    delete document.body.dataset['arena'];
+    ctx.events.emit('ArenaExited', {
+      contactId: exit.contactId,
+      result,
+      elapsedS: exit.elapsedS,
+    });
+    const from = arenaFrom;
+    arenaFrom = undefined;
+    const back = (): void => {
+      inArenaSpace = false;
+      leavingArena = false;
+    };
+    if (arenaHooks.onExit) {
+      // The chart takes over (piece D): it reloads the zone and resumes the voyage.
+      // inArenaSpace stays set until that load finishes, so the arena pose isn't saved.
+      void Promise.resolve(arenaHooks.onExit(exit)).finally(back);
+    } else if (from) {
+      // Entered from a zone (`?encounter=`, or the chart didn't claim the exit): back there.
+      // The save on the way out skips the arena's pose; the zone's arrival records its own.
+      void enterZone(from.zoneId, from.pose, { kind: 'return' }).finally(back);
+    } else {
+      back();
+    }
+  };
   // For checks from the console and the e2e tests: `__glpZones.enter('zone.apostles', 'north')`.
   if (import.meta.env.DEV || params.has('debug')) {
     const hook = { stats: () => zones.stats, enter: enterZoneAt };
     (window as unknown as { __glpZones: typeof hook }).__glpZones = hook;
+    // `__glpArena.enter('cutter')` drops into an arena, `__glpArena.state()` reads it.
+    const arenaHook = {
+      enter: (id: string, hunting = false) => {
+        if (!isDevEncounter(id)) throw new Error(`No dev encounter ${id}`);
+        const geo = westernSuperiorChart();
+        return enterArena(
+          devEncounter(
+            id,
+            geo.projection.geoToChart(DEV_ARENA_AT_GEO),
+            shipPose().heading,
+            hunting,
+          ),
+        );
+      },
+      state: () =>
+        arena && {
+          kind: arena.encounter.kind,
+          run: { ...arena.run, encounter: undefined },
+          ships: arena.ships.map(({ entity, steer }) => ({
+            id: entity.id,
+            x: steer.x,
+            z: steer.z,
+            heading: steer.heading,
+            speedKn: steer.helm.speedKn,
+            state: steer.helm.state,
+          })),
+          player: shipPose(),
+        },
+      /** Puts the ship at (x, z) in the arena, keeping her heading, e.g. past the edge. */
+      place: (x: number, z: number) => {
+        if (arena) placeShip({ x, z, heading: shipPose().heading });
+      },
+      hooks: arenaHooks,
+    };
+    (window as unknown as { __glpArena: typeof arenaHook }).__glpArena = arenaHook;
   }
 
   // Chart travel (Phase 3 piece D, plan 03 §5): M opens the chart, and at the soft edge it
@@ -761,7 +1007,20 @@ async function boot(): Promise<void> {
     placeShip,
     enterZone: (id, pose, arrival, onLoaded) => enterZone(id, pose, arrival, false, onLoaded),
     save: () => saveControls.saveNow(),
-    pursued: () => pursued,
+    pursued: () => pursued || !!arena?.run.pursued,
+    // Engage, or a failed avoid, meets them here; leaving reloads the zone and resumes the voyage.
+    enterArena: (enc, travel) => {
+      const zoneId = zoneData.id;
+      const pose = { ...shipPose() };
+      arenaHooks.onExit = (exit) =>
+        enterZone(zoneId, pose, { kind: 'return' }, false, () => {
+          travel.resumeFrom(exit.contactId);
+        });
+      void enterArena(
+        arenaFromChartEncounter(enc, travel.session.position, travel.session.heading),
+        true,
+      );
+    },
     seed: state.environment.rng.join('-'),
   });
   travelRef.current = chartTravel;
@@ -815,8 +1074,11 @@ async function boot(): Promise<void> {
       // A key that just changed the mode (M off the chart) mustn't act again in the new one.
       const contextBefore = input.context;
       machine.update(dt);
+      if (arena?.run.result) leaveArena(arena.run.result);
+      // A key that just changed the mode (M off the chart) mustn't act again in the new one.
+      // In an arena, M leaves it (the arena reads ToggleChart); it doesn't open the chart.
       const sameContext = input.context === contextBefore;
-      if (sameContext && input.context === 'sailing' && input.pressed('ToggleChart')) {
+      if (sameContext && !arena && input.context === 'sailing' && input.pressed('ToggleChart')) {
         const refused = chartTravel.fromHelm({ atEdge: atEdge(), inHarbor: inHarbor() });
         if (refused) showNotice(refused);
       }
@@ -849,9 +1111,10 @@ async function boot(): Promise<void> {
             gameSeconds: state.environment.clock.gameSeconds,
             draftM,
             barometer: ctx.weather.barometerAt(state.environment.clock.gameSeconds),
-            edge: zoneData.edge,
+            edge: arena ? undefined : zoneData.edge,
             notice: notice?.text,
-            chartLocked: pursued,
+            chartLocked: pursued || !!arena?.run.pursued,
+            extraStatus: arena ? arenaStatus(arena.run, arena.inputs(playerShip)) : undefined,
           }),
         );
       }
@@ -871,6 +1134,23 @@ async function boot(): Promise<void> {
   }
   document.body.dataset['startPose'] = poseText(spawn);
   loop.start();
+
+  // `?encounter=freighter` (or barge, steamer, tug, cutter, derelict, squall, fogbank,
+  // convoy) drops straight into an arena for checks (§20.3 criterion 5); `?at=47.05,-91.3`
+  // sets where on the lake, `?heading=250` the course sailed, `?cutter=hunt` lets the cutter
+  // hunt you (dev only until Phase 5's Wanted).
+  const encounterParam = params.get('encounter');
+  if (isDevEncounter(encounterParam)) {
+    const geo = westernSuperiorChart();
+    const [lat, lon] = (params.get('at') ?? '').split(',').map(Number);
+    const at =
+      Number.isFinite(lat) && Number.isFinite(lon) && params.get('at')
+        ? geo.projection.geoToChart({ lat: lat ?? 0, lon: lon ?? 0 })
+        : geo.projection.geoToChart(DEV_ARENA_AT_GEO);
+    const headingDeg = Number(params.get('heading') ?? 250);
+    const heading = ((Number.isFinite(headingDeg) ? headingDeg : 250) * Math.PI) / 180;
+    await enterArena(devEncounter(encounterParam, at, heading, params.get('cutter') === 'hunt'));
+  }
 }
 
 boot().catch((err: unknown) => {

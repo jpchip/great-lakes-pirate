@@ -844,7 +844,7 @@ The chart is now baked from the same NOAA bathymetry and USGS DEM as the zones (
 | No chart in a harbor | `setPieceAt` in `src/sim/terrain/zones.ts` | Inside a harbor set piece's footprint, M says "Not in the harbor: put out to open water first" |
 | Arrival | `chart-travel.ts`, `enterZone` in `main.ts` | A course into another zone stops where it crosses the zone's outline (S8); the zone loads behind the fade to fog at its entry nearest that point (`nearestEntry`, piece A), and the mode changes to sailing under the fog. The loading overlay now survives a mode change (`ModeMachine`). A course ending in open water leaves the ship hove to on the chart |
 | Chart HUD | `src/ui/chart/` | `model.ts` (pure, tested) samples the session at 10 Hz into a logbook card: the date and time, the wind, the lookouts' range, the course or the voyage with an **ETA in game time**, why a course is refused, **Set sail / Undo / Clear** or **Heave to**, the lookout setting, and the way back. `ChartHud.tsx` draws it; `plotting.ts` is S8's click, drag, Shift-click and right-click plotting; `text.ts` moved from the spike |
-| Encounter card | `ChartHud.tsx`, `encounterCard` | Engage (or Investigate, Sail through, Close and hail), Avoid with the odds for a hostile or Steer clear for the rest, Ignore for anything that isn't a threat; a forced meeting shows only "Into the arena". Without piece G, an arena meeting is noted ("You close and look her over") and the voyage carries on; `enterArena` on the host is the hook G fills |
+| Encounter card | `ChartHud.tsx`, `encounterCard` | Engage (or Investigate, Sail through, Close and hail), Avoid with the odds for a hostile or Steer clear for the rest, Ignore for anything that isn't a threat; a forced meeting shows only "Into the arena". Engage or a failed avoid calls `enterArena` (piece G, §25) and leaving the arena returns to the chart; without that hook the meeting is noted and the voyage carries on |
 | Chart locked | `ChartLockedBanner` in `src/ui/hud/Hud.tsx` | "Chart locked: you are being pursued" on the sailing HUD and the chart; M, Take to the chart and Set sail are refused while it shows. Nothing pursues yet: piece G's arena sets it, and `__glpChart.setPursued(true)` shows it |
 | Lookout setting | `chart.lookout` in `src/core/settings.ts` | In the settings store, so it survives the run (plan 13 §4.3). On the chart card and under **Camera & sailing** in settings |
 | Voyage in the save | `voyage` in `src/sim/world-state.ts`, save v4 | `{points, leg, progressM, startedAt}`: the plotted points and how far along. On load the course is planned again from the points (`restoreVoyage`); if it no longer plans (the chart data changed), the ship stays hove to where it was. `player.location` is `{mode: 'chart', chartPos, heading, fromZoneId}` while on the chart. v3 → v4 adds `voyage: null`; `tests/fixtures/saves/v4.json` is a run saved mid-voyage |
@@ -855,7 +855,7 @@ The chart is now baked from the same NOAA bathymetry and USGS DEM as the zones (
 | Check | Result |
 |---|---|
 | Criterion 2: Duluth → the Apostles edge | **23.1 real seconds** at the new default of 3.5 s per game hour (was 16.5 s at 2.5 s, §22.3), unit-tested at 20–30 s. The ETA is the sailed time at the current wind, from the same speed table |
-| The whole trip | An e2e test (`e2e/smoke.spec.ts`) takes to the chart at the Apostles' west edge, goes back and out again, plots to the Twin Ports, saves and reloads mid-voyage, answers the lookouts, and arrives at the Twin Ports' east entry heading west, saved there. Then M is a look with Set sail disabled, and the pursued banner locks the chart |
+| The whole trip | An e2e test (`e2e/smoke.spec.ts`) takes to the chart at the Apostles' west edge, goes back and out again, plots to the Twin Ports, saves and reloads mid-voyage, answers the lookouts (a meeting that can't be slipped is left off the arena's edge), and arrives at the Twin Ports' east entry heading west, saved there. Then M is a look with Set sail disabled, and the pursued banner locks the chart |
 | Arrival load | 1.3 s from the fade to the ship in the Twin Ports, uncached, with the null renderer in the cloud container. The 8 s budget is checked on the laptop in piece K |
 | Chart redraw in the game | 0.3–0.7 ms per frame at 1600 × 900 with the view still (headless Chromium, software canvas), as piece B's bench found |
 
@@ -871,12 +871,62 @@ Screenshots are in the project files (`chart-in-game/`).
 ### 24.4 Still to do
 - Piece E: the chart's wind from the sim (it's sampled from the zone's weather when the ship takes to the chart, then drifts as in S8), and weather drawn on the chart.
 - Piece F: the route graph traffic and a detour cost for Avoid.
-- Piece G: the arena behind `enterArena`, the pursuit lock from it, and retiring `chart-spike.html` (its arena code is what G ports).
+- Piece G is in (§25): engaging or failing to avoid enters its arena, and leaving returns to the chart with the zone reloaded behind it. `chart-spike.html` and `src/debug/chart-spike/` are still to retire.
 - Piece J: chart music and the transition sound.
+## 25. Phase 3 Piece G: Open-Water Arenas (2026-10-31)
+
+**Goal** (§20.4, piece G): the arena in the game as the sailing mode with no terrain tiles: the sim's weather, sky and time at the encounter point, the ships materialized from traffic on their lanes' headings with simple steering and collision avoidance, the coastline in view as low silhouettes from the chart, the pursuit lock within the threat radius, and back to the chart at the edge. `?encounter=<kind>` for checks.
+
+**Dependencies:** G needs D (chart in the game), F (traffic) and H (NPC ships). H is in. D and F weren't when this piece started, so G is built against a small encounter interface both can plug into, and checked through `?encounter=` without a chart. Two hooks are left for D (below); F only has to fill `ArenaEncounter.ships` from its abstract ships.
+
+**Result:** every encounter kind of §20.3 criterion 5 can be met in the game: `?encounter=freighter`, `barge`, `steamer`, `tug`, `cutter`, `derelict`, `squall`, `fogbank`, and `convoy` (a freighter towing a schooner-barge consort with a tug in company, for the multi-ship budget). Ships hold their courses and give way, the cutter can hunt (`?cutter=hunt`) and locks the chart while it has you, and sailing off the edge ends the arena. Screenshots are in the project files (`arenas/`).
+
+### 25.1 What was built
+
+| Piece | Where | Notes |
+|---|---|---|
+| Encounter | `src/sim/arena/encounter.ts` | `ArenaEncounter`: the chart contact's id, the kind (`ship`, `cutter`, `derelict`, `squall`, `fogbank`), where the player left the chart, their heading, the bearing to what was met, whether it was forced, whether the cutter hunts, and the ships to materialize (class, name, lane heading, speed, offset). `arenaFromChartEncounter` turns today's S8 `Encounter` into one; `devEncounter` makes the checks |
+| Layout | `src/sim/arena/arena.ts` | The arena's own frame: origin at the encounter point, C = 8, so the weather sim is sampled at the right place on the lake. What was met in the middle, the player 650 m off on the bearing it was sighted on (520 m when forced), on the heading they sailed the chart with, under full sail and making way |
+| Land | `src/sim/arena/land.ts` | The chart's land mask sampled once into a 25 m grid by scanline (about 3–20 ms). Encounters near a shore are nudged up to a few kilometers into clear water first; land still inside holds the player off like a wall, and the ships steer around it |
+| Steering | `src/sim/arena/steering.ts`, `src/gameplay/arena.ts` | Each NPC helm holds its lane's course at its service speed, turns at its class's `turnRateCurve`, and gives way to starboard of anything with a closest approach inside 75 s and the two half-lengths plus 70 m, slowing if it's very close; it holds the avoiding heading 6 s after the danger clears, then comes back to its course. It looks 40 s ahead for land and takes the nearest clear heading in 20° steps. The hunting cutter steers a lead course on the player instead and ignores the give-way rule for them |
+| Rules | `src/sim/arena/arena.ts` | Leave past ±1.5 km, or with M, unless pursued. A hunting ship within 900 m locks the chart and holds the player at the edge; within 45 m she's caught. "Close and look" (Phase 3's engage): hold F within 160 m for 1.5 s. A squall is ridden out in 40 s. Results: `left`, `resolved`, `caught` |
+| Weather | `src/main.ts` | The sim's weather at the encounter point through the arena frame, over open water (no shelter). A `squall` blows one up on the panel weather (30 kn, rain, thunder, 1.2 km visibility) until piece E brings squalls from the sim, then hands back. A `fogbank` stands a sim fog bank across the bow, 700 m off; the sim drifts it on the wind and mixes it out in 20 kn or more, as it does any bank |
+| Coast | `src/sim/arena/coast.ts`, `src/render/arena/coast-view.ts` | The coastline within 6 km (48 km real) resampled every 40 m with its inland side, as one flat-shaded mesh: a beach rising to a crest 22–56 m high on the mainland and 10–26 m on islands, varying along the shore. One draw call. Fog closes in over the last 500 m before the edge |
+| Derelict | `src/render/ships/npc-view.ts` | A schooner-barge with no canvas, no lamps and no smoke, listing 14° and lying still |
+| Game | `src/main.ts`, `src/modes/sailing.ts`, `src/render/test-scene.ts`, `src/ui/` | `enterArena(enc)` and `leaveArena(result)` behind the same fade as a zone, with a logbook line per kind ("Closing the Hiram R. Dixon."). The sailing mode takes an `arena` hook for the ships, rules and edge hold; the scene a `setArena` for the coast and the edge fog; the HUD a chip list ("Chart locked: the cutter has you", "Hold F to look her over", "Squall: ride it out 32 s", "Sail on for the chart"). Nothing in an arena overwrites the run's saved zone place. `ArenaEntered` and `ArenaExited` events |
+| Checks | `tests/arena-game.test.ts`, `e2e/smoke.spec.ts` | 16 unit tests: every kind and every NPC class can be met, the S8 adapter, layout, the land grid agrees with the chart's land test, the nudge clears the arena, coast silhouettes face inland, two steamers meeting end on pass clear and come back to course, a tug gives way to the player, a steamer heading for the North Shore stays off it, the hunting cutter runs down a ship hove to, a derelict lies still, and the exit, look, lock, caught and squall rules. An e2e test drops into a convoy and sails off the edge. `__glpArena` with `?debug`: `enter('cutter', true)`, `state()`, `place(x, z)` |
+
+### 25.2 Results
+
+| Measure | Result |
+|---|---|
+| Arena set-up (chart cached, land grid, nudge, coast) | Under 50 ms in Node; the first arena also builds the chart (about 40 ms) |
+| Chart to arena (criterion 3: 2 s or less) | 0.65 s fade plus set-up; 2.1–3.0 s in headless Chromium on software WebGL, which compiles the NPC ship shaders on first use. Needs the laptop |
+| Draw calls, Medium | 37 with one freighter, 39 with the three-ship convoy (budget 150) |
+| Heap in an arena | 23 MB |
+
+- **The North Shore is close to most of the Duluth track.** From the default check point (47.05°N 91.3°W) the shore near Castle Danger is inside the gridded square, so land in the arena isn't an edge case. Nudging keeps the play area clear; the silhouettes put the shore on the skyline where it is.
+- **NPC ships were steaming about twice as fast as they should.** `createNpcShipEntity` passed knots to `sceneSpeed`, which takes m/s. Fixed: a 10 kn freighter now makes 15.4 m/s on screen, as the schooner does at 10 kn.
+
+### 25.3 Decisions made in the piece
+- **An arena is the sailing mode, not a new mode.** No `arena` mode id: the zone is unloaded, the arena's hooks are set, and the HUD, camera, audio and controls are the sailing ones.
+- **The arena has its own frame at the encounter point** rather than the last zone's, so weather, fog banks and the coast all line up with the chart.
+- **Land in an arena is a wall, not a shoal.** There's no depth map in an arena; touching chart land stops the ship. Encounters are nudged off shores so it's rare.
+- **Engage is "close and look":** hold F alongside, which marks the encounter resolved. Hails and boarding come with Phases 4 and 6.
+- **Caught by the cutter ends the arena** with `caught` (dev only; nothing forces it until Phase 5's Wanted).
+
+### 25.4 Hooks for piece D, and still to do
+- **Piece D calls `enterArena(arenaFromChartEncounter(enc, chartPos, heading))`** on Engage or a failed avoid, and `arenaHooks.onExit` reloads the zone left behind and returns to chart mode with `resumeFrom(exit.contactId)`. An arena entered from a zone (`?encounter=`) still returns there. The chart-locked banner reads `arena.run.pursued` as well as the dev hook. Still to retire: `chart-spike.html` and `src/debug/chart-spike/`.
+- **F fills `ArenaEncounter.ships`** from its abstract ships near the encounter point, with their class, lane heading and speed and an offset each, so a crossing can bring more than one ship.
+- **Saving in an arena** keeps the chart voyage when one is under way, so a reload resumes it (§20.5); otherwise the zone place recorded on the way in.
+- **Squalls and fog banks from the sim** are piece E's: the `squall` check uses panel weather until then.
+- The chart-to-arena time on the laptop (criterion 3), and Jared's arena feel check.
+- The player can sail through an NPC hull; collisions come with combat (Phase 6).
 
 ---
 
 ## Changelog
+- v0.19: Phase 3 piece G (§25): open-water arenas in the game, wired to piece D's chart so engaging returns to the voyage; NPC helms with give-way and land avoidance, coast silhouettes, the pursuit lock, `?encounter=` checks, and NPC speeds fixed.
 - v0.18: Phase 3 piece D (§24): chart mode in the game, taking to the chart at the soft edge, M as a look, the encounter card and the chart locked banner, arrival at a zone's entry, the voyage in save v4, and the chart clock slowed to 3.5 s per game hour for criterion 2.
 - v0.17: Phase 3 piece C (§23): the Twin Ports and Two Harbors zones baked, with set-piece footprints, dredged cuts for the Duluth canal, Superior Entry and Agate Bay, and their ports.
 - v0.16: Phase 3 piece B (§22): the chart is baked from NOAA and USGS data (`npm run geo:chart`), zone outlines come from the bake settings, real soundings and depth shading, a cached static layer, and a chart redraw bench. The Siskiwit Bay chart area moved west of the larger baked Apostles zone.

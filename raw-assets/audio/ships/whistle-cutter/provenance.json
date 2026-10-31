@@ -1,0 +1,10 @@
+{
+  "source": "procedural",
+  "tool": "tools/audio/synth.ts (tools/audio/lib/synth.ts)",
+  "author": "Great Lakes Pirate contributors",
+  "reference": "Additive steam whistle: Two bells at 349 and 415 Hz with a 40-cent warble at 2.2 Hz, pressure-following pitch, band-passed steam noise",
+  "date": "2026-10-31",
+  "license": "CC BY 4.0",
+  "attribution": "Great Lakes Pirate contributors",
+  "modifications": []
+}

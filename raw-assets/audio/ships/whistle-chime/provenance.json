@@ -1,0 +1,10 @@
+{
+  "source": "procedural",
+  "tool": "tools/audio/synth.ts (tools/audio/lib/synth.ts)",
+  "author": "Great Lakes Pirate contributors",
+  "reference": "Additive steam whistle: A three-bell chime at 262, 311 and 392 Hz, pressure-following pitch, band-passed steam noise",
+  "date": "2026-10-31",
+  "license": "CC BY 4.0",
+  "attribution": "Great Lakes Pirate contributors",
+  "modifications": []
+}

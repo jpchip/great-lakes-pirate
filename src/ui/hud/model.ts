@@ -143,6 +143,8 @@ export interface HudSources {
   notice?: string | undefined;
   /** Pursued: the chart is locked (plan 13 §4.3). */
   chartLocked?: boolean | undefined;
+  /** Standing chips from the mode, e.g. an arena's pursuit lock (Phase 3 piece G). */
+  extraStatus?: readonly string[] | undefined;
 }
 
 /** Seconds a refusal chip stays up. */
@@ -206,6 +208,7 @@ export function sampleHud(src: HudSources): HudSnapshot | undefined {
   const status = hz ? hazardStatus(hz.state) : [];
   const atEdge =
     !!src.terrain && !!src.edge && edgeFactor(src.terrain.bounds, src.edge, s.x, s.z) > EDGE_CHIP;
+  for (const chip of src.extraStatus ?? []) if (!status.includes(chip)) status.push(chip);
   if (src.notice && !status.includes(src.notice)) status.push(src.notice);
   return {
     headingDeg: heading,

@@ -150,6 +150,31 @@
       "type": "audio",
       "url": "wildlife/loon-4.ogg",
       "bytes": 5623
+    },
+    "sfx.ship.foghorn": {
+      "type": "audio",
+      "url": "ships/foghorn.ogg",
+      "bytes": 29799
+    },
+    "sfx.ship.whistle-chime": {
+      "type": "audio",
+      "url": "ships/whistle-chime.ogg",
+      "bytes": 40726
+    },
+    "sfx.ship.whistle-cutter": {
+      "type": "audio",
+      "url": "ships/whistle-cutter.ogg",
+      "bytes": 43459
+    },
+    "sfx.ship.whistle-freighter": {
+      "type": "audio",
+      "url": "ships/whistle-freighter.ogg",
+      "bytes": 35940
+    },
+    "sfx.ship.whistle-tug": {
+      "type": "audio",
+      "url": "ships/whistle-tug.ogg",
+      "bytes": 46470
     }
   },
   "bundles": {
@@ -187,7 +212,12 @@
       "amb.wildlife.loon-1",
       "amb.wildlife.loon-2",
       "amb.wildlife.loon-3",
-      "amb.wildlife.loon-4"
+      "amb.wildlife.loon-4",
+      "sfx.ship.foghorn",
+      "sfx.ship.whistle-chime",
+      "sfx.ship.whistle-cutter",
+      "sfx.ship.whistle-freighter",
+      "sfx.ship.whistle-tug"
     ]
   }
 }

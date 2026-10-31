@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_COMPRESSION, sceneSpeed } from '../src/core/coords';
+import { DEFAULT_COMPRESSION, knotsToMs, sceneSpeed } from '../src/core/coords';
 import { R_SAILING } from '../src/core/time';
 import {
   createNpcShipEntity,
@@ -219,7 +219,8 @@ describe('NPC entities', () => {
     const record = NPC_RECORDS[0];
     if (!record) throw new Error('No NPC classes');
     const e = createNpcShipEntity(record, 0, 0, 90 * DEG);
-    const v = sceneSpeed(serviceSpeedKn(record), R_SAILING, DEFAULT_COMPRESSION);
+    // Knots to m/s first: a 10 kn freighter makes 15.4 m/s on screen, as the schooner does.
+    const v = sceneSpeed(knotsToMs(serviceSpeedKn(record)), R_SAILING, DEFAULT_COMPRESSION);
     expect(e.velocity?.x).toBeCloseTo(v);
     expect(e.velocity?.z).toBeCloseTo(0);
     expect(e.model).toBe('npc');
