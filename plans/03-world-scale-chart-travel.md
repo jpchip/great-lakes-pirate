@@ -867,7 +867,7 @@ The chart is now baked from the same NOAA bathymetry and USGS DEM as the zones (
 
 ### 24.3 Decisions made in the piece
 - **An arena is the sailing mode, not a new mode.** No `arena` mode id: the zone is unloaded, the arena's hooks are set, and the HUD, camera, audio and controls are the sailing ones.
-- **The arena has its own frame at the encounter point** rather than the last zone's, so weather, fog banks and the coast all line up with the chart.
+- **The arena has its own frame at the encounter point** rather than the last zone's, so weather, fog banks and the coast all line up with the chart. The chart geography is projected about the western lake and the weather sim about the whole lake, so the arena carries its centre across by latitude and longitude (`arenaWeatherFrame`); piece D's `toWorldChart` does the same and can replace it.
 - **Land in an arena is a wall, not a shoal.** There's no depth map in an arena; touching chart land stops the ship. Encounters are nudged off shores so it's rare.
 - **Engage is "close and look":** hold F alongside, which marks the encounter resolved. Hails and boarding come with Phases 4 and 6.
 - **Caught by the cutter ends the arena** with `caught` (dev only; nothing forces it until Phase 5's Wanted).

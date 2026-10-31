@@ -1,4 +1,11 @@
-import { DEFAULT_COMPRESSION, chartToZone, type Chart, type ZoneFrame } from '../../core/coords';
+import {
+  ChartProjection,
+  DEFAULT_COMPRESSION,
+  chartToZone,
+  type Chart,
+  type ZoneFrame,
+} from '../../core/coords';
+import type { ChartGeography } from '../chart/geography';
 import type { TerrainBounds } from '../terrain/zone-terrain';
 import type { ArenaEncounter, ArenaShip } from './encounter';
 import type { ArenaLand } from './land';
@@ -40,6 +47,22 @@ export const ARENA_BOUNDS: TerrainBounds = {
 /** The arena's frame: its centre on the chart at the zones' compression. */
 export function arenaFrame(centre: Chart, compression = DEFAULT_COMPRESSION): ZoneFrame {
   return { origin: { x: Math.round(centre.x), y: Math.round(centre.y) }, compression };
+}
+
+/** The zones' and weather sim's chart projection (the lake-wide default). */
+const WORLD = new ChartProjection();
+
+/**
+ * The arena's frame for the weather sim. The chart geography has its own projection
+ * (centred on the western lake); the sim, zones and save use the lake-wide one, so the
+ * arena's centre is carried across through latitude and longitude.
+ */
+export function arenaWeatherFrame(geo: ChartGeography, frame: ZoneFrame): ZoneFrame {
+  const world = WORLD.geoToChart(geo.projection.chartToGeo(frame.origin));
+  return {
+    origin: { x: Math.round(world.x), y: Math.round(world.y) },
+    compression: frame.compression,
+  };
 }
 
 export interface PlacedShip {
