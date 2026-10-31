@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { writeWaveUniforms, type Sea, type SeaScaleGrid } from '../../sim/weather/waves';
 import type { QualityPreset } from '../quality';
 import { createWaterMaterial } from './water-material';
-import { shoreRect, shoreTexture, type ShoreGrid } from './shore';
+import { deepWaterTexture, shoreRect, shoreTexture, type ShoreGrid } from './shore';
 
 /** Radius of the detailed water disc: the rings the presets' counts cover (plan 04 §7). */
 const WATER_RADIUS_M = 2500;
@@ -122,6 +122,8 @@ export interface Water {
   setScale(sea: Sea): void;
   /** Depth bands and shore foam from the zone's shore texture (shore.ts). */
   setShore(grid: ShoreGrid): void;
+  /** Open water again: no depth bands or shore foam (the zone was left). */
+  clearShore(): void;
   /** Follows the camera and uploads any change the weather made to the sea. */
   update(camera: THREE.Camera, seaTime: number): void;
 }
@@ -181,6 +183,11 @@ export function createWater(
       material.uniforms.uShore.value = shoreTexture(grid);
       shoreRect(grid, material.uniforms.uShoreRect.value);
       material.uniforms.uShoreOn.value = 1;
+    },
+    clearShore() {
+      material.uniforms.uShore.value.dispose();
+      material.uniforms.uShore.value = deepWaterTexture();
+      material.uniforms.uShoreOn.value = 0;
     },
     update(camera, seaTime) {
       if (sea.wavesVersion !== wavesVersion) water.setWaves(sea);

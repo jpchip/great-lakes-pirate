@@ -29,7 +29,7 @@ export interface SailingModeOptions {
   view?: SailingView | undefined;
   /** The wind at a zone point: `ctx.weather.windAt` at the current game time. */
   wind: WindSampler;
-  /** Piers and their berths in the zone (plan 02 §7); none means open water. */
+  /** Piers and their berths in the zone (plan 02 §7); none means open water. Swappable. */
   docks?: readonly Dock[];
   berths?: readonly MooringBerth[];
   /** A playtest speed-up for the clock and the weather only (`?timewarp=`); 1 by default. */
@@ -120,8 +120,13 @@ export function createSailingMode(ctx: GameContext, options: SailingModeOptions)
     get terrain() {
       return ctx.terrain;
     },
-    docks: options.docks ?? [],
-    berths: options.berths ?? [],
+    // Read each tick: a zone change swaps them (Phase 3 piece A).
+    get docks() {
+      return options.docks ?? [];
+    },
+    get berths() {
+      return options.berths ?? [];
+    },
   };
 
   return {

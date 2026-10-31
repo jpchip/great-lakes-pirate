@@ -4,6 +4,11 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ## [Unreleased]
 
+### Added
+
+- **Continue where you left off:** a reload puts the ship back where the run was last saved, instead of at the North Channel spawn. Saves from 0.2.0 carry over and start at the spawn ([plan 03 §21](plans/03-world-scale-chart-travel.md)).
+- **Zones load by id** behind a fade to fog, with the zone just left kept for a minute in case you turn back. The Apostles have entry points on their west, north and east edges for arrivals from the chart. `?zone=` and `?entry=west` start there; with `?debug`, the dev panel's Zone folder changes zone.
+
 ## [0.2.0] - 2026-10-31
 
 The **Superior Slice** (Phase 2): the whole Apostles zone and Chequamegon Bay to sail with no loading screen, the weather sim running the sky, the seven lighthouses of 1900, harbors at Bayfield and Ashland, and the sounds of weather, shore and harbor.

@@ -188,7 +188,7 @@ export class WorldSoundscape {
   constructor(
     private readonly mixer: AudioMixer,
     private readonly bank: SoundBank,
-    private readonly stations: readonly SignalStation[] = [],
+    private stations: readonly SignalStation[] = [],
     private readonly random: () => number = Math.random,
   ) {
     this.ctx = mixer.ctx as BaseAudioContext;
@@ -201,6 +201,11 @@ export class WorldSoundscape {
     this.dripT = new RandomTrigger(random, 0.15);
     this.gullT = new RandomTrigger(random, 2.5);
     this.loonT = new RandomTrigger(random, 8);
+  }
+  /** The zone's lights changed (Phase 3 piece A); the old ones fall silent. */
+  setStations(stations: readonly SignalStation[]): void {
+    this.stations = stations;
+    this.scheduledTo.clear();
   }
 
   /** Fades the world in or out with sailing mode. */

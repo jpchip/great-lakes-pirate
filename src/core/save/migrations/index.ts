@@ -13,7 +13,7 @@ import { Rng, type RngState } from '../../rng';
 export type SavePayload = Record<string, unknown>;
 export type Migration = (state: SavePayload) => SavePayload;
 
-export const CURRENT_SAVE_VERSION = 2;
+export const CURRENT_SAVE_VERSION = 3;
 
 /** Hours of weather a migrated save catches up on at load, like a new run's spin-up. */
 const WEATHER_SPIN_UP_HOURS = 48;
@@ -48,6 +48,17 @@ function addWeather(state: SavePayload): SavePayload {
   };
 }
 
+/**
+ * v2 → v3 (plan 03 §20, Phase 3 piece A): `player.location` joins the save. Every Phase 2
+ * run was in the Apostles, and none saved where the ship was, so a migrated run starts
+ * at the Apostles spawn, as a reload always did before.
+ */
+function addLocation(state: SavePayload): SavePayload {
+  const player = (state['player'] ?? {}) as SavePayload;
+  return { ...state, player: { ...player, location: { mode: 'zone', zoneId: 'zone.apostles' } } };
+}
+
 export const migrations: Readonly<Record<number, Migration>> = {
   1: addWeather,
+  2: addLocation,
 };

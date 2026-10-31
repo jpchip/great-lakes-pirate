@@ -14,7 +14,8 @@ export type ModeId =
   | 'jail'
   | 'gameOver';
 
-export type OverlayId = 'trade' | 'dialog' | 'inventory' | 'journal' | 'pause' | 'boarding';
+export type OverlayId =
+  'trade' | 'dialog' | 'inventory' | 'journal' | 'pause' | 'boarding' | 'loading';
 
 const IN_GAME: readonly ModeId[] = ['chart', 'sailing', 'onFoot', 'build', 'jail'];
 
@@ -93,6 +94,14 @@ export class ModeMachine {
 
   popOverlay(): OverlayId | undefined {
     return this.overlays.pop()?.id;
+  }
+
+  /** Closes the topmost overlay with this id, wherever it is in the stack. */
+  removeOverlay(id: OverlayId): boolean {
+    const i = this.overlays.map((o) => o.id).lastIndexOf(id);
+    if (i < 0) return false;
+    this.overlays.splice(i, 1);
+    return true;
   }
 
   get topOverlay(): OverlayId | undefined {

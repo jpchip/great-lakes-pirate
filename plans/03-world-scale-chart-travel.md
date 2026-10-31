@@ -265,7 +265,7 @@ Spotted something (or something spotted you)
 ## 9. World Data Model (additions to `data/` and `WorldState`)
 
 **Static data:**
-- `zones.json`: id, geo bounds, C, origin, tile manifest path, set pieces[], walkable islands[], entry points[], region mapping. *Built (§17):* id, name, world folder, C, center (the bake rounds it to the origin), the bake settings, the soft edge, the spawn, and set pieces with their footprints. Entry points come with chart travel (Phase 3) and the region mapping with plan 06.
+- `zones.json`: id, geo bounds, C, origin, tile manifest path, set pieces[], walkable islands[], entry points[], region mapping. *Built (§17):* id, name, world folder, C, center (the bake rounds it to the origin), the bake settings, the soft edge, the spawn, and set pieces with their footprints. Entry points came with Phase 3 piece A (§21); the region mapping comes with plan 06.
 - `setpieces.json`: id, zone, 1:1 footprint, placement, linked port and docks district.
 - `islands.json`: id, name, zone, footprint, landing points, POIs (filled by plan 11). *Built (§17):* id, name, zone, center point, and the hand edits (Long Island's clip box, Gull Island's rock). The footprint the bake found is in the zone manifest; landings and POIs come with plan 11.
 - `routes.json`: route graph nodes (ports, zone entries, waypoints) and edges (lanes) with traffic weights by season.
@@ -722,9 +722,42 @@ Eleven pieces, each sized to be one thread. Four can start at once (A, B, C, H).
 - The master plan's §11 Next Steps still lists Phase 0 work.
 - Plan 17 wants a tracking issue per phase with the acceptance checklist. The §20.3 table can become that issue once approved.
 
+## 21. Phase 3 Piece A: Zones by Id and the Saved Location (2026-10-31)
+
+**Goal** (§20.4, piece A): load and unload a zone by id behind a period loading screen, keeping the last zone cached briefly; entry points in `zones.json`; the player's location and the ship's pose in the save, so Continue goes back where you were.
+
+**Result:** built. The game no longer always starts at the North Channel spawn: a reload puts the ship back where the last save left it. Zones load by id through a zone manager, and a zone change fades to fog, swaps the zone out of sight, and saves on the way out and on arrival. The chart (piece D) is what will call it; until then the dev panel and the console do.
+
+### 21.1 What was built
+| Piece | Where | Notes |
+|---|---|---|
+| Entry points | `data/zones.json` `entries`, `data/schemas/zones.ts`, `src/sim/terrain/zones.ts` | Each has an id, a name, what lies off that edge (`toward`), a point in zone meters and a heading in. The Apostles have three, about 600 m inside the open-water edges: **west** (north of Sand Island, toward Duluth), **north** (north of Bear Island, toward Two Harbors) and **east** (south of Michigan Island, toward the Keweenaw); the south edge is land. `nearestEntry` picks the one nearest a chart point, for piece D's arrivals. A test checks each sits in the fog fade but short of the "Zone edge" chip, faces into the zone, and has 1.5 km of water at least 6 m deep ahead. |
+| Zone manager | `src/sim/terrain/zone-manager.ts` | `enter(id)` loads a zone's files by id, or takes it from the cache. One zone is resident at a time: `leave()` keeps the last one for 60 s (`ZONE_KEEP_MS`) and `sweep()` frees it after; entering another zone frees the cached one before decoding the new one. Overlapping loads: the later one wins. |
+| Location in the save | `src/sim/world-state.ts`, `src/sim/location.ts` | `player.location` is `{mode: 'zone', zoneId, pose?}` or `{mode: 'chart', chartPos, heading, fromZoneId?}`. No pose means the zone's spawn. `resolveStart` turns it into a zone and a pose: the saved pose, the spawn for a new run or a zone the data no longer has, and for a chart location (piece D) the entry nearest its chart position. Each save writes the ship's pose first. |
+| Save v3 | `src/core/save/migrations/index.ts`, `tests/fixtures/saves/v3.json` | v2 → v3 adds `player.location` at the Apostles with no pose, so a 0.2.0 run starts at the spawn, as every reload did before. |
+| Zone swap | `src/main.ts`, `src/render/test-scene.ts`, `src/audio/` | The scene's zone layer (terrain meshes and their tile worker, trees, lighthouses, harbors, the water's shore texture) is built and disposed as one, and its preset listeners go with it. On a zone change the terrain, the wind maps, the weather's frame, the piers and berths, the fog signals and gull points, and the HUD's edge all follow the new zone; the ship is placed at its pose with way off, keeping its sails, damage and cargo. `ZoneExited` and `ZoneEntered` go on the bus. |
+| Loading screen | `src/ui/loading/` | A fade to fog with a logbook card: "Making for / Apostle Islands / Out of the fog, north of Bear Island." The gameplay tick pauses under it (a `loading` overlay) and the keys do nothing. |
+| Checks | `?zone=<id>`, `?entry=west` | Start in a zone, or at one of its entries. With `?debug` (or in dev builds), `__glpZones.enter('zone.apostles', 'north')` from the console, and the dev panel's **Zone** folder (zone, entry, "Skip the cache") with a zone line in the readout. |
+
+### 21.2 Results
+- **Continue:** saving, reloading and coming back to the same pose is an e2e test, and so is entering a zone at an entry and reloading there.
+- **Memory round trip** (criterion 9 at the data level): `tests/zone-manager.test.ts` decodes the real Apostles (about 48 MB), enters a second zone id over the same files, comes back, lets the cache expire, and checks the memory falls back within 20 MB. In headless Chromium with the WebGL build, three uncached reloads of the Apostles left the JS heap at 10–11 MB and array buffers at 59–61 MB, the same as before the first, so nothing from a left zone is kept. The tile worker's copy goes with the worker, which is terminated on dispose.
+- **Load time:** 1.5–2.2 s from the fade starting to the ship in the new zone, uncached, in the cloud container on Low (the 0.65 s fade included). The 8 s budget is checked on the laptop in piece K, with the new zones.
+
+### 21.3 Decisions made in the piece
+- **The pose lives in `player.location`,** not a separate ship slice: it is where the player is. The ship slice (plan 10) keeps its upgrades and condition.
+- **Damage isn't saved yet.** A reload brings back the pose with full hull and rigging, as before; a moored or anchored ship comes back free and stopped. The ship's condition joins the save with plan 10's slice.
+- **Entries are 600 m inside the edge,** in the fog but short of the "Zone edge" chip, so arriving never offers to leave.
+- **The boot load has no loading screen.** The UI mounts after the first zone; the fade covers every zone change after that.
+
+### 21.4 Still to do
+- Piece D calls `enterZone` on arrival from the chart, with `nearestEntry` for the point where the course crosses the zone's outline, and saves `{mode: 'chart'}` while under way.
+- The 8 s warm-cache load is measured on the laptop with the Twin Ports and Two Harbors (piece C), and the heap round trip in the dev overlay with two real zones.
+
 ---
 
 ## Changelog
+- v0.15: Phase 3 piece A built (§21): zones by id with the last one cached, entry points, `player.location` in save v3, Continue back to the saved pose, and the fade to fog between zones.
 - v0.14: Phase 3 scope proposed (§20): what Phase 2 changes, deliverables, exit criteria, eleven work pieces, assumed calls, and the new zones get dockable harbors (decided 2026-10-31).
 - v0.13: Phase 2 exit criteria and playtest (§19), passed 2026-10-31; `?timewarp=` for the week-of-weather check.
 - v0.12: Phase 2 piece G: Bayfield and Ashland harbors (§18), the Ashland ore dock at 1:1 in open water in place of a rebaked lens.
