@@ -23,10 +23,14 @@ import type { GameContext } from './context';
 import type { Mode } from './machine';
 
 /**
- * Default chart time compression (plan 03 §5.3: ~1 game hour per 2–3 real seconds):
- * game seconds per real second while a voyage is under way.
+ * Real seconds per game hour on the chart under way. Plan 03 §5.3 asked for ~2–3 s, but
+ * with the baked Apostles zone reaching farther west (§22.3) that put Duluth → the
+ * Apostles edge at 16.5 s; 3.5 s brings it back inside criterion 2's 20–30 s (§24).
  */
-export const CHART_TIME_SCALE = 3600 / 2.5;
+export const CHART_SECONDS_PER_HOUR = 3.5;
+
+/** Default chart time compression: game seconds per real second while under way. */
+export const CHART_TIME_SCALE = 3600 / CHART_SECONDS_PER_HOUR;
 
 /**
  * Pacing guard: after the lookouts report something, they stay quiet about anything

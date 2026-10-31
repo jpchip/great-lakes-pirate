@@ -36,6 +36,7 @@ import {
 import { coastRuns } from './sim/arena/coast';
 import {
   DEV_ARENA_AT_GEO,
+  arenaFromChartEncounter,
   devEncounter,
   isDevEncounter,
   type ArenaEncounter,
@@ -48,6 +49,7 @@ import type { SaveControls } from './debug/overlay';
 import type { GameContext, GameEvents } from './modes/context';
 import { ModeMachine } from './modes/machine';
 import { createSailingMode, type SailingModeOptions, type SailingView } from './modes/sailing';
+import { createChartTravel, type ChartTravel } from './modes/chart-travel';
 import { loadAssets } from './render/assets';
 import { browserStorage, isQualityId } from './render/quality';
 import { GameRenderer } from './render/renderer';
@@ -66,6 +68,7 @@ import {
   findEntry,
   findZoneDef,
   manifestFrame,
+  setPieceAt,
   ZONE_DEFS,
   spawnPose,
   zoneDef,
@@ -82,6 +85,7 @@ import { createSea } from './sim/weather/waves';
 import { createWorldState, parseWorldState, type WorldState } from './sim/world-state';
 import type { ZoneDef } from '../data/schemas/zones';
 import { anchorRefusedNotice, dockRefusedNotice, NOTICE_S, sampleHud } from './ui/hud/model';
+import { offersChart } from './sim/terrain/zone-edge';
 import { arenaLoadingScreen, loadingScreen, type Arrival } from './ui/loading/model';
 import { mountGameUi } from './ui/mount';
 
@@ -417,6 +421,8 @@ async function boot(): Promise<void> {
   if (audio) document.body.dataset['audioBank'] = String(audio.bank.size);
 
   let changingZone = false;
+  // Chart travel (Phase 3 piece D); built once the UI is up.
+  const travelRef: { current: ChartTravel | undefined } = { current: undefined };
   /** The open-water arena in play (Phase 3 piece G), if any. */
   let arena: ArenaPlay | undefined;
   /** The ship's pose is in an arena's frame: from entering one until back in a zone. */
@@ -433,14 +439,16 @@ async function boot(): Promise<void> {
     async saveNow(): Promise<void> {
       if (!saver) return;
       state.environment.rng = ctx.rng.getState();
-      // Where the ship is, so Continue comes back here (Phase 3 piece A). Not mid-load:
-      // the location already names the zone being entered.
-      // Nor in an arena: its coordinates aren't the zone's, and the run resumes from where it
-      // left the chart (piece D records that).
-      if (!changingZone && !inArenaSpace) recordZonePose(state, zoneData.id, shipPose());
+      // Where the ship is, so Continue comes back here (Phase 3 piece A): on the chart with
+      // the voyage (piece D), including while an arena entered from it is in play, or in the
+      // zone. Not mid-load: the location already names the zone being entered. An arena
+      // entered from a zone keeps the place recorded on the way in; its frame isn't the zone's.
+      if (!changingZone && !travelRef.current?.record(state) && !inArenaSpace)
+        recordZonePose(state, zoneData.id, shipPose());
       try {
         await saver.save(state);
         const at = state.player.location;
+        document.body.dataset['savedMode'] = at.mode;
         if (at.mode === 'zone' && at.pose) {
           document.body.dataset['savedPose'] = poseText(at.pose);
         }
@@ -572,6 +580,9 @@ async function boot(): Promise<void> {
       cameraRig.spyglassToggle = spyglassToggle;
     }
     input.bindings = applyBindingOverrides(DEFAULT_BINDINGS, s.bindings);
+    // M back off the chart follows M onto it.
+    const toggle = input.bindings.sailing.ToggleChart;
+    if (toggle) input.bindings.chart = { ...input.bindings.chart, ToggleChart: toggle };
     sailing.state.manualTrim = s.sailing.manualTrim;
   };
 
@@ -582,6 +593,19 @@ async function boot(): Promise<void> {
   const ui = mountGameUi({
     root: uiRoot,
     settings,
+    chart: {
+      sail: () => travelRef.current?.setSail(),
+      undo: () => travelRef.current?.undo(),
+      clear: () => travelRef.current?.clear(),
+      heaveTo: () => travelRef.current?.heaveTo(),
+      back: () => travelRef.current?.back(),
+      answer: (choice) => travelRef.current?.answer(choice),
+      dismissNotice: () => travelRef.current?.dismissNotice(),
+      setLookout: (pref) => settings.update((s) => (s.chart.lookout = pref)),
+    },
+    onTakeToChart: () => {
+      if (machine.mode === 'sailing' && !machine.gameplayPaused) travelRef.current?.takeToChart();
+    },
     audio: audio && {
       settings: audio.mixer.settings,
       setVolume: (id, volume) => audio.setVolume(id, volume),
@@ -647,6 +671,7 @@ async function boot(): Promise<void> {
     pose: Pose,
     arrival: Arrival,
     fresh = false,
+    onLoaded?: () => void,
   ): Promise<void> => {
     if (changingZone) return;
     const def = zoneDef(id);
@@ -655,6 +680,7 @@ async function boot(): Promise<void> {
     changingZone = true;
     machine.pushOverlay('loading');
     const inputBefore = input.context;
+    const modeBefore = machine.mode;
     input.context = 'menu';
     ui.setLoading(loadingScreen(def.name, arrival));
     document.body.dataset['zoneLoad'] = 'loading';
@@ -687,6 +713,8 @@ async function boot(): Promise<void> {
       scene?.setZone(zone, def.edge);
       document.body.dataset['terrain'] = zone ? 'loaded' : 'unavailable';
       document.body.dataset['zone'] = def.id;
+      // Arriving from the chart: back to the helm under the fog (piece D).
+      onLoaded?.();
     } finally {
       changingZone = false;
     }
@@ -701,7 +729,9 @@ async function boot(): Promise<void> {
     document.body.dataset['zoneLoad'] = 'done';
     document.body.dataset['zoneLoadMs'] = String(Math.round(loadMs));
     ui.setLoading(undefined);
-    input.context = inputBefore;
+    // A mode change under the fog takes that mode's keys.
+    input.context =
+      machine.mode === modeBefore ? inputBefore : machine.mode === 'chart' ? 'chart' : 'sailing';
     input.endTick();
     machine.removeOverlay('loading');
   };
@@ -746,7 +776,9 @@ async function boot(): Promise<void> {
    */
   let arenaFrom: { zoneId: string; pose: Pose } | undefined;
   let leavingArena = false;
-  const arenaHooks: { onExit?: (exit: ArenaExit) => void } = {};
+  const arenaHooks: {
+    onExit?: ((exit: ArenaExit) => void | Promise<void>) | undefined;
+  } = {};
   /** The fade to fog with a logbook line, for an arena's way in. */
   const arenaFade = async (title: string, line: string, work: () => void): Promise<void> => {
     changingZone = true;
@@ -762,7 +794,9 @@ async function boot(): Promise<void> {
     } finally {
       changingZone = false;
       ui.setLoading(undefined);
-      input.context = inputBefore;
+      // work() may have left the chart for the helm; follow the mode, not the context from before.
+      input.context =
+        machine.mode === 'sailing' ? 'sailing' : machine.mode === 'chart' ? 'chart' : inputBefore;
       input.endTick();
       machine.removeOverlay('loading');
       document.body.dataset['zoneLoad'] = 'done';
@@ -770,9 +804,11 @@ async function boot(): Promise<void> {
     }
   };
   let squallOverride = false;
-  const enterArena = async (enc: ArenaEncounter): Promise<void> => {
+  const enterArena = async (enc: ArenaEncounter, fromChart = false): Promise<void> => {
     if (changingZone || arena) return;
-    // The run's last zone place is saved on the way in; nothing is saved inside.
+    // A zone entry (the `?encounter=` checks) returns to that zone. The chart sets its own exit.
+    if (!fromChart) arenaHooks.onExit = undefined;
+    // The run's last place is saved on the way in; nothing is saved inside the arena frame.
     await saveControls.saveNow();
     arenaFrom = { zoneId: zoneData.id, pose: shipPose() };
     const geo = westernSuperiorChart();
@@ -841,6 +877,8 @@ async function boot(): Promise<void> {
       document.body.dataset['arena'] = enc.kind;
       document.body.dataset['arenaShips'] = String(play.ships.length);
       delete document.body.dataset['arenaResult'];
+      // Off the chart and onto the helm, under the fade (piece D).
+      if (fromChart && machine.mode === 'chart') machine.transition('sailing');
     });
     const entered = arena as ArenaPlay | undefined;
     ctx.events.emit('ArenaEntered', {
@@ -897,11 +935,11 @@ async function boot(): Promise<void> {
       leavingArena = false;
     };
     if (arenaHooks.onExit) {
-      // The chart takes over (piece D); it places the ship when it enters a zone.
-      arenaHooks.onExit(exit);
-      back();
+      // The chart takes over (piece D): it reloads the zone and resumes the voyage.
+      // inArenaSpace stays set until that load finishes, so the arena pose isn't saved.
+      void Promise.resolve(arenaHooks.onExit(exit)).finally(back);
     } else if (from) {
-      // No chart in the game yet (piece D): back to where the arena was entered from.
+      // Entered from a zone (`?encounter=`, or the chart didn't claim the exit): back there.
       // The save on the way out skips the arena's pose; the zone's arrival records its own.
       void enterZone(from.zoneId, from.pose, { kind: 'return' }).finally(back);
     } else {
@@ -949,6 +987,81 @@ async function boot(): Promise<void> {
     (window as unknown as { __glpArena: typeof arenaHook }).__glpArena = arenaHook;
   }
 
+  // Chart travel (Phase 3 piece D, plan 03 §5): M opens the chart, and at the soft edge it
+  // takes the ship onto it; a course into another zone loads that zone at its entry.
+  const chartLayer = document.body.appendChild(document.createElement('div'));
+  chartLayer.className = 'chart-layer';
+  /** A hostile has the ship detected (piece G's arena sets this; dev hook for now). */
+  let pursued = false;
+  const chartTravel = createChartTravel({
+    ctx,
+    machine,
+    layer: chartLayer,
+    setHud: (snapshot) => ui.setChart(snapshot),
+    lookout: () => settings.value.chart.lookout,
+    zone: () => ({ def: zoneData, frame: zoneFrame(zone, zoneData) }),
+    shipPose,
+    placeShip,
+    enterZone: (id, pose, arrival, onLoaded) => enterZone(id, pose, arrival, false, onLoaded),
+    save: () => saveControls.saveNow(),
+    pursued: () => pursued || !!arena?.run.pursued,
+    // Engage, or a failed avoid, meets them here; leaving reloads the zone and resumes the voyage.
+    enterArena: (enc, travel) => {
+      const zoneId = zoneData.id;
+      const pose = { ...shipPose() };
+      arenaHooks.onExit = (exit) =>
+        enterZone(zoneId, pose, { kind: 'return' }, false, () => {
+          travel.resumeFrom(exit.contactId);
+        });
+      void enterArena(
+        arenaFromChartEncounter(enc, travel.session.position, travel.session.heading),
+        true,
+      );
+    },
+    seed: state.environment.rng.join('-'),
+  });
+  travelRef.current = chartTravel;
+  machine.register(chartTravel.mode);
+  /** Is the ship inside a harbor set piece, where the chart can't be opened? */
+  const inHarbor = (): boolean =>
+    !!setPieceAt(zoneData, zoneFrame(zone, zoneData), {
+      x: sailing.state.x,
+      z: sailing.state.z,
+    });
+  const atEdge = (): boolean =>
+    !!ctx.terrain &&
+    offersChart(ctx.terrain.bounds, zoneData.edge, sailing.state.x, sailing.state.z) &&
+    // Zones that offer it well inside the edge do so only clear of the harbor, with the
+    // open lake ahead (the Twin Ports and Two Harbors, data/zones.json `chartFromM`).
+    (zoneData.edge.chartFromM === undefined || chartTravel.openToLake(ctx.terrain.bounds));
+  machine.onTransition((_, to) => {
+    if (to !== 'chart') ui.setChart(undefined);
+    hudClock = HUD_INTERVAL_S;
+  });
+  if (import.meta.env.DEV || params.has('debug')) {
+    const hook = {
+      travel: chartTravel,
+      /** Lay a course through [lat, lon] points. */
+      plot(points: [number, number][]) {
+        const { session } = chartTravel;
+        session.waypoints = points.map(([lat, lon]) =>
+          session.geo.projection.geoToChart({ lat, lon }),
+        );
+        chartTravel.chart.replot();
+        return session.course?.problem ?? 'ok';
+      },
+      setSail: () => chartTravel.setSail(),
+      /** Real seconds per game hour under way, to hurry a check along. */
+      secondsPerHour(s: number) {
+        chartTravel.session.timeScale = 3600 / s;
+      },
+      setPursued(on: boolean) {
+        pursued = on;
+      },
+    };
+    (window as unknown as { __glpChart: typeof hook }).__glpChart = hook;
+  }
+
   // Phase 0 has no danger states yet, so every moment is safe to save (plan 16 §4.2).
   window.setInterval(saveNow, AUTOSAVE_INTERVAL_MS);
   document.addEventListener('visibilitychange', () => {
@@ -958,9 +1071,21 @@ async function boot(): Promise<void> {
 
   const loop = createLoop({
     tick(dt) {
+      // A key that just changed the mode (M off the chart) mustn't act again in the new one.
+      const contextBefore = input.context;
       machine.update(dt);
       if (arena?.run.result) leaveArena(arena.run.result);
-      if (input.context === 'sailing' && input.pressed('Pause')) ui.openMenu();
+      // A key that just changed the mode (M off the chart) mustn't act again in the new one.
+      // In an arena, M leaves it (the arena reads ToggleChart); it doesn't open the chart.
+      const sameContext = input.context === contextBefore;
+      if (sameContext && !arena && input.context === 'sailing' && input.pressed('ToggleChart')) {
+        const refused = chartTravel.fromHelm({ atEdge: atEdge(), inHarbor: inHarbor() });
+        if (refused) showNotice(refused);
+      }
+      const inGame = input.context === 'sailing' || input.context === 'chart';
+      if (sameContext && inGame && input.pressed('Pause')) {
+        ui.openMenu();
+      }
       input.endTick();
     },
     frame(alpha, frameSeconds) {
@@ -973,7 +1098,11 @@ async function boot(): Promise<void> {
         notice = undefined;
         hudClock = HUD_INTERVAL_S;
       }
-      if (hudClock >= HUD_INTERVAL_S) {
+      if (hudClock >= HUD_INTERVAL_S && machine.mode === 'chart') {
+        hudClock = 0;
+        ui.setHud(undefined);
+        chartTravel.sampleHud();
+      } else if (hudClock >= HUD_INTERVAL_S) {
         hudClock = 0;
         ui.setHud(
           sampleHud({
@@ -984,6 +1113,8 @@ async function boot(): Promise<void> {
             barometer: ctx.weather.barometerAt(state.environment.clock.gameSeconds),
             edge: arena ? undefined : zoneData.edge,
             notice: notice?.text,
+            chartLocked: pursued || !!arena?.run.pursued,
+            chartOffered: arena ? false : atEdge(),
             extraStatus: arena ? arenaStatus(arena.run, arena.inputs(playerShip)) : undefined,
           }),
         );
@@ -991,11 +1122,18 @@ async function boot(): Promise<void> {
     },
   });
 
-  // No menu UI yet: go straight through the main menu into the saved run.
+  // No menu UI yet: go straight through the main menu into the saved run, on the chart if
+  // it was saved there (piece D) and no `?zone=` asks for a zone.
   machine.transition('mainMenu');
-  machine.transition('sailing');
+  const savedAt = state.player.location;
+  if (savedAt.mode === 'chart' && !paramDef) {
+    chartTravel.resume(savedAt, state.voyage);
+    document.body.dataset['start'] = 'chart';
+  } else {
+    machine.transition('sailing');
+    ctx.events.emit('ZoneEntered', { zoneId: zoneData.id, from: start.from });
+  }
   document.body.dataset['startPose'] = poseText(spawn);
-  ctx.events.emit('ZoneEntered', { zoneId: zoneData.id, from: start.from });
   loop.start();
 
   // `?encounter=freighter` (or barge, steamer, tug, cutter, derelict, squall, fogbank,

@@ -11,10 +11,13 @@ import {
 import type { AudioSettings, VolumeId } from '../../audio/settings';
 import {
   HUD_DENSITIES,
+  LOOKOUT_PREFS,
   RESOLUTION_SCALES,
   type HudDensity,
   type Settings,
 } from '../../core/settings';
+import type { LookoutPref } from '../../sim/chart/traffic';
+import { LOOKOUT_LABELS } from '../chart/model';
 
 /**
  * The settings screen (plan 13 §12 Phase 1): graphics preset, resolution scale and HUD
@@ -189,6 +192,23 @@ function Camera({ settings, update }: SettingsMenuProps) {
         checked={settings.value.sailing.manualTrim}
         onChange={(on) => update((s) => (s.sailing.manualTrim = on))}
       />
+      <label class="menu-row">
+        <span>Lookouts report on the chart</span>
+        <select
+          data-testid="setting-lookout"
+          value={settings.value.chart.lookout}
+          onChange={(e) => {
+            const v = (e.currentTarget as HTMLSelectElement).value as LookoutPref;
+            update((s) => (s.chart.lookout = v));
+          }}
+        >
+          {LOOKOUT_PREFS.map((pref) => (
+            <option key={pref} value={pref}>
+              {LOOKOUT_LABELS[pref]}
+            </option>
+          ))}
+        </select>
+      </label>
     </div>
   );
 }

@@ -4,7 +4,7 @@ import type { HazardState } from '../../sim/sailing/hazards';
 import { SAIL_LEVELS, speedKn } from '../../sim/sailing/controller';
 import { sampleCurve } from '../../sim/sailing/curve';
 import type { SailingClass } from '../../sim/sailing/ship-class';
-import { edgeFactor, type ZoneEdge } from '../../sim/terrain/zone-edge';
+import { CHART_EDGE_FACTOR, offersChart, type ZoneEdge } from '../../sim/terrain/zone-edge';
 import type { ZoneTerrain } from '../../sim/terrain/zone-terrain';
 import { moonPhase } from '../../sim/weather/celestial';
 import type { BarometerReading, BarometerTrend } from '../../sim/weather/weather';
@@ -53,6 +53,13 @@ export interface HudSnapshot {
   moonPhase01: number;
   /** The barometer (plan 04 §5.4); absent while the dev panel drives the weather. */
   barometer: BarometerSnapshot | undefined;
+  /**
+   * Out in the soft edge's fog, where the HUD offers "Take to the chart" (plan 03 §20,
+   * Phase 3 piece D; it replaced the Phase 2 "Zone edge" chip).
+   */
+  atEdge: boolean;
+  /** A hostile has the ship in sight within its threat radius: the chart is locked. */
+  chartLocked: boolean;
 }
 
 export interface BarometerSnapshot {
@@ -134,6 +141,10 @@ export interface HudSources {
   edge?: ZoneEdge | undefined;
   /** A short-lived chip saying why the last F or anchor order was refused. */
   notice?: string | undefined;
+  /** Pursued: the chart is locked (plan 13 §4.3). */
+  chartLocked?: boolean | undefined;
+  /** Whether "Take to the chart" is offered here; worked out from `edge` when absent. */
+  chartOffered?: boolean | undefined;
   /** Standing chips from the mode, e.g. an arena's pursuit lock (Phase 3 piece G). */
   extraStatus?: readonly string[] | undefined;
 }
@@ -160,8 +171,8 @@ export function anchorRefusedNotice(reason: 'tooDeep' | 'moored'): string {
   return reason === 'tooDeep' ? 'Too deep to anchor' : 'Moored';
 }
 
-/** Edge factor (sim/terrain/zone-edge) past which the "Zone edge" chip shows. */
-export const EDGE_CHIP = 0.5;
+/** Edge factor (sim/terrain/zone-edge) past which "Take to the chart" shows. */
+export const EDGE_CHIP = CHART_EDGE_FACTOR;
 
 /** The hazard and mooring states worth a chip on the HUD (plan 02 §6–7). */
 export function hazardStatus(h: HazardState): string[] {
@@ -197,9 +208,9 @@ export function sampleHud(src: HudSources): HudSnapshot | undefined {
   const depthM = probed ?? (onTerrain ? src.terrain?.depthAt(s.x, s.z) : undefined);
   const draftM = hz ? hz.state.draft : src.draftM;
   const status = hz ? hazardStatus(hz.state) : [];
-  if (src.terrain && src.edge && edgeFactor(src.terrain.bounds, src.edge, s.x, s.z) > EDGE_CHIP) {
-    status.push('Zone edge');
-  }
+  const atEdge =
+    src.chartOffered ??
+    (!!src.terrain && !!src.edge && offersChart(src.terrain.bounds, src.edge, s.x, s.z));
   for (const chip of src.extraStatus ?? []) if (!status.includes(chip)) status.push(chip);
   if (src.notice && !status.includes(src.notice)) status.push(src.notice);
   return {
@@ -228,6 +239,8 @@ export function sampleHud(src: HudSources): HudSnapshot | undefined {
     timeText: clockLabel(src.gameSeconds),
     moonPhase01: moonPhase(calendarDate(src.gameSeconds)),
     barometer: src.barometer ? barometerSnapshot(src.barometer) : undefined,
+    atEdge,
+    chartLocked: src.chartLocked ?? false,
   };
 }
 

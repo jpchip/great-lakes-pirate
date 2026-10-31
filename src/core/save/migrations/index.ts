@@ -13,7 +13,7 @@ import { Rng, type RngState } from '../../rng';
 export type SavePayload = Record<string, unknown>;
 export type Migration = (state: SavePayload) => SavePayload;
 
-export const CURRENT_SAVE_VERSION = 3;
+export const CURRENT_SAVE_VERSION = 4;
 
 /** Hours of weather a migrated save catches up on at load, like a new run's spin-up. */
 const WEATHER_SPIN_UP_HOURS = 48;
@@ -58,7 +58,17 @@ function addLocation(state: SavePayload): SavePayload {
   return { ...state, player: { ...player, location: { mode: 'zone', zoneId: 'zone.apostles' } } };
 }
 
+/**
+ * v3 → v4 (plan 03 §20, Phase 3 piece D): the `voyage` slice joins the save. A v3 run
+ * saved on the chart had no voyage to keep (the chart wasn't in the game yet), so every
+ * migrated run has none.
+ */
+function addVoyage(state: SavePayload): SavePayload {
+  return { ...state, voyage: null };
+}
+
 export const migrations: Readonly<Record<number, Migration>> = {
   1: addWeather,
   2: addLocation,
+  3: addVoyage,
 };

@@ -119,7 +119,8 @@
     },
     "edge": {
       "fogFadeM": 600,
-      "edgeVisibilityM": 350
+      "edgeVisibilityM": 350,
+      "chartFromM": 1900
     },
     "spawn": {
       "x": 300,
@@ -269,7 +270,8 @@
     },
     "edge": {
       "fogFadeM": 600,
-      "edgeVisibilityM": 350
+      "edgeVisibilityM": 350,
+      "chartFromM": 1400
     },
     "spawn": {
       "x": 90,

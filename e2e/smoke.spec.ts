@@ -178,9 +178,128 @@ test('enters a zone by id at an entry point and saves on arrival', async ({ page
   expect(errors).toEqual([]);
 });
 
+interface ChartHook {
+  plot(points: [number, number][]): string;
+  secondsPerHour(s: number): void;
+  setPursued(on: boolean): void;
+}
+
+/**
+ * Answers whatever the lookouts call until `done` holds: avoid where offered, else engage.
+ * A meeting that puts the ship in an arena is left off the edge, and the voyage goes on.
+ */
+async function sailThrough(page: Page, done: () => Promise<boolean>): Promise<void> {
+  const body = page.locator('body');
+  for (let i = 0; i < 240 && !(await done()); i++) {
+    if ((await body.getAttribute('data-arena')) !== null) {
+      await page.evaluate(() =>
+        (
+          window as unknown as { __glpArena: { place(x: number, z: number): void } }
+        ).__glpArena.place(0, -1600),
+      );
+      await page.waitForTimeout(250);
+      continue;
+    }
+    for (const id of ['encounter-avoid', 'encounter-engage', 'chart-notice-ok']) {
+      const button = page.getByTestId(id);
+      if (await button.isVisible()) {
+        await button.click({ timeout: 2000 }).catch(() => undefined);
+        break;
+      }
+    }
+    await page.waitForTimeout(250);
+  }
+}
+
+// Phase 3 piece D: take to the chart at the Apostles' soft edge, plot a course to the Twin
+// Ports, save and reload mid-voyage, and arrive in the Twin Ports at its entry.
+test('sails from the Apostles to the Twin Ports on the chart, through a reload', async ({
+  page,
+}) => {
+  const errors = collectErrors(page);
+  const body = page.locator('body');
+  // Out in the west edge's fog, heading west.
+  await page.goto('/?renderer=null&debug&zone=zone.apostles&spawn=-3350,-2450,270');
+  await expect(body).toHaveAttribute('data-mode', 'sailing');
+  await expect(page.getByTestId('take-to-chart')).toBeVisible();
+  await page.keyboard.press('KeyM');
+  await expect(body).toHaveAttribute('data-mode', 'chart');
+  await expect(page.getByTestId('chart-hud')).toHaveAttribute('data-trip', 'sea');
+  // M straight back puts her where she was.
+  await page.keyboard.press('KeyM');
+  await expect(body).toHaveAttribute('data-mode', 'sailing');
+  await page.getByTestId('take-to-chart').click();
+  await expect(body).toHaveAttribute('data-mode', 'chart');
+
+  expect(
+    await page.evaluate(() =>
+      (window as unknown as { __glpChart: ChartHook }).__glpChart.plot([
+        [46.97, -91.6],
+        [46.85, -91.95],
+      ]),
+    ),
+  ).toBe('ok');
+  await expect(page.getByTestId('chart-status')).toContainText('to Twin Ports');
+  await expect(page.getByTestId('chart-eta')).toContainText('ETA');
+  await page.keyboard.press('Enter');
+  await expect(page.getByTestId('chart-status')).toContainText('Under way');
+
+  // Saved on the chart with the voyage; a reload comes back under way.
+  await page.evaluate(() => window.dispatchEvent(new Event('pagehide')));
+  await expect(body).toHaveAttribute('data-saved-mode', 'chart');
+  await page.goto('/?renderer=null&debug');
+  await expect(body).toHaveAttribute('data-start', 'chart');
+  await expect(body).toHaveAttribute('data-mode', 'chart');
+  await expect(page.getByTestId('chart-status')).toContainText('Under way');
+
+  await page.evaluate(() =>
+    (window as unknown as { __glpChart: ChartHook }).__glpChart.secondsPerHour(0.3),
+  );
+  const arrived = async (): Promise<boolean> =>
+    (await body.getAttribute('data-zone')) === 'zone.twin_ports' &&
+    (await body.getAttribute('data-zone-load')) === 'done';
+  await sailThrough(page, arrived);
+  await expect(body).toHaveAttribute('data-zone', 'zone.twin_ports');
+  await expect(body).toHaveAttribute('data-mode', 'sailing');
+  await expect(body).toHaveAttribute('data-saved-mode', 'zone');
+  // The Twin Ports' east entry (data/zones.json), heading west.
+  await expect(body).toHaveAttribute('data-saved-pose', /^1700\.\d\d,-100\.\d\d,4\.71\d\d$/);
+
+  // The Twin Ports offer the chart from just outside the harbor, so it's on offer here.
+  await expect(page.getByTestId('take-to-chart')).toBeVisible();
+  await page.keyboard.press('KeyM');
+  await expect(page.getByTestId('chart-hud')).toHaveAttribute('data-trip', 'sea');
+  await page.keyboard.press('KeyM');
+  await expect(body).toHaveAttribute('data-mode', 'sailing');
+
+  // M in the Apostles' open water, far from the edge, is a look: no setting out from here.
+  await page.evaluate(() =>
+    (window as unknown as { __glpZones: { enter(id: string): Promise<void> } }).__glpZones.enter(
+      'zone.apostles',
+    ),
+  );
+  await expect(body).toHaveAttribute('data-zone', 'zone.apostles');
+  await expect(body).toHaveAttribute('data-zone-load', 'done');
+  await page.keyboard.press('KeyM');
+  await expect(page.getByTestId('chart-hud')).toHaveAttribute('data-trip', 'look');
+  await expect(page.getByTestId('chart-sail')).toBeDisabled();
+  await page.keyboard.press('KeyM');
+  await expect(body).toHaveAttribute('data-mode', 'sailing');
+
+  // Pursued: the chart is locked.
+  await page.evaluate(() =>
+    (window as unknown as { __glpChart: ChartHook }).__glpChart.setPursued(true),
+  );
+  await expect(page.getByTestId('chart-locked')).toBeVisible();
+  await page.keyboard.press('KeyM');
+  await page.waitForTimeout(300);
+  await expect(body).toHaveAttribute('data-mode', 'sailing');
+  expect(errors).toEqual([]);
+});
+
 // Phase 3 piece G: `?encounter=` drops into an open-water arena with the ship met, and
-// sailing off its edge ends it, back to where it was entered from (the chart, once piece D
-// is in). Nothing in the arena overwrites the run's saved place.
+// sailing off its edge ends it, back in the zone it was entered from. An arena entered
+// from the chart returns there instead. Nothing in the arena overwrites the run's saved place.
 test('drops into an arena and leaves it off the edge', async ({ page }) => {
   const errors = collectErrors(page);
   const body = page.locator('body');

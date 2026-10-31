@@ -537,3 +537,148 @@
   font-size: 15px;
   font-style: italic;
 }
+
+/*
+ * Chart mode (plan 13 §4.3, Phase 3 piece D): the chart canvas fills the screen above the
+ * 3D view, and its HUD is logbook cards on it.
+ */
+.chart-layer {
+  position: fixed;
+  inset: 0;
+  z-index: 4;
+  display: none;
+  background: var(--paper);
+}
+
+body[data-mode='chart'] .chart-layer {
+  display: block;
+}
+
+.chart-canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  cursor: crosshair;
+}
+
+.chart-card {
+  position: absolute;
+  padding: 10px 14px;
+  font-size: 14px;
+  line-height: 1.45;
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--paper-dark);
+  box-shadow: 0 2px 10px rgba(43, 33, 24, 0.25);
+  pointer-events: auto;
+}
+
+.chart-log {
+  top: 14px;
+  left: 16px;
+  width: 340px;
+}
+
+.chart-kicker {
+  font-size: 12px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  opacity: 0.7;
+}
+
+.chart-date {
+  font-size: 16px;
+  font-variant: small-caps;
+}
+
+.chart-status {
+  margin-top: 4px;
+  font-weight: 600;
+}
+
+.chart-problem {
+  color: var(--signal-red);
+  font-weight: 600;
+}
+
+.chart-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.chart-row .menu-button:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.chart-lookout {
+  margin-top: 8px;
+}
+
+.chart-help {
+  margin-top: 8px;
+  font-size: 12px;
+  opacity: 0.7;
+}
+
+/* Low in the middle, so the contact stays in view above it. */
+.chart-encounter {
+  bottom: 40px;
+  left: 50%;
+  width: 380px;
+  margin-left: -190px;
+}
+
+.chart-encounter p {
+  margin: 6px 0;
+}
+
+.chart-encounter-name {
+  font-size: 20px;
+  font-variant: small-caps;
+}
+
+.hud-key {
+  display: inline-block;
+  min-width: 14px;
+  margin-left: 6px;
+  padding: 0 4px;
+  font-size: 11px;
+  text-align: center;
+  border: 1px solid currentcolor;
+  border-radius: 3px;
+  opacity: 0.8;
+}
+
+/* At the soft edge, the way off the zone and onto the chart. */
+.hud-take-chart {
+  position: absolute;
+  bottom: 170px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 6px 14px;
+  font: 15px var(--serif);
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--brass);
+  border-radius: 3px;
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+.chart-locked {
+  position: absolute;
+  top: 56px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 6px 16px;
+  font-size: 15px;
+  font-weight: 600;
+  color: #ffd9d2;
+  background: rgba(60, 14, 10, 0.85);
+  border: 2px solid var(--signal-red);
+  border-radius: 3px;
+  z-index: 6;
+}

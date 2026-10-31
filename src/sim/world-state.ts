@@ -54,6 +54,8 @@ export const weatherStateSchema: z.ZodType<WeatherState> = z.object({
   fogBanks: z.array(fogBankSchema),
 });
 
+const chartPointSchema = z.object({ x: z.number(), y: z.number() });
+
 /** A ship's place in a zone: zone meters, heading in radians clockwise from north. */
 export const poseSchema = z.object({ x: z.number(), z: z.number(), heading: z.number() });
 
@@ -66,7 +68,7 @@ export const locationSchema = z.discriminatedUnion('mode', [
   z.object({ mode: z.literal('zone'), zoneId: z.string(), pose: poseSchema.optional() }),
   z.object({
     mode: z.literal('chart'),
-    chartPos: z.object({ x: z.number(), y: z.number() }),
+    chartPos: chartPointSchema,
     heading: z.number(),
     /** The zone the voyage left, for the way back. */
     fromZoneId: z.string().optional(),
@@ -75,8 +77,21 @@ export const locationSchema = z.discriminatedUnion('mode', [
 
 export type PlayerLocation = z.infer<typeof locationSchema>;
 
+/**
+ * A voyage under way on the chart (plan 03 §9 `voyage`; added in save v4, Phase 3 piece
+ * D): the plotted points from the departure on, and how far along them the ship is. The
+ * legs are planned again from the points on load. Null when no voyage is under way.
+ */
+export const voyageSchema = z.object({
+  points: z.array(chartPointSchema).min(2),
+  leg: z.number().int().nonnegative(),
+  progressM: z.number().nonnegative(),
+  startedAt: z.number(),
+});
+
 export const worldStateSchema = z.object({
   player: z.looseObject({ location: locationSchema }),
+  voyage: voyageSchema.nullable(),
   environment: z.looseObject({
     clock: clockStateSchema,
     /** Saved so a reload continues the same random sequence (plan 16 §4.4). */
@@ -93,6 +108,7 @@ export function createWorldState(seed: string): WorldState {
   return {
     // A new run starts at the Apostles spawn.
     player: { location: { mode: 'zone', zoneId: APOSTLES_ID } },
+    voyage: null,
     environment: {
       clock,
       rng: Rng.fromSeed(seed).getState(),

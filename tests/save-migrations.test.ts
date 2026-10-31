@@ -4,6 +4,9 @@ import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import { migrateSave, SaveMigrationError } from '../src/core/save/migrate';
 import { CURRENT_SAVE_VERSION, migrations } from '../src/core/save/migrations';
+import { westernSuperiorChart } from '../src/sim/chart/chart-data';
+import { toWorldChart } from '../src/sim/chart/geography';
+import { restoreVoyage } from '../src/sim/chart/voyage';
 import { resolveStart } from '../src/sim/location';
 import { APOSTLES_ID, spawnPose, zoneDef } from '../src/sim/terrain/zones';
 import { advanceWeather } from '../src/sim/weather/weather';
@@ -96,5 +99,37 @@ describe("v2 → v3: the player's location joins the save (plan 03 §20, piece A
       pose: { x: 1530.25, z: -412.5, heading: 4.712 },
       from: 'saved',
     });
+  });
+});
+
+describe('v3 → v4: the voyage joins the save (plan 03 §20, piece D)', () => {
+  const v3 = (): Record<string, unknown> =>
+    (JSON.parse(readFileSync(join(fixturesDir, 'v3.json'), 'utf8')) as Fixture).state;
+
+  it('gives a v3 run no voyage and keeps the rest', () => {
+    const before = v3();
+    const state = worldStateSchema.parse(migrateSave(v3(), 3));
+    expect(state.voyage).toBeNull();
+    expect(state.player).toEqual(before['player']);
+    expect(state.environment).toEqual(before['environment']);
+  });
+
+  it('a v4 save made mid-voyage comes back on its course, where it was', () => {
+    const fixture = JSON.parse(readFileSync(join(fixturesDir, 'v4.json'), 'utf8')) as Fixture;
+    const state = worldStateSchema.parse(migrateSave(fixture.state, 4));
+    const at = state.player.location;
+    expect(at.mode).toBe('chart');
+    if (at.mode !== 'chart' || !state.voyage) throw new Error('expected a voyage');
+    const geo = westernSuperiorChart();
+    const voyage = restoreVoyage(geo, state.voyage);
+    if (!voyage) throw new Error('the voyage did not plan again');
+    expect(voyage.destinationZone?.id).toBe('zone.apostles');
+    expect(voyage.leg).toBe(0);
+    // The save keeps the world chart frame.
+    const p = toWorldChart(geo, voyage.position);
+    expect(p.x).toBeCloseTo(at.chartPos.x, 0);
+    expect(p.y).toBeCloseTo(at.chartPos.y, 0);
+    // The zone behind the chart is the one the voyage left.
+    expect(resolveStart(at).zoneId).toBe('zone.twin_ports');
   });
 });

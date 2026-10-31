@@ -109,6 +109,32 @@ export function setPieceFootprint(def: SetPieceDef, frame: ZoneFrame): SetPieceF
 }
 
 /**
+ * The set piece whose footprint holds (x, z), if any: inside a harbor (plan 03 §3.4), where
+ * the chart can't be opened (Phase 3 piece D). The footprint reaches `inlandM` behind the
+ * anchor, `seawardM` in front of it and `alongM` along the shore, centered on the anchor.
+ */
+export function setPieceAt(def: ZoneDef, frame: ZoneFrame, p: Zone): SetPieceDef | undefined {
+  for (const piece of def.setPieces) {
+    const fp = setPieceFootprint(piece, frame);
+    const dx = p.x - fp.anchor.x;
+    const dz = p.z - fp.anchor.z;
+    const sx = Math.sin(fp.bearing);
+    const sz = -Math.cos(fp.bearing);
+    // The inverse of harbors.ts `footprintPoint`.
+    const inland = -(sx * dx + sz * dz);
+    const along = sx * dz - sz * dx;
+    if (
+      Math.abs(along) <= piece.alongM / 2 &&
+      inland <= piece.inlandM &&
+      inland >= -piece.seawardM
+    ) {
+      return piece;
+    }
+  }
+  return undefined;
+}
+
+/**
  * The zone's extent as the bake cut it, in degrees: the frame's origin plus half the
  * tile grid (times C) each way. The chart draws zone outlines from it, so they meet the
  * baked zone edges exactly.

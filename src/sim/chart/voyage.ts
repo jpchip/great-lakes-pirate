@@ -3,6 +3,8 @@ import {
   bearing,
   distance,
   firstLandHit,
+  fromWorldChart,
+  toWorldChart,
   lerpChart,
   rectEntry,
   zoneAt,
@@ -179,6 +181,8 @@ export function estimateSeconds(course: PlannedCourse, wind: ChartWind, ship: Ch
 
 /** A voyage under way (plan 03 §9 `voyage` slice). */
 export interface Voyage {
+  /** The plotted points, from the departure on: enough to plan the voyage again on load. */
+  points: Chart[];
   legs: CourseLeg[];
   destinationZone: ChartZone | undefined;
   leg: number;
@@ -195,6 +199,7 @@ export function startVoyage(course: PlannedCourse, startedAt: number): Voyage {
   const first = course.legs[0];
   if (!first || course.problem) throw new Error('Cannot sail an invalid course');
   return {
+    points: course.points.map((p) => ({ ...p })),
     legs: course.legs,
     destinationZone: course.destinationZone,
     leg: 0,
@@ -250,4 +255,59 @@ export function remainingM(voyage: Voyage): number {
   for (let i = voyage.leg; i < voyage.legs.length; i++)
     left += (voyage.legs[i] as CourseLeg).lengthM;
   return left - voyage.progressM;
+}
+
+/** Game seconds still to sail at the current wind, leg by leg. */
+export function remainingSeconds(voyage: Voyage, wind: ChartWind, ship: ChartShip): number {
+  let s = 0;
+  for (let i = voyage.leg; i < voyage.legs.length; i++) {
+    const leg = voyage.legs[i] as CourseLeg;
+    const left = i === voyage.leg ? leg.lengthM - voyage.progressM : leg.lengthM;
+    s += left / (chartSpeedKn(leg.heading, wind, ship) * KNOT_MS);
+  }
+  return s;
+}
+
+/**
+ * What the save keeps of a voyage under way (plan 03 §9 `voyage`, plan 16 §5). The points
+ * are in the world chart frame, like the save's chart position, so they don't depend on
+ * the chart's own projection.
+ */
+export interface SavedVoyage {
+  points: Chart[];
+  leg: number;
+  progressM: number;
+  startedAt: number;
+}
+
+export function saveVoyage(geo: ChartGeography, voyage: Voyage): SavedVoyage {
+  return {
+    points: voyage.points.map((p) => toWorldChart(geo, p)),
+    leg: voyage.leg,
+    progressM: voyage.progressM,
+    startedAt: voyage.startedAt,
+  };
+}
+
+/**
+ * Plans a saved voyage again and puts the ship back where it was along it. Undefined when
+ * the course no longer holds (the chart data changed under the save): the ship then stays
+ * hove to where the save put it.
+ */
+export function restoreVoyage(geo: ChartGeography, saved: SavedVoyage): Voyage | undefined {
+  const [from, ...waypoints] = saved.points.map((p) => fromWorldChart(geo, p));
+  if (!from || waypoints.length === 0) return undefined;
+  const course = planCourse(geo, from, waypoints);
+  if (course.problem || course.legs.length === 0) return undefined;
+  const voyage = startVoyage(course, saved.startedAt);
+  const leg = course.legs[Math.min(Math.max(saved.leg, 0), course.legs.length - 1)] as CourseLeg;
+  voyage.leg = course.legs.indexOf(leg);
+  voyage.progressM = Math.min(Math.max(saved.progressM, 0), leg.lengthM);
+  voyage.heading = leg.heading;
+  voyage.position = lerpChart(
+    leg.from,
+    leg.to,
+    leg.lengthM > 0 ? voyage.progressM / leg.lengthM : 1,
+  );
+  return voyage;
 }

@@ -131,10 +131,11 @@ describe('sailing HUD model', () => {
         gameSeconds: 0,
         draftM: 1.5,
         edge,
-      })?.status;
-    expect(at(0)).toEqual([]);
-    expect(at(750)).toEqual([]);
-    expect(at(850)).toEqual(['Zone edge']);
+      })?.atEdge;
+    // Out in the fog the HUD offers the chart (Phase 3 piece D).
+    expect(at(0)).toBe(false);
+    expect(at(750)).toBe(false);
+    expect(at(850)).toBe(true);
   });
 });
 

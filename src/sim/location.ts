@@ -18,8 +18,8 @@ const isFinitePose = (p: Pose): boolean =>
 
 export function resolveStart(location: PlayerLocation): StartPlace {
   if (location.mode === 'chart') {
-    // Until the chart is in the game (piece D), a run saved on the chart comes back in at
-    // the entry nearest its chart position, in the zone it left.
+    // A run saved on the chart (piece D) loads the zone it left behind the chart, with the
+    // ship at that zone's entry nearest its chart position, ready for the way back.
     const def = findZoneDef(location.fromZoneId ?? APOSTLES_ID) ?? findZoneDef(APOSTLES_ID);
     if (!def) throw new Error(`No zone ${APOSTLES_ID} in data/zones.json`);
     return { zoneId: def.id, pose: entryPose(nearestEntry(def, location.chartPos)), from: 'entry' };
@@ -49,5 +49,20 @@ export function recordZonePose(state: WorldState, zoneId: string, pose: Pose): v
     mode: 'zone',
     zoneId,
     pose: { x: pose.x, z: pose.z, heading: wrapHeading(pose.heading) },
+  };
+}
+
+/** Writes the ship's place on the chart into the state, just before a save (piece D). */
+export function recordChartPosition(
+  state: WorldState,
+  chartPos: { x: number; y: number },
+  heading: number,
+  fromZoneId: string | undefined,
+): void {
+  state.player.location = {
+    mode: 'chart',
+    chartPos: { x: chartPos.x, y: chartPos.y },
+    heading: wrapHeading(heading),
+    ...(fromZoneId ? { fromZoneId } : {}),
   };
 }
