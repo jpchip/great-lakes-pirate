@@ -91,5 +91,212 @@
         "blendM": 80
       }
     ]
+  },
+  {
+    "id": "zone.twin_ports",
+    "name": "Twin Ports",
+    "world": "world/twin_ports/",
+    "compression": 8,
+    "center": {
+      "lat": 46.765,
+      "lon": -92.07
+    },
+    "bake": {
+      "tilesX": 4,
+      "tilesY": 4,
+      "tileSamples": 256,
+      "sailingSampleM": 4,
+      "onFootSampleM": 1,
+      "windCellM": 32,
+      "lakeLevelM": 183.5,
+      "bathyDatumM": 183.2,
+      "landThresholdM": 0.5,
+      "landCurve": {
+        "kind": "soft-knee",
+        "kneeM": 20
+      },
+      "islandMarginM": 64
+    },
+    "edge": {
+      "fogFadeM": 600,
+      "edgeVisibilityM": 350
+    },
+    "spawn": {
+      "x": 300,
+      "z": -100,
+      "headingDeg": 280
+    },
+    "setPieces": [
+      {
+        "id": "setpiece.duluth_canal",
+        "name": "Duluth Ship Canal",
+        "port": "port.duluth",
+        "at": {
+          "lat": 46.77702,
+          "lon": -92.08992
+        },
+        "bearingDeg": 69,
+        "alongM": 200,
+        "inlandM": 150,
+        "seawardM": 120,
+        "groundM": 2,
+        "blendM": 30,
+        "cuts": [
+          {
+            "from": {
+              "lat": 46.77493,
+              "lon": -92.0979
+            },
+            "to": {
+              "lat": 46.77961,
+              "lon": -92.08001
+            },
+            "widthM": 90,
+            "depthM": 7.5,
+            "blendM": 8
+          }
+        ]
+      },
+      {
+        "id": "setpiece.duluth",
+        "name": "Duluth waterfront",
+        "port": "port.duluth",
+        "at": {
+          "lat": 46.76745,
+          "lon": -92.10302
+        },
+        "bearingDeg": 103,
+        "alongM": 360,
+        "inlandM": 140,
+        "seawardM": 90,
+        "groundM": 2,
+        "blendM": 50
+      },
+      {
+        "id": "setpiece.superior_entry",
+        "name": "Superior Entry",
+        "port": "port.superior",
+        "at": {
+          "lat": 46.70738,
+          "lon": -92.01569
+        },
+        "bearingDeg": 35,
+        "alongM": 300,
+        "inlandM": 200,
+        "seawardM": 250,
+        "groundM": 1.5,
+        "blendM": 40,
+        "cuts": [
+          {
+            "from": {
+              "lat": 46.6968,
+              "lon": -92.02666
+            },
+            "to": {
+              "lat": 46.72033,
+              "lon": -92.00227
+            },
+            "widthM": 140,
+            "depthM": 7.5,
+            "blendM": 25
+          },
+          {
+            "from": {
+              "lat": 46.71068,
+              "lon": -92.02315
+            },
+            "to": {
+              "lat": 46.71162,
+              "lon": -92.00717
+            },
+            "widthM": 8,
+            "depthM": 7.5,
+            "blendM": 4
+          }
+        ]
+      },
+      {
+        "id": "setpiece.superior",
+        "name": "Superior waterfront",
+        "port": "port.superior",
+        "at": {
+          "lat": 46.73486,
+          "lon": -92.07724
+        },
+        "bearingDeg": 40,
+        "alongM": 360,
+        "inlandM": 120,
+        "seawardM": 150,
+        "groundM": 2,
+        "blendM": 50
+      }
+    ]
+  },
+  {
+    "id": "zone.two_harbors",
+    "name": "Two Harbors",
+    "world": "world/two_harbors/",
+    "compression": 8,
+    "center": {
+      "lat": 47.0,
+      "lon": -91.65
+    },
+    "bake": {
+      "tilesX": 3,
+      "tilesY": 3,
+      "tileSamples": 256,
+      "sailingSampleM": 4,
+      "onFootSampleM": 1,
+      "windCellM": 32,
+      "lakeLevelM": 183.5,
+      "bathyDatumM": 183.2,
+      "landThresholdM": 0.5,
+      "landCurve": {
+        "kind": "soft-knee",
+        "kneeM": 20
+      },
+      "islandMarginM": 64
+    },
+    "edge": {
+      "fogFadeM": 600,
+      "edgeVisibilityM": 350
+    },
+    "spawn": {
+      "x": 90,
+      "z": 90,
+      "headingDeg": 318
+    },
+    "setPieces": [
+      {
+        "id": "setpiece.two_harbors",
+        "name": "Agate Bay ore docks",
+        "port": "port.two_harbors",
+        "at": {
+          "lat": 47.01719,
+          "lon": -91.67183
+        },
+        "bearingDeg": 165,
+        "alongM": 300,
+        "inlandM": 140,
+        "seawardM": 200,
+        "groundM": 3,
+        "blendM": 60,
+        "cuts": [
+          {
+            "from": {
+              "lat": 47.02086,
+              "lon": -91.67715
+            },
+            "to": {
+              "lat": 47.01546,
+              "lon": -91.67555
+            },
+            "widthM": 150,
+            "depthM": 8,
+            "blendM": 40
+          }
+        ]
+      }
+    ]
   }
 ]

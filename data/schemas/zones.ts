@@ -53,6 +53,21 @@ const bakeSchema = z.object({
 });
 
 /**
+ * A dredged cut (plan 03 §3.4): a channel along the segment `from`–`to`, `widthM` wide,
+ * lowered to at least `depthM` below mean lake level, with banks that blend back to the
+ * real terrain over `blendM`. It only ever lowers the ground, so it opens 1:1 entries
+ * (the Duluth Ship Canal, Superior Entry) through compressed land and clears the
+ * compressed modern piers the DEM carries.
+ */
+export const cutSchema = z.object({
+  from: geoSchema,
+  to: geoSchema,
+  widthM: z.number().positive(),
+  depthM: z.number().positive(),
+  blendM: z.number().nonnegative(),
+});
+
+/**
  * A harbor set piece's footprint (plan 03 §3.4): a rectangle on the zone's water plane,
  * anchored on the shoreline at `at` and facing `bearingDeg` (clockwise from north, from
  * the shore out over the water). It reaches `inlandM` behind the anchor, `seawardM` out
@@ -71,6 +86,8 @@ export const setPieceSchema = z.object({
   seawardM: z.number().positive(),
   groundM: z.number().positive(),
   blendM: z.number().nonnegative(),
+  /** Channels dredged after the land is flattened. */
+  cuts: z.array(cutSchema).optional(),
 });
 
 /**
@@ -116,3 +133,4 @@ export const zonesFileSchema = z.array(zoneSchema);
 export type ZoneDef = z.infer<typeof zoneSchema>;
 export type EntryPointDef = z.infer<typeof entryPointSchema>;
 export type SetPieceDef = z.infer<typeof setPieceSchema>;
+export type CutDef = z.infer<typeof cutSchema>;

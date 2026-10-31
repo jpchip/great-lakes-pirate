@@ -4,6 +4,7 @@ Bakes a coastal zone's terrain from public US government data (plan 03 §8, spik
 
 ```sh
 npm run geo:build                 # zone.apostles in data/zones.json → public/world/apostles/
+npm run geo:build -- twin_ports   # any zone by its id without the prefix (twin_ports, two_harbors)
 npm run geo:build -- apostles --compare            # also compare tile formats
 npm run geo:build -- apostles --land-curve=none    # try another land height curve
 npm run geo:build -- apostles --refetch            # re-download and re-warp the sources
@@ -42,7 +43,7 @@ Apostles, ~1.2 GB). A cached rebuild takes about 35 seconds.
 2. Merges them: land from the DEM, depth from the bathymetry, 0 = mean lake level
    (183.5 m). A land height curve can trade height for walkability (see below).
 3. Applies the hand-edit layer (`lib/edits.ts`): flattens the land in each set piece's
-   footprint and raises rocks for islands too small for the data (Gull Island).
+   footprint, dredges its cuts, and raises rocks for islands too small for the data (Gull Island).
 4. Downsamples to the 4 m sailing grid and cuts it into 257 × 257 tiles (256 plus a shared
    edge).
 5. Bakes the shoreline signed distance field, and shelter, fetch and funneling maps for 16
@@ -108,3 +109,7 @@ avoids the browser's 8-bit canvas when decoding PNGs.
   shore at `at`, facing `bearingDeg` out over the water, `inlandM` deep behind the anchor,
   `seawardM` out in front and `alongM` wide. Land inside is flattened to `groundM`, blending
   back over `blendM`; water inside is left as it is.
+- **Cuts** (`cuts` on a set piece): a channel from `from` to `to`, `widthM` wide, dredged
+  to at least `depthM`, with banks blending back over `blendM`. They only lower the
+  ground, after the footprint is flattened. The Duluth Ship Canal and Superior Entry are
+  cuts at their real widths through the compressed points; Agate Bay's is a basin.

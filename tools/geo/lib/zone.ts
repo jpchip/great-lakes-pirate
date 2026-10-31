@@ -68,6 +68,17 @@ export interface SetPieceFootprint {
   seawardM: number;
   groundM: number;
   blendM: number;
+  /** Dredged channels, applied after the flattening (data/schemas/zones.ts). */
+  cuts?: Cut[];
+}
+
+/** A channel along `from`–`to`, lowered to at least `depthM` below lake level. */
+export interface Cut {
+  from: Geo;
+  to: Geo;
+  widthM: number;
+  depthM: number;
+  blendM: number;
 }
 
 export interface ZoneConfig {

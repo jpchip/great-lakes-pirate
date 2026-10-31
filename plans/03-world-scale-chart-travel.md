@@ -788,7 +788,50 @@ The chart is now baked from the same NOAA bathymetry and USGS DEM as the zones (
 
 ---
 
+## 23. Phase 3 Piece C: Twin Ports and Two Harbors Zones (2026-10-31)
+
+**Goal** (§20.4, piece C): bake `zone.twin_ports` and `zone.two_harbors` through the geo pipeline, with set-piece footprints for the Duluth canal, Superior Entry, the Duluth and Superior waterfronts and Agate Bay, and check that the places read at C = 8.
+
+**Result:** both zones are baked into `public/world/twin_ports/` and `public/world/two_harbors/` with the Apostles' settings (C = 8, 4 m sailing samples, soft knee at 20 m). Nothing loads them in the game yet: the zone manager (§21) can, once those ids are wired in. Reports: [`tools/geo/reports/twin_ports.md`](../tools/geo/reports/twin_ports.md) and [`two_harbors.md`](../tools/geo/reports/two_harbors.md), with relief previews next to them.
+
+### 23.1 What was built
+
+| Piece | Where | Notes |
+|---|---|---|
+| Zones | `data/zones.json` | **Twin Ports:** 4 × 4 tiles, 4.1 km game square (32.8 km real), centered at 46.765°N 92.07°W. It covers St. Louis Bay up to Rice's Point, both harbors, Minnesota and Wisconsin Points, the Duluth hillside, and about 2 km of open lake to the north-east. **Two Harbors:** 3 × 3 tiles, 3.1 km game square (24.6 km real), centered on the lake off Agate Bay, so the North Shore crosses it diagonally and half of it is open water. Both have a 600 m fog fade (the Apostles has 1 km) so the harbors sit clear of the edge fog |
+| Ports | `data/ports.json` | `port.duluth` (region Duluth), `port.superior` (region Superior, with the shipyard), `port.two_harbors` (region North Shore), as R1a and 06 §3.1 have them |
+| Cuts | `data/schemas/zones.ts`, `tools/geo/lib/edits.ts` | A new hand edit: a set piece can carry `cuts`, channels from one geo point to another, `widthM` wide, dredged to at least `depthM`, with banks that blend back over `blendM`. A cut only lowers. It opens the 1:1 entries through compressed land and clears the compressed modern piers the DEM carries (§3.4) |
+| Set pieces | `data/zones.json` | **Duluth Ship Canal:** a 90 m (1:1) cut 7.5 m deep through the base of Minnesota Point on bearing 69°, from the harbor basin to the lake. It sits 40 m south-east of the real canal's line so the Canal Park side keeps its strip of land for the north pier's root; Minnesota Point gives up the 90 m instead. **Superior Entry:** a 140 m cut on bearing 35° between the points, plus a narrow cut that clears the modern north breakwater. **Duluth waterfront:** the bayfront by the slips, facing the harbor basin. **Superior waterfront:** the Superior Bay front near Tower Bay, facing the harbor channel. **Agate Bay:** the town ground flattened behind the bay, and a basin cut 150 m wide that widens the bay to the north-west, about 190 × 250 m of water at 8 m, room for a 1:1 ore dock. Lighthouse Point is left alone |
+| Tests | `tests/north-zones.test.ts`, `geo.test.ts`, `data-validation.test.ts` | Per zone: size, spawn in deep water clear of the edge fog, open lake at the edge for arrivals, and at most 40 terrain draw calls on Medium anywhere. Twin Ports: the points, the harbor and St. Louis Bay where they belong; both entries dredged their full width and length; both waterfronts flattened with sailable water off them; and a T1 reaches both waterfronts through either entry alone, but not with both closed. Two Harbors: the basin is dredged and reachable, Lighthouse Point stands, the town ground is flat. The cut edit has a unit test |
+
+### 23.2 Results
+
+| Measure | Twin Ports | Two Harbors |
+|---|---|---|
+| Bake size | 1.08 MB (16 tiles) | 0.52 MB (9 tiles) |
+| Land height, highest | 54 m (277 m real) | 56 m (316 m real) |
+| Land over 30°, 1:1 heights → soft knee | 20.5% → 3.6% | 18.6% → 1.7% |
+| Land over 42°, 1:1 heights → soft knee | 10.3% → 1.1% | 7.4% → 0.6% |
+
+- **They read at C = 8.** From the water and from the tactical camera, Minnesota Point is a long, low wooded spit with the harbor behind it, Wisconsin Point mirrors it past Superior Entry, the Duluth slips line the bayfront under the hillside, and St. Louis Bay opens up west of Rice's Point. Two Harbors reads as the widened Agate Bay beside Burlington Bay under the bluffs. Screenshots are in the project files (`twin-ports-bake/`). Jared's by-eye check (criterion 10) waits for those zone ids to load in the game.
+- **The soft knee suits the North Shore.** The Duluth hillside and the bluffs behind Two Harbors rise near 300 m real. At 1:1 heights a tenth of the land would be steeper than 42°; with the knee they're 50–56 m ridges, still the highest ground in the game, and the shore cliffs keep their height.
+- **The harbor is deep enough for the T1 without dredging it.** The NCEI grid has the harbor's modern dredged channels (smoothed to 90 m), so the main channel from the canal to Superior Entry along Minnesota Point is 7–12 m deep. St. Louis Bay is mostly under 2.5 m, as it was before the channels were cut upriver; it's sailable only in its deeper patches.
+- **The modern harbor shows through.** The DEM is from the 2010s, so the slips, fills and breakwaters are today's. The 1900 corrections are §8.2 step 7 work, and the harbors piece (I) is the place to decide which ones matter.
+
+### 23.3 Decisions made in the piece
+- **Zones are tile-sized squares, bigger than §4's estimates.** §4 gave the authored areas (~2.3 × 1.9 km and ~1.2 × 0.9 km). The bakes add room for the soft edge and for open lake to arrive from the chart, and round up to whole 1 km tiles.
+- **The 1:1 entries are cuts, not rebaked lenses.** A cut through the compressed land opens the canal and the entry at their real widths at the cost of shortening Minnesota Point by about 90 m (720 m real) and trimming the point tips at Superior Entry. Piece I builds the 1:1 piers along the cuts' sides.
+- **Agate Bay is widened, unlike Ashland.** Ashland's ore dock reaches into a kilometer of open bay (§18.2); Agate Bay is about 130 m across at C = 8, too small for a 1:1 dock. The basin is a first guess for piece I to reshape and rebake.
+
+### 23.4 Still to do
+- Piece I: piers along the cuts, berths, the 1900 lights, town silhouettes, and the footprint numbers adjusted to fit them. The compressed DEM pier stubs outside the cuts may need more cuts.
+- The Minnesota Point and North Shore cove hideout pads (09 §2.1) aren't placed; the zones have no on-foot tiles yet.
+- Entry points on the zone edges for Twin Ports and Two Harbors.
+
+---
+
 ## Changelog
+- v0.17: Phase 3 piece C (§23): the Twin Ports and Two Harbors zones baked, with set-piece footprints, dredged cuts for the Duluth canal, Superior Entry and Agate Bay, and their ports.
 - v0.16: Phase 3 piece B (§22): the chart is baked from NOAA and USGS data (`npm run geo:chart`), zone outlines come from the bake settings, real soundings and depth shading, a cached static layer, and a chart redraw bench. The Siskiwit Bay chart area moved west of the larger baked Apostles zone.
 - v0.15: Phase 3 piece A built (§21): zones by id with the last one cached, entry points, `player.location` in save v3, Continue back to the saved pose, and the fade to fog between zones.
 - v0.14: Phase 3 scope proposed (§20): what Phase 2 changes, deliverables, exit criteria, eleven work pieces, assumed calls, and the new zones get dockable harbors (decided 2026-10-31).

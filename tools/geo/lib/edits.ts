@@ -5,6 +5,8 @@
 //
 // - Set-piece footprints: land inside is flattened to the set piece's ground height,
 //   blending back to the real terrain outside. Water is left alone.
+// - Cuts: channels dredged through a set piece (the Duluth Ship Canal at 1:1), lowering
+//   land and water to a depth. They also clear the compressed modern piers in the DEM.
 // - Rocks: islands too small for the data (Gull Island) raised as a rounded mound.
 
 import type { Raster } from './raster.ts';
@@ -14,6 +16,7 @@ import {
   type Geo,
   type GridFrame,
   type IslandConfig,
+  type Cut,
   type SetPieceFootprint,
   type ZoneFrame,
 } from './zone.ts';
@@ -22,7 +25,7 @@ const DEG = Math.PI / 180;
 
 export interface EditReport {
   id: string;
-  kind: 'flatten' | 'rock';
+  kind: 'flatten' | 'cut' | 'rock';
   /** Samples changed. */
   samples: number;
 }
@@ -84,6 +87,42 @@ export function flattenFootprint(
   return changed;
 }
 
+/** Dredges a cut (see data/schemas/zones.ts). Only lowers; returns the samples changed. */
+export function dredgeCut(height: Raster, grid: GridFrame, frame: ZoneFrame, cut: Cut): number {
+  const a = locate(frame, grid, cut.from, 0);
+  const b = locate(frame, grid, cut.to, 0);
+  const reach = cut.widthM / 2 + cut.blendM;
+  const clampI = (i: number) => Math.min(grid.width - 1, Math.max(0, i));
+  const clampJ = (j: number) => Math.min(grid.height - 1, Math.max(0, j));
+  const i0 = clampI(Math.floor((Math.min(a.x, b.x) - reach - grid.x0) / grid.step));
+  const i1 = clampI(Math.ceil((Math.max(a.x, b.x) + reach - grid.x0) / grid.step));
+  const j0 = clampJ(Math.floor((Math.min(a.z, b.z) - reach - grid.z0) / grid.step));
+  const j1 = clampJ(Math.ceil((Math.max(a.z, b.z) + reach - grid.z0) / grid.step));
+  const ux = b.x - a.x;
+  const uz = b.z - a.z;
+  const len2 = ux * ux + uz * uz || 1;
+  let changed = 0;
+  for (let j = j0; j <= j1; j++) {
+    for (let i = i0; i <= i1; i++) {
+      const px = grid.x0 + i * grid.step - a.x;
+      const pz = grid.z0 + j * grid.step - a.z;
+      const t = Math.min(1, Math.max(0, (px * ux + pz * uz) / len2));
+      // Distance outside the channel's sides (0 inside); the ends are rounded.
+      const d = Math.max(0, Math.hypot(px - t * ux, pz - t * uz) - cut.widthM / 2);
+      if (d >= cut.blendM && d > 0) continue;
+      const w = cut.blendM > 0 ? 1 - smoothstep(0, cut.blendM, d) : 1;
+      const k = j * height.width + i;
+      const h = height.data[k] ?? 0;
+      const target = h + (-cut.depthM - h) * w;
+      if (target < h) {
+        height.data[k] = target;
+        changed++;
+      }
+    }
+  }
+  return changed;
+}
+
 /** Raises an island's rock: a mound whose shore is the ellipse of its length and width. */
 export function raiseRock(
   height: Raster,
@@ -135,6 +174,13 @@ export function applyHandEdits(
   }
   for (const fp of setPieces) {
     report.push({ id: fp.id, kind: 'flatten', samples: flattenFootprint(height, grid, frame, fp) });
+    fp.cuts?.forEach((cut, n) => {
+      report.push({
+        id: `${fp.id}#cut${n + 1}`,
+        kind: 'cut',
+        samples: dredgeCut(height, grid, frame, cut),
+      });
+    });
   }
   return report;
 }
