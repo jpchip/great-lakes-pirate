@@ -121,6 +121,12 @@ export const zoneSchema = z.object({
   edge: z.object({
     fogFadeM: z.number().positive(),
     edgeVisibilityM: z.number().positive(),
+    /**
+     * How far inside the edge "Take to the chart" is offered, meters (Phase 3 piece D).
+     * Without it, over the outer half of the fog fade. The small North Shore zones offer
+     * it from just outside their harbors, so leaving doesn't take a long sail to the edge.
+     */
+    chartFromM: z.number().positive().optional(),
   }),
   /** Where a new run starts, in zone meters, and the heading in degrees from north. */
   spawn: z.object({ x: z.number(), z: z.number(), headingDeg: z.number() }),

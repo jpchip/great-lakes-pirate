@@ -4,6 +4,7 @@ import { Rng } from '../core/rng';
 import { ChartView } from '../render/chart/chart-view';
 import { westernSuperiorChart } from '../sim/chart/chart-data';
 import {
+  clearToZoneEdge,
   distance,
   fromWorldChart,
   toWorldChart,
@@ -100,6 +101,12 @@ export interface ChartTravel {
   readonly trip: ChartTrip | undefined;
   /** Refused M or "Take to the chart" at the helm: why, for the HUD. Undefined when it opened. */
   fromHelm(where: { atEdge: boolean; inHarbor: boolean }): string | undefined;
+  /**
+   * True when the open lake lies clear ahead of the ship toward the zone's nearest edge
+   * on the chart: out of the harbor, not behind a point. Zones that offer the chart well
+   * inside their edge (`chartFromM`) ask this too.
+   */
+  openToLake(bounds: { minX: number; maxX: number; minZ: number; maxZ: number }): boolean;
   /** Off the zone at the soft edge and onto the chart, for a voyage. */
   takeToChart(): void;
   /** M in open water: a look at the chart, the world held. */
@@ -306,6 +313,10 @@ export function createChartTravel(host: ChartTravelHost): ChartTravel {
       if (atEdge) travel.takeToChart();
       else travel.openLook();
       return undefined;
+    },
+    openToLake(bounds) {
+      const { frame } = host.zone();
+      return clearToZoneEdge(geo, frame, bounds, host.shipPose());
     },
     takeToChart() {
       if (host.pursued() || machine.mode !== 'sailing') return;

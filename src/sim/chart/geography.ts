@@ -1,4 +1,10 @@
-import { ChartProjection, type Chart, type Geo } from '../../core/coords';
+import {
+  ChartProjection,
+  zoneToChart,
+  type Chart,
+  type Geo,
+  type ZoneFrame,
+} from '../../core/coords';
 
 /**
  * Chart geography (plan 03 §5, §8.2 step 9): the parsed chart.json features projected
@@ -100,6 +106,29 @@ export function toWorldChart(geo: ChartGeography, p: Chart): Chart {
 /** A world chart frame point on this chart. */
 export function fromWorldChart(geo: ChartGeography, p: Chart): Chart {
   return geo.projection.geoToChart(WORLD_PROJECTION.chartToGeo(p));
+}
+
+/**
+ * True when the open lake lies clear of land from a zone point (zone meters) straight out
+ * past one of the zone's two nearest edges, on this chart: out of the harbor, not behind
+ * a point (Phase 3 piece D, for zones that offer the chart well inside their edge).
+ */
+export function clearToZoneEdge(
+  geo: ChartGeography,
+  frame: ZoneFrame,
+  bounds: { minX: number; maxX: number; minZ: number; maxZ: number },
+  p: { x: number; z: number },
+): boolean {
+  const onChart = (z: { x: number; z: number }): Chart =>
+    fromWorldChart(geo, zoneToChart(z, frame));
+  const from = onChart(p);
+  const outs = [
+    { d: p.x - bounds.minX, to: { x: bounds.minX - 100, z: p.z } },
+    { d: bounds.maxX - p.x, to: { x: bounds.maxX + 100, z: p.z } },
+    { d: p.z - bounds.minZ, to: { x: p.x, z: bounds.minZ - 100 } },
+    { d: bounds.maxZ - p.z, to: { x: p.x, z: bounds.maxZ + 100 } },
+  ].sort((a, b) => a.d - b.d);
+  return outs.slice(0, 2).some(({ to }) => firstLandHit(geo, from, onChart(to)) === undefined);
 }
 
 /** Middle of the western Superior chart; keeps projection distortion small. */

@@ -83,14 +83,8 @@ import { advanceWeather, placeFogBank } from './sim/weather/weather';
 import { createSea } from './sim/weather/waves';
 import { createWorldState, parseWorldState, type WorldState } from './sim/world-state';
 import type { ZoneDef } from '../data/schemas/zones';
-import {
-  anchorRefusedNotice,
-  dockRefusedNotice,
-  EDGE_CHIP,
-  NOTICE_S,
-  sampleHud,
-} from './ui/hud/model';
-import { edgeFactor } from './sim/terrain/zone-edge';
+import { anchorRefusedNotice, dockRefusedNotice, NOTICE_S, sampleHud } from './ui/hud/model';
+import { offersChart } from './sim/terrain/zone-edge';
 import { arenaLoadingScreen, loadingScreen, type Arrival } from './ui/loading/model';
 import { mountGameUi } from './ui/mount';
 
@@ -1033,7 +1027,10 @@ async function boot(): Promise<void> {
     });
   const atEdge = (): boolean =>
     !!ctx.terrain &&
-    edgeFactor(ctx.terrain.bounds, zoneData.edge, sailing.state.x, sailing.state.z) > EDGE_CHIP;
+    offersChart(ctx.terrain.bounds, zoneData.edge, sailing.state.x, sailing.state.z) &&
+    // Zones that offer it well inside the edge do so only clear of the harbor, with the
+    // open lake ahead (the Twin Ports and Two Harbors, data/zones.json `chartFromM`).
+    (zoneData.edge.chartFromM === undefined || chartTravel.openToLake(ctx.terrain.bounds));
   machine.onTransition((_, to) => {
     if (to !== 'chart') ui.setChart(undefined);
     hudClock = HUD_INTERVAL_S;
@@ -1114,6 +1111,7 @@ async function boot(): Promise<void> {
             edge: arena ? undefined : zoneData.edge,
             notice: notice?.text,
             chartLocked: pursued || !!arena?.run.pursued,
+            chartOffered: arena ? false : atEdge(),
             extraStatus: arena ? arenaStatus(arena.run, arena.inputs(playerShip)) : undefined,
           }),
         );

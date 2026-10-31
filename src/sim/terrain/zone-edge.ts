@@ -11,6 +11,17 @@ export interface ZoneEdge {
   fogFadeM: number;
   /** Visibility at the edge itself, meters. */
   edgeVisibilityM: number;
+  /** How far inside the edge the chart is offered; the outer half of the fade without it. */
+  chartFromM?: number | undefined;
+}
+
+/** Edge factor past which the chart is offered when the zone doesn't set `chartFromM`. */
+export const CHART_EDGE_FACTOR = 0.5;
+
+/** True where the ship can take to the chart (Phase 3 piece D): near enough the edge. */
+export function offersChart(b: TerrainBounds, edge: ZoneEdge, x: number, z: number): boolean {
+  if (edge.chartFromM !== undefined) return edgeDistance(b, x, z) <= edge.chartFromM;
+  return edgeFactor(b, edge, x, z) > CHART_EDGE_FACTOR;
 }
 
 /** How far inside the wall the ship's center stops, so the hull stays on the terrain. */

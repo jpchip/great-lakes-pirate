@@ -4,7 +4,7 @@ import type { HazardState } from '../../sim/sailing/hazards';
 import { SAIL_LEVELS, speedKn } from '../../sim/sailing/controller';
 import { sampleCurve } from '../../sim/sailing/curve';
 import type { SailingClass } from '../../sim/sailing/ship-class';
-import { edgeFactor, type ZoneEdge } from '../../sim/terrain/zone-edge';
+import { CHART_EDGE_FACTOR, offersChart, type ZoneEdge } from '../../sim/terrain/zone-edge';
 import type { ZoneTerrain } from '../../sim/terrain/zone-terrain';
 import { moonPhase } from '../../sim/weather/celestial';
 import type { BarometerReading, BarometerTrend } from '../../sim/weather/weather';
@@ -143,6 +143,8 @@ export interface HudSources {
   notice?: string | undefined;
   /** Pursued: the chart is locked (plan 13 §4.3). */
   chartLocked?: boolean | undefined;
+  /** Whether "Take to the chart" is offered here; worked out from `edge` when absent. */
+  chartOffered?: boolean | undefined;
   /** Standing chips from the mode, e.g. an arena's pursuit lock (Phase 3 piece G). */
   extraStatus?: readonly string[] | undefined;
 }
@@ -170,7 +172,7 @@ export function anchorRefusedNotice(reason: 'tooDeep' | 'moored'): string {
 }
 
 /** Edge factor (sim/terrain/zone-edge) past which "Take to the chart" shows. */
-export const EDGE_CHIP = 0.5;
+export const EDGE_CHIP = CHART_EDGE_FACTOR;
 
 /** The hazard and mooring states worth a chip on the HUD (plan 02 §6–7). */
 export function hazardStatus(h: HazardState): string[] {
@@ -207,7 +209,8 @@ export function sampleHud(src: HudSources): HudSnapshot | undefined {
   const draftM = hz ? hz.state.draft : src.draftM;
   const status = hz ? hazardStatus(hz.state) : [];
   const atEdge =
-    !!src.terrain && !!src.edge && edgeFactor(src.terrain.bounds, src.edge, s.x, s.z) > EDGE_CHIP;
+    src.chartOffered ??
+    (!!src.terrain && !!src.edge && offersChart(src.terrain.bounds, src.edge, s.x, s.z));
   for (const chip of src.extraStatus ?? []) if (!status.includes(chip)) status.push(chip);
   if (src.notice && !status.includes(src.notice)) status.push(src.notice);
   return {

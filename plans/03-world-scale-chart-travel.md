@@ -866,6 +866,7 @@ Screenshots are in the project files (`chart-in-game/`).
 - **A voyage only sets out from the soft edge.** M anywhere in a zone's open water is a look with the world held (§20.5); plotting is allowed so the course is ready at the edge.
 - **The chart and the zones use different projections.** The chart geography is centered at 47° N 91° W, while zone frames, entries, the weather sim and the save use core/coords' default around the middle of the lake. `toWorldChart` and `fromWorldChart` (`src/sim/chart/geography.ts`) convert, and the save keeps world-frame points, so it doesn't depend on the chart's projection.
 - **The zone left behind stays loaded** while the ship is on the chart, for the way straight back; arrival swaps it through the zone manager like any zone change. A run saved on the chart loads its `fromZoneId` zone behind the chart.
+- **The Twin Ports and Two Harbors offer the chart from just outside their harbors** (playtest, 2026-10-31: sailing out to their edges took too long). Their `edge.chartFromM` in `zones.json` (1,900 m and 1,400 m inside the edge, which takes in the Duluth canal and Agate Bay mouths) offers "Take to the chart" wherever the open lake lies clear ahead toward the zone's nearest edge (`clearToZoneEdge`), so not in the harbor basin behind Minnesota Point. Arrivals at their entries now show the button at once. The Apostles keep the outer half of their fog fade.
 - **Contacts aren't saved.** The S8 stand-in traffic is rebuilt from the run's seed on load; piece F's route graph replaces it.
 
 ### 24.4 Still to do

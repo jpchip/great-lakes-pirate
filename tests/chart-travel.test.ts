@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { zoneToChart, type Chart } from '../src/core/coords';
 import { CHART_TIME_SCALE, type ChartSession } from '../src/modes/chart';
 import { westernSuperiorChart } from '../src/sim/chart/chart-data';
-import { fromWorldChart, toWorldChart } from '../src/sim/chart/geography';
+import { clearToZoneEdge, fromWorldChart, toWorldChart } from '../src/sim/chart/geography';
+import { offersChart } from '../src/sim/terrain/zone-edge';
 import type { Contact, Encounter } from '../src/sim/chart/traffic';
 import {
   estimateSeconds,
@@ -240,5 +241,49 @@ describe('no chart in a harbor', () => {
       expect(setPieceAt(def, frame, far)?.id, piece.id).not.toBe(piece.id);
     }
     expect(setPieceAt(def, frame, spawnPose(def))).toBeUndefined();
+  });
+});
+
+describe('taking to the chart in the small North Shore zones', () => {
+  const half = (id: string) => {
+    const def = zoneDef(id);
+    const h = (def.bake.tilesX * def.bake.tileSamples * def.bake.sailingSampleM) / 2;
+    return { def, bounds: { minX: -h, maxX: h, minZ: -h, maxZ: h } };
+  };
+  /** A point `m` meters off a set piece's anchor along its bearing (negative: behind it). */
+  const off = (id: string, piece: string, m: number) => {
+    const { def } = half(id);
+    const sp = def.setPieces.find((p) => p.id === piece);
+    if (!sp) throw new Error(piece);
+    const fp = setPieceFootprint(sp, defFrame(def));
+    return { x: fp.anchor.x + Math.sin(fp.bearing) * m, z: fp.anchor.z - Math.cos(fp.bearing) * m };
+  };
+
+  it('offers the chart well inside the edge, but only where the edge is set so', () => {
+    const b = { minX: -2000, maxX: 2000, minZ: -2000, maxZ: 2000 };
+    expect(offersChart(b, { fogFadeM: 600, edgeVisibilityM: 350 }, 0, 1000)).toBe(false);
+    expect(offersChart(b, { fogFadeM: 600, edgeVisibilityM: 350 }, 0, 1800)).toBe(true);
+    expect(offersChart(b, { fogFadeM: 600, edgeVisibilityM: 350, chartFromM: 1500 }, 0, 1000)).toBe(
+      true,
+    );
+    expect(zoneDef('zone.apostles').edge.chartFromM).toBeUndefined();
+  });
+
+  it('in the Twin Ports: just out of the Duluth canal, but not in the harbor behind it', () => {
+    const { def, bounds } = half('zone.twin_ports');
+    const frame = defFrame(def);
+    const lake = off('zone.twin_ports', 'setpiece.duluth_canal', 400);
+    const harbor = off('zone.twin_ports', 'setpiece.duluth_canal', -500);
+    expect(offersChart(bounds, def.edge, lake.x, lake.z)).toBe(true);
+    expect(clearToZoneEdge(geo, frame, bounds, lake)).toBe(true);
+    expect(clearToZoneEdge(geo, frame, bounds, harbor)).toBe(false);
+  });
+
+  it('in Two Harbors: just out of Agate Bay', () => {
+    const { def, bounds } = half('zone.two_harbors');
+    const frame = defFrame(def);
+    const lake = off('zone.two_harbors', 'setpiece.two_harbors', 500);
+    expect(offersChart(bounds, def.edge, lake.x, lake.z)).toBe(true);
+    expect(clearToZoneEdge(geo, frame, bounds, lake)).toBe(true);
   });
 });

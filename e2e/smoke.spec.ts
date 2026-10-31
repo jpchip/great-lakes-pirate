@@ -265,7 +265,21 @@ test('sails from the Apostles to the Twin Ports on the chart, through a reload',
   // The Twin Ports' east entry (data/zones.json), heading west.
   await expect(body).toHaveAttribute('data-saved-pose', /^1700\.\d\d,-100\.\d\d,4\.71\d\d$/);
 
-  // M in open water is a look: the world holds and there's no setting out from here.
+  // The Twin Ports offer the chart from just outside the harbor, so it's on offer here.
+  await expect(page.getByTestId('take-to-chart')).toBeVisible();
+  await page.keyboard.press('KeyM');
+  await expect(page.getByTestId('chart-hud')).toHaveAttribute('data-trip', 'sea');
+  await page.keyboard.press('KeyM');
+  await expect(body).toHaveAttribute('data-mode', 'sailing');
+
+  // M in the Apostles' open water, far from the edge, is a look: no setting out from here.
+  await page.evaluate(() =>
+    (window as unknown as { __glpZones: { enter(id: string): Promise<void> } }).__glpZones.enter(
+      'zone.apostles',
+    ),
+  );
+  await expect(body).toHaveAttribute('data-zone', 'zone.apostles');
+  await expect(body).toHaveAttribute('data-zone-load', 'done');
   await page.keyboard.press('KeyM');
   await expect(page.getByTestId('chart-hud')).toHaveAttribute('data-trip', 'look');
   await expect(page.getByTestId('chart-sail')).toBeDisabled();
