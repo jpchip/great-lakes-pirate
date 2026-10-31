@@ -1,4 +1,5 @@
 import { PALETTE } from '../style/palette';
+import type { HullLines, HullPaint } from './hull-lines';
 
 /**
  * Hull lines and sail plan for the procedural schooner generator (plan 14 §5): one record
@@ -37,26 +38,8 @@ export interface HeadsailLines {
   clewRise: number;
 }
 
-export interface SchoonerLines {
+export interface SchoonerLines extends HullLines {
   id: string;
-  /** On deck, stem head to the taffrail. */
-  length: number;
-  beam: number;
-  /** Keel below the waterline amidships. */
-  draft: number;
-  /** Sheer (top of the rail) above the waterline amidships. */
-  freeboard: number;
-  /** Extra sheer height at the bow and the stern. */
-  sheerBow: number;
-  sheerStern: number;
-  /** Deck below the rail top (bulwark height). */
-  bulwark: number;
-  /** How far the stem head overhangs the forefoot, forward. */
-  stemRake: number;
-  /** How far the taffrail overhangs the bottom of the transom, aft. */
-  transomRake: number;
-  /** Transom half-width at the rail, as a fraction of the half-beam. */
-  transomWidth: number;
   /** Bowsprit plus jib boom beyond the stem head, and its steeve (rise), degrees. */
   bowsprit: number;
   bowspritSteeveDeg: number;
@@ -68,13 +51,7 @@ export interface SchoonerLines {
   camber: number;
   /** The reefed gaff sails keep this fraction of their luff. */
   reefedHoist: number;
-  paint: {
-    topsides: number;
-    boot: number;
-    bottom: number;
-    rail: number;
-    bulwarkInside: number;
-    deck: number;
+  paint: HullPaint & {
     house: number;
     spar: number;
     canvas: number;

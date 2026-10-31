@@ -16,7 +16,7 @@ export const curveSchema = z
     'Curve x values must strictly increase',
   );
 
-/** Hull sampling for cheap buoyancy (plan 02 §5.1; gameplay/buoyancy). */
+/** Hull sampling for cheap buoyancy (plan 02 §5.1; gameplay/buoyancy), in drawn meters (after `displayScale`). */
 const buoyancySchema = z.object({
   /** Bow-to-stern sample span, meters. */
   length: z.number().positive(),
@@ -31,9 +31,12 @@ const buoyancySchema = z.object({
 const shipBase = {
   id: idOf('ship'),
   name: z.string().min(1),
-  tier: z.number().int().min(1).max(3),
+  /** Who sails it: the player's classes, or traffic (plan 03 §6, Phase 3 piece H). */
+  role: z.enum(['player', 'npc']).default('player'),
+  /** Player tier (plan 02 §10); traffic classes have none. */
+  tier: z.number().int().min(1).max(3).optional(),
   lengthM: z.number().positive(),
-  /** Render scale for this class (plan 03 §3.5); 1 for the player's schooners. */
+  /** Render scale for this class (plan 03 §3.5); 1 for the player's schooners, 0.85 for big freighters. */
   displayScale: z.number().positive(),
   /** Seconds to reach 63% of a higher target speed. */
   accelTau: z.number().positive(),
@@ -52,6 +55,11 @@ const shipBase = {
   buoyancy: buoyancySchema,
   /** How conspicuous the ship is (plan 06). */
   visibilityProfile: z.enum(['low', 'medium', 'high']),
+  /**
+   * Lookout range as a multiple of the base range (plan 03 §5.2, S8 finding): smoke and
+   * size carry further, a low tug less far. The chart's lookout and traffic read it.
+   */
+  conspicuity: z.number().positive().default(1),
   modelId: z.string().min(1),
   /** Lower-detail model ids, nearest first. */
   LODs: z.array(z.string().min(1)),
@@ -82,8 +90,13 @@ export const steamShipSchema = z.object({
 
 export const shipSchema = z
   .discriminatedUnion('propulsion', [sailShipSchema, steamShipSchema])
-  .refine((s) => s.draftFullM >= s.draftEmptyM, 'draftFullM must be at least draftEmptyM');
+  .refine((s) => s.draftFullM >= s.draftEmptyM, 'draftFullM must be at least draftEmptyM')
+  .refine(
+    (s) => (s.role === 'player') === (s.tier !== undefined),
+    'Player classes, and only they, have a tier',
+  );
 
 export const shipsFileSchema = z.array(shipSchema);
 export type ShipRecord = z.infer<typeof shipSchema>;
 export type SailShipRecord = z.infer<typeof sailShipSchema>;
+export type SteamShipRecord = z.infer<typeof steamShipSchema>;

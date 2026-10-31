@@ -22,6 +22,7 @@ import { createGameAudio, type GameAudio } from './audio/game-audio';
 import type { SignalStation } from './audio/world-audio';
 import { cloneTransform, createGameWorld } from './gameplay/ecs';
 import { createSchooner } from './gameplay/schooner';
+import { npcParade } from './gameplay/npc-ships';
 import type { SaveControls } from './debug/overlay';
 import type { GameContext, GameEvents } from './modes/context';
 import { ModeMachine } from './modes/machine';
@@ -349,6 +350,16 @@ async function boot(): Promise<void> {
     model: 'schooner',
     playerControlled: true,
   });
+
+  // `?npcs` puts one of each NPC class in a line abreast ahead, steaming on (`?npcs=stop`
+  // lays them to, `?npcs=meet` heads them toward you), to look at the Phase 3 ships.
+  if (params.has('npcs')) {
+    const depthAt = (x: number, z: number): number =>
+      zone && zone.terrain.contains(x, z) ? zone.terrain.depthAt(x, z) : 100;
+    const mode = params.get('npcs');
+    const parade = npcParade(spawn, depthAt, mode === 'stop' || mode === 'meet' ? mode : 'ahead');
+    for (const e of parade) ctx.world.add(e);
+  }
 
   // Sailing and world audio (plan 15 §11). It loads alongside everything else and starts
   // on the first key or click; without Web Audio the game just runs silent. The lights'

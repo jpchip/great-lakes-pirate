@@ -44,8 +44,18 @@ export interface Entity {
   /** Damage, strain, grounding, anchor and berth (plan 02 §6–7); see gameplay/hazards. */
   hazards?: ShipHazards;
   /** Which model render/ draws for this entity; render/ owns the three.js objects. */
-  model?: 'schooner';
+  model?: 'schooner' | 'npc';
+  /** A traffic ship (plan 03 §6; Phase 3 piece H): its ships.json class, steaming on. */
+  npc?: NpcShip;
   playerControlled?: true;
+}
+
+/** An NPC ship holding a course: no helm yet (piece G steers them in the arenas). */
+export interface NpcShip {
+  /** ships.json id. */
+  classId: string;
+  /** Speed through the water, game knots. */
+  speedKn: number;
 }
 
 export type GameWorld = World<Entity>;

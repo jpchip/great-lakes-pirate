@@ -14,6 +14,7 @@ import { CameraRig } from './camera-rig';
 import type { GameRenderer } from './renderer';
 import { createSchooner, styleSchooner, type SchoonerModel } from './ships/schooner';
 import { T1_SCHOONER_LINES } from './ships/schooner-lines';
+import type { NpcView } from './ships/npc-view';
 import { OutlineSettings } from './style/outline';
 import { StyleLighting } from './style/stylized-material';
 import {
@@ -54,6 +55,8 @@ export interface TestScene {
   readonly spray: Spray;
   /** Every ship's bow wave and wake ribbons. */
   readonly wakes: ReadonlyMap<Entity, ShipWake>;
+  /** NPC ships drawn (Phase 3 piece H), once the first one has appeared and loaded. */
+  readonly npcs: NpcView | undefined;
   readonly environment: EnvironmentView;
   /** The sailing camera: chase/orbit, tactical zoom and spyglass (plan 02 §8). */
   readonly cameraRig: CameraRig;
@@ -274,7 +277,32 @@ export async function createTestScene(
   const objects = new Map<Entity, SchoonerModel>();
   const wakes = new Map<Entity, ShipWake>();
   const hull = measureWaterline(createSchooner(T1_SCHOONER_LINES).group);
+  // NPC ships load their module with the first one (Phase 3 piece H).
+  let npcs: NpcView | undefined;
+  let npcsLoading: Promise<void> | undefined;
+  const npcsPending = new Set<Entity>();
   const add = (e: Entity): void => {
+    if (e.model === 'npc') {
+      if (npcs) {
+        npcs.add(e);
+        return;
+      }
+      npcsPending.add(e);
+      npcsLoading ??= import('./ships/npc-view')
+        .then(({ createNpcView }) => {
+          npcs = createNpcView({
+            scene,
+            water,
+            lighting,
+            outlines,
+            windAt: (p) => weather.windAt(p, clock.gameSeconds),
+          });
+          for (const pending of npcsPending) npcs.add(pending);
+          npcsPending.clear();
+        })
+        .catch((err: unknown) => console.error('NPC ships unavailable', err));
+      return;
+    }
     const model = createSchooner(T1_SCHOONER_LINES);
     styleSchooner(model, lighting, outlines);
     model.group.rotation.order = 'YXZ';
@@ -293,6 +321,8 @@ export async function createTestScene(
     const model = objects.get(e);
     if (model) scene.remove(model.group);
     objects.delete(e);
+    npcsPending.delete(e);
+    npcs?.remove(e);
     const wake = wakes.get(e);
     if (wake) {
       scene.remove(wake.mesh);
@@ -335,6 +365,9 @@ export async function createTestScene(
     windCues,
     spray,
     wakes,
+    get npcs() {
+      return npcs;
+    },
     environment,
     cameraRig,
     get zone() {
@@ -395,6 +428,8 @@ export async function createTestScene(
           spray.emit(e, ship, hull, frameSeconds);
         }
       }
+      // NPC ships: posed on the swell, their wakes, smoke into the wind, lights from dusk.
+      npcs?.update(alpha, now, frameSeconds, environment.sunElevationDeg, fog()?.density ?? 0);
       spray.update(frameSeconds);
       cameraRig.update(pose, surface, frameSeconds);
       sky.position.copy(camera.position);
