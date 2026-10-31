@@ -12,5 +12,26 @@
     "zone": "zone.apostles",
     "wantedRegion": "region.chequamegon",
     "services": ["market", "shipyard", "tavern", "jail"]
+  },
+  {
+    "id": "port.duluth",
+    "name": "Duluth",
+    "zone": "zone.twin_ports",
+    "wantedRegion": "region.duluth",
+    "services": ["market", "tavern", "jail"]
+  },
+  {
+    "id": "port.superior",
+    "name": "Superior",
+    "zone": "zone.twin_ports",
+    "wantedRegion": "region.superior",
+    "services": ["market", "shipyard", "tavern", "jail"]
+  },
+  {
+    "id": "port.two_harbors",
+    "name": "Two Harbors",
+    "zone": "zone.two_harbors",
+    "wantedRegion": "region.north_shore",
+    "services": ["market", "tavern"]
   }
 ]

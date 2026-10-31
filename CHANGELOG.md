@@ -4,6 +4,11 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ## [Unreleased]
 
+### Added
+
+- **The Twin Ports and Two Harbors zones** baked from NOAA and USGS data (not loaded in the game yet): Duluth, Superior, Minnesota and Wisconsin Points and St. Louis Bay in 16 tiles, and Agate Bay and the North Shore bluffs in 9. The Duluth Ship Canal and Superior Entry are dredged through at their real widths, and Agate Bay is widened into a basin for the ore docks. Duluth, Superior and Two Harbors join `data/ports.json` ([plan 03 §21](plans/03-world-scale-chart-travel.md)).
+- **Cuts** in the geo bake's hand-edit layer: a set piece can dredge a channel to a depth, which opens 1:1 harbor entries through compressed land.
+
 ## [0.2.0] - 2026-10-31
 
 The **Superior Slice** (Phase 2): the whole Apostles zone and Chequamegon Bay to sail with no loading screen, the weather sim running the sky, the seven lighthouses of 1900, harbors at Bayfield and Ashland, and the sounds of weather, shore and harbor.

@@ -4,7 +4,7 @@ import fc from 'fast-check';
 import { describe, expect, it } from 'vitest';
 import { ChartProjection } from '../src/core/coords';
 import { decodeGrid, type GridFormat } from '../src/core/terrain-grid';
-import { flattenFootprint, raiseRock } from '../tools/geo/lib/edits';
+import { dredgeCut, flattenFootprint, raiseRock } from '../tools/geo/lib/edits';
 import { encode, quantize, tileWindow } from '../tools/geo/lib/encode';
 import { labelLand } from '../tools/geo/lib/islands';
 import { mergeElevation } from '../tools/geo/lib/merge';
@@ -234,6 +234,27 @@ describe('hand-edit layer', () => {
     expect(mid).toBeLessThan(7);
   });
 
+  it('dredges a cut through land and water, and only ever lowers', () => {
+    const r = slope();
+    // An east-west channel along z = 0 from x = -60 to x = 60, 20 m wide, 7 m deep. 1 m
+    // of zone is 8 m of chart, so 60 zone meters east is 480 chart meters.
+    const D = 180 / Math.PI / 6_371_008.8;
+    const east = (m: number) => ({
+      lat: 47.5,
+      lon: -88 + (m * 8 * D) / Math.cos(47.5 / (180 / Math.PI)),
+    });
+    const cut = { from: east(-60), to: east(60), widthM: 20, depthM: 7, blendM: 10 };
+    expect(dredgeCut(r, grid, frame, cut)).toBeGreaterThan(0);
+    expect(h(r, 40, 0)).toBeCloseTo(-7, 1);
+    expect(h(r, -40, 9)).toBeCloseTo(-8, 1); // already deeper than the cut: left alone
+    expect(h(r, 0, 5)).toBeCloseTo(-7, 1);
+    // The bank blends back to the slope past blendM, and past the rounded ends.
+    expect(h(r, 40, 25)).toBeCloseTo(8);
+    expect(h(r, 40, 15)).toBeLessThan(8);
+    expect(h(r, 40, 15)).toBeGreaterThan(-7);
+    expect(h(r, 90, 0)).toBeCloseTo(18);
+  });
+
   it('raises a rock where the data has none', () => {
     const r = raster(grid.width, grid.height, -3);
     const island = {
@@ -259,6 +280,9 @@ describe('hand-edit layer', () => {
     expect(config.islands.find((i) => i.id === 'island.long')?.bounds).toBeDefined();
     expect(config.islands.find((i) => i.id === 'island.gull')?.rock).toBeDefined();
     expect(config.setPieces.map((p) => p.id)).toEqual(['setpiece.bayfield', 'setpiece.ashland']);
+    const ports = zoneConfigFromData('zone.twin_ports', read('zones.json'), read('islands.json'));
+    expect(ports.islands).toEqual([]);
+    expect(ports.setPieces.find((p) => p.id === 'setpiece.duluth_canal')?.cuts).toHaveLength(1);
   });
 });
 
