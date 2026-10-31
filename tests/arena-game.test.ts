@@ -341,3 +341,19 @@ describe('arena rules', () => {
     expect(arenaStatus(r, inputs(0, 0))).toContain('Squall passed');
   });
 });
+
+describe('arena weather frame', () => {
+  it('samples the weather sim at the encounter point, in the lake-wide frame', async () => {
+    const { ChartProjection, zoneToChart: z2c } = await import('../src/core/coords');
+    const { arenaWeatherFrame } = await import('../src/sim/arena/arena');
+    const frame = arenaFrame(devAt);
+    const weather = arenaWeatherFrame(geo, frame);
+    const world = new ChartProjection();
+    // A point 1 km east of the arena centre lands at the same place on the globe in both.
+    const a = geo.projection.chartToGeo(zoneToChart({ x: 1000, z: 0 }, frame));
+    const b = world.chartToGeo(z2c({ x: 1000, z: 0 }, weather));
+    expect(Math.abs(a.lat - b.lat)).toBeLessThan(0.001);
+    expect(Math.abs(a.lon - b.lon)).toBeLessThan(0.002);
+    expect(b.lat).toBeCloseTo(DEV_ARENA_AT_GEO.lat, 1);
+  });
+});

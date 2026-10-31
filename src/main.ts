@@ -28,6 +28,7 @@ import {
   ARENA_BOUNDS,
   ARENA_HALF_M,
   arenaStatus,
+  arenaWeatherFrame,
   layoutArena,
   type ArenaExit,
   type ArenaResult,
@@ -791,7 +792,9 @@ async function boot(): Promise<void> {
       const centre = clearArenaCentre(geo, enc.at, ARENA_HALF_M * 0.6);
       const land = sampleArenaLand(geo, { origin: centre, compression: 8 }, ARENA_HALF_M + 400);
       const layout = layoutArena(enc, centre, land);
-      weatherSource.frame = layout.frame;
+      // The sim runs in the lake-wide chart frame, not the chart geography's.
+      const weatherFrame = arenaWeatherFrame(geo, layout.frame);
+      weatherSource.frame = weatherFrame;
       ctx.weather.shelter = OPEN_WATER;
       ctx.weather.invalidate();
       const now = state.environment.clock.gameSeconds;
@@ -808,7 +811,7 @@ async function boot(): Promise<void> {
         });
         squallOverride = true;
       }
-      if (enc.kind === 'fogbank') standFogBank(layout.player, 700, layout.frame);
+      if (enc.kind === 'fogbank') standFogBank(layout.player, 700, weatherFrame);
 
       placeShip(layout.player);
       // Arrive as she sailed the chart: everything set and making way.
