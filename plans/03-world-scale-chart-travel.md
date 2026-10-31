@@ -613,9 +613,118 @@ Phase 2 (the Superior Slice) is pieces A–I of the Phase 2 scope doc: water bud
 | 10 | Done in the helm swap. |
 | 12 | Plans updated, CI green; 0.2.0 tagged on the merge. |
 
+## 20. Phase 3 Scope: Hybrid Travel (proposed 2026-10-31)
+
+Phase 3 is the **Hybrid Travel** build (version 0.3.0), with one goal from the [00 §7](00-master-plan.md) roadmap: **"big-world feel."** It takes the S8 chart prototype (§16) into the game, adds the Twin Ports and Two Harbors zones, and fills the open water between them with traffic and weather you meet in open-water arenas. The scope comes from the Phase 3 row in the master plan and the Phase 3 rows in plans 04 §15 (weather on the chart), 13 §12 (chart mode, encounter popups, lookout setting), 15 §11 (chart music, steam whistles, encounter stingers) and 16 §12 (voyage slice, autosave triggers, migrations), plus the S8 findings (§16) and the Phase 2 leftovers (§17.4).
+
+This section is the scope proposal. Like Phase 2's, its exit criteria (§20.3) become the phase's acceptance checklist once Jared approves them, and piece K checks them.
+
+### 20.1 What Phase 2 changes or puts at risk
+
+| Finding | Source | Effect on Phase 3 |
+|---|---|---|
+| The game is hard-wired to one zone: `main.ts` loads the Apostles at boot and spawns in the North Channel every time | `src/main.ts` | Piece A turns zone loading into a load and unload by id, with the ship placed at an entry point or its saved pose. Everything else in the phase sits on it. |
+| The player's position isn't saved: `WorldState.player` is still an empty object, so a reload always starts at the spawn | `src/sim/world-state.ts`, 16 §5 | Piece A adds `player.location` and the ship's pose (save v3, migrated from v2). Piece D adds the `voyage` slice. |
+| One zone decoded is about 50 MB, plus a 15 MB copy in the tile worker; the heap budget is 300 MB | §17.1, 01 §5 | One zone is resident at a time. The last zone stays cached briefly for a quick turn back (§7), then is freed. A round-trip test checks the memory comes back. |
+| The chart's coastline is hand-traced to about 1 km | §16, finding 8 | Fine on the chart, but zone entry points must meet the baked zone edges. Piece B bakes the chart from the same sources as the zones (§8.2 step 9). |
+| The weather sim already runs in chart coordinates across the whole lake | `src/sim/weather/local-weather.ts`, 04 §24 | Weather on the chart is wiring, not a new sim. The chart's drifting stand-in wind goes away, and the chart and the zones share one sky. |
+| The Duluth Ship Canal is about 11 m wide at C = 8, and Superior Entry is no better | §3.4 | The schooner can't get into the Twin Ports without 1:1 set pieces at both entries. That is the riskiest work in the phase (piece I). |
+| Traffic is eight hand-placed contacts, and the cutter always hunts you | §16, findings 2–3 | Piece F puts traffic on a route graph and an encounter director. With no Wanted until Phase 5, the cutter is sighted but doesn't force encounters. |
+| NPC ship art is planned for Phases 4–6, and the S8 arena uses box stand-ins | 14 §13 | Piece H brings a first set of NPC hulls forward through the procedural hull generator (14 §5), since every encounter needs them. |
+| Trading, Wanted and combat arrive in Phases 4–6 | 00 §7 | A Phase 3 encounter is meeting and watching, not robbing. The arena still has to be worth dropping into: real ships on their courses, weather, the cutter's chase. Engage on a ship is "close and look" until Phase 6. |
+| Avoiding costs nothing, and zones on the course don't stop you | §16, findings 4–5 | Piece F makes a detour cost time. Zones you pass through stay pass-through (§20.5). |
+
+### 20.2 What Phase 3 delivers
+
+Sail out of the Apostles onto the chart, plot a course to Duluth, Superior or Two Harbors, meet ships and weather on the way, and arrive in a 3D zone you can dock in, with the run saved wherever you stop.
+
+| Area | Deliverable | Plan |
+|---|---|---|
+| Zones | The Twin Ports and Two Harbors baked through the geo pipeline, loaded and unloaded by id, with entry points on their edges | §4, §8, §9 |
+| Chart in the game | The `chart` mode from S8 in the game: "Take to the chart" at the soft edge, M in open water, plotting, the honest clock, the encounter card, the lookout setting, the pursuit lock, and arrival into a zone | §5, §7, 13 §4.3 |
+| Real chart | Coastline, islands and soundings baked from NOAA and USGS for the whole western lake; a cached static layer | §8.2 step 9, 13 §8.1 |
+| Weather on the chart | Fronts, fog banks and storm cells from the S9 sim drawn on the chart, wind from the sim, a forecast with uncertainty, and weather encounters from the sim | 04 §15 |
+| Traffic | `routes.json` (ports, zone entries, lanes with seasonal weights), abstract ships on it, and an encounter director with a per-voyage budget | §6, 01 §3.4 |
+| Arenas | Open-water arenas in the game: the sim's weather at that point, ships materialized from traffic, the coastline in view, back to the chart at the edge | §6.3 |
+| NPC ships | Steam ore freighter, schooner-barge, package steamer, fishing tug and the revenue cutter *Morrill*, from the hull generator, with smoke and running lights | 14 §5, §3.5 |
+| Harbors | Duluth Ship Canal and Superior Entry at 1:1, berths at Duluth, Superior and Two Harbors, and their 1900 lights (depends on decision 1, §20.6) | §3.4, R1a |
+| Saves | Location and voyage saved, autosave on zone and chart transitions, a v2 save migrates | 16 §4.1, §12 |
+| Audio | Chart music, steam whistles you can hear in fog, encounter stingers | 15 §11 |
+
+**Out of scope:** markets, cargo and manifests on the traffic (Phase 4), the cutter hunting by Wanted, region heat on the chart and rumor markers (Phases 4–5), weapons and boarding (Phase 6), going ashore (Phase 7), fog of war on the chart (it needs discoveries, Phase 9; cut list #3), ice on the chart (Phase 9), the Siskiwit Bay zone (§20.6), and the four remaining Apostles set pieces (Phase 4).
+
+### 20.3 Exit criteria (proposed)
+
+Phase 3 is done when these pass on the baseline laptop and Jared signs off the playtest. The last three come from plan 17's definition of done (17 §11).
+
+| # | Criterion | How it's checked |
+|---|---|---|
+| 1 | Sail from Bayfield out of the Apostles, plot a course on the chart and arrive in the Twin Ports, enter through the Duluth Ship Canal and dock at Duluth; then cross to Superior through the harbor and leave by Superior Entry; then reach Two Harbors and dock there | A playtest route; tests dock at every new pier on the real zones, as `tests/harbors.test.ts` does for Phase 2 |
+| 2 | Duluth to the Apostles edge takes 20–30 real seconds at the default compression, plus stops, and the ETA matches the time sailed | `tests/chart.test.ts` on the real chart and routes |
+| 3 | Chart to zone loads in 8 s or less on a warm cache, chart to arena in 2 s or less, and arena to chart is instant (§7) | A transition bench on the laptop |
+| 4 | About 2 meaningful encounters on an Apostles crossing with the default lookout (the S8 baseline), fewer on short hops, more in fall than in spring | `tests/chart-pacing.test.ts` rerun on the route-graph traffic, seeded, per route and season |
+| 5 | Every encounter kind can be met in an arena: each NPC ship class, the cutter, a derelict, a squall and a fog bank. Ships sail their courses, and sailing off the edge resumes the voyage | `?encounter=<kind>` for each, then sailing out |
+| 6 | One weather everywhere: the chart's wind is the sim's, and a fog bank or storm seen on the chart arrives in the zone or arena where it shows | Plot into a charted fog bank and sail into it; a unit test compares chart and zone wind at the same point and time |
+| 7 | The chart is locked while a hostile has you detected inside its threat radius, with the banner showing | `?cutter=hunt` (dev only until Phase 5) |
+| 8 | Save and reload keeps the zone, the ship's pose, and the voyage's progress, and a 0.2.0 save migrates | Dev panel Save and reload in each zone and mid-voyage; `tests/save-migrations.test.ts` with a v2 fixture |
+| 9 | Each new zone and the arena meet the Phase 2 numbers: Medium p95 frame at most 16.7 ms, water at most 3 ms, at most 150 draw calls; Low never below 30 fps. The chart redraws in at most 8 ms p95. A round trip to another zone and back leaves the heap within 20 MB of where it started | `/bench/stream/` and `?bench=water` per zone, a chart bench, and the heap in the dev overlay |
+| 10 | The Twin Ports read as Duluth and Superior from the water (Minnesota Point, the canal, the two entries, St. Louis Bay), and Two Harbors by its ore docks and light | Jared, by eye |
+| 11 | It feels big: a voyage takes planning, and the lake has moods | Jared decides |
+| 12 | Plans 03, 04, 13, 15 and 16 record what was built, CI is green, and 0.3.0 is tagged | The release PR |
+
+### 20.4 Work pieces
+
+Eleven pieces, each sized to be one thread. Four can start at once (A, B, C, H). The playtest (K) closes the phase.
+
+| Stage | Pieces |
+|---|---|
+| 1, start now | A zones and location, B real chart, C new zone bakes, H NPC ships |
+| 2 | D chart in the game (after A), I harbors (after C) |
+| 3 | E weather on the chart, F traffic (both after D) |
+| 4 | G arenas (after D, F, H), J audio (after D, H) |
+| 5 | K playtest |
+
+| # | Piece | Scope | Needs first | Needs Jared |
+|---|---|---|---|---|
+| A | Zones by id and location in the save | Turn the boot-time Apostles load in `main.ts` into a zone manager that loads and unloads a zone by id behind a period loading screen, keeping the last zone cached briefly. Entry points in `zones.json`. `player.location` (`{mode, zoneId, chartPos}`) and the ship's pose in `WorldState`, save v3 with a migration from v2 (a v2 save starts at the Apostles spawn). Continue puts you back where you saved. Autosave on transitions (16 §4.1). A memory round-trip test | — | — |
+| B | Real chart from the bake | §8.2 step 9: a lake-wide coastline polygon set (islands as separate rings, the lake ring closed along the charted edge), depth shading and real soundings from NOAA bathymetry, replacing the hand-traced `chart.json` geometry so `buildGeography` and the land checks work unchanged (§16, finding 8). Zone outlines on the chart from the baked zone bounds. Cache the coast, soundings and graticule in an offscreen layer while the view is still (finding 9) | — | Chart redraw time on the laptop |
+| C | Bake the Twin Ports and Two Harbors | `zone.twin_ports` and `zone.two_harbors` in `zones.json` and through `tools/geo/build.ts`, with set-piece footprints for the Duluth canal, Superior Entry, the Duluth and Superior waterfronts and Agate Bay. Bake reports. Check Minnesota and Wisconsin Points and St. Louis Bay read at C = 8, and that the soft-knee land curve suits the North Shore's bluffs. The spawn, edge and draw-call tests run per zone | — | Recognizability by eye |
+| D | Chart mode in the game | Bring `src/modes/chart.ts` into the game's mode machine with its HUD in Preact (13 §4.3): "Take to the chart" at the soft edge (replacing the Zone edge chip), M from open water, no chart from inside a harbor set piece, plotting, ETA, the lookout setting in settings, the encounter card, and the "chart locked" banner. Arrival loads the destination zone at the matching entry point. The `voyage` slice in the save. Retire `chart-spike.html` once the game covers it | A | Plotting feel |
+| E | Weather on the chart | The S9 sim drives the chart's wind (the drifting stand-in goes). Fronts, fog banks and storm cells drawn on the chart. A forecast with uncertainty from the barometer and the systems' tracks (04 §15). Squalls and fog banks met on the chart come from the sim, not hand-placed contacts, and slow or hide you as they do in the zone | D | — |
+| F | Traffic on the route graph | `data/routes.json` (ports, zone entries, waypoints, lanes with seasonal weights) with a schema and land-mask checks. Abstract ships on lanes as `{leg, progress}` on the world tick (01 §3.4), without manifests (those are Phase 4's). An encounter director with a per-voyage budget by route and season (finding 2). Avoiding costs time on a detour (finding 4). The *Morrill* patrols and can be sighted, but forces nothing until Phase 5 gates it by Wanted (finding 3); a dev flag turns hunting on for criterion 7. Derelicts as static points of interest | D (can start against the spike) | — |
+| G | Open-water arenas in the game | The arena as the sailing mode with no terrain tiles: the sim's weather, sky and time at the encounter point, the ships materialized from traffic on their lanes' headings with simple steering and collision avoidance, the coastline in view as low silhouettes from the chart (cut list #1 if it costs too much), the pursuit lock within the threat radius, and back to the chart at the edge (finding 7). `?encounter=<kind>` for checks | D, F, H | Arena feel |
+| H | NPC ships v0 | Hulls from the procedural generator (14 §5) for a steam ore freighter (`displayScale` 0.85), a schooner-barge, a package steamer, a fishing tug and the cutter *Morrill*, in style B with outlines. Funnel smoke, running lights at night, wakes. `ships.json` entries with draft, speed and conspicuity. A draw-call budget for five ships in an arena | — | Look sign-off |
+| I | Twin Ports and Two Harbors harbors | Depends on decision 1. Recommended: the Duluth Ship Canal and Superior Entry as 1:1 set pieces you can sail through, piers with berths at Duluth, Superior and Two Harbors (Two Harbors' wooden ore docks at 1:1), and the 1900 lights into `lighthouses.json` (the Duluth South Breakwater temporary light, the Superior Entry pierhead light, Two Harbors Light, and Minnesota Point standing dark). Town silhouettes with lit windows from the Phase 2 kit | C | — |
+| J | Chart and encounter audio | Chart music, steam whistles for NPC ships (and the cutter's own) that carry in fog, encounter stingers, and the loading-screen transition sound. Every file in `CREDITS.md` | D, H | Listen by ear |
+| K | Phase 3 playtest | The §20.3 scenarios, the benches on each zone, the arena and the chart, plans updated, tag 0.3.0 | All | Playtest, sign-off |
+
+### 20.5 Smaller calls assumed (Jared can override)
+
+- **M in a zone opens the chart as a look, not a voyage** (finding 6). The world pauses while you read it in a zone; time runs on the chart only under way.
+- **Zones on the course are pass-through** (finding 5). A course stops at a zone only when that zone is its destination.
+- **The arena returns you where you left the chart** (finding 7), whatever you sailed inside it.
+- **The cutter is sighted but never forces an encounter** until Phase 5's Wanted, so Phase 3 has no unwinnable chases.
+- **NPC ships are visual and on their courses only.** Hails, cargo and surrender wait for Phases 4 and 6.
+- **No fog of war yet.** The whole western lake is charted until discoveries exist (Phase 9).
+- **Siskiwit Bay stays a chart area you pass through.** Its zone is baked with its hideout pad in Phase 8, when the logging-camp hideout needs it; cut list #4 stays available.
+
+### 20.6 Decisions for Jared
+
+1. **How much harbor do the new zones get in Phase 3?** The canal and Superior Entry are needed just to get into the Twin Ports (§3.4), so some set piece work is unavoidable.
+   - **Dockable harbors (recommended):** the canal and Superior Entry at 1:1, a few piers with berths at Duluth, Superior and Two Harbors, the 1900 lights, and town silhouettes. Full waterfront dressing comes when Phase 4 trading needs it.
+   - **Full set pieces like Bayfield and Ashland:** the zones are finished in one pass, but piece I roughly doubles, and Duluth would be the biggest set piece in the game.
+   - **Terrain and entries only:** you can sail in but not dock outside the Apostles until Phase 4. The smallest Phase 3, and criterion 1 becomes "arrive in the zone".
+
+### 20.7 Housekeeping found along the way
+
+- The 0.2.0 tag is on GitHub, on the release merge (`51dbedf`), so nothing is left to push for it.
+- The master plan's §11 Next Steps still lists Phase 0 work.
+- Plan 17 wants a tracking issue per phase with the acceptance checklist. The §20.3 table can become that issue once approved.
+
 ---
 
 ## Changelog
+- v0.14: Phase 3 scope proposed (§20): what Phase 2 changes, deliverables, exit criteria, eleven work pieces, assumed calls and one decision on the new zones' harbors.
 - v0.13: Phase 2 exit criteria and playtest (§19), passed 2026-10-31; `?timewarp=` for the week-of-weather check.
 - v0.12: Phase 2 piece G: Bayfield and Ashland harbors (§18), the Ashland ore dock at 1:1 in open water in place of a rebaked lens.
 - v0.11: Phase 2 piece C: vegetation density and planting built (§8.3), and the canopy in the shelter maps (§14.4); details in [14 §17](14-art-direction-asset-pipeline.md).
