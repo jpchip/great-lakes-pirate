@@ -4,6 +4,10 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ## [Unreleased]
 
+### Added
+
+- **The T2 schooner:** a 100 ft two-master from the hull generator, half again the T1 with a forecastle house, three hatches, a yawl boat in davits across the stern and a green rail. About 12% faster on every point of sail than the T1, slower to gather way and to tack, with a 2.5–3.2 m draft. The shipyard sells her later in Phase 4; until then `?ship=t2` starts a run in her, and `/bench/ship/?ship=t2` is her contact sheet ([plan 10 §16](plans/10-ship-upgrades-customization.md)).
+
 ## [0.3.0] - 2026-11-01
 
 The **Hybrid Travel** build (Phase 3): take to a chart baked from the real lake, plot a course across western Superior through the weather sim's weather, meet ships on their timetables in open-water arenas, and arrive in the Twin Ports and Two Harbors, with harbors to dock at and the run saved wherever you stop.

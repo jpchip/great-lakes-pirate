@@ -10,9 +10,10 @@ import type { ShipHazards } from './hazards';
 import type { SailingShip } from './sailing';
 
 /**
- * The player's T1 schooner on the plan 02 model: the components a ship entity needs,
- * plus the record, handling and hazard rules it was built from (the dev panels reset
- * to them). The game, the S7 greybox and the S8 arena all start from this.
+ * The player's schooner on the plan 02 model (the T1 unless another class is asked for):
+ * the components a ship entity needs, plus the record, handling and hazard rules it was
+ * built from (the dev panels reset to them). The game, the S7 greybox and the S8 arena
+ * all start from this.
  */
 export interface Schooner {
   record: SailShipRecord;
@@ -23,8 +24,13 @@ export interface Schooner {
   buoyancy: Buoyancy;
 }
 
-export function createSchooner(x: number, z: number, heading: number): Schooner {
-  const record = sailShipRecord(T1_SCHOONER_ID);
+export function createSchooner(
+  x: number,
+  z: number,
+  heading: number,
+  classId: string = T1_SCHOONER_ID,
+): Schooner {
+  const record = sailShipRecord(classId);
   const handling = defaultHandling();
   const hazardRules = defaultHazardRules();
   const hazardClass = compileHazardClass(record, hazardRules);
