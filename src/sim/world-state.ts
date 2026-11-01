@@ -142,6 +142,21 @@ export const marketsSchema = z.record(
 );
 
 /**
+ * The traffic's saved state (plan 05 §11 `traffic`, plan 01 §3.4; Phase 4 piece D). Every
+ * ship's place and manifest follow from the run's seed and the clock, so only what
+ * differs from the timetable is kept: when each ship was last hailed (her news is told
+ * once a passage), and how far the cargo deliveries have run against the markets.
+ * Phase 6 adds ships robbed or sunk here. Absent in an early v5 save: it starts empty.
+ */
+export const trafficStateSchema = z.object({
+  /** Game seconds the deliveries have moved the markets up to. */
+  deliveredTo: z.number(),
+  ships: z.record(z.string(), z.object({ hailedAt: z.number().optional() })),
+});
+
+export type TrafficState = z.infer<typeof trafficStateSchema>;
+
+/**
  * What the captain knows of prices elsewhere (plan 05 §4.3, §11 `knowledge.prices`; save
  * v6, Phase 4 piece B): per port and good, the last prices seen and when.
  */
@@ -183,6 +198,7 @@ export const worldStateSchema = z.object({
   }),
   voyage: voyageSchema.nullable(),
   markets: marketsSchema,
+  traffic: trafficStateSchema.optional(),
   knowledge: knowledgeSchema,
   environment: z.looseObject({
     clock: clockStateSchema,
@@ -208,6 +224,7 @@ export function createWorldState(seed: string): WorldState {
     },
     voyage: null,
     markets: createMarkets(gameEconomy(), clock.gameSeconds),
+    traffic: { deliveredTo: clock.gameSeconds, ships: {} },
     knowledge: { prices: {} },
     environment: {
       clock,
@@ -221,5 +238,6 @@ export function createWorldState(seed: string): WorldState {
 export function parseWorldState(state: unknown): WorldState {
   const parsed = worldStateSchema.parse(state);
   syncMarkets(gameEconomy(), parsed.markets, parsed.environment.clock.gameSeconds);
+  parsed.traffic ??= { deliveredTo: parsed.environment.clock.gameSeconds, ships: {} };
   return parsed;
 }

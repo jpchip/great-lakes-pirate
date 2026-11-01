@@ -7,6 +7,8 @@ import type { HudSnapshot } from './hud/model';
 import { SettingsMenu, type AudioControls } from './settings/SettingsMenu';
 import type { AudioSettings, VolumeId } from '../audio/settings';
 import { LoadingScreen } from './loading/LoadingScreen';
+import { ShipCardView } from './hud/ShipCardView';
+import type { ShipCard } from './hud/ship-card';
 import { ChartHud, type ChartHudActions } from './chart/ChartHud';
 import type { ChartHudSnapshot } from './chart/model';
 import type { LoadingScreen as LoadingModel } from './loading/model';
@@ -47,6 +49,8 @@ export interface GameUi {
   /** The chart HUD; undefined hides it. */
   setChart(snapshot: ChartHudSnapshot | undefined): void;
   setSpyglass(on: boolean): void;
+  /** The "look her over" / hail card (Phase 4 piece D); undefined hides it. */
+  setShipCard(card: ShipCard | undefined): void;
   /** Show the "antialiasing needs a reload" note under the preset picker. */
   setReloadNote(on: boolean): void;
   /** The fade to fog while a zone loads; undefined lifts it. */
@@ -77,6 +81,7 @@ export function mountGameUi({
   const hud = signal<HudSnapshot | undefined>(undefined);
   const chart = signal<ChartHudSnapshot | undefined>(undefined);
   const spyglass = signal(false);
+  const shipCard = signal<ShipCard | undefined>(undefined);
   const menuOpen = signal(false);
   const reloadNote = signal(false);
   const loading = signal<LoadingModel | undefined>(undefined);
@@ -154,6 +159,7 @@ export function mountGameUi({
           onTakeToChart={onTakeToChart}
           onOpenPort={portActions?.openDocked}
         />
+        {!menuOpen.value && <ShipCardView card={shipCard} />}
         {chartActions && <ChartHud chart={chart} actions={chartActions} />}
         {port.value && portActions && !menuOpen.value && (
           <PortScreen
@@ -205,6 +211,9 @@ export function mountGameUi({
     },
     setSpyglass(on) {
       spyglass.value = on;
+    },
+    setShipCard(card) {
+      shipCard.value = card;
     },
     setReloadNote(on) {
       reloadNote.value = on;

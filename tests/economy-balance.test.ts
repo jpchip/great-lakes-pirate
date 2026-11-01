@@ -119,7 +119,8 @@ describe('the loop hunter (criterion 4)', () => {
         PROFIT_CEILING_CENTS_PER_GAME_DAY,
       );
     }
-  });
+    // Every port and good for 40 game days: ~4 s alone, over vitest's 5 s on a busy runner.
+  }, 20_000);
 });
 
 describe('the economy soak (criterion 4, short)', () => {

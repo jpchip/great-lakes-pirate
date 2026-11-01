@@ -1,0 +1,374 @@
+[
+  {
+    "id": "fleet.duluth_ore",
+    "kind": "fleet",
+    "lane": "lane.duluth_ore",
+    "owners": ["company.northern_range", "company.bellwether_transit"]
+  },
+  {
+    "id": "fleet.superior_coal",
+    "kind": "fleet",
+    "lane": "lane.superior_coal",
+    "owners": ["company.bellwether_transit"]
+  },
+  {
+    "id": "fleet.two_harbors_ore",
+    "kind": "fleet",
+    "lane": "lane.two_harbors_ore",
+    "owners": ["company.northern_range"]
+  },
+  {
+    "id": "fleet.ashland_ore",
+    "kind": "fleet",
+    "lane": "lane.ashland_ore",
+    "owners": ["company.gogebic_lake_shore"]
+  },
+  {
+    "id": "fleet.package_line",
+    "kind": "fleet",
+    "lane": "lane.package_line",
+    "owners": ["company.northland_packet"]
+  },
+  {
+    "id": "fleet.lumber",
+    "kind": "fleet",
+    "lane": "lane.lumber",
+    "owners": ["company.whitlock_lumber", "company.siskiwit_timber"]
+  },
+  {
+    "id": "fleet.fish_apostles",
+    "kind": "fleet",
+    "lane": "lane.fish_apostles",
+    "owners": ["company.hollister_fish"]
+  },
+  {
+    "id": "fleet.fish_north_shore",
+    "kind": "fleet",
+    "lane": "lane.fish_north_shore",
+    "owners": ["company.hollister_fish"]
+  },
+  {
+    "id": "fleet.fish_cornucopia",
+    "kind": "fleet",
+    "lane": "lane.fish_cornucopia",
+    "owners": ["company.hollister_fish"]
+  },
+  {
+    "id": "fleet.la_pointe_supply",
+    "kind": "fleet",
+    "lane": "lane.la_pointe_supply",
+    "owners": ["company.northland_packet"]
+  },
+  {
+    "id": "fleet.morrill_patrol",
+    "kind": "fleet",
+    "lane": "lane.morrill_patrol",
+    "owners": ["company.revenue_service"]
+  },
+  {
+    "id": "flow.duluth_ore_grain",
+    "kind": "flow",
+    "name": "Ore and grain down the lake from Duluth",
+    "lane": "lane.duluth_ore",
+    "from": "node.duluth",
+    "to": "node.lower_lakes",
+    "cargo": [
+      {
+        "good": "good.iron_ore",
+        "weight": 3
+      },
+      {
+        "good": "good.grain",
+        "weight": 2,
+        "months": [0, 0, 0, 0.3, 0.6, 0.5, 0.4, 0.8, 1.5, 2, 2, 1]
+      }
+    ],
+    "load": 0.95,
+    "impact": 0.12
+  },
+  {
+    "id": "flow.coal_up_duluth",
+    "kind": "flow",
+    "name": "Coal up to Duluth",
+    "lane": "lane.duluth_ore",
+    "from": "node.lower_lakes",
+    "to": "node.duluth",
+    "cargo": [
+      {
+        "good": "good.coal",
+        "weight": 1
+      }
+    ],
+    "load": 0.85,
+    "impact": 0.1
+  },
+  {
+    "id": "flow.superior_grain",
+    "kind": "flow",
+    "name": "Grain down the lake from Superior",
+    "lane": "lane.superior_coal",
+    "from": "node.superior_entry",
+    "to": "node.lower_lakes",
+    "cargo": [
+      {
+        "good": "good.grain",
+        "weight": 1
+      }
+    ],
+    "load": 0.9,
+    "impact": 0.12
+  },
+  {
+    "id": "flow.coal_up_superior",
+    "kind": "flow",
+    "name": "Coal up to Superior",
+    "lane": "lane.superior_coal",
+    "from": "node.lower_lakes",
+    "to": "node.superior_entry",
+    "cargo": [
+      {
+        "good": "good.coal",
+        "weight": 1
+      }
+    ],
+    "load": 0.95,
+    "impact": 0.12
+  },
+  {
+    "id": "flow.two_harbors_ore",
+    "kind": "flow",
+    "name": "Ore down the lake from Two Harbors",
+    "lane": "lane.two_harbors_ore",
+    "from": "node.two_harbors",
+    "to": "node.lower_lakes",
+    "cargo": [
+      {
+        "good": "good.iron_ore",
+        "weight": 1
+      }
+    ],
+    "load": 0.97,
+    "impact": 0.15
+  },
+  {
+    "id": "flow.ashland_ore",
+    "kind": "flow",
+    "name": "Ore and brownstone down the lake from Ashland",
+    "lane": "lane.ashland_ore",
+    "from": "node.ashland",
+    "to": "node.lower_lakes",
+    "cargo": [
+      {
+        "good": "good.iron_ore",
+        "weight": 6
+      },
+      {
+        "good": "good.brownstone",
+        "weight": 1
+      }
+    ],
+    "load": 0.95,
+    "impact": 0.15
+  },
+  {
+    "id": "flow.coal_up_ashland",
+    "kind": "flow",
+    "name": "Coal up to Ashland",
+    "lane": "lane.ashland_ore",
+    "from": "node.lower_lakes",
+    "to": "node.ashland",
+    "cargo": [
+      {
+        "good": "good.coal",
+        "weight": 1
+      }
+    ],
+    "load": 0.6,
+    "impact": 0.1
+  },
+  {
+    "id": "flow.package_west",
+    "kind": "flow",
+    "name": "Package freight from Duluth to the south shore",
+    "lane": "lane.package_line",
+    "from": "node.duluth",
+    "to": "node.ashland",
+    "cargo": [
+      {
+        "good": "good.flour",
+        "weight": 2
+      },
+      {
+        "good": "good.provisions",
+        "weight": 3
+      },
+      {
+        "good": "good.dry_goods",
+        "weight": 2
+      },
+      {
+        "good": "good.hardware",
+        "weight": 2
+      },
+      {
+        "good": "good.kerosene",
+        "weight": 1
+      }
+    ],
+    "mixed": true,
+    "load": 0.7,
+    "impact": 0.2
+  },
+  {
+    "id": "flow.package_east",
+    "kind": "flow",
+    "name": "Package freight from the south shore to Duluth",
+    "lane": "lane.package_line",
+    "from": "node.ashland",
+    "to": "node.duluth",
+    "cargo": [
+      {
+        "good": "good.lumber",
+        "weight": 2
+      },
+      {
+        "good": "good.brownstone",
+        "weight": 1
+      },
+      {
+        "good": "good.salted_fish",
+        "weight": 2
+      },
+      {
+        "good": "good.furs",
+        "weight": 1,
+        "months": [1, 1, 1, 1, 1, 0.3, 0, 0, 0.2, 0.5, 1, 1]
+      }
+    ],
+    "mixed": true,
+    "load": 0.6,
+    "impact": 0.15
+  },
+  {
+    "id": "flow.lumber_to_duluth",
+    "kind": "flow",
+    "name": "Lumber from Washburn to Duluth",
+    "lane": "lane.lumber",
+    "from": "node.washburn",
+    "to": "node.duluth",
+    "cargo": [
+      {
+        "good": "good.lumber",
+        "weight": 1
+      }
+    ],
+    "load": 0.95,
+    "impact": 0.15
+  },
+  {
+    "id": "flow.stores_to_washburn",
+    "kind": "flow",
+    "name": "Mill and camp stores back to Washburn",
+    "lane": "lane.lumber",
+    "from": "node.duluth",
+    "to": "node.washburn",
+    "cargo": [
+      {
+        "good": "good.provisions",
+        "weight": 3
+      },
+      {
+        "good": "good.dry_goods",
+        "weight": 1
+      },
+      {
+        "good": "good.hardware",
+        "weight": 1
+      }
+    ],
+    "mixed": true,
+    "load": 0.35,
+    "impact": 0.15
+  },
+  {
+    "id": "flow.catch_apostles",
+    "kind": "flow",
+    "name": "The catch off Rocky Island into Bayfield",
+    "lane": "lane.fish_apostles",
+    "from": "node.grounds_apostles",
+    "to": "node.bayfield",
+    "cargo": [
+      {
+        "good": "good.fresh_fish",
+        "weight": 1
+      }
+    ],
+    "load": 0.8,
+    "impact": 0.2
+  },
+  {
+    "id": "flow.catch_north_shore",
+    "kind": "flow",
+    "name": "The catch off Knife River into Two Harbors",
+    "lane": "lane.fish_north_shore",
+    "from": "node.grounds_north_shore",
+    "to": "node.two_harbors",
+    "cargo": [
+      {
+        "good": "good.fresh_fish",
+        "weight": 1
+      }
+    ],
+    "load": 0.8,
+    "impact": 0.25
+  },
+  {
+    "id": "flow.catch_cornucopia",
+    "kind": "flow",
+    "name": "The catch off Cornucopia",
+    "lane": "lane.fish_cornucopia",
+    "from": "node.grounds_cornucopia",
+    "to": "node.sand_island",
+    "cargo": [
+      {
+        "good": "good.fresh_fish",
+        "weight": 1
+      }
+    ],
+    "load": 0.8,
+    "impact": 0
+  },
+  {
+    "id": "flow.la_pointe_stores",
+    "kind": "flow",
+    "name": "Stores across to La Pointe",
+    "lane": "lane.la_pointe_supply",
+    "from": "node.bayfield",
+    "to": "node.la_pointe",
+    "cargo": [
+      {
+        "good": "good.provisions",
+        "weight": 3
+      },
+      {
+        "good": "good.flour",
+        "weight": 2
+      },
+      {
+        "good": "good.kerosene",
+        "weight": 1
+      },
+      {
+        "good": "good.salt",
+        "weight": 1
+      },
+      {
+        "good": "good.dry_goods",
+        "weight": 1
+      }
+    ],
+    "mixed": true,
+    "load": 0.75,
+    "impact": 0.25
+  }
+]

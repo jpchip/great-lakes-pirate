@@ -44,7 +44,16 @@
     "kind": "node",
     "name": "Washburn",
     "role": "port",
-    "at": [-90.865, 46.664]
+    "at": [-90.865, 46.664],
+    "port": "port.washburn"
+  },
+  {
+    "id": "node.la_pointe",
+    "kind": "node",
+    "name": "La Pointe",
+    "role": "port",
+    "at": [-90.7925, 46.78],
+    "port": "port.la_pointe"
   },
   {
     "id": "node.lower_lakes",
@@ -296,6 +305,20 @@
     ],
     "dwellH": [4, 6],
     "season": [0, 0, 0, 0.5, 0.9, 0.6, 0.5, 0.6, 0.8, 1, 0.9, 0.2]
+  },
+  {
+    "id": "lane.la_pointe_supply",
+    "kind": "lane",
+    "name": "Bayfield across to La Pointe",
+    "use": "trade",
+    "from": "node.bayfield",
+    "to": "node.la_pointe",
+    "via": [],
+    "fleet": [
+      { "classId": "ship.fish_tug", "count": 1, "speedKn": 7, "names": ["Supply tug Wren"] }
+    ],
+    "dwellH": [14, 6],
+    "season": [0, 0, 0, 0.4, 0.9, 1, 1, 1, 1, 0.9, 0.5, 0]
   },
   {
     "id": "lane.morrill_patrol",

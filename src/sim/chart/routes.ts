@@ -122,6 +122,9 @@ export interface LaneSchedule {
   season: readonly number[];
   /** Hash key for the per-cycle sailing draw. */
   key: string;
+  /** The route nodes at the ship's home end and far end (Phase 4 piece D: cargo). */
+  homeNode: string;
+  awayNode: string;
 }
 
 /** One cycle's length: out, lie away, back, lie at home. */
@@ -141,6 +144,8 @@ export interface LanePlace {
   hidden: boolean;
   /** Laid up this cycle (the lane's monthly weight said no). */
   laidUp: boolean;
+  /** Which cycle of the timetable this is: with `forward`, it names the passage. */
+  cycle: number;
 }
 
 function alongToLeg(s: LaneSchedule, along: number): { leg: number; progressM: number } {
@@ -153,21 +158,34 @@ function alongToLeg(s: LaneSchedule, along: number): { leg: number; progressM: n
   return { leg: 0, progressM: 0 };
 }
 
+/** Game seconds at which cycle `k` of a timetable begins (the run out from home). */
+export function cycleStartS(s: LaneSchedule, k: number): number {
+  return k * cycleS(s) - s.phaseS;
+}
+
+/** The cycle a game time falls in. */
+export function cycleAt(s: LaneSchedule, gameSeconds: number): number {
+  return Math.floor((gameSeconds + s.phaseS) / cycleS(s));
+}
+
+/** Each cycle begins with the run out from home; the month then decides if she goes. */
+export function sailsInCycle(s: LaneSchedule, k: number): boolean {
+  return hash01(`${s.key}:${k}`) < (s.season[monthAt(cycleStartS(s, k))] ?? 0);
+}
+
 export function lanePlace(s: LaneSchedule, gameSeconds: number): LanePlace {
-  const cycle = cycleS(s);
-  const t = gameSeconds + s.phaseS;
-  const k = Math.floor(t / cycle);
-  const u = t - k * cycle;
-  // Each cycle begins with the run out from home; the month then decides if she goes.
-  const sails = hash01(`${s.key}:${k}`) < (s.season[monthAt(gameSeconds - u)] ?? 0);
+  const k = cycleAt(s, gameSeconds);
+  const u = gameSeconds - cycleStartS(s, k);
+  const sails = sailsInCycle(s, k);
   const transit = s.lengthM / s.speedMs;
-  const home = { leg: 0, progressM: 0 };
+  const home = { leg: 0, progressM: 0, cycle: k };
   if (!sails) {
     return { ...home, forward: true, underWay: false, hidden: !s.seenAtHome, laidUp: true };
   }
   if (u < transit) {
     return {
       ...alongToLeg(s, u * s.speedMs),
+      cycle: k,
       forward: true,
       underWay: true,
       hidden: false,
@@ -177,6 +195,7 @@ export function lanePlace(s: LaneSchedule, gameSeconds: number): LanePlace {
   if (u < transit + s.dwellAwayS) {
     return {
       ...alongToLeg(s, s.lengthM),
+      cycle: k,
       forward: true,
       underWay: false,
       hidden: !s.seenAway,
@@ -187,6 +206,7 @@ export function lanePlace(s: LaneSchedule, gameSeconds: number): LanePlace {
   if (back < transit) {
     return {
       ...alongToLeg(s, s.lengthM - back * s.speedMs),
+      cycle: k,
       forward: false,
       underWay: true,
       hidden: false,
@@ -245,6 +265,8 @@ export function createTraffic(
           seenAway: seenAtEnd(flip ? fromNode : toNode),
           season: lane.season,
           key,
+          homeNode: flip ? lane.to : lane.from,
+          awayNode: flip ? lane.from : lane.to,
         };
         schedule.phaseS = hash01(`${key}:phase`) * cycleS(schedule);
         const kind = CLASS_KIND[entry.classId] ?? 'freighter';

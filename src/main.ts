@@ -25,7 +25,10 @@ import { createSchooner } from './gameplay/schooner';
 import { npcParade } from './gameplay/npc-ships';
 import { attachEconomy } from './gameplay/economy';
 import { attachPorts, type PortControl } from './gameplay/port';
+import { attachTraffic, HAIL_RANGE_M, LOOK_RANGE_M, type TrafficZone } from './gameplay/traffic';
+import { createContacts, type Contact } from './sim/chart/traffic';
 import { portInfo } from './sim/economy/defs';
+import { pierSideKey, sideOfBerth } from './sim/traffic/berths';
 import { clearArena, materializeArena, type ArenaPlay } from './gameplay/arena';
 import {
   ARENA_BOUNDS,
@@ -47,7 +50,7 @@ import {
 } from './sim/arena/encounter';
 import { clearArenaCentre, sampleArenaLand } from './sim/arena/land';
 import { westernSuperiorChart } from './sim/chart/chart-data';
-import { bearing, distance } from './sim/chart/geography';
+import { bearing, distance, toWorldChart } from './sim/chart/geography';
 import { OPEN_WATER } from './sim/weather/shelter';
 import { FULL_SAIL, updateTargetSpeed } from './sim/sailing/controller';
 import type { SaveControls } from './debug/overlay';
@@ -413,6 +416,29 @@ async function boot(): Promise<void> {
     (window as unknown as { __glpEconomy: typeof hook }).__glpEconomy = hook;
   }
 
+  // The lake's traffic (plan 05 §8, Phase 4 piece D): one set of ships for the chart, the
+  // zones and the markets. A stable per-run number from the save (the RNG state moves on
+  // as the run plays), so the timetables and manifests are the same after a reload.
+  const trafficSeed = `run-${state.environment.weather.noiseSeed}`;
+  const traffic = attachTraffic(
+    ctx,
+    createContacts(
+      westernSuperiorChart().projection,
+      `${trafficSeed}-traffic`,
+      state.environment.clock.gameSeconds,
+    ),
+  );
+  const trafficZone = (z: LoadedZone | undefined): TrafficZone | undefined =>
+    z
+      ? {
+          frame: manifestFrame(z.manifest),
+          toWorld: (p) => toWorldChart(westernSuperiorChart(), p),
+          terrain: z.terrain,
+          harbors: harborLayouts,
+        }
+      : undefined;
+  traffic.setZone(trafficZone(zone));
+
   // `?npcs` puts one of each NPC class in a line abreast ahead, steaming on (`?npcs=stop`
   // lays them to, `?npcs=meet` heads them toward you), to look at the Phase 3 ships.
   if (params.has('npcs')) {
@@ -748,6 +774,13 @@ async function boot(): Promise<void> {
   const docks = zoneDocks(zone);
   let hudClock = HUD_INTERVAL_S;
 
+  /** Every berth in the zone; the ones on pier sides the traffic holds are withdrawn. */
+  let allBerths: readonly MooringBerth[] = mooringBerths(docks, ctx.terrain);
+  const freeBerths = (): readonly MooringBerth[] =>
+    allBerths.filter((b) => {
+      const side = sideOfBerth(b.id);
+      return !side || !traffic.takenSides.has(pierSideKey(side.pierId, side.side));
+    });
   const sailingOptions: SailingModeOptions & {
     docks: readonly Dock[];
     berths: readonly MooringBerth[];
@@ -756,7 +789,7 @@ async function boot(): Promise<void> {
     wind: (x: number, z: number) =>
       ctx.weather.windAt({ x, z }, state.environment.clock.gameSeconds),
     docks,
-    berths: mooringBerths(docks, ctx.terrain),
+    berths: allBerths,
     timeWarp,
   };
   machine
@@ -769,10 +802,82 @@ async function boot(): Promise<void> {
     notice = { text, untilS: hudSeconds + NOTICE_S };
     hudClock = HUD_INTERVAL_S;
   };
-  // In an arena F is "look her over", not a dock order, so its refusal says nothing.
+  // "Look her over" and hail cards (Phase 4 piece D): up until she's out of hail or a while passes.
+  let card: { shipId: string; untilS: number; near: boolean } | undefined;
+  const CARD_S = 20;
+  /** `near`: the ship is here, and the card goes when she's out of hail. */
+  const showCard = (next: ReturnType<typeof traffic.lookOver>, near = true): void => {
+    card = { shipId: next.shipId, untilS: hudSeconds + CARD_S, near };
+    ui.setShipCard(next);
+    document.body.dataset['shipCard'] = next.shipId;
+  };
+  const cardOutOfHail = (): boolean => {
+    if (!card?.near) return false;
+    if (machine.mode !== 'sailing') return true;
+    const e = [...ctx.world.entities].find((x) => x.id === card?.shipId)?.transform;
+    if (!e) return true;
+    const p = shipPose();
+    return Math.hypot(e.position.x - p.x, e.position.z - p.z) > HAIL_RANGE_M * 1.5;
+  };
+  /** HUD chips for a ship close by: F to look her over (with no berth to dock at), H to hail. */
+  const trafficChips = (): string[] => {
+    if (machine.mode !== 'sailing' || hazards.state.mooring !== 'free') return [];
+    const near = traffic.nearest(shipPose(), HAIL_RANGE_M);
+    if (!near) return [];
+    if (!arena && near.distanceM <= LOOK_RANGE_M) return ['F look her over · H hail'];
+    return ['H to hail'];
+  };
+  const hideCard = (): void => {
+    card = undefined;
+    ui.setShipCard(undefined);
+    delete document.body.dataset['shipCard'];
+  };
+  // In an arena F is "look her over", not a dock order, so its refusal says nothing. In a
+  // zone, F with no berth in reach looks over the nearest ship instead.
   ctx.events.on('DockRefused', (e) => {
-    if (!arena) showNotice(dockRefusedNotice(e.reason));
+    if (arena) return;
+    const near = e.reason === 'noBerth' ? traffic.nearest(shipPose(), LOOK_RANGE_M) : undefined;
+    if (near) showCard(traffic.lookOver(near.id));
+    else showNotice(dockRefusedNotice(e.reason));
   });
+  // For the console and the e2e tests: `__glpTraffic.shown()`, `__glpTraffic.hail(id)`.
+  if (import.meta.env.DEV || params.has('debug')) {
+    const hook = {
+      contacts: () =>
+        traffic.contacts.map((c) => ({
+          id: c.id,
+          name: c.name,
+          classId: c.classId,
+          inPort: !!c.inPort,
+          underWay: !!c.underWay,
+        })),
+      shown: () =>
+        [...traffic.shown].map(([id, s]) => ({
+          id,
+          berthed: s.berthed,
+          x: s.entity.transform?.position.x ?? 0,
+          z: s.entity.transform?.position.z ?? 0,
+          heading: s.entity.transform?.heading ?? 0,
+        })),
+      takenSides: () => [...traffic.takenSides],
+      freeBerths: () => sailingOptions.berths.map((b) => b.id),
+      manifest: (id: string) => traffic.manifest(id),
+      look: (id: string) => {
+        const c = traffic.lookOver(id);
+        showCard(c);
+        return c;
+      },
+      hail: (id: string) => {
+        const c = traffic.hail(id);
+        showCard(c);
+        return c;
+      },
+      deliveredTo: () => state.traffic?.deliveredTo,
+      /** Puts the ship at (x, z) heading `deg`, e.g. beside a berthed ship. */
+      place: (x: number, z: number, deg = 0) => placeShip({ x, z, heading: (deg * Math.PI) / 180 }),
+    };
+    (window as unknown as { __glpTraffic: typeof hook }).__glpTraffic = hook;
+  }
   ctx.events.on('AnchorRefused', (e) => showNotice(anchorRefusedNotice(e.reason)));
   /**
    * Leaves the zone and enters `id` with the ship at `pose`, behind the fade to fog
@@ -819,7 +924,10 @@ async function boot(): Promise<void> {
         : [];
       const nextDocks = zoneDocks(zone);
       sailingOptions.docks = nextDocks;
-      sailingOptions.berths = mooringBerths(nextDocks, ctx.terrain);
+      allBerths = mooringBerths(nextDocks, ctx.terrain);
+      traffic.setZone(trafficZone(zone));
+      traffic.step(undefined);
+      sailingOptions.berths = freeBerths();
       audio?.setZone({
         stations: signalStations(zone),
         harbors: harborLayouts.flatMap((l) => l.piers.map((p) => p.root)),
@@ -936,7 +1044,9 @@ async function boot(): Promise<void> {
       ctx.terrain = undefined;
       harborLayouts = [];
       sailingOptions.docks = [];
+      allBerths = [];
       sailingOptions.berths = [];
+      traffic.setZone(undefined);
       audio?.setZone({ stations: [], harbors: [] });
 
       // The arena sits at the encounter point, nudged off any shore, in its own frame.
@@ -1031,6 +1141,11 @@ async function boot(): Promise<void> {
       at: play.encounter.at,
       elapsedS: play.run.elapsedS,
     };
+    // Looked her over: her papers, before her entity goes.
+    const looked = play.ships.find((s) => !s.entity.npc?.derelict)?.entity.id;
+    if (result === 'resolved' && looked && play.encounter.kind !== 'squall') {
+      showCard(traffic.lookOver(looked), false);
+    }
     clearArena(ctx.world, play);
     sailingOptions.arena = undefined;
     scene?.setArena(undefined);
@@ -1143,7 +1258,8 @@ async function boot(): Promise<void> {
     },
     // A stable per-run number from the save (the RNG state moves on as the run plays), so
     // the traffic's timetables are the same after a reload.
-    seed: `run-${state.environment.weather.noiseSeed}`,
+    seed: trafficSeed,
+    contacts: traffic.contacts as Contact[],
     cutterHunts: params.get('cutter') === 'hunt',
   });
   travelRef.current = chartTravel;
@@ -1238,6 +1354,15 @@ async function boot(): Promise<void> {
         const refused = chartTravel.fromHelm({ atEdge: atEdge(), inHarbor: inHarbor() });
         if (refused) showNotice(refused);
       }
+      // The traffic sails on the clock: in the zone, every tick (Phase 4 piece D).
+      if (machine.mode === 'sailing' && !arena && !changingZone) {
+        if (traffic.step(hazards.state.berthId)) sailingOptions.berths = freeBerths();
+      }
+      if (sameContext && input.context === 'sailing' && input.pressed('Hail')) {
+        const near = traffic.nearest(shipPose(), HAIL_RANGE_M);
+        if (near) showCard(traffic.hail(near.id));
+        else showNotice('No ship within hail');
+      }
       const inGame = input.context === 'sailing' || input.context === 'chart';
       if (sameContext && inGame && input.pressed('Pause')) {
         ui.openMenu();
@@ -1259,6 +1384,9 @@ async function boot(): Promise<void> {
         notice = undefined;
         hudClock = HUD_INTERVAL_S;
       }
+      if (card && (hudSeconds > card.untilS || cardOutOfHail())) {
+        hideCard();
+      }
       if (hudClock >= HUD_INTERVAL_S && machine.mode === 'chart') {
         hudClock = 0;
         ui.setHud(undefined);
@@ -1276,7 +1404,10 @@ async function boot(): Promise<void> {
             notice: notice?.text,
             chartLocked: pursued || !!arena?.run.pursued,
             chartOffered: arena ? false : atEdge(),
-            extraStatus: arena ? arenaStatus(arena.run, arena.inputs(playerShip)) : undefined,
+            extraStatus: [
+              ...(arena ? arenaStatus(arena.run, arena.inputs(playerShip)) : []),
+              ...trafficChips(),
+            ],
             portName:
               ports.dockedPort && hazards.state.mooring === 'docked' && !ports.openPort
                 ? portInfo(ports.dockedPort)?.name

@@ -33,6 +33,7 @@ export type Action =
   | 'AimMode'
   | 'Fire'
   | 'ToggleChart'
+  | 'Hail'
   | 'Port'
   | 'Journal';
 
@@ -57,6 +58,8 @@ export const DEFAULT_BINDINGS: Bindings = {
     Lantern: ['KeyL'],
     Spyglass: ['Mouse2'],
     Interact: ['KeyF'],
+    // Hail a ship in daylight for her news (plan 05 §9; Phase 4 piece D).
+    Hail: ['KeyH'],
     ToggleChart: ['KeyM'],
     // Phase 4 piece B: the port screen while docked at a port, and the journal's ledger.
     Port: ['KeyP'],
@@ -182,6 +185,7 @@ export const REBINDABLE: Partial<Record<InputContext, readonly Action[]>> = {
     'Lantern',
     'Spyglass',
     'Interact',
+    'Hail',
     'ToggleChart',
     'Port',
     'Journal',

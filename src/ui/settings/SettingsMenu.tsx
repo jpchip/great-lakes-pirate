@@ -59,6 +59,7 @@ const ACTION_LABELS: Partial<Record<Action, string>> = {
   Lantern: 'Lantern',
   Spyglass: 'Spyglass',
   Interact: 'Interact',
+  Hail: 'Hail a ship',
   ToggleChart: 'Chart',
   Port: 'Port screen (docked)',
   Journal: 'Journal',

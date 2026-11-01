@@ -14,6 +14,8 @@ import {
   type MarketsState,
 } from './market';
 import { buy, maxBuyable, sell, type Trader } from './trade';
+import type { Contact } from '../chart/traffic';
+import { runTraffic, type TrafficDefs } from '../traffic/cargo';
 
 /**
  * The economy's balance harness (plan 17 §3, plan 05 §16.3 criteria 2–4): headless bots
@@ -107,28 +109,51 @@ export function passageTable(): PassageTable {
 }
 
 /** A headless economy: markets and a clock that ticks them like the game does. */
+/** The lake's traffic for a headless run (Phase 4 piece D): its ships move the markets. */
+export interface SimTraffic {
+  defs: TrafficDefs;
+  contacts: readonly Contact[];
+}
+
 export class EconomySim {
   readonly markets: MarketsState;
   gameSeconds: number;
   private accumulator = 0;
   ticks = 0;
+  /** Every delivery and departure the traffic has made against the markets. */
+  calls = 0;
 
   constructor(
     readonly defs: EconomyDefs,
     startSeconds = 0,
+    readonly traffic?: SimTraffic,
   ) {
     this.gameSeconds = startSeconds;
     this.markets = createMarkets(defs, startSeconds);
   }
 
   advance(gameSeconds: number): void {
-    this.gameSeconds += gameSeconds;
+    const end = this.gameSeconds + gameSeconds;
     this.accumulator += gameSeconds;
     while (this.accumulator >= WORLD_TICK_GAME_SECONDS) {
       this.accumulator -= WORLD_TICK_GAME_SECONDS;
+      const before = this.gameSeconds;
+      this.gameSeconds = end - this.accumulator;
       tickMarkets(this.defs, this.markets, this.gameSeconds, WORLD_TICK_GAME_SECONDS);
+      if (this.traffic) {
+        const { defs, contacts } = this.traffic;
+        this.calls += runTraffic(
+          defs,
+          this.defs,
+          this.markets,
+          contacts,
+          before,
+          this.gameSeconds,
+        ).length;
+      }
       this.ticks++;
     }
+    this.gameSeconds = end;
   }
 
   ports(): string[] {

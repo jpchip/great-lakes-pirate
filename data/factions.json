@@ -1,0 +1,65 @@
+[
+  {
+    "id": "company.hollister_fish",
+    "name": "Hollister Fish & Packing Co.",
+    "short": "Hollister",
+    "kind": "company",
+    "trade": "Fish packer at Bayfield, buying the tugs' catch"
+  },
+  {
+    "id": "company.northern_range",
+    "name": "Northern Range Railway & Dock Co.",
+    "short": "Northern Range",
+    "kind": "company",
+    "trade": "Ore railroad and docks at Duluth and Two Harbors"
+  },
+  {
+    "id": "company.gogebic_lake_shore",
+    "name": "Gogebic & Lake Shore Railway",
+    "short": "Gogebic & Lake Shore",
+    "kind": "company",
+    "trade": "Ore railroad and the ore dock at Ashland"
+  },
+  {
+    "id": "company.whitlock_lumber",
+    "name": "Whitlock Lumber Co.",
+    "short": "Whitlock",
+    "kind": "company",
+    "trade": "Sawmills at Washburn"
+  },
+  {
+    "id": "company.siskiwit_timber",
+    "name": "Siskiwit Timber Co.",
+    "short": "Siskiwit Timber",
+    "kind": "company",
+    "trade": "Timber camps and a mill on the Bayfield peninsula"
+  },
+  {
+    "id": "company.bellwether_transit",
+    "name": "Bellwether Transit Co.",
+    "short": "Bellwether",
+    "kind": "company",
+    "trade": "Bulk freighters: ore and grain down, coal up"
+  },
+  {
+    "id": "company.northland_packet",
+    "name": "Northland Packet Co.",
+    "short": "Northland Packet",
+    "kind": "company",
+    "trade": "Package freight and passengers along the south shore"
+  },
+  {
+    "id": "company.superior_barge_works",
+    "name": "Superior Steel Barge Works",
+    "short": "Barge Works",
+    "kind": "company",
+    "trade": "Shipyard at Superior"
+  },
+  {
+    "id": "company.revenue_service",
+    "name": "U.S. Revenue Cutter Service",
+    "short": "Revenue Service",
+    "kind": "government",
+    "trade": "Customs and the law on the water"
+  }
+]
