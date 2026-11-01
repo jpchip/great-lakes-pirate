@@ -61,6 +61,8 @@ const ACTION_LABELS: Partial<Record<Action, string>> = {
   Interact: 'Interact',
   Hail: 'Hail a ship',
   ToggleChart: 'Chart',
+  Port: 'Port screen (docked)',
+  Journal: 'Journal',
 };
 
 const HUD_LABELS: Record<HudDensity, string> = {

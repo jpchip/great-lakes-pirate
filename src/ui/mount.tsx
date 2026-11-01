@@ -12,6 +12,9 @@ import type { ShipCard } from './hud/ship-card';
 import { ChartHud, type ChartHudActions } from './chart/ChartHud';
 import type { ChartHudSnapshot } from './chart/model';
 import type { LoadingScreen as LoadingModel } from './loading/model';
+import { PortScreen, type PortActions } from './port/PortScreen';
+import { Journal } from './port/Ledger';
+import type { LedgerSnapshot, PortSnapshot, PortTab } from './port/model';
 import './theme.css';
 
 /**
@@ -29,6 +32,8 @@ export interface GameUiOptions {
   chart?: ChartHudActions | undefined;
   /** "Take to the chart" at the soft edge. */
   onTakeToChart?: (() => void) | undefined;
+  /** The port screen's buttons and the journal's (Phase 4 piece B). */
+  port?: (PortActions & { closeJournal(): void; openDocked(): void }) | undefined;
   /** The game's sound volumes, when it has Web Audio. */
   audio?:
     | {
@@ -50,6 +55,12 @@ export interface GameUi {
   setReloadNote(on: boolean): void;
   /** The fade to fog while a zone loads; undefined lifts it. */
   setLoading(screen: LoadingModel | undefined): void;
+  /** The port screen; undefined closes it. */
+  setPort(snapshot: PortSnapshot | undefined): void;
+  /** The journal's ledger at the helm; undefined closes it. */
+  setJournal(snapshot: LedgerSnapshot | undefined): void;
+  /** Show a port screen tab (J in port turns to the ledger). */
+  setPortTab(tab: PortTab): void;
   readonly menuOpen: boolean;
   openMenu(): void;
   closeMenu(): void;
@@ -62,7 +73,11 @@ export function mountGameUi({
   audio,
   chart: chartActions,
   onTakeToChart,
+  port: portActions,
 }: GameUiOptions): GameUi {
+  const port = signal<PortSnapshot | undefined>(undefined);
+  const portTab = signal<PortTab>('market');
+  const journal = signal<LedgerSnapshot | undefined>(undefined);
   const hud = signal<HudSnapshot | undefined>(undefined);
   const chart = signal<ChartHudSnapshot | undefined>(undefined);
   const spyglass = signal(false);
@@ -105,19 +120,59 @@ export function mountGameUi({
 
   // Esc closes the menu (plan 13 §6); opening is the sailing Pause action, in main.
   window.addEventListener('keydown', (e) => {
-    if (e.code === 'Escape' && menuOpen.value) {
+    if (e.code !== 'Escape') return;
+    if (menuOpen.value) {
       e.preventDefault();
       setMenu(false);
+    } else if (port.value) {
+      e.preventDefault();
+      portActions?.close();
+    } else if (journal.value) {
+      e.preventDefault();
+      portActions?.closeJournal();
+    }
+  });
+  // In port, F casts off and J turns to the ledger; J closes the journal (plan 13 §6).
+  window.addEventListener('keydown', (e) => {
+    if (menuOpen.value || e.repeat) return;
+    const keys = bindings.value.sailing;
+    const is = (action: Action): boolean => (keys[action] ?? []).includes(e.code);
+    if (port.value && is('Interact')) {
+      e.preventDefault();
+      portActions?.castOff();
+    } else if (port.value && is('Journal')) {
+      e.preventDefault();
+      portTab.value = 'ledger';
+    } else if (journal.value && is('Journal')) {
+      e.preventDefault();
+      portActions?.closeJournal();
     }
   });
 
   function App() {
     return (
       <>
-        <Hud hud={hud} density={density} spyglass={spyglass} onTakeToChart={onTakeToChart} />
+        <Hud
+          hud={hud}
+          density={density}
+          spyglass={spyglass}
+          onTakeToChart={onTakeToChart}
+          onOpenPort={portActions?.openDocked}
+        />
         {!menuOpen.value && <ShipCardView card={shipCard} />}
         {chartActions && <ChartHud chart={chart} actions={chartActions} />}
-        {!menuOpen.value && (
+        {port.value && portActions && !menuOpen.value && (
+          <PortScreen
+            port={port.value}
+            actions={portActions}
+            tab={portTab.value}
+            setTab={(t) => (portTab.value = t)}
+          />
+        )}
+        {journal.value && portActions && !menuOpen.value && (
+          <Journal ledger={journal.value} close={portActions.closeJournal} />
+        )}
+        {!menuOpen.value && !port.value && !journal.value && (
           <button
             type="button"
             class="hud-menu-button"
@@ -165,6 +220,17 @@ export function mountGameUi({
     },
     setLoading(screen) {
       loading.value = screen;
+    },
+    setPort(snapshot) {
+      // A fresh visit starts on the market; a refresh after a trade stays on its tab.
+      if (snapshot && port.value?.port !== snapshot.port) portTab.value = 'market';
+      port.value = snapshot;
+    },
+    setJournal(snapshot) {
+      journal.value = snapshot;
+    },
+    setPortTab(tab) {
+      portTab.value = tab;
     },
     get menuOpen() {
       return menuOpen.value;

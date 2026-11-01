@@ -1,6 +1,6 @@
 # 05 — Ports, Economy & Trading
 
-Status: DRAFT v0.5 (decisions made; gap review applied; Phase 4 scope proposed; pieces A and I built)
+Status: DRAFT v0.5 (decisions made; gap review applied; Phase 4 scope proposed; pieces A, B and I built)
 Parent: [00-master-plan.md](00-master-plan.md)
 Inputs: [R1a gazetteer](R1a-western-superior-gazetteer.md) (ports, industries), [03](03-world-scale-chart-travel.md) (routes, chart, encounters), [04](04-water-weather-seasons.md) (seasons; 1 game day = 1 week), [02](02-arcade-sailing.md) (cargo load, shipless play), [01](01-tech-architecture.md) (sim layer, data files)
 Feeds: 06 (hot goods, informants), 07 (what's in the holds), 08 (fences, warehouses), 09 (materials), 10 (ship prices), 12 (contracts, events)
@@ -493,11 +493,50 @@ The four Apostles harbors are 55k triangles together, well inside the 250k harbo
 - A Sanborn-map pass on Washburn's waterfront (R1 §6) when the docks districts come (Phase 7), and Washburn's 1900 population (R1 open item 4).
 - Red Cliff and Bad River, after the tribal sources pass (decision 2, §16.6).
 
+## 18. Phase 4 Piece B: the Port Screen and Trade (2026-11-01)
+
+**Goal** (§16.4, piece B): piers get a port id, docking at one opens the port screen with the services the port has, the §12 trade screen, `knowledge.prices` updated by every visit, the ledger in journal v1, and a chandlery that sells repair stores, lanterns and provisions.
+
+**Result:** dock at any berthed pier and that port's screen opens over the paused game. Sell the starting rope and canvas in Bayfield, buy a hold of salted fish with the slider, top up the lockers at the chandlery, and read in the ledger what flour fetched in Ashland two weeks ago. Screenshots are in the project files (`port-screen/`).
+
+### 18.1 What was built
+
+| Piece | Where | Notes |
+|---|---|---|
+| Piers and ports | `src/sim/harbors.ts` | `pierPort(pierId)` and `PlacedPier.port`: a pier's port is its harbor's set piece's (piece I's rule), so `harbors.json` needs no new field. Every berthed pier in all seven ports resolves to a port with a market |
+| Services | `data/ports.json`, `data/schemas/ports.ts` | A `chandlery` service at every port but La Pointe (§7, "most ports"). The screen shows a tab per built service: Market and Chandlery now, then the freight agent (F), shipyard (G) and saloon (K) as they land; the Ledger tab is always there |
+| Port screen | `src/gameplay/port.ts`, `src/ui/port/` | Opens on `ShipDocked` at a port's berth and raises `PortVisited`. It pauses the tick (the `trade` overlay) and takes the keys. **Esc** goes back aboard still docked, and the HUD then shows a "Bayfield **P**" button; **P** reopens the screen. **F** (or the Cast off button) closes it and casts off. **J** turns to the Ledger tab |
+| Trade screen | `src/ui/port/PortScreen.tsx`, `model.ts` | §12 as written: the port's goods grouped by the §3 categories with buy and sell prices, stock, CU aboard, "made here" or "wanted here", and the best price you know of to sell each elsewhere with the port and its age. The hold beside it, with a capacity bar and the load's speed cost; hot goods carry the ember diamond (shape and color, 13 §2.2) and say no honest merchant will take them; contract cargo is labeled. A row's Buy or Sell opens the quantity slider with the live total and the price a CU (the wheel moves it); shift-click trades all you can, ctrl-click one (13 §6). Refusals say why in a line |
+| Price knowledge | `src/sim/economy/knowledge.ts` | `knowledge.prices[port][good] = {buyCents, sellCents, seenAt}`. Opening a market writes down all its prices; every trade writes them again, so the book holds what the prices were when you left. Ages are in weeks (a game day is a calendar week); four weeks or more is stale, in fog gray |
+| Ledger (journal v1) | `src/ui/port/Ledger.tsx` | Prices by port (with the week they were seen) and by good (every port you know side by side), then Contracts, Rumors and Standing, empty until pieces F and K fill them. A tab in port, and its own page at the helm or on the chart with **J** |
+| Chandlery | `data/stores.json`, `src/sim/economy/chandlery.ts` | Ship's stores in the lockers, not the hold (10 §5): patch kits $8, mend kits $6, lamp oil $0.60 a can, provisions $2.50 a week, each with a T1 locker limit. Small ports charge more by their market spread (Two Harbors about 4% over list, Duluth 2% under). The chandler doesn't buy them back. `StoresBought` on the bus |
+| Save | `src/core/save/migrations`, `src/sim/world-state.ts` | Save v6: `knowledge.prices` and `player.stores`. The v5 migration gives a run an empty ledger and empty lockers |
+| Input | `src/core/input.ts` | `Port` (P) and `Journal` (J), rebindable; J follows its sailing binding onto the chart like M. `InputMapper.trigger(action)` presses an action for one tick, for on-screen buttons |
+| Dev hook | `src/main.ts` | `__glpPort` (dev builds and `?debug`): `dock('bayfield_city')` docks at a pier's first berth as F would, `open(port)`, `close()`, `docked()`, `knowledge()`, `stores()` |
+
+### 18.2 Decisions made in the piece
+
+- **The chandlery's stores are bought now and used later.** Patch and mend kits are the at-sea repairs, which piece G wires with the ship's condition; lamp oil waits for the lantern to matter at night (Phase 5); provisions upkeep is on the cut list (§14), so they stock up but nothing eats them yet. The chandlery says what each is for.
+- **Contraband isn't listed** on any market (piece A's rule). Hot goods show in the hold but an ordinary sale leaves them alone, as piece A's `sell` does; piece H adds the detection roll and the smuggler.
+- **The screen pauses the game** while it's open, like the settings screen. Trading takes no game time in Phase 4.
+- **The ledger keeps the last prices seen,** not a history (§11's shape). A price history can come with newspapers (Phase 5) if it's wanted.
+- **No prices known at the start of a run.** Background knowledge (the Fisherman's fish prices) is piece C's.
+
+### 18.3 Checks
+
+`tests/port.test.ts` (21 tests): every berthed pier has a port with a market, the chandlery's pricing and locker limits, price knowledge and ages, the screen model (tabs, categories, hot and contract cargo, stale prices), docking opening the screen and trades refreshing the ledger, the cast-off button, the journal never opening over the port, and the v5 → v6 migration. The e2e smoke test docks at Bayfield's city dock and drives the screen with the mouse and keys: shift-click sell, the slider, the chandlery, J, Esc, P and F. The full unit suite and all 14 e2e smoke tests pass.
+
+### 18.4 Still to do
+
+- Jared's look at the trade screen (§16.4 piece B's "Needs Jared").
+- Trade sounds (coins, the ledger) are piece J's, on `TradeCompleted` and `StoresBought`.
+
 ---
 
 ## Changelog
 
 - v0.6: Phase 4 piece D built (§16.9): flows and manifests, deliveries that move stock, the traffic save slice, ships in the zones and at berths, look her over and hailing; two company names replaced after the names check.
+- v0.5: Phase 4 piece B built (§18): piers with ports, the port screen, the trade screen, price knowledge, the ledger in journal v1, the chandlery, save v6.
 - v0.5: Phase 4 piece A built (§16.8): goods in CU, port markets with drift and seasons, the purse and the hold, cargo load, save v5, the balance harness.
 - v0.5: Phase 4 piece I recorded (§17): La Pointe and Washburn footprints, harbors and ports.
 - v0.4: Phase 4 scope proposed (§16): what Phase 3 changes, deliverables, exit criteria, twelve work pieces, the Stockton stash and the island smuggler, decisions for Jared.

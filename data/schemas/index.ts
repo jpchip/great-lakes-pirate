@@ -11,6 +11,7 @@ import { marketsFileSchema } from './markets';
 import { portsFileSchema } from './ports';
 import { routesFileSchema } from './routes';
 import { shipsFileSchema } from './ships';
+import { storesFileSchema } from './stores';
 import { zonesFileSchema } from './zones';
 
 /** Every data/*.json file and the schema that validates it. */
@@ -28,5 +29,6 @@ export const dataFileSchemas: Readonly<Record<string, z.ZodType>> = {
   'ports.json': portsFileSchema,
   'routes.json': routesFileSchema,
   'ships.json': shipsFileSchema,
+  'stores.json': storesFileSchema,
   'zones.json': zonesFileSchema,
 };

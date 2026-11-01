@@ -4,7 +4,7 @@ import portsJson from '../../../data/ports.json';
 import shipsJson from '../../../data/ships.json';
 import { goodsFileSchema, type Good, type Season } from '../../../data/schemas/goods';
 import { marketsFileSchema, type MarketDef } from '../../../data/schemas/markets';
-import { portsFileSchema } from '../../../data/schemas/ports';
+import { portsFileSchema, type Port } from '../../../data/schemas/ports';
 import { shipsFileSchema } from '../../../data/schemas/ships';
 import { calendarDate } from '../../core/time';
 import { defaultMarketRules, type MarketRules } from './market-rules';
@@ -94,6 +94,14 @@ export function gameEconomy(): EconomyDefs {
     cached = compileEconomy(goodsFileSchema.parse(goodsJson), markets);
   }
   return cached;
+}
+
+let portList: ReadonlyMap<string, Port> | undefined;
+
+/** A port from `data/ports.json`: its name and services (plan 05 §7). */
+export function portInfo(portId: string): Port | undefined {
+  portList ??= new Map(portsFileSchema.parse(portsJson).map((p) => [p.id, p]));
+  return portList.get(portId);
 }
 
 let capacities: ReadonlyMap<string, number> | undefined;

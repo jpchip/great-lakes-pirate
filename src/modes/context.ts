@@ -66,6 +66,9 @@ export interface GameEvents {
   CargoDelivered: CargoDelivered;
   ShipLookedOver: { shipId: string };
   ShipHailed: { shipId: string; news: HailNews };
+  /** Ports (plan 05 §7, Phase 4 piece B): the port screen opened, and the chandlery. */
+  PortVisited: { port: string };
+  StoresBought: { port: string; item: string; qty: number; totalCents: number };
 }
 
 /** Everything a mode needs; built once at boot and handed to each mode. */

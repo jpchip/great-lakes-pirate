@@ -24,8 +24,10 @@ import { cloneTransform, createGameWorld } from './gameplay/ecs';
 import { createSchooner } from './gameplay/schooner';
 import { npcParade } from './gameplay/npc-ships';
 import { attachEconomy } from './gameplay/economy';
+import { attachPorts, type PortControl } from './gameplay/port';
 import { attachTraffic, HAIL_RANGE_M, LOOK_RANGE_M, type TrafficZone } from './gameplay/traffic';
 import { createContacts, type Contact } from './sim/chart/traffic';
+import { portInfo } from './sim/economy/defs';
 import { pierSideKey, sideOfBerth } from './sim/traffic/berths';
 import { clearArena, materializeArena, type ArenaPlay } from './gameplay/arena';
 import {
@@ -402,8 +404,8 @@ async function boot(): Promise<void> {
 
   // Markets drift on the world tick; the hold's load sets the draft (plan 05, piece A).
   const economy = attachEconomy(ctx, hazards);
-  // For the console and the e2e tests until the trade screen lands (piece B):
-  // `__glpEconomy.prices('port.bayfield')`, `__glpEconomy.buy('port.bayfield', 'good.lumber', 5)`.
+  // For the console and the e2e tests: `__glpEconomy.prices('port.bayfield')`,
+  // `__glpEconomy.buy('port.bayfield', 'good.lumber', 5)`. Players trade on the port screen.
   if (import.meta.env.DEV || params.has('debug')) {
     const hook = {
       ...economy,
@@ -653,6 +655,8 @@ async function boot(): Promise<void> {
     // M back off the chart follows M onto it.
     const toggle = input.bindings.sailing.ToggleChart;
     if (toggle) input.bindings.chart = { ...input.bindings.chart, ToggleChart: toggle };
+    const journal = input.bindings.sailing.Journal;
+    if (journal) input.bindings.chart = { ...input.bindings.chart, Journal: journal };
     sailing.state.manualTrim = s.sailing.manualTrim;
   };
 
@@ -660,9 +664,23 @@ async function boot(): Promise<void> {
   let contextBeforeMenu: InputContext = 'sailing';
   const uiRoot =
     document.getElementById('ui') ?? document.body.appendChild(document.createElement('div'));
+  // The port screen and the journal (Phase 4 piece B); attached once the UI is up.
+  const portsRef: { current: PortControl | undefined } = { current: undefined };
   const ui = mountGameUi({
     root: uiRoot,
     settings,
+    port: {
+      buy: (good, qty) => portsRef.current?.actions.buy(good, qty),
+      sell: (good, qty) => portsRef.current?.actions.sell(good, qty),
+      quote: (good, qty, side) => portsRef.current?.actions.quote(good, qty, side) ?? 0,
+      buyStores: (item, qty) => portsRef.current?.actions.buyStores(item, qty),
+      close: () => portsRef.current?.close(),
+      castOff: () => portsRef.current?.actions.castOff(),
+      closeJournal: () => portsRef.current?.closeJournal(),
+      openDocked: () => {
+        if (machine.mode === 'sailing' && !machine.gameplayPaused) portsRef.current?.openDocked();
+      },
+    },
     chart: {
       sail: () => travelRef.current?.setSail(),
       undo: () => travelRef.current?.undo(),
@@ -699,6 +717,56 @@ async function boot(): Promise<void> {
   });
   applySettings(settings.value, undefined);
   settings.subscribe(applySettings);
+
+  // Docking at a port's pier opens its screen; J opens the ledger (Phase 4 piece B). Both
+  // pause the tick and take the keys, like the settings screen.
+  let contextBeforeScreen: InputContext = 'sailing';
+  const ports = attachPorts({
+    ctx,
+    economy,
+    hazards,
+    berthPier: (berthId) => sailingOptions.berths.find((b) => b.id === berthId)?.dockId,
+    showPort: (snapshot) => ui.setPort(snapshot),
+    showJournal: (snapshot) => ui.setJournal(snapshot),
+    onOpen(open) {
+      if (open) {
+        machine.pushOverlay(ports.openPort ? 'trade' : 'journal');
+        contextBeforeScreen = input.context;
+        input.context = 'menu';
+      } else {
+        if (!machine.removeOverlay('trade')) machine.removeOverlay('journal');
+        input.context = contextBeforeScreen;
+        input.endTick();
+      }
+      if (cameraRig) cameraRig.suspended = open;
+      document.body.dataset['port'] = ports.openPort ?? (ports.journalOpen ? 'journal' : 'closed');
+      hudClock = HUD_INTERVAL_S;
+    },
+    castOff: () => input.trigger('Interact'),
+  });
+  portsRef.current = ports;
+  if (import.meta.env.DEV || params.has('debug')) {
+    const hook = {
+      /** Opens a port's screen wherever the ship is. */
+      open: (port: string) => ports.open(port),
+      close: () => ports.close(),
+      /** Docks at the first berth of a pier whose id holds `key`, as F would. */
+      dock(key: string) {
+        const berth = sailingOptions.berths.find((b) => b.dockId.includes(key));
+        if (!berth) return false;
+        const h = hazards.state;
+        h.mooring = 'docking';
+        h.berthId = berth.id;
+        h.mooringS = 0;
+        h.from = { x: sailing.state.x, z: sailing.state.z, heading: sailing.state.heading };
+        return true;
+      },
+      docked: () => ports.dockedPort,
+      knowledge: () => state.knowledge.prices,
+      stores: () => state.player.stores,
+    };
+    (window as unknown as { __glpPort: typeof hook }).__glpPort = hook;
+  }
   const draftM = shipRecord.draftEmptyM;
   // The harbors' piers (Phase 2 piece G); the greybox pier only without the zone.
   const zoneDocks = (z: LoadedZone | undefined): readonly Dock[] =>
@@ -1298,6 +1366,10 @@ async function boot(): Promise<void> {
       const inGame = input.context === 'sailing' || input.context === 'chart';
       if (sameContext && inGame && input.pressed('Pause')) {
         ui.openMenu();
+      } else if (sameContext && inGame && input.pressed('Journal')) {
+        ports.openJournal();
+      } else if (sameContext && !arena && input.context === 'sailing' && input.pressed('Port')) {
+        ports.openDocked();
       }
       input.endTick();
     },
@@ -1336,6 +1408,10 @@ async function boot(): Promise<void> {
               ...(arena ? arenaStatus(arena.run, arena.inputs(playerShip)) : []),
               ...trafficChips(),
             ],
+            portName:
+              ports.dockedPort && hazards.state.mooring === 'docked' && !ports.openPort
+                ? portInfo(ports.dockedPort)?.name
+                : undefined,
           }),
         );
       }
