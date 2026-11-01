@@ -274,6 +274,7 @@ All resolved.
 | 2026-10-21 | **Companies don't arm up** (no guards, decoys or company bounties); grudge affects only contracts, prices and goods detection. |
 | 2026-10-22 | **Harbor tug tows** can be hired in the four big harbors, mainly for T3 in calms. |
 | 2026-11-01 | Phase 4's one fence is **an island smuggler in the Apostles**: a boat at an island anchorage after dark that sells contraband and fences hot goods. Bayfield's back-room fence follows in Phase 7 (§16.6). |
+| 2026-11-01 | **Red Cliff and Bad River are left out of Phase 4.** Piece I builds La Pointe and Washburn only; the two landings come later, after a tribal sources pass (§16.6). |
 
 ---
 
@@ -294,7 +295,7 @@ This section is the scope proposal. Like Phase 3's, its exit criteria (§16.3) b
 | Traffic is a function of the seed and the clock; ships have no state, no cargo and no owner | 03 §26.3 | Piece D gives them manifests from `flows.json` and a `traffic` slice holding only what differs from the timetable, so the save stays small. |
 | Traffic doesn't sail through the zones, so the harbors' docks stand empty | 03 §26.4, 0.3.0 known limitations | Piece D materializes ships on lanes that run through the loaded zone and berths them at their ports (01 §3.4). That is what makes a port look like trade happens there, and it costs draw calls (criterion 11). |
 | Docking is F at a pier's berth (`ShipDocked`), and piers have a `kind` but no port | `data/harbors.json`, 02 §14 | Piers get a `port` id. Docking at a port's pier opens the port screen (piece B). Ports stay screens until Phase 7 puts the docks on foot. |
-| Every pier is in Bayfield, Ashland, Duluth, Superior or Two Harbors. Washburn, La Pointe, Red Cliff and Bad River were left for Phase 4 | 03 §17.4 | Piece I builds La Pointe and Washburn. Red Cliff and Bad River wait on decision 2 (§16.6). |
+| Every pier is in Bayfield, Ashland, Duluth, Superior or Two Harbors. Washburn, La Pointe, Red Cliff and Bad River were left for Phase 4 | 03 §17.4 | Piece I builds La Pointe and Washburn. Red Cliff and Bad River stay out of Phase 4 (decision 2, §16.6). |
 | "Hold F alongside to look her over" already works in arenas | 03 §25 | It shows the manifest and owner (piece D). Hailing for news is daylight only and talk only; taking anything is Phase 6. |
 | There's no main menu: boot goes straight into the saved run | `src/main.ts` | Piece C adds the main menu and character creation before the run starts. |
 | Wanted, the law and inspections arrive in Phase 5 | 00 §7 | Contraband and hot goods have a cost in Phase 4 (a refused sale, confiscation) and raise `HotGoodsDetected` and `ContractStolen`, which Phase 5 turns into Wanted. Nothing in Phase 4 can get you caught. |
@@ -316,7 +317,7 @@ Start a new captain in Bayfield on May 7, 1900, sell your cargo, haul a contract
 | Contracts | Freight contracts by port, deposits and deadlines, Standing per port and company, stealing a contract's cargo once per company | §5 |
 | Shipyard | T2 schooner, buying and trading in, ~10 upgrades, repairs, the ship's condition in the save | 10 §2–8, §13 |
 | Contraband | Hot-goods flags (theft stubbed for testing), untaxed whiskey, the island smuggler as the one fence, detection when selling to merchants | §6 |
-| Apostles ports | La Pointe and Washburn with berths and markets (Red Cliff and Bad River by decision 2) | 03 §4, R1a |
+| Apostles ports | La Pointe and Washburn with berths and markets (Red Cliff and Bad River stay out, decision 2) | 03 §4, R1a |
 | Rumors | Saloon rumors (shipment tips from real manifests, prices, weather), price knowledge with dates, both in the ledger | §4.3, §9 |
 | Saves | Economy, stash, traffic and ship slices in save v5, a v4 migration, backup rotation | 16 §5, §12 |
 | Audio | Harbor work sounds, trade sounds, fog signal captions, another try at real recordings for the placeholders | 15 §4, §11 |
@@ -365,7 +366,7 @@ Twelve pieces, each sized to be one thread. Three can start at once (A, I, and t
 | F | Contracts and Standing | `contracts.json` templates and the freight agent's offers by port and season (§5.2): deposits, deadlines, rush and mail variants, company contracts. Standing per port and company, with what it unlocks in Phase 4 (better contracts, deposit credit, shipyard discounts). Contract cargo is marked; selling it is the once-per-company theft (§5.2), raising `ContractStolen` for Phase 5 | B | — |
 | G | Shipyard, upgrades and repairs | The T2 schooner from the hull generator (10 §2, 14 §5), with its sailing tuning (this half can start now). Buying and trading in at Superior, Ashland and Duluth (10 §3). About ten upgrades (10 §13: quality canvas, reinforced planking, expanded hold, barometer, sounding lead, spyglass, improved blocks and the like), with their effects wired into the controller. Repairs: full at a shipyard, partial at a chandlery (10 §8). The ship's tier, condition and fit in the save | B (the hull: nothing) | T2 look, upgrade feel |
 | H | Contraband and the island smuggler | Hot goods (§6.1) with a dev command to make cargo hot until Phase 6 can. Untaxed whiskey. The island smuggler (decision 1): a boat at an Apostles anchorage after dark that sells contraband and fences hot goods at 40–70% with weekly cash (§6.2). Selling hot goods or contraband to a merchant rolls detection: refused, or confiscated, and `HotGoodsDetected` raised for Phase 5. The smuggler's anchorage learned from a rumor or the starting background | B | Smuggler feel |
-| I | Apostles ports | La Pointe and Washburn set pieces in the Phase 2 harbor kit: footprints in the hand-edit layer, piers with berths and port ids, town silhouettes with lit windows, and their markets in A's data. La Pointe's light is already in. Red Cliff and Bad River follow decision 2 | — (markets: A) | Recognizable by eye |
+| I | Apostles ports | La Pointe and Washburn set pieces in the Phase 2 harbor kit: footprints in the hand-edit layer, piers with berths and port ids, town silhouettes with lit windows, and their markets in A's data. La Pointe's light is already in. Red Cliff and Bad River are left out (decision 2) | — (markets: A) | Recognizable by eye |
 | J | Port audio and leftovers | Harbor work sounds at the ports (hammering, the mill saw, ore cars at the docks), trade sounds (coins, the ledger), captions for the fog signals (0.3.0 known limitation), and another search for real recordings or a reachable music tool to replace the placeholder whistles, stingers and chart tune. Every file in `CREDITS.md` | B, D | Listen by ear |
 | K | Rumors and price news | Rumor templates (§9) filled from the live sim: shipment tips from real manifests and timetables, price tips, the weather outlook, the smuggler's anchorage, island legend teasers for Phase 9. Reliability and age, kept in the ledger. Saloon drinks as the price | B, D | — |
 | L | Phase 4 playtest | The §16.3 scenarios, the balance harness's long run, the benches with traffic in every zone, plans updated, tag 0.4.0 | All | Playtest, sign-off |
@@ -388,7 +389,7 @@ Twelve pieces, each sized to be one thread. Three can start at once (A, I, and t
    - **An island smuggler in the Apostles (recommended):** a boat lying at an anchorage among the islands after dark (Oak Island's lee, say, or behind Sand Island). Sail out, meet her alongside, trade by lantern light. It needs no on-foot mode, puts the shady half of the game out in the islands where Jared felt it belongs, and gives the stash a neighbor. Plan 08's Bayfield back-room fence still comes in Phase 7 as the second.
    - **Bayfield's fish pier after dark:** dock there at night and the fence's menu opens. It's the plan 08 fence early, in town, and it moves on foot in Phase 7. Less of the islands.
    - **No fence until Phase 6:** Phase 4 has contraband from a smuggler only, and hot goods wait until there's theft. The smallest Phase 4, and criterion 7 shrinks.
-2. **Do Red Cliff and Bad River come in Phase 4?** They're trade-only landings with seasonal goods (§4.2), and the master plan wants their portrayal checked against tribal sources ([00 §10](00-master-plan.md), R1 §5).
+2. **Do Red Cliff and Bad River come in Phase 4?** **Decided 2026-11-01: left out of Phase 4 for now.** They come back in a later phase, with the tribal sources pass first. They're trade-only landings with seasonal goods (§4.2), and the master plan wants their portrayal checked against tribal sources ([00 §10](00-master-plan.md), R1 §5).
    - **A sources pass first, then build (recommended):** piece I builds La Pointe and Washburn now. A small research thread reads the Red Cliff and Bad River tribal sources and R1 §5, and the two landings land in Phase 4 only if that pass gives enough to portray them well; otherwise they move to Phase 7 with going ashore.
    - **Build them now from R1 as it stands:** all four Apostles landings in Phase 4, and the review comes before Beta as planned.
    - **Leave them to Phase 7.**
@@ -397,7 +398,7 @@ Twelve pieces, each sized to be one thread. Three can start at once (A, I, and t
 
 - The 0.3.0 tag is on GitHub, on the release merge (`832e96a`), so nothing is left to push for it.
 - The master plan's §11 Next Steps still lists Phase 0 work (also noted in 03 §20.7), and its Phase 4 row should gain the stash and the smuggler once this scope is approved.
-- The 1900 characteristics of the Duluth canal, Superior Entry and Two Harbors lights are still guesses (03 §29.2 item 4). A short check against the 1900 Light List can ride along with decision 2's research thread.
+- The 1900 characteristics of the Duluth canal, Superior Entry and Two Harbors lights are still guesses (03 §29.2 item 4). A short check against the 1900 Light List is a small research thread of its own.
 - Plan 17 wants a tracking issue per phase with the acceptance checklist. The §16.3 table can become that issue once approved.
 
 ---
