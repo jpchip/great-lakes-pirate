@@ -696,3 +696,72 @@ body[data-mode='chart'] .chart-layer {
   border-radius: 3px;
   z-index: 6;
 }
+
+/* "Look her over" and hail card (Phase 4 piece D): logbook paper, left of the helm. */
+.ship-card {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 290px;
+  padding: 12px 14px;
+  background: var(--paper);
+  color: var(--ink);
+  border: 2px solid var(--brass);
+  border-radius: 4px;
+  font-size: 14px;
+  line-height: 1.35;
+}
+
+.ship-card-title {
+  margin: 0;
+  font-size: 18px;
+}
+
+.ship-card-sub,
+.ship-card-meta {
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+.ship-card-route {
+  margin-top: 6px;
+  font-style: italic;
+}
+
+.ship-card-cargo {
+  margin: 6px 0;
+  padding-left: 18px;
+}
+
+.ship-card-news {
+  margin-top: 8px;
+  padding-top: 6px;
+  border-top: 1px solid var(--paper-dark);
+}
+
+.ship-card-news-head {
+  font-weight: bold;
+  font-size: 13px;
+}
+
+.ship-card-prices {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.ship-card-prices th {
+  text-align: right;
+  font-weight: normal;
+  opacity: 0.7;
+}
+
+.ship-card-prices td + td {
+  text-align: right;
+}
+
+.ship-card-rumor {
+  margin: 6px 0 0;
+  font-style: italic;
+}

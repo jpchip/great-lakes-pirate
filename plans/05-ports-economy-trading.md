@@ -205,7 +205,7 @@ Per the naming decision (fictionalize anything the player can attack):
 | Ore railroad and docks | **Northern Range Railway & Dock Co.** | Duluth & Iron Range RR |
 | Ashland ore docks | **Gogebic & Lake Shore Railway** | MLS&W / Chicago & North Western |
 | Lumber | **Whitlock Lumber Co.**, **Siskiwit Timber Co.** | Pike & Knight mills, others |
-| Shipping lines | **Zenith Transit Line**, **Lake Shore Steamship Co.** | Generic freighter lines |
+| Shipping lines | **Bellwether Transit Co.**, **Northland Packet Co.** (renamed from Zenith Transit Line and Lake Shore Steamship Co., §16.9) | Generic freighter lines |
 | Shipyard (whalebacks) | **Superior Steel Barge Works** | American Steel Barge Co. |
 
 All names must be checked to make sure none accidentally matches a real historical firm before use (R1 backlog).
@@ -429,6 +429,27 @@ What landed, and where it departs from the sections above.
 | Soak | Five years of drift with a trader working the lake: no price leaves its clamp, no stock goes negative |
 | Tick cost | 0.004 ms per world tick for all 138 market entries (criterion 11's budget is 1 ms) |
 
+### 16.9 Piece D built: traffic with cargo (2026-11-01)
+
+What landed, and where it departs from the sections above.
+
+| Area | Built | Where |
+|---|---|---|
+| Flows | `flows.json`: a **fleet** per lane naming its owners, and a **flow** per lane direction (§8.1): the goods loaded, by weight with an optional monthly factor (grain heaviest in the fall, furs in winter), how full she sails, and `impact`. Ore and grain down from Duluth, Two Harbors, Superior and Ashland; coal up; package freight both ways on the Duluth–Ashland line; lumber from Washburn with stores back; the tugs' catch into Bayfield and Two Harbors; stores across to La Pointe. A direction with no flow sails in ballast (ore boats up to Two Harbors, tugs out to the grounds) | `data/flows.json`, `data/schemas/flows.ts` |
+| Companies | `factions.json` (§11): the §10 pool plus the U.S. Revenue Cutter Service for the *Morrill*. Names checked (R1 backlog): **Zenith Transit** was a real Duluth fleet (A.B. Wolvin's, 1895–1901), so it is now **Bellwether Transit Co.**; **Lake Shore Steamship** sat too close to the real Lake Shore railroads and steamer *Lake Shore*, so it is now **Northland Packet Co.** No match was found for the rest. Each ship keeps one owner for the run | `data/factions.json` |
+| Manifests | Every ship's passage has a manifest (goods in CU, value at base prices, owner, crew, armed or not) that is a pure function of the run's seed, the ship, the timetable cycle and the direction, like her place. Bulk ships carry one good; package freight up to three. A consort's hold counts with her steamer's | `src/sim/traffic/cargo.ts` |
+| Markets | Arrivals add and departures take from the port's stock: a full hold moves `impact` (0.1–0.25) of the port's in-season target stock, since most of a cargo is consigned to a mill, an elevator or the railroad. The drift takes it back. Calls are run on the world tick from the last delivered time, so a batch of ticks or a reload never runs one twice | `runTraffic`, `src/gameplay/traffic.ts` |
+| Route graph | Washburn's node now names its port; a La Pointe node and a supply tug (*Wren*, Northland Packet) from Bayfield join it, so La Pointe has traffic and a ship at its dock | `data/routes.json` |
+| Save | A `traffic` slice in save v5 (optional, filled on load, so no version bump): `deliveredTo` and, per ship, only what differs from the timetable. In Phase 4 that's when she was last hailed; Phase 6 adds ships robbed or sunk | `src/sim/world-state.ts` |
+| Zones | The chart's ships are shared with the zones (one set for the run). A ship on water the loaded zone covers sails there at her place on the clock, with her consort astern; one lying in a port the zone holds lies alongside a pier by class (ore boats at the ore dock, barges at the mill, steamers at the city dock, tugs at the fish dock), one ship to a pier side, the city dock's north side always kept for the player. The player's berths on a side a ship takes are withdrawn while she's there, and a ship never takes the side the player is docked on | `src/sim/traffic/berths.ts`, `src/gameplay/traffic.ts` |
+| Look her over | In a zone, F near a ship with no berth in reach opens her card: name, class and owner, her passage ("Duluth → the lower lakes", or "Loading at Ashland for Duluth" in port), her hold, its value and her crew. Looking a ship over in an arena shows the same card on the way out | `src/ui/hud/ship-card.ts`, `ShipCardView.tsx` |
+| Hailing | H (rebindable) hails the nearest ship within 400 m in daylight: her last port's prices (up to five goods, dated the day she left) and a rumor, a shipment tip from the live timetable ("*Ore boat Gogebic* is loading iron ore at Ashland down the lake, sailing tomorrow"). News is told once a passage; after dark there's no answer. `ShipHailed` carries the prices and the tip for the ledger (pieces B and K) | `src/sim/traffic/news.ts` |
+| Events | `CargoDelivered`, `ShipLookedOver`, `ShipHailed` | `src/modes/context.ts` |
+| Harness | `EconomySim` takes the traffic: two seasons of it keep every price inside its clamp, the legit bot still profits at the §5.3 pace, and a tick with 100+ voyages runs well under 1 ms (criteria 4 and 11) | `src/sim/economy/harness.ts`, `tests/traffic.test.ts` |
+| Dev hook | `__glpTraffic` (dev builds and `?debug`): `contacts`, `shown`, `takenSides`, `freeBerths`, `manifest`, `look`, `hail`, `place` | `src/main.ts` |
+
+**Known limits.** A ship swaps between a port's approach point and her berth in one step, so watching closely you can see her appear alongside; about a tenth of the Ashland ore boats' track runs over water too shallow for them in the zone and they drop out of sight there. The package steamers sail past Bayfield without calling (their lane only ends at Duluth and Ashland). Ships don't collide with the player. The busy-harbor look is Jared's call.
+
 ## 17. Phase 4 Piece I: La Pointe and Washburn (2026-11-01)
 
 **Goal** (§16.4, piece I): La Pointe and Washburn as set pieces in the Phase 2 harbor kit, with footprints in the hand-edit layer, piers with berths and port ids, and town silhouettes with lit windows. Red Cliff and Bad River stay out (decision 2, §16.6). Their markets come with piece A's `markets.json`.
@@ -476,6 +497,7 @@ The four Apostles harbors are 55k triangles together, well inside the 250k harbo
 
 ## Changelog
 
+- v0.6: Phase 4 piece D built (§16.9): flows and manifests, deliveries that move stock, the traffic save slice, ships in the zones and at berths, look her over and hailing; two company names replaced after the names check.
 - v0.5: Phase 4 piece A built (§16.8): goods in CU, port markets with drift and seasons, the purse and the hold, cargo load, save v5, the balance harness.
 - v0.5: Phase 4 piece I recorded (§17): La Pointe and Washburn footprints, harbors and ports.
 - v0.4: Phase 4 scope proposed (§16): what Phase 3 changes, deliverables, exit criteria, twelve work pieces, the Stockton stash and the island smuggler, decisions for Jared.

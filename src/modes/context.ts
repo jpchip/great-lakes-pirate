@@ -3,6 +3,8 @@ import type { InputMapper } from '../core/input';
 import type { Rng } from '../core/rng';
 import type { ContactKind } from '../sim/chart/traffic';
 import type { PriceShockEvent } from '../sim/economy/market';
+import type { CargoDelivered } from '../sim/traffic/cargo';
+import type { HailNews } from '../sim/traffic/news';
 import type { TradeCompletedEvent } from '../sim/economy/trade';
 import type { GameWorld } from '../gameplay/ecs';
 import type { LocalWeather } from '../sim/weather/local-weather';
@@ -56,6 +58,14 @@ export interface GameEvents {
   /** The economy (plan 05 §11): a trade at a port's market, and a market event. */
   TradeCompleted: TradeCompletedEvent;
   PriceShock: PriceShockEvent;
+  /**
+   * The traffic (plan 05 §8.1, Phase 4 piece D): a ship's arrival or departure moved a
+   * port's stock; the player looked a ship over; a hail brought news (prices and a rumor
+   * for the ledger, pieces B and K).
+   */
+  CargoDelivered: CargoDelivered;
+  ShipLookedOver: { shipId: string };
+  ShipHailed: { shipId: string; news: HailNews };
 }
 
 /** Everything a mode needs; built once at boot and handed to each mode. */

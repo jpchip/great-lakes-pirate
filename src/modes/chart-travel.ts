@@ -23,6 +23,7 @@ import {
   detourSeconds,
   playerSeesAtM,
   spotRangeM,
+  type Contact,
   type Encounter,
   type LookoutPref,
 } from '../sim/chart/traffic';
@@ -100,6 +101,11 @@ export interface ChartTravelHost {
   enterArena?: ((enc: Encounter, travel: ChartTravel) => void) | undefined;
   /** The run's seed: the route graph's traffic follows from it and the clock (piece F). */
   seed: string;
+  /**
+   * The route graph's ships, shared with the zones and the markets (Phase 4 piece D);
+   * built from `seed` when absent.
+   */
+  contacts?: Contact[] | undefined;
   /** The Morrill hunts and forces meetings (`?cutter=hunt`, dev only until Phase 5). */
   cutterHunts?: boolean;
 }
@@ -174,7 +180,8 @@ export function createChartTravel(host: ChartTravelHost): ChartTravel {
     heading: 0,
     wind: { from: 0, speedKn: 10 },
     // The route graph's ships, where the clock has them (piece F).
-    contacts: createContacts(geo.projection, `${host.seed}-traffic`, clock.gameSeconds),
+    contacts:
+      host.contacts ?? createContacts(geo.projection, `${host.seed}-traffic`, clock.gameSeconds),
     // One sky for the zones and the chart (piece E): the run's weather sim.
     sky: createChartSky(ctx.state.environment.weather),
     waypoints: [],
