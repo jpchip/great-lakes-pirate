@@ -241,5 +241,390 @@
       "maxGroundM": 30,
       "seed": 1854
     }
+  },
+  {
+    "id": "harbor.duluth_canal",
+    "name": "Duluth Ship Canal",
+    "setPiece": "setpiece.duluth_canal",
+    "piers": [
+      {
+        "id": "pier.duluth_canal_north",
+        "name": "North pier",
+        "kind": "canal",
+        "alongM": -50,
+        "inlandM": 35,
+        "lengthM": 235,
+        "widthM": 9,
+        "deckM": 3.2
+      },
+      {
+        "id": "pier.duluth_canal_south",
+        "name": "South pier",
+        "kind": "canal",
+        "alongM": 50,
+        "inlandM": 35,
+        "lengthM": 235,
+        "widthM": 9,
+        "deckM": 3.2
+      }
+    ],
+    "buildings": [
+      {
+        "kind": "warehouse",
+        "name": "Life-Saving Station",
+        "alongM": 120,
+        "inlandM": 10,
+        "widthM": 10,
+        "depthM": 16,
+        "heightM": 5
+      },
+      {
+        "kind": "warehouse",
+        "name": "Canal warehouse",
+        "alongM": -110,
+        "inlandM": 95,
+        "widthM": 24,
+        "depthM": 12,
+        "heightM": 6
+      }
+    ],
+    "town": {
+      "houses": 14,
+      "alongM": [90, 260],
+      "inlandM": [-60, 60],
+      "maxGroundM": 6,
+      "seed": 1871
+    }
+  },
+  {
+    "id": "harbor.duluth",
+    "name": "Duluth",
+    "setPiece": "setpiece.duluth",
+    "piers": [
+      {
+        "id": "pier.duluth_city",
+        "name": "Merchandise dock",
+        "kind": "city",
+        "alongM": -130,
+        "inlandM": 25,
+        "lengthM": 45,
+        "widthM": 10,
+        "deckM": 2.0
+      },
+      {
+        "id": "pier.duluth_coal",
+        "name": "Coal dock",
+        "kind": "coal",
+        "alongM": -40,
+        "inlandM": 30,
+        "lengthM": 45,
+        "widthM": 18,
+        "deckM": 2.4
+      }
+    ],
+    "buildings": [
+      {
+        "kind": "elevator",
+        "name": "Elevator A",
+        "alongM": 150,
+        "inlandM": 0,
+        "widthM": 56,
+        "depthM": 24,
+        "heightM": 32
+      },
+      {
+        "kind": "warehouse",
+        "name": "Freight house",
+        "alongM": -90,
+        "inlandM": 70,
+        "widthM": 30,
+        "depthM": 14,
+        "heightM": 7
+      },
+      {
+        "kind": "depot",
+        "name": "Union Depot",
+        "alongM": 0,
+        "inlandM": 105,
+        "widthM": 14,
+        "depthM": 40,
+        "heightM": 9
+      },
+      {
+        "kind": "store",
+        "name": "Superior Street block",
+        "alongM": -40,
+        "inlandM": 128,
+        "widthM": 24,
+        "depthM": 18,
+        "heightM": 13
+      },
+      {
+        "kind": "store",
+        "name": "Spalding Hotel",
+        "alongM": 60,
+        "inlandM": 125,
+        "widthM": 22,
+        "depthM": 18,
+        "heightM": 16
+      },
+      {
+        "kind": "warehouse",
+        "name": "Coal shed",
+        "alongM": -10,
+        "inlandM": 40,
+        "widthM": 22,
+        "depthM": 14,
+        "heightM": 7
+      },
+      {
+        "kind": "church",
+        "alongM": -100,
+        "inlandM": 250,
+        "widthM": 12,
+        "depthM": 22,
+        "heightM": 10
+      },
+      {
+        "kind": "church",
+        "alongM": 140,
+        "inlandM": 320,
+        "widthM": 11,
+        "depthM": 20,
+        "heightM": 9
+      }
+    ],
+    "town": {
+      "houses": 140,
+      "alongM": [-220, 260],
+      "inlandM": [150, 560],
+      "maxGroundM": 52,
+      "maxStepM": 5,
+      "seed": 1870
+    }
+  },
+  {
+    "id": "harbor.superior_entry",
+    "name": "Superior Entry",
+    "setPiece": "setpiece.superior_entry",
+    "piers": [
+      {
+        "id": "pier.superior_entry_north",
+        "name": "North pier",
+        "kind": "canal",
+        "alongM": -85,
+        "inlandM": 90,
+        "lengthM": 290,
+        "widthM": 10,
+        "deckM": 3.0
+      },
+      {
+        "id": "pier.superior_entry_south",
+        "name": "South pier",
+        "kind": "canal",
+        "alongM": 80,
+        "inlandM": 90,
+        "lengthM": 290,
+        "widthM": 10,
+        "deckM": 3.0
+      }
+    ],
+    "buildings": [],
+    "town": {
+      "houses": 0,
+      "alongM": [0, 1],
+      "inlandM": [0, 1],
+      "maxGroundM": 5,
+      "seed": 1885
+    }
+  },
+  {
+    "id": "harbor.superior",
+    "name": "Superior",
+    "setPiece": "setpiece.superior",
+    "piers": [
+      {
+        "id": "pier.superior_city",
+        "name": "City dock",
+        "kind": "city",
+        "alongM": -60,
+        "inlandM": 40,
+        "lengthM": 32,
+        "widthM": 9,
+        "deckM": 1.8
+      },
+      {
+        "id": "pier.superior_lumber",
+        "name": "Mill dock",
+        "kind": "lumber",
+        "alongM": 60,
+        "inlandM": 40,
+        "lengthM": 32,
+        "widthM": 12,
+        "deckM": 1.8
+      }
+    ],
+    "buildings": [
+      {
+        "kind": "elevator",
+        "name": "Great Northern elevator",
+        "alongM": -160,
+        "inlandM": 30,
+        "widthM": 64,
+        "depthM": 26,
+        "heightM": 36
+      },
+      {
+        "kind": "shipShed",
+        "name": "Shipyard",
+        "alongM": 170,
+        "inlandM": 50,
+        "widthM": 76,
+        "depthM": 26,
+        "heightM": 16
+      },
+      {
+        "kind": "warehouse",
+        "name": "Freight house",
+        "alongM": -60,
+        "inlandM": 70,
+        "widthM": 26,
+        "depthM": 12,
+        "heightM": 6
+      },
+      {
+        "kind": "sawmill",
+        "name": "Sawmill",
+        "alongM": 80,
+        "inlandM": 80,
+        "widthM": 30,
+        "depthM": 16,
+        "heightM": 9
+      },
+      {
+        "kind": "depot",
+        "name": "Railroad depot",
+        "alongM": 0,
+        "inlandM": 120,
+        "widthM": 12,
+        "depthM": 30,
+        "heightM": 6
+      },
+      {
+        "kind": "store",
+        "name": "Tower Avenue block",
+        "alongM": -20,
+        "inlandM": 160,
+        "widthM": 22,
+        "depthM": 16,
+        "heightM": 12
+      },
+      {
+        "kind": "store",
+        "name": "Hotel",
+        "alongM": -100,
+        "inlandM": 150,
+        "widthM": 20,
+        "depthM": 16,
+        "heightM": 13
+      },
+      {
+        "kind": "church",
+        "alongM": 40,
+        "inlandM": 240,
+        "widthM": 11,
+        "depthM": 20,
+        "heightM": 9
+      }
+    ],
+    "town": {
+      "houses": 110,
+      "alongM": [-280, 280],
+      "inlandM": [100, 340],
+      "maxGroundM": 24,
+      "seed": 1889
+    }
+  },
+  {
+    "id": "harbor.two_harbors",
+    "name": "Two Harbors",
+    "setPiece": "setpiece.two_harbors",
+    "piers": [
+      {
+        "id": "pier.two_harbors_ore",
+        "name": "Ore dock",
+        "kind": "ore",
+        "alongM": 15,
+        "inlandM": 200,
+        "lengthM": 190,
+        "widthM": 16,
+        "deckM": 17
+      },
+      {
+        "id": "pier.two_harbors_city",
+        "name": "Merchandise dock",
+        "kind": "city",
+        "alongM": -100,
+        "inlandM": 30,
+        "bearingDeg": 255,
+        "lengthM": 30,
+        "widthM": 9,
+        "deckM": 1.8
+      }
+    ],
+    "buildings": [
+      {
+        "kind": "depot",
+        "name": "Railroad depot",
+        "alongM": -110,
+        "inlandM": 120,
+        "widthM": 10,
+        "depthM": 28,
+        "heightM": 6
+      },
+      {
+        "kind": "warehouse",
+        "name": "Railroad shops",
+        "alongM": -220,
+        "inlandM": 190,
+        "widthM": 36,
+        "depthM": 18,
+        "heightM": 9
+      },
+      {
+        "kind": "store",
+        "name": "Hotel",
+        "alongM": -120,
+        "inlandM": 170,
+        "widthM": 18,
+        "depthM": 14,
+        "heightM": 12
+      },
+      {
+        "kind": "store",
+        "name": "General store",
+        "alongM": -170,
+        "inlandM": 140,
+        "widthM": 12,
+        "depthM": 16,
+        "heightM": 8
+      },
+      {
+        "kind": "church",
+        "alongM": -230,
+        "inlandM": 260,
+        "widthM": 10,
+        "depthM": 18,
+        "heightM": 8
+      }
+    ],
+    "town": {
+      "houses": 60,
+      "alongM": [-300, -60],
+      "inlandM": [0, 320],
+      "maxGroundM": 32,
+      "maxStepM": 4.5,
+      "seed": 1884
+    }
   }
 ]

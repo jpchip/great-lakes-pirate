@@ -29,7 +29,7 @@ import {
 import { createSky, setSkyQuality } from './sky';
 import { createAtmosphere, type Atmosphere } from './atmosphere/atmosphere';
 import { createLighthouses, type LighthouseView } from './lighthouses/lighthouses';
-import { lightClearing } from '../sim/lighthouses';
+import { lightClearing, lightsIn } from '../sim/lighthouses';
 import { createHarbors, type HarborView } from './harbors/harbors';
 import { harborClearings, layoutHarbors, type HarborLayout } from '../sim/harbors';
 import { createTerrainMaterial } from './terrain/terrain-material';
@@ -219,7 +219,14 @@ export async function createTestScene(
 
     // Set-piece footprints stay clear of trees for the harbors (piece G).
     const frame = manifestFrame(zone.manifest);
-    const lighthouses = createLighthouses(frame, zone.terrain, lighting, outlines, renderer.preset);
+    const lighthouses = createLighthouses(
+      frame,
+      zone.terrain,
+      lighting,
+      outlines,
+      renderer.preset,
+      lightsIn(zone.manifest.zone),
+    );
     scene.add(lighthouses.group);
     onPreset((preset) => lighthouses.applyPreset(preset));
     const clearings: Clearing[] = zoneDef(zone.manifest.zone).setPieces.map((def) => {
@@ -234,7 +241,7 @@ export async function createTestScene(
     });
     clearings.push(...lighthouses.placed.map(lightClearing));
     // The harbors' buildings and pier ends stay clear of trees too.
-    const harborLayouts = layoutHarbors(frame, zone.terrain);
+    const harborLayouts = layoutHarbors(frame, zone.terrain, zone.manifest.zone);
     for (const layout of harborLayouts) clearings.push(...harborClearings(layout));
     const vegetation = createVegetationView(
       terrain,

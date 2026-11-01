@@ -12,6 +12,7 @@ import {
   LIGHTHOUSES,
   LIGHT_TIERS,
   beamBearing,
+  lightsIn,
   flashSeen,
   lampLevel,
   lightClearing,
@@ -37,7 +38,11 @@ const byId = (id: string) => {
 
 describe('the 1900 lights (R1 §2.1)', () => {
   it('has the seven lights of the Apostles', () => {
-    expect(LIGHTHOUSES.map((l) => l.id).sort()).toEqual([
+    expect(
+      lightsIn('zone.apostles')
+        .map((l) => l.id)
+        .sort(),
+    ).toEqual([
       'light.chequamegon',
       'light.devils',
       'light.lapointe',
@@ -62,6 +67,29 @@ describe('the 1900 lights (R1 §2.1)', () => {
     expect(byId('light.sand').characteristic).toEqual({ kind: 'fixed', color: 'white' });
     // Devils Island's 3rd-order lens doesn't arrive until 1901: a temporary fixed red.
     expect(byId('light.devils').characteristic).toEqual({ kind: 'fixed', color: 'red' });
+  });
+
+  it('has the Twin Ports and Two Harbors lights of 1900 (Phase 3 piece I)', () => {
+    expect(
+      lightsIn('zone.twin_ports')
+        .map((l) => l.id)
+        .sort(),
+    ).toEqual(['light.duluth_south_pier', 'light.minnesota_point', 'light.superior_entry']);
+    expect(lightsIn('zone.two_harbors').map((l) => l.id)).toEqual(['light.two_harbors']);
+    // The canal's south pier light is a temporary tower while the pier is rebuilt, and
+    // both entry lights stand on their piers' ends.
+    expect(byId('light.duluth_south_pier').pier).toBe('pier.duluth_canal_south');
+    expect(byId('light.duluth_south_pier').tier).toBe('weak');
+    expect(byId('light.superior_entry').pier).toBe('pier.superior_entry_south');
+    // Two Harbors: the red-brick station with its 4th-order lens.
+    expect(byId('light.two_harbors').tier).toBe('medium');
+    expect(byId('light.two_harbors').tower.finish).toBe('brick');
+    // Minnesota Point stands dark: extinguished in 1885, no keeper, no signal.
+    const dark = byId('light.minnesota_point');
+    expect(dark.lit).toBe(false);
+    expect(dark.keepers).toBe(0);
+    expect(dark.fogSignal).toBeUndefined();
+    expect(LIGHTHOUSES.filter((l) => !l.lit).map((l) => l.id)).toEqual(['light.minnesota_point']);
   });
 
   it('gives the strong lens the longest reach and the temporary light the shortest', () => {
@@ -198,7 +226,7 @@ describe('the lights on the Apostles zone', () => {
   it('stands every light on dry ground, near where it really stood', () => {
     if (!baked) return;
     const frame = manifestFrame(zone.manifest);
-    const placed = placeLights(LIGHTHOUSES, frame, zone.terrain);
+    const placed = placeLights(lightsIn('zone.apostles'), frame, zone.terrain);
     expect(placed).toHaveLength(7);
     for (const p of placed) {
       expect(zone.terrain.heightAt(p.x, p.z), p.def.id).toBeGreaterThanOrEqual(1.5);
@@ -208,7 +236,11 @@ describe('the lights on the Apostles zone', () => {
 
   it('finds open water to view every light from, facing it', () => {
     if (!baked) return;
-    const placed = placeLights(LIGHTHOUSES, manifestFrame(zone.manifest), zone.terrain);
+    const placed = placeLights(
+      lightsIn('zone.apostles'),
+      manifestFrame(zone.manifest),
+      zone.terrain,
+    );
     for (const p of placed) {
       const spot = need(viewingSpot(p, zone.terrain, 500), p.def.id);
       expect(zone.terrain.heightAt(spot.x, spot.z), p.def.id).toBeLessThanOrEqual(-6);
@@ -231,6 +263,7 @@ describe('the lights on the Apostles zone', () => {
       lighting,
       new OutlineSettings(),
       QUALITY_PRESETS.medium,
+      lightsIn('zone.apostles'),
     );
     const outer = need(
       view.placed.find((p) => p.def.id === 'light.outer'),
@@ -259,6 +292,7 @@ describe('the lights on the Apostles zone', () => {
       new StyleLighting(),
       new OutlineSettings(),
       QUALITY_PRESETS.low,
+      lightsIn('zone.apostles'),
     );
     const outer = need(
       view.placed.find((p) => p.def.id === 'light.outer'),
@@ -284,4 +318,41 @@ describe('the lights on the Apostles zone', () => {
     expect(cones()).toBeGreaterThan(0);
     view.dispose();
   });
+});
+
+describe('the lights in the Twin Ports (Phase 3 piece I)', () => {
+  const dir = join(__dirname, '..', 'public', 'world', 'twin_ports');
+  const baked =
+    existsSync(join(dir, 'manifest.json')) &&
+    readFileSync(join(dir, 'height', '0-0.bin')).byteLength > 200;
+
+  it.skipIf(!baked)(
+    'leaves Minnesota Point dark at night while the entry light burns',
+    async () => {
+      const zone = await loadZoneTerrain(
+        async (path) => new Uint8Array(readFileSync(join(dir, path))),
+      );
+      const lighting = new StyleLighting();
+      const view = createLighthouses(
+        manifestFrame(zone.manifest),
+        zone.terrain,
+        lighting,
+        new OutlineSettings(),
+        QUALITY_PRESETS.medium,
+        lightsIn('zone.twin_ports'),
+      );
+      const dark = need(
+        view.placed.find((p) => p.def.id === 'light.minnesota_point'),
+        'Minnesota Point',
+      );
+      // Standing beside the old tower at midnight: it's the nearest, and it shows nothing.
+      const camera = new THREE.Vector3(dark.x, 20, dark.z + 60);
+      view.update(0, camera, -20, 0.0003);
+      expect(view.nearest?.id).toBe('light.minnesota_point');
+      expect(view.nearest?.level).toBe(0);
+      // The Superior Entry and canal lights still show across the harbor.
+      expect(view.lit).toBeGreaterThanOrEqual(1);
+      view.dispose();
+    },
+  );
 });

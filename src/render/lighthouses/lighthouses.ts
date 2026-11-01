@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import type { LighthouseDef } from '../../../data/schemas/lighthouses';
 import type { ZoneFrame } from '../../core/coords';
 import {
   LIGHT_TIERS,
@@ -186,6 +187,8 @@ interface Station {
   color: THREE.Color;
   rangeM: number;
   strength: number;
+  /** 1 for a kept light, 0 for a station standing dark. */
+  burning: number;
   /** Red lamps are dim in linear light; this lifts them to read as bright as white ones. */
   gain: number;
 }
@@ -196,10 +199,12 @@ export function createLighthouses(
   lighting: StyleLighting,
   outlines: OutlineSettings,
   preset: QualityPreset,
+  /** The zone's lights (`lightsIn`); every light in the file by default. */
+  defs: readonly LighthouseDef[] = LIGHTHOUSES,
 ): LighthouseView {
   const group = new THREE.Group();
   group.name = 'lighthouses';
-  const placed = placeLights(LIGHTHOUSES, frame, terrain);
+  const placed = placeLights(defs, frame, terrain);
   const texture = glareTexture();
   const stations: Station[] = [];
   let beams = preset.lighthouseBeams;
@@ -259,7 +264,7 @@ export function createLighthouses(
     let beam: THREE.Mesh | undefined;
     let material: THREE.ShaderMaterial | undefined;
     let pivot: THREE.Group | undefined;
-    if (def.characteristic.kind === 'flashing') {
+    if (def.characteristic.kind === 'flashing' && def.lit) {
       const length = tier.rangeM * 0.5;
       material = beamMaterial(color.clone(), length);
       const cone = new THREE.CylinderGeometry(length * 0.05, 0.4, length, 24, 1, true);
@@ -288,7 +293,9 @@ export function createLighthouses(
       lamp,
       color,
       rangeM: lightRangeM(def),
-      strength: tier.strength,
+      // A dark station (Minnesota Point) has no lamp and no keeper: just the tower.
+      burning: def.lit ? 1 : 0,
+      strength: def.lit ? tier.strength : 0,
       gain: def.characteristic.color === 'red' ? 2 : 1,
     });
   }
@@ -316,7 +323,7 @@ export function createLighthouses(
       beams = next.lighthouseBeams;
     },
     update(nowS, camera, sunElevationDeg, fogDensity) {
-      const dusk = lampLevel(sunElevationDeg);
+      const night = lampLevel(sunElevationDeg);
       lit = 0;
       drawn = 0;
       nearest = undefined;
@@ -324,6 +331,7 @@ export function createLighthouses(
       let nearestD = Infinity;
       const fogScatter = Math.min(1, fogDensity / 6e-4);
       for (const s of stations) {
+        const dusk = night * s.burning;
         const dx = camera.x - s.lamp.x;
         const dz = camera.z - s.lamp.z;
         const dist = Math.hypot(dx, camera.y - s.lamp.y, dz);
@@ -388,7 +396,7 @@ export function createLighthouses(
 
       // One real lamp on the ground: the nearest lit light, within reach.
       if (nearestLamp && nearestD < LAMP_REACH_M) {
-        lampColor.copy(nearestLamp.color).multiplyScalar(1.4 * dusk * nearestLamp.strength);
+        lampColor.copy(nearestLamp.color).multiplyScalar(1.4 * night * nearestLamp.strength);
         lighting.setLamp(nearestLamp.lamp, lampColor, LAMP_REACH_M);
       } else {
         lighting.setLamp(UNLIT, lampColor.setRGB(0, 0, 0), LAMP_REACH_M);
