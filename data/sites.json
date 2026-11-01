@@ -1,0 +1,17 @@
+[
+  {
+    "id": "site.stockton",
+    "name": "Presque Isle bay, Stockton Island",
+    "shortName": "Stockton stash",
+    "zone": "zone.apostles",
+    "island": "island.stockton",
+    "setPiece": "setpiece.stockton",
+    "wantedRegion": "region.apostles",
+    "concealment": 0.6,
+    "claim": "abandoned",
+    "anchorage": { "alongM": 0, "inlandM": -70, "radiusM": 90 },
+    "storage": { "goodsCu": 40, "strongbox": true },
+    "startFor": ["deckhand", "fisherman", "lumberjack", "saloon_keeper", "ex_navy", "poacher"],
+    "blurb": "A fisherman's shack left empty when the brownstone quarry closed, in a bay sheltered from the northwest. Nobody comes out here but the fish tugs."
+  }
+]

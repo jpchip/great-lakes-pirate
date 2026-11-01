@@ -209,6 +209,42 @@ function building(b: PlacedBuilding, out: Sink): void {
       windows(local, b, w, d, [2.2], 6, 10);
       break;
     }
+    // The Stockton stash (Phase 4 piece E): a weathered fish shack with a stovepipe, a
+    // squat iron-strapped strongbox, and a storage shed with barrels and crates outside.
+    case 'shack': {
+      sink.push(box(w, h, d, 0, 0, 0, 0x6f6152));
+      sink.push(gable(w, d, 1.4, 0, h, 0, ROOFS[1]));
+      sink.push(box(0.35, 1.6, 0.35, -w * 0.3, h + 0.7, d * 0.15, 0x2b2927));
+      // A lean-to porch and a door on the bay side.
+      sink.push(box(w * 0.7, 0.18, 1.6, 0, 0, -d / 2 - 0.8, DECK));
+      sink.push(box(1, 1.9, 0.1, w * 0.18, 0, -d / 2 - 0.02, 0x3e342b));
+      windows(local, b, w, d, [1.3], 3, 11);
+      break;
+    }
+    case 'strongbox': {
+      sink.push(box(w, h, d, 0, 0, 0, 0x4a4a46));
+      for (const x of [-w * 0.3, w * 0.3]) sink.push(box(0.12, h + 0.04, d + 0.04, x, 0, 0, COAL));
+      sink.push(box(w + 0.06, 0.16, d + 0.06, 0, h - 0.16, 0, COAL));
+      break;
+    }
+    case 'storageShed': {
+      sink.push(box(w, h, d, 0, 0, 0, 0x7a6a58));
+      sink.push(gable(w, d, 1.8, 0, h, 0, roof));
+      sink.push(box(w * 0.4, h * 0.75, 0.1, 0, 0, -d / 2 - 0.02, 0x3e342b));
+      // Barrels and crates stacked by the door.
+      for (let k = 0; k < 3; k++) {
+        sink.push(
+          part(new THREE.CylinderGeometry(0.32, 0.32, 0.9, 8, 1), 0x6b4a2e).translate(
+            w / 2 + 0.6,
+            0.45,
+            -d / 2 + 0.8 + k * 0.75,
+          ),
+        );
+      }
+      sink.push(box(0.9, 0.7, 0.9, -w / 2 - 0.7, 0, -d / 2 + 1, 0x9a7b55));
+      sink.push(box(0.8, 0.6, 0.8, -w / 2 - 0.7, 0.7, -d / 2 + 1, 0x8d7150));
+      break;
+    }
     case 'house': {
       sink.push(box(w, h, d, 0, 0, 0, paint));
       sink.push(gable(w, d, 2.4 + d * 0.12, 0, h, 0, roof));

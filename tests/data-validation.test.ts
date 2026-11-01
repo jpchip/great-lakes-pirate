@@ -4,6 +4,7 @@ import { describe, expect, it } from 'vitest';
 import { dataFileSchemas } from '../data/schemas';
 import { islandsFileSchema } from '../data/schemas/islands';
 import { portsFileSchema } from '../data/schemas/ports';
+import { sitesFileSchema } from '../data/schemas/sites';
 import { zonesFileSchema } from '../data/schemas/zones';
 
 const dataDir = join(import.meta.dirname, '..', 'data');
@@ -39,9 +40,19 @@ describe('data cross-references', () => {
     }
   });
 
-  it('links every set piece to a port', () => {
+  it('links every set piece to a port or a hideout site, and every site to its set piece', () => {
+    const sites = sitesFileSchema.parse(read('sites.json'));
+    const siteIds = new Set(sites.map((s) => s.id));
     for (const zone of zones) {
-      for (const piece of zone.setPieces) expect(portIds, piece.id).toContain(piece.port);
+      for (const piece of zone.setPieces) {
+        if (piece.site) expect(siteIds, piece.id).toContain(piece.site);
+        else expect(portIds, piece.id).toContain(piece.port);
+      }
+    }
+    for (const site of sites) {
+      const piece = zones.flatMap((z) => z.setPieces).find((p) => p.id === site.setPiece);
+      expect(piece?.site, site.id).toBe(site.id);
+      expect(zones.find((z) => z.setPieces.includes(piece!))?.id, site.id).toBe(site.zone);
     }
   });
 

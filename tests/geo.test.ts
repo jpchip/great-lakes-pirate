@@ -283,6 +283,7 @@ describe('hand-edit layer', () => {
       'setpiece.bayfield',
       'setpiece.ashland',
       'setpiece.la_pointe',
+      'setpiece.stockton',
       'setpiece.washburn',
     ]);
     const ports = zoneConfigFromData('zone.twin_ports', read('zones.json'), read('islands.json'));
@@ -308,6 +309,7 @@ describe('baked Apostles zone', () => {
       'setpiece.bayfield',
       'setpiece.ashland',
       'setpiece.la_pointe',
+      'setpiece.stockton',
       'setpiece.washburn',
     ]);
     for (const e of m.handEdits) expect(e.samples).toBeGreaterThan(500);
