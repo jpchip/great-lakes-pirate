@@ -696,3 +696,245 @@ body[data-mode='chart'] .chart-layer {
   border-radius: 3px;
   z-index: 6;
 }
+
+/*
+ * The port screen and the ledger (plan 05 §12, plan 13 §2.1: a merchant's ledger). The
+ * paper of the settings screen, wider, with ruled tables. Hot goods carry the ember
+ * diamond as well as its color; stale prices are fog gray and say their age.
+ */
+.hud-port {
+  bottom: 214px;
+}
+
+.menu.port {
+  width: min(1060px, calc(100vw - 32px));
+}
+
+.port-purse {
+  font-size: 14px;
+}
+
+.port-body {
+  display: flex;
+  gap: 18px;
+  align-items: flex-start;
+}
+
+.port-market,
+.port-chandlery {
+  flex: 1;
+  min-width: 0;
+}
+
+.port-table,
+.ledger-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.port-table th,
+.ledger-table th {
+  padding: 3px 6px;
+  font-size: 12px;
+  font-weight: normal;
+  text-align: left;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--ink);
+}
+
+.port-table td,
+.ledger-table td {
+  padding: 3px 6px;
+  border-bottom: 1px solid rgba(43, 33, 24, 0.15);
+}
+
+.port-table .num,
+.ledger-table .num {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.port-category td {
+  padding-top: 8px;
+  font-size: 12px;
+  font-style: italic;
+  color: var(--lake-teal);
+  border-bottom: none;
+}
+
+.port-row.selected {
+  background: rgba(184, 137, 46, 0.22);
+}
+
+.port-role {
+  font-size: 11px;
+  font-style: italic;
+  color: #5a4a38;
+}
+
+.port-actions {
+  white-space: nowrap;
+  text-align: right;
+}
+
+.port-mini {
+  margin-left: 4px;
+  padding: 1px 8px;
+  font: 13px var(--serif);
+  color: var(--ink);
+  background: var(--paper-dark);
+  border: 1px solid var(--brass);
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.port-mini:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+
+.port-dim {
+  color: #6b5b48;
+}
+
+.port-elsewhere small {
+  font-size: 11px;
+}
+
+.port-elsewhere.stale,
+.ledger-table tr.stale,
+.ledger-seen.stale {
+  color: var(--fog-gray);
+}
+
+.port-trade {
+  position: sticky;
+  bottom: 0;
+  margin-top: 10px;
+  padding: 8px 10px;
+  background: var(--paper-dark);
+  border: 1px solid var(--brass);
+  border-radius: 3px;
+}
+
+.port-trade-line {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.port-trade-line input[type='range'] {
+  flex: 1;
+}
+
+.port-trade .menu-button {
+  margin-top: 4px;
+}
+
+.port-hold {
+  width: 250px;
+  flex: none;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.25);
+  border: 1px solid var(--paper-dark);
+  border-radius: 3px;
+  font-size: 14px;
+}
+
+.port-hold h3 {
+  margin: 0 0 6px;
+  font-size: 16px;
+}
+
+.port-hold ul {
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.port-hold li {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  padding: 3px 0;
+  border-bottom: 1px solid rgba(43, 33, 24, 0.15);
+}
+
+.port-hold li small {
+  grid-column: 1 / -1;
+}
+
+.port-hold li.hot {
+  color: #7a2a12;
+}
+
+.ember {
+  color: #d4521d;
+}
+
+.port-capacity-bar {
+  height: 8px;
+  margin: 3px 0;
+  background: rgba(43, 33, 24, 0.15);
+  border: 1px solid var(--paper-dark);
+}
+
+.port-capacity-bar > div {
+  height: 100%;
+  background: var(--lake-teal);
+}
+
+.port-message {
+  margin: 0 0 8px;
+  padding: 4px 8px;
+  font-size: 14px;
+  color: var(--signal-red);
+  border-left: 3px solid var(--signal-red);
+}
+
+.port-footer {
+  gap: 10px;
+}
+
+.ledger-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+  margin-bottom: 8px;
+}
+
+.ledger-tab {
+  padding: 2px 9px;
+  font: 13px var(--serif);
+  color: var(--ink);
+  background: none;
+  border: 1px solid var(--paper-dark);
+  border-radius: 10px;
+  cursor: pointer;
+}
+
+.ledger-tab.active {
+  background: var(--paper-dark);
+  border-color: var(--brass);
+}
+
+.ledger {
+  flex: 1;
+}
+
+.ledger-seen {
+  margin: 2px 0 6px;
+  font-size: 13px;
+  font-style: italic;
+}
+
+.ledger-empty {
+  font-style: italic;
+  color: #5a4a38;
+}
+
+.ledger-list {
+  padding-left: 18px;
+}

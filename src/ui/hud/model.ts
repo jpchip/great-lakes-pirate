@@ -60,6 +60,8 @@ export interface HudSnapshot {
   atEdge: boolean;
   /** A hostile has the ship in sight within its threat radius: the chart is locked. */
   chartLocked: boolean;
+  /** Docked at a port's pier: its name, for the button back to its screen (piece B). */
+  portName: string | undefined;
 }
 
 export interface BarometerSnapshot {
@@ -147,6 +149,8 @@ export interface HudSources {
   chartOffered?: boolean | undefined;
   /** Standing chips from the mode, e.g. an arena's pursuit lock (Phase 3 piece G). */
   extraStatus?: readonly string[] | undefined;
+  /** The port the ship lies docked at, by name. */
+  portName?: string | undefined;
 }
 
 /** Seconds a refusal chip stays up. */
@@ -241,6 +245,7 @@ export function sampleHud(src: HudSources): HudSnapshot | undefined {
     barometer: src.barometer ? barometerSnapshot(src.barometer) : undefined,
     atEdge,
     chartLocked: src.chartLocked ?? false,
+    portName: src.portName,
   };
 }
 

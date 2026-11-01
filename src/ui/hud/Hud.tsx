@@ -201,12 +201,15 @@ export function Hud({
   density,
   spyglass,
   onTakeToChart,
+  onOpenPort,
 }: {
   hud: ReadonlySignal<HudSnapshot | undefined>;
   density: ReadonlySignal<HudDensity>;
   spyglass: ReadonlySignal<boolean>;
   /** The "Take to the chart" button at the soft edge (Phase 3 piece D). */
   onTakeToChart?: (() => void) | undefined;
+  /** Back to the port screen while docked at a port (Phase 4 piece B). */
+  onOpenPort?: (() => void) | undefined;
 }) {
   const h = hud.value;
   const mode = density.value;
@@ -223,6 +226,16 @@ export function Hud({
           onClick={() => onTakeToChart?.()}
         >
           Take to the chart <span class="hud-key">M</span>
+        </button>
+      )}
+      {h?.portName && (
+        <button
+          type="button"
+          class="hud-take-chart hud-port"
+          data-testid="hud-port"
+          onClick={() => onOpenPort?.()}
+        >
+          {h.portName} <span class="hud-key">P</span>
         </button>
       )}
       {h && mode !== 'off' && (

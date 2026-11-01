@@ -56,6 +56,9 @@ export interface GameEvents {
   /** The economy (plan 05 §11): a trade at a port's market, and a market event. */
   TradeCompleted: TradeCompletedEvent;
   PriceShock: PriceShockEvent;
+  /** Ports (plan 05 §7, Phase 4 piece B): the port screen opened, and the chandlery. */
+  PortVisited: { port: string };
+  StoresBought: { port: string; item: string; qty: number; totalCents: number };
 }
 
 /** Everything a mode needs; built once at boot and handed to each mode. */

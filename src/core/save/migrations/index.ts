@@ -13,7 +13,7 @@ import { Rng, type RngState } from '../../rng';
 export type SavePayload = Record<string, unknown>;
 export type Migration = (state: SavePayload) => SavePayload;
 
-export const CURRENT_SAVE_VERSION = 5;
+export const CURRENT_SAVE_VERSION = 6;
 
 /** Hours of weather a migrated save catches up on at load, like a new run's spin-up. */
 const WEATHER_SPIN_UP_HOURS = 48;
@@ -87,9 +87,20 @@ function addEconomy(state: SavePayload): SavePayload {
   };
 }
 
+/**
+ * v5 → v6 (plan 05 §4.3, §7, Phase 4 piece B): price knowledge and the ship's stores
+ * join the save. A migrated run knows no prices yet (it learns them at its next market)
+ * and has empty lockers.
+ */
+function addKnowledge(state: SavePayload): SavePayload {
+  const player = (state['player'] ?? {}) as SavePayload;
+  return { ...state, player: { ...player, stores: {} }, knowledge: { prices: {} } };
+}
+
 export const migrations: Readonly<Record<number, Migration>> = {
   1: addWeather,
   2: addLocation,
   3: addVoyage,
   4: addEconomy,
+  5: addKnowledge,
 };
