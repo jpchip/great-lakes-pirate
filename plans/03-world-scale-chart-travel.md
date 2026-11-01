@@ -1103,7 +1103,7 @@ Typecheck, lint, Prettier, 748 unit tests and the 12 e2e smoke tests pass on `ma
 3. **The audio is placeholder.** The chart tune, the six stingers, the fade-to-fog sound and the ship whistles are synthesized (`npm run audio:synth`) and need a listen on real speakers: does the whistle carry in fog, do the stingers sit under the chart theme, and is "The Long Reach" one to keep or to replace with a recording.
 4. **The 1900 light colors at the Twin Ports and Two Harbors are guesses** (§27.4, R1 open item 1): the canal's temporary south pier light, the Superior Entry pierhead light and Two Harbors Light. Check them against the 1900 Light List, or accept them for now.
 
-5. **Water in an arena is 3.2 ms on Medium,** 0.2 ms over the Phase 2 budget, though the frame is 5.8 ms, the cheapest in the game, because no land hides any water. Recommended: accept it for the arena, where water is the whole scene; the 3 ms budget assumed land covering part of the view. The alternative is to drop the arena's far water a step on Medium.
+5. **Water in an arena is 3.2 ms on Medium,** 0.2 ms over the Phase 2 budget, though the frame is 5.8 ms, the cheapest in the game, because no land hides any water. Recommended: accept it for the arena, where water is the whole scene; the 3 ms budget assumed land covering part of the view. **Decided 2026-11-01: accepted for arenas.**
 
 ### 29.3 Results
 
@@ -1115,7 +1115,7 @@ Filled in from the laptop playtest (Ryzen 7 7730U, Radeon renoir, ANGLE OpenGL).
 | 9 | Heap 79.3 MB before and 81.4 MB after the round trip through the three zones (budget 20 MB). Pass |
 | 9, Two Harbors | `?bench=water` (mean ms a frame, MSAA on): Medium **6.5 ms**, water **2.1 ms**, 42 draw calls, 98k triangles; Low 4.0 ms (water 1.2); High 7.9 ms (water 2.7). Terrain 0.5 ms and vegetation 0.5 ms on Medium. Pass |
 | 9, Twin Ports | `?bench=water` (MSAA on): Medium **7.6 ms**, water **2.4 ms**, 51 draw calls, 210k triangles; Low 3.6 ms (water 0.5); High 9.3 ms (water 2.3, 460k triangles). Terrain 0.7 ms and vegetation 0.8 ms on Medium. Pass |
-| 9, arena (`?encounter=convoy`, three ships) | `?bench=water` (MSAA on): Medium **5.8 ms**, but water **3.2 ms**, over its 3 ms; 40 draw calls, 42k triangles; Low 3.8 ms (water 1.9); High 6.6 ms (water 3.8). With no land, water fills the whole view, so its share is the largest of any scene, while the frame is the cheapest. **Over on water by 0.2 ms** (§29.2 item 5) |
+| 9, arena (`?encounter=convoy`, three ships) | `?bench=water` (MSAA on): Medium **5.8 ms**, but water **3.2 ms**, over its 3 ms; 40 draw calls, 42k triangles; Low 3.8 ms (water 1.9); High 6.6 ms (water 3.8). With no land, water fills the whole view, so its share is the largest of any scene, while the frame is the cheapest. Over on water by 0.2 ms; **accepted for arenas by Jared, 2026-11-01** (§29.2 item 5) |
 
 The rest is filled in from the playtest.
 
