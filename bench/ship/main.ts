@@ -1,7 +1,8 @@
 import * as THREE from 'three';
 import { GameRenderer } from '../../src/render/renderer';
 import { createSchooner, styleSchooner, type SchoonerModel } from '../../src/render/ships/schooner';
-import { T1_SCHOONER_LINES } from '../../src/render/ships/schooner-lines';
+import { schoonerLines } from '../../src/render/ships/schooner-lines';
+import { PLAYER_SHIP_IDS } from '../../src/sim/sailing/ships';
 import { OutlineSettings } from '../../src/render/style/outline';
 import { StyleLighting } from '../../src/render/style/stylized-material';
 import { directionFrom, TIMES_OF_DAY, type TimeOfDay } from '../../src/render/style/time-of-day';
@@ -12,7 +13,7 @@ import { createSailingState, type SailingState } from '../../src/sim/sailing/con
  * /bench/ship/. One cell per sail level and point of sail, the T1 schooner in style B,
  * so a change to the lines or the sail shapes can be judged at a glance.
  *
- * Query options: `?time=day|dusk|night`, `?t=3` freezes the flutter clock at 3 s (for
+ * Query options: `?ship=t2` draws the T2 schooner (the camera backs off to suit), `?time=day|dusk|night`, `?t=3` freezes the flutter clock at 3 s (for
  * screenshots), `?view=bow|beam|stern|hull|deck|quarter` moves the camera, `?cols=4` sets the grid
  * width, `?cell=3` draws one cell full size and `?outline=0` hides the ink.
  */
@@ -40,6 +41,9 @@ const timeId = params.get('time') ?? 'day';
 const tod = timeId === 'night' ? TIMES_OF_DAY.night : timeId === 'dusk' ? TIMES_OF_DAY.dusk : DAY;
 
 const DEG = Math.PI / 180;
+const lines = schoonerLines(PLAYER_SHIP_IDS[params.get('ship') ?? 't1']);
+/** The views were framed on the T1's 20 m; a bigger hull pulls the camera back. */
+const viewScale = lines.length / 20;
 
 interface Cell {
   label: string;
@@ -96,7 +100,7 @@ const only = params.has('cell') ? Number(params.get('cell')) : undefined;
 if (only !== undefined) CELLS.splice(0, CELLS.length, CELLS[only] as Cell);
 
 const models: { model: SchoonerModel; state: SailingState }[] = CELLS.map((cell) => {
-  const model = createSchooner(T1_SCHOONER_LINES);
+  const model = createSchooner(lines);
   styleSchooner(model, lighting, outlines);
   if (params.get('outline') === '0') {
     model.group.traverse((node) => {
@@ -120,6 +124,8 @@ const views: Record<string, { position: THREE.Vector3; target: THREE.Vector3 }> 
   quarter: { position: new THREE.Vector3(10, 3, 20), target: new THREE.Vector3(0, 1, 6) },
 };
 const view = views[params.get('view') ?? 'bow'] ?? (views['bow'] as (typeof views)[string]);
+view.position.multiplyScalar(viewScale);
+view.target.multiplyScalar(viewScale);
 const camera = new THREE.PerspectiveCamera(36, 1, 0.5, 2000);
 camera.position.copy(view.position);
 camera.lookAt(view.target);

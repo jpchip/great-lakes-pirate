@@ -4,14 +4,21 @@ import { addOutlines, creaseNormals, type OutlineSettings } from '../style/outli
 import { applyStylizedMaterials, type StyleLighting } from '../style/stylized-material';
 import { apparentWindFlow, boomTarget, sailHoists, sailShape, swingBoom } from './rig-state';
 import { SailMesh, type SailCorners } from './sail-mesh';
-import { buildDeckFittings, buildHull, hullShape, type HullShape } from './schooner-hull';
+import {
+  buildDeckFittings,
+  buildHull,
+  buildYawlBoat,
+  hullShape,
+  type HullShape,
+} from './schooner-hull';
 import type { HeadsailLines, MastLines, SchoonerLines } from './schooner-lines';
 import { TriangleSoup } from './soup';
 import { Streamers } from './streamers';
 
 /**
- * The procedural T1 schooner (plan 14 §5, plan 02 §9 and §13): the parametric hull, a
- * two-masted gaff rig and its sails, built from one `SchoonerLines` record. `update`
+ * The procedural player schooners (plan 14 §5, plan 02 §9 and §13): the parametric hull,
+ * a two-masted gaff rig and its sails, built from one `SchoonerLines` record (the T1 and
+ * the T2 are two records, `schooner-lines.ts`). `update`
  * poses it for a sailing state each frame:
  *
  * - Sails per level (Furled, Reefed, Half, Full) from `sailSetting`, so a sail change
@@ -71,6 +78,8 @@ interface GaffRig {
   angle: number;
   /** Boom end rise, local y, so the boom steeves up a little aft despite the rake. */
   boomRise: number;
+  /** The lines' `rigScale`. */
+  k: number;
 }
 
 interface Headsail {
@@ -103,6 +112,7 @@ export function createSchooner(l: SchoonerLines): SchoonerModel {
   const half = l.length / 2;
   const spar = new THREE.Color(l.paint.spar);
   const canvasColor = new THREE.Color(l.paint.canvas);
+  const k = l.rigScale ?? 1;
 
   const solid = new THREE.MeshStandardMaterial({
     vertexColors: true,
@@ -123,17 +133,19 @@ export function createSchooner(l: SchoonerLines): SchoonerModel {
   const fixed = new TriangleSoup();
   buildHull(l, fixed);
   buildDeckFittings(l, shape, fixed);
+  buildYawlBoat(l, shape, fixed);
   for (const m of [l.fore, l.main]) {
     const step = mastPoint(shape, l, m, -0.2);
     const hounds = mastPoint(shape, l, m, m.height);
     const truck = mastPoint(shape, l, m, m.height + m.topmast);
-    fixed.spar(step, hounds.clone().addScaledVector(UP, 0.6), 0.2, spar, 0.15);
-    fixed.spar(mastPoint(shape, l, m, m.height - 1.2), truck, 0.11, spar, 0.06);
+    fixed.spar(step, hounds.clone().addScaledVector(UP, 0.6 * k), 0.2 * k, spar, 0.15 * k);
+    fixed.spar(mastPoint(shape, l, m, m.height - 1.2 * k), truck, 0.11 * k, spar, 0.06 * k);
     // Crosstrees and a cap at the hounds.
-    fixed.spar(hounds.clone().setX(-0.95), hounds.clone().setX(0.95), 0.06, spar, 0.06, 4);
+    const tree = 0.95 * k;
+    fixed.spar(hounds.clone().setX(-tree), hounds.clone().setX(tree), 0.06 * k, spar, 0.06 * k, 4);
     fixed.box(
-      hounds.clone().add(new THREE.Vector3(-0.22, 0.45, -0.3)),
-      hounds.clone().add(new THREE.Vector3(0.22, 0.65, 0.3)),
+      hounds.clone().add(new THREE.Vector3(-0.22, 0.45, -0.3).multiplyScalar(k)),
+      hounds.clone().add(new THREE.Vector3(0.22, 0.65, 0.3).multiplyScalar(k)),
       spar,
     );
   }
@@ -141,7 +153,7 @@ export function createSchooner(l: SchoonerLines): SchoonerModel {
   const sprit = new THREE.Vector3(0, Math.sin(steeve), -Math.cos(steeve));
   const stem = shape.stemHead.clone().addScaledVector(UP, -0.12);
   const spritEnd = stem.clone().addScaledVector(sprit, l.bowsprit);
-  fixed.spar(stem.clone().addScaledVector(sprit, -2.2), spritEnd, 0.17, spar, 0.08);
+  fixed.spar(stem.clone().addScaledVector(sprit, -2.2 * k), spritEnd, 0.17 * k, spar, 0.08 * k);
   const hull = new THREE.Mesh(fixed.build(), solid);
   hull.name = 'schooner-hull';
   group.add(hull);
@@ -159,20 +171,20 @@ export function createSchooner(l: SchoonerLines): SchoonerModel {
     group.add(mast);
 
     const boomRise = Math.tan(m.rakeDeg * DEG) * m.boom + 0.3;
-    const boom = sparMesh(m.boom, 0.11, 0.08, spar, solid, `${name}-boom`);
+    const boom = sparMesh(m.boom, 0.11 * k, 0.08 * k, spar, solid, `${name}-boom`);
     boom.rotation.x = -Math.atan2(boomRise, m.boom);
     swing.add(boom);
-    const gaff = sparMesh(m.gaff, 0.09, 0.06, spar, solid, `${name}-gaff`);
+    const gaff = sparMesh(m.gaff, 0.09 * k, 0.06 * k, spar, solid, `${name}-gaff`);
     swing.add(gaff);
     const bundle = sparMesh(m.boom * 0.86, 1, 0.55, canvasColor, solid, `${name}-furl`);
-    bundle.position.set(0, 0.2, 0.45);
+    bundle.position.set(0, 0.2 * k, 0.45 * k);
     bundle.rotation.x = boom.rotation.x;
     swing.add(bundle);
 
     const sail = new SailMesh(cloth, edgeMaterial, `${name}-sail`);
     const topsail = new SailMesh(cloth, edgeMaterial, `${name}-topsail`);
     swing.add(sail.mesh, topsail.mesh);
-    return { lines: m, mast, swing, gaff, bundle, sail, topsail, angle: 0, boomRise };
+    return { lines: m, mast, swing, gaff, bundle, sail, topsail, angle: 0, boomRise, k };
   };
   const fore = rig(l.fore, 'fore');
   const main = rig(l.main, 'main');
@@ -184,12 +196,12 @@ export function createSchooner(l: SchoonerLines): SchoonerModel {
   const foreDeck = shape.deckAt(-half + l.fore.station);
   const headsail = (h: HeadsailLines, stayTop: THREE.Vector3, name: string): Headsail => {
     const tack = stem.clone().addScaledVector(sprit, h.tackOut).addScaledVector(UP, 0.15);
-    const k = (foreDeck + h.headHeight - tack.y) / (stayTop.y - tack.y);
-    const head = tack.clone().lerp(stayTop, k);
+    const frac = (foreDeck + h.headHeight - tack.y) / (stayTop.y - tack.y);
+    const head = tack.clone().lerp(stayTop, frac);
     const sail = new SailMesh(cloth, edgeMaterial, `${name}-sail`);
     group.add(sail.mesh);
     // Lowered, the hanked sail gathers at the foot of its stay.
-    const bundle = sparMesh(1.3, 1, 0.5, canvasColor, solid, `${name}-furl`);
+    const bundle = sparMesh(1.3 * k, 1, 0.5, canvasColor, solid, `${name}-furl`);
     bundle.position.copy(tack);
     bundle.quaternion.setFromUnitVectors(AFT, head.clone().sub(tack).normalize());
     group.add(bundle);
@@ -212,13 +224,13 @@ export function createSchooner(l: SchoonerLines): SchoonerModel {
     const z = -half + m.station;
     for (const side of [-1, 1]) {
       for (const dz of [-0.8, 0, 0.8]) {
-        line(chainplate(z + dz + 0.3, side), hounds.clone().setX(side * 0.25));
+        line(chainplate(z + dz * k + 0.3, side), hounds.clone().setX(side * 0.25 * k));
       }
       // Topmast shrouds over the crosstree ends.
-      line(hounds.clone().setX(side * 0.95), truck.clone().setX(side * 0.06));
+      line(hounds.clone().setX(side * 0.95 * k), truck.clone().setX(side * 0.06));
       // A wool telltale on the middle shroud, at eye height above the rail.
       const foot = chainplate(z + 0.3, side);
-      const top = hounds.clone().setX(side * 0.25);
+      const top = hounds.clone().setX(side * 0.25 * k);
       telltaleAnchors.push(foot.lerp(top, 2.4 / (top.y - foot.y)));
     }
   }
@@ -230,9 +242,9 @@ export function createSchooner(l: SchoonerLines): SchoonerModel {
   line(mainTruck, foreTruck);
   line(spritEnd, new THREE.Vector3(0, 0.15, -half + l.stemRake * 0.5));
   for (const side of [-1, 1]) {
-    line(stem.clone().addScaledVector(sprit, l.bowsprit * 0.6), chainplate(-half + 1.2, side));
+    line(stem.clone().addScaledVector(sprit, l.bowsprit * 0.6), chainplate(-half + 1.2 * k, side));
     // Backstays from the main topmast to the quarters.
-    line(mainTruck.clone().setX(side * 0.06), chainplate(half - 2.4, side));
+    line(mainTruck.clone().setX(side * 0.06), chainplate(half - 2.4 * k, side));
   }
   const standing = new THREE.BufferGeometry();
   standing.setAttribute('position', new THREE.Float32BufferAttribute(rope, 3));
@@ -251,7 +263,12 @@ export function createSchooner(l: SchoonerLines): SchoonerModel {
 
   // Pennant at the main truck and the telltales, in one streamer mesh.
   const streamers = new Streamers(new THREE.Color(l.paint.pennant), [
-    { anchor: mainTruck.clone().addScaledVector(UP, 0.2), length: 4.2, width: 0.42, taper: 1 },
+    {
+      anchor: mainTruck.clone().addScaledVector(UP, 0.2),
+      length: 4.2 * k,
+      width: 0.42 * k,
+      taper: 1,
+    },
     ...telltaleAnchors.map((anchor) => ({ anchor, length: 0.75, width: 0.07, taper: 0.4 })),
   ]);
   group.add(streamers.mesh);
@@ -290,7 +307,7 @@ export function createSchooner(l: SchoonerLines): SchoonerModel {
 
     const furl = 1 - hoist;
     r.bundle.visible = furl > 0.04;
-    const radius = 0.05 + 0.2 * furl;
+    const radius = (0.05 + 0.2 * furl) * r.k;
     r.bundle.scale.set(radius, radius, 1);
 
     const side = r.angle > 0.02 ? 1 : r.angle < -0.02 ? -1 : windSide;
@@ -338,7 +355,7 @@ export function createSchooner(l: SchoonerLines): SchoonerModel {
     windSide: number,
   ): void => {
     h.bundle.visible = hoist < 0.96;
-    const radius = 0.04 + 0.1 * (1 - hoist);
+    const radius = (0.04 + 0.1 * (1 - hoist)) * k;
     h.bundle.scale.set(radius, radius, 1);
     h.sail.visible = hoist > 0.02;
     if (!h.sail.visible) return;

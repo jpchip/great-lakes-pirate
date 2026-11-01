@@ -7,6 +7,7 @@ All notable changes to this project are recorded here. The format follows [Keep 
 ### Added
 
 - **La Pointe and Washburn**, two more harbors in the Apostles zone, built on new set-piece footprints in a rebaked zone. La Pointe on Madeline Island is a small village: a village dock and a fish dock, the old American Fur Company warehouse, St. Joseph's Church and the Old Mission, and a few dozen houses on the low ground behind them. Washburn is a rail and lumber port on Chequamegon Bay's west shore: the Omaha road's coal dock and merchandise dock with its grain elevator between them, the Bigelow mill and its lumber dock, a second sawmill, and the town on the bluff above. The T1 docks at every berth in both, and both join `data/ports.json`. `?harbor=la_pointe` and `?harbor=washburn` start off their docks ([plan 05 §17](plans/05-ports-economy-trading.md)).
+- **The T2 schooner:** a 100 ft two-master from the hull generator, half again the T1 with a forecastle house, three hatches, a yawl boat in davits across the stern and a green rail. About 12% faster on every point of sail than the T1, slower to gather way and to tack, with a 2.5–3.2 m draft. The shipyard sells her later in Phase 4; until then `?ship=t2` starts a run in her, and `/bench/ship/?ship=t2` is her contact sheet ([plan 10 §16](plans/10-ship-upgrades-customization.md)).
 
 ## [0.3.0] - 2026-11-01
 

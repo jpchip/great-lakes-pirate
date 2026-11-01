@@ -8,9 +8,13 @@ import {
   swingBoom,
 } from '../src/render/ships/rig-state';
 import { createSchooner } from '../src/render/ships/schooner';
-import { T1_SCHOONER_LINES } from '../src/render/ships/schooner-lines';
+import {
+  schoonerLines,
+  T1_SCHOONER_LINES,
+  T2_SCHOONER_LINES,
+} from '../src/render/ships/schooner-lines';
 import { createSailingState, type SailingState } from '../src/sim/sailing/controller';
-import { sailShipRecord, T1_SCHOONER_ID } from '../src/sim/sailing/ships';
+import { sailShipRecord, T1_SCHOONER_ID, T2_SCHOONER_ID } from '../src/sim/sailing/ships';
 
 const DEG = Math.PI / 180;
 
@@ -167,5 +171,103 @@ describe('procedural T1 schooner (plan 14 §5)', () => {
     expect(box.getCenter(new THREE.Vector3()).x).toBeGreaterThan(1);
     model.settle(state({ sailSetting: 2, windAngle: 90 * DEG, idealTrim: 0.36 }), 0);
     expect(bounds(sail).getCenter(new THREE.Vector3()).x).toBeLessThan(-1);
+  });
+});
+
+describe('procedural T2 schooner (plan 10 §2, Phase 4 piece G)', () => {
+  const bounds = (object: THREE.Object3D): THREE.Box3 => {
+    object.updateMatrixWorld(true);
+    return new THREE.Box3().setFromObject(object);
+  };
+  const count = (model: ReturnType<typeof createSchooner>): [number, number] => {
+    let triangles = 0;
+    let meshes = 0;
+    model.group.traverse((node) => {
+      if (!(node instanceof THREE.Mesh)) return;
+      meshes++;
+      const g = node.geometry;
+      triangles += (g.index ? g.index.count : g.getAttribute('position').count) / 3;
+    });
+    return [triangles, meshes];
+  };
+
+  it('matches its ship record and is looked up by it', () => {
+    const record = sailShipRecord(T2_SCHOONER_ID);
+    expect(record.tier).toBe(2);
+    expect(T2_SCHOONER_LINES.id).toBe(T2_SCHOONER_ID);
+    expect(T2_SCHOONER_LINES.length).toBe(record.lengthM);
+    expect(T2_SCHOONER_LINES.length).toBeGreaterThanOrEqual(record.buoyancy.length);
+    expect(T2_SCHOONER_LINES.beam).toBeGreaterThanOrEqual(record.buoyancy.beam);
+    // Drawn draft between the record's empty and full drafts, as the T1's is.
+    expect(T2_SCHOONER_LINES.draft).toBeGreaterThanOrEqual(record.draftEmptyM);
+    expect(T2_SCHOONER_LINES.draft).toBeLessThanOrEqual(record.draftFullM);
+    expect(schoonerLines(T2_SCHOONER_ID)).toBe(T2_SCHOONER_LINES);
+    expect(schoonerLines(T1_SCHOONER_ID)).toBe(T1_SCHOONER_LINES);
+    expect(schoonerLines(undefined)).toBe(T1_SCHOONER_LINES);
+  });
+
+  it('is half again the T1: longer, beamier, deeper and taller', () => {
+    const t1 = createSchooner(T1_SCHOONER_LINES);
+    const t2 = createSchooner(T2_SCHOONER_LINES);
+    for (const m of [t1, t2]) m.settle(state({ sailSetting: 3 }), 0);
+    const h1 = bounds(t1.group.getObjectByName('schooner-hull') as THREE.Object3D);
+    const h2 = bounds(t2.group.getObjectByName('schooner-hull') as THREE.Object3D);
+    const s1 = h1.getSize(new THREE.Vector3());
+    const s2 = h2.getSize(new THREE.Vector3());
+    expect(s2.z / s1.z).toBeGreaterThan(1.35);
+    expect(s2.x).toBeCloseTo(T2_SCHOONER_LINES.beam, 0);
+    expect(h2.min.y).toBeLessThan(-T2_SCHOONER_LINES.draft * 0.9);
+    expect(bounds(t2.group).max.y / bounds(t1.group).max.y).toBeGreaterThan(1.35);
+  });
+
+  it('carries a yawl boat in davits clear of the main boom', () => {
+    const half = T2_SCHOONER_LINES.length / 2;
+    // The highest point of the hull mesh aft of the taffrail, and how far aft it reaches.
+    const sternGear = (lines: typeof T2_SCHOONER_LINES): { aft: number; top: number } => {
+      const model = createSchooner(lines);
+      const hull = model.group.getObjectByName('schooner-hull') as THREE.Mesh;
+      const p = hull.geometry.getAttribute('position');
+      let aft = -Infinity;
+      let top = -Infinity;
+      for (let i = 0; i < p.count; i++) {
+        aft = Math.max(aft, p.getZ(i));
+        if (p.getZ(i) > lines.length / 2 + 0.2) top = Math.max(top, p.getY(i));
+      }
+      return { aft, top };
+    };
+    const t2 = sternGear(T2_SCHOONER_LINES);
+    // The boat hangs aft of the taffrail; the T1 has nothing there.
+    expect(t2.aft).toBeGreaterThan(half + (T2_SCHOONER_LINES.deck?.yawlBoat?.beam ?? 99));
+    expect(sternGear(T1_SCHOONER_LINES).aft).toBeLessThan(T1_SCHOONER_LINES.length / 2 + 0.5);
+    // The davit heads stay under the main boom's end, which swings out over them.
+    const model = createSchooner(T2_SCHOONER_LINES);
+    model.settle(state({ sailSetting: 0 }), 0);
+    model.group.updateMatrixWorld(true);
+    const boom = new THREE.Box3().setFromObject(
+      model.group.getObjectByName('main-boom') as THREE.Object3D,
+    );
+    expect(boom.max.z).toBeGreaterThan(half);
+    expect(t2.top).toBeLessThan(boom.max.y - 0.3);
+  });
+
+  it('stays inside the hero-ship triangle budget', () => {
+    const model = createSchooner(T2_SCHOONER_LINES);
+    model.settle(state({ sailSetting: 3 }), 0);
+    const [triangles, meshes] = count(model);
+    expect(triangles).toBeLessThan(12_000);
+    expect(meshes).toBeLessThan(24);
+  });
+
+  it('sets the same sails at each level as the T1', () => {
+    const model = createSchooner(T2_SCHOONER_LINES);
+    const visible = (): string[] =>
+      Object.entries(model.sails)
+        .filter(([, sail]) => sail.visible)
+        .map(([name]) => name)
+        .sort();
+    model.settle(state({ sailSetting: 1 }), 0);
+    expect(visible()).toEqual(['fore', 'main', 'staysail']);
+    model.settle(state({ sailSetting: 3 }), 0);
+    expect(visible()).toEqual(['fore', 'foreTopsail', 'jib', 'main', 'mainTopsail', 'staysail']);
   });
 });

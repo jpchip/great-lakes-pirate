@@ -15,7 +15,7 @@ import { createCurve, sampleCurve } from '../src/sim/sailing/curve';
 import { defaultHandling } from '../src/sim/sailing/handling';
 import { parsePreset, serializePreset } from '../src/sim/sailing/preset';
 import { compileSailingClass } from '../src/sim/sailing/ship-class';
-import { sailShipRecord, T1_SCHOONER_ID } from '../src/sim/sailing/ships';
+import { sailShipRecord, T1_SCHOONER_ID, T2_SCHOONER_ID } from '../src/sim/sailing/ships';
 import { createSea } from '../src/sim/weather/waves';
 
 const DEG = Math.PI / 180;
@@ -332,5 +332,60 @@ describe('heel and leeway (plan 02 §3.3, §5.1)', () => {
     expect(close.course - close.heading).toBeLessThan(5 * DEG);
     const free = run(ship(150), 30, north(14));
     expect(free.course).toBeCloseTo(free.heading, 9);
+  });
+});
+
+describe('T2 schooner tuning (plan 02 §10, plan 10 §2; Phase 4 piece G)', () => {
+  const t2 = (): ReturnType<typeof compileSailingClass> =>
+    compileSailingClass(sailShipRecord(T2_SCHOONER_ID), defaultHandling());
+  const steadyOn = (c: ReturnType<typeof compileSailingClass>, headingDeg: number): number =>
+    speedKn(run(ship(headingDeg), 60, north(14), {}, c));
+
+  it('is faster than the T1 on every point of sail, under its 9 kn hull speed', () => {
+    for (const a of [45, 90, 130, 180]) {
+      expect(steadyOn(t2(), a)).toBeGreaterThan(steadyOn(t1(), a) * 1.08);
+      expect(steadyOn(t2(), a)).toBeLessThan(9);
+    }
+    expect(steadyOn(t2(), 130)).toBeGreaterThan(7.5);
+  });
+
+  it('gathers way more slowly than the T1', () => {
+    const toNinety = (c: ReturnType<typeof compileSailingClass>): number => {
+      const target = steadyOn(c, 90) * 0.9;
+      const s = ship(90);
+      let t = 0;
+      while (speedKn(s) < target && t < 60) {
+        run(s, DT, north(14), {}, c);
+        t += DT;
+      }
+      return t;
+    };
+    expect(toNinety(t2())).toBeGreaterThan(toNinety(t1()) * 1.3);
+  });
+
+  it('tacks inside plan 02 §4, but slower than the T1', () => {
+    const tack = (c: ReturnType<typeof compileSailingClass>, start: number): [number, number] => {
+      const s = run(ship(start), 60, north(14), {}, c);
+      const v0 = speedKn(s);
+      let t = 0;
+      while (s.heading > -start * DEG && t < 20) {
+        run(s, DT, north(14), { steer: -1 }, c);
+        t += DT;
+      }
+      return [t, 1 - speedKn(s) / v0];
+    };
+    for (const start of [50, 55]) {
+      const [t, loss] = tack(t2(), start);
+      expect(t).toBeGreaterThan(tack(t1(), start)[0]);
+      expect(t).toBeLessThan(10);
+      expect(loss).toBeGreaterThan(0.3);
+      expect(loss).toBeLessThan(0.4);
+    }
+  });
+
+  it('changes sail faster with a crew of four', () => {
+    expect(t2().sailChangeTimeS).toBeLessThan(t1().sailChangeTimeS);
+    expect(sailShipRecord(T2_SCHOONER_ID).draftEmptyM).toBe(2.5);
+    expect(sailShipRecord(T2_SCHOONER_ID).draftFullM).toBe(3.2);
   });
 });
