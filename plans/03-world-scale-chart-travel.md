@@ -1116,6 +1116,7 @@ Filled in from the laptop playtest (Ryzen 7 7730U, Radeon renoir, ANGLE OpenGL).
 | 9, Two Harbors | `?bench=water` (mean ms a frame, MSAA on): Medium **6.5 ms**, water **2.1 ms**, 42 draw calls, 98k triangles; Low 4.0 ms (water 1.2); High 7.9 ms (water 2.7). Terrain 0.5 ms and vegetation 0.5 ms on Medium. Pass |
 | 9, Twin Ports | `?bench=water` (MSAA on): Medium **7.6 ms**, water **2.4 ms**, 51 draw calls, 210k triangles; Low 3.6 ms (water 0.5); High 9.3 ms (water 2.3, 460k triangles). Terrain 0.7 ms and vegetation 0.8 ms on Medium. Pass |
 | 9, arena (`?encounter=convoy`, three ships) | `?bench=water` (MSAA on): Medium **5.8 ms**, but water **3.2 ms**, over its 3 ms; 40 draw calls, 42k triangles; Low 3.8 ms (water 1.9); High 6.6 ms (water 3.8). With no land, water fills the whole view, so its share is the largest of any scene, while the frame is the cheapest. Over on water by 0.2 ms; **accepted for arenas by Jared, 2026-11-01** (§29.2 item 5) |
+| 11 | "The world feels big, really feels like you could hide out in the Apostle Islands and be a pirate" (Jared). Pass |
 
 The rest is filled in from the playtest.
 
