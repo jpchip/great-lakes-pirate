@@ -1112,6 +1112,7 @@ Filled in from the laptop playtest (Ryzen 7 7730U, Radeon renoir, ANGLE OpenGL).
 | 3 | `HEADED=1 npm run bench:transitions` on Medium: chart → zone **0.82–1.10 s** in all three zones (the 0.65 s fade included), uncached, warm or from the 60 s cache; chart → arena **0.68–0.71 s**; arena → chart **0.81–0.83 s**. Pass: arena → chart isn't instant, but it's the fade plus under 0.2 s, so §29.2 item 2 needs no change unless it feels slow in play |
 | 9 | Heap 79.3 MB before and 81.4 MB after the round trip through the three zones (budget 20 MB). Pass |
 | 9, Two Harbors | `?bench=water` (mean ms a frame, MSAA on): Medium **6.5 ms**, water **2.1 ms**, 42 draw calls, 98k triangles; Low 4.0 ms (water 1.2); High 7.9 ms (water 2.7). Terrain 0.5 ms and vegetation 0.5 ms on Medium. Pass |
+| 9, Twin Ports | `?bench=water` (MSAA on): Medium **7.6 ms**, water **2.4 ms**, 51 draw calls, 210k triangles; Low 3.6 ms (water 0.5); High 9.3 ms (water 2.3, 460k triangles). Terrain 0.7 ms and vegetation 0.8 ms on Medium. Pass |
 
 The rest is filled in from the playtest.
 
