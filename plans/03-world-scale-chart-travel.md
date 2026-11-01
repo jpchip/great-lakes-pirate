@@ -873,7 +873,7 @@ Screenshots are in the project files (`chart-in-game/`).
 - Piece E: the chart's wind from the sim (it's sampled from the zone's weather when the ship takes to the chart, then drifts as in S8), and weather drawn on the chart.
 - Piece F: the route graph traffic and a detour cost for Avoid.
 - Piece G is in (§25): engaging or failing to avoid enters its arena, and leaving returns to the chart with the zone reloaded behind it. `chart-spike.html` and `src/debug/chart-spike/` are still to retire.
-- Piece J: chart music and the transition sound.
+- Piece J is in: the chart's theme, the encounter stingers and the fade-to-fog sound (plan 15 §16).
 ## 25. Phase 3 Piece G: Open-Water Arenas (2026-10-31)
 
 **Goal** (§20.4, piece G): the arena in the game as the sailing mode with no terrain tiles: the sim's weather, sky and time at the encounter point, the ships materialized from traffic on their lanes' headings with simple steering and collision avoidance, the coastline in view as low silhouettes from the chart, the pursuit lock within the threat radius, and back to the chart at the edge. `?encounter=<kind>` for checks.

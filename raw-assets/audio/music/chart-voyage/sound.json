@@ -1,0 +1,11 @@
+{
+  "id": "music.chart.voyage",
+  "name": "chart-voyage",
+  "description": "Chart music: \"The Long Reach\", a 6/8 traveling tune on concertina, guitar and tin whistle",
+  "kind": "oneshot",
+  "bus": "music",
+  "bundles": [
+    "music-chart"
+  ],
+  "source": "source.flac"
+}

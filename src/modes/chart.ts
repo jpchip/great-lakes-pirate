@@ -189,7 +189,12 @@ export function createChartMode(
         if (enc) {
           session.quietUntil = clock.gameSeconds + ENCOUNTER_QUIET_S;
           session.pending = enc;
-          ctx.events.emit('EncounterSpotted', { contactId: enc.contact.id, forced: enc.forced });
+          ctx.events.emit('EncounterSpotted', {
+            contactId: enc.contact.id,
+            forced: enc.forced,
+            kind: enc.contact.kind,
+            hostile: enc.contact.hostile,
+          });
           hooks.onEncounter?.(enc);
         }
       }

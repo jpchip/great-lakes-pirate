@@ -70,12 +70,13 @@ const HUD_LABELS: Record<HudDensity, string> = {
 
 type Tab = 'graphics' | 'camera' | 'sound' | 'controls';
 
-/** The sliders, in order. Voice and UI join when shouts and interface sounds exist. */
+/** The sliders, in order. Voice joins when shouts exist. */
 const VOLUMES: [VolumeId, string][] = [
   ['master', 'Master'],
   ['music', 'Music'],
   ['ambience', 'Weather & wildlife'],
   ['sfx', 'Ship & signals'],
+  ['ui', 'Interface'],
 ];
 
 function Toggle(props: { label: string; checked: boolean; onChange(on: boolean): void }) {

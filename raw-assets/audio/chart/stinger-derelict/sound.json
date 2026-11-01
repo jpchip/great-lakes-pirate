@@ -1,0 +1,11 @@
+{
+  "id": "music.stinger.derelict",
+  "name": "stinger-derelict",
+  "description": "Encounter stinger, a derelict: a far ship's bell and an unresolved whistle phrase",
+  "kind": "oneshot",
+  "bus": "music",
+  "bundles": [
+    "chart-audio"
+  ],
+  "source": "source.flac"
+}

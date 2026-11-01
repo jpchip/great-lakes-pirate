@@ -420,6 +420,16 @@ async function boot(): Promise<void> {
     return undefined;
   });
   if (audio) document.body.dataset['audioBank'] = String(audio.bank.size);
+  /** The chart's music and cues on the page, for the e2e tests; written only on a change. */
+  const audioCuesToDataset = (a: GameAudio): void => {
+    const d = document.body.dataset;
+    const chartMusic = a.chartMusic.playing ? 'playing' : 'off';
+    if (d['chartMusic'] !== chartMusic) d['chartMusic'] = chartMusic;
+    const stinger = a.chartCues.last;
+    if (stinger && d['stinger'] !== stinger) d['stinger'] = stinger;
+    const fades = String(a.chartCues.transitions);
+    if (d['audioFades'] !== fades) d['audioFades'] = fades;
+  };
 
   let changingZone = false;
   // Chart travel (Phase 3 piece D); built once the UI is up.
@@ -1079,6 +1089,12 @@ async function boot(): Promise<void> {
           distanceM: distance(near.pos, session.position),
           bearing: bearing(session.position, near.pos),
         };
+        ctx.events.emit('EncounterSpotted', {
+          contactId: near.id,
+          forced,
+          kind: near.kind,
+          hostile: near.hostile,
+        });
         return near.id;
       },
     };
@@ -1113,7 +1129,8 @@ async function boot(): Promise<void> {
     },
     frame(alpha, frameSeconds) {
       machine.render(alpha, frameSeconds);
-      audio?.update(frameSeconds, machine.mode);
+      audio?.update(frameSeconds, machine.mode, machine.hasOverlay('loading'));
+      if (audio) audioCuesToDataset(audio);
       ui.setSpyglass(cameraRig?.ship.spyglass ?? false);
       hudClock += frameSeconds;
       hudSeconds += frameSeconds;
