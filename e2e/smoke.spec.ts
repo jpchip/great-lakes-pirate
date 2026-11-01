@@ -247,6 +247,13 @@ test('sails from the Apostles to the Twin Ports on the chart, through a reload',
   ).toBe('ok');
   await expect(page.getByTestId('chart-status')).toContainText('to Twin Ports');
   await expect(page.getByTestId('chart-eta')).toContainText('ETA');
+  // The weather card (piece E): the glass, the outlook, and a forecast to switch to and back.
+  await expect(page.getByTestId('chart-glass')).toContainText(/^Glass \d\d\.\d\d /);
+  await expect(page.getByTestId('chart-outlook')).toContainText('Outlook to');
+  await page.getByTestId('chart-forecast-12').click();
+  await expect(page.getByTestId('chart-forecast-note')).toContainText('expected at');
+  await page.getByTestId('chart-forecast-0').click();
+  await expect(page.getByTestId('chart-forecast-note')).toHaveCount(0);
   await page.keyboard.press('Enter');
   await expect(page.getByTestId('chart-status')).toContainText('Under way');
 

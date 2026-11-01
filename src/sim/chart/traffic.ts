@@ -6,16 +6,21 @@ import {
 } from '../../core/coords';
 import type { Rng } from '../../core/rng';
 import { bearing, distance, lerpChart } from './geography';
-import type { ChartWind } from './voyage';
 
 /**
  * Prototype S8 traffic and encounters (plan 03 §6). Encounters come from abstract
- * entities near the player's track, not dice: a few ships on hand-placed lanes, one
- * derelict and a drifting storm cell. Plan 05's route graph and traffic slice replace
- * the lanes; plan 04's weather replaces the storm.
+ * entities near the player's track, not dice: a few ships on hand-placed lanes and one
+ * derelict. Plan 05's route graph and traffic slice replace the lanes. The weather's
+ * contacts, storm cells (`storm`) and fog banks (`fog`), come from the weather sim
+ * (`chart-weather.ts`, Phase 3 piece E).
  */
 
-export type ContactKind = 'freighter' | 'steamer' | 'tug' | 'cutter' | 'derelict' | 'storm';
+export type ContactKind = 'freighter' | 'steamer' | 'tug' | 'cutter' | 'derelict' | 'storm' | 'fog';
+
+/** Contacts that are weather, met at their edge and drawn as areas. */
+export function isWeatherContact(c: Pick<Contact, 'kind'>): boolean {
+  return c.kind === 'storm' || c.kind === 'fog';
+}
 
 export interface Contact {
   id: string;
@@ -26,7 +31,7 @@ export interface Contact {
   speedKn: number;
   /** Lane the contact shuttles along, end to end and back. */
   lane?: { points: Chart[]; leg: number; progressM: number; forward: boolean };
-  /** Storm radius, meters. */
+  /** A storm cell's or fog bank's radius, meters: it is met at this edge. */
   radiusM?: number;
   /** How far it can be seen, as a multiple of the base range (smoke, sails, size). */
   conspicuity: number;
@@ -74,12 +79,18 @@ export function spotRangeM(hour: number): number {
   return nm * METERS_PER_NAUTICAL_MILE;
 }
 
-/** Inside a storm cell everyone's range drops by half. */
+/**
+ * Without the weather sim (tests, and a chart with no sky): inside a storm cell everyone's
+ * range drops by half, and inside a fog bank to a tenth. With the sim the chart uses its
+ * visibility instead (`visibilityFactor` in chart-weather.ts).
+ */
 export function weatherFactor(pos: Chart, contacts: readonly Contact[]): number {
+  let f = 1;
   for (const c of contacts) {
-    if (c.kind === 'storm' && distance(pos, c.pos) < (c.radiusM ?? 0)) return 0.5;
+    if (!isWeatherContact(c) || distance(pos, c.pos) >= (c.radiusM ?? 0)) continue;
+    f = Math.min(f, c.kind === 'fog' ? 0.1 : 0.5);
   }
-  return 1;
+  return f;
 }
 
 interface ContactDef {
@@ -93,7 +104,6 @@ interface ContactDef {
   hostile?: boolean;
   threat?: boolean;
   prize?: boolean;
-  radiusM?: number;
 }
 
 /** Hand-placed lanes, checked against the land mask in tests/chart.test.ts. */
@@ -202,16 +212,6 @@ export const PROTOTYPE_CONTACTS: readonly ContactDef[] = [
     conspicuity: 0.7,
     prize: true,
   },
-  {
-    id: 'weather.squall',
-    kind: 'storm',
-    name: 'Squall line',
-    speedKn: 9,
-    lane: [[47.2, -91.2]],
-    conspicuity: 2,
-    threat: true,
-    radiusM: 9000,
-  },
 ];
 
 /** Materialize the prototype contacts, each starting at a seeded point on its lane. */
@@ -230,7 +230,6 @@ export function createContacts(projection: ChartProjection, rng: Rng): Contact[]
       threat: def.threat ?? false,
       prize: def.prize ?? false,
     };
-    if (def.radiusM !== undefined) contact.radiusM = def.radiusM;
     if (points.length > 1) {
       const leg = rng.int(0, points.length - 2);
       const a = points[leg] as Chart;
@@ -253,37 +252,11 @@ function placeOnLane(c: Contact): void {
   c.heading = forward ? bearing(a, b) : bearing(b, a);
 }
 
-/**
- * Move every contact by `gameSeconds`. Lane ships shuttle end to end; the storm drifts
- * downwind and re-forms upwind once it leaves `bounds`.
- */
-export function stepContacts(
-  contacts: Contact[],
-  gameSeconds: number,
-  wind: ChartWind,
-  bounds: { min: Chart; max: Chart },
-): void {
+/** Move every contact by `gameSeconds`. Lane ships shuttle end to end. */
+export function stepContacts(contacts: Contact[], gameSeconds: number): void {
   for (const c of contacts) {
-    if (c.kind === 'storm') {
-      const toward = wind.from + Math.PI;
-      const step = c.speedKn * KNOT_MS * gameSeconds;
-      c.heading = toward;
-      c.pos = { x: c.pos.x + Math.sin(toward) * step, y: c.pos.y + Math.cos(toward) * step };
-      const margin = c.radiusM ?? 0;
-      const outside =
-        c.pos.x < bounds.min.x - margin ||
-        c.pos.x > bounds.max.x + margin ||
-        c.pos.y < bounds.min.y - margin ||
-        c.pos.y > bounds.max.y + margin;
-      if (outside) {
-        // Re-form on the far (upwind) side of the chart.
-        const cx = (bounds.min.x + bounds.max.x) / 2;
-        const cy = (bounds.min.y + bounds.max.y) / 2;
-        const reach = Math.hypot(bounds.max.x - cx, bounds.max.y - cy);
-        c.pos = { x: cx + Math.sin(wind.from) * reach, y: cy + Math.cos(wind.from) * reach };
-      }
-      continue;
-    }
+    // Weather contacts move with the sim, which rebuilds them each world tick.
+    if (isWeatherContact(c)) continue;
     if (!c.lane || c.speedKn === 0) continue;
     let travel = c.speedKn * KNOT_MS * gameSeconds;
     const lane = c.lane;
@@ -323,7 +296,7 @@ function reported(c: Contact, pref: LookoutPref): boolean {
   return c.threat || c.prize;
 }
 
-/** Distance at which the player's lookouts see `c` (storms are seen at their edge). */
+/** Distance at which the player's lookouts see `c` (weather is seen at its edge). */
 export function playerSeesAtM(c: Contact, hour: number, weather: number): number {
   return spotRangeM(hour) * weather * c.conspicuity + (c.radiusM ?? 0);
 }
@@ -337,7 +310,8 @@ export function hostileSeesAtM(hour: number, weather: number): number {
  * The world-tick encounter check. Updates every contact's last-seen record, then
  * returns the most pressing new encounter: forced ones first, then the nearest
  * reported one. `handled` holds contacts already dealt with this voyage; `forcedOnly`
- * is the pacing guard's quiet spell, when only a hostile can interrupt.
+ * is the pacing guard's quiet spell, when only a hostile can interrupt. `weather` scales
+ * every spotting range (1 in clear air); it defaults to the stand-in `weatherFactor`.
  */
 export function checkEncounters(
   player: Chart,
@@ -347,8 +321,8 @@ export function checkEncounters(
   pref: LookoutPref,
   handled: ReadonlySet<string>,
   forcedOnly = false,
+  weather = weatherFactor(player, contacts),
 ): Encounter | undefined {
-  const weather = weatherFactor(player, contacts);
   let best: Encounter | undefined;
   for (const c of contacts) {
     const d = distance(player, c.pos);
@@ -357,7 +331,7 @@ export function checkEncounters(
     if (handled.has(c.id)) continue;
     const forced = c.hostile && d <= hostileSeesAtM(hour, weather);
     if (!forced && (forcedOnly || !(seen && reported(c, pref)))) continue;
-    // Storms are measured to their edge.
+    // Weather is measured to its edge.
     const distanceM = Math.max(d - (c.radiusM ?? 0), 0);
     const enc: Encounter = { contact: c, forced, distanceM, bearing: bearing(player, c.pos) };
     if (

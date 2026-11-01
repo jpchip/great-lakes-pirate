@@ -198,11 +198,8 @@ describe('traffic and encounters', () => {
 
   it('moves ships along their lanes and back', () => {
     const contacts = createContacts(geo.projection, Rng.fromSeed('move'));
-    const wind = { from: 0, speedKn: 10 };
-    for (let i = 0; i < 2000; i++) stepContacts(contacts, 600, wind, geo.charted);
-    for (const c of contacts) {
-      if (c.kind !== 'storm') expect(isWater(geo, c.pos), c.id).toBe(true);
-    }
+    for (let i = 0; i < 2000; i++) stepContacts(contacts, 600);
+    for (const c of contacts) expect(isWater(geo, c.pos), c.id).toBe(true);
   });
 
   it('sees farther by day than by night', () => {

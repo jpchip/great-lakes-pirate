@@ -2,6 +2,8 @@ import { Rng } from '../../src/core/rng';
 import { ChartView, type ChartFrame } from '../../src/render/chart/chart-view';
 import { westernSuperiorChart } from '../../src/sim/chart/chart-data';
 import { createContacts, spotRangeM } from '../../src/sim/chart/traffic';
+import { weatherPicture } from '../../src/sim/chart/chart-weather';
+import { advanceWeather, createWeatherState } from '../../src/sim/weather/weather';
 
 /**
  * Chart redraw bench (plan 03 §20 piece B, criterion 9: the chart redraws in at most 8 ms
@@ -15,7 +17,12 @@ import { createContacts, spotRangeM } from '../../src/sim/chart/traffic';
  * - redraw: the static layer is redrawn every frame, which is what one frame costs when
  *   the view settles after a drag or a zoom.
  *
- * `?night` draws at night (the light rings on top).
+ * - weather tick: the weather picture changes every frame, so the weather overlay (Phase 3
+ *   piece E) is drawn again. Under way that happens once per world tick, about twice a
+ *   real second at the default clock.
+ *
+ * The weather is a November gale with lows about (seed `shot-3`, game day 26, 14:00);
+ * `?noweather` leaves it off. `?night` draws at night (the light rings on top).
  */
 
 const params = new URLSearchParams(window.location.search);
@@ -26,6 +33,13 @@ const view = new ChartView(canvas);
 const geo = westernSuperiorChart();
 const contacts = createContacts(geo.projection, Rng.fromSeed('bench'));
 const hour = params.has('night') ? 22 : 12;
+const sky = createWeatherState('bench-weather', 26 * 86_400);
+const skyAt = 26 * 86_400 + 14 * 3600;
+advanceWeather(sky, skyAt);
+const pictureStart = performance.now();
+const picture = weatherPicture(sky, geo, skyAt);
+const pictureMs = performance.now() - pictureStart;
+const pictures = [picture, weatherPicture(sky, geo, skyAt + 1800)];
 const frame: ChartFrame = {
   geo,
   position: geo.projection.geoToChart({ lat: 46.8, lon: -91.96 }),
@@ -39,6 +53,7 @@ const frame: ChartFrame = {
   visible: new Set(contacts.map((c) => c.id)),
   hoverWaypoint: undefined,
   etaLabel: undefined,
+  weather: params.has('noweather') ? undefined : picture,
 };
 
 interface Pass {
@@ -62,6 +77,11 @@ const passes: Pass[] = [
   { name: 'Apostles zoom, still', setup: zoomApostles, step: () => {} },
   { name: 'Apostles zoom, panning', setup: zoomApostles, step: pan },
   { name: 'Apostles zoom, redraw', setup: zoomApostles, step: () => view.invalidate() },
+  {
+    name: 'full chart, weather tick',
+    setup: fitAll,
+    step: (i) => (frame.weather = frame.weather && pictures[i % 2]),
+  },
 ];
 
 const nextFrame = () => new Promise<void>((r) => requestAnimationFrame(() => r()));
@@ -72,6 +92,9 @@ async function run(): Promise<void> {
   const lines = [
     `Chart redraw bench, ${canvas.clientWidth}×${canvas.clientHeight} CSS px at ${window.devicePixelRatio}× (${frame.daylight ? 'day' : 'night'})`,
     `${geo.water.points.length} lake points, ${geo.islands.length} islands, ${geo.soundings.length} soundings`,
+    frame.weather
+      ? `Weather: ${picture.cells.length} squalls, ${picture.fogBanks.length} fog banks, ${picture.centres.length} systems; sampling the sim took ${pictureMs.toFixed(1)} ms`
+      : 'No weather',
     '',
   ];
   const results: Record<string, { median: number; p95: number; layerDraws: number }> = {};

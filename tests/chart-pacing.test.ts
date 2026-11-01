@@ -3,7 +3,8 @@ import { EventBus } from '../src/core/events';
 import { InputMapper } from '../src/core/input';
 import { Rng } from '../src/core/rng';
 import { createGameWorld } from '../src/gameplay/ecs';
-import { CHART_TIME_SCALE, createChartMode, type ChartSession } from '../src/modes/chart';
+import { CHART_TIME_SCALE, createChartMode, readSky, type ChartSession } from '../src/modes/chart';
+import { createChartSky } from '../src/sim/chart/chart-weather';
 import type { GameContext, GameEvents } from '../src/modes/context';
 import { westernSuperiorChart } from '../src/sim/chart/chart-data';
 import { createContacts, type LookoutPref } from '../src/sim/chart/traffic';
@@ -14,9 +15,13 @@ import { createWorldState } from '../src/sim/world-state';
 
 /**
  * Prototype S8 pacing check (plan 03 §6.4: 0–2 meaningful encounters per typical
- * voyage). Sails each route from many seeds, hours and winds, answering every
- * encounter with "ignore" (or a quick arena and back), and counts interruptions.
+ * voyage). Sails each route from many seeds and hours in the weather sim's own wind,
+ * meeting its squalls and fog banks as well as the traffic, answering every encounter
+ * with "ignore" (or a quick arena and back), and counts interruptions.
  */
+
+/** The sim's weather is read on every world tick, so these runs take a few seconds each. */
+const SLOW = { timeout: 60_000 };
 
 const geo = westernSuperiorChart();
 const at = (lat: number, lon: number) => geo.projection.geoToChart({ lat, lon });
@@ -67,8 +72,11 @@ function sail(route: (typeof ROUTES)[string], lookout: LookoutPref, runs: number
       ship: PROTOTYPE_SCHOONER,
       position: at(...route.from),
       heading: 0,
-      wind: { from: Rng.fromSeed(`wind-${k}`).range(0, Math.PI * 2), speedKn: 12 },
+      // Replaced by the sim's wind at the start (readSky below).
+      wind: { from: 0, speedKn: 12 },
       contacts: createContacts(geo.projection, Rng.fromSeed(`traffic-${k}`)),
+      // The sim's weather, as in the game: its wind, and its squalls and fog banks met.
+      sky: createChartSky(state.environment.weather),
       waypoints: route.via.map(([lat, lon]) => at(lat, lon)),
       course: undefined,
       voyage: undefined,
@@ -78,12 +86,13 @@ function sail(route: (typeof ROUTES)[string], lookout: LookoutPref, runs: number
       handled: new Set(),
       quietUntil: 0,
     };
+    readSky(session, state.environment.clock.gameSeconds);
     let arrived = false;
     const mode = createChartMode(ctx, session, { onArrived: () => (arrived = true) });
     expect(mode.setSail()).toBe(true);
     let count = 0;
     let t = 0;
-    while (!arrived && t < 120) {
+    while (!arrived && t < 600) {
       mode.update(1 / 30);
       t += 1 / 30;
       const enc = session.pending;
@@ -101,7 +110,7 @@ function sail(route: (typeof ROUTES)[string], lookout: LookoutPref, runs: number
 }
 
 describe('encounter pacing', () => {
-  it.each(Object.keys(ROUTES))('%s stays near 0–2 interruptions by default', (name) => {
+  it.each(Object.keys(ROUTES))('%s stays near 0–2 interruptions by default', SLOW, (name) => {
     const route = ROUTES[name] as (typeof ROUTES)[string];
     const pacing = sail(route, 'threatsAndPrizes', 100);
     // The Duluth–Apostles corridor is the busiest lane; allow a little over the target.
@@ -110,7 +119,7 @@ describe('encounter pacing', () => {
     expect(pacing.max).toBeLessThanOrEqual(6);
   });
 
-  it('reports less with a stricter lookout', () => {
+  it('reports less with a stricter lookout', SLOW, () => {
     const route = ROUTES['Duluth to the Apostles'] as (typeof ROUTES)[string];
     const all = sail(route, 'all', 60).mean;
     const prizes = sail(route, 'threatsAndPrizes', 60).mean;

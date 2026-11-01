@@ -28,7 +28,8 @@ import {
   ARENA_BOUNDS,
   ARENA_HALF_M,
   arenaStatus,
-  arenaWeatherFrame,
+  FOG_WALL_AHEAD_M,
+  metWeatherFrame,
   layoutArena,
   type ArenaExit,
   type ArenaResult,
@@ -603,6 +604,7 @@ async function boot(): Promise<void> {
       answer: (choice) => travelRef.current?.answer(choice),
       dismissNotice: () => travelRef.current?.dismissNotice(),
       setLookout: (pref) => settings.update((s) => (s.chart.lookout = pref)),
+      setForecast: (lead) => travelRef.current?.setForecast(lead),
     },
     onTakeToChart: () => {
       if (machine.mode === 'sailing' && !machine.gameplayPaused) travelRef.current?.takeToChart();
@@ -830,14 +832,15 @@ async function boot(): Promise<void> {
       const land = sampleArenaLand(geo, { origin: centre, compression: 8 }, ARENA_HALF_M + 400);
       const layout = layoutArena(enc, centre, land);
       // The sim runs in the lake-wide chart frame, not the chart geography's.
-      const weatherFrame = arenaWeatherFrame(geo, layout.frame);
+      // A squall or fog bank met on the chart is the sim's own: read it where it stands.
+      const weatherFrame = metWeatherFrame(geo, enc, layout);
       weatherSource.frame = weatherFrame;
       ctx.weather.shelter = OPEN_WATER;
       ctx.weather.invalidate();
       const now = state.environment.clock.gameSeconds;
       const wind = ctx.weather.windAt(layout.player, now);
-      if (enc.kind === 'squall' && ctx.weather.source === 'sim') {
-        // The sim has no squall line yet (piece E brings them from it): blow one up here.
+      if (enc.kind === 'squall' && !enc.weather && ctx.weather.source === 'sim') {
+        // A `?encounter=squall` check has no squall in the sim to meet: blow one up here.
         ctx.weather.override();
         Object.assign(ctx.weather.settings, {
           speedKn: Math.max(ctx.weather.settings.speedKn, 30),
@@ -848,7 +851,9 @@ async function boot(): Promise<void> {
         });
         squallOverride = true;
       }
-      if (enc.kind === 'fogbank') standFogBank(layout.player, 700, weatherFrame);
+      if (enc.kind === 'fogbank' && !enc.weather) {
+        standFogBank(layout.player, FOG_WALL_AHEAD_M, weatherFrame);
+      }
 
       placeShip(layout.player);
       // Arrive as she sailed the chart: everything set and making way.
@@ -890,8 +895,8 @@ async function boot(): Promise<void> {
   };
 
   /**
-   * Stands a fog bank across the bow with its wall `wallM` ahead, for the `fogbank` check
-   * (piece E brings fog banks met on the chart from the sim itself). The sim drifts it on
+   * Stands a fog bank across the bow with its wall `wallM` ahead, for the `?encounter=fogbank`
+   * check (a bank met on the chart is the sim's own, `metWeatherFrame`). The sim drifts it on
    * the wind, and a wind of 20 kn or more mixes it out, as it would any bank.
    */
   const standFogBank = (at: Pose, wallM: number, frame: ZoneFrame): void => {

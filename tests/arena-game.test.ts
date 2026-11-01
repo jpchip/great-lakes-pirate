@@ -99,7 +99,15 @@ describe('arena encounters', () => {
   });
 
   it('turns an S8 chart encounter into an arena', () => {
-    const kinds: ContactKind[] = ['freighter', 'steamer', 'tug', 'cutter', 'derelict', 'storm'];
+    const kinds: ContactKind[] = [
+      'freighter',
+      'steamer',
+      'tug',
+      'cutter',
+      'derelict',
+      'storm',
+      'fog',
+    ];
     for (const kind of kinds) {
       const contact: Contact = {
         id: `c.${kind}`,
@@ -112,6 +120,7 @@ describe('arena encounters', () => {
         hostile: kind === 'cutter',
         threat: kind === 'cutter',
         prize: false,
+        ...(kind === 'storm' || kind === 'fog' ? { radiusM: 9000 } : {}),
       };
       const enc = arenaFromChartEncounter(
         { contact, forced: false, distanceM: 5000, bearing: 0.5 },
@@ -120,8 +129,10 @@ describe('arena encounters', () => {
       );
       expect(enc.contactId).toBe(contact.id);
       expect(enc.playerHeading).toBe(2);
-      if (kind === 'storm') {
-        expect(enc.kind).toBe('squall');
+      if (kind === 'storm' || kind === 'fog') {
+        // The weather met comes with it, so the arena can stand the sim's own around you.
+        expect(enc.kind).toBe(kind === 'storm' ? 'squall' : 'fogbank');
+        expect(enc.weather).toEqual({ center: devAt, radiusM: 9000 });
         continue;
       }
       expect(enc.ships[0]?.classId).toBe(CONTACT_CLASS[kind]);

@@ -1,5 +1,11 @@
 import type { Chart } from '../core/coords';
 import { advanceGameTime, dayAndHour } from '../core/time';
+import {
+  chartWindAt,
+  refreshSky,
+  visibilityFactor,
+  type ChartSky,
+} from '../sim/chart/chart-weather';
 import type { ChartGeography, ChartZone } from '../sim/chart/geography';
 import {
   avoidChance,
@@ -19,6 +25,7 @@ import {
   type PlannedCourse,
   type Voyage,
 } from '../sim/chart/voyage';
+import { advanceWeather } from '../sim/weather/weather';
 import type { GameContext } from './context';
 import type { Mode } from './machine';
 
@@ -45,8 +52,16 @@ export interface ChartSession {
   ship: ChartShip;
   position: Chart;
   heading: number;
+  /** The wind under the ship: the weather sim's when there is a sky, else held as set. */
   wind: ChartWind;
+  /** Traffic: the ships and the derelict. The weather's contacts live on the sky. */
   contacts: Contact[];
+  /**
+   * The weather sim behind the chart (Phase 3 piece E): it drives the wind, its storm
+   * cells and fog banks are met as contacts, and its visibility sets the lookouts' range.
+   * Without one (unit tests), the wind holds as set and the weather is clear.
+   */
+  sky?: ChartSky | undefined;
   /** Waypoints the player has plotted from `position`. */
   waypoints: Chart[];
   course: PlannedCourse | undefined;
@@ -83,6 +98,92 @@ export interface ChartMode extends Mode {
   resolve(choice: EncounterChoice): { outcome: 'arena' | 'continue'; escaped?: boolean };
   /** Back from an arena: mark the contact handled and carry on. */
   resumeFrom(contactId: string): void;
+}
+
+/** Every contact the lookouts can report: the traffic and the weather. */
+export function allContacts(session: ChartSession): Contact[] {
+  return session.sky ? [...session.contacts, ...session.sky.contacts] : session.contacts;
+}
+
+/**
+ * Weather is reported only when it lies on the course ahead: a squall or bank off the
+ * beam is something to watch on the chart, not a reason to stop. This far ahead, meters
+ * (about three hours' sailing).
+ */
+export const WEATHER_AHEAD_M = 40_000;
+
+/** True when the weather contact's disc crosses the voyage's track within `aheadM`. */
+export function onTrackAhead(voyage: Voyage, c: Contact, aheadM = WEATHER_AHEAD_M): boolean {
+  const r = c.radiusM ?? 0;
+  let from = voyage.position;
+  let left = aheadM;
+  for (let i = voyage.leg; i < voyage.legs.length && left > 0; i++) {
+    const leg = voyage.legs[i] as Voyage['legs'][number];
+    const dx = leg.to.x - from.x;
+    const dy = leg.to.y - from.y;
+    const len = Math.hypot(dx, dy);
+    const use = Math.min(len, left);
+    if (len > 0) {
+      // Nearest point on the used part of this leg to the contact.
+      const t = Math.max(
+        0,
+        Math.min(use / len, ((c.pos.x - from.x) * dx + (c.pos.y - from.y) * dy) / (len * len)),
+      );
+      if (Math.hypot(from.x + dx * t - c.pos.x, from.y + dy * t - c.pos.y) < r) return true;
+    }
+    left -= use;
+    from = leg.to;
+  }
+  return false;
+}
+
+/** What the lookouts may report under way: all the traffic, and weather on the course. */
+export function reportableContacts(session: ChartSession): Contact[] {
+  const voyage = session.voyage;
+  if (!session.sky || !voyage) return allContacts(session);
+  // Weather the ship is already in isn't news: the card says so and the speed shows it.
+  const inside = (c: Contact): boolean =>
+    Math.hypot(session.position.x - c.pos.x, session.position.y - c.pos.y) < (c.radiusM ?? 0);
+  return [
+    ...session.contacts,
+    ...session.sky.contacts.filter((c) => !inside(c) && onTrackAhead(voyage, c)),
+  ];
+}
+
+/** How far the lookouts see here, as a share of their clear-day range. */
+export function sessionWeatherFactor(session: ChartSession): number {
+  return session.sky
+    ? visibilityFactor(session.sky.visibilityM)
+    : weatherFactor(session.position, session.contacts);
+}
+
+/** Sail shortened in a squall, the lead going in fog: the chart's share of a zone's caution. */
+export const SQUALL_SPEED = 0.6;
+export const FOG_SPEED = 0.8;
+
+/** The ship as the weather here lets her sail: slower inside a squall or a fog bank. */
+export function sessionShip(session: ChartSession): ChartShip {
+  const sky = session.sky;
+  if (!sky) return session.ship;
+  let f = 1;
+  for (const c of sky.contacts) {
+    if (Math.hypot(session.position.x - c.pos.x, session.position.y - c.pos.y) >= (c.radiusM ?? 0))
+      continue;
+    f = Math.min(f, c.kind === 'storm' ? SQUALL_SPEED : FOG_SPEED);
+  }
+  return f === 1 ? session.ship : { ...session.ship, cruiseKn: session.ship.cruiseKn * f };
+}
+
+/**
+ * Read the weather at the ship again: the sim's wind, its storm cells and fog banks, and
+ * the visibility. Call after the clock or the ship's position jumps.
+ */
+export function readSky(session: ChartSession, gameSeconds: number): void {
+  const sky = session.sky;
+  if (!sky) return;
+  advanceWeather(sky.state, gameSeconds);
+  refreshSky(sky, session.geo, session.position, gameSeconds);
+  session.wind = chartWindAt(sky.state, session.geo, session.position, gameSeconds);
 }
 
 /**
@@ -131,7 +232,7 @@ export function createChartMode(
         return { outcome: 'arena' };
       }
       if (choice === 'avoid') {
-        const weather = weatherFactor(session.position, session.contacts);
+        const weather = sessionWeatherFactor(session);
         const p = avoidChance(enc, hour(), session.voyage?.speedKn ?? 0, weather);
         const escaped = ctx.rng.chance(p);
         ctx.events.emit('EncounterAvoided', { contactId: id, escaped });
@@ -155,15 +256,16 @@ export function createChartMode(
       const gameSeconds = dt * session.timeScale;
       const dayBefore = dayAndHour(clock.gameSeconds).day;
       const worldTicks = advanceGameTime(clock, gameSeconds);
-      stepVoyage(voyage, gameSeconds, session.wind, session.ship);
-      stepContacts(session.contacts, gameSeconds, session.wind, session.geo.charted);
+      stepVoyage(voyage, gameSeconds, session.wind, sessionShip(session));
+      stepContacts(session.contacts, gameSeconds);
       session.position = voyage.position;
       session.heading = voyage.heading;
 
       for (let i = 0; i < worldTicks; i++) {
         ctx.events.emit('WorldTick', { gameSeconds: clock.gameSeconds });
-        driftWind(session.wind, ctx);
       }
+      // The weather runs on the world tick, here as in a zone; the chart reads it after.
+      if (worldTicks > 0) readSky(session, clock.gameSeconds);
       const dayAfter = dayAndHour(clock.gameSeconds).day;
       if (dayAfter !== dayBefore) ctx.events.emit('DayChanged', { day: dayAfter });
 
@@ -179,12 +281,13 @@ export function createChartMode(
       if (worldTicks > 0) {
         const enc = checkEncounters(
           session.position,
-          session.contacts,
+          reportableContacts(session),
           hour(),
           clock.gameSeconds,
           session.lookout,
           session.handled,
           clock.gameSeconds < session.quietUntil,
+          sessionWeatherFactor(session),
         );
         if (enc) {
           session.quietUntil = clock.gameSeconds + ENCOUNTER_QUIET_S;
@@ -196,10 +299,4 @@ export function createChartMode(
     },
   };
   return mode;
-}
-
-/** A small random walk per world tick until plan 04's weather sim (S9) drives it. */
-function driftWind(wind: ChartWind, ctx: GameContext): void {
-  wind.from = (wind.from + ctx.rng.range(-0.06, 0.06) + Math.PI * 2) % (Math.PI * 2);
-  wind.speedKn = Math.min(Math.max(wind.speedKn + ctx.rng.range(-0.7, 0.7), 4), 24);
 }

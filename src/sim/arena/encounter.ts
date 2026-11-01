@@ -48,10 +48,17 @@ export interface ArenaEncounter {
   ships: ArenaShip[];
   /** The cutter hunts you (dev flag `?cutter=hunt` until Phase 5). */
   hunting: boolean;
+  /**
+   * The squall or fog bank met, as the weather sim has it (Phase 3 piece E): its centre on
+   * the chart and its radius (a fog bank's wall). The arena samples the sim so that it
+   * stands where it should around the player. Without it (the `?encounter=` checks) the
+   * arena stands one up for the look.
+   */
+  weather?: { center: Chart; radiusM: number };
 }
 
 /** The ships.json class each S8 contact kind is drawn as. */
-export const CONTACT_CLASS: Readonly<Record<Exclude<ContactKind, 'storm'>, string>> = {
+export const CONTACT_CLASS: Readonly<Record<Exclude<ContactKind, 'storm' | 'fog'>, string>> = {
   freighter: 'ship.ore_freighter',
   steamer: 'ship.package_steamer',
   tug: 'ship.fish_tug',
@@ -79,7 +86,14 @@ export function arenaFromChartEncounter(
     forced: enc.forced,
     hunting: options.hunting ?? false,
   };
-  if (c.kind === 'storm') return { ...base, kind: 'squall', ships: [] };
+  if (c.kind === 'storm' || c.kind === 'fog') {
+    return {
+      ...base,
+      kind: c.kind === 'storm' ? 'squall' : 'fogbank',
+      ships: [],
+      weather: { center: { ...c.pos }, radiusM: c.radiusM ?? 0 },
+    };
+  }
   const derelict = c.kind === 'derelict';
   return {
     ...base,

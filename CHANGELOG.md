@@ -14,6 +14,7 @@ All notable changes to this project are recorded here. The format follows [Keep 
 - **Ship whistles you hear in fog:** the NPC ships sound their fog signals under the 1895 Great Lakes rules, three blasts a minute from a steamer and one, two or three on the fog horn from the schooner-barge by her tack, with a bell from a ship lying stopped. Each class has its own whistle: the freighter's deep one, the package steamer's chime, the tug's shrill one and the revenue cutter _Morrill_'s warble. In clear weather a steamer meeting you gives the passing signal. `?npcs&fog=600` to hear them ([plan 15 §15](plans/15-audio.md)).
 - **Cuts** in the geo bake's hand-edit layer: a set piece can dredge a channel to a depth, which opens 1:1 harbor entries through compressed land.
 - **Open-water arenas:** a 3 × 3 km patch of lake at the encounter point, with the weather sim's wind, sea and sky there, the ships met on their courses (giving way to each other and to you, and steering clear of land), the coast in view as low silhouettes, and fog closing in at the edge. Sail off the edge to leave; the revenue cutter, when hunting, locks you in until you shake her off. Hold F alongside a ship to look her over. `?encounter=freighter` (or `barge`, `steamer`, `tug`, `cutter`, `derelict`, `squall`, `fogbank`, `convoy`) drops into one, with `?at=lat,lon`, `?heading=` and `?cutter=hunt` ([plan 03 §25](plans/03-world-scale-chart-travel.md)).
+- **Weather on the chart:** the chart and the zones share one sky. The chart's wind is the weather sim's, and the chart draws its isobars, lows and highs with their tracks, fronts, rain, fog banks, squalls and wind arrows. A weather card shows the barometer, a six-hour outlook and any squall, fog or gale on your course, and **+6 h / +12 h / +24 h** shows the forecast with its uncertainty. Squalls and fog banks on your course are reported by the lookouts and met in an arena where the sim has them; fog hides you (from the cutter too) and a squall shortens sail ([plan 03 §26](plans/03-world-scale-chart-travel.md)).
 
 ### Fixed
 
@@ -22,6 +23,7 @@ All notable changes to this project are recorded here. The format follows [Keep 
 ### Changed
 
 - The "Zone edge" chip is now a **Take to the chart** button, and the save format is version 4 (0.2.0 saves still load).
+- November gales bring squalls in their rain, without the lightning of a summer thunderstorm.
 
 ## [0.2.0] - 2026-10-31
 

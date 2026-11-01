@@ -2,8 +2,10 @@ import { METERS_PER_NAUTICAL_MILE, type Chart } from '../../core/coords';
 import { Rng } from '../../core/rng';
 import { simplifyRing } from '../../core/simplify';
 import { isWater, type ChartGeography, type Rect, type Ring } from '../../sim/chart/geography';
-import type { Contact } from '../../sim/chart/traffic';
+import type { ChartWeatherPicture } from '../../sim/chart/chart-weather';
+import { isWeatherContact, type Contact } from '../../sim/chart/traffic';
 import type { PlannedCourse, Voyage } from '../../sim/chart/voyage';
+import { WEATHER_REDRAW_S, WeatherLayer } from './weather-layer';
 
 /**
  * Chart mode renderer (plan 13 §8.1): a 2D canvas in a period nautical-chart style
@@ -42,6 +44,8 @@ export interface ChartFrame {
   hoverWaypoint: number | undefined;
   /** Text by the destination, e.g. "ETA 03:40 (9 h 20 m)". */
   etaLabel: string | undefined;
+  /** The weather to draw (Phase 3 piece E): as it stands, or a forecast. */
+  weather?: ChartWeatherPicture | undefined;
 }
 
 const FONT = '"Libre Caslon Text", "Iowan Old Style", Georgia, serif';
@@ -72,6 +76,17 @@ export class ChartView {
   private readonly lodCache = new WeakMap<Ring, { tol: number; points: Chart[] }>();
   /** Static-layer redraws since construction (for the bench and tests). */
   layerDraws = 0;
+  /** The weather overlay, cached in its own canvas. */
+  readonly weatherLayer = new WeatherLayer();
+  /**
+   * The static layer with the weather drawn over it, so a frame is one copy with the
+   * weather up too. Rebuilt when either changes; shifted like the static layer while the
+   * view moves.
+   */
+  private readonly composite: HTMLCanvasElement;
+  private readonly compositeCtx: CanvasRenderingContext2D;
+  private compositeKey = '';
+  private compositePicture: ChartWeatherPicture | undefined;
 
   constructor(readonly canvas: HTMLCanvasElement) {
     const ctx = canvas.getContext('2d');
@@ -83,6 +98,10 @@ export class ChartView {
     const layerCtx = this.layer.getContext('2d');
     if (!layerCtx) throw new Error('2D canvas unavailable');
     this.layerCtx = layerCtx;
+    this.composite = document.createElement('canvas');
+    const compositeCtx = this.composite.getContext('2d');
+    if (!compositeCtx) throw new Error('2D canvas unavailable');
+    this.compositeCtx = compositeCtx;
   }
 
   get width(): number {
@@ -167,13 +186,20 @@ export class ChartView {
       this.layerKey !== '' && geo === this.layerGeo && lv.w === w && lv.h === h && lv.dpr === dpr;
     const stale = key !== this.layerKey || geo !== this.layerGeo;
     if (stale && canShift && now - this.viewChangedAt < LAYER_SETTLE_MS) {
-      this.drawShiftedLayer(dpr);
+      // The weather isn't redrawn mid-drag either: the last composite moves with the view.
+      this.drawShiftedLayer(
+        dpr,
+        frame.weather && this.compositeKey.startsWith(`${this.layerKey}|`)
+          ? this.composite
+          : this.layer,
+      );
     } else {
       if (stale) this.redrawLayer(geo, key, pw, ph, dpr);
+      const source = frame.weather ? this.withWeather(frame.weather, dpr) : this.layer;
       const { ctx } = this;
       ctx.setTransform(1, 0, 0, 1, 0, 0);
       ctx.globalCompositeOperation = 'copy';
-      ctx.drawImage(this.layer, 0, 0);
+      ctx.drawImage(source, 0, 0);
       ctx.globalCompositeOperation = 'source-over';
     }
     this.begin(dpr);
@@ -184,6 +210,7 @@ export class ChartView {
       ctx.fillStyle = `rgba(18, 28, 46, ${0.42 * (1 - frame.daylight)})`;
       ctx.fillRect(0, 0, w, h);
     }
+    if (frame.weather) this.weatherLayer.drawLive(ctx, this, frame.weather, 1 - frame.daylight);
     this.drawLights(geo, frame.daylight);
     this.drawPorts(geo);
     this.drawSpotRange(frame);
@@ -215,8 +242,34 @@ export class ChartView {
     this.layerDraws++;
   }
 
-  /** The last static layer, moved and scaled to where the current view puts it. */
-  private drawShiftedLayer(dpr: number): void {
+  /** The static layer with the weather over it, rebuilt only when either has changed. */
+  private withWeather(picture: ChartWeatherPicture, dpr: number): HTMLCanvasElement {
+    const ckey = `${this.layerKey}|${this.layerDraws}`;
+    const last = this.compositePicture;
+    const moved =
+      !last ||
+      last.leadHours !== picture.leadHours ||
+      Math.abs(picture.at - last.at) >= WEATHER_REDRAW_S;
+    if (ckey !== this.compositeKey || moved) {
+      const c = this.composite;
+      if (c.width !== this.layer.width || c.height !== this.layer.height) {
+        c.width = this.layer.width;
+        c.height = this.layer.height;
+      }
+      const ctx = this.compositeCtx;
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.globalCompositeOperation = 'copy';
+      ctx.drawImage(this.layer, 0, 0);
+      ctx.globalCompositeOperation = 'source-over';
+      this.weatherLayer.drawInto(ctx, this, picture, dpr);
+      this.compositeKey = ckey;
+      this.compositePicture = picture;
+    }
+    return this.composite;
+  }
+
+  /** The last static layer (or composite), moved and scaled to where the current view puts it. */
+  private drawShiftedLayer(dpr: number, source: HTMLCanvasElement = this.layer): void {
     const { ctx } = this;
     const lv = this.layerView;
     const k = lv.metersPerPx / this.metersPerPx;
@@ -226,7 +279,7 @@ export class ChartView {
     ctx.fillStyle = CHART_COLORS.land;
     ctx.fillRect(0, 0, this.canvas.width, this.canvas.height);
     ctx.setTransform(k, 0, 0, k, tx * dpr, ty * dpr);
-    ctx.drawImage(this.layer, 0, 0);
+    ctx.drawImage(source, 0, 0);
   }
 
   private begin(dpr: number): void {
@@ -571,11 +624,10 @@ export class ChartView {
       if (!seenNow && (!c.lastSeen || frame.now - c.lastSeen.at > GHOST_MAX_AGE_S)) continue;
       const pos = seenNow ? c.pos : (c.lastSeen as { pos: Chart }).pos;
       const s = this.toScreen(pos);
-      if (c.kind === 'storm') {
+      // With the weather layer up it draws the cell or the bank; the sighting is the label.
+      if (!isWeatherContact(c)) drawContactGlyph(ctx, c, s.x, s.y, seenNow);
+      else if (!frame.weather)
         drawStorm(ctx, s.x, s.y, (c.radiusM ?? 0) / this.metersPerPx, seenNow);
-      } else {
-        drawContactGlyph(ctx, c, s.x, s.y, seenNow);
-      }
       ctx.font = `italic 11px ${FONT}`;
       ctx.textAlign = 'left';
       ctx.textBaseline = 'middle';
@@ -589,7 +641,7 @@ export class ChartView {
           GHOST_MAX_REACH_M,
         );
         const r = reachM / this.metersPerPx;
-        if (r > 3 && c.kind !== 'storm') {
+        if (r > 3 && !isWeatherContact(c)) {
           ctx.save();
           ctx.setLineDash([3, 4]);
           ctx.strokeStyle = 'rgba(141, 138, 131, 0.8)';
@@ -922,6 +974,7 @@ function drawContactGlyph(
       ctx.stroke();
       break;
     case 'storm':
+    case 'fog':
       break;
   }
   ctx.restore();

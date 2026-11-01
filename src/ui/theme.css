@@ -579,6 +579,20 @@ body[data-mode='chart'] .chart-layer {
   width: 340px;
 }
 
+.chart-weather {
+  top: 14px;
+  right: 16px;
+  width: 300px;
+}
+
+.chart-glass {
+  font-variant-numeric: tabular-nums;
+}
+
+.chart-forecast {
+  margin-top: 8px;
+}
+
 .chart-kicker {
   font-size: 12px;
   letter-spacing: 0.18em;

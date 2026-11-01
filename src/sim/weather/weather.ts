@@ -281,8 +281,15 @@ function baseWind(
   };
 }
 
+/**
+ * The climate normals at a game time. Every query asks for them, often many times at the
+ * same `t` (the chart samples the sim across a grid at one time), so the last answer is
+ * kept: it is a pure function of `t`.
+ */
+let climateCache: { t: number; climate: Climate } | undefined;
 export function climateAtTime(t: number): Climate {
-  return climateAt(calendarDate(t));
+  if (climateCache?.t !== t) climateCache = { t, climate: climateAt(calendarDate(t)) };
+  return climateCache.climate;
 }
 
 /**
@@ -430,6 +437,14 @@ export function thunderstormAt(state: WeatherState, p: Chart, t: number): number
   if (warm <= 0) return 0;
   const rain = precipitationAt(state, p, t);
   if (rain < 0.1) return 0;
+  return warm * smoothstep(0.1, 0.4, rain) * smoothstep(0.4, 0.7, stormCell(state, p, t));
+}
+
+/**
+ * The storm-cell noise, 0–1: cells of about STORM_CELL_M drifting east with the prevailing
+ * flow. Where it is high inside the rain, the rain turns to storms.
+ */
+function stormCell(state: WeatherState, p: Chart, t: number): number {
   const drift = (STORM_CELL_DRIFT_M_PER_H * t) / 3600;
   const cx = (p.x - drift) / STORM_CELL_M;
   const cy = p.y / STORM_CELL_M;
@@ -437,8 +452,33 @@ export function thunderstormAt(state: WeatherState, p: Chart, t: number): number
   const row = Math.floor(cy);
   const f = cy - row;
   const along = (r: number): number => 0.5 + 0.5 * valueNoise(state.noiseSeed + 101 * r, cx);
-  const cell = along(row) * (1 - f) + along(row + 1) * f;
-  return warm * smoothstep(0.1, 0.4, rain) * smoothstep(0.4, 0.7, cell);
+  return along(row) * (1 - f) + along(row + 1) * f;
+}
+
+/** Storm cells drift east this fast, m/s, for anything that tracks them. */
+export const STORM_CELL_DRIFT_MS = STORM_CELL_DRIFT_M_PER_H / 3600;
+
+/** A gale's rain turns squally from about this wind, knots. */
+const SQUALL_GALE_KN = 22;
+const SQUALL_FULL_KN = 32;
+
+/**
+ * Squall intensity, 0–1 (plan 04 §15, Phase 3 piece E): the thunderstorms of summer, and
+ * in the cold months the squalls embedded in a gale's rain, where the same storm cells
+ * stand. It is never less than `thunderstormAt`; the difference is the cold squall, which
+ * brings the wind and rain but no lightning. The chart draws and meets these as storm cells.
+ */
+export function squallAt(state: WeatherState, p: Chart, t: number): number {
+  const rain = precipitationAt(state, p, t);
+  if (rain < 0.1) return 0;
+  const cell = smoothstep(0.4, 0.7, stormCell(state, p, t));
+  if (cell <= 0) return 0;
+  const warm = smoothstep(STORM_WARM_C, STORM_HOT_C, climateAtTime(t).airMaxC);
+  const drive =
+    warm >= 1
+      ? 1
+      : Math.max(warm, smoothstep(SQUALL_GALE_KN, SQUALL_FULL_KN, windAt(state, p, t).speedKn));
+  return drive * smoothstep(0.1, 0.4, rain) * cell;
 }
 
 /**
