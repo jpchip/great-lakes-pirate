@@ -189,5 +189,125 @@
     "reporting": "medium",
     "confidence": "unknown",
     "notes": "Lit 1896-97 on the tip of Long Island, eroding. R1 has the lens and the characteristic as unknown; fixed white is the assumption."
+  },
+  {
+    "id": "light.duluth_south_pier",
+    "name": "Duluth South Pier Light",
+    "zone": "zone.twin_ports",
+    "at": {
+      "lat": 46.7794,
+      "lon": -92.0868
+    },
+    "pier": "pier.duluth_canal_south",
+    "tower": {
+      "style": "skeleton",
+      "heightM": 9,
+      "finish": "white"
+    },
+    "tier": "weak",
+    "characteristic": {
+      "kind": "fixed",
+      "color": "red"
+    },
+    "lens": "unknown (temporary)",
+    "keepers": 2,
+    "reporting": "fast",
+    "fogSignal": {
+      "kind": "whistle",
+      "pattern": [[0, 3]],
+      "periodS": 30,
+      "confidence": "approximate"
+    },
+    "confidence": "unknown",
+    "notes": "R1/R1a: the canal's south pier light is a temporary tower in 1900 while the pier is rebuilt in concrete (1898-1901); the permanent tower comes in August 1901. Stands on the outer end of the game's south canal pier. The characteristic is unrecorded: fixed red is an assumption that sets it apart from Superior Entry. The canal had a steam fog signal; its 1900 rhythm is assumed."
+  },
+  {
+    "id": "light.superior_entry",
+    "name": "Superior Entry Pierhead Light",
+    "zone": "zone.twin_ports",
+    "at": {
+      "lat": 46.7128,
+      "lon": -92.0078
+    },
+    "pier": "pier.superior_entry_south",
+    "tower": {
+      "style": "skeleton",
+      "heightM": 8,
+      "finish": "white"
+    },
+    "tier": "weak",
+    "characteristic": {
+      "kind": "fixed",
+      "color": "white"
+    },
+    "lens": "unknown",
+    "keepers": 1,
+    "reporting": "medium",
+    "fogSignal": {
+      "kind": "bell",
+      "pattern": [
+        [0, 4],
+        [6, 4]
+      ],
+      "periodS": 20,
+      "confidence": "unknown"
+    },
+    "confidence": "unknown",
+    "notes": "R1a has the 1900 setup at Superior Entry as unknown; one source has a pierhead light built in 1885 when the Minnesota Point light was retired. Placed on the outer end of the south (Wisconsin Point) pier, where the later breakwater light stands, as a small fixed white light. The bell is assumed."
+  },
+  {
+    "id": "light.minnesota_point",
+    "name": "Minnesota Point Light",
+    "zone": "zone.twin_ports",
+    "at": {
+      "lat": 46.7115,
+      "lon": -92.0262
+    },
+    "lit": false,
+    "tower": {
+      "style": "conical",
+      "heightM": 15,
+      "finish": "brick"
+    },
+    "tier": "weak",
+    "characteristic": {
+      "kind": "fixed",
+      "color": "white"
+    },
+    "lens": "none (removed after 1885)",
+    "keepers": 0,
+    "reporting": "slow",
+    "confidence": "approximate",
+    "notes": "Lit 1858 at the Superior Entry end of Minnesota Point; extinguished in 1885 per most sources (one says 1913). Standing dark in 1900: the brick tower without its lamp, an abandoned lighthouse and hideout candidate (R1a)."
+  },
+  {
+    "id": "light.two_harbors",
+    "name": "Two Harbors Light",
+    "zone": "zone.two_harbors",
+    "at": {
+      "lat": 47.0139,
+      "lon": -91.6634
+    },
+    "tower": {
+      "style": "dwelling",
+      "heightM": 15,
+      "finish": "brick"
+    },
+    "tier": "medium",
+    "characteristic": {
+      "kind": "fixed",
+      "color": "red"
+    },
+    "lens": "4th-order Fresnel",
+    "keepers": 2,
+    "reporting": "medium",
+    "fogSignal": {
+      "kind": "whistle",
+      "pattern": [[0, 4]],
+      "periodS": 40,
+      "confidence": "approximate"
+    },
+    "confidence": "approximate",
+    "notes": "First lit April 1892 on Lighthouse Point, the east side of the Agate Bay entrance: a red-brick light station with a square tower on the keeper's house and a 4th-order Fresnel lens (R1). The 1892 characteristic is unverified; fixed red is assumed. The station had a steam fog signal; its 1900 rhythm is assumed."
   }
 ]

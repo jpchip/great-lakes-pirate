@@ -60,8 +60,8 @@ import type { ZoneFrame } from './core/coords';
 import { createHazardState, mooringBerths, type MooringBerth } from './sim/sailing/hazards';
 import { httpBytes, loadZoneTerrain, type LoadedZone } from './sim/terrain/load';
 import { TEST_BAY, type Dock, type Pose } from './sim/terrain/test-bay';
-import { layoutHarbors } from './sim/harbors';
-import { LIGHTHOUSES, placeLights, viewingSpot } from './sim/lighthouses';
+import { findHarbor, harborZoneId, layoutHarbors } from './sim/harbors';
+import { lightsIn, placeLights, viewingSpot } from './sim/lighthouses';
 import { ZoneManager } from './sim/terrain/zone-manager';
 import {
   defFrame,
@@ -265,6 +265,12 @@ async function boot(): Promise<void> {
   if (paramDef && paramDef.id !== start.zoneId) {
     start = { zoneId: paramDef.id, pose: spawnPose(paramDef), from: 'spawn' };
   }
+  // `?harbor=duluth` (below) starts in the zone that harbor is in.
+  const harborParam = findHarbor((params.get('harbor') ?? '').split(',')[0] ?? '');
+  if (!paramDef && params.get('harbor') && harborParam) {
+    const id = harborZoneId(harborParam);
+    if (id !== start.zoneId) start = { zoneId: id, pose: spawnPose(zoneDef(id)), from: 'spawn' };
+  }
   const entryParam = params.get('entry');
   const paramEntry = entryParam ? findEntry(zoneDef(start.zoneId), entryParam) : undefined;
   if (paramEntry) start = { ...start, pose: entryPose(paramEntry), from: 'entry' };
@@ -310,11 +316,16 @@ async function boot(): Promise<void> {
     spawn.z = sz ?? spawn.z;
     if (Number.isFinite(sh)) spawn.heading = ((sh ?? 0) * Math.PI) / 180;
   }
-  // `?harbor=bayfield` (or `ashland`, with `,2` for a pier by its order in data/harbors.json)
-  // starts the ship 120 m off that pier's outer end, bow toward it, to try docking.
-  let harborLayouts = zone ? layoutHarbors(manifestFrame(zone.manifest), zone.terrain) : [];
+  // `?harbor=bayfield` (or `ashland`, `duluth`, `superior`, `two_harbors`, with `,2` for a
+  // pier by its order in data/harbors.json) starts the ship 120 m off that pier's outer end,
+  // bow toward it, to try docking. `duluth_canal` and `superior_entry` start off a canal
+  // pier's lake end, to sail in between the piers.
+  let harborLayouts = zone
+    ? layoutHarbors(manifestFrame(zone.manifest), zone.terrain, zone.manifest.zone)
+    : [];
   const [harborKey, pierIndex] = (params.get('harbor') ?? '').split(',');
-  const harbor = harborKey ? harborLayouts.find((l) => l.def.id.includes(harborKey)) : undefined;
+  const harborId = harborKey ? findHarbor(harborKey)?.id : undefined;
+  const harbor = harborLayouts.find((l) => l.def.id === harborId);
   const pier = harbor?.piers[Number(pierIndex) || 0];
   if (pier) {
     const out = pier.lengthM + 120;
@@ -327,9 +338,11 @@ async function boot(): Promise<void> {
   // meters (default 500), for checking a lighthouse by day and by night.
   const [lightKey, lightDistance] = (params.get('light') ?? '').split(',');
   if (lightKey && zone) {
-    const found = placeLights(LIGHTHOUSES, manifestFrame(zone.manifest), zone.terrain).find((p) =>
-      p.def.id.includes(lightKey),
-    );
+    const found = placeLights(
+      lightsIn(zone.manifest.zone),
+      manifestFrame(zone.manifest),
+      zone.terrain,
+    ).find((p) => p.def.id.includes(lightKey));
     const at = found && viewingSpot(found, zone.terrain, Number(lightDistance) || 500);
     if (at) {
       spawn.x = at.x;
@@ -393,7 +406,7 @@ async function boot(): Promise<void> {
   // fog signals sound from the tops of their towers; gulls gather at the harbors' piers.
   const signalStations = (z: LoadedZone | undefined): SignalStation[] =>
     z
-      ? placeLights(LIGHTHOUSES, manifestFrame(z.manifest), z.terrain).flatMap((p) =>
+      ? placeLights(lightsIn(z.manifest.zone), manifestFrame(z.manifest), z.terrain).flatMap((p) =>
           p.def.fogSignal
             ? [
                 {
@@ -702,7 +715,9 @@ async function boot(): Promise<void> {
       ctx.weather.shelter = zone?.terrain ?? stubIslandShelter(TEST_BAY_ISLANDS);
       ctx.weather.invalidate();
       weatherSource.frame = zoneFrame(zone, def);
-      harborLayouts = zone ? layoutHarbors(manifestFrame(zone.manifest), zone.terrain) : [];
+      harborLayouts = zone
+        ? layoutHarbors(manifestFrame(zone.manifest), zone.terrain, zone.manifest.zone)
+        : [];
       const nextDocks = zoneDocks(zone);
       sailingOptions.docks = nextDocks;
       sailingOptions.berths = mooringBerths(nextDocks, ctx.terrain);

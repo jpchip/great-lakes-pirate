@@ -824,7 +824,7 @@ The chart is now baked from the same NOAA bathymetry and USGS DEM as the zones (
 - **Agate Bay is widened, unlike Ashland.** Ashland's ore dock reaches into a kilometer of open bay (§18.2); Agate Bay is about 130 m across at C = 8, too small for a 1:1 dock. The basin is a first guess for piece I to reshape and rebake.
 
 ### 23.4 Still to do
-- Piece I: piers along the cuts, berths, the 1900 lights, town silhouettes, and the footprint numbers adjusted to fit them. The compressed DEM pier stubs outside the cuts may need more cuts.
+- ~~Piece I: piers along the cuts, berths, the 1900 lights, town silhouettes, and the footprint numbers adjusted to fit them. The compressed DEM pier stubs outside the cuts may need more cuts.~~ Built in §26; the footprints and cuts didn't need to change.
 - The Minnesota Point and North Shore cove hideout pads (09 §2.1) aren't placed; the zones have no on-foot tiles yet.
 - Entry points on the zone edges for Twin Ports and Two Harbors.
 
@@ -924,9 +924,55 @@ Screenshots are in the project files (`chart-in-game/`).
 - The chart-to-arena time on the laptop (criterion 3), and Jared's arena feel check.
 - The player can sail through an NPC hull; collisions come with combat (Phase 6).
 
+## 26. Phase 3 Piece I: Twin Ports and Two Harbors Harbors (2026-11-01)
+
+**Goal** (§20.4, piece I; dockable harbors, decided 2026-10-31, §20.6): the Duluth Ship Canal and Superior Entry as 1:1 set pieces you can sail through, piers with berths at Duluth, Superior and Two Harbors (Two Harbors' wooden ore dock at 1:1), the 1900 lights, and town silhouettes with lit windows from the Phase 2 kit.
+
+**Result:** built on the §23 bakes without a rebake. Sail in through the canal between its two piers, past the temporary south pier light, and dock at Duluth's merchandise or coal dock; cross the harbor to Superior's city or mill dock under the Great Northern elevator and the shipyard, and leave by Superior Entry past the dark Minnesota Point tower; at Two Harbors, lie alongside the ore dock in Agate Bay. `tests/harbors.test.ts` docks the T1 at every berth in both zones on the real terrain. Screenshots are in the project files (`north-harbors/`).
+
+### 26.1 What was built
+
+| Piece | Where | Notes |
+|---|---|---|
+| Harbors | `data/harbors.json` | Five new harbors, one per §23 set piece. **Duluth Ship Canal:** a north and a south pier, 235 m each, lining the 90 m cut and reaching about 200 m into the lake; the Life-Saving Station and a few houses on Minnesota Point; a warehouse on the Canal Park side. **Duluth:** a merchandise dock and a coal dock into the harbor basin, Elevator A on the fill by the slips, the freight house, Union Depot, the Superior Street block, a hotel, a coal shed, two churches, and 140 houses climbing the hillside to about 50 m. **Superior Entry:** a pier off each point tip, 290 m each, 155 m apart between their faces (the entry is about 500 ft). **Superior:** a city dock and a mill dock into the channel (short, so the channel along Minnesota Point stays open), the Great Northern elevator, the shipyard, a sawmill, the depot, Tower Avenue, a hotel, a church and 110 houses. **Two Harbors:** a 1:1 ore dock (16 m wide, pockets 17 m up) down the middle of the widened Agate Bay from an approach on the bluff, a merchandise dock off Lighthouse Point's bay shore, the depot, the railroad shops, a hotel, a store, a church and 60 houses up the slope |
+| Canal piers | `canal` pier kind, `src/sim/harbors.ts` | A canal pier runs exactly its length from where it's drawn, over land and water alike (other piers walk out to the waterline), and has no berths: it's a wall to sail between. `Dock.berths: false` keeps the hazards' pier collision and drops its berths |
+| Per-zone layout | `harborsIn`, `harborZoneId`, `layoutHarbors(frame, terrain, zoneId)`; `lightsIn` | A harbor's zone is the one whose set pieces hold its footprint. **Fixed along the way:** every zone was laying out the Apostles' harbors and placing the Apostles' lights (clamped to the zone's edge, since terrain queries clamp outside the bounds); now each zone gets only its own, in the scene, the docks, the gull points and the fog signals |
+| Lights | `data/lighthouses.json` | **Duluth South Pier Light**, the 1898–1901 temporary tower on the south canal pier's end (skeleton, weak, fixed red assumed, a steam whistle); **Superior Entry Pierhead Light** on the south pier's end (fixed white, a bell; R1a has the 1900 setup as unknown); **Minnesota Point Light** standing dark near the point's tip (brick tower, no lamp, no keeper, no signal); **Two Harbors Light** on Lighthouse Point (the red-brick station with its tower on the house, 4th-order, medium, fixed red assumed, a whistle). New fields: `pier` stands a light on its pier's outer end at deck height (`pierHead`), and `lit: false` is a dark station |
+| Meshes | `src/render/harbors/harbor-kit.ts` | Canal piers: stone-filled timber cribs down to the bottom under a concrete cap, bollards, and the 1896–1902 rebuilding (a stiff-leg derrick and stacked forms). The coal dock's heaps and hoisting bridge. Grain elevators: the tall bin house, the headhouse along the ridge and marine legs on the water side. The shipyard's open shed with a whaleback on the ways. Two draws per harbor as before; an entry with no windows gets an empty window mesh |
+| Checks | `tests/harbors.test.ts`, `lighthouses.test.ts`, `audio-world.test.ts` | Per zone: only its own harbors; every pier with berths docks the T1 from 8 m off at a knot, without grounding or a scratch, and its berths lie in more than 3 m; canal piers have none. Both entries are open: deep water down the middle with no pier within 25 m, and each pier's lake end stands in the water. Pierhead lights stand on their piers' decks, the others on dry ground clear of the piers. Minnesota Point is the nearest light and shows nothing at midnight while the entry lights burn. Draw calls and the triangle budget |
+| Debug | `?harbor=` | `?harbor=duluth`, `superior`, `two_harbors`, `duluth_canal` or `superior_entry` (an exact name first, then a fragment) now loads that harbor's zone and starts 120 m off the pier's end |
+
+### 26.2 Results
+
+| Measure | Twin Ports | Two Harbors |
+|---|---|---|
+| Harbors, draw calls | 4 harbors, 8 meshes (2 window meshes empty) | 1, 2 |
+| Triangles | 38k (Duluth 18k, Superior 15k, the entries 5k) | 10k |
+| Berths the T1 docks at | 8 | 12 (10 down the ore dock) |
+| Houses | 140 Duluth, 110 Superior, 9 on Minnesota Point | 60 |
+
+Bayfield and Ashland are 33k triangles together, so the Twin Ports are the heaviest harbors in the game but well inside the 250k harbor budget.
+
+### 26.3 Decisions made in the piece
+
+- **The entries are 1:1 across, not along.** The canal is 90 m (300 ft) between the cribs and Superior Entry 155 m, as they were. Their length follows the compressed land: the canal cuts only about 20 m of Minnesota Point at C = 8, so the piers make the canal, reaching about 200 m into the lake (the real piers ran about 1,700 ft) and a few meters into the harbor.
+- **Canal piers are walls, not berths.** Ships didn't lie in the canal; you dock in the harbor.
+- **One ore dock at Two Harbors, not two.** The widened Agate Bay is about 150 m across: one 1:1 dock down the middle leaves 40–60 m of water each side to come alongside and turn. A second 1900 dock needs the basin widened in a rebake (§23.3 left it as a first guess).
+- **Superior's piers are short.** The channel between the Superior shore and Minnesota Point is about 120 m wide; 32–38 m piers keep the route from the canal to Superior Entry open.
+- **The modern slips stay.** Duluth's DEM slips are shallow (under 3 m) inside the flattened waterfront; the piers start at the basin's edge, past them. Filling them is a §8.2 step 7 correction for Phase 4's waterfront.
+- **Unrecorded characteristics are assumptions.** The canal light's fixed red, Superior Entry's fixed white and Two Harbors' fixed red are guesses, marked `unknown` or `approximate` in the data with notes, as R1 §2.1 asks (open item 1).
+
+### 26.4 Still to do
+
+- Jared's by-eye check that the Twin Ports read as Duluth and Superior from the water and Two Harbors by its ore dock and light (criterion 10), and the playtest route of criterion 1, in piece K.
+- The modern slips and fills behind the Duluth waterfront (1900 corrections) and a second Two Harbors ore dock, if a rebake widens Agate Bay.
+- The Minnesota Point and North Shore cove hideout pads (09 §2.1).
+- Verify the 1900 characteristics of the canal, Superior Entry and Two Harbors lights (R1 open item 1).
+
 ---
 
 ## Changelog
+- v0.21: Phase 3 piece I (§26): the Duluth Ship Canal and Superior Entry piers at 1:1, docks at Duluth, Superior and Two Harbors (with its 1:1 ore dock), grain elevators, the Superior shipyard, the 1900 lights including dark Minnesota Point, and each zone laying out only its own harbors and lights.
 - v0.20: Piece G wired through: a forced hostile hunts in the arena, caught ends the voyage, the S8 spike page retired.
 - v0.19: Phase 3 piece G (§25): open-water arenas in the game, wired to piece D's chart so engaging returns to the voyage; NPC helms with give-way and land avoidance, coast silhouettes, the pursuit lock, `?encounter=` checks, and NPC speeds fixed.
 - v0.18: Phase 3 piece D (§24): chart mode in the game, taking to the chart at the soft edge, M as a look, the encounter card and the chart locked banner, arrival at a zone's entry, the voyage in save v4, and the chart clock slowed to 3.5 s per game hour for criterion 2.

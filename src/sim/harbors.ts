@@ -8,12 +8,19 @@ import {
 import type { Zone, ZoneFrame } from '../core/coords';
 import { hash01, type Clearing } from './terrain/vegetation';
 import type { Dock } from './terrain/test-bay';
-import { setPieceFootprint, zoneDef, type SetPieceFootprint } from './terrain/zones';
+import {
+  APOSTLES_ID,
+  setPieceFootprint,
+  ZONE_DEFS,
+  zoneDef,
+  type SetPieceFootprint,
+} from './terrain/zones';
 
 /**
- * The harbor set pieces laid out on the zone (plan 03 §3.4; Phase 2 piece G): Bayfield's
- * fish docks, packing house, cooperage and mill, and Ashland's ore dock, each at 1:1 on its
- * set piece's footprint. Pure and deterministic: the renderer draws what this places, and
+ * The harbor set pieces laid out on the zone (plan 03 §3.4; Phase 2 piece G, Phase 3 piece
+ * I): Bayfield's fish docks, packing house, cooperage and mill, Ashland's ore dock, the
+ * Duluth Ship Canal and Superior Entry piers, the Duluth and Superior waterfronts and Two
+ * Harbors' ore dock, each at 1:1 on its set piece's footprint. Pure and deterministic: the renderer draws what this places, and
  * the sailing hazards and auto-dock use its piers as `Dock`s, so the berths you dock at are
  * the piers you see.
  *
@@ -22,6 +29,26 @@ import { setPieceFootprint, zoneDef, type SetPieceFootprint } from './terrain/zo
 
 /** Validated harbors from data/harbors.json. */
 export const HARBORS: readonly HarborDef[] = harborsFileSchema.parse(harborsJson);
+
+/** The zone whose set pieces hold a harbor's footprint. */
+export function harborZoneId(def: HarborDef): string {
+  const zone = ZONE_DEFS.find((z) => z.setPieces.some((p) => p.id === def.setPiece));
+  if (!zone) throw new Error(`harbor ${def.id}: no zone has set piece ${def.setPiece}`);
+  return zone.id;
+}
+
+/** A harbor by its id or a fragment of it (`duluth`, `harbor.two_harbors`), exact first. */
+export function findHarbor(key: string): HarborDef | undefined {
+  return (
+    HARBORS.find((h) => h.id === key || h.id === `harbor.${key}`) ??
+    HARBORS.find((h) => h.id.includes(key))
+  );
+}
+
+/** The harbors built in one zone. */
+export function harborsIn(zoneId: string): HarborDef[] {
+  return HARBORS.filter((h) => harborZoneId(h) === zoneId);
+}
 
 /** What layout reads of the terrain: a ZoneTerrain does. */
 export interface HarborTerrain {
@@ -80,6 +107,21 @@ function placePier(def: PierDef, fp: SetPieceFootprint, terrain: HarborTerrain):
   const start = footprintPoint(fp, def.alongM, def.inlandM);
   const fx = Math.sin(bearing);
   const fz = -Math.cos(bearing);
+  if (def.kind === 'canal') {
+    // A canal pier is laid where it's drawn, over land and water alike, and has no berths.
+    return {
+      id: def.id,
+      name: def.name,
+      kind: def.kind,
+      root: start,
+      bearing,
+      lengthM: def.lengthM,
+      widthM: def.widthM,
+      deckM: def.deckM,
+      shoreM: 0,
+      berths: false,
+    };
+  }
   // Walk out to the waterline.
   let s = 0;
   while (s < 600 && terrain.heightAt(start.x + fx * s, start.z + fz * s) >= SHORE_M) s += 2;
@@ -140,7 +182,7 @@ export function layoutHarbor(
   def: HarborDef,
   frame: ZoneFrame,
   terrain: HarborTerrain,
-  zoneId = 'zone.apostles',
+  zoneId = harborZoneId(def),
 ): HarborLayout {
   const pieceDef = zoneDef(zoneId).setPieces.find((p) => p.id === def.setPiece);
   if (!pieceDef) throw new Error(`harbor ${def.id}: no set piece ${def.setPiece}`);
@@ -213,7 +255,7 @@ export function layoutHarbor(
     const at = footprintPoint(fp, along, inland);
     if (!fits(at.x, at.z, Math.hypot(w, d) / 2)) continue;
     const g = ground(terrain, [...corners(at.x, at.z, facing, w, d), at]);
-    if (g.min < 0.8 || g.max > t.maxGroundM || g.max - g.min > 3.5) continue;
+    if (g.min < 0.8 || g.max > t.maxGroundM || g.max - g.min > t.maxStepM) continue;
     buildings.push(place('house', undefined, at, facing, w, d, h, hash01(k, t.seed, 8)));
     placed++;
   }
@@ -222,8 +264,37 @@ export function layoutHarbor(
 }
 
 /** Every harbor in the zone. */
-export function layoutHarbors(frame: ZoneFrame, terrain: HarborTerrain): HarborLayout[] {
-  return HARBORS.map((h) => layoutHarbor(h, frame, terrain));
+export function layoutHarbors(
+  frame: ZoneFrame,
+  terrain: HarborTerrain,
+  zoneId: string = APOSTLES_ID,
+): HarborLayout[] {
+  return harborsIn(zoneId).map((h) => layoutHarbor(h, frame, terrain, zoneId));
+}
+
+/**
+ * The outer end of a pier, where a pierhead light stands: zone meters and the deck's
+ * height. Undefined if no harbor has the pier.
+ */
+export function pierHead(
+  pierId: string,
+  frame: ZoneFrame,
+  terrain: HarborTerrain,
+): { x: number; z: number; deckM: number; bearing: number } | undefined {
+  for (const h of HARBORS) {
+    const def = h.piers.find((p) => p.id === pierId);
+    if (!def) continue;
+    const pieceDef = zoneDef(harborZoneId(h)).setPieces.find((p) => p.id === h.setPiece);
+    if (!pieceDef) return undefined;
+    const p = placePier(def, setPieceFootprint(pieceDef, frame), terrain);
+    return {
+      x: p.root.x + Math.sin(p.bearing) * p.lengthM,
+      z: p.root.z - Math.cos(p.bearing) * p.lengthM,
+      deckM: p.deckM,
+      bearing: p.bearing,
+    };
+  }
+  return undefined;
 }
 
 /** Ground kept free of trees: each building with a yard, and each pier's shore end. */
@@ -237,6 +308,20 @@ export function harborClearings(layout: HarborLayout): Clearing[] {
     halfAcross: b.depthM / 2 + 6,
   }));
   for (const p of layout.piers) {
+    if (p.kind === 'canal') {
+      // A canal pier crosses the land: keep its whole length clear.
+      const fx = Math.sin(p.bearing);
+      const fz = -Math.cos(p.bearing);
+      out.push({
+        x: p.root.x + (fx * p.lengthM) / 2,
+        z: p.root.z + (fz * p.lengthM) / 2,
+        ux: fx,
+        uz: fz,
+        halfAlong: p.lengthM / 2 + 4,
+        halfAcross: p.widthM / 2 + 6,
+      });
+      continue;
+    }
     out.push({ x: p.root.x, z: p.root.z, ux: 1, uz: 0, halfAlong: 16, halfAcross: 16 });
   }
   return out;
