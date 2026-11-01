@@ -52,6 +52,58 @@
     "LODs": []
   },
   {
+    "id": "ship.t2_schooner",
+    "name": "Schooner",
+    "role": "player",
+    "tier": 2,
+    "propulsion": "sail",
+    "lengthM": 30,
+    "displayScale": 1,
+    "hullMaxSpeedKn": 9,
+    "accelTau": 6,
+    "decelTau": 10,
+    "turnRateCurve": [
+      [0, 1.2],
+      [2, 7],
+      [4, 11],
+      [6, 12.5],
+      [9, 11.5]
+    ],
+    "polar": [
+      [0, 0],
+      [40, 0],
+      [45, 0.6],
+      [60, 0.8],
+      [90, 0.95],
+      [120, 1],
+      [135, 1],
+      [150, 0.9],
+      [180, 0.75]
+    ],
+    "sailChangeTimeS": 3,
+    "sweeps": true,
+    "sweepsKn": 1.1,
+    "sweepsTurnDegS": 2,
+    "draftEmptyM": 2.5,
+    "draftFullM": 3.2,
+    "cargoCapacity": 90,
+    "hullHP": 160,
+    "riggingHP": 130,
+    "anchorRodeM": 45,
+    "buoyancy": {
+      "length": 26,
+      "beam": 6.5,
+      "heavePeriod": 3.2,
+      "pitchPeriod": 3.8,
+      "rollPeriod": 4.6,
+      "damping": 0.55
+    },
+    "visibilityProfile": "medium",
+    "conspicuity": 0.9,
+    "modelId": "ship.t2_schooner",
+    "LODs": []
+  },
+  {
     "id": "ship.ore_freighter",
     "name": "Steam ore freighter",
     "role": "npc",

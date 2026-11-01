@@ -60,6 +60,7 @@ import { createTestScene } from './render/test-scene';
 import { createSailingState } from './sim/sailing/controller';
 import type { ZoneFrame } from './core/coords';
 import { createHazardState, mooringBerths, type MooringBerth } from './sim/sailing/hazards';
+import { PLAYER_SHIP_IDS } from './sim/sailing/ships';
 import { httpBytes, loadZoneTerrain, type LoadedZone } from './sim/terrain/load';
 import { TEST_BAY, type Dock, type Pose } from './sim/terrain/test-bay';
 import { findHarbor, harborZoneId, layoutHarbors } from './sim/harbors';
@@ -318,10 +319,10 @@ async function boot(): Promise<void> {
     spawn.z = sz ?? spawn.z;
     if (Number.isFinite(sh)) spawn.heading = ((sh ?? 0) * Math.PI) / 180;
   }
-  // `?harbor=bayfield` (or `ashland`, `duluth`, `superior`, `two_harbors`, with `,2` for a
-  // pier by its order in data/harbors.json) starts the ship 120 m off that pier's outer end,
-  // bow toward it, to try docking. `duluth_canal` and `superior_entry` start off a canal
-  // pier's lake end, to sail in between the piers.
+  // `?harbor=bayfield` (or `ashland`, `washburn`, `la_pointe`, `duluth`, `superior`,
+  // `two_harbors`, with `,2` for a pier by its order in data/harbors.json) starts the ship
+  // 120 m off that pier's outer end, bow toward it, to try docking. `duluth_canal` and
+  // `superior_entry` start off a canal pier's lake end, to sail in between the piers.
   let harborLayouts = zone
     ? layoutHarbors(manifestFrame(zone.manifest), zone.terrain, zone.manifest.zone)
     : [];
@@ -378,7 +379,10 @@ async function boot(): Promise<void> {
       });
     }
   }
-  const schooner = createSchooner(spawn.x, spawn.z, spawn.heading);
+  // `?ship=t2` sails the T2 schooner instead of the T1 (Phase 4 piece G) until the
+  // shipyard sells one.
+  const shipClass = PLAYER_SHIP_IDS[params.get('ship') ?? ''];
+  const schooner = createSchooner(spawn.x, spawn.z, spawn.heading, shipClass);
   const { record: shipRecord, handling, hazardRules, sailing, hazards } = schooner;
   const shipTransform = { position: { x: spawn.x, y: 0, z: spawn.z }, heading: spawn.heading };
   sailing.state.manualTrim = settings.value.sailing.manualTrim;

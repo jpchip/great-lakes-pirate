@@ -89,6 +89,36 @@
         "seawardM": 600,
         "groundM": 2.5,
         "blendM": 80
+      },
+      {
+        "id": "setpiece.la_pointe",
+        "name": "La Pointe village",
+        "port": "port.la_pointe",
+        "at": {
+          "lat": 46.7775,
+          "lon": -90.7853
+        },
+        "bearingDeg": 245,
+        "alongM": 320,
+        "inlandM": 110,
+        "seawardM": 160,
+        "groundM": 1.6,
+        "blendM": 50
+      },
+      {
+        "id": "setpiece.washburn",
+        "name": "Washburn docks",
+        "port": "port.washburn",
+        "at": {
+          "lat": 46.672,
+          "lon": -90.8843
+        },
+        "bearingDeg": 139,
+        "alongM": 640,
+        "inlandM": 130,
+        "seawardM": 260,
+        "groundM": 2.5,
+        "blendM": 80
       }
     ]
   },

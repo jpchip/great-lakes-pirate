@@ -1,6 +1,6 @@
 # 05 — Ports, Economy & Trading
 
-Status: DRAFT v0.5 (decisions made; gap review applied; Phase 4 scope proposed; piece A built)
+Status: DRAFT v0.5 (decisions made; gap review applied; Phase 4 scope proposed; pieces A and I built)
 Parent: [00-master-plan.md](00-master-plan.md)
 Inputs: [R1a gazetteer](R1a-western-superior-gazetteer.md) (ports, industries), [03](03-world-scale-chart-travel.md) (routes, chart, encounters), [04](04-water-weather-seasons.md) (seasons; 1 game day = 1 week), [02](02-arcade-sailing.md) (cargo load, shipless play), [01](01-tech-architecture.md) (sim layer, data files)
 Feeds: 06 (hot goods, informants), 07 (what's in the holds), 08 (fences, warehouses), 09 (materials), 10 (ship prices), 12 (contracts, events)
@@ -429,10 +429,55 @@ What landed, and where it departs from the sections above.
 | Soak | Five years of drift with a trader working the lake: no price leaves its clamp, no stock goes negative |
 | Tick cost | 0.004 ms per world tick for all 138 market entries (criterion 11's budget is 1 ms) |
 
+## 17. Phase 4 Piece I: La Pointe and Washburn (2026-11-01)
+
+**Goal** (§16.4, piece I): La Pointe and Washburn as set pieces in the Phase 2 harbor kit, with footprints in the hand-edit layer, piers with berths and port ids, and town silhouettes with lit windows. Red Cliff and Bad River stay out (decision 2, §16.6). Their markets come with piece A's `markets.json`.
+
+**Result:** the Apostles zone is rebaked with two new footprints, and both harbors are built on them without changing the harbor code. Sail across the North Channel from Bayfield and lie alongside La Pointe's village dock under St. Joseph's, or run down the bay to Washburn and come alongside the Omaha coal dock under the elevator. `tests/harbors.test.ts` docks the T1 at every berth in both on the real terrain. Screenshots are in the project files (`apostles-ports/`).
+
+### 17.1 What was built
+
+| Piece | Where | Notes |
+|---|---|---|
+| Footprints | `data/zones.json`, `public/world/apostles/` | **La Pointe village:** anchored on Madeline Island's west shore facing Bayfield (bearing 245°), 320 m along, 110 m inland, flattened to 1.6 m. **Washburn docks:** on Chequamegon Bay's west shore (bearing 139°), 640 m along, 130 m inland, flattened to 2.5 m with an 80 m blend up to the bluff. Anchors were set on the baked shoreline, not on the chart's port points (`data/chart.json`), which sit a few hundred real meters inland. Rebaked with `npm run geo:build` and `geo:canopy`: 63k samples flattened at La Pointe and 147k at Washburn; six height tiles and five Madeline Island on-foot tiles changed |
+| Ports | `data/ports.json` | `port.washburn` (market, tavern; Chequamegon region) and `port.la_pointe` (market; Apostle Islands region, 06 §3.1). The set pieces name them, so each pier's port is its set piece's. The chart already had both (`data/chart.json`) |
+| La Pointe | `data/harbors.json` | A village dock (60 m, where the American Fur Company's dock stood) and a fish dock. The old fur company warehouse by the dock, a general store, three fish sheds, St. Joseph's Church and the Old Mission (a hotel from 1900), and 32 houses on the low ground and the rise behind |
+| Washburn | `data/harbors.json` | The Omaha road's coal dock (heaps and a hoisting bridge) and merchandise dock, with the Omaha elevator on its crib between them (800,000 bushels, as tall as the Twin Ports elevators) and the freight house and depot behind. The Bigelow mill (1887–1902, the largest of the town's three) with its lumber dock and sheds, a second sawmill at the west end, and the Bayfield Street block, a hotel, two churches and 100 houses on the bluff top, 20–40 m up |
+| Checks | `tests/harbors.test.ts`, `tests/geo.test.ts` | The Apostles now lay out four harbors in eight draw calls; every berth lies in more than 3 m and the T1 docks at each; buildings on dry ground and the towns filled. The bake config and manifest list the two new hand edits |
+| Debug | `?harbor=` | `?harbor=washburn` and `?harbor=la_pointe` (with `,1`, `,2` for the other piers) start 120 m off the pier |
+
+### 17.2 Results
+
+| Measure | La Pointe | Washburn |
+|---|---|---|
+| Piers (deck from the waterline) | 60 m village, 50 m fish | 70 m coal, 80 m merchandise, 90 m lumber |
+| Berths the T1 docks at | 4, in 5–7 m | 10, in 4–10 m |
+| Houses placed | 32 of 32 | 100 of 100 |
+| Triangles, draw calls | 5k, 2 | 16k, 2 |
+
+The four Apostles harbors are 55k triangles together, well inside the 250k harbor budget.
+
+### 17.3 Decisions made in the piece
+
+- **Washburn's piers are short of 1:1 in length.** The 1900 docks ran 800–1,000 ft out on piles, but the bay in front of Washburn is about 600 game meters across at C = 8, so piers that long would cross a third of it. They reach 70–90 m, out past the 6 m line, like Superior's short piers (03 §27.3). Their widths and deck heights are 1:1.
+- **One lumber dock for three mills.** The kit gives each kind of pier once per harbor; the Bigelow mill has the dock and the other mills stand on the shore. Its western neighbor sits behind a shallow bight the bake leaves at the footprint's west end, too shallow (3–6 m) for berths.
+- **The bluff stays.** Washburn's footprint flattens a 130 m terrace and blends into the bluff, so the town stands on top as the real one does, with the waterfront below.
+- **Building names come from the period sources found in the piece:** the Omaha road's elevator and coal docks, the A. A. Bigelow mill, St. Joseph's Church on the site of Baraga's 1838 mission, the American Fur Company's 1835 warehouse, and the Old Mission, turned hotel in 1900. Positions in the towns are laid out for the game, not from Sanborn maps (R1 §6).
+- **The baseline bake wasn't byte-for-byte.** Rebaking the committed zone in the cloud container reproduced its heights and SDF exactly, but a few thousand wind cells near the zone's south-east corner and its west edge differ (shelter and funneling; the lake-wide fetch grid, probably GDAL 3.8 against the original's version). Those cells are far from both towns and ride along in this rebake.
+
+### 17.4 Still to do
+
+- Jared's by-eye check that La Pointe and Washburn are recognizable from the water (§16.4, piece I).
+- Their markets: the §4.2 profiles in piece A's `markets.json`.
+- A Sanborn-map pass on Washburn's waterfront (R1 §6) when the docks districts come (Phase 7), and Washburn's 1900 population (R1 open item 4).
+- Red Cliff and Bad River, after the tribal sources pass (decision 2, §16.6).
+
 ---
 
 ## Changelog
+
 - v0.5: Phase 4 piece A built (§16.8): goods in CU, port markets with drift and seasons, the purse and the hold, cargo load, save v5, the balance harness.
+- v0.5: Phase 4 piece I recorded (§17): La Pointe and Washburn footprints, harbors and ports.
 - v0.4: Phase 4 scope proposed (§16): what Phase 3 changes, deliverables, exit criteria, twelve work pieces, the Stockton stash and the island smuggler, decisions for Jared.
 - v0.3: Gap review: harbor tug tow service added.
 - v0.2: Decisions: separate Standing, cash at risk, contract theft once per company, no bank, companies don't arm up (grudge limited to legit effects).

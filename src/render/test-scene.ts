@@ -16,7 +16,7 @@ import type { Sea } from '../sim/weather/waves';
 import { CameraRig } from './camera-rig';
 import type { GameRenderer } from './renderer';
 import { createSchooner, styleSchooner, type SchoonerModel } from './ships/schooner';
-import { T1_SCHOONER_LINES } from './ships/schooner-lines';
+import { schoonerLines, type SchoonerLines } from './ships/schooner-lines';
 import type { NpcView } from './ships/npc-view';
 import { OutlineSettings } from './style/outline';
 import { StyleLighting } from './style/stylized-material';
@@ -40,7 +40,13 @@ import {
   vegetationFades,
   type VegetationView,
 } from './vegetation/vegetation';
-import { createShipWake, measureWaterline, type ShipWake, type WakeShip } from './water/wake';
+import {
+  createShipWake,
+  measureWaterline,
+  type ShipWake,
+  type WakeShip,
+  type WaterlineHull,
+} from './water/wake';
 import { createWater, WATER_FAR_RADIUS_M, type Water } from './water/water';
 import { bakeShore } from './water/shore';
 import { createSpray, type Spray } from './water/spray';
@@ -308,7 +314,16 @@ export async function createTestScene(
   // Each ship has its own model: the sails and booms pose to its own sailing state.
   const objects = new Map<Entity, SchoonerModel>();
   const wakes = new Map<Entity, ShipWake>();
-  const hull = measureWaterline(createSchooner(T1_SCHOONER_LINES).group);
+  // The waterline each class's wake is measured from, built once per class.
+  const waterlines = new Map<SchoonerLines, WaterlineHull>();
+  const waterlineOf = (lines: SchoonerLines): WaterlineHull => {
+    let hull = waterlines.get(lines);
+    if (!hull) {
+      hull = measureWaterline(createSchooner(lines).group);
+      waterlines.set(lines, hull);
+    }
+    return hull;
+  };
   // NPC ships load their module with the first one (Phase 3 piece H).
   let npcs: NpcView | undefined;
   let npcsLoading: Promise<void> | undefined;
@@ -335,14 +350,15 @@ export async function createTestScene(
         .catch((err: unknown) => console.error('NPC ships unavailable', err));
       return;
     }
-    const model = createSchooner(T1_SCHOONER_LINES);
+    const lines = schoonerLines(e.sailing?.cls.id);
+    const model = createSchooner(lines);
     styleSchooner(model, lighting, outlines);
     model.group.rotation.order = 'YXZ';
     if (e.sailing) model.settle(e.sailing.state, 0);
     objects.set(e, model);
     scene.add(model.group);
     if (e.sailing) {
-      const wake = createShipWake(hull, water);
+      const wake = createShipWake(waterlineOf(lines), water);
       wakes.set(e, wake);
       scene.add(wake.mesh);
     }
@@ -458,7 +474,7 @@ export async function createTestScene(
           ship.speed = sceneSpeed(s.speed, R_SAILING, DEFAULT_COMPRESSION);
           ship.pitch = t.pitch ?? 0;
           wake.update(ship, now);
-          spray.emit(e, ship, hull, frameSeconds);
+          spray.emit(e, ship, waterlineOf(model.lines), frameSeconds);
         }
       }
       // NPC ships: posed on the swell, their wakes, smoke into the wind, lights from dusk.
