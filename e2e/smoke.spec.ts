@@ -487,3 +487,83 @@ test('plays the chart theme, the encounter stingers and the fade to fog', async 
   await expect(body).toHaveAttribute('data-stinger', 'hunted');
   expect(errors).toEqual([]);
 });
+
+interface PortHook {
+  dock(key: string): boolean;
+  docked(): string | undefined;
+  knowledge(): Record<string, Record<string, { sellCents: number }>>;
+  stores(): Record<string, number>;
+}
+
+// Phase 4 piece B: docking at a port's pier opens its screen; selling and buying there move
+// the purse and the hold, the chandlery fills the lockers, the ledger keeps the prices, and
+// Esc, P, J and F work the screens and the berth.
+test('docks at Bayfield, trades on the port screen, and keeps the ledger', async ({ page }) => {
+  const errors = collectErrors(page);
+  const body = page.locator('body');
+  await page.goto('/?renderer=null&debug&harbor=bayfield');
+  await expect(body).toHaveAttribute('data-terrain', 'loaded');
+  await page.waitForFunction(() => '__glpChart' in window);
+  const docked = await page.evaluate(() =>
+    (window as unknown as { __glpPort: PortHook }).__glpPort.dock('bayfield_city'),
+  );
+  expect(docked).toBe(true);
+
+  const screen = page.getByTestId('port-screen');
+  await expect(screen).toBeVisible({ timeout: 15_000 });
+  await expect(screen).toHaveAttribute('data-port', 'port.bayfield');
+  await expect(body).toHaveAttribute('data-port', 'port.bayfield');
+  await expect(page.getByTestId('port-purse')).toHaveText('$150.00');
+
+  // Shift-click sells all the rope and canvas.
+  await page.getByTestId('sell-good.rope_canvas').click({ modifiers: ['Shift'] });
+  await expect(page.getByTestId('hold-row')).toHaveCount(0);
+  const purse = Number((await page.getByTestId('port-purse').innerText()).replace(/[$,]/g, ''));
+  expect(purse).toBeGreaterThan(150);
+
+  // Pick lumber, slide to 4 CU, buy.
+  await page.getByTestId('buy-good.lumber').click();
+  await page.getByTestId('trade-qty').fill('4');
+  await expect(page.getByTestId('trade-qty-text')).toHaveText('4 CU');
+  await page.getByTestId('trade-confirm').click();
+  await expect(page.getByTestId('hold-row')).toHaveCount(1);
+  await expect(page.getByTestId('port-capacity')).toContainText('4 / 20 CU');
+
+  await page.getByTestId('port-tab-chandlery').click();
+  await page.getByTestId('store-store.lamp_oil').click();
+  const stores = await page.evaluate(() =>
+    (window as unknown as { __glpPort: PortHook }).__glpPort.stores(),
+  );
+  expect(stores).toEqual({ 'store.lamp_oil': 1 });
+
+  // J turns to the ledger, which has Bayfield's prices.
+  await page.keyboard.press('KeyJ');
+  await expect(page.getByTestId('ledger')).toBeVisible();
+  await expect(page.getByTestId('ledger-port')).toContainText('Bayfield');
+
+  // Esc goes back aboard, still docked; the HUD offers the port again, and P reopens it.
+  await page.keyboard.press('Escape');
+  await expect(screen).toHaveCount(0);
+  await expect(page.getByTestId('settings-menu')).toHaveCount(0);
+  await expect(page.getByTestId('hud-port')).toHaveText(/Bayfield/);
+  await page.keyboard.press('KeyP');
+  await expect(screen).toBeVisible();
+
+  // F on the screen casts off.
+  await page.keyboard.press('KeyF');
+  await expect(screen).toHaveCount(0);
+  await expect(page.getByTestId('hud-status').filter({ hasText: 'Casting off' })).toHaveCount(1);
+  await expect(page.getByTestId('hud-port')).toHaveCount(0);
+
+  // At the helm, J opens the ledger on its own.
+  await page.keyboard.press('KeyJ');
+  await expect(page.getByTestId('journal')).toBeVisible();
+  await page.keyboard.press('KeyJ');
+  await expect(page.getByTestId('journal')).toHaveCount(0);
+
+  const known = await page.evaluate(() =>
+    (window as unknown as { __glpPort: PortHook }).__glpPort.knowledge(),
+  );
+  expect(Object.keys(known)).toEqual(['port.bayfield']);
+  expect(errors).toEqual([]);
+});

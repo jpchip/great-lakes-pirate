@@ -1,0 +1,30 @@
+[
+  {
+    "id": "store.patch_kit",
+    "name": "Patch kit",
+    "blurb": "Planks, oakum and pitch to stop a leak at sea.",
+    "priceCents": 800,
+    "max": 6
+  },
+  {
+    "id": "store.mend_kit",
+    "name": "Mend kit",
+    "blurb": "Canvas, twine and spare line to mend torn rigging at sea.",
+    "priceCents": 600,
+    "max": 6
+  },
+  {
+    "id": "store.lamp_oil",
+    "name": "Lamp oil",
+    "blurb": "A can of kerosene for the running lights: a week of nights.",
+    "priceCents": 60,
+    "max": 12
+  },
+  {
+    "id": "store.provisions",
+    "name": "Provisions",
+    "blurb": "Salt pork, hardtack, flour and coffee: a week's food for the crew.",
+    "priceCents": 250,
+    "max": 8
+  }
+]

@@ -32,7 +32,9 @@ export type Action =
   | 'Spyglass'
   | 'AimMode'
   | 'Fire'
-  | 'ToggleChart';
+  | 'ToggleChart'
+  | 'Port'
+  | 'Journal';
 
 export type Bindings = Record<InputContext, Partial<Record<Action, readonly string[]>>>;
 
@@ -56,6 +58,9 @@ export const DEFAULT_BINDINGS: Bindings = {
     Spyglass: ['Mouse2'],
     Interact: ['KeyF'],
     ToggleChart: ['KeyM'],
+    // Phase 4 piece B: the port screen while docked at a port, and the journal's ledger.
+    Port: ['KeyP'],
+    Journal: ['KeyJ'],
     // Reserved for combat (plan 07).
     AimMode: ['Tab'],
     Fire: ['Mouse0'],
@@ -80,6 +85,7 @@ export const DEFAULT_BINDINGS: Bindings = {
     ToggleChart: ['KeyM'],
     Confirm: ['Enter'],
     Cancel: ['Backspace'],
+    Journal: ['KeyJ'],
   },
 };
 
@@ -91,6 +97,8 @@ export class InputMapper {
   context: InputContext = 'menu';
   private readonly held = new Set<string>();
   private readonly pressedThisTick = new Set<string>();
+  /** Actions pressed by the UI this tick (a screen's "Cast off" button). */
+  private readonly triggered = new Set<Action>();
   private detach: (() => void) | undefined;
 
   constructor(public bindings: Bindings = DEFAULT_BINDINGS) {}
@@ -136,11 +144,20 @@ export class InputMapper {
 
   /** True if an input bound to `action` went down since the last `endTick()`. */
   pressed(action: Action): boolean {
-    return this.codes(action).some((code) => this.pressedThisTick.has(code));
+    return (
+      this.triggered.has(action) ||
+      this.codes(action).some((code) => this.pressedThisTick.has(code))
+    );
+  }
+
+  /** Presses an action for the next tick, as if its key went down: for on-screen buttons. */
+  trigger(action: Action): void {
+    this.triggered.add(action);
   }
 
   endTick(): void {
     this.pressedThisTick.clear();
+    this.triggered.clear();
   }
 
   private codes(action: Action): readonly string[] {
@@ -166,6 +183,8 @@ export const REBINDABLE: Partial<Record<InputContext, readonly Action[]>> = {
     'Spyglass',
     'Interact',
     'ToggleChart',
+    'Port',
+    'Journal',
   ],
 };
 

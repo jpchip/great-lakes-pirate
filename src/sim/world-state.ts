@@ -141,6 +141,27 @@ export const marketsSchema = z.record(
   ),
 );
 
+/**
+ * What the captain knows of prices elsewhere (plan 05 §4.3, §11 `knowledge.prices`; save
+ * v6, Phase 4 piece B): per port and good, the last prices seen and when.
+ */
+export const knowledgeSchema = z.object({
+  prices: z.record(
+    z.string(),
+    z.record(
+      z.string(),
+      z.object({
+        buyCents: z.number().int().nonnegative(),
+        sellCents: z.number().int().nonnegative(),
+        seenAt: z.number(),
+      }),
+    ),
+  ),
+});
+
+/** Ship's stores in the lockers, by store id (plan 05 §7; save v6). */
+export const storesSchema = z.record(z.string(), z.number().int().nonnegative());
+
 /** A Phase 4 captain before character creation: the Deckhand of plan 12 §2.2. */
 export function defaultCaptain(): Captain {
   return { name: 'Captain', shipName: 'Schooner', background: 'deckhand' };
@@ -157,9 +178,12 @@ export const worldStateSchema = z.object({
     /** Cash on hand, integer cents (plan 05 §2). Stashed money is the stash's (piece E). */
     purse: z.number().int().nonnegative(),
     cargo: z.array(cargoStackSchema),
+    /** Patch and mend kits, lamp oil, provisions (the chandlery; piece B). */
+    stores: storesSchema,
   }),
   voyage: voyageSchema.nullable(),
   markets: marketsSchema,
+  knowledge: knowledgeSchema,
   environment: z.looseObject({
     clock: clockStateSchema,
     /** Saved so a reload continues the same random sequence (plan 16 §4.4). */
@@ -180,9 +204,11 @@ export function createWorldState(seed: string): WorldState {
       captain: defaultCaptain(),
       purse: DECKHAND_PURSE_CENTS,
       cargo: DECKHAND_CARGO.map((s) => ({ ...s })),
+      stores: {},
     },
     voyage: null,
     markets: createMarkets(gameEconomy(), clock.gameSeconds),
+    knowledge: { prices: {} },
     environment: {
       clock,
       rng: Rng.fromSeed(seed).getState(),

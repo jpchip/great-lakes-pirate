@@ -60,6 +60,8 @@ const ACTION_LABELS: Partial<Record<Action, string>> = {
   Spyglass: 'Spyglass',
   Interact: 'Interact',
   ToggleChart: 'Chart',
+  Port: 'Port screen (docked)',
+  Journal: 'Journal',
 };
 
 const HUD_LABELS: Record<HudDensity, string> = {
