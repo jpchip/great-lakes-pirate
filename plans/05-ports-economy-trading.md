@@ -273,6 +273,7 @@ All resolved.
 | 2026-10-21 | **No bank**, and nothing freezes the player's money. |
 | 2026-10-21 | **Companies don't arm up** (no guards, decoys or company bounties); grudge affects only contracts, prices and goods detection. |
 | 2026-10-22 | **Harbor tug tows** can be hired in the four big harbors, mainly for T3 in calms. |
+| 2026-11-01 | Phase 4's one fence is **an island smuggler in the Apostles**: a boat at an island anchorage after dark that sells contraband and fences hot goods. Bayfield's back-room fence follows in Phase 7 (§16.6). |
 
 ---
 
@@ -383,7 +384,7 @@ Twelve pieces, each sized to be one thread. Three can start at once (A, I, and t
 
 ### 16.6 Decisions for Jared
 
-1. **Where does Phase 4's one fence live?**
+1. **Where does Phase 4's one fence live?** **Decided 2026-11-01: the island smuggler.**
    - **An island smuggler in the Apostles (recommended):** a boat lying at an anchorage among the islands after dark (Oak Island's lee, say, or behind Sand Island). Sail out, meet her alongside, trade by lantern light. It needs no on-foot mode, puts the shady half of the game out in the islands where Jared felt it belongs, and gives the stash a neighbor. Plan 08's Bayfield back-room fence still comes in Phase 7 as the second.
    - **Bayfield's fish pier after dark:** dock there at night and the fence's menu opens. It's the plan 08 fence early, in town, and it moves on foot in Phase 7. Less of the islands.
    - **No fence until Phase 6:** Phase 4 has contraband from a smuggler only, and hot goods wait until there's theft. The smallest Phase 4, and criterion 7 shrinks.
