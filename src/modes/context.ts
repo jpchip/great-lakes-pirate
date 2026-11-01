@@ -1,6 +1,7 @@
 import type { EventBus } from '../core/events';
 import type { InputMapper } from '../core/input';
 import type { Rng } from '../core/rng';
+import type { ContactKind } from '../sim/chart/traffic';
 import type { GameWorld } from '../gameplay/ecs';
 import type { LocalWeather } from '../sim/weather/local-weather';
 import type { ZoneTerrain } from '../sim/terrain/zone-terrain';
@@ -15,7 +16,8 @@ export interface GameEvents {
   /** Chart travel (plan 03 §9). */
   VoyageStarted: { legs: number; lengthM: number; destinationZoneId: string | undefined };
   VoyageArrived: { zoneId: string | undefined };
-  EncounterSpotted: { contactId: string; forced: boolean };
+  /** `kind` and `hostile` from the contact, for the encounter stingers (plan 15 §6.1). */
+  EncounterSpotted: { contactId: string; forced: boolean; kind: ContactKind; hostile: boolean };
   EncounterEngaged: { contactId: string; forced: boolean };
   EncounterAvoided: { contactId: string; escaped: boolean };
   /** Open-water arenas (plan 03 §6.3, Phase 3 piece G). */

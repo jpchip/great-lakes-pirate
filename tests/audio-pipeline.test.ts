@@ -9,6 +9,12 @@ import {
   WORLD_AUDIO_BUNDLE,
 } from '../src/audio/game-audio';
 import { WORLD_SOUND } from '../src/audio/world-audio';
+import {
+  CHART_AUDIO_BUNDLE,
+  CHART_MUSIC_BUNDLE,
+  CHART_MUSIC_CUE,
+  CHART_SOUND,
+} from '../src/audio/chart-audio';
 import { NPC_RECORDS } from '../src/gameplay/npc-ships';
 import { assetManifestSchema } from '../src/core/assets';
 import {
@@ -163,16 +169,31 @@ describe('shipped sounds (plan 15 §3.2, §8)', () => {
     }
   });
 
+  it('has the chart theme, every stinger and the fade to fog (Phase 3 piece J)', () => {
+    expect(manifest.bundles[CHART_MUSIC_BUNDLE]).toContain(CHART_MUSIC_CUE);
+    const bundle = manifest.bundles[CHART_AUDIO_BUNDLE] ?? [];
+    for (const id of Object.values(CHART_SOUND.stinger)) expect(bundle, id).toContain(id);
+    expect(bundle).toContain(CHART_SOUND.transition);
+  });
+
   it('keeps the initial audio download within 5 MB, music streaming on top', () => {
     const size = (bundle: string): number =>
       (manifest.bundles[bundle] ?? []).reduce(
         (sum, id) => sum + (manifest.assets[id]?.bytes ?? 0),
         0,
       );
+    // Plan 15 §8: what's decoded up front stays small; the music cues stream on demand.
+    const decoded = [SAILING_AUDIO_BUNDLE, WORLD_AUDIO_BUNDLE, CHART_AUDIO_BUNDLE];
+    const streamed = [MUSIC_BUNDLE, CHART_MUSIC_BUNDLE];
     expect(size(SAILING_AUDIO_BUNDLE) + size(WORLD_AUDIO_BUNDLE)).toBeLessThanOrEqual(
       1.5 * 1024 * 1024,
     );
-    const bytes = Object.values(manifest.assets).reduce((sum, a) => sum + (a.bytes ?? 0), 0);
-    expect(bytes).toBeLessThanOrEqual(5 * 1024 * 1024);
+    const initial = decoded.reduce((sum, b) => sum + size(b), 0);
+    expect(initial).toBeLessThanOrEqual(5 * 1024 * 1024);
+    // Every sound is in one of those bundles, so nothing slips past the budget.
+    const bundled = new Set([...decoded, ...streamed].flatMap((b) => manifest.bundles[b] ?? []));
+    for (const id of Object.keys(manifest.assets)) expect(bundled, id).toContain(id);
+    // The streamed music has its own ceiling, so it doesn't grow unnoticed.
+    expect(streamed.reduce((sum, b) => sum + size(b), 0)).toBeLessThanOrEqual(6 * 1024 * 1024);
   });
 });

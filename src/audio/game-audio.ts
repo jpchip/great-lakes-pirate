@@ -5,6 +5,14 @@ import { sunAt } from '../sim/weather/celestial';
 import { seaScaleAt } from '../sim/weather/waves';
 import type { GameContext } from '../modes/context';
 import { loadSoundBank, soundUrls, type SoundBank } from './bank';
+import {
+  CHART_AUDIO_BUNDLE,
+  CHART_MUSIC_BUNDLE,
+  CHART_MUSIC_CUE,
+  ChartCues,
+  ChartMusic,
+  stingerFor,
+} from './chart-audio';
 import { AudioMixer, placeListener, unlockAudio, type AudioPoint, type AudioState } from './mixer';
 import { MusicDirector, createStreamPlayer, type MusicPlayer } from './music';
 import { SailingSoundscape } from './sailing-audio';
@@ -18,7 +26,8 @@ import { fogMix, musicMood, type MusicMood } from './world-mix';
  * Audio for the running game: the mixer on three.js's shared AudioContext (plan 01 §2),
  * the autoplay unlock, the sailing soundscape fed from the player's ship each frame, the
  * world around it (weather, fog signals, birds; Phase 2 piece H), the NPC ships' whistles
- * (Phase 3 piece J), and open-water music.
+ * (Phase 3 piece J), open-water music, and on the chart its theme and the encounter
+ * stingers, with the fade-to-fog sound under each loading screen (piece J, part 2).
  */
 
 export const SAILING_AUDIO_BUNDLE = 'sailing-audio';
@@ -42,10 +51,15 @@ export interface GameAudio {
   world: WorldSoundscape;
   whistles: ShipWhistles;
   music: MusicDirector;
+  chartMusic: ChartMusic;
+  chartCues: ChartCues;
   /** The music mood now, for the dev panel. */
   readonly mood: MusicMood;
-  /** Call once per rendered frame with the current mode. */
-  update(frameSeconds: number, mode: string | undefined): void;
+  /**
+   * Call once per rendered frame with the current mode, and whether the loading fade is up
+   * (its rising edge plays the fade-to-fog sound).
+   */
+  update(frameSeconds: number, mode: string | undefined, loading?: boolean): void;
   /** Hear from the camera instead of the ship once there is one. */
   setListener(pose: () => ListenerPose): void;
   /** A new zone's fog signals and harbors (Phase 3 piece A). */
@@ -83,12 +97,15 @@ export async function createGameAudio(options: GameAudioOptions): Promise<GameAu
 
   // Decoding works while the context is still locked, so this needn't wait for a click.
   const baseUrl = target.document.baseURI;
-  const [bank, musicUrls] = await Promise.all([
-    loadSoundBank(ctx, [SAILING_AUDIO_BUNDLE, WORLD_AUDIO_BUNDLE], baseUrl),
-    soundUrls(MUSIC_BUNDLE, baseUrl).catch((err: unknown) => {
-      console.warn('Music unavailable', err);
+  const urlsOf = (bundle: string): Promise<ReadonlyMap<string, string>> =>
+    soundUrls(bundle, baseUrl).catch((err: unknown) => {
+      console.warn(`Music ${bundle} unavailable`, err);
       return new Map<string, string>();
-    }),
+    });
+  const [bank, musicUrls, chartUrls] = await Promise.all([
+    loadSoundBank(ctx, [SAILING_AUDIO_BUNDLE, WORLD_AUDIO_BUNDLE, CHART_AUDIO_BUNDLE], baseUrl),
+    urlsOf(MUSIC_BUNDLE),
+    urlsOf(CHART_MUSIC_BUNDLE),
   ]);
   const sailing = new SailingSoundscape(mixer, bank);
   const world = new WorldSoundscape(mixer, bank, options.stations);
@@ -101,6 +118,20 @@ export async function createGameAudio(options: GameAudioOptions): Promise<GameAu
     if (url) players[mood] = createStreamPlayer(ctx, url, mixer.buses.music, target.document);
   }
   const music = new MusicDirector({ players });
+  const chartUrl = chartUrls.get(CHART_MUSIC_CUE);
+  const chartMusic = new ChartMusic(
+    chartUrl
+      ? createStreamPlayer(ctx, chartUrl, mixer.buses.music, target.document, true)
+      : undefined,
+  );
+  const chartCues = new ChartCues(mixer, bank, chartMusic);
+  const running = (): boolean => ctx.state === 'running';
+  game.events.on('EncounterSpotted', (e) => {
+    if (running()) chartCues.stinger(stingerFor(e));
+  });
+  game.events.on('EncounterAvoided', ({ escaped }) => {
+    if (running()) chartCues.stinger(escaped ? 'clear' : 'hunted');
+  });
 
   const isPlayer = (shipId: string | undefined): boolean => {
     const player = game.world.with('playerControlled').first;
@@ -124,6 +155,7 @@ export async function createGameAudio(options: GameAudioOptions): Promise<GameAu
   });
 
   let active = false;
+  let wasLoading = false;
   let mood: MusicMood = 'quiet';
   let nowS = 0;
   let listener: (() => ListenerPose) | undefined;
@@ -138,11 +170,17 @@ export async function createGameAudio(options: GameAudioOptions): Promise<GameAu
     world,
     whistles,
     music,
+    chartMusic,
+    chartCues,
     get mood() {
       return mood;
     },
-    update(frameSeconds, mode) {
+    update(frameSeconds, mode, loading = false) {
       nowS += frameSeconds;
+      if (loading && !wasLoading && running()) chartCues.transition();
+      wasLoading = loading;
+      // The chart's theme while the chart is up; the fog fade hands over to the zone.
+      chartMusic.update(frameSeconds, mode === 'chart' && !loading && running());
       const player = game.world.with('playerControlled', 'transform', 'sailing').first;
       const sailingNow = mode === 'sailing' && player !== undefined;
       if (sailingNow !== active) {

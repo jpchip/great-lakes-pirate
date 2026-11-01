@@ -1,4 +1,3 @@
-import { Rng } from '../../src/core/rng';
 import { ChartView, type ChartFrame } from '../../src/render/chart/chart-view';
 import { westernSuperiorChart } from '../../src/sim/chart/chart-data';
 import { createContacts, spotRangeM } from '../../src/sim/chart/traffic';
@@ -24,7 +23,7 @@ const out = document.getElementById('out') as HTMLPreElement;
 const canvas = document.getElementById('chart') as HTMLCanvasElement;
 const view = new ChartView(canvas);
 const geo = westernSuperiorChart();
-const contacts = createContacts(geo.projection, Rng.fromSeed('bench'));
+const contacts = createContacts(geo.projection, 'bench', 12 * 3600);
 const hour = params.has('night') ? 22 : 12;
 const frame: ChartFrame = {
   geo,

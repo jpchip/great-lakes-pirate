@@ -6,6 +6,7 @@ import { harborsFileSchema } from './harbors';
 import { islandsFileSchema } from './islands';
 import { lighthousesFileSchema } from './lighthouses';
 import { portsFileSchema } from './ports';
+import { routesFileSchema } from './routes';
 import { shipsFileSchema } from './ships';
 import { zonesFileSchema } from './zones';
 
@@ -19,6 +20,7 @@ export const dataFileSchemas: Readonly<Record<string, z.ZodType>> = {
   'islands.json': islandsFileSchema,
   'lighthouses.json': lighthousesFileSchema,
   'ports.json': portsFileSchema,
+  'routes.json': routesFileSchema,
   'ships.json': shipsFileSchema,
   'zones.json': zonesFileSchema,
 };

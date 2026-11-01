@@ -433,6 +433,16 @@ async function boot(): Promise<void> {
     return undefined;
   });
   if (audio) document.body.dataset['audioBank'] = String(audio.bank.size);
+  /** The chart's music and cues on the page, for the e2e tests; written only on a change. */
+  const audioCuesToDataset = (a: GameAudio): void => {
+    const d = document.body.dataset;
+    const chartMusic = a.chartMusic.playing ? 'playing' : 'off';
+    if (d['chartMusic'] !== chartMusic) d['chartMusic'] = chartMusic;
+    const stinger = a.chartCues.last;
+    if (stinger && d['stinger'] !== stinger) d['stinger'] = stinger;
+    const fades = String(a.chartCues.transitions);
+    if (d['audioFades'] !== fades) d['audioFades'] = fades;
+  };
 
   let changingZone = false;
   // Chart travel (Phase 3 piece D); built once the UI is up.
@@ -1030,15 +1040,19 @@ async function boot(): Promise<void> {
           travel.resumeFrom(exit.contactId, exit.result);
         });
       // A hostile that forced the meeting hunts you in the arena; one you chose to close
-      // with stands on. (Until Phase 5's Wanted, piece F stops the cutter forcing at all.)
+      // with stands on. (Until Phase 5's Wanted the cutter forces nothing unless ?cutter=hunt.)
       void enterArena(
         arenaFromChartEncounter(enc, travel.session.position, travel.session.heading, {
           hunting: enc.forced && enc.contact.hostile,
+          company: travel.session.contacts,
         }),
         true,
       );
     },
-    seed: state.environment.rng.join('-'),
+    // A stable per-run number from the save (the RNG state moves on as the run plays), so
+    // the traffic's timetables are the same after a reload.
+    seed: `run-${state.environment.weather.noiseSeed}`,
+    cutterHunts: params.get('cutter') === 'hunt',
   });
   travelRef.current = chartTravel;
   machine.register(chartTravel.mode);
@@ -1084,16 +1098,28 @@ async function boot(): Promise<void> {
        */
       meet(kind: string, forced = false) {
         const { session } = chartTravel;
+        // Nearest on the water; one lying in port only if none of that kind is out.
         const near = session.contacts
           .filter((c) => c.kind === kind)
-          .sort((a, b) => distance(a.pos, session.position) - distance(b.pos, session.position))[0];
+          .sort(
+            (a, b) =>
+              Number(!!a.inPort) - Number(!!b.inPort) ||
+              distance(a.pos, session.position) - distance(b.pos, session.position),
+          )[0];
         if (!near) return undefined;
         session.pending = {
           contact: near,
           forced,
           distanceM: distance(near.pos, session.position),
           bearing: bearing(session.position, near.pos),
+          ...(near.hostile ? { hunts: forced } : {}),
         };
+        ctx.events.emit('EncounterSpotted', {
+          contactId: near.id,
+          forced,
+          kind: near.kind,
+          hostile: near.hostile,
+        });
         return near.id;
       },
     };
@@ -1128,7 +1154,8 @@ async function boot(): Promise<void> {
     },
     frame(alpha, frameSeconds) {
       machine.render(alpha, frameSeconds);
-      audio?.update(frameSeconds, machine.mode);
+      audio?.update(frameSeconds, machine.mode, machine.hasOverlay('loading'));
+      if (audio) audioCuesToDataset(audio);
       ui.setSpyglass(cameraRig?.ship.spyglass ?? false);
       hudClock += frameSeconds;
       hudSeconds += frameSeconds;

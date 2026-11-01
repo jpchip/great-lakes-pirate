@@ -97,8 +97,8 @@ test('settings pause the game, persist, and rebind keys', async ({ page }) => {
   expect(errors).toEqual([]);
 });
 
-// Plan 15 §8: the sailing (14) and world (19, with the ships' whistles) sounds decode up
-// front and audio starts on the first key.
+// Plan 15 §8: the sailing (14), world (19, with the ships' whistles) and chart (7: the
+// stingers and the fade to fog) sounds decode up front and audio starts on the first key.
 test('loads the sailing and world sounds and unlocks audio on the first key press', async ({
   page,
 }) => {
@@ -106,7 +106,7 @@ test('loads the sailing and world sounds and unlocks audio on the first key pres
   const body = page.locator('body');
   await page.goto('/?renderer=null');
   await expect(body).toHaveAttribute('data-mode', 'sailing');
-  await expect(body).toHaveAttribute('data-audio-bank', '33');
+  await expect(body).toHaveAttribute('data-audio-bank', '40');
   await page.keyboard.press('KeyW');
   await expect(body).toHaveAttribute('data-audio', 'running');
   expect(errors).toEqual([]);
@@ -380,5 +380,49 @@ test('meets a ship from the chart in an arena and sails on', async ({ page }) =>
   await expect(body).toHaveAttribute('data-mode', 'chart');
   await expect(page.getByTestId('chart-notice')).toContainText('Boarded');
   await expect(page.getByTestId('chart-status')).not.toContainText('Under way');
+  expect(errors).toEqual([]);
+});
+
+// Phase 3 piece J, part 2: the chart's theme starts once the chart has been open a moment,
+// the lookout's reports bring their stingers, and the fade to fog sounds under each load.
+test('plays the chart theme, the encounter stingers and the fade to fog', async ({ page }) => {
+  const errors = collectErrors(page);
+  const body = page.locator('body');
+  await page.goto('/?renderer=null&debug&zone=zone.apostles&spawn=-3350,-2450,270');
+  await expect(page.getByTestId('take-to-chart')).toBeVisible();
+  await page.keyboard.press('KeyW');
+  await expect(body).toHaveAttribute('data-audio', 'running');
+  await expect(body).toHaveAttribute('data-chart-music', 'off');
+  await page.getByTestId('take-to-chart').click();
+  await expect(body).toHaveAttribute('data-mode', 'chart');
+  await expect(body).toHaveAttribute('data-chart-music', 'playing');
+  await page.evaluate(() =>
+    (window as unknown as { __glpChart: ChartHook }).__glpChart.plot([
+      [46.97, -91.6],
+      [46.85, -91.95],
+    ]),
+  );
+  await page.keyboard.press('Enter');
+  await expect(page.getByTestId('chart-status')).toContainText('Under way');
+
+  await page.evaluate(() =>
+    (window as unknown as { __glpChart: ChartHook }).__glpChart.meet('freighter'),
+  );
+  await expect(body).toHaveAttribute('data-stinger', 'sail');
+  await page.getByTestId('encounter-engage').click();
+  await expect(body).toHaveAttribute('data-arena', 'ship');
+  await expect(body).toHaveAttribute('data-audio-fades', '1');
+  await expect(body).toHaveAttribute('data-chart-music', 'off');
+  await page.evaluate(() =>
+    (window as unknown as { __glpArena: ArenaHook }).__glpArena.place(0, -1600),
+  );
+  await expect(body).toHaveAttribute('data-mode', 'chart');
+  await expect(body).toHaveAttribute('data-audio-fades', '2');
+  await expect(body).toHaveAttribute('data-chart-music', 'playing');
+
+  await page.evaluate(() =>
+    (window as unknown as { __glpChart: ChartHook }).__glpChart.meet('cutter', true),
+  );
+  await expect(body).toHaveAttribute('data-stinger', 'hunted');
   expect(errors).toEqual([]);
 });

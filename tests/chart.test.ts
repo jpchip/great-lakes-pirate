@@ -20,7 +20,6 @@ import {
   checkEncounters,
   createContacts,
   daylight,
-  PROTOTYPE_CONTACTS,
   spotRangeM,
   stepContacts,
   type Contact,
@@ -181,8 +180,8 @@ describe('sailing model', () => {
 });
 
 describe('traffic and encounters', () => {
-  it('keeps every lane in open water', () => {
-    const contacts = createContacts(geo.projection, Rng.fromSeed('lanes'));
+  it('keeps every contact on open water', () => {
+    const contacts = createContacts(geo.projection, 'lanes');
     for (const c of contacts) {
       expect(isWater(geo, c.pos), c.id).toBe(true);
       const points = c.lane?.points ?? [];
@@ -193,13 +192,16 @@ describe('traffic and encounters', () => {
         ).toBeUndefined();
       }
     }
-    expect(contacts).toHaveLength(PROTOTYPE_CONTACTS.length);
   });
 
-  it('moves ships along their lanes and back', () => {
-    const contacts = createContacts(geo.projection, Rng.fromSeed('move'));
+  it('moves ships along their lanes and keeps them on the water', () => {
+    const contacts = createContacts(geo.projection, 'move');
     const wind = { from: 0, speedKn: 10 };
-    for (let i = 0; i < 2000; i++) stepContacts(contacts, 600, wind, geo.charted);
+    let now = 0;
+    for (let i = 0; i < 2000; i++) {
+      now += 600;
+      stepContacts(contacts, 600, wind, geo.charted, now);
+    }
     for (const c of contacts) {
       if (c.kind !== 'storm') expect(isWater(geo, c.pos), c.id).toBe(true);
     }
@@ -234,6 +236,8 @@ describe('traffic and encounters', () => {
     const here = { x: 0, y: 0 };
     const none = new Set<string>();
     expect(checkEncounters(here, [tug], 12, 0, 'all', none)?.contact.id).toBe('ship.tug');
+    // A ship lying in port isn't on the water to be seen.
+    expect(checkEncounters(here, [{ ...tug, inPort: true }], 12, 0, 'all', none)).toBeUndefined();
     expect(checkEncounters(here, [tug], 12, 0, 'threatsAndPrizes', none)).toBeUndefined();
     expect(tug.lastSeen?.at).toBe(0);
 

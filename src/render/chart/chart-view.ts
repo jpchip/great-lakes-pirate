@@ -30,6 +30,8 @@ export interface ChartFrame {
   course: PlannedCourse | undefined;
   voyage: Voyage | undefined;
   contacts: readonly Contact[];
+  /** Known traffic lanes (plan 03 §5.2), chart polylines, drawn faint under the ships. */
+  lanes?: readonly (readonly Chart[])[];
   /** Game seconds now, for rumor ages. */
   now: number;
   /** 0 at night, 1 by day. */
@@ -186,6 +188,7 @@ export class ChartView {
     }
     this.drawLights(geo, frame.daylight);
     this.drawPorts(geo);
+    this.drawLanes(frame);
     this.drawSpotRange(frame);
     this.drawContacts(frame);
     this.drawCourse(frame);
@@ -564,6 +567,25 @@ export class ChartView {
     ctx.restore();
   }
 
+  private drawLanes(frame: ChartFrame): void {
+    if (!frame.lanes?.length) return;
+    const { ctx } = this;
+    ctx.save();
+    ctx.setLineDash([2, 6]);
+    ctx.strokeStyle = 'rgba(43, 33, 24, 0.28)';
+    ctx.lineWidth = 1.2;
+    for (const line of frame.lanes) {
+      ctx.beginPath();
+      line.forEach((p, i) => {
+        const s = this.toScreen(p);
+        if (i === 0) ctx.moveTo(s.x, s.y);
+        else ctx.lineTo(s.x, s.y);
+      });
+      ctx.stroke();
+    }
+    ctx.restore();
+  }
+
   private drawContacts(frame: ChartFrame): void {
     const { ctx } = this;
     for (const c of frame.contacts) {
@@ -897,6 +919,14 @@ function drawContactGlyph(
       ctx.beginPath();
       ctx.arc(0, 0, 1.5, 0, Math.PI * 2);
       ctx.fill();
+      break;
+    case 'barge':
+      // A sail: a narrow open triangle, point forward.
+      ctx.moveTo(0, -8);
+      ctx.lineTo(4, 7);
+      ctx.lineTo(-4, 7);
+      ctx.closePath();
+      ctx.stroke();
       break;
     case 'tug':
       ctx.arc(0, 0, 3.5, 0, Math.PI * 2);
