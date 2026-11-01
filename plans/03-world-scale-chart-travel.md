@@ -1099,13 +1099,20 @@ Typecheck, lint, Prettier, 748 unit tests and the 12 e2e smoke tests pass on `ma
 ### 29.2 Open items for Jared
 
 1. **The May crossing is about 35 s, against 20–30 s.** A faster chart clock can't fix May alone: 3.0 s a game hour (from 3.5) brings May to about 30 s but the steady-wind crossing to 19.8 s and October to 22 s. Recommended: sail it on the laptop and keep 3.5 s if a spring crossing feels like weather rather than waiting; the calm floor (§28.3) already took the worst of it.
-2. **Arena to chart isn't instant.** Leaving an arena fades to fog and reloads the zone you left before the chart shows: 1.8 s here, probably under a second on the laptop with the zone still cached. Criterion 3 (and §7) said instant. If it reads as a hitch, the fix is to show the chart at once and reload the zone behind it, since the chart doesn't need it until you come back to the helm.
+2. **Arena to chart isn't instant** (0.8 s on the laptop, §29.3). Leaving an arena fades to fog and reloads the zone you left before the chart shows: 1.8 s here, probably under a second on the laptop with the zone still cached. Criterion 3 (and §7) said instant. If it reads as a hitch, the fix is to show the chart at once and reload the zone behind it, since the chart doesn't need it until you come back to the helm.
 3. **The audio is placeholder.** The chart tune, the six stingers, the fade-to-fog sound and the ship whistles are synthesized (`npm run audio:synth`) and need a listen on real speakers: does the whistle carry in fog, do the stingers sit under the chart theme, and is "The Long Reach" one to keep or to replace with a recording.
 4. **The 1900 light colors at the Twin Ports and Two Harbors are guesses** (§27.4, R1 open item 1): the canal's temporary south pier light, the Superior Entry pierhead light and Two Harbors Light. Check them against the 1900 Light List, or accept them for now.
 
 ### 29.3 Results
 
-Filled in from the laptop playtest.
+Filled in from the laptop playtest (Ryzen 7 7730U, Radeon renoir, ANGLE OpenGL).
+
+| # | Result |
+|---|---|
+| 3 | `HEADED=1 npm run bench:transitions` on Medium: chart → zone **0.82–1.10 s** in all three zones (the 0.65 s fade included), uncached, warm or from the 60 s cache; chart → arena **0.68–0.71 s**; arena → chart **0.81–0.83 s**. Pass: arena → chart isn't instant, but it's the fade plus under 0.2 s, so §29.2 item 2 needs no change unless it feels slow in play |
+| 9 | Heap 79.3 MB before and 81.4 MB after the round trip through the three zones (budget 20 MB). Pass |
+
+The rest is filled in from the playtest.
 
 ---
 
