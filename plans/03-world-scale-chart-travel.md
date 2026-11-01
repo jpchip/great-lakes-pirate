@@ -867,11 +867,11 @@ Screenshots are in the project files (`chart-in-game/`).
 - **The chart and the zones use different projections.** The chart geography is centered at 47° N 91° W, while zone frames, entries, the weather sim and the save use core/coords' default around the middle of the lake. `toWorldChart` and `fromWorldChart` (`src/sim/chart/geography.ts`) convert, and the save keeps world-frame points, so it doesn't depend on the chart's projection.
 - **The zone left behind stays loaded** while the ship is on the chart, for the way straight back; arrival swaps it through the zone manager like any zone change. A run saved on the chart loads its `fromZoneId` zone behind the chart.
 - **The Twin Ports and Two Harbors offer the chart from just outside their harbors** (playtest, 2026-10-31: sailing out to their edges took too long). Their `edge.chartFromM` in `zones.json` (1,900 m and 1,400 m inside the edge, which takes in the Duluth canal and Agate Bay mouths) offers "Take to the chart" wherever the open lake lies clear ahead toward the zone's nearest edge (`clearToZoneEdge`), so not in the harbor basin behind Minnesota Point. Arrivals at their entries now show the button at once. The Apostles keep the outer half of their fog fade.
-- **Contacts aren't saved.** The S8 stand-in traffic is rebuilt from the run's seed on load; piece F's route graph replaces it.
+- **Contacts aren't saved.** The S8 stand-in traffic is rebuilt from the run's seed on load; piece F's route graph replaces it. *Piece F (§26): the traffic is a function of the seed and the clock, so it still needs no saving.*
 
 ### 24.4 Still to do
 - Piece E: the chart's wind from the sim (it's sampled from the zone's weather when the ship takes to the chart, then drifts as in S8), and weather drawn on the chart.
-- Piece F: the route graph traffic and a detour cost for Avoid.
+- ~~Piece F: the route graph traffic and a detour cost for Avoid.~~ Done (§26).
 - Piece G is in (§25): engaging or failing to avoid enters its arena, and leaving returns to the chart with the zone reloaded behind it. `chart-spike.html` and `src/debug/chart-spike/` are still to retire.
 - Piece J is in: the chart's theme, the encounter stingers and the fade-to-fog sound (plan 15 §16).
 ## 25. Phase 3 Piece G: Open-Water Arenas (2026-10-31)
@@ -918,15 +918,62 @@ Screenshots are in the project files (`chart-in-game/`).
 
 ### 25.4 Hooks for piece D, and still to do
 - **Piece D calls `enterArena(arenaFromChartEncounter(enc, chartPos, heading))`** on Engage or a failed avoid, and `arenaHooks.onExit` reloads the zone left behind and returns to chart mode with `resumeFrom(exit.contactId)`. An arena entered from a zone (`?encounter=`) still returns there. The chart-locked banner reads `arena.run.pursued` as well as the dev hook. A hostile that forced the meeting hunts you in the arena; caught, the voyage ends where it stands with a "Boarded" notice (no Wanted until Phase 5, so she lets you go). `chart-spike.html` and `src/debug/chart-spike/` are retired, with the spike-only arena tests; an e2e test engages a freighter from the chart, sails off the edge back onto the voyage, and is caught by a hunting cutter. `__glpChart.meet(kind, forced)` raises an encounter for checks.
-- **F fills `ArenaEncounter.ships`** from its abstract ships near the encounter point, with their class, lane heading and speed and an offset each, so a crossing can bring more than one ship.
+- **F fills `ArenaEncounter.ships`** from its abstract ships near the encounter point, with their class, lane heading and speed and an offset each, so a crossing can bring more than one ship. *Done (§26).*
 - **Saving in an arena** keeps the chart voyage when one is under way, so a reload resumes it (§20.5); otherwise the zone place recorded on the way in.
 - **Squalls and fog banks from the sim** are piece E's: the `squall` check uses panel weather until then.
 - The chart-to-arena time on the laptop (criterion 3), and Jared's arena feel check.
 - The player can sail through an NPC hull; collisions come with combat (Phase 6).
 
+## 26. Phase 3 Piece F: Traffic on the Route Graph (2026-11-01)
+
+**Goal** (§20.4, piece F): `data/routes.json` with a schema and land-mask checks; abstract ships on its lanes as `{leg, progress}` on the world tick (01 §3.4), without manifests; an encounter director with a per-voyage budget by route and season (S8 finding 2); a detour cost for Avoid (finding 4); the *Morrill* on patrol, sighted but forcing nothing until Phase 5 (finding 3), with a dev flag to hunt; derelicts as static points of interest.
+
+**Result:** built. The S8 stand-in contacts are gone: 21 ships on 10 lanes and 2 derelicts fill western Superior, and the lookouts see them where their timetables put them. An Apostles crossing gets **1.7 meaningful encounters in May and 2.1 in October** with the default lookout, a Duluth to Two Harbors hop 0.4. Screenshots are in the project files (`traffic/`).
+
+### 26.1 What was built
+
+| Piece | Where | Notes |
+|---|---|---|
+| Route graph | `data/routes.json`, `data/schemas/routes.ts` | Like `chart.json`, a list of features with `[lon, lat]` positions. **11 nodes**: the approaches to Duluth, Superior Entry, Agate Bay, Bayfield, Ashland and Washburn (ships lie in port there, out of sight), three fishing grounds (tugs work there in sight), a turning mark off Sand Island, and **the lower lakes**, a sink at the chart's east edge where down-bound ships leave the chart and come back (plan 05 §8.1). **10 lanes**, each with a use (`trade`, `fishing`, `patrol`), its waypoints, a fleet by class with fictional names, the hours ships lie at each end, and twelve monthly weights: the share of the fleet sailing that month. Ore and grain from Duluth, Two Harbors and Ashland, coal up to Superior, the Duluth–Bayfield–Ashland package line, lumber schooners from Washburn, three fishing runs, and the *Morrill*'s beat between Duluth and Bayfield. One freighter tows a schooner-barge consort. **2 derelicts** |
+| Abstract ships | `src/sim/chart/routes.ts` | Every ship has a timetable on its lane: out, lie at the far end, back, lie at home, with its own phase and lie-overs. Its place is a **pure function of the run's seed and the clock**: `placeTraffic(contacts, t)` puts each one at `{leg, progressM}` and sets whether it's under way or lying in port. At the start of each cycle the lane's monthly weight decides whether the ship sails or stays laid up, so October has about twice the ore boats of May and January none. Half of each fleet calls the far end home, so ships pass both ways |
+| Contacts | `src/sim/chart/traffic.ts` | Contacts carry their class, consorts and timetable; a ship lying in port isn't on the water to be seen. `createContacts(projection, seed, t)` builds the route graph's ships and derelicts plus the stand-in squall (piece E replaces it). A new **barge** kind for the schooner-barges, with its own chart glyph (an open sail) and lookout line |
+| Encounter director | `src/sim/chart/director.ts`, `src/modes/chart.ts` | On setting sail the voyage gets a **budget**: `0.065 × course nm × route × season`, rounded at random in proportion and capped at 3. *Route* is 1 for a course along the trade lanes and 0.35 off them (the share of course points within 6 nm of a trade lane); *season* scales with the share of the fleet sailing that month against the busiest, and is 0 in the ice months. Each report spends one; once spent, only threats are reported. The S8 quiet spell after a report stays, shortened from 2 to 1.5 game hours |
+| The *Morrill* | `checkEncounters` `hostilesHunt`, `?cutter=hunt` | She patrols on the route graph and is reported as a threat, but **forces nothing**: her card says "She keeps her course; she isn't looking for you", and steering clear always works. `?cutter=hunt` turns hunting on (criterion 7): she then forces a meeting when she spots you, as in S8, and hunts you in the arena |
+| Detours | `detourSeconds`, `ChartSession.detourS` | Steering clear costs sea room: 2 nm round a ship, 5 nm off a hunting hostile, and most of the way round a squall (0.8 of its radius), at the ship's speed. The voyage stands off for that long before it makes good any more of its course: the HUD says "Standing off, back on course in 25 m", the notice says how much was lost, and the ETA includes it. A squall raised within 2 nm can still clip you (50–100%, shown on the card as "Steer clear (70%)"); clipped, you ride it out in the arena |
+| Arena ships | `arenaFromChartEncounter` `company` | The arena gets the ship met with her consort 260 m astern, and any other ship on the water within 1.2 km of arena (9.6 km of chart) at its place relative to her, nearest first, up to the five-ship budget. A tug on her nets or a ship lying stopped has no way on |
+| Known lanes | `src/render/chart/chart-view.ts` | The trade lanes are drawn faint and dotted under the ships (§5.2: known lanes, but not the ships on them unless spotted) |
+| Checks | `tests/routes.test.ts`, `tests/chart-pacing.test.ts` | 20 tests: the data parses, every node, waypoint and derelict is on water and every lane leg clears the land mask, every class is a traffic class, the timetables are the same for a seed and differ between seeds, ships never outrun their speed and stay on water, the fleet lays up for the ice and sails more ore in October, ships in port are hidden and tugs on the grounds aren't, the director's budget by length, route and season, the *Morrill* sighted but not forcing, detours priced and held in the ETA, and arena company. Pacing reruns every route in May and October |
+
+### 26.2 Results
+
+| Check | Result |
+|---|---|
+| Criterion 4: pacing, default lookout (100 seeded runs at all hours and random winds) | Duluth → Apostles **1.72 in May, 2.08 in October**; Two Harbors → Apostles 1.07 and 1.32; Duluth → Siskiwit Bay 1.06 and 1.45; Duluth → Two Harbors 0.38 and 0.46. The most on one voyage is 4 (threats aren't held to the budget) |
+| Lookout setting | Report everything ≥ threats and prizes > threats only, as before |
+| Criterion 7 | `?cutter=hunt` still forces the cutter's meeting and locks the chart; the e2e test that is caught by her passes |
+| Cost | Placing all 25 contacts takes about 20 µs (Node, cloud container), once per frame under way; the budget is worked out once per voyage |
+| e2e | All 11 smoke tests pass, including the chart voyage through a reload and meeting a freighter from the chart |
+
+### 26.3 Decisions made in the piece
+
+- **Traffic is a function of the seed and the clock, so nothing new is saved.** Ships have no state of their own until Phase 4 gives them cargo and damage; then a `traffic` slice (plan 16 §5) keeps what differs from the timetable. A reload, a zone or an arena all find each ship where the clock says. The seed is the run's weather noise seed, which the save already keeps (the RNG state moves on as the run plays, so it can't be used).
+- **Ships keep their service speed whatever the wind.** The schooner-barges sail their lane at hull speed. Weather slowing traffic can come with piece E or Phase 4.
+- **The budget is a cap on reports, not a quota.** If nobody is in sight, nothing is invented: the lookouts still only see real ships.
+- **Threats get through when the budget is spent**, so a sighted cutter or a squall is never hidden; they still wait out the quiet spell unless a hostile is closing.
+- **Ignore costs nothing; Steer clear costs a detour.** Ignore is only offered for what isn't a threat, so the cost falls where it matters: a squall or the cutter.
+- **A detour is time standing off, not a new track.** The ship holds its place on the chart while the clock runs, and the world moves on around it.
+- **Derelicts stay put and come back each voyage.** Investigating one marks it handled for that voyage only, as S8 did; plan 11's wrecks and salvage make them stick.
+
+### 26.4 Still to do
+
+- Piece E: the stand-in squall goes when the sim's squalls and fog banks come to the chart.
+- Phase 4: manifests, the flows of plan 05 §8.1 driving the fleets, the `traffic` save slice, and ships materialized in zones when their lanes run through one (01 §3.4).
+- Phase 5: the *Morrill* forces by Wanted in place of the dev flag, and rumors of where she was.
+
 ---
 
 ## Changelog
+- v0.21: Phase 3 piece F (§26): `routes.json` and its schema, 21 ships on timetables from the run's seed and the clock, laid up by month, an encounter director with a per-voyage budget by route and season, detours that cost time, the *Morrill* sighted but not hunting, derelicts, and arena company from the traffic.
 - v0.20: Piece G wired through: a forced hostile hunts in the arena, caught ends the voyage, the S8 spike page retired.
 - v0.19: Phase 3 piece G (§25): open-water arenas in the game, wired to piece D's chart so engaging returns to the voyage; NPC helms with give-way and land avoidance, coast silhouettes, the pursuit lock, `?encounter=` checks, and NPC speeds fixed.
 - v0.18: Phase 3 piece D (§24): chart mode in the game, taking to the chart at the soft edge, M as a look, the encounter card and the chart locked banner, arrival at a zone's entry, the voyage in save v4, and the chart clock slowed to 3.5 s per game hour for criterion 2.

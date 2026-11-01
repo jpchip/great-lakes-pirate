@@ -99,7 +99,15 @@ describe('arena encounters', () => {
   });
 
   it('turns an S8 chart encounter into an arena', () => {
-    const kinds: ContactKind[] = ['freighter', 'steamer', 'tug', 'cutter', 'derelict', 'storm'];
+    const kinds: ContactKind[] = [
+      'freighter',
+      'steamer',
+      'barge',
+      'tug',
+      'cutter',
+      'derelict',
+      'storm',
+    ];
     for (const kind of kinds) {
       const contact: Contact = {
         id: `c.${kind}`,

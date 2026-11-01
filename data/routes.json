@@ -1,0 +1,346 @@
+[
+  {
+    "id": "node.duluth",
+    "kind": "node",
+    "name": "Duluth Ship Canal",
+    "role": "port",
+    "at": [-92.075, 46.783],
+    "port": "port.duluth"
+  },
+  {
+    "id": "node.superior_entry",
+    "kind": "node",
+    "name": "Superior Entry",
+    "role": "port",
+    "at": [-91.995, 46.716],
+    "port": "port.superior"
+  },
+  {
+    "id": "node.two_harbors",
+    "kind": "node",
+    "name": "Agate Bay",
+    "role": "port",
+    "at": [-91.655, 47.006],
+    "port": "port.two_harbors"
+  },
+  {
+    "id": "node.bayfield",
+    "kind": "node",
+    "name": "Bayfield",
+    "role": "port",
+    "at": [-90.802, 46.812],
+    "port": "port.bayfield"
+  },
+  {
+    "id": "node.ashland",
+    "kind": "node",
+    "name": "Ashland ore dock",
+    "role": "port",
+    "at": [-90.875, 46.605],
+    "port": "port.ashland"
+  },
+  {
+    "id": "node.washburn",
+    "kind": "node",
+    "name": "Washburn",
+    "role": "port",
+    "at": [-90.865, 46.664]
+  },
+  {
+    "id": "node.lower_lakes",
+    "kind": "node",
+    "name": "The lower lakes",
+    "role": "sink",
+    "at": [-90.17, 47.2]
+  },
+  {
+    "id": "node.grounds_apostles",
+    "kind": "node",
+    "name": "Grounds off Rocky Island",
+    "role": "grounds",
+    "at": [-90.73, 47.0]
+  },
+  {
+    "id": "node.grounds_north_shore",
+    "kind": "node",
+    "name": "Grounds off Knife River",
+    "role": "grounds",
+    "at": [-91.88, 46.88]
+  },
+  {
+    "id": "node.grounds_cornucopia",
+    "kind": "node",
+    "name": "Grounds off Cornucopia",
+    "role": "grounds",
+    "at": [-91.25, 46.9]
+  },
+  {
+    "id": "node.sand_island",
+    "kind": "node",
+    "name": "Off Sand Island",
+    "role": "waypoint",
+    "at": [-90.95, 47.04]
+  },
+
+  {
+    "id": "lane.duluth_ore",
+    "kind": "lane",
+    "name": "Duluth down the lake",
+    "use": "trade",
+    "from": "node.duluth",
+    "to": "node.lower_lakes",
+    "via": [
+      [-91.4, 46.95],
+      [-90.92, 47.12],
+      [-90.45, 47.22]
+    ],
+    "fleet": [
+      {
+        "classId": "ship.ore_freighter",
+        "count": 4,
+        "names": [
+          "Ore boat Hesper Lane",
+          "Ore boat Josiah Penrose",
+          "Grain steamer Corinna",
+          "Ore boat Mesaba Chief"
+        ]
+      },
+      {
+        "classId": "ship.ore_freighter",
+        "count": 1,
+        "speedKn": 8,
+        "consort": "ship.schooner_barge",
+        "consortName": "Consort Maggie Hale",
+        "names": ["Steamer Alvah Burt"]
+      }
+    ],
+    "dwellH": [10, 30],
+    "season": [0, 0, 0, 0.25, 0.5, 0.6, 0.65, 0.7, 0.85, 1, 0.9, 0.25]
+  },
+  {
+    "id": "lane.superior_coal",
+    "kind": "lane",
+    "name": "Coal up to Superior",
+    "use": "trade",
+    "from": "node.superior_entry",
+    "to": "node.lower_lakes",
+    "via": [
+      [-91.75, 46.82],
+      [-91.3, 46.98],
+      [-90.9, 47.16],
+      [-90.45, 47.26]
+    ],
+    "fleet": [
+      {
+        "classId": "ship.ore_freighter",
+        "count": 2,
+        "names": ["Collier Nathaniel Ives", "Collier Lackawanna"]
+      }
+    ],
+    "dwellH": [14, 30],
+    "season": [0, 0, 0, 0.3, 0.6, 0.75, 0.8, 0.8, 0.8, 0.85, 0.8, 0.25]
+  },
+  {
+    "id": "lane.two_harbors_ore",
+    "kind": "lane",
+    "name": "Two Harbors down the lake",
+    "use": "trade",
+    "from": "node.two_harbors",
+    "to": "node.lower_lakes",
+    "via": [
+      [-91.0, 47.15],
+      [-90.45, 47.24]
+    ],
+    "fleet": [
+      {
+        "classId": "ship.ore_freighter",
+        "count": 3,
+        "names": ["Ore boat Vermilion", "Ore boat Elias Thorne", "Ore boat Tower Range"]
+      }
+    ],
+    "dwellH": [8, 30],
+    "season": [0, 0, 0, 0.25, 0.5, 0.6, 0.65, 0.7, 0.85, 1, 0.9, 0.25]
+  },
+  {
+    "id": "lane.ashland_ore",
+    "kind": "lane",
+    "name": "Ashland down the lake",
+    "use": "trade",
+    "from": "node.ashland",
+    "to": "node.lower_lakes",
+    "via": [
+      [-90.8, 46.7],
+      [-90.7, 46.74],
+      [-90.62, 46.8],
+      [-90.45, 46.82],
+      [-90.35, 46.95],
+      [-90.25, 47.08]
+    ],
+    "fleet": [
+      {
+        "classId": "ship.ore_freighter",
+        "count": 2,
+        "names": ["Ore boat Gogebic", "Ore boat Penokee"]
+      }
+    ],
+    "dwellH": [10, 30],
+    "season": [0, 0, 0, 0.25, 0.5, 0.6, 0.65, 0.7, 0.85, 1, 0.9, 0.25]
+  },
+  {
+    "id": "lane.package_line",
+    "kind": "lane",
+    "name": "The Duluth–Bayfield–Ashland line",
+    "use": "trade",
+    "from": "node.duluth",
+    "to": "node.ashland",
+    "via": [
+      [-91.5, 46.82],
+      [-91.15, 46.9],
+      [-90.99, 47.0],
+      [-90.88, 47.03],
+      [-90.77, 47.0],
+      [-90.775, 46.955],
+      [-90.74, 46.9],
+      [-90.781, 46.84],
+      [-90.802, 46.812],
+      [-90.82, 46.76],
+      [-90.85, 46.7]
+    ],
+    "fleet": [
+      {
+        "classId": "ship.package_steamer",
+        "count": 2,
+        "names": ["Steamer Northern Light", "Steamer City of Bayfield"]
+      }
+    ],
+    "dwellH": [8, 8],
+    "season": [0, 0, 0, 0.2, 0.6, 1, 1, 1, 0.9, 0.7, 0.3, 0]
+  },
+  {
+    "id": "lane.lumber",
+    "kind": "lane",
+    "name": "Lumber from Washburn to Duluth",
+    "use": "trade",
+    "from": "node.washburn",
+    "to": "node.duluth",
+    "via": [
+      [-90.84, 46.7],
+      [-90.82, 46.76],
+      [-90.802, 46.812],
+      [-90.781, 46.84],
+      [-90.74, 46.9],
+      [-90.775, 46.955],
+      [-90.77, 47.0],
+      [-90.88, 47.04],
+      [-91.05, 47.02],
+      [-91.45, 46.9]
+    ],
+    "fleet": [
+      {
+        "classId": "ship.schooner_barge",
+        "count": 3,
+        "names": ["Schooner Lydia Crane", "Schooner Ottawa Belle", "Schooner Three Sisters"]
+      }
+    ],
+    "dwellH": [20, 16],
+    "season": [0, 0, 0, 0.3, 0.75, 0.9, 0.9, 0.9, 0.9, 0.85, 0.4, 0]
+  },
+  {
+    "id": "lane.fish_apostles",
+    "kind": "lane",
+    "name": "Bayfield to the Rocky Island grounds",
+    "use": "fishing",
+    "from": "node.bayfield",
+    "to": "node.grounds_apostles",
+    "via": [
+      [-90.781, 46.84],
+      [-90.73, 46.89],
+      [-90.66, 46.91],
+      [-90.7, 46.97]
+    ],
+    "fleet": [
+      {
+        "classId": "ship.fish_tug",
+        "count": 2,
+        "speedKn": 6,
+        "names": ["Fish tug Hattie B.", "Fish tug Iver Lund"]
+      }
+    ],
+    "dwellH": [10, 6],
+    "season": [0, 0, 0, 0.5, 0.9, 0.6, 0.5, 0.6, 0.8, 1, 0.9, 0.2]
+  },
+  {
+    "id": "lane.fish_north_shore",
+    "kind": "lane",
+    "name": "Two Harbors to the Knife River grounds",
+    "use": "fishing",
+    "from": "node.two_harbors",
+    "to": "node.grounds_north_shore",
+    "via": [[-91.75, 46.95]],
+    "fleet": [
+      { "classId": "ship.fish_tug", "count": 1, "speedKn": 6, "names": ["Fish tug Signe"] }
+    ],
+    "dwellH": [10, 6],
+    "season": [0, 0, 0, 0.5, 0.9, 0.6, 0.5, 0.6, 0.8, 1, 0.9, 0.2]
+  },
+  {
+    "id": "lane.fish_cornucopia",
+    "kind": "lane",
+    "name": "Sand Island to the Cornucopia grounds",
+    "use": "fishing",
+    "from": "node.sand_island",
+    "to": "node.grounds_cornucopia",
+    "via": [[-91.1, 46.97]],
+    "fleet": [
+      { "classId": "ship.fish_tug", "count": 1, "speedKn": 6, "names": ["Fish tug Ole Brekke"] }
+    ],
+    "dwellH": [4, 6],
+    "season": [0, 0, 0, 0.5, 0.9, 0.6, 0.5, 0.6, 0.8, 1, 0.9, 0.2]
+  },
+  {
+    "id": "lane.morrill_patrol",
+    "kind": "lane",
+    "name": "The Morrill's beat",
+    "use": "patrol",
+    "from": "node.duluth",
+    "to": "node.bayfield",
+    "via": [
+      [-91.6, 47.0],
+      [-91.1, 47.05],
+      [-90.88, 47.04],
+      [-90.77, 47.0],
+      [-90.775, 46.955],
+      [-90.74, 46.9],
+      [-90.781, 46.84]
+    ],
+    "fleet": [
+      {
+        "classId": "ship.cutter_morrill",
+        "count": 1,
+        "speedKn": 10,
+        "names": ["Revenue cutter Morrill"]
+      }
+    ],
+    "dwellH": [12, 6],
+    "season": [0, 0, 0, 0.6, 1, 1, 1, 1, 1, 1, 1, 0.5]
+  },
+
+  {
+    "id": "poi.derelict_scow",
+    "kind": "poi",
+    "name": "Drifting scow, dismasted",
+    "poi": "derelict",
+    "at": [-91.25, 47.12],
+    "classId": "ship.schooner_barge",
+    "description": "a scow, dismasted and drifting"
+  },
+  {
+    "id": "poi.derelict_hulk",
+    "kind": "poi",
+    "name": "Abandoned hulk, awash",
+    "poi": "derelict",
+    "at": [-90.3, 47.0],
+    "classId": "ship.schooner_barge",
+    "description": "an old schooner hulk, awash to her rails"
+  }
+]

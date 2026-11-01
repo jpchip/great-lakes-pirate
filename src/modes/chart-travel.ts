@@ -1,6 +1,5 @@
 import { zoneToChart, type Chart, type ZoneFrame } from '../core/coords';
 import { dayAndHour } from '../core/time';
-import { Rng } from '../core/rng';
 import { ChartView } from '../render/chart/chart-view';
 import { westernSuperiorChart } from '../sim/chart/chart-data';
 import {
@@ -11,9 +10,12 @@ import {
   zoneAt,
   type ChartZone,
 } from '../sim/chart/geography';
+import { tradeLaneLines } from '../sim/chart/director';
+import { placeTraffic } from '../sim/chart/routes';
 import {
   createContacts,
   daylight,
+  detourSeconds,
   playerSeesAtM,
   spotRangeM,
   weatherFactor,
@@ -89,8 +91,10 @@ export interface ChartTravelHost {
    * an arena the meeting is noted and the voyage carries on.
    */
   enterArena?: ((enc: Encounter, travel: ChartTravel) => void) | undefined;
-  /** The run's seed, for the stand-in traffic until piece F. */
+  /** The run's seed: the route graph's traffic follows from it and the clock (piece F). */
   seed: string;
+  /** The Morrill hunts and forces meetings (`?cutter=hunt`, dev only until Phase 5). */
+  cutterHunts?: boolean;
 }
 
 export interface ChartTravel {
@@ -160,8 +164,8 @@ export function createChartTravel(host: ChartTravelHost): ChartTravel {
     position: { x: 0, y: 0 },
     heading: 0,
     wind: { from: 0, speedKn: 10 },
-    // The S8 stand-in traffic until the route graph (piece F).
-    contacts: createContacts(geo.projection, Rng.fromSeed(`${host.seed}-traffic`)),
+    // The route graph's ships, where the clock has them (piece F), and the stand-in squall.
+    contacts: createContacts(geo.projection, `${host.seed}-traffic`, clock.gameSeconds),
     waypoints: [],
     course: undefined,
     voyage: undefined,
@@ -170,7 +174,11 @@ export function createChartTravel(host: ChartTravelHost): ChartTravel {
     pending: undefined,
     handled: new Set(),
     quietUntil: 0,
+    hostilesHunt: host.cutterHunts ?? false,
   };
+
+  // The trade lanes every master knows (plan 03 §5.2); not the ships on them.
+  const knownLanes = tradeLaneLines(geo.projection).lines;
 
   let trip: ChartTrip | undefined;
   let departure: Departure | undefined;
@@ -234,6 +242,8 @@ export function createChartTravel(host: ChartTravelHost): ChartTravel {
     session.heading = pose.heading;
     session.wind = windHere();
     session.lookout = host.lookout();
+    // The traffic sailed on while the ship was in the zone.
+    placeTraffic(session.contacts, clock.gameSeconds);
     fitted = false;
     chart.replot();
     machine.transition('chart');
@@ -279,7 +289,9 @@ export function createChartTravel(host: ChartTravelHost): ChartTravel {
         }
         const course = session.course;
         const eta = session.voyage
-          ? durationText(remainingSeconds(session.voyage, session.wind, session.ship))
+          ? durationText(
+              remainingSeconds(session.voyage, session.wind, session.ship) + (session.detourS ?? 0),
+            )
           : course && !course.problem && course.legs.length > 0
             ? durationText(estimateSeconds(course, session.wind, session.ship))
             : undefined;
@@ -287,6 +299,7 @@ export function createChartTravel(host: ChartTravelHost): ChartTravel {
         const weather = weatherFactor(session.position, session.contacts);
         const visible = new Set<string>();
         for (const c of session.contacts) {
+          if (c.inPort) continue;
           if (distance(session.position, c.pos) <= playerSeesAtM(c, h, weather)) visible.add(c.id);
         }
         view.draw({
@@ -296,6 +309,7 @@ export function createChartTravel(host: ChartTravelHost): ChartTravel {
           course: session.voyage ? undefined : course,
           voyage: session.voyage,
           contacts: session.contacts,
+          lanes: knownLanes,
           now: clock.gameSeconds,
           daylight: daylight(h),
           spotRangeM: spotRangeM(h) * weather,
@@ -389,9 +403,14 @@ export function createChartTravel(host: ChartTravelHost): ChartTravel {
       if (!enc) return;
       const { outcome, escaped } = chart.resolve(choice);
       if (escaped === true) {
+        const lost = durationText(detourSeconds(enc, session.voyage?.speedKn ?? 0));
+        const slipped = enc.contact.hostile && enc.hunts !== false;
         notice = {
-          title: enc.contact.hostile ? 'Slipped away' : 'Steered clear',
-          text: `You leave ${enc.contact.name} astern and hold your course.`,
+          title: slipped ? 'Slipped away' : 'Steered clear',
+          text:
+            enc.contact.kind === 'storm'
+              ? `You bear away round the squall and lose ${lost} getting back on your course.`
+              : `You give ${enc.contact.name} a wide berth and lose ${lost} getting back on your course.`,
         };
       }
       if (outcome !== 'arena') return;
@@ -430,6 +449,7 @@ export function createChartTravel(host: ChartTravelHost): ChartTravel {
       session.position = fromWorldChart(geo, location.chartPos);
       session.heading = location.heading;
       session.wind = windHere();
+      placeTraffic(session.contacts, clock.gameSeconds);
       session.waypoints = [];
       session.course = undefined;
       session.voyage = saved ? restoreVoyage(geo, saved) : undefined;

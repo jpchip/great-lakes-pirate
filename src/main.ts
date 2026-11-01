@@ -1025,15 +1025,19 @@ async function boot(): Promise<void> {
           travel.resumeFrom(exit.contactId, exit.result);
         });
       // A hostile that forced the meeting hunts you in the arena; one you chose to close
-      // with stands on. (Until Phase 5's Wanted, piece F stops the cutter forcing at all.)
+      // with stands on. (Until Phase 5's Wanted the cutter forces nothing unless ?cutter=hunt.)
       void enterArena(
         arenaFromChartEncounter(enc, travel.session.position, travel.session.heading, {
           hunting: enc.forced && enc.contact.hostile,
+          company: travel.session.contacts,
         }),
         true,
       );
     },
-    seed: state.environment.rng.join('-'),
+    // A stable per-run number from the save (the RNG state moves on as the run plays), so
+    // the traffic's timetables are the same after a reload.
+    seed: `run-${state.environment.weather.noiseSeed}`,
+    cutterHunts: params.get('cutter') === 'hunt',
   });
   travelRef.current = chartTravel;
   machine.register(chartTravel.mode);
@@ -1079,15 +1083,21 @@ async function boot(): Promise<void> {
        */
       meet(kind: string, forced = false) {
         const { session } = chartTravel;
+        // Nearest on the water; one lying in port only if none of that kind is out.
         const near = session.contacts
           .filter((c) => c.kind === kind)
-          .sort((a, b) => distance(a.pos, session.position) - distance(b.pos, session.position))[0];
+          .sort(
+            (a, b) =>
+              Number(!!a.inPort) - Number(!!b.inPort) ||
+              distance(a.pos, session.position) - distance(b.pos, session.position),
+          )[0];
         if (!near) return undefined;
         session.pending = {
           contact: near,
           forced,
           distanceM: distance(near.pos, session.position),
           bearing: bearing(session.position, near.pos),
+          ...(near.hostile ? { hunts: forced } : {}),
         };
         ctx.events.emit('EncounterSpotted', {
           contactId: near.id,
