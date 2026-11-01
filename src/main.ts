@@ -43,6 +43,7 @@ import {
 } from './sim/arena/encounter';
 import { clearArenaCentre, sampleArenaLand } from './sim/arena/land';
 import { westernSuperiorChart } from './sim/chart/chart-data';
+import { bearing, distance } from './sim/chart/geography';
 import { OPEN_WATER } from './sim/weather/shelter';
 import { FULL_SAIL, updateTargetSpeed } from './sim/sailing/controller';
 import type { SaveControls } from './debug/overlay';
@@ -1011,10 +1012,14 @@ async function boot(): Promise<void> {
       const pose = { ...shipPose() };
       arenaHooks.onExit = (exit) =>
         enterZone(zoneId, pose, { kind: 'return' }, false, () => {
-          travel.resumeFrom(exit.contactId);
+          travel.resumeFrom(exit.contactId, exit.result);
         });
+      // A hostile that forced the meeting hunts you in the arena; one you chose to close
+      // with stands on. (Until Phase 5's Wanted, piece F stops the cutter forcing at all.)
       void enterArena(
-        arenaFromChartEncounter(enc, travel.session.position, travel.session.heading),
+        arenaFromChartEncounter(enc, travel.session.position, travel.session.heading, {
+          hunting: enc.forced && enc.contact.hostile,
+        }),
         true,
       );
     },
@@ -1057,6 +1062,24 @@ async function boot(): Promise<void> {
       },
       setPursued(on: boolean) {
         pursued = on;
+      },
+      /**
+       * The lookouts report the nearest contact of a kind, as if just sighted; `forced`
+       * makes it a hostile closing that can't be avoided. For the arena checks.
+       */
+      meet(kind: string, forced = false) {
+        const { session } = chartTravel;
+        const near = session.contacts
+          .filter((c) => c.kind === kind)
+          .sort((a, b) => distance(a.pos, session.position) - distance(b.pos, session.position))[0];
+        if (!near) return undefined;
+        session.pending = {
+          contact: near,
+          forced,
+          distanceM: distance(near.pos, session.position),
+          bearing: bearing(session.position, near.pos),
+        };
+        return near.id;
       },
     };
     (window as unknown as { __glpChart: typeof hook }).__glpChart = hook;

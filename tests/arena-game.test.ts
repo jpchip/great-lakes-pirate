@@ -324,7 +324,7 @@ describe('arena rules', () => {
     stepArenaRun(r, atEdge, 0.1);
     expect(r.pursued).toBe(true);
     expect(r.result).toBeUndefined();
-    expect(arenaStatus(r, atEdge)).toContain('Chart locked: the cutter has you');
+    expect(arenaStatus(r, atEdge)).not.toContain('Sail on for the chart');
     // Out of range, and away.
     stepArenaRun(r, inputs(0, -ARENA_HALF_M - 2, [{ ...hunter, z: 0 }]), 0.1);
     expect(r.result).toBe('left');

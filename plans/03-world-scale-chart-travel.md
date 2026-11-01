@@ -917,7 +917,7 @@ Screenshots are in the project files (`chart-in-game/`).
 - **Caught by the cutter ends the arena** with `caught` (dev only; nothing forces it until Phase 5's Wanted).
 
 ### 25.4 Hooks for piece D, and still to do
-- **Piece D calls `enterArena(arenaFromChartEncounter(enc, chartPos, heading))`** on Engage or a failed avoid, and `arenaHooks.onExit` reloads the zone left behind and returns to chart mode with `resumeFrom(exit.contactId)`. An arena entered from a zone (`?encounter=`) still returns there. The chart-locked banner reads `arena.run.pursued` as well as the dev hook. Still to retire: `chart-spike.html` and `src/debug/chart-spike/`.
+- **Piece D calls `enterArena(arenaFromChartEncounter(enc, chartPos, heading))`** on Engage or a failed avoid, and `arenaHooks.onExit` reloads the zone left behind and returns to chart mode with `resumeFrom(exit.contactId)`. An arena entered from a zone (`?encounter=`) still returns there. The chart-locked banner reads `arena.run.pursued` as well as the dev hook. A hostile that forced the meeting hunts you in the arena; caught, the voyage ends where it stands with a "Boarded" notice (no Wanted until Phase 5, so she lets you go). `chart-spike.html` and `src/debug/chart-spike/` are retired, with the spike-only arena tests; an e2e test engages a freighter from the chart, sails off the edge back onto the voyage, and is caught by a hunting cutter. `__glpChart.meet(kind, forced)` raises an encounter for checks.
 - **F fills `ArenaEncounter.ships`** from its abstract ships near the encounter point, with their class, lane heading and speed and an offset each, so a crossing can bring more than one ship.
 - **Saving in an arena** keeps the chart voyage when one is under way, so a reload resumes it (§20.5); otherwise the zone place recorded on the way in.
 - **Squalls and fog banks from the sim** are piece E's: the `squall` check uses panel weather until then.
@@ -927,6 +927,7 @@ Screenshots are in the project files (`chart-in-game/`).
 ---
 
 ## Changelog
+- v0.20: Piece G wired through: a forced hostile hunts in the arena, caught ends the voyage, the S8 spike page retired.
 - v0.19: Phase 3 piece G (§25): open-water arenas in the game, wired to piece D's chart so engaging returns to the voyage; NPC helms with give-way and land avoidance, coast silhouettes, the pursuit lock, `?encounter=` checks, and NPC speeds fixed.
 - v0.18: Phase 3 piece D (§24): chart mode in the game, taking to the chart at the soft edge, M as a look, the encounter card and the chart locked banner, arrival at a zone's entry, the voyage in save v4, and the chart clock slowed to 3.5 s per game hour for criterion 2.
 - v0.17: Phase 3 piece C (§23): the Twin Ports and Two Harbors zones baked, with set-piece footprints, dredged cuts for the Duluth canal, Superior Entry and Agate Bay, and their ports.
