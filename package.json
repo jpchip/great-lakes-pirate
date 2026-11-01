@@ -1,7 +1,7 @@
 {
   "name": "great-lakes-pirate",
   "private": true,
-  "version": "0.2.0",
+  "version": "0.3.0",
   "type": "module",
   "license": "MIT",
   "engines": {
@@ -22,6 +22,7 @@
     "bench:weather": "vitest run --config bench/s9/vitest.config.ts",
     "bench:stream": "playwright test --config bench/stream/playwright.config.ts",
     "bench:chart": "playwright test --config bench/chart/playwright.config.ts",
+    "bench:transitions": "playwright test --config bench/transitions/playwright.config.ts",
     "geo:build": "node tools/geo/build.ts",
     "geo:canopy": "node tools/geo/canopy.ts",
     "geo:chart": "node tools/geo/chart.ts",

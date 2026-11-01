@@ -4,6 +4,10 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-11-01
+
+The **Hybrid Travel** build (Phase 3): take to a chart baked from the real lake, plot a course across western Superior through the weather sim's weather, meet ships on their timetables in open-water arenas, and arrive in the Twin Ports and Two Harbors, with harbors to dock at and the run saved wherever you stop.
+
 ### Added
 
 - **Continue where you left off:** a reload puts the ship back where the run was last saved, instead of at the North Channel spawn. Saves from 0.2.0 carry over and start at the spawn ([plan 03 §21](plans/03-world-scale-chart-travel.md)).
@@ -18,6 +22,7 @@ All notable changes to this project are recorded here. The format follows [Keep 
 - **Weather on the chart:** the chart and the zones share one sky. The chart's wind is the weather sim's, and the chart draws its isobars, lows and highs with their tracks, fronts, rain, fog banks, squalls and wind arrows. A weather card shows the barometer, a six-hour outlook and any squall, fog or gale on your course, and **+6 h / +12 h / +24 h** shows the forecast with its uncertainty. Squalls and fog banks on your course are reported by the lookouts and met in an arena where the sim has them; fog hides you (from the cutter too) and a squall shortens sail. In a calm the schooner still ghosts along at about 3 kn, so a crossing in light air isn't a long wait ([plan 03 §28](plans/03-world-scale-chart-travel.md)).
 - **Traffic on the lake:** 21 ships sail timetables on ten lanes of a route graph (`data/routes.json`): ore and grain boats down the lake from Duluth, Two Harbors and Ashland, colliers up to Superior, the Duluth–Bayfield–Ashland package line, lumber schooners out of Washburn, fishing tugs on their grounds, and the revenue cutter _Morrill_ on her beat. Fall is busy and the ice months empty; the known lanes are drawn faint on the chart. An encounter director sets each voyage a budget of reports by its length, its lanes and the month, so an Apostles crossing brings about two meetings. Steering clear of a squall or the cutter now costs time, and a squall raised late can still catch you. The _Morrill_ is sighted but hunts no one until Wanted comes in (`?cutter=hunt` to test it). Two derelicts drift on the lake, and an arena brings in any other ships nearby ([plan 03 §26](plans/03-world-scale-chart-travel.md)).
 - **Harbors at the Twin Ports and Two Harbors:** sail into Duluth between the Ship Canal's two piers and out of Superior Entry between its pair, both at their real widths, and dock at Duluth's merchandise and coal docks, Superior's city and mill docks, and alongside Two Harbors' wooden ore dock. Grain elevators, the Superior shipyard with a whaleback on the ways, and the towns climbing their hills, with windows lit at night. The 1900 lights: the canal's temporary south pier light, the Superior Entry pierhead light, Two Harbors Light, and the old Minnesota Point tower standing dark. `?harbor=duluth` (or `superior`, `two_harbors`, `duluth_canal`, `superior_entry`) starts there ([plan 03 §27](plans/03-world-scale-chart-travel.md)).
+- **Benches for the playtest:** `npm run bench:transitions` times chart to zone (cold and warm), chart to arena and arena to chart, and checks a round trip to another zone gives the heap back; `ZONE=twin_ports` (or `two_harbors`) `npm run bench:stream` flies a route through the new zones.
 
 ### Fixed
 
@@ -28,6 +33,18 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 - The "Zone edge" chip is now a **Take to the chart** button, and the save format is version 4 (0.2.0 saves still load).
 - November gales bring squalls in their rain, without the lightning of a summer thunderstorm.
+
+### Known limitations
+
+- An Apostles crossing from Duluth takes about 35 real seconds in May and 25 s in October at the default chart clock, against a 20–30 s target: spring's head winds and calms in the sim make it long (plan 03 §29).
+- The chart tune, the encounter stingers, the fade-to-fog sound and the ship whistles are synthesized placeholders (`npm run audio:synth`), and the fog signals still have no caption.
+- The 1900 characteristics (color, fixed or flashing) of the Duluth canal, Superior Entry and Two Harbors lights are best guesses, not yet checked against the 1900 Light List.
+- An encounter is a meeting and a look: no hails, cargo, trading or boarding until Phases 4 and 6, and the revenue cutter is sighted but hunts no one until Wanted comes in (Phase 5).
+- Traffic is seen on the chart and met in arenas, but doesn't sail through the zones yet, so the harbors' docks stand empty (Phase 4).
+- Siskiwit Bay is a chart area you pass through; its zone comes with the hideout in Phase 8.
+- A reload brings the ship back undamaged; the ship's condition joins the save with plan 10.
+- A summer squall rains and darkens but doesn't raise the wind, and the chart has no barometer readout on hover yet.
+- The Duluth waterfront is the modern one from the DEM (its slips and fills), and Chequamegon Point's spit breaks into fragments on the chart.
 
 ## [0.2.0] - 2026-10-31
 
@@ -98,6 +115,7 @@ The **Sailing Prototype** (Phase 1): one T1 schooner you can sail, tack, reef, g
 - Volume sliders are only in the dev overlay's Audio folder; the settings screen gets them later.
 - The S7 scale greybox and the S8 chart arena still use their Phase 0 stand-in helms; moving them onto the plan 02 controller is carried over to Phase 2.
 
-[Unreleased]: https://github.com/jpchip/great-lakes-pirate/compare/0.2.0...HEAD
+[Unreleased]: https://github.com/jpchip/great-lakes-pirate/compare/0.3.0...HEAD
+[0.3.0]: https://github.com/jpchip/great-lakes-pirate/compare/0.2.0...0.3.0
 [0.2.0]: https://github.com/jpchip/great-lakes-pirate/compare/0.1.0...0.2.0
 [0.1.0]: https://github.com/jpchip/great-lakes-pirate/releases/tag/0.1.0
