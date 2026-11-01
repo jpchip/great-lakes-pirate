@@ -16,7 +16,9 @@ import { createWorldState } from '../../src/sim/world-state';
  * streaming inside it. `npm run dev`, then `/bench/stream/`. `?quality=low|medium|high`
  * picks the preset (Medium by default) and `?speed=8` the multiple of Full sail (8 by
  * default, about 94 m/s, so the whole route takes about three minutes and tiles turn
- * over eight times faster than sailing). `npm run bench:stream` runs it in Chromium.
+ * over eight times faster than sailing). `?zone=twin_ports` or `?zone=two_harbors` flies
+ * the Phase 3 route through that zone instead (plan 03 §29). `npm run bench:stream` runs it
+ * in Chromium (`ZONE=twin_ports npm run bench:stream` for another zone).
  */
 
 /** Full sail on screen at C = 8 and R = 24 (plan 03 §15), m/s. */
@@ -25,7 +27,7 @@ const FULL_SAIL_MS = 11.8;
 const HITCH_MS = 33;
 
 /** Bayfield → down the west channel to Ashland → out across the bay to Outer Island. */
-const ROUTE: readonly [number, number][] = [
+const APOSTLES_ROUTE: readonly [number, number][] = [
   [-640, 150],
   [-800, 330],
   [-700, 900],
@@ -40,17 +42,59 @@ const ROUTE: readonly [number, number][] = [
   [2600, -2300],
 ];
 
+/**
+ * In from the east entry, through the Duluth Ship Canal to the Duluth docks, up St. Louis
+ * Bay and back, across the harbor to Superior, out by Superior Entry and back up the
+ * outside of Minnesota Point to the entry (plan 03 §20.3 criterion 1).
+ */
+const TWIN_PORTS_ROUTE: readonly [number, number][] = [
+  [1700, -100],
+  [400, -300],
+  [-200, -160],
+  [-150, -80],
+  [-900, 300],
+  [-1700, 900],
+  [-900, 400],
+  [0, 300],
+  [460, 870],
+  [700, 540],
+  [1400, 200],
+  [1700, -100],
+];
+
+/** In from the Duluth side, to the ore dock in Agate Bay, out east and along the North Shore. */
+const TWO_HARBORS_ROUTE: readonly [number, number][] = [
+  [200, 1200],
+  [-150, 0],
+  [-200, -250],
+  [400, -100],
+  [1200, 100],
+  [1200, -1100],
+  [-1100, -1200],
+  [-1200, 1100],
+  [200, 1200],
+];
+
+const ROUTES: Record<string, { id: string; route: readonly [number, number][] }> = {
+  apostles: { id: APOSTLES_ID, route: APOSTLES_ROUTE },
+  twin_ports: { id: 'zone.twin_ports', route: TWIN_PORTS_ROUTE },
+  two_harbors: { id: 'zone.two_harbors', route: TWO_HARBORS_ROUTE },
+};
+
 const params = new URLSearchParams(location.search);
 const quality = params.get('quality');
 const speed = Number(params.get('speed') ?? 8) * FULL_SAIL_MS;
 const out = document.getElementById('out') as HTMLPreElement;
+const zoneKey = (params.get('zone') ?? 'apostles').replace(/^zone\./, '');
+const picked = ROUTES[zoneKey] ?? { id: APOSTLES_ID, route: APOSTLES_ROUTE };
+const ROUTE = picked.route;
 
 function percentile(sorted: number[], p: number): number {
   return sorted[Math.min(sorted.length - 1, Math.floor(p * sorted.length))] ?? 0;
 }
 
 async function run(): Promise<unknown> {
-  const def = zoneDef(APOSTLES_ID);
+  const def = zoneDef(picked.id);
   const loadStart = performance.now();
   const zone = await loadZoneTerrain(httpBytes(new URL(`../../${def.world}`, location.href)));
   const loadMs = performance.now() - loadStart;
@@ -110,6 +154,7 @@ async function run(): Promise<unknown> {
         const sorted = [...frames].sort((p, q) => p - q);
         const stream = [...streamMs].sort((p, q) => p - q);
         resolve({
+          zone: def.id,
           quality: renderer.preset.id,
           speedMs: speed,
           loadMs: Math.round(loadMs),

@@ -1071,9 +1071,64 @@ Bayfield and Ashland are 33k triangles together, so the Twin Ports are the heavi
 - The chart redraw and the weather sampling on the laptop (piece K).
 - Squall gusts in the sim, so a summer squall blows as well as rains.
 
+## 29. Phase 3 Piece K: Playtest and Release (2026-11-01)
+
+**Goal** (§20.4, piece K): check the §20.3 exit criteria with every piece merged (A–J), run the benches on each zone, the arena and the chart, bring the plans up to date, and tag 0.3.0. Like Phase 2's (§19), the phase is done when the criteria pass on the baseline laptop and Jared signs off the playtest; this section holds what the cloud container could check and what's left for the laptop.
+
+**Added for the playtest:** `npm run bench:transitions` (`bench/transitions/`) times chart to zone uncached, from the browser cache and from the 60 s zone cache, chart to arena and arena to chart three times each (the first compiles the NPC ships' shaders), and reads the heap after a round trip through all three zones once the cache has let go. `ZONE=twin_ports` (or `two_harbors`) `npm run bench:stream` flies a route through the new zones: in through the Duluth Ship Canal, up St. Louis Bay, across to Superior and out by Superior Entry; and in Agate Bay past the ore dock and along the North Shore.
+
+### 29.1 Checked in the cloud container
+
+Typecheck, lint, Prettier, 748 unit tests and the 12 e2e smoke tests pass on `main` with pieces A–J merged. Headless Chromium renders on SwiftShader, so frame times here say nothing about the laptop; load times read high too.
+
+| # | Criterion | Result here | Still needs |
+|---|---|---|---|
+| 1 | Bayfield → chart → Twin Ports by the canal, dock at Duluth, cross to Superior, out by Superior Entry, on to Two Harbors and dock | `tests/harbors.test.ts` docks the T1 at all 8 Twin Ports berths and all 12 at Two Harbors on the real terrain; the e2e voyage sails from the Apostles' west edge to the Twin Ports' east entry through a reload | The route sailed end to end, by hand, on the laptop |
+| 2 | Duluth → Apostles edge in 20–30 real s, ETA matches | 23.1 s at a steady 12 kn (unit test). With the sim's winds, the mean of 100 seeded runs is **35.2 s in May and 25.5 s in October** (§28.2) | **Open: May is about 5 s long** (§29.2) |
+| 3 | Chart → zone ≤ 8 s warm, chart → arena ≤ 2 s, arena → chart instant | Chart → zone 2.4–3.4 s (fade included) for all three zones, uncached or warm; the zone cache barely helps here because SwiftShader's mesh and shader work dominates. Chart → arena 3.8 s the first time, 1.7–1.8 s after. **Arena → chart 1.8–1.9 s**, because leaving reloads the zone behind the fade before the chart shows (§29.2) | `npm run bench:transitions` on the laptop |
+| 4 | About 2 encounters on an Apostles crossing, fewer on short hops, more in fall | 100 seeded runs per route, default lookout: Duluth → Apostles **1.73 May, 1.79 Oct**; Two Harbors → Apostles 0.90 / 0.91; Duluth → Siskiwit Bay 1.06 / 1.06; Duluth → Two Harbors 0.30 / 0.33. Traffic alone is busier in fall on every route (Duluth → Apostles 1.56 → 1.78); the totals are level because spring's fog banks add meetings and fall's winds make crossings shorter (§28.2). Pass | — |
+| 5 | Every encounter kind met in an arena, ships on courses, off the edge resumes | `?encounter=` for all nine kinds (§25); e2e meets a freighter from the chart and sails on, and the cutter catches you. Pass | A look at each on the laptop |
+| 6 | One weather everywhere | Chart and zone wind agree to 0.001 kn at the same point and time (unit test); a squall met from the chart arrives in its arena with the sim's storm, rain and visibility (§28.2). Pass | Plot into a charted fog bank and sail into it, by eye |
+| 7 | Chart locked while a hostile has you | `?cutter=hunt` e2e: the banner shows and the chart stays locked. Pass | — |
+| 8 | Save and reload keeps zone, pose and voyage; a 0.2.0 save migrates | e2e: reload mid-voyage comes back on the chart under way, and in a zone at the saved pose; `tests/save-migrations.test.ts` migrates the v1, v2 and v3 fixtures to v4. Pass | Dev panel Save and reload in each zone |
+| 9 | New zones and arena in the Phase 2 budgets, chart redraw ≤ 8 ms p95, heap round trip ≤ 20 MB | Streaming on Medium at 8× Full sail: Twin Ports main-thread p99 0.2 ms, max 6.2 ms, 31 tiles built (slowest 23 ms in the worker), at most 16 terrain draw calls; Two Harbors p99 0.2 ms, max 1.4 ms, 17 tiles (slowest 32 ms), at most 7. Arena draw calls 37–39 (§25.2). Chart redraw 0.6 ms p95 still and panning on the software canvas (§28.2). **Heap 77.0 MB before and 79.2 MB after** a round trip through the Twin Ports and Two Harbors and back to the Apostles. Pass where measurable | `?bench=water` on Medium and Low in each zone and an arena, `/bench/stream/` per zone and `/bench/chart/` on the laptop |
+| 10 | The Twin Ports read as Duluth and Superior, Two Harbors by its ore dock and light | Screenshots in `north-harbors/` and `twin-ports-bake/` | Jared, by eye |
+| 11 | It feels big | — | Jared |
+| 12 | Plans record what was built, CI green, 0.3.0 tagged | Plans 03 §21–29, 04 §15 and §24 notes, 13 §12, 14 §19, 15 §15–16 and 16 §12 are up to date; version 0.3.0, the changelog's 0.3.0 section and the README in the release PR | CI on the PR; the tag on the merge |
+
+### 29.2 Open items for Jared
+
+1. **The May crossing is about 35 s, against 20–30 s.** A faster chart clock can't fix May alone: 3.0 s a game hour (from 3.5) brings May to about 30 s but the steady-wind crossing to 19.8 s and October to 22 s. Recommended: sail it on the laptop and keep 3.5 s if a spring crossing feels like weather rather than waiting; the calm floor (§28.3) already took the worst of it.
+2. **Arena to chart isn't instant** (0.8 s on the laptop, §29.3). Leaving an arena fades to fog and reloads the zone you left before the chart shows: 1.8 s here, probably under a second on the laptop with the zone still cached. Criterion 3 (and §7) said instant. If it reads as a hitch, the fix is to show the chart at once and reload the zone behind it, since the chart doesn't need it until you come back to the helm.
+3. **The audio is placeholder.** The chart tune, the six stingers, the fade-to-fog sound and the ship whistles are synthesized (`npm run audio:synth`) and need a listen on real speakers: does the whistle carry in fog, do the stingers sit under the chart theme, and is "The Long Reach" one to keep or to replace with a recording.
+4. **The 1900 light colors at the Twin Ports and Two Harbors are guesses** (§27.4, R1 open item 1): the canal's temporary south pier light, the Superior Entry pierhead light and Two Harbors Light. Check them against the 1900 Light List, or accept them for now.
+
+5. **Water in an arena is 3.2 ms on Medium,** 0.2 ms over the Phase 2 budget, though the frame is 5.8 ms, the cheapest in the game, because no land hides any water. Recommended: accept it for the arena, where water is the whole scene; the 3 ms budget assumed land covering part of the view. **Decided 2026-11-01: accepted for arenas.**
+
+### 29.3 Results
+
+**Passed 2026-11-01**, signed off by Jared on the baseline laptop (Ryzen 7 7730U, Radeon renoir, Chrome 156 on Linux, ANGLE OpenGL, MSAA on). Every criterion was ticked.
+
+| # | Result |
+|---|---|
+| 3 | `HEADED=1 npm run bench:transitions` on Medium: chart → zone **0.82–1.10 s** in all three zones (the 0.65 s fade included), uncached, warm or from the 60 s cache; chart → arena **0.68–0.71 s**; arena → chart **0.81–0.83 s**. Pass: arena → chart isn't instant, but it's the fade plus under 0.2 s, so §29.2 item 2 needs no change unless it feels slow in play |
+| 9 | Heap 79.3 MB before and 81.4 MB after the round trip through the three zones (budget 20 MB). Pass |
+| 9, Two Harbors | `?bench=water` (mean ms a frame, MSAA on): Medium **6.5 ms**, water **2.1 ms**, 42 draw calls, 98k triangles; Low 4.0 ms (water 1.2); High 7.9 ms (water 2.7). Terrain 0.5 ms and vegetation 0.5 ms on Medium. Pass |
+| 9, Twin Ports | `?bench=water` (MSAA on): Medium **7.6 ms**, water **2.4 ms**, 51 draw calls, 210k triangles; Low 3.6 ms (water 0.5); High 9.3 ms (water 2.3, 460k triangles). Terrain 0.7 ms and vegetation 0.8 ms on Medium. Pass |
+| 9, arena (`?encounter=convoy`, three ships) | `?bench=water` (MSAA on): Medium **5.8 ms**, but water **3.2 ms**, over its 3 ms; 40 draw calls, 42k triangles; Low 3.8 ms (water 1.9); High 6.6 ms (water 3.8). With no land, water fills the whole view, so its share is the largest of any scene, while the frame is the cheapest. Over on water by 0.2 ms; **accepted for arenas by Jared, 2026-11-01** (§29.2 item 5) |
+| 11 | "The world feels big, really feels like you could hide out in the Apostle Islands and be a pirate" (Jared). Pass |
+| 1 | The route sailed: out of the Apostles, in through the Duluth Ship Canal and docked at Duluth, across to Superior and out by Superior Entry, on to Two Harbors and docked. Pass |
+| 2 | The 35 s May crossing is fine as it is (Jared); the chart clock stays at 3.5 s a game hour. Pass |
+| 10 | The Twin Ports read as Duluth and Superior, and Two Harbors by its ore dock and light (Jared). Pass |
+| 4–8 | As checked in §29.1. Pass |
+| 12 | Plans updated, CI green; 0.3.0 tagged on the merge |
+
+The synthesized chart audio and the guessed 1900 light colors are accepted for now (§29.2 items 3–4); they stay in the changelog's known limitations.
+
 ---
 
 ## Changelog
+- v0.24: Phase 3 piece K (§29): the exit criteria checked, passed and signed off 2026-11-01; a transition bench and the stream bench on the new zones; arena water accepted at 3.2 ms; the 0.3.0 release.
 - v0.23: Phase 3 piece E (§28): weather on the chart. The sim drives the chart's wind and runs on its world tick; isobars, fronts, rain, fog banks, squalls and wind arrows drawn; a weather card with the glass, an outlook, weather on the course and forecasts to 24 h with rings of doubt; squalls and fog banks met from the sim, hiding and slowing the ship, and met in arenas where the sim has them; a calm floor of about 3 kn under the chart speed; piece F's stand-in squall retired.
 - v0.22: Phase 3 piece I (§27): the Duluth Ship Canal and Superior Entry piers at 1:1, docks at Duluth, Superior and Two Harbors (with its 1:1 ore dock), grain elevators, the Superior shipyard, the 1900 lights including dark Minnesota Point, and each zone laying out only its own harbors and lights.
 - v0.21: Phase 3 piece F (§26): `routes.json` and its schema, 21 ships on timetables from the run's seed and the clock, laid up by month, an encounter director with a per-voyage budget by route and season, detours that cost time, the *Morrill* sighted but not hunting, derelicts, and arena company from the traffic.

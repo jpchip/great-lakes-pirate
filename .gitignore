@@ -12,3 +12,4 @@ tools/geo/.cache/
 tools/assets/.cache/
 bench/stream/last-run-*.json
 bench/chart/last-run.txt
+bench/transitions/last-run-*.json
