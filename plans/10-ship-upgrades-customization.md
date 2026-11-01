@@ -269,7 +269,34 @@ All resolved.
 
 ---
 
+## 16. Phase 4 Piece G, First Half: The T2 Hull (2026-11-01)
+
+The T2 schooner is built and sails; buying it (the shipyard), upgrades, repairs and the ship's condition in the save are the other half of piece G, after the port screen ([05 §16.4](05-ports-economy-trading.md)).
+
+| Part | Where | What |
+|---|---|---|
+| Ship record | `data/ships.json` `ship.t2_schooner` | 30 m (≈100 ft), tier 2, hull speed 9 kn, accelTau 6 s, decelTau 10 s, sail changes 3 s (a crew of four), sweeps 1.1 kn, draft 2.5 → 3.2 m, hull 160 and rigging 130 HP, anchor rode 45 m, visibility medium (conspicuity 0.9), the T1's polar. `cargoCapacity` 90 m³ (twice the T1's 40, i.e. ~45 CU once piece A converts it). Buoyancy uses the S2 values, which were tuned for a ~30 m schooner. |
+| Lines | `src/render/ships/schooner-lines.ts` `T2_SCHOONER_LINES` | Half again the T1 in every line: 30 × 7.6 m, 2.6 m draft, more sheer and a taller bulwark, an 11 m bowsprit, a 19.5 m fore and 21 m main with 7.5–8.2 m topmasts. The same two-masted gaff rig and sail plan per level as the T1. Plan 02 §10 allows 2–3 masts; two keeps the three-master for T3. |
+| Deck and paint | `schooner-hull.ts` (`DeckLayout`, `buildYawlBoat`) | A forecastle house for the crew forward of the foremast, three hatches between the masts, a long after cabin, and a yawl boat in iron davits across the stern, the way the lake schooners carried theirs. White topsides and a black boot like the T1, with a green rail and houses, so the two read apart beyond their size. |
+| Rig scale | `SchoonerLines.rigScale` (1.45) | Spar sections, crosstrees, chainplate spread, furled canvas and the pennant scale with it, so the bigger rig doesn't carry the T1's toothpicks. The T1 (no `rigScale`, no `deck`) builds vertex for vertex as before (checked). |
+| In the game | `test-scene.ts`, `main.ts` | A player ship is drawn from its class's lines (`schoonerLines(cls.id)`), with its own waterline for the wake and spray. `?ship=t2` starts the run in the T2 until the shipyard sells one. `/bench/ship/?ship=t2` is its contact sheet. |
+
+**Handling against the T1** (14 kn true, Full, auto-trim; unit tested in `tests/sailing.test.ts`):
+
+| | T1 | T2 |
+|---|---|---|
+| Close-hauled 45° / beam / broad 120–135° / run | 4.3 / 6.9 / 7.2 / 5.4 kn | 4.9 / 7.7 / 8.1 / 6.1 kn |
+| Standstill to 90% of beam-reach speed | 9.2 s | 13.8 s |
+| Tack from 50–55° | 8.4–9.0 s, 34–37% speed lost | 9.0–9.7 s, 36–39% lost |
+
+So she is about 12% faster on every point of sail, slower to gather way and to come about, and still inside plan 02 §4's 6–10 s tack. About 2.8k triangles with every sail set (the T1 is 2.6k) and 16 meshes, inside the hero-ship budget (`tests/schooner.test.ts`).
+
+**Needs Jared:** the T2 look (screenshots in the project's `t2-schooner/` folder). Not yet: the shipyard, trade-in, upgrades, repairs and saving the ship's tier and condition (piece G's second half), and no T2 sailing audio changes (she uses the T1's mix).
+
+---
+
 ## Changelog
+- v0.4: Phase 4 piece G, first half (§16): the T2 schooner's record, lines, deck layout, yawl boat and handling.
 - v0.3: Gap review: auto-sell excess cargo, T3 single swivel, shipyard wait before districts exist.
 - v0.2: Decisions: hull variants (MVP+), trade-in rule, T1-only shipless building, dark-tanned sails, starting prices.
 - v0.1: Initial ship progression plan: tiers and prices, hull variants, shipyards, trade-in, naming, the slot system, upgrade catalog (hull, rigging, cargo, weapons, instruments, stealth, utility), sources and installation, cosmetics (cosmetic only), repairs, shipless shipbuilding, visuals and budget, data/state, UI, phasing.

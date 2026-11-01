@@ -210,13 +210,17 @@ export function buildDeckFittings(l: SchoonerLines, shape: HullShape, soup: Tria
       roof,
     );
   };
-  // Cabin trunk aft of the mainmast, main and fore hatches.
-  onDeck(l.main.station + 1.1, l.main.station + 4.6, l.beam * 0.46, 0.85);
-  onDeck(l.fore.station + 1.6, l.fore.station + 3.6, l.beam * 0.32, 0.45);
-  onDeck(l.fore.station - 2.6, l.fore.station - 1.5, l.beam * 0.22, 0.4);
+  if (l.deck) {
+    for (const h of l.deck.houses) onDeck(h.from, h.to, l.beam * h.width, h.height);
+  } else {
+    // Cabin trunk aft of the mainmast, main and fore hatches.
+    onDeck(l.main.station + 1.1, l.main.station + 4.6, l.beam * 0.46, 0.85);
+    onDeck(l.fore.station + 1.6, l.fore.station + 3.6, l.beam * 0.32, 0.45);
+    onDeck(l.fore.station - 2.6, l.fore.station - 1.5, l.beam * 0.22, 0.4);
+  }
 
   // Windlass across the foredeck.
-  const wz = at(1.6);
+  const wz = at(l.deck?.windlass ?? 1.6);
   const wy = shape.deckAt(wz) + 0.35;
   soup.spar(
     new THREE.Vector3(-l.beam * 0.17, wy, wz),
@@ -249,5 +253,80 @@ export function buildDeckFittings(l: SchoonerLines, shape: HullShape, soup: Tria
     const d = new THREE.Vector3(Math.cos(a) * (rim + 0.12), Math.sin(a) * (rim + 0.12), 0);
     const hub = center.clone().setZ(hz + 0.3);
     soup.spar(hub.clone().add(d), hub.clone().sub(d), 0.025, spar, 0.025, 4);
+  }
+}
+
+/**
+ * A yawl boat hung in davits across the stern (the T2 and up): a small double-ended
+ * hull under two iron davits that lean out over the transom, the way the lake
+ * schooners carried theirs.
+ */
+export function buildYawlBoat(l: SchoonerLines, shape: HullShape, soup: TriangleSoup): void {
+  const boat = l.deck?.yawlBoat;
+  if (!boat) return;
+  const half = l.length / 2;
+  const dark = new THREE.Color(l.paint.boot);
+  const white = new THREE.Color(l.paint.topsides);
+  const inside = new THREE.Color(l.paint.deck);
+  const iron = new THREE.Color(l.paint.rope);
+  const taffrail = shape.sheerAt(half);
+  // The boat hangs athwartships, clear aft of the taffrail, its gunwale about level with
+  // the rail, low enough that the main boom swings clear over the davits.
+  const zc = half + l.transomRake * 0.15 + boat.beam / 2 + 0.25;
+  const keel = taffrail - boat.beam * 0.35;
+  const depth = boat.beam * 0.42;
+  const sections = 8;
+  const hb = boat.beam / 2;
+  const hl = boat.length / 2;
+  // Section half-width and gunwale lift along the boat (u from -1 to 1), double-ended.
+  const width = (u: number): number => hb * Math.max(Math.cos((u * Math.PI) / 2) ** 0.7, 0.04);
+  const lift = (u: number): number => 0.18 * u * u;
+  const ring = (u: number): THREE.Vector3[] => {
+    const x = u * hl;
+    const w = width(u);
+    const top = keel + depth + lift(u);
+    return [
+      new THREE.Vector3(x, keel + depth * 0.15 * u * u, zc),
+      new THREE.Vector3(x, keel + depth * 0.45, zc - w * 0.8),
+      new THREE.Vector3(x, top, zc - w),
+      new THREE.Vector3(x, keel + depth * 0.45, zc + w * 0.8),
+      new THREE.Vector3(x, top, zc + w),
+    ];
+  };
+  for (let i = 0; i < sections; i++) {
+    const a = ring(-1 + (2 * i) / sections);
+    const b = ring(-1 + (2 * (i + 1)) / sections);
+    const [ka, la, ga, ra, sa] = a as [
+      THREE.Vector3,
+      THREE.Vector3,
+      THREE.Vector3,
+      THREE.Vector3,
+      THREE.Vector3,
+    ];
+    const [kb, lb, gb, rb, sb] = b as [
+      THREE.Vector3,
+      THREE.Vector3,
+      THREE.Vector3,
+      THREE.Vector3,
+      THREE.Vector3,
+    ];
+    // Forward side (toward the ship, -z) and after side, bilge then topsides.
+    soup.quad(la, lb, kb, ka, dark);
+    soup.quad(ga, gb, lb, la, white);
+    soup.quad(rb, ra, ka, kb, dark);
+    soup.quad(sb, sa, ra, rb, white);
+    // The open top, seen from above as the boat's bottom boards.
+    soup.quad(sa, sb, gb, ga, inside);
+  }
+  // Two davits from the quarters, up and out over the boat, with falls down to it.
+  for (const side of [-1, 1]) {
+    const x = side * hl * 0.62;
+    const zFoot = half - 0.6;
+    const foot = new THREE.Vector3(x, shape.deckAt(zFoot), zFoot);
+    const knee = new THREE.Vector3(x, keel + depth + 0.4, zFoot + 0.3);
+    const head = new THREE.Vector3(x, keel + depth + 0.5, zc);
+    soup.spar(foot, knee, 0.07, iron, 0.06, 5);
+    soup.spar(knee, head, 0.06, iron, 0.05, 5);
+    soup.spar(head, new THREE.Vector3(x, keel + depth + 0.05, zc), 0.025, iron, 0.025, 4);
   }
 }
