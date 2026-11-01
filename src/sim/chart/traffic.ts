@@ -4,18 +4,18 @@ import {
   type Chart,
   type ChartProjection,
 } from '../../core/coords';
-import type { Rng } from '../../core/rng';
-import { bearing, distance, lerpChart } from './geography';
+import { bearing, distance } from './geography';
+import { createTraffic, placeTraffic, type LaneSchedule } from './routes';
 
 /**
- * Prototype S8 traffic and encounters (plan 03 §6). Encounters come from abstract
- * entities near the player's track, not dice: a few ships on hand-placed lanes and one
- * derelict. Plan 05's route graph and traffic slice replace the lanes. The weather's
- * contacts, storm cells (`storm`) and fog banks (`fog`), come from the weather sim
- * (`chart-weather.ts`, Phase 3 piece E).
+ * Chart contacts and the lookouts (plan 03 §6). Encounters come from abstract entities
+ * near the player's track, not dice: the ships on the route graph (`routes.ts`, Phase 3
+ * piece F) and the derelicts. The weather's contacts, storm cells (`storm`) and fog banks
+ * (`fog`), come from the weather sim (`chart-weather.ts`, Phase 3 piece E).
  */
 
-export type ContactKind = 'freighter' | 'steamer' | 'tug' | 'cutter' | 'derelict' | 'storm' | 'fog';
+export type ContactKind =
+  'freighter' | 'steamer' | 'barge' | 'tug' | 'cutter' | 'derelict' | 'storm' | 'fog';
 
 /** Contacts that are weather, met at their edge and drawn as areas. */
 export function isWeatherContact(c: Pick<Contact, 'kind'>): boolean {
@@ -29,8 +29,20 @@ export interface Contact {
   pos: Chart;
   heading: number;
   speedKn: number;
-  /** Lane the contact shuttles along, end to end and back. */
+  /** ships.json class it's drawn as in an arena. */
+  classId?: string;
+  /** Ships in its company (a consort in tow), materialized with it in an arena. */
+  consorts?: { classId: string; name: string }[];
+  /** What the lookout calls a derelict ("a scow, dismasted and drifting"). */
+  description?: string;
+  /** Where it is on its lane: `{leg, progress}` (plan 01 §3.4). */
   lane?: { points: Chart[]; leg: number; progressM: number; forward: boolean };
+  /** Its timetable on the route graph; `placeTraffic` puts it where the clock says. */
+  schedule?: LaneSchedule;
+  /** Lying in port or off the chart: not on the water to be seen. */
+  inPort?: boolean;
+  /** Making way along its lane (false lying at an end, or at anchor on the grounds). */
+  underWay?: boolean;
   /** A storm cell's or fog bank's radius, meters: it is met at this edge. */
   radiusM?: number;
   /** How far it can be seen, as a multiple of the base range (smoke, sails, size). */
@@ -52,6 +64,11 @@ export interface Encounter {
   contact: Contact;
   /** A hostile spotted you and is closing: no choice but the arena. */
   forced: boolean;
+  /**
+   * A hostile that is hunting you (dev flag until Phase 5's Wanted). False for one that's
+   * only sighted: she isn't looking for you, so steering clear always works.
+   */
+  hunts?: boolean;
   distanceM: number;
   /** Bearing from the player to the contact. */
   bearing: number;
@@ -93,201 +110,27 @@ export function weatherFactor(pos: Chart, contacts: readonly Contact[]): number 
   return f;
 }
 
-interface ContactDef {
-  id: string;
-  kind: ContactKind;
-  name: string;
-  speedKn: number;
-  /** Lane as [lat, lon] pairs. A single point is a static contact. */
-  lane: [number, number][];
-  conspicuity: number;
-  hostile?: boolean;
-  threat?: boolean;
-  prize?: boolean;
+/**
+ * Every contact on the chart for a run: the route graph's ships and derelicts (piece F),
+ * placed for `gameSeconds`. The weather's contacts come from the sky (`chart-weather.ts`).
+ */
+export function createContacts(
+  projection: ChartProjection,
+  seed: string,
+  gameSeconds = 0,
+): Contact[] {
+  const contacts = createTraffic(projection, seed);
+  placeTraffic(contacts, gameSeconds);
+  return contacts;
 }
 
-/** Hand-placed lanes, checked against the land mask in tests/chart.test.ts. */
-export const PROTOTYPE_CONTACTS: readonly ContactDef[] = [
-  {
-    id: 'ship.ore_two_harbors',
-    kind: 'freighter',
-    name: 'Ore boat Manola',
-    speedKn: 10,
-    lane: [
-      [47.0, -91.62],
-      [47.15, -91.0],
-      [47.25, -90.45],
-      [47.35, -90.17],
-    ],
-    conspicuity: 1.3,
-    prize: true,
-  },
-  {
-    id: 'ship.grain_duluth',
-    kind: 'freighter',
-    name: 'Grain steamer Fayette Brown',
-    speedKn: 9,
-    lane: [
-      [46.8, -91.95],
-      [46.95, -91.4],
-      [47.12, -90.92],
-      [47.25, -90.42],
-      [47.33, -90.17],
-    ],
-    conspicuity: 1.3,
-    prize: true,
-  },
-  {
-    id: 'ship.package_steamer',
-    kind: 'steamer',
-    name: 'Package steamer Dixon',
-    speedKn: 11,
-    lane: [
-      [46.8, -91.95],
-      [46.82, -91.5],
-      [46.9, -91.15],
-      [47.0, -90.99],
-      [47.03, -90.88],
-      [47.0, -90.77],
-      [46.955, -90.775],
-      [46.9, -90.74],
-      [46.84, -90.781],
-      [46.812, -90.802],
-      [46.76, -90.82],
-      [46.7, -90.85],
-      [46.62, -90.87],
-    ],
-    conspicuity: 1.2,
-    prize: true,
-  },
-  {
-    id: 'ship.tug_bayfield',
-    kind: 'tug',
-    name: 'Fishing tug Hattie',
-    speedKn: 6,
-    lane: [
-      [46.84, -90.781],
-      [46.89, -90.73],
-      [46.91, -90.66],
-      [46.97, -90.7],
-      [47.0, -90.73],
-    ],
-    conspicuity: 0.8,
-  },
-  {
-    id: 'ship.tug_north_shore',
-    kind: 'tug',
-    name: 'Fishing tug Bob',
-    speedKn: 6,
-    lane: [
-      [46.98, -91.68],
-      [46.93, -91.5],
-      [46.88, -91.25],
-    ],
-    conspicuity: 0.8,
-  },
-  {
-    id: 'ship.morrill',
-    kind: 'cutter',
-    name: 'Revenue cutter Morrill',
-    speedKn: 10,
-    lane: [
-      [46.82, -91.95],
-      [47.0, -91.6],
-      [47.05, -91.1],
-      [47.1, -90.8],
-      [47.12, -90.65],
-      [47.06, -90.5],
-    ],
-    conspicuity: 1.2,
-    hostile: true,
-    threat: true,
-  },
-  {
-    id: 'poi.derelict_scow',
-    kind: 'derelict',
-    name: 'Drifting scow, dismasted',
-    speedKn: 0,
-    lane: [[47.12, -91.25]],
-    conspicuity: 0.7,
-    prize: true,
-  },
-];
-
-/** Materialize the prototype contacts, each starting at a seeded point on its lane. */
-export function createContacts(projection: ChartProjection, rng: Rng): Contact[] {
-  return PROTOTYPE_CONTACTS.map((def) => {
-    const points = def.lane.map(([lat, lon]) => projection.geoToChart({ lat, lon }));
-    const contact: Contact = {
-      id: def.id,
-      kind: def.kind,
-      name: def.name,
-      pos: { ...(points[0] as Chart) },
-      heading: 0,
-      speedKn: def.speedKn,
-      conspicuity: def.conspicuity,
-      hostile: def.hostile ?? false,
-      threat: def.threat ?? false,
-      prize: def.prize ?? false,
-    };
-    if (points.length > 1) {
-      const leg = rng.int(0, points.length - 2);
-      const a = points[leg] as Chart;
-      const b = points[leg + 1] as Chart;
-      const forward = rng.chance(0.5);
-      contact.lane = { points, leg, progressM: rng.next() * distance(a, b), forward };
-      placeOnLane(contact);
-    }
-    return contact;
-  });
-}
-
-function placeOnLane(c: Contact): void {
-  if (!c.lane) return;
-  const { points, leg, progressM, forward } = c.lane;
-  const a = points[leg] as Chart;
-  const b = points[leg + 1] as Chart;
-  const len = distance(a, b);
-  c.pos = lerpChart(a, b, len > 0 ? progressM / len : 0);
-  c.heading = forward ? bearing(a, b) : bearing(b, a);
-}
-
-/** Move every contact by `gameSeconds`. Lane ships shuttle end to end. */
-export function stepContacts(contacts: Contact[], gameSeconds: number): void {
-  for (const c of contacts) {
-    // Weather contacts move with the sim, which rebuilds them each world tick.
-    if (isWeatherContact(c)) continue;
-    if (!c.lane || c.speedKn === 0) continue;
-    let travel = c.speedKn * KNOT_MS * gameSeconds;
-    const lane = c.lane;
-    while (travel > 0) {
-      const len = distance(lane.points[lane.leg] as Chart, lane.points[lane.leg + 1] as Chart);
-      const along = lane.forward ? lane.progressM : len - lane.progressM;
-      const left = len - along;
-      if (travel < left) {
-        lane.progressM += lane.forward ? travel : -travel;
-        travel = 0;
-      } else {
-        travel -= left;
-        const last = lane.points.length - 2;
-        if (lane.forward && lane.leg < last) {
-          lane.leg++;
-          lane.progressM = 0;
-        } else if (!lane.forward && lane.leg > 0) {
-          lane.leg--;
-          lane.progressM = distance(
-            lane.points[lane.leg] as Chart,
-            lane.points[lane.leg + 1] as Chart,
-          );
-        } else {
-          // End of the lane: turn around.
-          lane.forward = !lane.forward;
-          lane.progressM = lane.forward ? 0 : len;
-        }
-      }
-    }
-    placeOnLane(c);
-  }
+/**
+ * Move every contact on to `now` (game seconds). The route graph's ships go where their
+ * timetables have them; weather contacts move with the sim, which rebuilds them each world
+ * tick (`refreshSky`).
+ */
+export function stepContacts(contacts: Contact[], now: number): void {
+  placeTraffic(contacts, now);
 }
 
 function reported(c: Contact, pref: LookoutPref): boolean {
@@ -310,9 +153,28 @@ export function hostileSeesAtM(hour: number, weather: number): number {
  * The world-tick encounter check. Updates every contact's last-seen record, then
  * returns the most pressing new encounter: forced ones first, then the nearest
  * reported one. `handled` holds contacts already dealt with this voyage; `forcedOnly`
- * is the pacing guard's quiet spell, when only a hostile can interrupt. `weather` scales
- * every spotting range (1 in clear air); it defaults to the stand-in `weatherFactor`.
+ * is the pacing guard's quiet spell, when only a hostile can interrupt.
  */
+export interface EncounterCheck {
+  /** The pacing guard's quiet spell: only a hostile closing can interrupt. */
+  forcedOnly?: boolean;
+  /**
+   * The director's budget for this voyage is spent: only threats (and forced meetings)
+   * are still reported.
+   */
+  threatsOnly?: boolean;
+  /**
+   * Hostiles hunt the player and force a meeting when they spot her. Off in Phase 3 (the
+   * Morrill is sighted but forces nothing until Phase 5's Wanted); `?cutter=hunt` sets it.
+   */
+  hostilesHunt?: boolean;
+  /**
+   * Scales every spotting range (1 in clear air). The chart passes the sim's visibility;
+   * it defaults to the stand-in `weatherFactor`.
+   */
+  weather?: number;
+}
+
 export function checkEncounters(
   player: Chart,
   contacts: readonly Contact[],
@@ -320,20 +182,29 @@ export function checkEncounters(
   now: number,
   pref: LookoutPref,
   handled: ReadonlySet<string>,
-  forcedOnly = false,
-  weather = weatherFactor(player, contacts),
+  check: EncounterCheck = {},
 ): Encounter | undefined {
+  const hunt = check.hostilesHunt ?? true;
+  const weather = check.weather ?? weatherFactor(player, contacts);
   let best: Encounter | undefined;
   for (const c of contacts) {
+    if (c.inPort) continue;
     const d = distance(player, c.pos);
     const seen = d <= playerSeesAtM(c, hour, weather);
     if (seen) c.lastSeen = { at: now, pos: { ...c.pos } };
     if (handled.has(c.id)) continue;
-    const forced = c.hostile && d <= hostileSeesAtM(hour, weather);
-    if (!forced && (forcedOnly || !(seen && reported(c, pref)))) continue;
+    const forced = hunt && c.hostile && d <= hostileSeesAtM(hour, weather);
+    const reportable = seen && reported(c, pref) && (!check.threatsOnly || c.threat);
+    if (!forced && (check.forcedOnly || !reportable)) continue;
     // Weather is measured to its edge.
     const distanceM = Math.max(d - (c.radiusM ?? 0), 0);
-    const enc: Encounter = { contact: c, forced, distanceM, bearing: bearing(player, c.pos) };
+    const enc: Encounter = {
+      contact: c,
+      forced,
+      distanceM,
+      bearing: bearing(player, c.pos),
+      ...(c.hostile ? { hunts: hunt } : {}),
+    };
     if (
       !best ||
       (enc.forced && !best.forced) ||
@@ -345,9 +216,13 @@ export function checkEncounters(
   return best;
 }
 
+/** A squall raised closer than this can still clip you when you steer clear. */
+export const SQUALL_CLIP_M = 2 * METERS_PER_NAUTICAL_MILE;
+
 /**
  * Chance that "Avoid" works (plan 03 §6.2: night, weather, your visibility, their
- * speed). Only a hostile gives chase; anything else is simply left behind.
+ * speed). Only a hunting hostile gives chase. A squall raised late can still clip you
+ * (S8 finding 4); a fog bank, or anything else, is simply left behind.
  */
 export function avoidChance(
   enc: Encounter,
@@ -355,7 +230,10 @@ export function avoidChance(
   playerKn: number,
   weather: number,
 ): number {
-  if (!enc.contact.hostile) return 1;
+  if (enc.contact.kind === 'storm') {
+    return Math.min(0.5 + (0.5 * enc.distanceM) / SQUALL_CLIP_M, 1);
+  }
+  if (!enc.contact.hostile || enc.hunts === false) return 1;
   let p = 0.45;
   p += 0.3 * (1 - daylight(hour));
   if (weather < 1) p += 0.15;
@@ -363,4 +241,20 @@ export function avoidChance(
   // Farther away is easier to slip.
   p += Math.min(enc.distanceM / (10 * METERS_PER_NAUTICAL_MILE), 0.15);
   return Math.min(Math.max(p, 0.05), 0.95);
+}
+
+/** Extra sea room steering clear takes, nautical miles: around a ship, or off a hostile. */
+export const DETOUR_NM = { ship: 2, hostile: 5 } as const;
+
+/**
+ * Game seconds a detour costs (S8 finding 4: Avoid isn't free). Steering clear of a ship
+ * takes a couple of miles; slipping a hostile, five; a squall or fog bank, most of the way
+ * round it.
+ */
+export function detourSeconds(enc: Encounter, playerKn: number): number {
+  const c = enc.contact;
+  const extraM = isWeatherContact(c)
+    ? (c.radiusM ?? 0) * 0.8
+    : (c.hostile ? DETOUR_NM.hostile : DETOUR_NM.ship) * METERS_PER_NAUTICAL_MILE;
+  return extraM / (Math.max(playerKn, 3) * KNOT_MS);
 }

@@ -10,13 +10,20 @@ import { idOf } from './common';
  * A pier starts on the shore: the runtime walks out from `inlandM` along the pier's bearing
  * to the waterline and builds `lengthM` of deck from there, so piers meet the real
  * shoreline wherever it is. Berths for auto-docking are at the outer end, one each side.
+ *
+ * A `canal` pier is different (Phase 3 piece I): one of the pair lining the Duluth Ship
+ * Canal or Superior Entry. It runs exactly `lengthM` from `inlandM` (no walk: it crosses
+ * the land and the water alike), and it has no berths: it is a wall to sail between.
  */
 
 export const pierSchema = z.object({
   id: idOf('pier'),
   name: z.string().min(1),
-  /** City and fish docks are plank piers on piles; an ore dock is a tall timber trestle. */
-  kind: z.enum(['city', 'fish', 'lumber', 'ore']),
+  /**
+   * City, fish, lumber and coal docks are plank piers on piles; an ore dock is a tall
+   * timber trestle; a canal pier is a timber crib with a concrete cap, lining an entry.
+   */
+  kind: z.enum(['city', 'fish', 'lumber', 'coal', 'ore', 'canal']),
   alongM: z.number(),
   /** Where the walk out to the waterline starts, inland of the anchor. */
   inlandM: z.number().default(40),
@@ -39,6 +46,10 @@ export const buildingKindSchema = z.enum([
   'church',
   'fishShed',
   'house',
+  /** Phase 3: the Twin Ports' grain elevators, tall enough to read from the lake. */
+  'elevator',
+  /** Phase 3: Superior's shipyard, a long building shed by the ways. */
+  'shipShed',
 ]);
 
 export const buildingSchema = z.object({
@@ -61,6 +72,8 @@ export const townSchema = z.object({
   inlandM: z.tuple([z.number(), z.number()]),
   /** Highest ground a house stands on, meters above the lake. */
   maxGroundM: z.number().positive(),
+  /** The most the ground may fall across a house, meters: more lets a town climb a hill. */
+  maxStepM: z.number().positive().default(3.5),
   seed: z.number().int(),
 });
 

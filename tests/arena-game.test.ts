@@ -102,6 +102,7 @@ describe('arena encounters', () => {
     const kinds: ContactKind[] = [
       'freighter',
       'steamer',
+      'barge',
       'tug',
       'cutter',
       'derelict',

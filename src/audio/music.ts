@@ -9,8 +9,8 @@ import type { MusicMood } from './world-mix';
  */
 
 export interface MusicPlayer {
-  /** Starts from the top at full level. */
-  play(): void;
+  /** Starts from the top at full level, or fading in over `fadeInS`. */
+  play(fadeInS?: number): void;
   /** Fades to silence over `seconds` and stops. */
   stop(seconds: number): void;
   /** The cue's own level, 0–1, for ducking; changes glide over `seconds`. */
@@ -111,16 +111,19 @@ export class MusicDirector {
 
 /**
  * A streamed cue: a media element through its own gain into the music bus. Without
- * media elements (tests, workers) there's no player and the cue just never plays.
+ * media elements (tests, workers) there's no player and the cue just never plays. A
+ * looping cue (the chart's theme) starts over at its end until stopped.
  */
 export function createStreamPlayer(
   ctx: AudioContext,
   url: string,
   out: AudioNode,
   doc: Document = document,
+  loop = false,
 ): MusicPlayer {
   const element = doc.createElement('audio');
   element.preload = 'none';
+  element.loop = loop;
   element.crossOrigin = 'anonymous';
   element.src = url;
   const source = ctx.createMediaElementSource(element);
@@ -129,12 +132,13 @@ export function createStreamPlayer(
   source.connect(fade).connect(level).connect(out);
   let stopTimer: ReturnType<typeof setTimeout> | undefined;
   return {
-    play() {
+    play(fadeInS = 0) {
       if (stopTimer !== undefined) clearTimeout(stopTimer);
       stopTimer = undefined;
       const now = ctx.currentTime;
       fade.gain.cancelScheduledValues(now);
-      fade.gain.setValueAtTime(1, now);
+      fade.gain.setValueAtTime(fadeInS > 0 ? 0 : 1, now);
+      if (fadeInS > 0) fade.gain.linearRampToValueAtTime(1, now + fadeInS);
       level.gain.setValueAtTime(1, now);
       element.currentTime = 0;
       void element.play().catch((err: unknown) => console.warn('Music cue would not play', err));

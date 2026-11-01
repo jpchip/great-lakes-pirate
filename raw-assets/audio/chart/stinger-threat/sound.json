@@ -1,0 +1,11 @@
+{
+  "id": "music.stinger.threat",
+  "name": "stinger-threat",
+  "description": "Encounter stinger, the cutter sighted: a low drone and a whistle leaning on a minor second",
+  "kind": "oneshot",
+  "bus": "music",
+  "bundles": [
+    "chart-audio"
+  ],
+  "source": "source.flac"
+}

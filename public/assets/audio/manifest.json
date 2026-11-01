@@ -175,6 +175,46 @@
       "type": "audio",
       "url": "ships/whistle-tug.ogg",
       "bytes": 46470
+    },
+    "ui.transition.fog": {
+      "type": "audio",
+      "url": "chart/fog-fade.ogg",
+      "bytes": 22667
+    },
+    "music.stinger.clear": {
+      "type": "audio",
+      "url": "chart/stinger-clear.ogg",
+      "bytes": 71124
+    },
+    "music.stinger.derelict": {
+      "type": "audio",
+      "url": "chart/stinger-derelict.ogg",
+      "bytes": 80485
+    },
+    "music.stinger.hunted": {
+      "type": "audio",
+      "url": "chart/stinger-hunted.ogg",
+      "bytes": 55707
+    },
+    "music.stinger.sail": {
+      "type": "audio",
+      "url": "chart/stinger-sail.ogg",
+      "bytes": 59520
+    },
+    "music.stinger.squall": {
+      "type": "audio",
+      "url": "chart/stinger-squall.ogg",
+      "bytes": 70571
+    },
+    "music.stinger.threat": {
+      "type": "audio",
+      "url": "chart/stinger-threat.ogg",
+      "bytes": 74026
+    },
+    "music.chart.voyage": {
+      "type": "audio",
+      "url": "music/chart-voyage.ogg",
+      "bytes": 1435462
     }
   },
   "bundles": {
@@ -218,6 +258,18 @@
       "sfx.ship.whistle-cutter",
       "sfx.ship.whistle-freighter",
       "sfx.ship.whistle-tug"
+    ],
+    "chart-audio": [
+      "ui.transition.fog",
+      "music.stinger.clear",
+      "music.stinger.derelict",
+      "music.stinger.hunted",
+      "music.stinger.sail",
+      "music.stinger.squall",
+      "music.stinger.threat"
+    ],
+    "music-chart": [
+      "music.chart.voyage"
     ]
   }
 }

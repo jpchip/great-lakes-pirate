@@ -4,12 +4,14 @@ import { PALETTE } from '../style/palette';
 import { box, frustum, gable, merged, part, strut } from '../style/parts';
 
 /**
- * The harbor kit (plan 03 §3.4, plan 14 §8; Phase 2 piece G): piers, Ashland's ore dock and
- * the waterfront and town buildings, all at 1:1, merged per harbor into a body mesh and a
- * lit-windows mesh. Plank piers stand on piles down to the real seabed; the ore dock is a
- * timber trestle with its pocket body and chutes, climbing to the land on an approach.
- * Buildings are boxes with gable roofs, each kind with its own touch: the sawmill's stack
- * and sawdust burner, the church steeple, the store's false front.
+ * The harbor kit (plan 03 §3.4, plan 14 §8; Phase 2 piece G, Phase 3 piece I): piers, the
+ * ore docks, the canal piers and the waterfront and town buildings, all at 1:1, merged per
+ * harbor into a body mesh and a lit-windows mesh. Plank piers stand on piles down to the
+ * real seabed; an ore dock is a timber trestle with its pocket body and chutes, climbing to
+ * the land on an approach; a canal pier is a timber crib to the bottom with a concrete cap
+ * going on (the 1896–1902 rebuilding). Buildings are boxes with gable roofs, each kind with
+ * its own touch: the sawmill's stack and sawdust burner, the church steeple, the store's
+ * false front, the grain elevator's headhouse, and a whaleback on the shipyard's ways.
  */
 
 /** House paints, 1900 small-town: white lead, cream, red ochre, weathered and gray-green. */
@@ -20,6 +22,12 @@ const PILE = 0x3d3229;
 const ORE_TIMBER = 0x5b4636;
 const ORE_STAIN = 0x7a3d2a;
 const DARK_GLASS = 0x2a3036;
+const CRIB = 0x5e554b;
+const CONCRETE = 0xb3ad9f;
+const COAL = 0x232224;
+const ELEVATOR = 0x8d8578;
+const ELEVATOR_ROOF = 0x5d564e;
+const WHALEBACK = 0x5a2e24;
 const FOUNDATION = PALETTE.slopeRock;
 
 export interface HarborParts {
@@ -158,6 +166,49 @@ function building(b: PlacedBuilding, out: Sink): void {
       windows(local, b, w, d, [3], 3.4, 6);
       break;
     }
+    case 'elevator': {
+      // A wooden grain elevator: the tall bin house, a cupola (headhouse) along the ridge,
+      // and a marine leg down the water side to unload the grain boats.
+      sink.push(box(w, h, d, 0, 0, 0, ELEVATOR));
+      sink.push(gable(w, d, 4, 0, h, 0, ELEVATOR_ROOF));
+      const hw = w * 0.45;
+      const hh = h * 0.32;
+      sink.push(box(hw, hh, d * 0.45, 0, h + 1.5, 0, ELEVATOR));
+      sink.push(gable(hw, d * 0.45, 3, 0, h + 1.5 + hh, 0, ELEVATOR_ROOF));
+      for (const x of [-w * 0.3, w * 0.3]) {
+        sink.push(box(2.2, h + hh * 0.6, 2.2, x, 0, -d / 2 - 1.1, 0x6f675c));
+      }
+      windows(local, b, hw, d * 0.45, [h + 3.5, h + hh - 2], 4, 8);
+      windows(local, b, w, d, [2], 8, 9);
+      break;
+    }
+    case 'shipShed': {
+      // The building shed, open to the water, and a whaleback barge on the ways in front.
+      sink.push(box(w, h, d, 0, 0, d * 0.1, 0x7b6c5c));
+      sink.push(gable(w, d, 4.5, 0, h, d * 0.1, roof));
+      sink.push(box(w * 0.7, h * 0.8, 0.3, 0, 0, -d * 0.4 - 0.2, 0x2c2a28));
+      const hullL = Math.min(w * 1.1, 80);
+      const r = 4.2;
+      const hull = part(new THREE.CylinderGeometry(r, r, hullL - 2 * r * 2, 10, 1), WHALEBACK)
+        .rotateZ(Math.PI / 2)
+        .translate(0, r + 0.6, -d / 2 - 14);
+      const bow = part(new THREE.ConeGeometry(r, r * 2, 10, 1), WHALEBACK)
+        .rotateZ(-Math.PI / 2)
+        .translate(hullL / 2 - r, r + 0.6, -d / 2 - 14);
+      const stern = part(new THREE.ConeGeometry(r, r * 2, 10, 1), WHALEBACK)
+        .rotateZ(Math.PI / 2)
+        .translate(-hullL / 2 + r, r + 0.6, -d / 2 - 14);
+      sink.push(hull, bow, stern);
+      // Turrets fore and aft, and the cradle of the ways under her.
+      for (const x of [hullL * 0.38, -hullL * 0.4]) {
+        sink.push(frustum(1.6, 1.8, 3.2, 8, x, r * 2 + 0.2, -d / 2 - 14, WHALEBACK));
+      }
+      for (let k = -3; k <= 3; k++) {
+        sink.push(box(1, 1.2, 9, (k * hullL) / 8, 0, -d / 2 - 14, DECK));
+      }
+      windows(local, b, w, d, [2.2], 6, 10);
+      break;
+    }
     case 'house': {
       sink.push(box(w, h, d, 0, 0, 0, paint));
       sink.push(gable(w, d, 2.4 + d * 0.12, 0, h, 0, roof));
@@ -207,6 +258,23 @@ function plankPier(p: PlacedPier, heightAt: (x: number, z: number) => number, ou
     }
   }
   if (p.kind === 'fish') local.push(box(p.widthM - 2, 3, 6, 0, p.deckM, -p.lengthM + 10, 0x7d6f5f));
+  if (p.kind === 'coal') {
+    // Coal heaps down the dock and a hoisting bridge over the outer end.
+    for (let s = p.shoreM + 8; s < p.lengthM - 10; s += 11) {
+      local.push(
+        part(new THREE.ConeGeometry(p.widthM * 0.42, 5, 6, 1), COAL).translate(
+          0,
+          p.deckM + 2.5,
+          -s,
+        ),
+      );
+    }
+    const at = -p.lengthM + 6;
+    for (const side of [-1, 1]) {
+      local.push(box(0.8, 16, 0.8, side * (p.widthM / 2 - 0.6), p.deckM, at, PILE));
+    }
+    local.push(box(p.widthM + 10, 1.4, 1.6, -4, p.deckM + 16, at, PILE));
+  }
   for (const g of local) g.rotateY(-p.bearing).translate(p.root.x, 0, p.root.z);
   out.body.push(...local);
 }
@@ -275,16 +343,78 @@ function oreDock(p: PlacedPier, heightAt: (x: number, z: number) => number, out:
   out.body.push(...local);
 }
 
+/** Crib segments along a canal pier, meters. */
+const CRIB_M = 10;
+
+/**
+ * A canal pier: timber cribs filled with stone from the bottom up to a concrete cap, with
+ * bollards, and (the 1896–1902 rebuilding) a derrick and stacked forms partway along.
+ */
+function canalPier(p: PlacedPier, heightAt: (x: number, z: number) => number, out: Sink): void {
+  const local: THREE.BufferGeometry[] = [];
+  const fx = Math.sin(p.bearing);
+  const fz = -Math.cos(p.bearing);
+  const cap = 0.7;
+  for (let s = 0; s < p.lengthM; s += CRIB_M) {
+    const len = Math.min(CRIB_M, p.lengthM - s);
+    const mid = s + len / 2;
+    let low = Infinity;
+    for (const t of [s, mid, s + len])
+      low = Math.min(low, heightAt(p.root.x + fx * t, p.root.z + fz * t));
+    const bottom = Math.min(low, p.deckM - cap - 0.5) - 1;
+    local.push(box(p.widthM, p.deckM - cap - bottom, len + 0.02, 0, bottom, -mid, CRIB));
+  }
+  local.push(box(p.widthM + 0.4, cap, p.lengthM, 0, p.deckM - cap, -p.lengthM / 2, CONCRETE));
+  for (let s = 8; s < p.lengthM - 4; s += 24) {
+    for (const side of [-1, 1]) {
+      local.push(frustum(0.28, 0.32, 0.7, 6, side * (p.widthM / 2 - 0.5), p.deckM, -s, PILE));
+    }
+  }
+  // The rebuilding: a stiff-leg derrick and a stack of forms near the lake end.
+  const work = -p.lengthM * 0.62;
+  local.push(box(2.4, 1.2, 6, -p.widthM / 4, p.deckM, work - 6, 0x8a7a64));
+  local.push(
+    strut(
+      new THREE.Vector3(p.widthM / 4, p.deckM, work),
+      new THREE.Vector3(p.widthM / 4, p.deckM + 14, work - 3),
+      0.25,
+      PILE,
+    ),
+  );
+  local.push(
+    strut(
+      new THREE.Vector3(p.widthM / 4, p.deckM + 0.5, work),
+      new THREE.Vector3(p.widthM / 4 + 1, p.deckM + 11, work - 13),
+      0.18,
+      PILE,
+    ),
+  );
+  for (const g of local) g.rotateY(-p.bearing).translate(p.root.x, 0, p.root.z);
+  out.body.push(...local);
+}
+
+function emptyGeometry(): THREE.BufferGeometry {
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute([], 3));
+  g.setAttribute('normal', new THREE.Float32BufferAttribute([], 3));
+  g.setAttribute('color', new THREE.Float32BufferAttribute([], 3));
+  return g;
+}
+
 /** Builds one harbor's meshes. */
 export function buildHarbor(
   layout: HarborLayout,
   heightAt: (x: number, z: number) => number,
 ): HarborParts {
   const sink: Sink = { body: [], lit: [] };
-  for (const p of layout.piers) (p.kind === 'ore' ? oreDock : plankPier)(p, heightAt, sink);
+  for (const p of layout.piers) {
+    const build = p.kind === 'ore' ? oreDock : p.kind === 'canal' ? canalPier : plankPier;
+    build(p, heightAt, sink);
+  }
   for (const b of layout.buildings) building(b, sink);
   const body = merged(sink.body);
-  const lit = merged(sink.lit);
+  // An entry's piers have no windows: an empty mesh keeps two draws per harbor's shape.
+  const lit = sink.lit.length ? merged(sink.lit) : emptyGeometry();
   const triangles = (body.getAttribute('position').count + lit.getAttribute('position').count) / 3;
   return { body, litWindows: lit, triangles };
 }

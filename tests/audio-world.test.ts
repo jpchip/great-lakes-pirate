@@ -66,10 +66,15 @@ describe('fog signals (plan 15 §4.3)', () => {
   it('gives the stations signals in the data, each with its own rhythm', () => {
     const withSignals = LIGHTHOUSES.filter((l) => l.fogSignal);
     expect(withSignals.map((l) => l.id).sort()).toEqual([
+      'light.duluth_south_pier',
       'light.lapointe',
       'light.outer',
       'light.raspberry',
+      'light.superior_entry',
+      'light.two_harbors',
     ]);
+    // A dark station keeps no signal.
+    expect(LIGHTHOUSES.filter((l) => !l.lit && l.fogSignal)).toEqual([]);
     const rhythms = new Set(withSignals.map((l) => JSON.stringify(l.fogSignal)));
     expect(rhythms.size).toBe(withSignals.length);
     expect(outer?.fogSignal?.kind).toBe('whistle');

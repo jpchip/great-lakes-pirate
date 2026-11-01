@@ -166,18 +166,11 @@ describe('fog banks on the chart', () => {
       prize: false,
     };
     // Noon, 2.5 km off: in clear air she'd force the meeting; in the fog she can't see you.
-    const clear = checkEncounters(midLake, [cutter], 12, 0, 'threats', new Set(), false, 1);
+    const clear = checkEncounters(midLake, [cutter], 12, 0, 'threats', new Set(), { weather: 1 });
     expect(clear?.forced).toBe(true);
-    const fog = checkEncounters(
-      midLake,
-      [cutter],
-      12,
-      0,
-      'threats',
-      new Set(),
-      false,
-      sessionWeatherFactor(s),
-    );
+    const fog = checkEncounters(midLake, [cutter], 12, 0, 'threats', new Set(), {
+      weather: sessionWeatherFactor(s),
+    });
     expect(fog?.contact.id).not.toBe('ship.morrill');
   });
 
@@ -199,8 +192,7 @@ describe('fog banks on the chart', () => {
       5 * DAY,
       'threatsAndPrizes',
       new Set(),
-      false,
-      sessionWeatherFactor(s),
+      { weather: sessionWeatherFactor(s) },
     );
     expect(enc?.contact.kind).toBe('fog');
     // Its wall is 9 km off, so the meeting is at that range, not at the bank's heart.

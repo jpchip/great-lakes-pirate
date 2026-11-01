@@ -50,6 +50,16 @@ export const lighthouseSchema = z.object({
   zone: idOf('zone'),
   /** Where the tower stands (WGS84); the runtime snaps it onto the nearest land. */
   at: geoSchema,
+  /**
+   * A pierhead light (Phase 3 piece I): the tower stands on the outer end of this pier in
+   * data/harbors.json, on its deck, and `at` is only where the record puts it.
+   */
+  pier: idOf('pier').optional(),
+  /**
+   * False for a station standing dark in 1900 (Minnesota Point, extinguished 1885): the
+   * tower is there, but no lamp, no keeper and no fog signal.
+   */
+  lit: z.boolean().default(true),
   tower: z.object({
     style: towerStyleSchema,
     /** Height of the lantern's floor above the ground, real meters (1:1, plan 03 §3.4). */
@@ -61,7 +71,7 @@ export const lighthouseSchema = z.object({
   characteristic: characteristicSchema,
   /** Lens as R1 records it, for the record. */
   lens: z.string(),
-  keepers: z.number().int().min(1).max(4),
+  keepers: z.number().int().min(0).max(4),
   /** How fast the keeper reports what he sees: near town is fast, remote is slow. */
   reporting: z.enum(['fast', 'medium', 'slow']),
   /** No signal when absent: the station is silent in fog. */

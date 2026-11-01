@@ -1,0 +1,11 @@
+{
+  "id": "music.stinger.clear",
+  "name": "stinger-clear",
+  "description": "Encounter stinger, slipped away: a falling concertina phrase home to G",
+  "kind": "oneshot",
+  "bus": "music",
+  "bundles": [
+    "chart-audio"
+  ],
+  "source": "source.flac"
+}

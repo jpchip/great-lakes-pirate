@@ -2,10 +2,11 @@
 // Renders the synthesized raw sounds (tools/audio/lib/synth.ts) into raw-assets/audio/ as
 // FLAC sources with their sound.json and provenance.json, ready for `npm run audio`:
 // the lighthouse fog whistle and fog bell, the two open-water music v1 cues, and the NPC
-// ships' whistles and the schooner-barge's fog horn (Phase 3 piece J).
+// ships' whistles and the schooner-barge's fog horn (Phase 3 piece J), and the chart's
+// traveling theme, the encounter stingers and the fade-to-fog sound (piece J, part 2).
 //
 //   npm run audio:synth            # render all, then run `npm run audio`
-//   npm run audio:synth -- ships   # render one category only
+//   npm run audio:synth -- ships   # render one category only (ships, chart, music, ...)
 //
 // Needs ffmpeg on the PATH (or FFMPEG=...), like the pipeline. Seeded, so a rerun writes
 // the same samples.
@@ -37,6 +38,7 @@ import {
   waltzForm,
   whistleNote,
 } from './lib/synth.ts';
+import { chartTheme, fogFade, stinger, STINGERS, type StingerName } from './lib/synth-chart.ts';
 
 const ROOT = resolve(fileURLToPath(import.meta.url), '..', '..', '..');
 const RAW = join(ROOT, 'raw-assets', 'audio');
@@ -44,6 +46,7 @@ const FFMPEG = process.env['FFMPEG'] ?? 'ffmpeg';
 const RATE = SAMPLE_RATE;
 const TODAY = '2026-10-30';
 const TODAY_J = '2026-10-31';
+const TODAY_J2 = '2026-11-01';
 /** Render only this category (e.g. `ships`), leaving the other sources untouched. */
 const ONLY = process.argv[2];
 
@@ -271,6 +274,61 @@ function main(): void {
     foghorn(RATE, 3),
     'Additive reed horn at 233 Hz with nasal formants, bellows swell and breath noise',
     TODAY_J,
+  );
+  writeSound(
+    'music',
+    {
+      id: 'music.chart.voyage',
+      name: 'chart-voyage',
+      description:
+        'Chart music: "The Long Reach", a 6/8 traveling tune on concertina, guitar and tin whistle',
+      kind: 'oneshot',
+      bus: 'music',
+      bundles: ['music-chart'],
+    },
+    chartTheme(RATE),
+    'Original tune; synthesized free-reed concertina, Karplus-Strong guitar, tin whistle and fiddle drone, Freeverb-style reverb',
+    TODAY_J2,
+  );
+  const stingers: Record<StingerName, string> = {
+    sail: 'Encounter stinger, a sail or smoke sighted: a rising concertina figure onto G',
+    threat:
+      'Encounter stinger, the cutter sighted: a low drone and a whistle leaning on a minor second',
+    hunted: 'Encounter stinger, the cutter has seen you: drum strokes, a falling minor run, a roll',
+    squall: 'Encounter stinger, a squall line: a swelling drum roll over a dark drone',
+    derelict: "Encounter stinger, a derelict: a far ship's bell and an unresolved whistle phrase",
+    clear: 'Encounter stinger, slipped away: a falling concertina phrase home to G',
+  };
+  for (const name of STINGERS) {
+    writeSound(
+      'chart',
+      {
+        id: `music.stinger.${name}`,
+        name: `stinger-${name}`,
+        description: stingers[name],
+        kind: 'oneshot',
+        bus: 'music',
+        bundles: ['chart-audio'],
+      },
+      stinger(name, RATE),
+      'Original motif; synthesized concertina, guitar, tin whistle, fiddle drone, frame drum and bell, Freeverb-style reverb',
+      TODAY_J2,
+    );
+  }
+  writeSound(
+    'chart',
+    {
+      id: 'ui.transition.fog',
+      name: 'fog-fade',
+      description:
+        "The loading screen's fade to fog: a swell of wind and sea with two strokes of a ship's bell",
+      kind: 'oneshot',
+      bus: 'ui',
+      bundles: ['chart-audio'],
+    },
+    fogFade(RATE),
+    "Low-passed and band-passed noise under a swell envelope, two additive ship's bell strokes, Freeverb-style reverb",
+    TODAY_J2,
   );
 }
 

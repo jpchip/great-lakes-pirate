@@ -61,8 +61,8 @@ import type { ZoneFrame } from './core/coords';
 import { createHazardState, mooringBerths, type MooringBerth } from './sim/sailing/hazards';
 import { httpBytes, loadZoneTerrain, type LoadedZone } from './sim/terrain/load';
 import { TEST_BAY, type Dock, type Pose } from './sim/terrain/test-bay';
-import { layoutHarbors } from './sim/harbors';
-import { LIGHTHOUSES, placeLights, viewingSpot } from './sim/lighthouses';
+import { findHarbor, harborZoneId, layoutHarbors } from './sim/harbors';
+import { lightsIn, placeLights, viewingSpot } from './sim/lighthouses';
 import { ZoneManager } from './sim/terrain/zone-manager';
 import {
   defFrame,
@@ -266,6 +266,12 @@ async function boot(): Promise<void> {
   if (paramDef && paramDef.id !== start.zoneId) {
     start = { zoneId: paramDef.id, pose: spawnPose(paramDef), from: 'spawn' };
   }
+  // `?harbor=duluth` (below) starts in the zone that harbor is in.
+  const harborParam = findHarbor((params.get('harbor') ?? '').split(',')[0] ?? '');
+  if (!paramDef && params.get('harbor') && harborParam) {
+    const id = harborZoneId(harborParam);
+    if (id !== start.zoneId) start = { zoneId: id, pose: spawnPose(zoneDef(id)), from: 'spawn' };
+  }
   const entryParam = params.get('entry');
   const paramEntry = entryParam ? findEntry(zoneDef(start.zoneId), entryParam) : undefined;
   if (paramEntry) start = { ...start, pose: entryPose(paramEntry), from: 'entry' };
@@ -311,11 +317,16 @@ async function boot(): Promise<void> {
     spawn.z = sz ?? spawn.z;
     if (Number.isFinite(sh)) spawn.heading = ((sh ?? 0) * Math.PI) / 180;
   }
-  // `?harbor=bayfield` (or `ashland`, with `,2` for a pier by its order in data/harbors.json)
-  // starts the ship 120 m off that pier's outer end, bow toward it, to try docking.
-  let harborLayouts = zone ? layoutHarbors(manifestFrame(zone.manifest), zone.terrain) : [];
+  // `?harbor=bayfield` (or `ashland`, `duluth`, `superior`, `two_harbors`, with `,2` for a
+  // pier by its order in data/harbors.json) starts the ship 120 m off that pier's outer end,
+  // bow toward it, to try docking. `duluth_canal` and `superior_entry` start off a canal
+  // pier's lake end, to sail in between the piers.
+  let harborLayouts = zone
+    ? layoutHarbors(manifestFrame(zone.manifest), zone.terrain, zone.manifest.zone)
+    : [];
   const [harborKey, pierIndex] = (params.get('harbor') ?? '').split(',');
-  const harbor = harborKey ? harborLayouts.find((l) => l.def.id.includes(harborKey)) : undefined;
+  const harborId = harborKey ? findHarbor(harborKey)?.id : undefined;
+  const harbor = harborLayouts.find((l) => l.def.id === harborId);
   const pier = harbor?.piers[Number(pierIndex) || 0];
   if (pier) {
     const out = pier.lengthM + 120;
@@ -328,9 +339,11 @@ async function boot(): Promise<void> {
   // meters (default 500), for checking a lighthouse by day and by night.
   const [lightKey, lightDistance] = (params.get('light') ?? '').split(',');
   if (lightKey && zone) {
-    const found = placeLights(LIGHTHOUSES, manifestFrame(zone.manifest), zone.terrain).find((p) =>
-      p.def.id.includes(lightKey),
-    );
+    const found = placeLights(
+      lightsIn(zone.manifest.zone),
+      manifestFrame(zone.manifest),
+      zone.terrain,
+    ).find((p) => p.def.id.includes(lightKey));
     const at = found && viewingSpot(found, zone.terrain, Number(lightDistance) || 500);
     if (at) {
       spawn.x = at.x;
@@ -394,7 +407,7 @@ async function boot(): Promise<void> {
   // fog signals sound from the tops of their towers; gulls gather at the harbors' piers.
   const signalStations = (z: LoadedZone | undefined): SignalStation[] =>
     z
-      ? placeLights(LIGHTHOUSES, manifestFrame(z.manifest), z.terrain).flatMap((p) =>
+      ? placeLights(lightsIn(z.manifest.zone), manifestFrame(z.manifest), z.terrain).flatMap((p) =>
           p.def.fogSignal
             ? [
                 {
@@ -421,6 +434,16 @@ async function boot(): Promise<void> {
     return undefined;
   });
   if (audio) document.body.dataset['audioBank'] = String(audio.bank.size);
+  /** The chart's music and cues on the page, for the e2e tests; written only on a change. */
+  const audioCuesToDataset = (a: GameAudio): void => {
+    const d = document.body.dataset;
+    const chartMusic = a.chartMusic.playing ? 'playing' : 'off';
+    if (d['chartMusic'] !== chartMusic) d['chartMusic'] = chartMusic;
+    const stinger = a.chartCues.last;
+    if (stinger && d['stinger'] !== stinger) d['stinger'] = stinger;
+    const fades = String(a.chartCues.transitions);
+    if (d['audioFades'] !== fades) d['audioFades'] = fades;
+  };
 
   let changingZone = false;
   // Chart travel (Phase 3 piece D); built once the UI is up.
@@ -704,7 +727,9 @@ async function boot(): Promise<void> {
       ctx.weather.shelter = zone?.terrain ?? stubIslandShelter(TEST_BAY_ISLANDS);
       ctx.weather.invalidate();
       weatherSource.frame = zoneFrame(zone, def);
-      harborLayouts = zone ? layoutHarbors(manifestFrame(zone.manifest), zone.terrain) : [];
+      harborLayouts = zone
+        ? layoutHarbors(manifestFrame(zone.manifest), zone.terrain, zone.manifest.zone)
+        : [];
       const nextDocks = zoneDocks(zone);
       sailingOptions.docks = nextDocks;
       sailingOptions.berths = mooringBerths(nextDocks, ctx.terrain);
@@ -1020,15 +1045,19 @@ async function boot(): Promise<void> {
           travel.resumeFrom(exit.contactId, exit.result);
         });
       // A hostile that forced the meeting hunts you in the arena; one you chose to close
-      // with stands on. (Until Phase 5's Wanted, piece F stops the cutter forcing at all.)
+      // with stands on. (Until Phase 5's Wanted the cutter forces nothing unless ?cutter=hunt.)
       void enterArena(
         arenaFromChartEncounter(enc, travel.session.position, travel.session.heading, {
           hunting: enc.forced && enc.contact.hostile,
+          company: travel.session.contacts,
         }),
         true,
       );
     },
-    seed: state.environment.rng.join('-'),
+    // A stable per-run number from the save (the RNG state moves on as the run plays), so
+    // the traffic's timetables are the same after a reload.
+    seed: `run-${state.environment.weather.noiseSeed}`,
+    cutterHunts: params.get('cutter') === 'hunt',
   });
   travelRef.current = chartTravel;
   machine.register(chartTravel.mode);
@@ -1074,16 +1103,28 @@ async function boot(): Promise<void> {
        */
       meet(kind: string, forced = false) {
         const { session } = chartTravel;
+        // Nearest on the water; one lying in port only if none of that kind is out.
         const near = session.contacts
           .filter((c) => c.kind === kind)
-          .sort((a, b) => distance(a.pos, session.position) - distance(b.pos, session.position))[0];
+          .sort(
+            (a, b) =>
+              Number(!!a.inPort) - Number(!!b.inPort) ||
+              distance(a.pos, session.position) - distance(b.pos, session.position),
+          )[0];
         if (!near) return undefined;
         session.pending = {
           contact: near,
           forced,
           distanceM: distance(near.pos, session.position),
           bearing: bearing(session.position, near.pos),
+          ...(near.hostile ? { hunts: forced } : {}),
         };
+        ctx.events.emit('EncounterSpotted', {
+          contactId: near.id,
+          forced,
+          kind: near.kind,
+          hostile: near.hostile,
+        });
         return near.id;
       },
     };
@@ -1118,7 +1159,8 @@ async function boot(): Promise<void> {
     },
     frame(alpha, frameSeconds) {
       machine.render(alpha, frameSeconds);
-      audio?.update(frameSeconds, machine.mode);
+      audio?.update(frameSeconds, machine.mode, machine.hasOverlay('loading'));
+      if (audio) audioCuesToDataset(audio);
       ui.setSpyglass(cameraRig?.ship.spyglass ?? false);
       hudClock += frameSeconds;
       hudSeconds += frameSeconds;

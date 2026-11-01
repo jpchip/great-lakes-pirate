@@ -27,6 +27,8 @@ export interface Dock {
   widthM: number;
   /** Deck height above mean lake level. */
   deckM: number;
+  /** False for a pier you can't lie at, such as a canal pier: an obstacle only. */
+  berths?: boolean;
 }
 
 /** Where a ship lies alongside a dock: its center and heading, and the berth zone length. */
@@ -88,6 +90,7 @@ export function dockPoint(dock: Dock, along: number, across: number): { x: numbe
  * too shallow to lie at.
  */
 export function dockBerths(dock: Dock): Berth[] {
+  if (dock.berths === false) return [];
   const offset = dock.widthM / 2 + BERTH_CLEARANCE_M;
   const out: Berth[] = [];
   for (

@@ -70,6 +70,9 @@ then `npm run audio` encodes them as usual. The code is `tools/audio/synth.ts` a
 | `music/open-water-night` | "Devils Island Air" (tin whistle, fiddle drone): v1 at night             |
 | `ships/whistle-*`        | The NPC ships' steam whistles (freighter, chime, tug, cutter), Phase 3   |
 | `ships/foghorn`          | The schooner-barge's hand-pumped fog horn, Phase 3                       |
+| `music/chart-voyage`     | "The Long Reach" (concertina, guitar, tin whistle): the chart's theme    |
+| `chart/stinger-*`        | Encounter stingers: sail, threat, hunted, squall, derelict, clear        |
+| `chart/fog-fade`         | The loading screen's fade to fog: wind and sea with a ship's bell        |
 
 ## The weather and wildlife set (Phase 2)
 

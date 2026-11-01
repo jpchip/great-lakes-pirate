@@ -6,10 +6,18 @@ import {
   visibilityFactor,
   type ChartSky,
 } from '../sim/chart/chart-weather';
+import {
+  encounterBudget,
+  expectedEncounters,
+  tradeLaneLines,
+  type LaneLines,
+} from '../sim/chart/director';
+import { monthAt } from '../sim/chart/routes';
 import type { ChartGeography, ChartZone } from '../sim/chart/geography';
 import {
   avoidChance,
   checkEncounters,
+  detourSeconds,
   stepContacts,
   weatherFactor,
   type Contact,
@@ -44,9 +52,9 @@ export const CHART_TIME_SCALE = 3600 / CHART_SECONDS_PER_HOUR;
  * that isn't hunting you for this long (game seconds). It keeps a crossing near plan
  * 03 §6.4's 0–2 interruptions without thinning the traffic.
  */
-export const ENCOUNTER_QUIET_S = 2 * 3600;
+export const ENCOUNTER_QUIET_S = 1.5 * 3600;
 
-/** Everything chart mode reads and changes. Not saved yet (prototype S8). */
+/** Everything chart mode reads and changes. The voyage goes in the save (piece D). */
 export interface ChartSession {
   readonly geo: ChartGeography;
   ship: ChartShip;
@@ -74,6 +82,15 @@ export interface ChartSession {
   handled: Set<string>;
   /** Game time until which only forced encounters interrupt (the pacing guard). */
   quietUntil: number;
+  /**
+   * The encounter director's reports left this voyage (piece F); once spent only threats
+   * are reported. Undefined: no budget, every sighting the lookout setting passes.
+   */
+  budget?: number;
+  /** Hostiles hunt and force meetings (`?cutter=hunt`, dev only until Phase 5's Wanted). */
+  hostilesHunt?: boolean;
+  /** Game seconds still to lose standing off something steered clear of (S8 finding 4). */
+  detourS?: number;
 }
 
 export type EncounterChoice = 'engage' | 'avoid' | 'ignore';
@@ -198,6 +215,7 @@ export function createChartMode(
 ): ChartMode {
   const clock = ctx.state.environment.clock;
   const hour = (): number => dayAndHour(clock.gameSeconds).hour;
+  let lanes: LaneLines | undefined;
 
   const mode: ChartMode = {
     id: 'chart',
@@ -215,6 +233,12 @@ export function createChartMode(
       session.voyage = startVoyage(course, clock.gameSeconds);
       session.handled.clear();
       session.quietUntil = 0;
+      session.detourS = 0;
+      lanes ??= tradeLaneLines(session.geo.projection);
+      session.budget = encounterBudget(
+        expectedEncounters(course, monthAt(clock.gameSeconds), lanes),
+        ctx.rng,
+      );
       ctx.events.emit('VoyageStarted', {
         legs: course.legs.length,
         lengthM: course.lengthM,
@@ -240,6 +264,8 @@ export function createChartMode(
           ctx.events.emit('EncounterEngaged', { contactId: id, forced: true });
           return { outcome: 'arena', escaped };
         }
+        // Steering clear costs sea room, and so time (S8 finding 4).
+        session.detourS = (session.detourS ?? 0) + detourSeconds(enc, session.voyage?.speedKn ?? 0);
         session.handled.add(id);
         return { outcome: 'continue', escaped };
       }
@@ -256,8 +282,11 @@ export function createChartMode(
       const gameSeconds = dt * session.timeScale;
       const dayBefore = dayAndHour(clock.gameSeconds).day;
       const worldTicks = advanceGameTime(clock, gameSeconds);
-      stepVoyage(voyage, gameSeconds, session.wind, sessionShip(session));
-      stepContacts(session.contacts, gameSeconds);
+      // A detour eats into the time before the voyage makes good any more of its course.
+      const standingOff = Math.min(session.detourS ?? 0, gameSeconds);
+      if (standingOff > 0) session.detourS = (session.detourS ?? 0) - standingOff;
+      stepVoyage(voyage, gameSeconds - standingOff, session.wind, sessionShip(session));
+      stepContacts(session.contacts, clock.gameSeconds);
       session.position = voyage.position;
       session.heading = voyage.heading;
 
@@ -286,13 +315,25 @@ export function createChartMode(
           clock.gameSeconds,
           session.lookout,
           session.handled,
-          clock.gameSeconds < session.quietUntil,
-          sessionWeatherFactor(session),
+          {
+            forcedOnly: clock.gameSeconds < session.quietUntil,
+            threatsOnly: session.budget !== undefined && session.budget <= 0,
+            hostilesHunt: session.hostilesHunt ?? false,
+            weather: sessionWeatherFactor(session),
+          },
         );
         if (enc) {
           session.quietUntil = clock.gameSeconds + ENCOUNTER_QUIET_S;
+          if (!enc.forced && session.budget !== undefined) {
+            session.budget = Math.max(session.budget - 1, 0);
+          }
           session.pending = enc;
-          ctx.events.emit('EncounterSpotted', { contactId: enc.contact.id, forced: enc.forced });
+          ctx.events.emit('EncounterSpotted', {
+            contactId: enc.contact.id,
+            forced: enc.forced,
+            kind: enc.contact.kind,
+            hostile: enc.contact.hostile,
+          });
           hooks.onEncounter?.(enc);
         }
       }

@@ -128,7 +128,9 @@ export function encounterCard(
     const weather = sessionWeatherFactor(session);
     const hour = dayAndHour(gameSeconds).hour;
     const p = avoidChance(enc, hour, session.voyage?.speedKn ?? 0, weather);
-    avoidLabel = enc.contact.hostile ? `Avoid (${Math.round(p * 100)}%)` : 'Steer clear';
+    const pct = `${Math.round(p * 100)}%`;
+    if (enc.contact.hostile && enc.hunts !== false) avoidLabel = `Avoid (${pct})`;
+    else avoidLabel = p < 1 ? `Steer clear (${pct})` : 'Steer clear';
   }
   return {
     kind,
@@ -243,8 +245,12 @@ export function chartHud(src: ChartHudSources): ChartHudSnapshot {
   let statusText: string;
   let eta: string | undefined;
   if (voyage) {
-    statusText = `Under way ${compassPoint(voyage.heading)} at ${voyage.speedKn.toFixed(1)} kn, ${nm(remainingM(voyage))} to go`;
-    eta = etaText(gameSeconds, remainingSeconds(voyage, wind, ship));
+    const detour = session.detourS ?? 0;
+    statusText =
+      detour > 0
+        ? `Standing off, back on course in ${durationText(detour)}; ${nm(remainingM(voyage))} to go`
+        : `Under way ${compassPoint(voyage.heading)} at ${voyage.speedKn.toFixed(1)} kn, ${nm(remainingM(voyage))} to go`;
+    eta = etaText(gameSeconds, remainingSeconds(voyage, wind, ship) + detour);
   } else if (course && plotted) {
     const legs = `${course.legs.length} leg${course.legs.length > 1 ? 's' : ''}`;
     const to = course.destinationZone ? ` to ${course.destinationZone.name}` : '';

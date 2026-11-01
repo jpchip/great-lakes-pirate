@@ -1,0 +1,11 @@
+{
+  "id": "music.stinger.hunted",
+  "name": "stinger-hunted",
+  "description": "Encounter stinger, the cutter has seen you: drum strokes, a falling minor run, a roll",
+  "kind": "oneshot",
+  "bus": "music",
+  "bundles": [
+    "chart-audio"
+  ],
+  "source": "source.flac"
+}

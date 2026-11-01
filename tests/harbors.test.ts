@@ -20,27 +20,86 @@ import {
 import { compileSailingClass } from '../src/sim/sailing/ship-class';
 import { sailShipRecord, T1_SCHOONER_ID } from '../src/sim/sailing/ships';
 import {
+  findHarbor,
   footprintPoint,
   harborClearings,
   HARBORS,
+  harborsIn,
+  harborZoneId,
   layoutHarbor,
   layoutHarbors,
+  pierHead,
   type HarborLayout,
+  type PlacedPier,
 } from '../src/sim/harbors';
+import { lightsIn, placeLights } from '../src/sim/lighthouses';
 import { loadZoneTerrain, type LoadedZone } from '../src/sim/terrain/load';
 import { defFrame, manifestFrame, setPieceFootprint, zoneDef } from '../src/sim/terrain/zones';
+import type { ZoneTerrain } from '../src/sim/terrain/zone-terrain';
 
 const DEG = Math.PI / 180;
 
 describe('the harbor data', () => {
   it('names a real set piece for every harbor, and gives each kind of pier once', () => {
-    const ids = new Set(zoneDef('zone.apostles').setPieces.map((s) => s.id));
     for (const h of HARBORS) {
+      const ids = new Set(zoneDef(harborZoneId(h)).setPieces.map((s) => s.id));
       expect(ids.has(h.setPiece), h.id).toBe(true);
-      const kinds = h.piers.map((p) => p.kind);
+      // An entry has a pier each side; every other kind of pier comes once per harbor.
+      const kinds = h.piers.map((p) => p.kind).filter((k) => k !== 'canal');
       expect(new Set(kinds).size, h.id).toBe(kinds.length);
     }
-    expect(HARBORS.map((h) => h.id)).toEqual(['harbor.bayfield', 'harbor.ashland']);
+    const ids = HARBORS.map((h) => h.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(harborsIn('zone.apostles').map((h) => h.id)).toEqual([
+      'harbor.bayfield',
+      'harbor.ashland',
+    ]);
+    expect(harborsIn('zone.twin_ports').map((h) => h.id)).toEqual([
+      'harbor.duluth_canal',
+      'harbor.duluth',
+      'harbor.superior_entry',
+      'harbor.superior',
+    ]);
+    expect(harborsIn('zone.two_harbors').map((h) => h.id)).toEqual(['harbor.two_harbors']);
+  });
+
+  it('finds a harbor by its id or a fragment, exact first', () => {
+    expect(findHarbor('duluth')?.id).toBe('harbor.duluth');
+    expect(findHarbor('canal')?.id).toBe('harbor.duluth_canal');
+    expect(findHarbor('harbor.two_harbors')?.id).toBe('harbor.two_harbors');
+    expect(findHarbor('nowhere')).toBeUndefined();
+  });
+
+  it('lines the Duluth Ship Canal and Superior Entry with a pier each side, at 1:1 (piece I)', () => {
+    for (const [id, piece, gap] of [
+      ['harbor.duluth_canal', 'setpiece.duluth_canal', 90],
+      ['harbor.superior_entry', 'setpiece.superior_entry', 150],
+    ] as const) {
+      const h = HARBORS.find((x) => x.id === id);
+      const canal = h?.piers.filter((p) => p.kind === 'canal') ?? [];
+      expect(canal, id).toHaveLength(2);
+      const [a, b] = canal;
+      if (!a || !b) throw new Error(id);
+      // Both on the cut's own bearing, one each side of it, the inner faces about the
+      // real entry's width apart: the canal 300 ft, Superior Entry about 500 ft.
+      expect(a.bearingDeg, id).toBeUndefined();
+      expect(Math.sign(a.alongM) * Math.sign(b.alongM), id).toBe(-1);
+      const inner = Math.abs(a.alongM - b.alongM) - (a.widthM + b.widthM) / 2;
+      expect(inner, id).toBeGreaterThanOrEqual(gap);
+      expect(inner, id).toBeLessThan(gap + 15);
+      const cut = zoneDef('zone.twin_ports').setPieces.find((p) => p.id === piece)?.cuts?.[0];
+      expect(inner, id).toBeGreaterThanOrEqual(cut?.widthM ?? Infinity);
+    }
+  });
+
+  it('gives Two Harbors a 1:1 wooden ore dock', () => {
+    const ore = HARBORS.find((h) => h.id === 'harbor.two_harbors')?.piers.find(
+      (p) => p.kind === 'ore',
+    );
+    // The D&IR docks stood about 50 ft above the water to the top of the pockets.
+    expect(ore?.deckM).toBeGreaterThanOrEqual(15);
+    expect(ore?.widthM).toBeGreaterThanOrEqual(15);
+    expect(ore?.lengthM).toBeGreaterThanOrEqual(180);
   });
 
   it('has Bayfield’s fish docks, packing house, cooperage and sawmill, and Ashland’s ore dock', () => {
@@ -177,53 +236,7 @@ describe('the harbors on the Apostles zone', () => {
   });
 
   it.skipIf(!baked)('docks at Bayfield and at Ashland (the piece G exit criterion)', () => {
-    const record = sailShipRecord(T1_SCHOONER_ID);
-    const sailing = compileSailingClass(record, defaultHandling());
-    const c = compileHazardClass(record, defaultHazardRules());
-    const docks = layouts.flatMap((l) => l.piers);
-    const env: HazardEnv = {
-      terrain: zone.terrain,
-      docks,
-      berths: mooringBerths(docks, zone.terrain),
-    };
-    const wind = { fromRad: 270 * DEG, speedKn: 10, gust01: 0 };
-    for (const l of layouts) {
-      for (const pier of l.piers) {
-        const own = env.berths.filter((b) => b.dockId === pier.id);
-        expect(own.length, pier.id).toBeGreaterThan(0);
-        for (const berth of own) {
-          // Drifting in at a knot, 8 m off the berth.
-          const s = createSailingState(
-            berth.pose.x + berth.awayX * 8,
-            berth.pose.z + berth.awayZ * 8,
-            berth.pose.heading,
-          );
-          s.speed = knotsToMs(1);
-          const h = createHazardState(c);
-          const events: HazardEvent[] = [];
-          for (let i = 0; i < 240; i++) {
-            const prev = { x: s.x, z: s.z, heading: s.heading };
-            stepSailing(s, IDLE_COMMAND, sailing, wind, 0, { rate: 24, compression: 8 }, 1 / 30);
-            stepHazards(
-              s,
-              h,
-              c,
-              { ...IDLE_MOORING, interact: i === 0 },
-              env,
-              prev,
-              wind,
-              { rate: 24, compression: 8 },
-              1 / 30,
-              events,
-            );
-          }
-          expect(h.mooring, berth.id).toBe('docked');
-          expect(events, berth.id).toContainEqual({ kind: 'docked', berthId: berth.id });
-          expect(h.aground, berth.id).toBe(false);
-          expect(h.hull, berth.id).toBe(100);
-        }
-      }
-    }
+    dockAtEveryPier(zone.terrain, layouts);
   });
 
   it.skipIf(!baked)('draws both towns in four draw calls, within the triangle budget', () => {
@@ -239,3 +252,192 @@ describe('the harbors on the Apostles zone', () => {
     view.dispose();
   });
 });
+
+/** A zone baked into public/world/<dir>, or undefined when the LFS files aren't there. */
+function bakedDir(name: string): string | undefined {
+  const dir = join(__dirname, '..', 'public', 'world', name);
+  return existsSync(join(dir, 'manifest.json')) &&
+    readFileSync(join(dir, 'height', '0-0.bin')).byteLength > 200
+    ? dir
+    : undefined;
+}
+
+/**
+ * Drifts the T1 in at a knot from 8 m off every berth of every pier with berths, through
+ * the plan 02 hazards on the real zone, and checks she docks without a scratch. A pier
+ * with berths has to have at least one deep enough to lie at.
+ */
+function dockAtEveryPier(terrain: ZoneTerrain, layouts: readonly HarborLayout[]): number {
+  const record = sailShipRecord(T1_SCHOONER_ID);
+  const sailing = compileSailingClass(record, defaultHandling());
+  const c = compileHazardClass(record, defaultHazardRules());
+  const docks = layouts.flatMap((l) => l.piers);
+  const env: HazardEnv = { terrain, docks, berths: mooringBerths(docks, terrain) };
+  const wind = { fromRad: 270 * DEG, speedKn: 10, gust01: 0 };
+  let docked = 0;
+  for (const l of layouts) {
+    for (const pier of l.piers) {
+      const own = env.berths.filter((b) => b.dockId === pier.id);
+      if (pier.berths === false) {
+        expect(own, pier.id).toHaveLength(0);
+        continue;
+      }
+      expect(own.length, pier.id).toBeGreaterThan(0);
+      for (const berth of own) {
+        const s = createSailingState(
+          berth.pose.x + berth.awayX * 8,
+          berth.pose.z + berth.awayZ * 8,
+          berth.pose.heading,
+        );
+        s.speed = knotsToMs(1);
+        const h = createHazardState(c);
+        const events: HazardEvent[] = [];
+        for (let i = 0; i < 240; i++) {
+          const prev = { x: s.x, z: s.z, heading: s.heading };
+          stepSailing(s, IDLE_COMMAND, sailing, wind, 0, { rate: 24, compression: 8 }, 1 / 30);
+          stepHazards(
+            s,
+            h,
+            c,
+            { ...IDLE_MOORING, interact: i === 0 },
+            env,
+            prev,
+            wind,
+            { rate: 24, compression: 8 },
+            1 / 30,
+            events,
+          );
+        }
+        expect(h.mooring, berth.id).toBe('docked');
+        expect(events, berth.id).toContainEqual({ kind: 'docked', berthId: berth.id });
+        expect(h.aground, berth.id).toBe(false);
+        expect(h.hull, berth.id).toBe(100);
+        docked++;
+      }
+    }
+  }
+  return docked;
+}
+
+/** Whether a point lies on a pier's deck footprint, with `pad` meters to spare. */
+function onPier(p: PlacedPier, x: number, z: number, pad: number): boolean {
+  const fx = Math.sin(p.bearing);
+  const fz = -Math.cos(p.bearing);
+  const dx = x - p.root.x;
+  const dz = z - p.root.z;
+  const along = dx * fx + dz * fz;
+  const across = Math.abs(dx * -fz + dz * fx);
+  return along >= -pad && along <= p.lengthM + pad && across <= p.widthM / 2 + pad;
+}
+
+for (const [zoneId, dirName] of [
+  ['zone.twin_ports', 'twin_ports'],
+  ['zone.two_harbors', 'two_harbors'],
+] as const) {
+  describe(`the harbors in ${zoneId} (Phase 3 piece I)`, () => {
+    const dir = bakedDir(dirName);
+    let zone: LoadedZone;
+    let layouts: HarborLayout[];
+
+    beforeAll(async () => {
+      if (!dir) return;
+      zone = await loadZoneTerrain(async (path) => new Uint8Array(readFileSync(join(dir, path))));
+      layouts = layoutHarbors(manifestFrame(zone.manifest), zone.terrain, zoneId);
+    });
+
+    it.skipIf(!dir)('lays out only this zone’s harbors', () => {
+      expect(layouts.map((l) => l.def.id)).toEqual(harborsIn(zoneId).map((h) => h.id));
+      // The Apostles' harbors aren't laid out here (they were, off the zone's edge).
+      expect(layoutHarbors(manifestFrame(zone.manifest), zone.terrain).length).toBe(2);
+    });
+
+    it.skipIf(!dir)('docks at every pier with berths, in water deep enough', () => {
+      for (const l of layouts) {
+        for (const b of mooringBerths(l.piers, zone.terrain)) {
+          expect(zone.terrain.heightAt(b.pose.x, b.pose.z), b.id).toBeLessThan(-3);
+        }
+      }
+      expect(dockAtEveryPier(zone.terrain, layouts)).toBeGreaterThanOrEqual(
+        zoneId === 'zone.twin_ports' ? 8 : 6,
+      );
+    });
+
+    it.skipIf(!dir)('stands the buildings on dry ground and fills the towns', () => {
+      for (const l of layouts) {
+        for (const b of l.buildings) {
+          expect(b.floorM, `${l.def.id} ${b.kind}`).toBeGreaterThanOrEqual(b.footM);
+          if (b.kind === 'house') {
+            expect(zone.terrain.heightAt(b.x, b.z), `${l.def.id} house`).toBeGreaterThan(0.5);
+          }
+        }
+        const houses = l.buildings.filter((b) => b.kind === 'house').length;
+        expect(houses, l.def.id).toBeGreaterThanOrEqual(l.def.town.houses * 0.6);
+        expect(houses, l.def.id).toBeLessThanOrEqual(l.def.town.houses);
+      }
+    });
+
+    it.skipIf(!dir || zoneId !== 'zone.twin_ports')(
+      'leaves the canal and Superior Entry open to sail through between their piers',
+      () => {
+        const frame = manifestFrame(zone.manifest);
+        for (const h of ['harbor.duluth_canal', 'harbor.superior_entry']) {
+          const l = layouts.find((x) => x.def.id === h);
+          const canal = l?.piers.filter((p) => p.kind === 'canal') ?? [];
+          expect(canal, h).toHaveLength(2);
+          const piece = zoneDef(zoneId).setPieces.find((p) => p.id === l?.def.setPiece);
+          if (!piece || !l) throw new Error(h);
+          const fp = setPieceFootprint(piece, frame);
+          // Down the middle from the harbor side to the lake: deep water, no pier within
+          // 25 m either side (a T1's beam is under 7 m).
+          const defs = l.def.piers.filter((p) => p.kind === 'canal');
+          const middle = defs.reduce((sum, p) => sum + p.alongM, 0) / defs.length;
+          const from = Math.max(...defs.map((p) => p.inlandM));
+          const to = Math.min(...defs.map((p) => p.inlandM - p.lengthM));
+          for (let inland = from; inland >= to; inland -= 5) {
+            const mid = footprintPoint(fp, middle, inland);
+            expect(zone.terrain.heightAt(mid.x, mid.z), `${h} ${inland}`).toBeLessThan(-5);
+            for (const pier of canal) {
+              expect(onPier(pier, mid.x, mid.z, 25), `${h} ${pier.id} ${inland}`).toBe(false);
+            }
+          }
+          // And the piers really are walls: the lake end of each stands in the water.
+          for (const pier of canal) {
+            const head = pierHead(pier.id, frame, zone.terrain);
+            expect(head && zone.terrain.heightAt(head.x, head.z), pier.id).toBeLessThan(-5);
+          }
+        }
+      },
+    );
+
+    it.skipIf(!dir)('stands the 1900 lights: pierheads on their piers, the rest ashore', () => {
+      const frame = manifestFrame(zone.manifest);
+      const placed = placeLights(lightsIn(zoneId), frame, zone.terrain);
+      expect(placed.map((p) => p.def.id).sort()).toEqual(
+        zoneId === 'zone.twin_ports'
+          ? ['light.duluth_south_pier', 'light.minnesota_point', 'light.superior_entry']
+          : ['light.two_harbors'],
+      );
+      const piers = layouts.flatMap((l) => l.piers);
+      for (const p of placed) {
+        if (p.def.pier) {
+          const pier = piers.find((x) => x.id === p.def.pier);
+          if (!pier) throw new Error(`${p.def.id}: no pier ${p.def.pier}`);
+          expect(onPier(pier, p.x, p.z, 0), p.def.id).toBe(true);
+          expect(p.groundM, p.def.id).toBe(pier.deckM);
+        } else {
+          expect(zone.terrain.heightAt(p.x, p.z), p.def.id).toBeGreaterThanOrEqual(1.5);
+          // Clear of the piers and the buildings.
+          for (const pier of piers) expect(onPier(pier, p.x, p.z, 4), p.def.id).toBe(false);
+        }
+      }
+    });
+
+    it.skipIf(!dir)('draws each harbor in two draw calls, within the triangle budget', () => {
+      const lighting = new StyleLighting();
+      const view = createHarbors(layouts, (x, z) => zone.terrain.heightAt(x, z), lighting);
+      expect(view.group.children).toHaveLength(layouts.length * 2);
+      expect(view.triangles).toBeLessThan(250_000);
+      view.dispose();
+    });
+  });
+}

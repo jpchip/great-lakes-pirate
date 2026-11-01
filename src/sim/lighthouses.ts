@@ -6,6 +6,7 @@ import {
   type LightTier,
 } from '../../data/schemas/lighthouses';
 import { ChartProjection, chartToZone, type ZoneFrame } from '../core/coords';
+import { pierHead } from './harbors';
 import { hash01 } from './terrain/vegetation';
 import type { Clearing } from './terrain/vegetation';
 
@@ -21,6 +22,11 @@ import type { Clearing } from './terrain/vegetation';
 
 /** Validated lights from data/lighthouses.json. */
 export const LIGHTHOUSES: readonly LighthouseDef[] = lighthousesFileSchema.parse(lighthousesJson);
+
+/** The lights standing in one zone. */
+export function lightsIn(zoneId: string): LighthouseDef[] {
+  return LIGHTHOUSES.filter((l) => l.zone === zoneId);
+}
 
 export interface TierSpec {
   /** How far the light shows in clear air, zone meters. */
@@ -115,6 +121,19 @@ export function placeLights(
   const out: PlacedLight[] = [];
   const normal = { x: 0, z: 0 };
   for (const def of defs) {
+    // A pierhead light stands on its pier's outer end, on the deck, facing out along it.
+    const head = def.pier ? pierHead(def.pier, frame, terrain) : undefined;
+    if (head) {
+      const back = 4;
+      out.push({
+        def,
+        x: head.x - Math.sin(head.bearing) * back,
+        z: head.z + Math.cos(head.bearing) * back,
+        groundM: head.deckM,
+        seaward: head.bearing,
+      });
+      continue;
+    }
     const at = chartToZone(projection.geoToChart(def.at), frame);
     let x = at.x;
     let z = at.z;

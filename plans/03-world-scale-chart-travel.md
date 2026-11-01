@@ -824,7 +824,7 @@ The chart is now baked from the same NOAA bathymetry and USGS DEM as the zones (
 - **Agate Bay is widened, unlike Ashland.** Ashland's ore dock reaches into a kilometer of open bay (§18.2); Agate Bay is about 130 m across at C = 8, too small for a 1:1 dock. The basin is a first guess for piece I to reshape and rebake.
 
 ### 23.4 Still to do
-- Piece I: piers along the cuts, berths, the 1900 lights, town silhouettes, and the footprint numbers adjusted to fit them. The compressed DEM pier stubs outside the cuts may need more cuts.
+- ~~Piece I: piers along the cuts, berths, the 1900 lights, town silhouettes, and the footprint numbers adjusted to fit them. The compressed DEM pier stubs outside the cuts may need more cuts.~~ Built in §27; the footprints and cuts didn't need to change.
 - The Minnesota Point and North Shore cove hideout pads (09 §2.1) aren't placed; the zones have no on-foot tiles yet.
 - Entry points on the zone edges for Twin Ports and Two Harbors.
 
@@ -867,13 +867,13 @@ Screenshots are in the project files (`chart-in-game/`).
 - **The chart and the zones use different projections.** The chart geography is centered at 47° N 91° W, while zone frames, entries, the weather sim and the save use core/coords' default around the middle of the lake. `toWorldChart` and `fromWorldChart` (`src/sim/chart/geography.ts`) convert, and the save keeps world-frame points, so it doesn't depend on the chart's projection.
 - **The zone left behind stays loaded** while the ship is on the chart, for the way straight back; arrival swaps it through the zone manager like any zone change. A run saved on the chart loads its `fromZoneId` zone behind the chart.
 - **The Twin Ports and Two Harbors offer the chart from just outside their harbors** (playtest, 2026-10-31: sailing out to their edges took too long). Their `edge.chartFromM` in `zones.json` (1,900 m and 1,400 m inside the edge, which takes in the Duluth canal and Agate Bay mouths) offers "Take to the chart" wherever the open lake lies clear ahead toward the zone's nearest edge (`clearToZoneEdge`), so not in the harbor basin behind Minnesota Point. Arrivals at their entries now show the button at once. The Apostles keep the outer half of their fog fade.
-- **Contacts aren't saved.** The S8 stand-in traffic is rebuilt from the run's seed on load; piece F's route graph replaces it.
+- **Contacts aren't saved.** The S8 stand-in traffic is rebuilt from the run's seed on load; piece F's route graph replaces it. *Piece F (§26): the traffic is a function of the seed and the clock, so it still needs no saving.*
 
 ### 24.4 Still to do
-- ~~Piece E: the chart's wind from the sim, and weather drawn on the chart.~~ Done (§26).
-- Piece F: the route graph traffic and a detour cost for Avoid.
+- ~~Piece E: the chart's wind from the sim, and weather drawn on the chart.~~ Done (§28).
+- ~~Piece F: the route graph traffic and a detour cost for Avoid.~~ Done (§26).
 - Piece G is in (§25): engaging or failing to avoid enters its arena, and leaving returns to the chart with the zone reloaded behind it. `chart-spike.html` and `src/debug/chart-spike/` are still to retire.
-- Piece J: chart music and the transition sound.
+- Piece J is in: the chart's theme, the encounter stingers and the fade-to-fog sound (plan 15 §16).
 ## 25. Phase 3 Piece G: Open-Water Arenas (2026-10-31)
 
 **Goal** (§20.4, piece G): the arena in the game as the sailing mode with no terrain tiles: the sim's weather, sky and time at the encounter point, the ships materialized from traffic on their lanes' headings with simple steering and collision avoidance, the coastline in view as low silhouettes from the chart, the pursuit lock within the threat radius, and back to the chart at the edge. `?encounter=<kind>` for checks.
@@ -918,21 +918,114 @@ Screenshots are in the project files (`chart-in-game/`).
 
 ### 25.4 Hooks for piece D, and still to do
 - **Piece D calls `enterArena(arenaFromChartEncounter(enc, chartPos, heading))`** on Engage or a failed avoid, and `arenaHooks.onExit` reloads the zone left behind and returns to chart mode with `resumeFrom(exit.contactId)`. An arena entered from a zone (`?encounter=`) still returns there. The chart-locked banner reads `arena.run.pursued` as well as the dev hook. A hostile that forced the meeting hunts you in the arena; caught, the voyage ends where it stands with a "Boarded" notice (no Wanted until Phase 5, so she lets you go). `chart-spike.html` and `src/debug/chart-spike/` are retired, with the spike-only arena tests; an e2e test engages a freighter from the chart, sails off the edge back onto the voyage, and is caught by a hunting cutter. `__glpChart.meet(kind, forced)` raises an encounter for checks.
-- **F fills `ArenaEncounter.ships`** from its abstract ships near the encounter point, with their class, lane heading and speed and an offset each, so a crossing can bring more than one ship.
+- **F fills `ArenaEncounter.ships`** from its abstract ships near the encounter point, with their class, lane heading and speed and an offset each, so a crossing can bring more than one ship. *Done (§26).*
 - **Saving in an arena** keeps the chart voyage when one is under way, so a reload resumes it (§20.5); otherwise the zone place recorded on the way in.
-- ~~**Squalls and fog banks from the sim** are piece E's.~~ Done (§26): one met from the chart is the sim's own; the `?encounter=` checks still stand one up.
+- ~~**Squalls and fog banks from the sim** are piece E's.~~ Done (§28): one met from the chart is the sim's own; the `?encounter=` checks still stand one up.
 - The chart-to-arena time on the laptop (criterion 3), and Jared's arena feel check.
 - The player can sail through an NPC hull; collisions come with combat (Phase 6).
 
+## 26. Phase 3 Piece F: Traffic on the Route Graph (2026-11-01)
+
+**Goal** (§20.4, piece F): `data/routes.json` with a schema and land-mask checks; abstract ships on its lanes as `{leg, progress}` on the world tick (01 §3.4), without manifests; an encounter director with a per-voyage budget by route and season (S8 finding 2); a detour cost for Avoid (finding 4); the *Morrill* on patrol, sighted but forcing nothing until Phase 5 (finding 3), with a dev flag to hunt; derelicts as static points of interest.
+
+**Result:** built. The S8 stand-in contacts are gone: 21 ships on 10 lanes and 2 derelicts fill western Superior, and the lookouts see them where their timetables put them. An Apostles crossing gets **1.7 meaningful encounters in May and 2.1 in October** with the default lookout, a Duluth to Two Harbors hop 0.4. Screenshots are in the project files (`traffic/`).
+
+### 26.1 What was built
+
+| Piece | Where | Notes |
+|---|---|---|
+| Route graph | `data/routes.json`, `data/schemas/routes.ts` | Like `chart.json`, a list of features with `[lon, lat]` positions. **11 nodes**: the approaches to Duluth, Superior Entry, Agate Bay, Bayfield, Ashland and Washburn (ships lie in port there, out of sight), three fishing grounds (tugs work there in sight), a turning mark off Sand Island, and **the lower lakes**, a sink at the chart's east edge where down-bound ships leave the chart and come back (plan 05 §8.1). **10 lanes**, each with a use (`trade`, `fishing`, `patrol`), its waypoints, a fleet by class with fictional names, the hours ships lie at each end, and twelve monthly weights: the share of the fleet sailing that month. Ore and grain from Duluth, Two Harbors and Ashland, coal up to Superior, the Duluth–Bayfield–Ashland package line, lumber schooners from Washburn, three fishing runs, and the *Morrill*'s beat between Duluth and Bayfield. One freighter tows a schooner-barge consort. **2 derelicts** |
+| Abstract ships | `src/sim/chart/routes.ts` | Every ship has a timetable on its lane: out, lie at the far end, back, lie at home, with its own phase and lie-overs. Its place is a **pure function of the run's seed and the clock**: `placeTraffic(contacts, t)` puts each one at `{leg, progressM}` and sets whether it's under way or lying in port. At the start of each cycle the lane's monthly weight decides whether the ship sails or stays laid up, so October has about twice the ore boats of May and January none. Half of each fleet calls the far end home, so ships pass both ways |
+| Contacts | `src/sim/chart/traffic.ts` | Contacts carry their class, consorts and timetable; a ship lying in port isn't on the water to be seen. `createContacts(projection, seed, t)` builds the route graph's ships and derelicts plus the stand-in squall (piece E replaces it). A new **barge** kind for the schooner-barges, with its own chart glyph (an open sail) and lookout line |
+| Encounter director | `src/sim/chart/director.ts`, `src/modes/chart.ts` | On setting sail the voyage gets a **budget**: `0.065 × course nm × route × season`, rounded at random in proportion and capped at 3. *Route* is 1 for a course along the trade lanes and 0.35 off them (the share of course points within 6 nm of a trade lane); *season* scales with the share of the fleet sailing that month against the busiest, and is 0 in the ice months. Each report spends one; once spent, only threats are reported. The S8 quiet spell after a report stays, shortened from 2 to 1.5 game hours |
+| The *Morrill* | `checkEncounters` `hostilesHunt`, `?cutter=hunt` | She patrols on the route graph and is reported as a threat, but **forces nothing**: her card says "She keeps her course; she isn't looking for you", and steering clear always works. `?cutter=hunt` turns hunting on (criterion 7): she then forces a meeting when she spots you, as in S8, and hunts you in the arena |
+| Detours | `detourSeconds`, `ChartSession.detourS` | Steering clear costs sea room: 2 nm round a ship, 5 nm off a hunting hostile, and most of the way round a squall (0.8 of its radius), at the ship's speed. The voyage stands off for that long before it makes good any more of its course: the HUD says "Standing off, back on course in 25 m", the notice says how much was lost, and the ETA includes it. A squall raised within 2 nm can still clip you (50–100%, shown on the card as "Steer clear (70%)"); clipped, you ride it out in the arena |
+| Arena ships | `arenaFromChartEncounter` `company` | The arena gets the ship met with her consort 260 m astern, and any other ship on the water within 1.2 km of arena (9.6 km of chart) at its place relative to her, nearest first, up to the five-ship budget. A tug on her nets or a ship lying stopped has no way on |
+| Known lanes | `src/render/chart/chart-view.ts` | The trade lanes are drawn faint and dotted under the ships (§5.2: known lanes, but not the ships on them unless spotted) |
+| Checks | `tests/routes.test.ts`, `tests/chart-pacing.test.ts` | 20 tests: the data parses, every node, waypoint and derelict is on water and every lane leg clears the land mask, every class is a traffic class, the timetables are the same for a seed and differ between seeds, ships never outrun their speed and stay on water, the fleet lays up for the ice and sails more ore in October, ships in port are hidden and tugs on the grounds aren't, the director's budget by length, route and season, the *Morrill* sighted but not forcing, detours priced and held in the ETA, and arena company. Pacing reruns every route in May and October |
+
+### 26.2 Results
+
+| Check | Result |
+|---|---|
+| Criterion 4: pacing, default lookout (100 seeded runs at all hours and random winds) | Duluth → Apostles **1.72 in May, 2.08 in October**; Two Harbors → Apostles 1.07 and 1.32; Duluth → Siskiwit Bay 1.06 and 1.45; Duluth → Two Harbors 0.38 and 0.46. The most on one voyage is 4 (threats aren't held to the budget) |
+| Lookout setting | Report everything ≥ threats and prizes > threats only, as before |
+| Criterion 7 | `?cutter=hunt` still forces the cutter's meeting and locks the chart; the e2e test that is caught by her passes |
+| Cost | Placing all 25 contacts takes about 20 µs (Node, cloud container), once per frame under way; the budget is worked out once per voyage |
+| e2e | All 11 smoke tests pass, including the chart voyage through a reload and meeting a freighter from the chart |
+
+### 26.3 Decisions made in the piece
+
+- **Traffic is a function of the seed and the clock, so nothing new is saved.** Ships have no state of their own until Phase 4 gives them cargo and damage; then a `traffic` slice (plan 16 §5) keeps what differs from the timetable. A reload, a zone or an arena all find each ship where the clock says. The seed is the run's weather noise seed, which the save already keeps (the RNG state moves on as the run plays, so it can't be used).
+- **Ships keep their service speed whatever the wind.** The schooner-barges sail their lane at hull speed. Weather slowing traffic can come with piece E or Phase 4.
+- **The budget is a cap on reports, not a quota.** If nobody is in sight, nothing is invented: the lookouts still only see real ships.
+- **Threats get through when the budget is spent**, so a sighted cutter or a squall is never hidden; they still wait out the quiet spell unless a hostile is closing.
+- **Ignore costs nothing; Steer clear costs a detour.** Ignore is only offered for what isn't a threat, so the cost falls where it matters: a squall or the cutter.
+- **A detour is time standing off, not a new track.** The ship holds its place on the chart while the clock runs, and the world moves on around it.
+- **Derelicts stay put and come back each voyage.** Investigating one marks it handled for that voyage only, as S8 did; plan 11's wrecks and salvage make them stick.
+
+### 26.4 Still to do
+
+- ~~Piece E: the stand-in squall goes when the sim's squalls and fog banks come to the chart.~~ Done (§28).
+- Phase 4: manifests, the flows of plan 05 §8.1 driving the fleets, the `traffic` save slice, and ships materialized in zones when their lanes run through one (01 §3.4).
+- Phase 5: the *Morrill* forces by Wanted in place of the dev flag, and rumors of where she was.
+
 ---
 
-## 26. Phase 3 Piece E: Weather on the Chart (2026-11-01)
+## 27. Phase 3 Piece I: Twin Ports and Two Harbors Harbors (2026-11-01)
+
+**Goal** (§20.4, piece I; dockable harbors, decided 2026-10-31, §20.6): the Duluth Ship Canal and Superior Entry as 1:1 set pieces you can sail through, piers with berths at Duluth, Superior and Two Harbors (Two Harbors' wooden ore dock at 1:1), the 1900 lights, and town silhouettes with lit windows from the Phase 2 kit.
+
+**Result:** built on the §23 bakes without a rebake. Sail in through the canal between its two piers, past the temporary south pier light, and dock at Duluth's merchandise or coal dock; cross the harbor to Superior's city or mill dock under the Great Northern elevator and the shipyard, and leave by Superior Entry past the dark Minnesota Point tower; at Two Harbors, lie alongside the ore dock in Agate Bay. `tests/harbors.test.ts` docks the T1 at every berth in both zones on the real terrain. Screenshots are in the project files (`north-harbors/`).
+
+### 27.1 What was built
+
+| Piece | Where | Notes |
+|---|---|---|
+| Harbors | `data/harbors.json` | Five new harbors, one per §23 set piece. **Duluth Ship Canal:** a north and a south pier, 235 m each, lining the 90 m cut and reaching about 200 m into the lake; the Life-Saving Station and a few houses on Minnesota Point; a warehouse on the Canal Park side. **Duluth:** a merchandise dock and a coal dock into the harbor basin, Elevator A on the fill by the slips, the freight house, Union Depot, the Superior Street block, a hotel, a coal shed, two churches, and 140 houses climbing the hillside to about 50 m. **Superior Entry:** a pier off each point tip, 290 m each, 155 m apart between their faces (the entry is about 500 ft). **Superior:** a city dock and a mill dock into the channel (short, so the channel along Minnesota Point stays open), the Great Northern elevator, the shipyard, a sawmill, the depot, Tower Avenue, a hotel, a church and 110 houses. **Two Harbors:** a 1:1 ore dock (16 m wide, pockets 17 m up) down the middle of the widened Agate Bay from an approach on the bluff, a merchandise dock off Lighthouse Point's bay shore, the depot, the railroad shops, a hotel, a store, a church and 60 houses up the slope |
+| Canal piers | `canal` pier kind, `src/sim/harbors.ts` | A canal pier runs exactly its length from where it's drawn, over land and water alike (other piers walk out to the waterline), and has no berths: it's a wall to sail between. `Dock.berths: false` keeps the hazards' pier collision and drops its berths |
+| Per-zone layout | `harborsIn`, `harborZoneId`, `layoutHarbors(frame, terrain, zoneId)`; `lightsIn` | A harbor's zone is the one whose set pieces hold its footprint. **Fixed along the way:** every zone was laying out the Apostles' harbors and placing the Apostles' lights (clamped to the zone's edge, since terrain queries clamp outside the bounds); now each zone gets only its own, in the scene, the docks, the gull points and the fog signals |
+| Lights | `data/lighthouses.json` | **Duluth South Pier Light**, the 1898–1901 temporary tower on the south canal pier's end (skeleton, weak, fixed red assumed, a steam whistle); **Superior Entry Pierhead Light** on the south pier's end (fixed white, a bell; R1a has the 1900 setup as unknown); **Minnesota Point Light** standing dark near the point's tip (brick tower, no lamp, no keeper, no signal); **Two Harbors Light** on Lighthouse Point (the red-brick station with its tower on the house, 4th-order, medium, fixed red assumed, a whistle). New fields: `pier` stands a light on its pier's outer end at deck height (`pierHead`), and `lit: false` is a dark station |
+| Meshes | `src/render/harbors/harbor-kit.ts` | Canal piers: stone-filled timber cribs down to the bottom under a concrete cap, bollards, and the 1896–1902 rebuilding (a stiff-leg derrick and stacked forms). The coal dock's heaps and hoisting bridge. Grain elevators: the tall bin house, the headhouse along the ridge and marine legs on the water side. The shipyard's open shed with a whaleback on the ways. Two draws per harbor as before; an entry with no windows gets an empty window mesh |
+| Checks | `tests/harbors.test.ts`, `lighthouses.test.ts`, `audio-world.test.ts` | Per zone: only its own harbors; every pier with berths docks the T1 from 8 m off at a knot, without grounding or a scratch, and its berths lie in more than 3 m; canal piers have none. Both entries are open: deep water down the middle with no pier within 25 m, and each pier's lake end stands in the water. Pierhead lights stand on their piers' decks, the others on dry ground clear of the piers. Minnesota Point is the nearest light and shows nothing at midnight while the entry lights burn. Draw calls and the triangle budget |
+| Debug | `?harbor=` | `?harbor=duluth`, `superior`, `two_harbors`, `duluth_canal` or `superior_entry` (an exact name first, then a fragment) now loads that harbor's zone and starts 120 m off the pier's end |
+
+### 27.2 Results
+
+| Measure | Twin Ports | Two Harbors |
+|---|---|---|
+| Harbors, draw calls | 4 harbors, 8 meshes (2 window meshes empty) | 1, 2 |
+| Triangles | 38k (Duluth 18k, Superior 15k, the entries 5k) | 10k |
+| Berths the T1 docks at | 8 | 12 (10 down the ore dock) |
+| Houses | 140 Duluth, 110 Superior, 9 on Minnesota Point | 60 |
+
+Bayfield and Ashland are 33k triangles together, so the Twin Ports are the heaviest harbors in the game but well inside the 250k harbor budget.
+
+### 27.3 Decisions made in the piece
+
+- **The entries are 1:1 across, not along.** The canal is 90 m (300 ft) between the cribs and Superior Entry 155 m, as they were. Their length follows the compressed land: the canal cuts only about 20 m of Minnesota Point at C = 8, so the piers make the canal, reaching about 200 m into the lake (the real piers ran about 1,700 ft) and a few meters into the harbor.
+- **Canal piers are walls, not berths.** Ships didn't lie in the canal; you dock in the harbor.
+- **One ore dock at Two Harbors, not two.** The widened Agate Bay is about 150 m across: one 1:1 dock down the middle leaves 40–60 m of water each side to come alongside and turn. A second 1900 dock needs the basin widened in a rebake (§23.3 left it as a first guess).
+- **Superior's piers are short.** The channel between the Superior shore and Minnesota Point is about 120 m wide; 32–38 m piers keep the route from the canal to Superior Entry open.
+- **The modern slips stay.** Duluth's DEM slips are shallow (under 3 m) inside the flattened waterfront; the piers start at the basin's edge, past them. Filling them is a §8.2 step 7 correction for Phase 4's waterfront.
+- **Unrecorded characteristics are assumptions.** The canal light's fixed red, Superior Entry's fixed white and Two Harbors' fixed red are guesses, marked `unknown` or `approximate` in the data with notes, as R1 §2.1 asks (open item 1).
+
+### 27.4 Still to do
+
+- Jared's by-eye check that the Twin Ports read as Duluth and Superior from the water and Two Harbors by its ore dock and light (criterion 10), and the playtest route of criterion 1, in piece K.
+- The modern slips and fills behind the Duluth waterfront (1900 corrections) and a second Two Harbors ore dock, if a rebake widens Agate Bay.
+- The Minnesota Point and North Shore cove hideout pads (09 §2.1).
+- Verify the 1900 characteristics of the canal, Superior Entry and Two Harbors lights (R1 open item 1).
+
+---
+
+## 28. Phase 3 Piece E: Weather on the Chart (2026-11-01)
 
 **Goal** (§20.4, piece E): the S9 sim drives the chart's wind (the drifting stand-in goes); fronts, fog banks and storm cells drawn on the chart; a forecast with uncertainty from the barometer and the systems' tracks ([04 §15](04-water-weather-seasons.md)); squalls and fog banks met on the chart come from the sim, not hand-placed contacts, and slow or hide you as they do in the zone.
 
-**Result:** built. The chart and the zones share one sky: the run's weather sim runs on the chart's world tick as it does in a zone, the chart reads its wind under the ship, and what it draws, reports and drops you into is the sim's own weather. The hand-placed squall line and the drifting wind are gone. Screenshots are in the project files (`chart-weather/`).
+**Result:** built. The chart and the zones share one sky: the run's weather sim runs on the chart's world tick as it does in a zone, the chart reads its wind under the ship, and what it draws, reports and drops you into is the sim's own weather. The hand-placed squall line (piece F's stand-in) and the drifting wind are gone, and in a calm the chart's speed has a floor of about 3 kn (§28.3). Screenshots are in the project files (`chart-weather/`).
 
-### 26.1 What was built
+### 28.1 What was built
 
 | Piece | Where | Notes |
 |---|---|---|
@@ -946,31 +1039,34 @@ Screenshots are in the project files (`chart-in-game/`).
 | Arenas | `metWeatherFrame` in `src/sim/arena/arena.ts`, `ArenaEncounter.weather` | A squall or bank met on the chart carries its centre and radius into the arena, and the arena's weather frame is slid so the sim is read where the meeting happens: a squall's core under the player, a bank's wall 700 m ahead on the bearing it was sighted on. The arena's weather is then the sim's, not the panel's. `?encounter=squall` and `fogbank` (no sim weather to meet) still stand one up as before |
 | Checks | `tests/chart-weather.test.ts`, `bench/chart/` | 14 unit tests: chart and zone wind agree (criterion 6), the sim drives the chart wind under way and advances on the world tick, fog hides the ship from the cutter, a bank is reported at its wall and met in an arena with its wall 700 m ahead, a squall slows the ship and is met at its heart, cells keep their ids, November brings cold squalls without thunder, the forecast's spread grows, a forecast picture is the sim at that hour, fog on a course is called, the weather card, and the isobar tracing. The pacing test (`chart-pacing.test.ts`) now sails in the sim's wind and meets its weather. The chart bench draws a November gale and times a weather redraw |
 
-### 26.2 Results
+### 28.2 Results
 
 | Check | Result |
 |---|---|
 | Criterion 6, wind | The chart's wind equals the zone's at the same point and time to 0.001 kn and 0.001 rad (unit test). A squall met from the chart drops into an arena with the sim at storm 0.83, rain 0.33 and 3.6 km visibility (`[sim]` on the dev readout), and a bank stands where the chart drew it |
 | Sampling the sim | About 2.3 ms per world tick in Node for the 891-point grid (the climate normals are now cached per game time, which halved it). Under way at the default clock that's about twice a real second |
 | Chart redraw (criterion 9), headless Chromium, software canvas, 1920 × 1080 | Still and panning frames are unchanged at 0.2–0.3 ms median, 0.6 ms p95: the weather field (rain, isobars, fronts, wind, systems) is drawn into a copy of the static layer and kept, and only the banks and squalls are drawn live. The field is drawn again when the view settles (48 → 65 ms median on this software canvas) or the weather has moved on half a game hour (about every 1.75 real seconds under way; 20 ms median, 36 ms p95 here). Both need the laptop's GPU canvas in piece K |
-| Pacing (criterion 4), 100 seeded runs per route, default lookout | Duluth → Apostles 2.38 encounters (was 1.88 with the fixed 12 kn wind and no weather), Two Harbors → Apostles 1.94, Duluth → Siskiwit Bay 1.68, Duluth → Two Harbors 0.62. About a third of the rise is the weather met (31 fog banks and 3 squalls in 100 crossings, all in May); the rest is longer crossings in lighter wind |
+| Pacing (criterion 4), 100 seeded runs per route, default lookout, on piece F's traffic and director, with the calm floor | May: Duluth → Apostles **1.73** (1.56 of them traffic), Two Harbors → Apostles 0.90, Duluth → Siskiwit Bay 1.06, Duluth → Two Harbors 0.30. October: 1.79, 0.91, 1.06 and 0.33, all but a few of them traffic. Piece F's random 12 kn winds gave 1.72 and 2.08 for the crossing (§26.2). The traffic is busier in fall on every route, but fall's stronger winds make the crossings about a quarter shorter, and spring's fog banks add to May, so the totals come out level; the season test now compares the traffic |
+| Crossing time (criterion 2), Duluth → Apostles, mean of the 100 pacing runs | **35.2 real seconds in May, 25.5 s in October** with the calm floor; 41.5 s in May without it. Piece D's figure was 23.1 s at a steady 12 kn (§24.2) |
 
-- **The sim's wind makes crossings slower than criterion 2 assumed.** At the default 3.5 s per game hour, Duluth → the Apostles averaged 41.6 real seconds over the 100 pacing runs (all in May), against 23.1 s at a steady 12 kn (§24.2). The May mean wind is about 10 kn, but calms and head winds dominate the time sailed. Criterion 2's unit test still holds at 12 kn. This is for Jared and piece K: speed up the chart clock, set a floor under the chart's speed in a calm, or accept that a calm crossing is slow.
+- **The sim's wind made crossings slower than criterion 2 assumed.** At the default 3.5 s per game hour, Duluth → the Apostles averaged 41.5 real seconds in May, against 23.1 s at a steady 12 kn (§24.2). The May mean wind is about 10 kn, but calms and head winds dominate the time sailed. Jared chose a floor under the chart's speed in a calm over a faster clock (§28.3). With it the May crossing is 35.2 s and October's 25.5 s: October is inside the 20–30 s target, May still a little over it, because head winds (not calms) are much of the rest. Criterion 2's unit test still holds at 12 kn.
 - **Fog banks are the commonest weather met in spring** (most of the weather encounters in May runs), squalls in summer, and November's are cold squalls in a gale's rain.
 - **The sim's squalls don't raise the wind.** A summer thunder squall brings rain, dark and lightning but the wind of the low around it (9.7 kn in the arena check); a cold squall is windy because the gale is. Squall gusts are a sim change for later (04 §5.3).
 
-### 26.3 Decisions made in the piece
+### 28.3 Decisions made in the piece
 
 - **Weather contacts live on the sky, not in the traffic list,** so piece F can replace the traffic without touching the weather, and the sim rebuilds them each world tick.
 - **Only weather on the course is reported.** A squall off the beam is drawn and labelled but doesn't stop the clock; one across the next 40 km of the track does.
 - **Storm cells are the cores.** The sim's storm patches are tens of kilometers across at low intensity; a cell on the chart is where the squall reaches 0.55, capped at 16 km radius, so a squall is something to sail around.
 - **Isobars every 0.02 inHg,** finer than a 1900 continental map's 0.1 in, because the charted area is only 90 nm across.
 - **The forecast is the sim run forward,** with uncertainty drawn rather than noise added: what it can't know is the weather not yet formed, which is honest to a forecaster of 1900. A barometer upgrade or the *Fisherman* background (04 §12) can narrow the rings later.
+- **A floor under the chart's speed in a calm** (Jared's call): `CALM_FLOOR` in `voyage.ts` keeps `chartSpeedKn` at 0.4 of the ship's cruise, about 3 kn for the schooner, on the cat's-paws, sweeps and current. It only bites in light air or dead to windward in a working breeze (2.8 kn there before), and the chart clock stays at 3.5 s per game hour. A squall's shortened sail scales it like any other speed.
+- **Fog banks are steered round like squalls,** a detour of most of their radius, and steering clear of one always works.
 - **The arena slides its weather frame, not the player.** §20.5's "the arena returns you where you left the chart" holds; only where the sim is read moves.
 
-### 26.4 Still to do
+### 28.4 Still to do
 
-- Criterion 2 with the sim's winds (above), for Jared.
+- Criterion 2 in May with the sim's winds: 35 s with the calm floor. If it still feels long on the laptop (piece K), the next step is a slightly faster chart clock.
 - A barometer readout on hover over the chart (04 §12) and port storm flags (Phase 5).
 - The chart redraw and the weather sampling on the laptop (piece K).
 - Squall gusts in the sim, so a summer squall blows as well as rains.
@@ -978,7 +1074,9 @@ Screenshots are in the project files (`chart-in-game/`).
 ---
 
 ## Changelog
-- v0.21: Phase 3 piece E (§26): weather on the chart. The sim drives the chart's wind and runs on its world tick; isobars, fronts, rain, fog banks, squalls and wind arrows drawn; a weather card with the glass, an outlook, weather on the course and forecasts to 24 h with rings of doubt; squalls and fog banks met from the sim, hiding and slowing the ship, and met in arenas where the sim has them.
+- v0.23: Phase 3 piece E (§28): weather on the chart. The sim drives the chart's wind and runs on its world tick; isobars, fronts, rain, fog banks, squalls and wind arrows drawn; a weather card with the glass, an outlook, weather on the course and forecasts to 24 h with rings of doubt; squalls and fog banks met from the sim, hiding and slowing the ship, and met in arenas where the sim has them; a calm floor of about 3 kn under the chart speed; piece F's stand-in squall retired.
+- v0.22: Phase 3 piece I (§27): the Duluth Ship Canal and Superior Entry piers at 1:1, docks at Duluth, Superior and Two Harbors (with its 1:1 ore dock), grain elevators, the Superior shipyard, the 1900 lights including dark Minnesota Point, and each zone laying out only its own harbors and lights.
+- v0.21: Phase 3 piece F (§26): `routes.json` and its schema, 21 ships on timetables from the run's seed and the clock, laid up by month, an encounter director with a per-voyage budget by route and season, detours that cost time, the *Morrill* sighted but not hunting, derelicts, and arena company from the traffic.
 - v0.20: Piece G wired through: a forced hostile hunts in the arena, caught ends the voyage, the S8 spike page retired.
 - v0.19: Phase 3 piece G (§25): open-water arenas in the game, wired to piece D's chart so engaging returns to the voyage; NPC helms with give-way and land avoidance, coast silhouettes, the pursuit lock, `?encounter=` checks, and NPC speeds fixed.
 - v0.18: Phase 3 piece D (§24): chart mode in the game, taking to the chart at the soft edge, M as a look, the encounter card and the chart locked banner, arrival at a zone's entry, the voyage in save v4, and the chart clock slowed to 3.5 s per game hour for criterion 2.

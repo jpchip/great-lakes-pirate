@@ -1,0 +1,11 @@
+{
+  "id": "music.stinger.sail",
+  "name": "stinger-sail",
+  "description": "Encounter stinger, a sail or smoke sighted: a rising concertina figure onto G",
+  "kind": "oneshot",
+  "bus": "music",
+  "bundles": [
+    "chart-audio"
+  ],
+  "source": "source.flac"
+}
