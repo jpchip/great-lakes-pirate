@@ -1,0 +1,66 @@
+[
+  {
+    "id": "market.duluth",
+    "port": "port.duluth",
+    "size": "huge",
+    "exports": ["good.grain", "good.flour", "good.hardware", "good.dry_goods", "good.coal"],
+    "imports": ["good.salted_fish", "good.fresh_fish", "good.lumber", "good.furs", "good.whiskey"]
+  },
+  {
+    "id": "market.superior",
+    "port": "port.superior",
+    "size": "large",
+    "exports": ["good.grain", "good.coal", "good.rope_canvas", "good.hardware"],
+    "imports": ["good.lumber", "good.salted_fish", "good.fresh_fish", "good.provisions"]
+  },
+  {
+    "id": "market.two_harbors",
+    "port": "port.two_harbors",
+    "size": "small",
+    "exports": ["good.iron_ore"],
+    "imports": ["good.provisions", "good.whiskey", "good.tobacco", "good.dry_goods"],
+    "absent": ["good.copper", "good.brownstone"]
+  },
+  {
+    "id": "market.ashland",
+    "port": "port.ashland",
+    "size": "medium",
+    "exports": ["good.iron_ore", "good.lumber", "good.brownstone"],
+    "imports": ["good.provisions", "good.hardware", "good.kerosene"]
+  },
+  {
+    "id": "market.washburn",
+    "port": "port.washburn",
+    "size": "medium",
+    "exports": ["good.lumber", "good.coal"],
+    "imports": ["good.provisions", "good.dry_goods"],
+    "absent": ["good.iron_ore", "good.copper"]
+  },
+  {
+    "id": "market.bayfield",
+    "port": "port.bayfield",
+    "size": "medium",
+    "exports": ["good.salted_fish", "good.fresh_fish", "good.lumber"],
+    "imports": ["good.salt", "good.flour", "good.kerosene", "good.rope_canvas"],
+    "absent": ["good.iron_ore"]
+  },
+  {
+    "id": "market.la_pointe",
+    "port": "port.la_pointe",
+    "size": "tiny",
+    "exports": [],
+    "imports": [
+      "good.flour",
+      "good.provisions",
+      "good.kerosene",
+      "good.salt",
+      "good.dry_goods",
+      "good.hardware",
+      "good.coal",
+      "good.whiskey",
+      "good.tobacco",
+      "good.rope_canvas"
+    ],
+    "absent": ["good.iron_ore", "good.brownstone", "good.copper", "good.grain"]
+  }
+]

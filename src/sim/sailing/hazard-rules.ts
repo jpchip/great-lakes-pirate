@@ -34,6 +34,11 @@ export const hazardRulesSchema = z.object({
   strikeBounce: z.number().min(0).max(1),
   /** Speed lost to a full hold of water at 0 hull: loadFactor's floor is 1 − this. */
   leakSpeedLoss: z.number().min(0).max(1),
+  /**
+   * Speed lost to a full hold of the heaviest cargo (plan 02 §3: loadFactor 1.0 empty →
+   * ~0.8 full). The hold's load is CU × weight factor over capacity (plan 05 §3).
+   */
+  cargoSpeedLoss: z.number().min(0).max(1),
   /** Extra draft at 0 hull, meters: a leaking ship sits lower (plan 02 §6.1). */
   leakSinkM: z.number().nonnegative(),
   /** riggingCondition at 0 rigging HP (plan 02 §3.1: 0.5–1.0). */
@@ -123,6 +128,7 @@ export function defaultHazardRules(): HazardRules {
     pierDamagePerKn: 3,
     strikeBounce: 0.2,
     leakSpeedLoss: 0.3,
+    cargoSpeedLoss: 0.2,
     leakSinkM: 0.4,
     riggingConditionMin: 0.5,
     riggingSailSlowdown: 1,

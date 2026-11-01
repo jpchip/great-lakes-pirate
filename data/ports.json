@@ -7,11 +7,25 @@
     "services": ["market", "tavern"]
   },
   {
+    "id": "port.la_pointe",
+    "name": "La Pointe",
+    "zone": "zone.apostles",
+    "wantedRegion": "region.chequamegon",
+    "services": ["market", "tavern"]
+  },
+  {
     "id": "port.ashland",
     "name": "Ashland",
     "zone": "zone.apostles",
     "wantedRegion": "region.chequamegon",
     "services": ["market", "shipyard", "tavern", "jail"]
+  },
+  {
+    "id": "port.washburn",
+    "name": "Washburn",
+    "zone": "zone.apostles",
+    "wantedRegion": "region.chequamegon",
+    "services": ["market", "tavern"]
   },
   {
     "id": "port.duluth",

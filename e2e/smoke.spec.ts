@@ -178,6 +178,60 @@ test('enters a zone by id at an entry point and saves on arrival', async ({ page
   expect(errors).toEqual([]);
 });
 
+interface EconomyHook {
+  sell(port: string, good: string, qty: number): { ok: boolean };
+  buy(port: string, good: string, qty: number): { ok: boolean };
+  purse(): number;
+  cargo(): { good: string; qty: number }[];
+  load(): number;
+}
+
+// Phase 4 piece A: a new run is a Deckhand with $150 and rope and canvas; trading moves
+// the purse, the hold and the ship's load, and all of it survives a reload (save v5).
+test('trades at a market and keeps the purse and hold through a reload', async ({ page }) => {
+  const errors = collectErrors(page);
+  const body = page.locator('body');
+  await page.goto('/?renderer=null&debug');
+  await expect(body).toHaveAttribute('data-save', 'created');
+  // The last dev hook goes in right before the autosave listeners: boot is done.
+  await page.waitForFunction(() => '__glpChart' in window);
+  const run = (): Promise<{
+    purse: number;
+    cargo: { good: string; qty: number }[];
+    load: number;
+  }> =>
+    page.evaluate(() => {
+      const e = (window as unknown as { __glpEconomy: EconomyHook }).__glpEconomy;
+      return { purse: e.purse(), cargo: e.cargo(), load: e.load() };
+    });
+  expect(await run()).toMatchObject({
+    purse: 15_000,
+    cargo: [{ good: 'good.rope_canvas', qty: 5 }],
+  });
+  const sold = await page.evaluate(() => {
+    const e = (window as unknown as { __glpEconomy: EconomyHook }).__glpEconomy;
+    return (
+      e.sell('port.bayfield', 'good.rope_canvas', 5).ok &&
+      e.buy('port.bayfield', 'good.lumber', 10).ok
+    );
+  });
+  expect(sold).toBe(true);
+  const after = await run();
+  expect(after.cargo).toEqual([{ good: 'good.lumber', qty: 10 }]);
+  expect(after.load).toBeCloseTo(0.35);
+
+  await page.evaluate(() => {
+    delete document.body.dataset['savedMode'];
+    window.dispatchEvent(new Event('pagehide'));
+  });
+  await expect(body).toHaveAttribute('data-saved-mode', /.+/);
+  await page.reload();
+  await expect(body).toHaveAttribute('data-save', 'loaded');
+  await page.waitForFunction(() => '__glpChart' in window);
+  expect(await run()).toEqual(after);
+  expect(errors).toEqual([]);
+});
+
 interface ChartHook {
   plot(points: [number, number][]): string;
   secondsPerHour(s: number): void;

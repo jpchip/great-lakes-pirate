@@ -13,7 +13,7 @@ import { Rng, type RngState } from '../../rng';
 export type SavePayload = Record<string, unknown>;
 export type Migration = (state: SavePayload) => SavePayload;
 
-export const CURRENT_SAVE_VERSION = 4;
+export const CURRENT_SAVE_VERSION = 5;
 
 /** Hours of weather a migrated save catches up on at load, like a new run's spin-up. */
 const WEATHER_SPIN_UP_HOURS = 48;
@@ -67,8 +67,29 @@ function addVoyage(state: SavePayload): SavePayload {
   return { ...state, voyage: null };
 }
 
+/**
+ * v4 → v5 (plan 05 §16, Phase 4 piece A): the economy joins the save. A 0.3.0 run gets a
+ * default Deckhand captain (plan 12 §2.2: $150 and some rope and canvas) where it was
+ * saved, and no market state: the sim fills every port's stock at its seasonal target
+ * on load (`syncMarkets`), so this stays plain JSON.
+ */
+function addEconomy(state: SavePayload): SavePayload {
+  const player = (state['player'] ?? {}) as SavePayload;
+  return {
+    ...state,
+    player: {
+      ...player,
+      captain: { name: 'Captain', shipName: 'Schooner', background: 'deckhand' },
+      purse: 15_000,
+      cargo: [{ good: 'good.rope_canvas', qty: 5 }],
+    },
+    markets: {},
+  };
+}
+
 export const migrations: Readonly<Record<number, Migration>> = {
   1: addWeather,
   2: addLocation,
   3: addVoyage,
+  4: addEconomy,
 };

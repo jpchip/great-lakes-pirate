@@ -1,0 +1,109 @@
+{
+  "saveVersion": 5,
+  "state": {
+    "player": {
+      "location": {
+        "mode": "zone",
+        "zoneId": "zone.apostles",
+        "pose": {
+          "x": 1530.25,
+          "z": -412.5,
+          "heading": 4.712
+        }
+      },
+      "captain": {
+        "name": "Ada Lindqvist",
+        "shipName": "Wren",
+        "background": "fisherman"
+      },
+      "purse": 23450,
+      "cargo": [
+        {
+          "good": "good.salted_fish",
+          "qty": 12
+        },
+        {
+          "good": "good.furs",
+          "qty": 2,
+          "hot": {
+            "region": "region.chequamegon",
+            "heat": 0.6,
+            "traceability": 0.3,
+            "since": 30000
+          }
+        }
+      ]
+    },
+    "environment": {
+      "clock": {
+        "gameSeconds": 39600,
+        "worldTickAccumulator": 0
+      },
+      "rng": [2372311353, 2108685748, 2741772980, 4294207262],
+      "weather": {
+        "rng": [3513692436, 2100485910, 3929510783, 3173669708],
+        "noiseSeed": 2517106440,
+        "nextId": 4,
+        "tickSeconds": 5400,
+        "systems": [
+          {
+            "id": 1,
+            "kind": "low",
+            "track": "panhandle",
+            "x": -19973.236,
+            "y": -39096.765,
+            "vx": 12.426,
+            "vy": 6.443,
+            "radius": 829124.928,
+            "peakHpa": -6.219,
+            "age": 97800,
+            "life": 173343.578
+          }
+        ],
+        "fogBanks": [
+          {
+            "id": 2,
+            "kind": "advection",
+            "x": -217975.8,
+            "y": -127687.692,
+            "vx": -0.01,
+            "vy": -2.147,
+            "radius": 11717.57,
+            "coreVisibilityM": 152.004,
+            "age": 33600,
+            "life": 37200
+          },
+          {
+            "id": 3,
+            "kind": "advection",
+            "x": -223297.368,
+            "y": -76094.676,
+            "vx": -0.33,
+            "vy": -2.307,
+            "radius": 21826.788,
+            "coreVisibilityM": 155.365,
+            "age": 31800,
+            "life": 34800
+          }
+        ]
+      }
+    },
+    "voyage": null,
+    "markets": {
+      "port.bayfield": {
+        "good.salted_fish": {
+          "stock": 163.5,
+          "lastPlayerTradeAt": 38000
+        },
+        "good.flour": {
+          "stock": 41.2
+        }
+      },
+      "port.duluth": {
+        "good.grain": {
+          "stock": 700
+        }
+      }
+    }
+  }
+}

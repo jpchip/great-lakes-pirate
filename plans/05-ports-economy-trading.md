@@ -1,6 +1,6 @@
 # 05 — Ports, Economy & Trading
 
-Status: DRAFT v0.4 (decisions made; gap review applied; Phase 4 scope proposed)
+Status: DRAFT v0.5 (decisions made; gap review applied; Phase 4 scope proposed; piece A built)
 Parent: [00-master-plan.md](00-master-plan.md)
 Inputs: [R1a gazetteer](R1a-western-superior-gazetteer.md) (ports, industries), [03](03-world-scale-chart-travel.md) (routes, chart, encounters), [04](04-water-weather-seasons.md) (seasons; 1 game day = 1 week), [02](02-arcade-sailing.md) (cargo load, shipless play), [01](01-tech-architecture.md) (sim layer, data files)
 Feeds: 06 (hot goods, informants), 07 (what's in the holds), 08 (fences, warehouses), 09 (materials), 10 (ship prices), 12 (contracts, events)
@@ -401,9 +401,38 @@ Twelve pieces, each sized to be one thread. Three can start at once (A, I, and t
 - The 1900 characteristics of the Duluth canal, Superior Entry and Two Harbors lights are still guesses (03 §29.2 item 4). A short check against the 1900 Light List is a small research thread of its own.
 - Plan 17 wants a tracking issue per phase with the acceptance checklist. The §16.3 table can become that issue once approved.
 
+### 16.8 Piece A built: the economy core (2026-11-01)
+
+What landed, and where it departs from the sections above.
+
+| Area | Built | Where |
+|---|---|---|
+| Goods | The §3 list as 23 goods in CU: base price in cents, a **weight factor** (0–1, how heavy a CU is), legal status (`legal`, `restricted` for powder and shot, `contraband`), the seasons each is produced in, seasonal demand on the price (coal, provisions, kerosene and flour dearer in winter, and so on), traceability, and fresh fish's spoil time kept as data though spoilage is cut (§14). Payroll and valuables aren't goods (§3), so they're left out. Untaxed whiskey carries a smuggler's price ($30) beside its saloon value ($70) for piece H | `data/goods.json`, `data/schemas/goods.ts` |
+| Hold size | `cargoCapacity` is CU: T1 20. The NPC classes are converted too (freighter 5,000, schooner-barge 1,200, package steamer 1,000, tug 20, *Morrill* 30) for piece D's manifests | `data/ships.json` |
+| Markets | The §4.2 profiles for the seven Phase 4 ports, each a size (Duluth huge, Superior large, Ashland, Washburn and Bayfield medium, Two Harbors small, La Pointe tiny), its exports, imports and goods it doesn't trade. La Pointe and Washburn join `data/ports.json` so their markets have a port; piece I builds their berths and set pieces. Contraband never trades openly | `data/markets.json`, `data/ports.json` |
+| Model | §4.1 as written for price and spread. Production and consumption are **folded into one drift**: on every world tick each stock closes 35% a game day of its gap to a seasonal target (the target is lower out of the good's season), which is the same equilibrium with fewer numbers to tune, and leaves piece D's deliveries free to push stock either way. Each CU is priced at the stock it leaves or arrives at and rounded in the port's favor, so a buy and sell in one port always loses. The tuning lives in one place | `src/sim/economy/market.ts`, `market-rules.ts` |
+| Tuning | Depth by size 300/160/70/40/20 CU; spread 4/6/8/10/12%; exports at 0.83× base and 2.5× depth, imports at 1.17× and 0.6×; elasticity 0.8; clamp 0.4–3×; out of season 0.6× stock | `market-rules.ts` |
+| Purse and hold | `player.purse` (integer cents, cash on hand) and `player.cargo` (stacks of whole CU, each with optional hot metadata and a contract id for piece F). Clean stacks merge; hot and contract stacks keep apart, and an ordinary sale only takes clean goods | `src/sim/economy/hold.ts`, `trade.ts` |
+| Load | The hold's load (CU × weight factor over capacity) sets `cargo01`: the draft between `draftEmptyM` and `draftFullM`, and a new `cargoSpeedLoss` of 0.2 in `loadFactor` (02 §3). A hold of furs barely slows her; a hold of ore costs the full fifth | `src/sim/sailing/hazards.ts`, `src/gameplay/economy.ts` |
+| Events | `TradeCompleted` and `PriceShock` on the game's bus | `src/modes/context.ts` |
+| Save | Save v5: `player.captain` (name, ship's name, background), `player.purse`, `player.cargo` and `markets`. The v4 migration gives a 0.3.0 run a Deckhand named "Captain" with the schooner "Schooner" ($150 and 5 CU of rope and canvas) where it was saved; piece C's character creation replaces the placeholders. Missing market entries fill at their seasonal target on load, so the migration stays plain JSON and later ports join old saves on their own | `src/core/save/migrations`, `src/sim/world-state.ts` |
+| Dev hook | `__glpEconomy` (dev builds and `?debug`): `prices`, `quote`, `buy`, `sell`, `shock`, `purse`, `cargo`, `load`, until the trade screen (piece B) | `src/main.ts` |
+
+**The balance harness** (`src/sim/economy/harness.ts`) trades on the real data against a passage model built from the chart's port positions and plan 03's pacing (13 nm in about 4 real minutes in a zone, about 2.5 real seconds a game hour on the chart, two minutes a port call). Its bots know every price, so they're an upper bound on what a player earns from trade alone. `tests/economy-balance.test.ts` runs the short versions in CI and `npm run bench:economy` the long ones. The first long run:
+
+| Check | Result |
+|---|---|
+| Legit bot, Deckhand start, first 30 real minutes (criterion 2) | +$67 to +$126 from each of the four starting ports; about $30–40 a passage, inside §5.1's $20–60 |
+| Legit bot over ten real hours | About $100–105 a real hour, so a T2 from trade alone in a little over ten hours; contracts (piece F) bring that into §5.3's 8–12 |
+| Dumping a full T1 hold (criterion 3) | Flour in Bayfield falls 27% and is back within 5% in about 6 game days (six calendar weeks); coal in La Pointe falls 54%; lumber in Duluth hardly moves |
+| Loop hunter (criterion 4) | Every buy-and-sell cycle in every port and good loses money. With an endless purse it makes $104/$110/$109 a real hour with a 20/45/90 CU hold: market depth, not the hull, sets the ceiling, which is $150 an hour or a game day without risk. The best season play, a hold of furs bought in Duluth in spring and sold in fall, nets about $750 over 29 game days |
+| Soak | Five years of drift with a trader working the lake: no price leaves its clamp, no stock goes negative |
+| Tick cost | 0.004 ms per world tick for all 138 market entries (criterion 11's budget is 1 ms) |
+
 ---
 
 ## Changelog
+- v0.5: Phase 4 piece A built (§16.8): goods in CU, port markets with drift and seasons, the purse and the hold, cargo load, save v5, the balance harness.
 - v0.4: Phase 4 scope proposed (§16): what Phase 3 changes, deliverables, exit criteria, twelve work pieces, the Stockton stash and the island smuggler, decisions for Jared.
 - v0.3: Gap review: harbor tug tow service added.
 - v0.2: Decisions: separate Standing, cash at risk, contract theft once per company, no bank, companies don't arm up (grudge limited to legit effects).

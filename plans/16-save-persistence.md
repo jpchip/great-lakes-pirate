@@ -228,7 +228,7 @@ S6 measured a worst case of **839 KB raw → 244 KB compressed** with packed hid
 |---|---|
 | 0 | IndexedDB wrapper, envelope plus checksum, save worker, `saveVersion: 1`, round-trip test, S6 benchmark |
 | 1 | Settings store (graphics presets, key rebinding). Built 2026-10-25: `src/core/settings.ts`, the `settings` store's `v1` key, every field parsed on its own with a default; the localStorage fallback also carries over the Phase 0 `glp.quality` pick |
-| 3–4 | Autosave triggers, Continue, backup rotation, economy and voyage slices, first migrations and fixtures. Phase 3 piece A (2026-10-31): `player.location` with the ship's pose, save v3 (v2 migrates to the Apostles spawn), Continue back to the saved pose, and saves on leaving and entering a zone ([03 §21](03-world-scale-chart-travel.md)). Phase 3 piece D: the `voyage` slice (the plotted points and progress) in save v4 (v3 migrates with no voyage), the chart position in `player.location`, and autosaves on taking to the chart, setting sail and arriving ([03 §24](03-world-scale-chart-travel.md)) |
+| 3–4 | Autosave triggers, Continue, backup rotation, economy and voyage slices, first migrations and fixtures. Phase 3 piece A (2026-10-31): `player.location` with the ship's pose, save v3 (v2 migrates to the Apostles spawn), Continue back to the saved pose, and saves on leaving and entering a zone ([03 §21](03-world-scale-chart-travel.md)). Phase 3 piece D: the `voyage` slice (the plotted points and progress) in save v4 (v3 migrates with no voyage), the chart position in `player.location`, and autosaves on taking to the chart, setting sail and arriving ([03 §24](03-world-scale-chart-travel.md)). Phase 4 piece A: save v5 adds `player.captain`, `player.purse`, `player.cargo` and `markets` (v4 migrates to a default Deckhand where it was saved, and markets fill at their seasonal targets on load) ([05 §16.8](05-ports-economy-trading.md)) |
 | 5 | Permadeath deletion flow, `lastRun` and the end screen, the danger snapshot, the single-tab lock |
 | 8 | Hideout slices (largest), dirty-slice optimization if needed |
 | 9 | Hall of Captains store, logbook export, all remaining slices |
@@ -319,6 +319,7 @@ Per-cell grid updates dominate. Everything else (480 markets, 200 ships) costs u
 ---
 
 ## Changelog
+- v0.8: Phase 4 piece A: the economy slices in save v5 (§12).
 - v0.7: Phase 3 piece D: the `voyage` slice in save v4, saves on chart transitions (§12).
 - v0.6: Phase 3 piece A: `player.location` in save v3, Continue to the saved pose, autosave on zone transitions (§12).
 - v0.5: Phase 1 settings store built (§12).

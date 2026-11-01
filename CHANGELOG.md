@@ -4,6 +4,10 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ## [Unreleased]
 
+### Added
+
+- **The economy core:** 23 trade goods counted in cargo units (the T1 holds 20), and markets in Duluth, Superior, Two Harbors, Ashland, Washburn, Bayfield and La Pointe whose prices follow their stock: buying pushes a price up, dumping a hold crashes it, and it recovers over a few weeks, with seasons on top. Money is kept in cents; the purse and the hold are in the save (v5), and a 0.3.0 run carries on as a Deckhand with $150 and some rope and canvas. A loaded hold sits the schooner deeper and slows her by up to a fifth, more for ore than for furs. No trade screen yet: with `?debug`, `__glpEconomy` trades from the console. A balance harness checks that honest trade pays from the first half hour and that no pattern prints money (`npm run bench:economy` for the long run) ([plan 05 §16.8](plans/05-ports-economy-trading.md)).
+
 ## [0.3.0] - 2026-11-01
 
 The **Hybrid Travel** build (Phase 3): take to a chart baked from the real lake, plot a course across western Superior through the weather sim's weather, meet ships on their timetables in open-water arenas, and arrive in the Twin Ports and Two Harbors, with harbors to dock at and the run saved wherever you stop.
