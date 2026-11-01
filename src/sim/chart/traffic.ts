@@ -6,17 +6,21 @@ import {
 } from '../../core/coords';
 import { bearing, distance } from './geography';
 import { createTraffic, placeTraffic, type LaneSchedule } from './routes';
-import type { ChartWind } from './voyage';
 
 /**
  * Chart contacts and the lookouts (plan 03 §6). Encounters come from abstract entities
  * near the player's track, not dice: the ships on the route graph (`routes.ts`, Phase 3
- * piece F), the derelicts, and a drifting storm cell until piece E's weather brings its
- * own.
+ * piece F) and the derelicts. The weather's contacts, storm cells (`storm`) and fog banks
+ * (`fog`), come from the weather sim (`chart-weather.ts`, Phase 3 piece E).
  */
 
 export type ContactKind =
-  'freighter' | 'steamer' | 'barge' | 'tug' | 'cutter' | 'derelict' | 'storm';
+  'freighter' | 'steamer' | 'barge' | 'tug' | 'cutter' | 'derelict' | 'storm' | 'fog';
+
+/** Contacts that are weather, met at their edge and drawn as areas. */
+export function isWeatherContact(c: Pick<Contact, 'kind'>): boolean {
+  return c.kind === 'storm' || c.kind === 'fog';
+}
 
 export interface Contact {
   id: string;
@@ -39,7 +43,7 @@ export interface Contact {
   inPort?: boolean;
   /** Making way along its lane (false lying at an end, or at anchor on the grounds). */
   underWay?: boolean;
-  /** Storm radius, meters. */
+  /** A storm cell's or fog bank's radius, meters: it is met at this edge. */
   radiusM?: number;
   /** How far it can be seen, as a multiple of the base range (smoke, sails, size). */
   conspicuity: number;
@@ -92,83 +96,41 @@ export function spotRangeM(hour: number): number {
   return nm * METERS_PER_NAUTICAL_MILE;
 }
 
-/** Inside a storm cell everyone's range drops by half. */
-export function weatherFactor(pos: Chart, contacts: readonly Contact[]): number {
-  for (const c of contacts) {
-    if (c.kind === 'storm' && distance(pos, c.pos) < (c.radiusM ?? 0)) return 0.5;
-  }
-  return 1;
-}
-
 /**
- * Stand-in weather contacts until piece E brings squalls and fog banks from the sim: one
- * squall line drifting downwind, re-forming upwind when it leaves the chart.
+ * Without the weather sim (tests, and a chart with no sky): inside a storm cell everyone's
+ * range drops by half, and inside a fog bank to a tenth. With the sim the chart uses its
+ * visibility instead (`visibilityFactor` in chart-weather.ts).
  */
-export function createWeatherContacts(projection: ChartProjection): Contact[] {
-  return [
-    {
-      id: 'weather.squall',
-      kind: 'storm',
-      name: 'Squall line',
-      pos: projection.geoToChart({ lat: 47.2, lon: -91.2 }),
-      heading: 0,
-      speedKn: 9,
-      conspicuity: 2,
-      hostile: false,
-      threat: true,
-      prize: false,
-      radiusM: 9000,
-    },
-  ];
+export function weatherFactor(pos: Chart, contacts: readonly Contact[]): number {
+  let f = 1;
+  for (const c of contacts) {
+    if (!isWeatherContact(c) || distance(pos, c.pos) >= (c.radiusM ?? 0)) continue;
+    f = Math.min(f, c.kind === 'fog' ? 0.1 : 0.5);
+  }
+  return f;
 }
 
 /**
  * Every contact on the chart for a run: the route graph's ships and derelicts (piece F),
- * placed for `gameSeconds`, and the stand-in squall.
+ * placed for `gameSeconds`. The weather's contacts come from the sky (`chart-weather.ts`).
  */
 export function createContacts(
   projection: ChartProjection,
   seed: string,
   gameSeconds = 0,
 ): Contact[] {
-  const contacts = [...createTraffic(projection, seed), ...createWeatherContacts(projection)];
+  const contacts = createTraffic(projection, seed);
   placeTraffic(contacts, gameSeconds);
   return contacts;
 }
 
 /**
- * Move every contact on to `now` (game seconds), `gameSeconds` after the last call. The
- * route graph's ships go where their timetables have them; the squall drifts downwind and
- * re-forms upwind once it leaves `bounds`.
+ * Move every contact on to `now` (game seconds). The route graph's ships go where their
+ * timetables have them; weather contacts move with the sim, which rebuilds them each world
+ * tick (`refreshSky`).
  */
-export function stepContacts(
-  contacts: Contact[],
-  gameSeconds: number,
-  wind: ChartWind,
-  bounds: { min: Chart; max: Chart },
-  now: number,
-): void {
+export function stepContacts(contacts: Contact[], now: number): void {
   placeTraffic(contacts, now);
-  for (const c of contacts) {
-    if (c.kind !== 'storm') continue;
-    const toward = wind.from + Math.PI;
-    const step = c.speedKn * KNOT_MS * gameSeconds;
-    c.heading = toward;
-    c.pos = { x: c.pos.x + Math.sin(toward) * step, y: c.pos.y + Math.cos(toward) * step };
-    const margin = c.radiusM ?? 0;
-    const outside =
-      c.pos.x < bounds.min.x - margin ||
-      c.pos.x > bounds.max.x + margin ||
-      c.pos.y < bounds.min.y - margin ||
-      c.pos.y > bounds.max.y + margin;
-    if (outside) {
-      // Re-form on the far (upwind) side of the chart.
-      const cx = (bounds.min.x + bounds.max.x) / 2;
-      const cy = (bounds.min.y + bounds.max.y) / 2;
-      const reach = Math.hypot(bounds.max.x - cx, bounds.max.y - cy);
-      c.pos = { x: cx + Math.sin(wind.from) * reach, y: cy + Math.cos(wind.from) * reach };
-    }
-  }
 }
 
 function reported(c: Contact, pref: LookoutPref): boolean {
@@ -177,7 +139,7 @@ function reported(c: Contact, pref: LookoutPref): boolean {
   return c.threat || c.prize;
 }
 
-/** Distance at which the player's lookouts see `c` (storms are seen at their edge). */
+/** Distance at which the player's lookouts see `c` (weather is seen at its edge). */
 export function playerSeesAtM(c: Contact, hour: number, weather: number): number {
   return spotRangeM(hour) * weather * c.conspicuity + (c.radiusM ?? 0);
 }
@@ -206,6 +168,11 @@ export interface EncounterCheck {
    * Morrill is sighted but forces nothing until Phase 5's Wanted); `?cutter=hunt` sets it.
    */
   hostilesHunt?: boolean;
+  /**
+   * Scales every spotting range (1 in clear air). The chart passes the sim's visibility;
+   * it defaults to the stand-in `weatherFactor`.
+   */
+  weather?: number;
 }
 
 export function checkEncounters(
@@ -218,7 +185,7 @@ export function checkEncounters(
   check: EncounterCheck = {},
 ): Encounter | undefined {
   const hunt = check.hostilesHunt ?? true;
-  const weather = weatherFactor(player, contacts);
+  const weather = check.weather ?? weatherFactor(player, contacts);
   let best: Encounter | undefined;
   for (const c of contacts) {
     if (c.inPort) continue;
@@ -229,7 +196,7 @@ export function checkEncounters(
     const forced = hunt && c.hostile && d <= hostileSeesAtM(hour, weather);
     const reportable = seen && reported(c, pref) && (!check.threatsOnly || c.threat);
     if (!forced && (check.forcedOnly || !reportable)) continue;
-    // Storms are measured to their edge.
+    // Weather is measured to its edge.
     const distanceM = Math.max(d - (c.radiusM ?? 0), 0);
     const enc: Encounter = {
       contact: c,
@@ -255,7 +222,7 @@ export const SQUALL_CLIP_M = 2 * METERS_PER_NAUTICAL_MILE;
 /**
  * Chance that "Avoid" works (plan 03 §6.2: night, weather, your visibility, their
  * speed). Only a hunting hostile gives chase. A squall raised late can still clip you
- * (S8 finding 4); anything else is simply left behind.
+ * (S8 finding 4); a fog bank, or anything else, is simply left behind.
  */
 export function avoidChance(
   enc: Encounter,
@@ -281,13 +248,13 @@ export const DETOUR_NM = { ship: 2, hostile: 5 } as const;
 
 /**
  * Game seconds a detour costs (S8 finding 4: Avoid isn't free). Steering clear of a ship
- * takes a couple of miles; slipping a hostile, five; a squall, most of the way round it.
+ * takes a couple of miles; slipping a hostile, five; a squall or fog bank, most of the way
+ * round it.
  */
 export function detourSeconds(enc: Encounter, playerKn: number): number {
   const c = enc.contact;
-  const extraM =
-    c.kind === 'storm'
-      ? (c.radiusM ?? 0) * 0.8
-      : (c.hostile ? DETOUR_NM.hostile : DETOUR_NM.ship) * METERS_PER_NAUTICAL_MILE;
+  const extraM = isWeatherContact(c)
+    ? (c.radiusM ?? 0) * 0.8
+    : (c.hostile ? DETOUR_NM.hostile : DETOUR_NM.ship) * METERS_PER_NAUTICAL_MILE;
   return extraM / (Math.max(playerKn, 3) * KNOT_MS);
 }

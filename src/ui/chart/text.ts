@@ -104,8 +104,16 @@ export function encounterText(enc: Encounter, heading: number): { kind: string; 
       };
     case 'storm':
       return {
-        kind: 'Threat',
-        text: `Black cloud building ${where}. A squall line, moving ${compassPoint(c.heading)}.`,
+        kind: 'Weather',
+        text:
+          c.name === 'Thunder squall'
+            ? `Thunderheads ${where}, lightning under them. A squall, moving ${compassPoint(c.heading)}.`
+            : `A black line on the water ${where}. A squall in the gale's rain, moving ${compassPoint(c.heading)}.`,
+      };
+    case 'fog':
+      return {
+        kind: 'Weather',
+        text: `A gray wall on the water ${where}. ${c.name}: inside it no one sees far, you included.`,
       };
   }
 }
@@ -117,6 +125,8 @@ export function engageLabel(enc: Encounter): string {
       return 'Investigate';
     case 'storm':
       return 'Sail through';
+    case 'fog':
+      return 'Sail into it';
     case 'tug':
       return 'Close and hail';
     default:

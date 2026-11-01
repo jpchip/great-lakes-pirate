@@ -65,6 +65,47 @@ export function arenaWeatherFrame(geo: ChartGeography, frame: ZoneFrame): ZoneFr
   };
 }
 
+/** A fog bank met on the chart stands with its wall this far ahead of the player, zone meters. */
+export const FOG_WALL_AHEAD_M = 700;
+
+/**
+ * The arena's weather frame when what was met is the sim's own weather (Phase 3 piece E).
+ * The arena is only 3 km across at C = 8, so the squall or bank met at the chart's range
+ * would stand outside it. The frame is slid so the sim is read where the meeting happens:
+ * a squall's core under the player, so they ride it out in its heart, and a fog bank's
+ * wall FOG_WALL_AHEAD_M ahead on the bearing it was sighted on (or as it is, if the ship
+ * is already inside it). Only the weather moves; the coast and the ships stay put.
+ */
+export function metWeatherFrame(
+  geo: ChartGeography,
+  enc: ArenaEncounter,
+  layout: { frame: ZoneFrame; player: Pose },
+): ZoneFrame {
+  const base = arenaWeatherFrame(geo, layout.frame);
+  const met = enc.weather;
+  if (!met || (enc.kind !== 'squall' && enc.kind !== 'fogbank')) return base;
+  const C = base.compression;
+  const world = (p: Chart): Chart => WORLD.geoToChart(geo.projection.chartToGeo(p));
+  const centre = world(met.center);
+  // Where in the arena (zone meters) the met weather's centre should stand.
+  let at: { x: number; z: number };
+  if (enc.kind === 'squall') {
+    at = { x: layout.player.x, z: layout.player.z };
+  } else {
+    const inside = Math.hypot(enc.at.x - met.center.x, enc.at.y - met.center.y) < met.radiusM;
+    if (inside) return base;
+    const along = FOG_WALL_AHEAD_M + met.radiusM / C;
+    at = {
+      x: layout.player.x + Math.sin(enc.bearing) * along,
+      z: layout.player.z - Math.cos(enc.bearing) * along,
+    };
+  }
+  return {
+    origin: { x: Math.round(centre.x - at.x * C), y: Math.round(centre.y + at.z * C) },
+    compression: C,
+  };
+}
+
 export interface PlacedShip {
   ship: ArenaShip;
   pose: Pose;

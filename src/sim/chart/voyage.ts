@@ -81,13 +81,21 @@ export function windStrengthFactor(speedKn: number): number {
   return interpolate(WIND_STRENGTH, speedKn);
 }
 
-/** Game speed in knots on `heading`. */
+/**
+ * The chart's floor, as a share of `cruiseKn`: in a calm a schooner still ghosts along at
+ * about 3 kn on the cat's-paws, sweeps and current, so a crossing in the sim's light May
+ * airs stays near the 20–30 s target (plan 03 §28). It only bites in light air or dead to
+ * windward; a working breeze is well above it.
+ */
+export const CALM_FLOOR = 0.4;
+
+/** Game speed in knots on `heading`, never below the calm floor. */
 export function chartSpeedKn(heading: number, wind: ChartWind, ship: ChartShip): number {
-  return (
+  const sailed =
     ship.cruiseKn *
     pointOfSailFactor(trueWindAngle(heading, wind)) *
-    windStrengthFactor(wind.speedKn)
-  );
+    windStrengthFactor(wind.speedKn);
+  return Math.max(sailed, ship.cruiseKn * CALM_FLOOR);
 }
 
 export interface CourseLeg {

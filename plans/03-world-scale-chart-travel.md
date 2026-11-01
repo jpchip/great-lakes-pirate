@@ -870,7 +870,7 @@ Screenshots are in the project files (`chart-in-game/`).
 - **Contacts aren't saved.** The S8 stand-in traffic is rebuilt from the run's seed on load; piece F's route graph replaces it. *Piece F (§26): the traffic is a function of the seed and the clock, so it still needs no saving.*
 
 ### 24.4 Still to do
-- Piece E: the chart's wind from the sim (it's sampled from the zone's weather when the ship takes to the chart, then drifts as in S8), and weather drawn on the chart.
+- ~~Piece E: the chart's wind from the sim, and weather drawn on the chart.~~ Done (§28).
 - ~~Piece F: the route graph traffic and a detour cost for Avoid.~~ Done (§26).
 - Piece G is in (§25): engaging or failing to avoid enters its arena, and leaving returns to the chart with the zone reloaded behind it. `chart-spike.html` and `src/debug/chart-spike/` are still to retire.
 - Piece J is in: the chart's theme, the encounter stingers and the fade-to-fog sound (plan 15 §16).
@@ -920,7 +920,7 @@ Screenshots are in the project files (`chart-in-game/`).
 - **Piece D calls `enterArena(arenaFromChartEncounter(enc, chartPos, heading))`** on Engage or a failed avoid, and `arenaHooks.onExit` reloads the zone left behind and returns to chart mode with `resumeFrom(exit.contactId)`. An arena entered from a zone (`?encounter=`) still returns there. The chart-locked banner reads `arena.run.pursued` as well as the dev hook. A hostile that forced the meeting hunts you in the arena; caught, the voyage ends where it stands with a "Boarded" notice (no Wanted until Phase 5, so she lets you go). `chart-spike.html` and `src/debug/chart-spike/` are retired, with the spike-only arena tests; an e2e test engages a freighter from the chart, sails off the edge back onto the voyage, and is caught by a hunting cutter. `__glpChart.meet(kind, forced)` raises an encounter for checks.
 - **F fills `ArenaEncounter.ships`** from its abstract ships near the encounter point, with their class, lane heading and speed and an offset each, so a crossing can bring more than one ship. *Done (§26).*
 - **Saving in an arena** keeps the chart voyage when one is under way, so a reload resumes it (§20.5); otherwise the zone place recorded on the way in.
-- **Squalls and fog banks from the sim** are piece E's: the `squall` check uses panel weather until then.
+- ~~**Squalls and fog banks from the sim** are piece E's.~~ Done (§28): one met from the chart is the sim's own; the `?encounter=` checks still stand one up.
 - The chart-to-arena time on the laptop (criterion 3), and Jared's arena feel check.
 - The player can sail through an NPC hull; collisions come with combat (Phase 6).
 
@@ -966,7 +966,7 @@ Screenshots are in the project files (`chart-in-game/`).
 
 ### 26.4 Still to do
 
-- Piece E: the stand-in squall goes when the sim's squalls and fog banks come to the chart.
+- ~~Piece E: the stand-in squall goes when the sim's squalls and fog banks come to the chart.~~ Done (§28).
 - Phase 4: manifests, the flows of plan 05 §8.1 driving the fleets, the `traffic` save slice, and ships materialized in zones when their lanes run through one (01 §3.4).
 - Phase 5: the *Morrill* forces by Wanted in place of the dev flag, and rumors of where she was.
 
@@ -1019,7 +1019,62 @@ Bayfield and Ashland are 33k triangles together, so the Twin Ports are the heavi
 
 ---
 
+## 28. Phase 3 Piece E: Weather on the Chart (2026-11-01)
+
+**Goal** (§20.4, piece E): the S9 sim drives the chart's wind (the drifting stand-in goes); fronts, fog banks and storm cells drawn on the chart; a forecast with uncertainty from the barometer and the systems' tracks ([04 §15](04-water-weather-seasons.md)); squalls and fog banks met on the chart come from the sim, not hand-placed contacts, and slow or hide you as they do in the zone.
+
+**Result:** built. The chart and the zones share one sky: the run's weather sim runs on the chart's world tick as it does in a zone, the chart reads its wind under the ship, and what it draws, reports and drops you into is the sim's own weather. The hand-placed squall line (piece F's stand-in) and the drifting wind are gone, and in a calm the chart's speed has a floor of about 3 kn (§28.3). Screenshots are in the project files (`chart-weather/`).
+
+### 28.1 What was built
+
+| Piece | Where | Notes |
+|---|---|---|
+| One sky | `src/sim/chart/chart-weather.ts`, `readSky` in `src/modes/chart.ts` | The chart asks the sim at `toWorldChart(p)`, as a zone asks at `zoneToChart(p)`, so wind, visibility and pressure agree at the same place and time. Under way, each world tick advances the sim (`advanceWeather`) and reads it again; taking to the chart and Continue read it at once. The session's `sky` holds the run's `WorldState.environment.weather`, so nothing new goes in the save |
+| Squalls | `squallAt` in `src/sim/weather/weather.ts`, `findStormCells` | `squallAt` is the summer thunderstorm of piece E (Phase 2), plus a cold squall where a gale's rain (22–32 kn) meets the same drifting storm cells, so November has squalls too, without lightning. The chart samples the sim on a 5 km grid over the western lake and takes connected patches at intensity 0.55 or more as storm cells, a disc of the same area capped at 16 km radius, at most six. A cell keeps its id from tick to tick (`trackCells`), so the lookouts don't report it twice |
+| Fog banks | `chartFogBanks` | The sim's banks that reach the charted area, with their wall at three-quarters of the radius, where a zone stands its fog wall (04 §25) |
+| Weather contacts | `weatherContacts`, `isWeatherContact` in `traffic.ts` | Squalls (`storm`) and banks (`fog`, new) are contacts on the sky, apart from the traffic: met at their edge, threats under the lookout setting (a squall can't be ignored), "Sail through" or "Sail into it", or steer clear. **Only weather on the course ahead is reported** (within 40 km of the track), and never weather the ship is already in |
+| Slow and hide | `sessionWeatherFactor`, `sessionShip` | Lookout range scales with the sim's visibility at the ship (clear air 1, rain about 0.2, a bank's heart a few hundred meters), both ways: the cutter can't see you in fog either. Sail is shortened in a squall (0.6 of the speed) and the lead goes in fog (0.8); the ETA uses the same speed |
+| Drawn on the chart | `src/render/chart/weather-layer.ts` | Isobars every 0.02 inHg with labels, L and H with their pressure and a 12-hour track ending in a ring of doubt, a pointer at the edge for a system off the view ("Low 29.28, 150 nm, moving SE"), warm and cold fronts trailing each low deeper than 1007 hPa, rain hatched over a wash, wind arrows feathered by strength (a feather per 10 kn), fog banks shaded with their wall dotted, and squalls as dark cells with a bolt (thunder) or a squall-line mark (cold) |
+| Forecast | `forecastAt`, `courseWeather`, `weatherPicture(…, leadHours)` | A weather card top right: the glass and its trend (red when falling fast), an outlook six hours ahead ("wind SE 10–17 kn, rain, thick. A blow may follow."), and the first squall, fog or gale on the laid course or the voyage. **Now / +6 h / +12 h / +24 h** redraws the chart's weather at that hour by running the systems and banks forward on their tracks, with the positions ringed by doubt that grows 4 km an hour and the wind's spread by 2% an hour. The forecast can't know the lows not yet formed |
+| Arenas | `metWeatherFrame` in `src/sim/arena/arena.ts`, `ArenaEncounter.weather` | A squall or bank met on the chart carries its centre and radius into the arena, and the arena's weather frame is slid so the sim is read where the meeting happens: a squall's core under the player, a bank's wall 700 m ahead on the bearing it was sighted on. The arena's weather is then the sim's, not the panel's. `?encounter=squall` and `fogbank` (no sim weather to meet) still stand one up as before |
+| Checks | `tests/chart-weather.test.ts`, `bench/chart/` | 14 unit tests: chart and zone wind agree (criterion 6), the sim drives the chart wind under way and advances on the world tick, fog hides the ship from the cutter, a bank is reported at its wall and met in an arena with its wall 700 m ahead, a squall slows the ship and is met at its heart, cells keep their ids, November brings cold squalls without thunder, the forecast's spread grows, a forecast picture is the sim at that hour, fog on a course is called, the weather card, and the isobar tracing. The pacing test (`chart-pacing.test.ts`) now sails in the sim's wind and meets its weather. The chart bench draws a November gale and times a weather redraw |
+
+### 28.2 Results
+
+| Check | Result |
+|---|---|
+| Criterion 6, wind | The chart's wind equals the zone's at the same point and time to 0.001 kn and 0.001 rad (unit test). A squall met from the chart drops into an arena with the sim at storm 0.83, rain 0.33 and 3.6 km visibility (`[sim]` on the dev readout), and a bank stands where the chart drew it |
+| Sampling the sim | About 2.3 ms per world tick in Node for the 891-point grid (the climate normals are now cached per game time, which halved it). Under way at the default clock that's about twice a real second |
+| Chart redraw (criterion 9), headless Chromium, software canvas, 1920 × 1080 | Still and panning frames are unchanged at 0.2–0.3 ms median, 0.6 ms p95: the weather field (rain, isobars, fronts, wind, systems) is drawn into a copy of the static layer and kept, and only the banks and squalls are drawn live. The field is drawn again when the view settles (48 → 65 ms median on this software canvas) or the weather has moved on half a game hour (about every 1.75 real seconds under way; 20 ms median, 36 ms p95 here). Both need the laptop's GPU canvas in piece K |
+| Pacing (criterion 4), 100 seeded runs per route, default lookout, on piece F's traffic and director, with the calm floor | May: Duluth → Apostles **1.73** (1.56 of them traffic), Two Harbors → Apostles 0.90, Duluth → Siskiwit Bay 1.06, Duluth → Two Harbors 0.30. October: 1.79, 0.91, 1.06 and 0.33, all but a few of them traffic. Piece F's random 12 kn winds gave 1.72 and 2.08 for the crossing (§26.2). The traffic is busier in fall on every route, but fall's stronger winds make the crossings about a quarter shorter, and spring's fog banks add to May, so the totals come out level; the season test now compares the traffic |
+| Crossing time (criterion 2), Duluth → Apostles, mean of the 100 pacing runs | **35.2 real seconds in May, 25.5 s in October** with the calm floor; 41.5 s in May without it. Piece D's figure was 23.1 s at a steady 12 kn (§24.2) |
+
+- **The sim's wind made crossings slower than criterion 2 assumed.** At the default 3.5 s per game hour, Duluth → the Apostles averaged 41.5 real seconds in May, against 23.1 s at a steady 12 kn (§24.2). The May mean wind is about 10 kn, but calms and head winds dominate the time sailed. Jared chose a floor under the chart's speed in a calm over a faster clock (§28.3). With it the May crossing is 35.2 s and October's 25.5 s: October is inside the 20–30 s target, May still a little over it, because head winds (not calms) are much of the rest. Criterion 2's unit test still holds at 12 kn.
+- **Fog banks are the commonest weather met in spring** (most of the weather encounters in May runs), squalls in summer, and November's are cold squalls in a gale's rain.
+- **The sim's squalls don't raise the wind.** A summer thunder squall brings rain, dark and lightning but the wind of the low around it (9.7 kn in the arena check); a cold squall is windy because the gale is. Squall gusts are a sim change for later (04 §5.3).
+
+### 28.3 Decisions made in the piece
+
+- **Weather contacts live on the sky, not in the traffic list,** so piece F can replace the traffic without touching the weather, and the sim rebuilds them each world tick.
+- **Only weather on the course is reported.** A squall off the beam is drawn and labelled but doesn't stop the clock; one across the next 40 km of the track does.
+- **Storm cells are the cores.** The sim's storm patches are tens of kilometers across at low intensity; a cell on the chart is where the squall reaches 0.55, capped at 16 km radius, so a squall is something to sail around.
+- **Isobars every 0.02 inHg,** finer than a 1900 continental map's 0.1 in, because the charted area is only 90 nm across.
+- **The forecast is the sim run forward,** with uncertainty drawn rather than noise added: what it can't know is the weather not yet formed, which is honest to a forecaster of 1900. A barometer upgrade or the *Fisherman* background (04 §12) can narrow the rings later.
+- **A floor under the chart's speed in a calm** (Jared's call): `CALM_FLOOR` in `voyage.ts` keeps `chartSpeedKn` at 0.4 of the ship's cruise, about 3 kn for the schooner, on the cat's-paws, sweeps and current. It only bites in light air or dead to windward in a working breeze (2.8 kn there before), and the chart clock stays at 3.5 s per game hour. A squall's shortened sail scales it like any other speed.
+- **Fog banks are steered round like squalls,** a detour of most of their radius, and steering clear of one always works.
+- **The arena slides its weather frame, not the player.** §20.5's "the arena returns you where you left the chart" holds; only where the sim is read moves.
+
+### 28.4 Still to do
+
+- Criterion 2 in May with the sim's winds: 35 s with the calm floor. If it still feels long on the laptop (piece K), the next step is a slightly faster chart clock.
+- A barometer readout on hover over the chart (04 §12) and port storm flags (Phase 5).
+- The chart redraw and the weather sampling on the laptop (piece K).
+- Squall gusts in the sim, so a summer squall blows as well as rains.
+
+---
+
 ## Changelog
+- v0.23: Phase 3 piece E (§28): weather on the chart. The sim drives the chart's wind and runs on its world tick; isobars, fronts, rain, fog banks, squalls and wind arrows drawn; a weather card with the glass, an outlook, weather on the course and forecasts to 24 h with rings of doubt; squalls and fog banks met from the sim, hiding and slowing the ship, and met in arenas where the sim has them; a calm floor of about 3 kn under the chart speed; piece F's stand-in squall retired.
 - v0.22: Phase 3 piece I (§27): the Duluth Ship Canal and Superior Entry piers at 1:1, docks at Duluth, Superior and Two Harbors (with its 1:1 ore dock), grain elevators, the Superior shipyard, the 1900 lights including dark Minnesota Point, and each zone laying out only its own harbors and lights.
 - v0.21: Phase 3 piece F (§26): `routes.json` and its schema, 21 ships on timetables from the run's seed and the clock, laid up by month, an encounter director with a per-voyage budget by route and season, detours that cost time, the *Morrill* sighted but not hunting, derelicts, and arena company from the traffic.
 - v0.20: Piece G wired through: a forced hostile hunts in the arena, caught ends the voyage, the S8 spike page retired.

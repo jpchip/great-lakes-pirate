@@ -242,7 +242,7 @@ At each new year (and at game start), roll seeded variation: ice-out date, freez
 
 ## 12. Chart Representation
 
-- Pressure systems as stylized swirl symbols with a "barometer" readout on hover. Fronts as period-style hand-drawn lines.
+- Pressure systems as stylized swirl symbols with a "barometer" readout on hover. Fronts as period-style hand-drawn lines. *Built in Phase 3 ([03 §28](03-world-scale-chart-travel.md)) as L and H with their pressure and tracks, isobars every 0.02 inHg, and warm and cold fronts; the hover readout is still to do.*
 - Fog banks as shaded patches. Ice extent as a hatched overlay. Storm warning flags at port icons.
 - **Uncertainty:** known positions are stale (from rumors and signals) unless observed. The forecast cone grows over time. A barometer upgrade or a *Fisherman* background perk improves it.
 
@@ -289,7 +289,7 @@ At each new year (and at game start), roll seeded variation: ice-out date, freez
 |---|---|
 | **1 (Sailing prototype)** | Water mesh and shader, Gerstner waves (shared CPU/GPU), dev-panel wind and wave control, baked shelter and fetch for the test bay, basic day/night (sun and moon, sky gradient), global fog |
 | **2 (Superior slice)** | Calendar and clock, sun/moon from date, weather systems v1 (wind from systems), fog banks, rain, clouds, barometer, lighting LUTs |
-| **3 (Hybrid travel)** | Weather on the chart, forecasts with uncertainty, encounters with storm cells and fog banks |
+| **3 (Hybrid travel)** | Weather on the chart, forecasts with uncertainty, encounters with storm cells and fog banks. *Built (Phase 3 piece E, [03 §28](03-world-scale-chart-travel.md)): the sim drives the chart's wind; isobars, fronts, rain, fog banks, squalls and wind drawn; a forecast to 24 h; squalls (`squallAt`, with cold squalls in a gale's rain) and fog banks met from the sim.* |
 | **5 (Law)** | Visibility feeds stealth and detection, moon phase, storm warnings at ports |
 | **9 (Seasons & secrets)** | Full seasonal cycle, ice sim and rendering, walkable ice, snow, aurora, year variation, the Mataafa event |
 
@@ -678,7 +678,7 @@ Before and after (left old, right new, the same frame on Medium): `/mnt/project-
 1. **Fog banks you can see coming, rain, cloud layers and thunderstorms** are piece E. Visibility already drops inside a bank and in rain, so piece E draws what the sim already has.
 2. **Port storm flags** (§5.4) are Phase 5.
 3. **Fast falls can be extreme:** two lows closing in can drop the barometer more than 10 hPa in 3 game hours, more than Superior's worst storms. It reads as a clear warning, but if it looks odd, cap the tendency or merge close lows (§20, item 5).
-4. **Year-to-year variation** (§4.2) and the **chart's weather** (Phase 3) aren't wired.
+4. **Year-to-year variation** (§4.2) isn't wired. The **chart's weather** is (Phase 3, [03 §28](03-world-scale-chart-travel.md)).
 5. **Lake temperature is one number** for the whole zone; Chequamegon Bay warms weeks before the open lake.
 
 ---
@@ -720,6 +720,7 @@ On the software renderer, only counts mean anything: Medium draws 43–45 calls 
 ---
 
 ## Changelog
+- v0.11: Phase 3 piece E ([03 §28](03-world-scale-chart-travel.md)): `squallAt` (summer thunder and cold squalls in a gale's rain), the climate normals cached per game time, and the chart's weather built from §12 and §15.
 - v0.10: Phase 2 piece E (§25): lighting LUTs (clear, overcast, storm, fog), two cloud layers, fog bank walls, rain streaks and wetness, summer thunderstorms and lightning, all from the weather sim; Rain and Thunderstorm in the dev panel.
 - v0.9: Phase 2 piece D (§24): the S9 sim drives the zone's wind, visibility and cloud; weather in the save (v2, with a migration from v1); climate in `data/climate.json`, checked against NOAA normals and Devils Island wind and retuned; a barometer on the HUD; the dev panel as an override.
 - v0.8: Phase 2 piece A (§23): water drawn after the land, cat's-paws to one noise octave and off on Low, a two-tap gust lookup, noise only where it can show, and an arithmetic hash. Water on Medium is 2.2 ms on the baseline laptop.

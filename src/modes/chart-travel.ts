@@ -3,6 +3,11 @@ import { dayAndHour } from '../core/time';
 import { ChartView } from '../render/chart/chart-view';
 import { westernSuperiorChart } from '../sim/chart/chart-data';
 import {
+  createChartSky,
+  weatherPicture,
+  type ChartWeatherPicture,
+} from '../sim/chart/chart-weather';
+import {
   clearToZoneEdge,
   distance,
   fromWorldChart,
@@ -18,7 +23,6 @@ import {
   detourSeconds,
   playerSeesAtM,
   spotRangeM,
-  weatherFactor,
   type Encounter,
   type LookoutPref,
 } from '../sim/chart/traffic';
@@ -28,7 +32,6 @@ import {
   remainingSeconds,
   restoreVoyage,
   saveVoyage,
-  type ChartWind,
   type SavedVoyage,
 } from '../sim/chart/voyage';
 import { recordChartPosition } from '../sim/location';
@@ -46,8 +49,12 @@ import { attachPlotting } from '../ui/chart/plotting';
 import { durationText } from '../ui/chart/text';
 import type { Arrival } from '../ui/loading/model';
 import {
+  allContacts,
   CHART_TIME_SCALE,
   createChartMode,
+  readSky,
+  sessionShip,
+  sessionWeatherFactor,
   type ChartMode,
   type ChartSession,
   type EncounterChoice,
@@ -123,6 +130,8 @@ export interface ChartTravel {
   clear(): void;
   answer(choice: EncounterChoice): void;
   dismissNotice(): void;
+  /** Show the weather as it stands (0) or forecast this many hours ahead. */
+  setForecast(leadHours: number): void;
   /**
    * Back on the chart from an arena: the contact is dealt with and the voyage carries on,
    * unless the cutter caught the ship, which ends it where it stands.
@@ -164,8 +173,10 @@ export function createChartTravel(host: ChartTravelHost): ChartTravel {
     position: { x: 0, y: 0 },
     heading: 0,
     wind: { from: 0, speedKn: 10 },
-    // The route graph's ships, where the clock has them (piece F), and the stand-in squall.
+    // The route graph's ships, where the clock has them (piece F).
     contacts: createContacts(geo.projection, `${host.seed}-traffic`, clock.gameSeconds),
+    // One sky for the zones and the chart (piece E): the run's weather sim.
+    sky: createChartSky(ctx.state.environment.weather),
     waypoints: [],
     course: undefined,
     voyage: undefined,
@@ -184,6 +195,9 @@ export function createChartTravel(host: ChartTravelHost): ChartTravel {
   let departure: Departure | undefined;
   let notice: ChartNotice | undefined;
   let arriving = false;
+  /** Hours ahead the chart's weather is drawn for; 0 is the weather as it stands. */
+  let forecastLead = 0;
+  let forecast: ChartWeatherPicture | undefined;
 
   const canvas = document.createElement('canvas');
   canvas.className = 'chart-canvas';
@@ -200,10 +214,17 @@ export function createChartTravel(host: ChartTravelHost): ChartTravel {
     replot: () => chart.replot(),
   });
 
-  /** The chart's wind where the ship is, from the zone's weather (piece E: the sim's own). */
-  const windHere = (): ChartWind => {
-    const w = ctx.weather.windAt(host.shipPose(), clock.gameSeconds);
-    return { from: w.fromRad, speedKn: Math.max(w.speedKn, 4) };
+  /** The weather picture the chart draws: as it stands, or the forecast at the chosen lead. */
+  const pictureNow = (): ChartWeatherPicture | undefined => {
+    const sky = session.sky;
+    if (!sky) return undefined;
+    if (forecastLead === 0) return sky.picture;
+    const at = clock.gameSeconds + forecastLead * 3600;
+    // A forecast is redrawn once per world tick (the sim only moves then).
+    if (!forecast || forecast.leadHours !== forecastLead || Math.abs(forecast.at - at) >= 600) {
+      forecast = weatherPicture(sky.state, geo, clock.gameSeconds, forecastLead);
+    }
+    return forecast;
   };
 
   const chart = createChartMode(ctx, session, {
@@ -240,7 +261,8 @@ export function createChartTravel(host: ChartTravelHost): ChartTravel {
     notice = undefined;
     session.position = onChart(pose, frame);
     session.heading = pose.heading;
-    session.wind = windHere();
+    // The chart's wind is the sim's (piece E), read where the ship is.
+    readSky(session, clock.gameSeconds);
     session.lookout = host.lookout();
     // The traffic sailed on while the ship was in the zone.
     placeTraffic(session.contacts, clock.gameSeconds);
@@ -288,17 +310,19 @@ export function createChartTravel(host: ChartTravelHost): ChartTravel {
           fitted = true;
         }
         const course = session.course;
+        const ship = sessionShip(session);
         const eta = session.voyage
           ? durationText(
-              remainingSeconds(session.voyage, session.wind, session.ship) + (session.detourS ?? 0),
+              remainingSeconds(session.voyage, session.wind, ship) + (session.detourS ?? 0),
             )
           : course && !course.problem && course.legs.length > 0
-            ? durationText(estimateSeconds(course, session.wind, session.ship))
+            ? durationText(estimateSeconds(course, session.wind, ship))
             : undefined;
         const h = hour();
-        const weather = weatherFactor(session.position, session.contacts);
+        const weather = sessionWeatherFactor(session);
+        const contacts = allContacts(session);
         const visible = new Set<string>();
-        for (const c of session.contacts) {
+        for (const c of contacts) {
           if (c.inPort) continue;
           if (distance(session.position, c.pos) <= playerSeesAtM(c, h, weather)) visible.add(c.id);
         }
@@ -308,8 +332,9 @@ export function createChartTravel(host: ChartTravelHost): ChartTravel {
           heading: session.heading,
           course: session.voyage ? undefined : course,
           voyage: session.voyage,
-          contacts: session.contacts,
+          contacts,
           lanes: knownLanes,
+          weather: pictureNow(),
           now: clock.gameSeconds,
           daylight: daylight(h),
           spotRangeM: spotRangeM(h) * weather,
@@ -428,6 +453,10 @@ export function createChartTravel(host: ChartTravelHost): ChartTravel {
     dismissNotice() {
       notice = undefined;
     },
+    setForecast(leadHours) {
+      forecastLead = Math.max(0, leadHours);
+      forecast = undefined;
+    },
     resumeFrom(contactId, result) {
       chart.resumeFrom(contactId);
       if (result === 'caught') {
@@ -435,7 +464,7 @@ export function createChartTravel(host: ChartTravelHost): ChartTravel {
         session.voyage = undefined;
         session.waypoints = [];
         chart.replot();
-        const name = session.contacts.find((c) => c.id === contactId)?.name ?? 'The cutter';
+        const name = allContacts(session).find((c) => c.id === contactId)?.name ?? 'The cutter';
         notice = {
           title: 'Boarded',
           text: `${name} put a boarding party aboard, searched the hold and let you go. Plot your next leg.`,
@@ -448,7 +477,6 @@ export function createChartTravel(host: ChartTravelHost): ChartTravel {
       departure = undefined;
       session.position = fromWorldChart(geo, location.chartPos);
       session.heading = location.heading;
-      session.wind = windHere();
       placeTraffic(session.contacts, clock.gameSeconds);
       session.waypoints = [];
       session.course = undefined;
@@ -457,6 +485,7 @@ export function createChartTravel(host: ChartTravelHost): ChartTravel {
         session.position = { ...session.voyage.position };
         session.heading = session.voyage.heading;
       }
+      readSky(session, clock.gameSeconds);
       fitted = false;
       machine.transition('chart');
     },
@@ -485,6 +514,7 @@ export function createChartTravel(host: ChartTravelHost): ChartTravel {
           backLabel: backLabel(),
           notice,
           locked: host.pursued(),
+          forecastLead,
         }),
       );
     },

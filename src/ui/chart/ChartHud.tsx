@@ -2,7 +2,7 @@ import type { ReadonlySignal } from '@preact/signals';
 import type { EncounterChoice } from '../../modes/chart';
 import type { LookoutPref } from '../../sim/chart/traffic';
 import { ChartLockedBanner } from '../hud/Hud';
-import { LOOKOUT_LABELS, type ChartHudSnapshot } from './model';
+import { LOOKOUT_LABELS, type ChartHudSnapshot, type ChartWeatherHud } from './model';
 
 /**
  * The chart's HUD (plan 13 §4.3, Phase 3 piece D): a logbook card top left with the date,
@@ -20,6 +20,8 @@ export interface ChartHudActions {
   answer(choice: EncounterChoice): void;
   dismissNotice(): void;
   setLookout(pref: LookoutPref): void;
+  /** Draw the weather as it stands (0) or forecast this many hours ahead. */
+  setForecast(leadHours: number): void;
 }
 
 export function ChartHud({
@@ -137,6 +139,7 @@ export function ChartHud({
           Shift-click to insert. Drag the chart to pan, wheel to zoom.
         </div>
       </div>
+      {c.weather && <WeatherCard weather={c.weather} setForecast={actions.setForecast} />}
       {enc && (
         <div class="chart-card chart-encounter" data-testid="chart-encounter" role="dialog">
           <div class="chart-kicker">{enc.kind}</div>
@@ -189,6 +192,59 @@ export function ChartHud({
               Very well
             </button>
           </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/**
+ * The weather card, top right (plan 04 §5.4, §12; Phase 3 piece E): the glass and its
+ * trend, the outlook, what lies on the course, and which hour the chart's weather is
+ * drawn for. A forecast lead redraws the chart's systems, banks and squalls where they are
+ * expected then, with the uncertainty around them.
+ */
+function WeatherCard({
+  weather,
+  setForecast,
+}: {
+  weather: ChartWeatherHud;
+  setForecast: (leadHours: number) => void;
+}) {
+  return (
+    <div class="chart-card chart-weather" data-testid="chart-weather">
+      <div class="chart-kicker">Weather</div>
+      <div
+        class={weather.warning ? 'chart-glass chart-problem' : 'chart-glass'}
+        data-testid="chart-glass"
+      >
+        {weather.barometerText}
+      </div>
+      {weather.hereText && <div class="chart-status">{weather.hereText}</div>}
+      <div data-testid="chart-outlook">{weather.outlookText}</div>
+      {weather.courseText && (
+        <div class="chart-problem" data-testid="chart-course-weather">
+          {weather.courseText}
+        </div>
+      )}
+      <div class="chart-row chart-forecast" role="group" aria-label="Weather shown for">
+        {weather.leads.map((lead) => (
+          <button
+            type="button"
+            key={lead}
+            class={lead === weather.lead ? 'menu-button primary' : 'menu-button'}
+            aria-pressed={lead === weather.lead}
+            data-testid={`chart-forecast-${lead}`}
+            onClick={() => setForecast(lead)}
+          >
+            {lead === 0 ? 'Now' : `+${lead} h`}
+          </button>
+        ))}
+      </div>
+      {weather.leadText && (
+        <div class="chart-help" data-testid="chart-forecast-note">
+          {weather.leadText} Forecast from the systems' present tracks: the farther ahead, the wider
+          the dashed rings of doubt. New weather can form that no forecast shows.
         </div>
       )}
     </div>
