@@ -1,11 +1,12 @@
 import type { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js';
 import type { GameAudio } from '../audio/game-audio';
+import { CHART_SOUND, type StingerId } from '../audio/chart-audio';
 import { BUS_IDS, type VolumeId } from '../audio/settings';
 
 /**
  * Audio in the dev overlay: bus volumes and mute (also on the settings screen), buttons
  * for the event sounds, and a live readout of the sailing mix, the world around the ship,
- * the ships' whistles and the music.
+ * the ships' whistles and the music, and the chart's stingers and fade-to-fog sound.
  */
 export interface AudioPanelOptions {
   gui: GUI;
@@ -55,8 +56,19 @@ export function createAudioPanel(options: AudioPanelOptions): { update(): void }
   events.add(actions, 'loon').name('Loon');
   events.add(actions, 'musicDay').name('Music: day');
   events.add(actions, 'musicNight').name('Music: night');
+  for (const id of Object.keys(CHART_SOUND.stinger) as StingerId[]) {
+    events.add({ play: () => audio.chartCues.stinger(id) }, 'play').name(`Stinger: ${id}`);
+  }
+  events.add({ play: () => audio.chartCues.transition() }, 'play').name('Fade to fog');
 
-  const status = { context: '', music: '', mood: '', lastWhistle: '' };
+  const status = {
+    context: '',
+    music: '',
+    mood: '',
+    chartMusic: '',
+    lastStinger: '',
+    lastWhistle: '',
+  };
   const readout = {
     voices: 0,
     sounds: audio.bank.size,
@@ -77,6 +89,8 @@ export function createAudioPanel(options: AudioPanelOptions): { update(): void }
   mix.add(status, 'context').disable().listen();
   mix.add(status, 'music').disable().listen();
   mix.add(status, 'mood').disable().listen();
+  mix.add(status, 'chartMusic').disable().listen();
+  mix.add(status, 'lastStinger').disable().listen();
   mix.add(status, 'lastWhistle').disable().listen();
   for (const key of Object.keys(readout) as (keyof typeof readout)[]) {
     mix.add(readout, key).disable().listen();
@@ -96,6 +110,10 @@ export function createAudioPanel(options: AudioPanelOptions): { update(): void }
       readout.shipsSounding = audio.whistles.levels.shipsSounding;
       status.lastWhistle = audio.whistles.levels.lastSignal;
       status.mood = audio.mood;
+      status.chartMusic = audio.chartMusic.playing
+        ? `playing${audio.chartMusic.duckS > 0 ? ' (ducked)' : ''}`
+        : 'off';
+      status.lastStinger = audio.chartCues.last ?? '';
       status.music =
         audio.music.current ?? `silent ${Math.max(0, Math.round(audio.music.waitS))} s`;
       const m = audio.sailing.levels;

@@ -1,0 +1,11 @@
+{
+  "id": "music.stinger.squall",
+  "name": "stinger-squall",
+  "description": "Encounter stinger, a squall line: a swelling drum roll over a dark drone",
+  "kind": "oneshot",
+  "bus": "music",
+  "bundles": [
+    "chart-audio"
+  ],
+  "source": "source.flac"
+}

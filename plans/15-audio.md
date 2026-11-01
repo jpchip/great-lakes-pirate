@@ -260,7 +260,7 @@ All resolved.
 | Music v1 | `src/audio/music.ts`, `tools/audio/synth.ts` | "The Chequamegon Waltz" (concertina and guitar, day) and "Devils Island Air" (tin whistle over a fiddle drone, night), both original. A cue plays whole after 20–45 s at sea, then 90–240 s of silence. Fog under 2.5 km, a thunderstorm, heavy rain or 28 kn of wind fade it out (§6.1: the music thins so the foghorns lead); it ducks to 30% under a fog signal. The cues stream from media elements (§8) and are not decoded up front. |
 | Positional sound | `src/audio/mixer.ts` | One-shots can carry a world position: an equal-power panner per voice (§7), with distance handled by the caller since the zone is compressed. The listener follows the camera each frame (or the ship without a renderer). |
 | Beds budget | `world-audio.ts` | The rain and fog beds start only when audible and stop after 3 s of silence, so with the four sailing beds the usual count stays at four to five (§8 asks for four; a foggy drizzle briefly runs six). |
-| Settings | `src/ui/settings/SettingsMenu.tsx` | A Sound tab: Master, Music, Weather & wildlife (ambience bus), Ship & signals (SFX bus), and Mute. Voice and UI join when those sounds exist. |
+| Settings | `src/ui/settings/SettingsMenu.tsx` | A Sound tab: Master, Music, Weather & wildlife (ambience bus), Ship & signals (SFX bus), and Mute. Voice and UI join when those sounds exist (UI did in §16). |
 | Synthesis | `tools/audio/synth.ts`, `tools/audio/lib/synth.ts` | `npm run audio:synth` renders the fog whistle (additive bell whistle with pressure-following pitch and steam noise), the fog bell (bronze bell partials with a clapper click) and both tunes (additive free reed, Karplus–Strong guitar, tin whistle, bowed drone, a Freeverb-style room) into `raw-assets/audio/` with procedural provenance; `npm run audio` then encodes them like any other source. |
 | Pipeline | `tools/audio/` | Two new hints: `highpassHz` (gull wind rumble, the loon recording's hum) and `fadeOutS` (clips cut mid-sound). |
 
@@ -291,14 +291,38 @@ All resolved.
 
 ### Still to do
 
-1. **Part 2, after piece D:** chart music, encounter stingers, and the loading-screen transition sound.
+1. ~~**Part 2, after piece D:** chart music, encounter stingers, and the loading-screen transition sound.~~ Done (§16).
 2. **Captions** (§5): whistles, like the fog signals, have no caption or direction arrow yet (plan 13 §9).
 3. **R1 checks:** the 1895 rule for sailing vessels' fog horns (the tack code here is the international one), whether a stopped steamer rang her bell, and what the *Morrill*'s whistle actually sounded like. The pitches are by ear.
 4. **Piece G's arenas** use the same `game.world` NPC entities, so their ships whistle with no more work; a steamer that turns to pass should then also give the passing signal at the turn.
 
+## 16. Phase 3 Piece J, Part 2: Chart Music, Stingers and the Fade to Fog (2026-11-01)
+
+**Scope** (plan 03 §20.4 piece J; §6.1 "Chart travel" and "Stingers"; §11 Phase 3 row): the rest of piece J now that piece D's chart mode and encounter card are in: a calm traveling theme on the chart, a stinger for each kind of lookout report, and the sound under the loading screen's fade to fog.
+
+| Part | Where | What it does |
+|---|---|---|
+| Chart theme | `tools/audio/lib/synth-chart.ts` (`chartTheme`, `REACH`), `music/chart-voyage` | "The Long Reach", an original 6/8 tune in G at a walking pace (dotted quarter 60): concertina over a guitar boom-chick, A A B B, then the tin whistle takes the A an octave up over a low fiddle drone. 89 s, streamed like the open-water cues (bundle `music-chart`, 1.4 MB). |
+| Playback | `src/audio/chart-audio.ts` (`ChartMusic`), `game-audio.ts` | Starts once the chart has been open 1.5 s, so a quick look at the helm stays quiet; fades in over 2.5 s and loops while the chart is up (the media element's own loop); fades over 1.5 s when the chart closes or the loading fog comes up, and the open-water director takes over at the helm as before. |
+| Stingers | `synth-chart.ts` (`stinger`), `chart/stinger-*` | Six motifs of 3.5–5 s: **sail** (a rising concertina figure onto G, a strum: freighter, steamer, tug), **threat** (a low drone and the whistle leaning on a minor second: the cutter seen first), **hunted** (two hard drum strokes, a falling minor run, a diminished stab and a roll: the cutter closing, no way out, or an Avoid that failed), **squall** (a swelling drum roll over a dark drone), **derelict** (a far ship's bell and an unresolved whistle phrase), and **clear** (a falling phrase home to G, when Avoid gets away). `stingerFor` picks one from the `EncounterSpotted` event, which now carries the contact's `kind` and `hostile`. They play on the music bus at critical priority and the theme dips to 20% under them. |
+| Fade to fog | `synth-chart.ts` (`fogFade`), `chart/fog-fade` | 4 s: a swell of muffled wind and sea that peaks as the screen fogs over and dies away, with two strokes of a ship's bell in it. It plays on the rising edge of the `loading` overlay (`ModeMachine.hasOverlay`), so every zone change and arena entry or exit gets it, and the boot load, which has no fade, doesn't. On the UI bus, which now has its slider on the Sound tab ("Interface"). |
+| New voices | `synth-chart.ts` | A frame drum stroke (a skin tone dropping in pitch with a slap of noise), a drum roll built from it, and a small ship's bell (brighter partials than the lighthouse fog bell). |
+| Dev panel | `src/debug/audio-panel.ts` | Audio → Play: each stinger and the fade to fog. Audio → Mix: whether the chart theme is playing (and ducked), and the last stinger. |
+
+**Download:** the stingers and the fade decode up front with the sailing and world sounds (bundle `chart-audio`, 0.4 MB, so 1.4 MB in all); the theme streams. The budget test now holds what §8 asks, the decoded bundles under 5 MB, and gives the streamed music its own ceiling (6 MB; 4.5 MB now) instead of counting the streamed cues against the initial download.
+
+**Checked:** the stinger choice, the theme's start delay, loop, ducking and fade by unit tests, and the synthesis (whole bars, lengths, the drum's decay, the fade's swell) by tests over the generators. In the game with Playwright (`e2e/smoke.spec.ts`): taking to the chart starts the theme, a freighter report plays the sail stinger, engaging plays the fade to fog into the arena with the theme off, leaving plays it again back onto the chart where the theme resumes, and the hunting cutter plays the hunted stinger. A 72-second preview (`chart-audio/preview-72s.mp3` in the project files) runs the fade, the theme, each stinger over it in turn, and the fade again. Levels are set by measurement and need a listen in the game.
+
+### Still to do
+
+1. **Music:** like v1, the theme and stingers are synthesized placeholders, to replace with recordings or license-checked generation (§3.1) once a source is chosen, and the *Red Iron Ore* motif still waits on R1.
+2. **Arena music:** the arenas are the sailing mode, so they get the open-water director (quiet in fog and storm); a chase layer for the cutter is Phase 6 (§11).
+3. **Captions** (§5) for the stingers aren't needed (they aren't directional), but the encounter card is what says what was seen.
+
 ---
 
 ## Changelog
+- v0.7: Phase 3 piece J part 2 built (§16): the chart's traveling theme, six encounter stingers, the fade-to-fog sound and the Interface slider.
 - v0.6: Phase 3 piece J part 1 built (§15): the NPC ships' steam whistles and the schooner-barge's fog horn, fog signals from the 1895 Great Lakes rules, passing signals, and a whistle per class in `ships.json`.
 - v0.5: Phase 2 piece H built (§14): rain, thunder after the lightning, fog hush and damping, directional fog signals with a rhythm per station, gulls and loons, open-water music v1, the Sound tab. Decision row for the Phase 2 sources.
 - v0.4: Phase 1 sailing audio built (piece I): pipeline, mixer and buses, autoplay unlock, the sailing soundscape. Decision row for procedural wind beds.

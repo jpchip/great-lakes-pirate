@@ -1,0 +1,11 @@
+{
+  "id": "ui.transition.fog",
+  "name": "fog-fade",
+  "description": "The loading screen's fade to fog: a swell of wind and sea with two strokes of a ship's bell",
+  "kind": "oneshot",
+  "bus": "ui",
+  "bundles": [
+    "chart-audio"
+  ],
+  "source": "source.flac"
+}

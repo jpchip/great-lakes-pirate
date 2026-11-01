@@ -1,0 +1,19 @@
+{
+  "source": "procedural",
+  "tool": "tools/audio/synth.ts (tools/audio/lib/synth.ts)",
+  "author": "Great Lakes Pirate contributors",
+  "reference": "Low-passed and band-passed noise under a swell envelope, two additive ship's bell strokes, Freeverb-style reverb",
+  "date": "2026-11-01",
+  "license": "CC BY 4.0",
+  "attribution": "Great Lakes Pirate contributors",
+  "modifications": [],
+  "description": "The loading screen's fade to fog: a swell of wind and sea with two strokes of a ship's bell",
+  "durationS": 4,
+  "pipeline": [
+    "decoded to mono 48000 Hz",
+    "edge fades",
+    "peak-normalized toward -3 dB (+1.4 dB)",
+    "Opus 48 kbps mono in Ogg (ffmpeg libopus)"
+  ],
+  "inputHash": "a176285436bbadaa"
+}

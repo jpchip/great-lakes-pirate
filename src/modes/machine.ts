@@ -107,6 +107,11 @@ export class ModeMachine {
     return true;
   }
 
+  /** True while an overlay with this id is open anywhere in the stack. */
+  hasOverlay(id: OverlayId): boolean {
+    return this.overlays.some((o) => o.id === id);
+  }
+
   get topOverlay(): OverlayId | undefined {
     return this.overlays.at(-1)?.id;
   }
