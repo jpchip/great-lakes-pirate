@@ -1,6 +1,6 @@
 # 05 — Ports, Economy & Trading
 
-Status: DRAFT v0.3 (decisions made; gap review applied)
+Status: DRAFT v0.4 (decisions made; gap review applied; Phase 4 scope proposed)
 Parent: [00-master-plan.md](00-master-plan.md)
 Inputs: [R1a gazetteer](R1a-western-superior-gazetteer.md) (ports, industries), [03](03-world-scale-chart-travel.md) (routes, chart, encounters), [04](04-water-weather-seasons.md) (seasons; 1 game day = 1 week), [02](02-arcade-sailing.md) (cargo load, shipless play), [01](01-tech-architecture.md) (sim layer, data files)
 Feeds: 06 (hot goods, informants), 07 (what's in the holds), 08 (fences, warehouses), 09 (materials), 10 (ship prices), 12 (contracts, events)
@@ -239,6 +239,8 @@ All names must be checked to make sure none accidentally matches a real historic
 ---
 
 ## 13. Phase 4 Deliverables & Acceptance
+*The Phase 4 scope proposal (§16) turns this into work pieces and exit criteria.*
+
 **Build:** goods and markets for 4+ ports, the trade screen, cargo capacity and load effects, freight contracts with Standing, hot-goods flags (stubbed theft for testing), one fence, the traffic generator with manifests (abstract plus materialized), price knowledge, save/load of the economy.
 
 **Acceptance:**
@@ -271,10 +273,138 @@ All resolved.
 | 2026-10-21 | **No bank**, and nothing freezes the player's money. |
 | 2026-10-21 | **Companies don't arm up** (no guards, decoys or company bounties); grudge affects only contracts, prices and goods detection. |
 | 2026-10-22 | **Harbor tug tows** can be hired in the four big harbors, mainly for T3 in calms. |
+| 2026-11-01 | Phase 4's one fence is **an island smuggler in the Apostles**: a boat at an island anchorage after dark that sells contraband and fences hot goods. Bayfield's back-room fence follows in Phase 7 (§16.6). |
+| 2026-11-01 | **Red Cliff and Bad River are left out of Phase 4.** Piece I builds La Pointe and Washburn only; the two landings come later, after a tribal sources pass (§16.6). |
+
+---
+
+## 16. Phase 4 Scope: Trade & Economy (2026-11-01)
+
+Phase 4 is the **Trade & Economy** build (version 0.4.0), with one goal from the [00 §7](00-master-plan.md) roadmap: **"the day loop works."** Dock in a port, sell what's in the hold, take a freight contract, buy a better ship in time, and see the traffic on the lake carry real cargo that moves real prices. The scope comes from the Phase 4 row in the master plan, §13 above, and the Phase 4 rows in plans 10 §13 (shipyard, ~10 upgrades, repairs), 12 §11 (character creation, the starting scenario, the First Week checklist), 13 §12 (main menu, trade, contracts, shipyard, storage transfer, journal v1) and 16 §12 (economy slices, backup rotation), plus the Phase 3 leftovers ([03 §26.4, §27.4, §29.2](03-world-scale-chart-travel.md)).
+
+**Leaning into the Apostles.** Jared's Phase 3 sign-off was that the world "really feels like you could hide out in the Apostle Islands and be a pirate" ([03 §29.3](03-world-scale-chart-travel.md), criterion 11). Phase 4 builds the honest front, so it also lays the first piece of the hidden life behind it: **a stash on Stockton Island** (pulled forward from Phase 8 as a fixed prefab, no building) and **a smuggler who meets you at night in the islands** (the phase's one fence, §13). Together they make the Apostles the place you go when the cargo shouldn't be seen, before Wanted (Phase 5) gives that a reason to matter.
+
+This section is the scope proposal. Like Phase 3's, its exit criteria (§16.3) become the phase's acceptance checklist once Jared approves them, and piece L checks them.
+
+### 16.1 What Phase 3 changes or puts at risk
+
+| Finding | Source | Effect on Phase 4 |
+|---|---|---|
+| There's no economy code. `goods.json` has 3 goods in kg and m³, `ships.json` gives `cargoCapacity` in m³ "until plan 05 picks the unit", and this plan counts in cargo units (CU) | `data/goods.json`, `data/ships.json`, 02 §12 | Piece A settles the unit (CU, §16.5), fills the ~22 goods of §3 and the port profiles of §4.2, and converts `cargoCapacity`. |
+| `WorldState.player` holds only `location`. No purse, no hold, and a reload brings the ship back undamaged | `src/sim/world-state.ts`, 0.3.0 known limitations | Piece A adds `player.purse` and `player.cargo`, piece G the ship's condition and fit. Save v5, with a v4 migration that hands a 0.3.0 run a default captain. |
+| Traffic is a function of the seed and the clock; ships have no state, no cargo and no owner | 03 §26.3 | Piece D gives them manifests from `flows.json` and a `traffic` slice holding only what differs from the timetable, so the save stays small. |
+| Traffic doesn't sail through the zones, so the harbors' docks stand empty | 03 §26.4, 0.3.0 known limitations | Piece D materializes ships on lanes that run through the loaded zone and berths them at their ports (01 §3.4). That is what makes a port look like trade happens there, and it costs draw calls (criterion 11). |
+| Docking is F at a pier's berth (`ShipDocked`), and piers have a `kind` but no port | `data/harbors.json`, 02 §14 | Piers get a `port` id. Docking at a port's pier opens the port screen (piece B). Ports stay screens until Phase 7 puts the docks on foot. |
+| Every pier is in Bayfield, Ashland, Duluth, Superior or Two Harbors. Washburn, La Pointe, Red Cliff and Bad River were left for Phase 4 | 03 §17.4 | Piece I builds La Pointe and Washburn. Red Cliff and Bad River stay out of Phase 4 (decision 2, §16.6). |
+| "Hold F alongside to look her over" already works in arenas | 03 §25 | It shows the manifest and owner (piece D). Hailing for news is daylight only and talk only; taking anything is Phase 6. |
+| There's no main menu: boot goes straight into the saved run | `src/main.ts` | Piece C adds the main menu and character creation before the run starts. |
+| Wanted, the law and inspections arrive in Phase 5 | 00 §7 | Contraband and hot goods have a cost in Phase 4 (a refused sale, confiscation) and raise `HotGoodsDetected` and `ContractStolen`, which Phase 5 turns into Wanted. Nothing in Phase 4 can get you caught. |
+| Hideouts are Phase 8, but plan 12's First Week checklist (step 3) and plan 13's Phase 4 UI row both already need "stash goods at your hideout" | 12 §3, 13 §12 | Piece E builds the starting stash at Stockton Island bay as a fixed prefab with the per-hideout storage of 09 §2, and no grid building. Phase 8 builds on it. |
+| The Twin Ports' "full waterfronts come with Phase 4" | 03 decisions, 2026-10-31 | Proposed: not needed for trade. Ships at the berths (piece D) do the job; the waterfront dressing moves to Phase 7 with the Duluth and Superior docks districts (§16.5). |
+| The chart clock's long May crossing and the arena-to-chart hitch were accepted at sign-off | 03 §29.3 | No work. The placeholder audio and guessed light colors stay accepted; piece J retries real sources, and the light check is housekeeping (§16.7). |
+
+### 16.2 What Phase 4 delivers
+
+Start a new captain in Bayfield on May 7, 1900, sell your cargo, haul a contract to Duluth, stash the profit at Stockton Island, buy smuggled whiskey from a boat in the islands after dark, and save up for a bigger schooner, with every ship on the lake carrying something to somebody.
+
+| Area | Deliverable | Plan |
+|---|---|---|
+| Economy | ~22 goods in CU, per-port markets with stock, drift and seasons for 7 ports, money in cents, the hold and its load on the ship's speed and draft, a balance harness | §2–4, 02 §3, 17 §3 |
+| Ports | The port screen at a pier: market, freight agent, shipyard, chandlery and saloon by the port's services. The trade screen and the ledger | §7, §12, 13 §12 |
+| New run | Main menu (Continue, New run, Settings), character creation (captain, ship name, background, portrait), May 7 at dawn in the background's port, the First Week checklist | 12 §2–3, 13 §12 |
+| Traffic with cargo | `flows.json`, manifests and owners on every ship, deliveries that move port stock, ships sailing and berthed in the zones, manifests on "look her over", hailing for news | §8, 01 §3.4 |
+| The Apostles stash | Stockton Island bay with a shack, a strongbox and storage; storage transfer for cargo and cash; lie at anchor until a set hour; the stash on the chart | 09 §2, 13 §12 |
+| Contracts | Freight contracts by port, deposits and deadlines, Standing per port and company, stealing a contract's cargo once per company | §5 |
+| Shipyard | T2 schooner, buying and trading in, ~10 upgrades, repairs, the ship's condition in the save | 10 §2–8, §13 |
+| Contraband | Hot-goods flags (theft stubbed for testing), untaxed whiskey, the island smuggler as the one fence, detection when selling to merchants | §6 |
+| Apostles ports | La Pointe and Washburn with berths and markets (Red Cliff and Bad River stay out, decision 2) | 03 §4, R1a |
+| Rumors | Saloon rumors (shipment tips from real manifests, prices, weather), price knowledge with dates, both in the ledger | §4.3, §9 |
+| Saves | Economy, stash, traffic and ship slices in save v5, a v4 migration, backup rotation | 16 §5, §12 |
+| Audio | Harbor work sounds, trade sounds, fog signal captions, another try at real recordings for the placeholders | 15 §4, §11 |
+
+**Out of scope:** Wanted, the cutter hunting or inspecting, jail and newspapers (Phase 5); weapons, boarding, surrender and theft at sea (Phase 6); going ashore, docks districts and the Bayfield back-room fence (Phase 7); grid building, crafting, the Siskiwit Bay zone and the other hideout sites (Phase 8); events, Ambitions, ice and winter (Phases 8–9); the Twin Ports waterfront dressing (Phase 7, §16.5); and the §14 cut list items (dock fees, provisions upkeep, the telegraph office, fresh fish spoilage, passenger contracts).
+
+### 16.3 Exit criteria (proposed)
+
+Phase 4 is done when these pass on the baseline laptop and Jared signs off the playtest. The last three come from plan 17's definition of done (17 §11).
+
+| # | Criterion | How it's checked |
+|---|---|---|
+| 1 | A new captain completes the First Week in play: sell the starting cargo in Bayfield, take a contract to a nearby port and deliver it, stash goods at Stockton, hear a rumor in a saloon, plot a voyage | A playtest route, and an e2e test that drives the checklist through the dev hooks |
+| 2 | A legit player turns a profit with the T1 in the first 30 minutes (§13) | The balance harness's legit bot, seeded, across the four starting ports; then by hand |
+| 3 | Dumping a full hold in one port visibly crashes the price, and it recovers over a few game weeks | A market unit test, and on the trade screen |
+| 4 | No money loop: repeated buy and sell cycles, contract loops and trade-ins can't print money, and a headless two-season run keeps every price inside its clamp | The balance harness in CI (short) and locally (long) (17 §3) |
+| 5 | Ships met at sea and berthed in harbors carry plausible cargo for their route and season, and a delivery moves the port's stock | "Look her over" on each class in arenas and zones; a flows unit test |
+| 6 | Goods and cash left at Stockton are still there after a reload and a voyage to Duluth and back, and nothing in the stash shows in the hold | An e2e round trip with the dev panel's save and reload |
+| 7 | The smuggler loop works end to end: buy untaxed whiskey from the island smuggler at night, try it on a Bayfield merchant (refused or confiscated, with the event raised), and sell hot goods to the smuggler at the fence rate | A playtest route, and unit tests on detection odds |
+| 8 | Trade the T1 in for a T2 at a shipyard at the 10 §3 values. Upgrades change handling measurably, repairs restore the ship, and the ship's condition survives a reload | `tests/shipyard.test.ts`, the sailing bench before and after, a save round trip |
+| 9 | Stealing a contract's cargo pays once, zeroes that company's Standing, and it never offers another contract | A contracts unit test |
+| 10 | A 0.3.0 save loads into 0.4.0 with a default captain at its saved place, and a new run's save stays under the plan 16 size budget | `tests/save-migrations.test.ts` with a v4 fixture; the S6 save-size bench |
+| 11 | The economy tick stays within 1 ms per world tick with 100+ abstract voyages (§13). Each zone with its traffic materialized meets the Phase 3 numbers: Medium p95 frame at most 16.7 ms, at most 150 draw calls; Low never below 30 fps | A sim bench in Node; `/bench/stream/` per zone with traffic on |
+| 12 | The honest front pays its way, and the Apostles feel like yours to hide in | Jared decides |
+| 13 | Plans 05, 09, 10, 12, 13, 15 and 16 record what was built, CI is green, and 0.4.0 is tagged | The release PR |
+
+### 16.4 Work pieces
+
+Twelve pieces, each sized to be one thread. Three can start at once (A, I, and the T2 hull half of G). The playtest (L) closes the phase.
+
+| Stage | Pieces |
+|---|---|
+| 1, start now | A economy core, I Apostles ports, G's T2 hull |
+| 2 | B port screen and trade (after A), D traffic with cargo (after A) |
+| 3 | C new run, E the Apostles stash, F contracts, G shipyard, H contraband and the smuggler (all after B) |
+| 4 | J port audio (after B, D), K rumors (after B, D) |
+| 5 | L playtest |
+
+| # | Piece | Scope | Needs first | Needs Jared |
+|---|---|---|---|---|
+| A | Economy core | `goods.json` filled to the §3 list in CU with a weight factor, legal status, seasons and traceability; `cargoCapacity` in CU (§16.5). `markets.json` with the §4.2 profiles for Duluth, Superior, Two Harbors, Ashland, Bayfield, La Pointe and Washburn. The §4.1 market model on the world tick, money in integer cents, `player.purse` and `player.cargo` with hot metadata, the hold's load into `loadFactor` and draft (02 §3, `hazards.ts`'s `cargo01`). `TradeCompleted` and `PriceShock`. Save v5 with a v4 migration (a default Deckhand captain). The balance harness (17 §3): a legit bot, a dumping bot and a loop hunter, short in CI | — | — |
+| B | Port screen and trade | Piers get a `port` id; docking at one opens the port screen with the services the port has. The trade screen of §12 (buy and sell prices, the hold with hot goods marked, last-seen prices elsewhere, capacity bar, quantity slider). `knowledge.prices` updated by every visit. The ledger in journal v1 (prices with their dates, contracts, rumors, Standing). The chandlery sells repair stores, lanterns and provisions | A | Trade screen look |
+| C | Main menu and a new run | Main menu (Continue, New run, Settings) before the game boots into a run. Character creation (12 §2): captain's name, ship's name, background with its start money, cargo and port, and a portrait preset (the on-foot character comes in Phase 7). The perks that touch Phase 4 systems wired (Deckhand's sail changes and trim, Fisherman's fish prices and forecast, Saloon Keeper's rumors); the rest stored for later phases. May 7 at dawn in the starting port. The First Week checklist in the journal (12 §3), with step 6 left out until Phase 7 | B (E for checklist step 3) | Background picker |
+| D | Traffic with cargo | `flows.json` from §8.1 driving the route graph's fleets. Every ship gets a manifest and an owner company (§10, names checked) from its flow; deliveries add to the destination's stock and departures take from the origin's. The `traffic` slice saves only what differs from the timetable. Ships materialize in the loaded zone on lanes that cross it and lie at their berths in port (01 §3.4), and collapse back when they leave. "Look her over" shows the manifest and owner; hailing in daylight trades news (her last port's prices, a rumor) | A | Busy-harbor look |
+| E | The Apostles stash | Stockton Island bay (Presque Isle) as the starting hideout for every background in Phase 4: a footprint in the bake's hand-edit layer, a mooring, a shack, a strongbox and a storage shed from the harbor kit, and its anchorage shelter from the shelter maps. Moored there, F opens storage transfer (cargo and cash both ways) on the trade screen's parts. The per-hideout storage slice of 09 §12. Lie at anchor in any sheltered spot until dawn, dusk or a shift of wind (time passes; refused under way or with a ship in sight). The stash on the chart. Cash on hand vs. stashed (§2) | B | Stash look |
+| F | Contracts and Standing | `contracts.json` templates and the freight agent's offers by port and season (§5.2): deposits, deadlines, rush and mail variants, company contracts. Standing per port and company, with what it unlocks in Phase 4 (better contracts, deposit credit, shipyard discounts). Contract cargo is marked; selling it is the once-per-company theft (§5.2), raising `ContractStolen` for Phase 5 | B | — |
+| G | Shipyard, upgrades and repairs | The T2 schooner from the hull generator (10 §2, 14 §5), with its sailing tuning (this half can start now). Buying and trading in at Superior, Ashland and Duluth (10 §3). About ten upgrades (10 §13: quality canvas, reinforced planking, expanded hold, barometer, sounding lead, spyglass, improved blocks and the like), with their effects wired into the controller. Repairs: full at a shipyard, partial at a chandlery (10 §8). The ship's tier, condition and fit in the save | B (the hull: nothing) | T2 look, upgrade feel |
+| H | Contraband and the island smuggler | Hot goods (§6.1) with a dev command to make cargo hot until Phase 6 can. Untaxed whiskey. The island smuggler (decision 1): a boat at an Apostles anchorage after dark that sells contraband and fences hot goods at 40–70% with weekly cash (§6.2). Selling hot goods or contraband to a merchant rolls detection: refused, or confiscated, and `HotGoodsDetected` raised for Phase 5. The smuggler's anchorage learned from a rumor or the starting background | B | Smuggler feel |
+| I | Apostles ports | La Pointe and Washburn set pieces in the Phase 2 harbor kit: footprints in the hand-edit layer, piers with berths and port ids, town silhouettes with lit windows, and their markets in A's data. La Pointe's light is already in. Red Cliff and Bad River are left out (decision 2) | — (markets: A) | Recognizable by eye |
+| J | Port audio and leftovers | Harbor work sounds at the ports (hammering, the mill saw, ore cars at the docks), trade sounds (coins, the ledger), captions for the fog signals (0.3.0 known limitation), and another search for real recordings or a reachable music tool to replace the placeholder whistles, stingers and chart tune. Every file in `CREDITS.md` | B, D | Listen by ear |
+| K | Rumors and price news | Rumor templates (§9) filled from the live sim: shipment tips from real manifests and timetables, price tips, the weather outlook, the smuggler's anchorage, island legend teasers for Phase 9. Reliability and age, kept in the ledger. Saloon drinks as the price | B, D | — |
+| L | Phase 4 playtest | The §16.3 scenarios, the balance harness's long run, the benches with traffic in every zone, plans updated, tag 0.4.0 | All | Playtest, sign-off |
+
+### 16.5 Smaller calls assumed (Jared can override)
+
+- **Cargo is counted in CU**, as this plan does. `goods.json` drops kg and m³ for CU with a weight factor, and `ships.json`'s `cargoCapacity` becomes 20 CU for the T1 (§3).
+- **Ports are screens at the pier,** not walkable, until Phase 7 builds the docks on foot. The saloon, freight agent and shipyard are tabs on the port screen.
+- **Every background starts with the Stockton stash in Phase 4.** Their own sites come with the seven sites after the MVP (12 §2.2); the Lumberjack moves to Siskiwit when its zone is baked in Phase 8. Starting ports stay per background, so Washburn has to land (piece I) before the Lumberjack can be picked.
+- **The stash is a fixed prefab.** Phase 8's grid building replaces it in place and keeps its contents.
+- **Nothing in Phase 4 gets you caught.** Detection costs the sale or the goods and raises an event; Phase 5 turns those events into Wanted. The *Morrill* still doesn't hunt or inspect.
+- **Hailing is daylight and talk only:** news and rumors. Trading with or taking from a ship at sea is Phase 6.
+- **Character appearance is a portrait preset** until Phase 7 gives the captain a body.
+- **The Twin Ports waterfront dressing moves to Phase 7** with those docks districts. Ships at the berths make the harbors busy enough for trade.
+- **The §14 cut list is applied for Phase 4:** no dock fees, provisions upkeep, telegraph office, fresh fish spoilage or passenger contracts.
+
+### 16.6 Decisions for Jared
+
+1. **Where does Phase 4's one fence live?** **Decided 2026-11-01: the island smuggler.**
+   - **An island smuggler in the Apostles (recommended):** a boat lying at an anchorage among the islands after dark (Oak Island's lee, say, or behind Sand Island). Sail out, meet her alongside, trade by lantern light. It needs no on-foot mode, puts the shady half of the game out in the islands where Jared felt it belongs, and gives the stash a neighbor. Plan 08's Bayfield back-room fence still comes in Phase 7 as the second.
+   - **Bayfield's fish pier after dark:** dock there at night and the fence's menu opens. It's the plan 08 fence early, in town, and it moves on foot in Phase 7. Less of the islands.
+   - **No fence until Phase 6:** Phase 4 has contraband from a smuggler only, and hot goods wait until there's theft. The smallest Phase 4, and criterion 7 shrinks.
+2. **Do Red Cliff and Bad River come in Phase 4?** **Decided 2026-11-01: left out of Phase 4 for now.** They come back in a later phase, with the tribal sources pass first. They're trade-only landings with seasonal goods (§4.2), and the master plan wants their portrayal checked against tribal sources ([00 §10](00-master-plan.md), R1 §5).
+   - **A sources pass first, then build (recommended):** piece I builds La Pointe and Washburn now. A small research thread reads the Red Cliff and Bad River tribal sources and R1 §5, and the two landings land in Phase 4 only if that pass gives enough to portray them well; otherwise they move to Phase 7 with going ashore.
+   - **Build them now from R1 as it stands:** all four Apostles landings in Phase 4, and the review comes before Beta as planned.
+   - **Leave them to Phase 7.**
+
+### 16.7 Housekeeping found along the way
+
+- The 0.3.0 tag is on GitHub, on the release merge (`832e96a`), so nothing is left to push for it.
+- The master plan's §11 Next Steps still lists Phase 0 work (also noted in 03 §20.7), and its Phase 4 row should gain the stash and the smuggler once this scope is approved.
+- The 1900 characteristics of the Duluth canal, Superior Entry and Two Harbors lights are still guesses (03 §29.2 item 4). A short check against the 1900 Light List is a small research thread of its own.
+- Plan 17 wants a tracking issue per phase with the acceptance checklist. The §16.3 table can become that issue once approved.
 
 ---
 
 ## Changelog
+- v0.4: Phase 4 scope proposed (§16): what Phase 3 changes, deliverables, exit criteria, twelve work pieces, the Stockton stash and the island smuggler, decisions for Jared.
 - v0.3: Gap review: harbor tug tow service added.
 - v0.2: Decisions: separate Standing, cash at risk, contract theft once per company, no bank, companies don't arm up (grudge limited to legit effects).
 - v0.1: Initial economy plan: money, goods, market model, port profiles, price knowledge, contracts and Standing, hot goods and fences, smuggling, services, traffic flows and manifests, company grudge, rumors, fictional names, data/state, Phase 4 acceptance.
