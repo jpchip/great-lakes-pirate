@@ -1107,7 +1107,7 @@ Typecheck, lint, Prettier, 748 unit tests and the 12 e2e smoke tests pass on `ma
 
 ### 29.3 Results
 
-Filled in from the laptop playtest (Ryzen 7 7730U, Radeon renoir, ANGLE OpenGL).
+**Passed 2026-11-01**, signed off by Jared on the baseline laptop (Ryzen 7 7730U, Radeon renoir, Chrome 156 on Linux, ANGLE OpenGL, MSAA on). Every criterion was ticked.
 
 | # | Result |
 |---|---|
@@ -1117,13 +1117,18 @@ Filled in from the laptop playtest (Ryzen 7 7730U, Radeon renoir, ANGLE OpenGL).
 | 9, Twin Ports | `?bench=water` (MSAA on): Medium **7.6 ms**, water **2.4 ms**, 51 draw calls, 210k triangles; Low 3.6 ms (water 0.5); High 9.3 ms (water 2.3, 460k triangles). Terrain 0.7 ms and vegetation 0.8 ms on Medium. Pass |
 | 9, arena (`?encounter=convoy`, three ships) | `?bench=water` (MSAA on): Medium **5.8 ms**, but water **3.2 ms**, over its 3 ms; 40 draw calls, 42k triangles; Low 3.8 ms (water 1.9); High 6.6 ms (water 3.8). With no land, water fills the whole view, so its share is the largest of any scene, while the frame is the cheapest. Over on water by 0.2 ms; **accepted for arenas by Jared, 2026-11-01** (§29.2 item 5) |
 | 11 | "The world feels big, really feels like you could hide out in the Apostle Islands and be a pirate" (Jared). Pass |
+| 1 | The route sailed: out of the Apostles, in through the Duluth Ship Canal and docked at Duluth, across to Superior and out by Superior Entry, on to Two Harbors and docked. Pass |
+| 2 | The 35 s May crossing is fine as it is (Jared); the chart clock stays at 3.5 s a game hour. Pass |
+| 10 | The Twin Ports read as Duluth and Superior, and Two Harbors by its ore dock and light (Jared). Pass |
+| 4–8 | As checked in §29.1. Pass |
+| 12 | Plans updated, CI green; 0.3.0 tagged on the merge |
 
-The rest is filled in from the playtest.
+The synthesized chart audio and the guessed 1900 light colors are accepted for now (§29.2 items 3–4); they stay in the changelog's known limitations.
 
 ---
 
 ## Changelog
-- v0.24: Phase 3 piece K (§29): the exit criteria checked in the cloud container, a transition bench and the stream bench on the new zones, open items for the laptop playtest, and the 0.3.0 release.
+- v0.24: Phase 3 piece K (§29): the exit criteria checked, passed and signed off 2026-11-01; a transition bench and the stream bench on the new zones; arena water accepted at 3.2 ms; the 0.3.0 release.
 - v0.23: Phase 3 piece E (§28): weather on the chart. The sim drives the chart's wind and runs on its world tick; isobars, fronts, rain, fog banks, squalls and wind arrows drawn; a weather card with the glass, an outlook, weather on the course and forecasts to 24 h with rings of doubt; squalls and fog banks met from the sim, hiding and slowing the ship, and met in arenas where the sim has them; a calm floor of about 3 kn under the chart speed; piece F's stand-in squall retired.
 - v0.22: Phase 3 piece I (§27): the Duluth Ship Canal and Superior Entry piers at 1:1, docks at Duluth, Superior and Two Harbors (with its 1:1 ore dock), grain elevators, the Superior shipyard, the 1900 lights including dark Minnesota Point, and each zone laying out only its own harbors and lights.
 - v0.21: Phase 3 piece F (§26): `routes.json` and its schema, 21 ships on timetables from the run's seed and the clock, laid up by month, an encounter director with a per-voyage budget by route and season, detours that cost time, the *Morrill* sighted but not hunting, derelicts, and arena company from the traffic.
