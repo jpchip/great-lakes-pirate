@@ -279,7 +279,12 @@ describe('hand-edit layer', () => {
     expect(config.islands).toHaveLength(22);
     expect(config.islands.find((i) => i.id === 'island.long')?.bounds).toBeDefined();
     expect(config.islands.find((i) => i.id === 'island.gull')?.rock).toBeDefined();
-    expect(config.setPieces.map((p) => p.id)).toEqual(['setpiece.bayfield', 'setpiece.ashland']);
+    expect(config.setPieces.map((p) => p.id)).toEqual([
+      'setpiece.bayfield',
+      'setpiece.ashland',
+      'setpiece.la_pointe',
+      'setpiece.washburn',
+    ]);
     const ports = zoneConfigFromData('zone.twin_ports', read('zones.json'), read('islands.json'));
     expect(ports.islands).toEqual([]);
     expect(ports.setPieces.find((p) => p.id === 'setpiece.duluth_canal')?.cuts).toHaveLength(1);
@@ -302,6 +307,8 @@ describe('baked Apostles zone', () => {
       'island.gull',
       'setpiece.bayfield',
       'setpiece.ashland',
+      'setpiece.la_pointe',
+      'setpiece.washburn',
     ]);
     for (const e of m.handEdits) expect(e.samples).toBeGreaterThan(500);
     const p = geoToChart({ lat: 46.9065, lon: -90.4435 });

@@ -4,6 +4,10 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ## [Unreleased]
 
+### Added
+
+- **La Pointe and Washburn**, two more harbors in the Apostles zone, built on new set-piece footprints in a rebaked zone. La Pointe on Madeline Island is a small village: a village dock and a fish dock, the old American Fur Company warehouse, St. Joseph's Church and the Old Mission, and a few dozen houses on the low ground behind them. Washburn is a rail and lumber port on Chequamegon Bay's west shore: the Omaha road's coal dock and merchandise dock with its grain elevator between them, the Bigelow mill and its lumber dock, a second sawmill, and the town on the bluff above. The T1 docks at every berth in both, and both join `data/ports.json`. `?harbor=la_pointe` and `?harbor=washburn` start off their docks ([plan 05 §17](plans/05-ports-economy-trading.md)).
+
 ## [0.3.0] - 2026-11-01
 
 The **Hybrid Travel** build (Phase 3): take to a chart baked from the real lake, plot a course across western Superior through the weather sim's weather, meet ships on their timetables in open-water arenas, and arrive in the Twin Ports and Two Harbors, with harbors to dock at and the run saved wherever you stop.

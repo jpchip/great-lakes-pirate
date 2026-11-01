@@ -53,6 +53,8 @@ describe('the harbor data', () => {
     expect(harborsIn('zone.apostles').map((h) => h.id)).toEqual([
       'harbor.bayfield',
       'harbor.ashland',
+      'harbor.washburn',
+      'harbor.la_pointe',
     ]);
     expect(harborsIn('zone.twin_ports').map((h) => h.id)).toEqual([
       'harbor.duluth_canal',
@@ -235,19 +237,25 @@ describe('the harbors on the Apostles zone', () => {
     }
   });
 
-  it.skipIf(!baked)('docks at Bayfield and at Ashland (the piece G exit criterion)', () => {
-    dockAtEveryPier(zone.terrain, layouts);
-  });
+  it.skipIf(!baked)(
+    'docks at Bayfield, Ashland, Washburn and La Pointe (the piece G exit criterion)',
+    () => {
+      dockAtEveryPier(zone.terrain, layouts);
+    },
+  );
 
-  it.skipIf(!baked)('draws both towns in four draw calls, within the triangle budget', () => {
+  it.skipIf(!baked)('draws each town in two draw calls, within the triangle budget', () => {
     const lighting = new StyleLighting();
     const view = createHarbors(layouts, (x, z) => zone.terrain.heightAt(x, z), lighting);
-    expect(view.group.children).toHaveLength(4);
+    expect(view.group.children).toHaveLength(2 * layouts.length);
     expect(view.triangles).toBeLessThan(250_000);
     for (const l of layouts) {
-      expect(buildHarbor(l, (x, z) => zone.terrain.heightAt(x, z)).triangles).toBeGreaterThan(
-        10_000,
-      );
+      // La Pointe is a village of a few dozen houses; the towns are bigger.
+      const least = l.def.id === 'harbor.la_pointe' ? 4_000 : 10_000;
+      expect(
+        buildHarbor(l, (x, z) => zone.terrain.heightAt(x, z)).triangles,
+        l.def.id,
+      ).toBeGreaterThan(least);
     }
     view.dispose();
   });
@@ -348,7 +356,9 @@ for (const [zoneId, dirName] of [
     it.skipIf(!dir)('lays out only this zone’s harbors', () => {
       expect(layouts.map((l) => l.def.id)).toEqual(harborsIn(zoneId).map((h) => h.id));
       // The Apostles' harbors aren't laid out here (they were, off the zone's edge).
-      expect(layoutHarbors(manifestFrame(zone.manifest), zone.terrain).length).toBe(2);
+      expect(layoutHarbors(manifestFrame(zone.manifest), zone.terrain).length).toBe(
+        harborsIn('zone.apostles').length,
+      );
     });
 
     it.skipIf(!dir)('docks at every pier with berths, in water deep enough', () => {

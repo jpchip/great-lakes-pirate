@@ -243,6 +243,246 @@
     }
   },
   {
+    "id": "harbor.washburn",
+    "name": "Washburn",
+    "setPiece": "setpiece.washburn",
+    "piers": [
+      {
+        "id": "pier.washburn_coal",
+        "name": "Omaha coal dock",
+        "kind": "coal",
+        "alongM": -260,
+        "inlandM": 30,
+        "lengthM": 70,
+        "widthM": 24,
+        "deckM": 2.4
+      },
+      {
+        "id": "pier.washburn_city",
+        "name": "Omaha merchandise dock",
+        "kind": "city",
+        "alongM": -140,
+        "inlandM": 30,
+        "lengthM": 80,
+        "widthM": 10,
+        "deckM": 1.8
+      },
+      {
+        "id": "pier.washburn_lumber",
+        "name": "Bigelow mill dock",
+        "kind": "lumber",
+        "alongM": 60,
+        "inlandM": 40,
+        "lengthM": 90,
+        "widthM": 14,
+        "deckM": 1.8
+      }
+    ],
+    "buildings": [
+      {
+        "kind": "elevator",
+        "name": "Omaha elevator",
+        "alongM": -200,
+        "inlandM": 14,
+        "widthM": 58,
+        "depthM": 24,
+        "heightM": 32
+      },
+      {
+        "kind": "warehouse",
+        "name": "Freight house",
+        "alongM": -95,
+        "inlandM": 30,
+        "widthM": 40,
+        "depthM": 14,
+        "heightM": 7
+      },
+      {
+        "kind": "depot",
+        "name": "Omaha depot",
+        "alongM": -40,
+        "inlandM": 95,
+        "widthM": 12,
+        "depthM": 30,
+        "heightM": 6
+      },
+      {
+        "kind": "sawmill",
+        "name": "Bigelow mill",
+        "alongM": 65,
+        "inlandM": 45,
+        "widthM": 40,
+        "depthM": 20,
+        "heightM": 10
+      },
+      {
+        "kind": "warehouse",
+        "name": "Lumber shed",
+        "alongM": 10,
+        "inlandM": 30,
+        "widthM": 24,
+        "depthM": 12,
+        "heightM": 5
+      },
+      {
+        "kind": "warehouse",
+        "name": "Lumber shed",
+        "alongM": 120,
+        "inlandM": 40,
+        "widthM": 24,
+        "depthM": 12,
+        "heightM": 5
+      },
+      {
+        "kind": "sawmill",
+        "name": "Sawmill",
+        "alongM": 250,
+        "inlandM": 105,
+        "widthM": 30,
+        "depthM": 16,
+        "heightM": 9
+      },
+      {
+        "kind": "store",
+        "name": "Bayfield Street block",
+        "alongM": -80,
+        "inlandM": 215,
+        "widthM": 24,
+        "depthM": 16,
+        "heightM": 11
+      },
+      {
+        "kind": "store",
+        "name": "Hotel",
+        "alongM": 20,
+        "inlandM": 225,
+        "widthM": 20,
+        "depthM": 16,
+        "heightM": 12
+      },
+      {
+        "kind": "church",
+        "alongM": -180,
+        "inlandM": 300,
+        "widthM": 11,
+        "depthM": 20,
+        "heightM": 9
+      },
+      {
+        "kind": "church",
+        "alongM": 110,
+        "inlandM": 330,
+        "widthM": 10,
+        "depthM": 18,
+        "heightM": 8
+      }
+    ],
+    "town": {
+      "houses": 100,
+      "alongM": [-300, 300],
+      "inlandM": [195, 480],
+      "maxGroundM": 42,
+      "maxStepM": 5,
+      "seed": 1883
+    }
+  },
+  {
+    "id": "harbor.la_pointe",
+    "name": "La Pointe",
+    "setPiece": "setpiece.la_pointe",
+    "piers": [
+      {
+        "id": "pier.la_pointe_city",
+        "name": "Village dock",
+        "kind": "city",
+        "alongM": 25,
+        "inlandM": 30,
+        "lengthM": 60,
+        "widthM": 7,
+        "deckM": 1.6
+      },
+      {
+        "id": "pier.la_pointe_fish",
+        "name": "Fish dock",
+        "kind": "fish",
+        "alongM": 100,
+        "inlandM": 30,
+        "lengthM": 50,
+        "widthM": 8,
+        "deckM": 1.5
+      }
+    ],
+    "buildings": [
+      {
+        "kind": "warehouse",
+        "name": "Old fur company warehouse",
+        "alongM": 55,
+        "inlandM": 22,
+        "widthM": 12,
+        "depthM": 22,
+        "heightM": 6
+      },
+      {
+        "kind": "store",
+        "name": "General store",
+        "alongM": -15,
+        "inlandM": 35,
+        "widthM": 10,
+        "depthM": 14,
+        "heightM": 7
+      },
+      {
+        "kind": "fishShed",
+        "alongM": 95,
+        "inlandM": 10,
+        "widthM": 9,
+        "depthM": 8,
+        "heightM": 4
+      },
+      {
+        "kind": "fishShed",
+        "alongM": 120,
+        "inlandM": 18,
+        "widthM": 8,
+        "depthM": 7,
+        "heightM": 4
+      },
+      {
+        "kind": "fishShed",
+        "alongM": 75,
+        "inlandM": 8,
+        "widthM": 7,
+        "depthM": 7,
+        "heightM": 3.5
+      },
+      {
+        "kind": "church",
+        "name": "St. Joseph's Church",
+        "alongM": -110,
+        "inlandM": 95,
+        "widthM": 9,
+        "depthM": 17,
+        "heightM": 7
+      },
+      {
+        "kind": "store",
+        "name": "Old Mission",
+        "alongM": -150,
+        "inlandM": 55,
+        "widthM": 14,
+        "depthM": 11,
+        "heightM": 8
+      }
+    ],
+    "town": {
+      "houses": 32,
+      "alongM": [-175, 125],
+      "inlandM": [30, 280],
+      "maxGroundM": 12,
+      "seed": 1834
+    }
+  },
+  {
     "id": "harbor.duluth_canal",
     "name": "Duluth Ship Canal",
     "setPiece": "setpiece.duluth_canal",

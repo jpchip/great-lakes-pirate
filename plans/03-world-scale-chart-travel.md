@@ -556,7 +556,7 @@ Before the worker, building on the main thread cost up to 18 ms in one frame on 
 - ~~**Laptop load and hitch check (Jared)**~~ **Passed 2026-10-29** on the baseline laptop (`/bench/stream/`, Medium, 8× Full sail): zone load 0.33 s and scene build 0.12 s; frame time p50 16.7 ms, p95 16.8 ms, max 16.8 ms over 6,493 frames, **no frame over 33 ms**; main-thread streaming p99 0.3 ms, max 1.2 ms; 104 tiles built, the slowest 12.5 ms in the worker; at most 23 terrain draw calls.
 - A "Take to the chart" prompt at the edge (Phase 3, with chart travel) and entry points in `zones.json`.
 - The Wanted region mapping in `zones.json` (plan 06).
-- The other four set pieces in the Apostles (Washburn, La Pointe, Red Cliff, Bad River) get footprints when they're built (Phase 4).
+- The other four set pieces in the Apostles (Washburn, La Pointe, Red Cliff, Bad River) get footprints when they're built (Phase 4). **Washburn and La Pointe done** in Phase 4 piece I ([05 §17](05-ports-economy-trading.md)); Red Cliff and Bad River wait for the tribal sources pass (05 §16.6).
 
 ## 18. Phase 2 Piece G: Harbors (2026-10-30)
 

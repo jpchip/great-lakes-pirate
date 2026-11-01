@@ -18,8 +18,9 @@ import {
 
 /**
  * The harbor set pieces laid out on the zone (plan 03 §3.4; Phase 2 piece G, Phase 3 piece
- * I): Bayfield's fish docks, packing house, cooperage and mill, Ashland's ore dock, the
- * Duluth Ship Canal and Superior Entry piers, the Duluth and Superior waterfronts and Two
+ * I; Phase 4 piece I): Bayfield's fish docks, packing house, cooperage and mill, Ashland's
+ * ore dock, Washburn's coal dock and elevator, La Pointe's village dock, the Duluth Ship
+ * Canal and Superior Entry piers, the Duluth and Superior waterfronts and Two
  * Harbors' ore dock, each at 1:1 on its set piece's footprint. Pure and deterministic: the renderer draws what this places, and
  * the sailing hazards and auto-dock use its piers as `Dock`s, so the berths you dock at are
  * the piers you see.
