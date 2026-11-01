@@ -1,4 +1,5 @@
-import type { Chart } from '../../core/coords';
+import { DEFAULT_COMPRESSION, type Chart } from '../../core/coords';
+import { distance } from '../chart/geography';
 import type { Contact, ContactKind, Encounter } from '../chart/traffic';
 
 /**
@@ -54,21 +55,69 @@ export interface ArenaEncounter {
 export const CONTACT_CLASS: Readonly<Record<Exclude<ContactKind, 'storm'>, string>> = {
   freighter: 'ship.ore_freighter',
   steamer: 'ship.package_steamer',
+  barge: 'ship.schooner_barge',
   tug: 'ship.fish_tug',
   cutter: 'ship.cutter_morrill',
   // A wrecked schooner-barge, the commonest loss on the lake in 1900.
   derelict: 'ship.schooner_barge',
 };
 
+/** A consort rides her towline this far astern, zone meters. */
+export const CONSORT_ASTERN_M = 260;
+/** Other traffic within this much of what was met comes into the arena with it, zone meters. */
+export const COMPANY_RANGE_M = 1200;
+/** At most this many ships in an arena (the five-ship draw-call budget, piece H). */
+export const MAX_ARENA_SHIPS = 5;
+
+/** Zone-meter offset `m` astern of a ship on `heading`. */
+function astern(heading: number, m: number): { x: number; z: number } {
+  return { x: -Math.sin(heading) * m, z: Math.cos(heading) * m };
+}
+
+function shipFrom(c: Contact, offset?: { x: number; z: number }): ArenaShip {
+  const derelict = c.kind === 'derelict';
+  const kind = c.kind === 'storm' ? 'derelict' : c.kind;
+  return {
+    id: c.id,
+    classId: c.classId ?? CONTACT_CLASS[kind],
+    name: c.name,
+    heading: c.heading,
+    // A tug lying on her nets, or a ship at anchor, has no way on.
+    speedKn: derelict || c.underWay === false ? 0 : c.speedKn,
+    ...(offset ? { offset } : {}),
+    ...(c.hostile ? { hostile: true } : {}),
+    ...(derelict ? { derelict: true } : {}),
+  };
+}
+
+/** A ship and her consorts in tow, `at` the ship's own offset (undefined for the middle). */
+function withConsorts(c: Contact, at?: { x: number; z: number }): ArenaShip[] {
+  const out = [shipFrom(c, at)];
+  (c.consorts ?? []).forEach((consort, i) => {
+    const back = astern(c.heading, CONSORT_ASTERN_M * (i + 1));
+    out.push({
+      id: `${c.id}.consort_${i + 1}`,
+      classId: consort.classId,
+      name: consort.name,
+      heading: c.heading,
+      speedKn: c.underWay === false ? 0 : c.speedKn,
+      offset: { x: (at?.x ?? 0) + back.x, z: (at?.z ?? 0) + back.z },
+    });
+  });
+  return out;
+}
+
 /**
- * The arena for a chart encounter (the S8 contacts, until piece F's traffic carries a
- * class per ship). `heading` is the player's on the chart.
+ * The arena for a chart encounter. `heading` is the player's on the chart. Traffic
+ * (piece F) brings the ship met with her consorts, and any other ship on the water near
+ * her (`company`, the chart's contacts) at its place relative to her, nearest first, up
+ * to the five-ship budget.
  */
 export function arenaFromChartEncounter(
   enc: Encounter,
   at: Chart,
   heading: number,
-  options: { hunting?: boolean; classId?: string } = {},
+  options: { hunting?: boolean; classId?: string; company?: readonly Contact[] } = {},
 ): ArenaEncounter {
   const c: Contact = enc.contact;
   const base = {
@@ -81,20 +130,28 @@ export function arenaFromChartEncounter(
   };
   if (c.kind === 'storm') return { ...base, kind: 'squall', ships: [] };
   const derelict = c.kind === 'derelict';
+  const ships = withConsorts(c);
+  if (options.classId) (ships[0] as ArenaShip).classId = options.classId;
+  const reach = COMPANY_RANGE_M * DEFAULT_COMPRESSION;
+  const near = (options.company ?? [])
+    .filter((o) => o.id !== c.id && o.kind !== 'storm' && !o.inPort)
+    .map((o) => ({ o, d: distance(o.pos, c.pos) }))
+    .filter(({ d }) => d <= reach)
+    .sort((a, b) => a.d - b.d);
+  for (const { o } of near) {
+    // Chart meters to zone meters about the ship met (east is +x, north is -z).
+    const offset = {
+      x: (o.pos.x - c.pos.x) / DEFAULT_COMPRESSION,
+      z: -(o.pos.y - c.pos.y) / DEFAULT_COMPRESSION,
+    };
+    const group = withConsorts(o, offset);
+    if (ships.length + group.length > MAX_ARENA_SHIPS) continue;
+    ships.push(...group);
+  }
   return {
     ...base,
     kind: c.kind === 'cutter' ? 'cutter' : derelict ? 'derelict' : 'ship',
-    ships: [
-      {
-        id: c.id,
-        classId: options.classId ?? CONTACT_CLASS[c.kind],
-        name: c.name,
-        heading: c.heading,
-        speedKn: derelict ? 0 : c.speedKn,
-        ...(c.hostile ? { hostile: true } : {}),
-        ...(derelict ? { derelict: true } : {}),
-      },
-    ],
+    ships,
   };
 }
 
@@ -153,10 +210,6 @@ export function devEncounter(
   if (id === 'squall') return { ...base, kind: 'squall', ships: [] };
   if (id === 'fogbank') return { ...base, kind: 'fogbank', ships: [] };
   if (id === 'convoy') {
-    const astern = (m: number) => ({
-      x: -Math.sin(crossing) * m,
-      z: Math.cos(crossing) * m,
-    });
     return {
       ...base,
       kind: 'ship',
@@ -168,7 +221,7 @@ export function devEncounter(
           ...shipOf('barge'),
           heading: crossing,
           speedKn: 8,
-          offset: astern(260),
+          offset: astern(crossing, CONSORT_ASTERN_M),
         },
         {
           id: 'dev.convoy.tug',

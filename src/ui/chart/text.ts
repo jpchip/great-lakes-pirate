@@ -80,14 +80,27 @@ export function encounterText(enc: Encounter, heading: number): { kind: string; 
       };
     case 'steamer':
       return { kind: 'Prize', text: `A white hull and a red stack: ${c.name}, ${where}${course}.` };
+    case 'barge':
+      return {
+        kind: 'Prize',
+        text: `Topsails over the horizon: ${c.name}, lumber-laden, ${where}${course}.`,
+      };
     case 'tug':
-      return { kind: 'Traffic', text: `${c.name} working her nets, ${where}.` };
+      return c.underWay === false
+        ? { kind: 'Traffic', text: `${c.name} working her nets, ${where}.` }
+        : { kind: 'Traffic', text: `${c.name} steaming for the grounds, ${where}${course}.` };
     case 'cutter':
-      return { kind: 'Threat', text: `Revenue colors! ${c.name}, ${where}${course}.` };
+      return {
+        kind: 'Threat',
+        text:
+          enc.hunts === false
+            ? `Revenue colors! ${c.name}, ${where}${course}. She keeps her course; she isn't looking for you.`
+            : `Revenue colors! ${c.name}, ${where}${course}.`,
+      };
     case 'derelict':
       return {
         kind: 'Prize',
-        text: `Wreckage in the water, ${where}: a scow, dismasted and drifting.`,
+        text: `Wreckage in the water, ${where}: ${c.description ?? 'a scow, dismasted and drifting'}.`,
       };
     case 'storm':
       return {
