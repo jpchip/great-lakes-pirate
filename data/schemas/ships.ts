@@ -46,7 +46,7 @@ const shipBase = {
   turnRateCurve: curveSchema,
   draftEmptyM: z.number().positive(),
   draftFullM: z.number().positive(),
-  /** Hold volume, m³ (plan 05 settles the final cargo unit). */
+  /** Hold space in cargo units, CU (plan 05 §3, §16.5): T1 20, T2 ~45, T3 ~90. */
   cargoCapacity: z.number().nonnegative(),
   hullHP: z.number().positive(),
   riggingHP: z.number().positive(),

@@ -2,6 +2,8 @@ import type { EventBus } from '../core/events';
 import type { InputMapper } from '../core/input';
 import type { Rng } from '../core/rng';
 import type { ContactKind } from '../sim/chart/traffic';
+import type { PriceShockEvent } from '../sim/economy/market';
+import type { TradeCompletedEvent } from '../sim/economy/trade';
 import type { GameWorld } from '../gameplay/ecs';
 import type { LocalWeather } from '../sim/weather/local-weather';
 import type { ZoneTerrain } from '../sim/terrain/zone-terrain';
@@ -51,6 +53,9 @@ export interface GameEvents {
     shipId: string | undefined;
     reason: 'noBerth' | 'tooFast' | 'anchored' | 'aground';
   };
+  /** The economy (plan 05 §11): a trade at a port's market, and a market event. */
+  TradeCompleted: TradeCompletedEvent;
+  PriceShock: PriceShockEvent;
 }
 
 /** Everything a mode needs; built once at boot and handed to each mode. */

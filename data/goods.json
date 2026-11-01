@@ -1,29 +1,244 @@
 [
   {
-    "id": "good.whitefish",
-    "name": "Salted whitefish",
-    "category": "legit",
-    "basePriceCents": 600,
-    "weightKg": 45,
-    "volumeM3": 0.12,
-    "seasons": ["spring", "summer", "fall"]
+    "id": "good.iron_ore",
+    "name": "Iron ore",
+    "category": "bulk",
+    "basePriceCents": 300,
+    "weightFactor": 1,
+    "legal": "legal",
+    "seasons": ["spring", "summer", "fall"],
+    "seasonPrice": { "fall": 1.1 },
+    "traceability": 0.05
+  },
+  {
+    "id": "good.coal",
+    "name": "Coal",
+    "category": "bulk",
+    "basePriceCents": 500,
+    "weightFactor": 0.9,
+    "legal": "legal",
+    "seasons": ["spring", "summer", "fall", "winter"],
+    "seasonPrice": { "fall": 1.1, "winter": 1.3 },
+    "traceability": 0.05
+  },
+  {
+    "id": "good.grain",
+    "name": "Grain (wheat)",
+    "category": "bulk",
+    "basePriceCents": 800,
+    "weightFactor": 0.8,
+    "legal": "legal",
+    "seasons": ["summer", "fall"],
+    "traceability": 0.1
   },
   {
     "id": "good.lumber",
-    "name": "Pine lumber",
-    "category": "legit",
+    "name": "Lumber",
+    "category": "bulk",
+    "basePriceCents": 700,
+    "weightFactor": 0.7,
+    "legal": "legal",
+    "seasons": ["spring", "summer", "fall"],
+    "traceability": 0.3
+  },
+  {
+    "id": "good.brownstone",
+    "name": "Brownstone (salvaged)",
+    "category": "bulk",
+    "basePriceCents": 600,
+    "weightFactor": 1,
+    "legal": "legal",
+    "seasons": ["spring", "summer", "fall"],
+    "traceability": 0.2
+  },
+  {
+    "id": "good.salted_fish",
+    "name": "Salted fish",
+    "category": "provisions",
+    "basePriceCents": 1200,
+    "weightFactor": 0.8,
+    "legal": "legal",
+    "seasons": ["spring", "summer", "fall", "winter"],
+    "traceability": 0.5
+  },
+  {
+    "id": "good.fresh_fish",
+    "name": "Fresh fish",
+    "category": "provisions",
+    "basePriceCents": 900,
+    "weightFactor": 0.7,
+    "legal": "legal",
+    "seasons": ["spring", "summer", "fall"],
+    "traceability": 0.1,
+    "spoilDays": 2
+  },
+  {
+    "id": "good.flour",
+    "name": "Flour",
+    "category": "provisions",
+    "basePriceCents": 1000,
+    "weightFactor": 0.7,
+    "legal": "legal",
+    "seasons": ["spring", "summer", "fall", "winter"],
+    "seasonPrice": { "winter": 1.15 },
+    "traceability": 0.4
+  },
+  {
+    "id": "good.provisions",
+    "name": "Salt pork & provisions",
+    "category": "provisions",
+    "basePriceCents": 1400,
+    "weightFactor": 0.8,
+    "legal": "legal",
+    "seasons": ["spring", "summer", "fall", "winter"],
+    "seasonPrice": { "fall": 1.1, "winter": 1.3 },
+    "traceability": 0.4
+  },
+  {
+    "id": "good.salt",
+    "name": "Salt",
+    "category": "provisions",
+    "basePriceCents": 600,
+    "weightFactor": 0.9,
+    "legal": "legal",
+    "seasons": ["spring", "summer", "fall", "winter"],
+    "seasonPrice": { "spring": 1.1, "fall": 1.1 },
+    "traceability": 0.2
+  },
+  {
+    "id": "good.hardware",
+    "name": "Hardware & tools",
+    "category": "manufactured",
+    "basePriceCents": 3000,
+    "weightFactor": 0.8,
+    "legal": "legal",
+    "seasons": ["spring", "summer", "fall", "winter"],
+    "traceability": 0.6
+  },
+  {
+    "id": "good.kerosene",
+    "name": "Kerosene",
+    "category": "manufactured",
     "basePriceCents": 1800,
-    "weightKg": 500,
-    "volumeM3": 1.0,
-    "seasons": ["spring", "summer", "fall"]
+    "weightFactor": 0.7,
+    "legal": "legal",
+    "seasons": ["spring", "summer", "fall", "winter"],
+    "seasonPrice": { "fall": 1.1, "winter": 1.2 },
+    "traceability": 0.5
+  },
+  {
+    "id": "good.rope_canvas",
+    "name": "Rope & canvas",
+    "category": "manufactured",
+    "basePriceCents": 2200,
+    "weightFactor": 0.5,
+    "legal": "legal",
+    "seasons": ["spring", "summer", "fall", "winter"],
+    "seasonPrice": { "spring": 1.1 },
+    "traceability": 0.3
+  },
+  {
+    "id": "good.dry_goods",
+    "name": "Dry goods & cloth",
+    "category": "manufactured",
+    "basePriceCents": 2800,
+    "weightFactor": 0.4,
+    "legal": "legal",
+    "seasons": ["spring", "summer", "fall", "winter"],
+    "traceability": 0.5
+  },
+  {
+    "id": "good.tobacco",
+    "name": "Tobacco",
+    "category": "manufactured",
+    "basePriceCents": 4000,
+    "weightFactor": 0.4,
+    "legal": "legal",
+    "seasons": ["spring", "summer", "fall", "winter"],
+    "traceability": 0.6
+  },
+  {
+    "id": "good.powder_shot",
+    "name": "Black powder & shot",
+    "category": "manufactured",
+    "basePriceCents": 3500,
+    "weightFactor": 0.8,
+    "legal": "restricted",
+    "seasons": ["spring", "summer", "fall", "winter"],
+    "seasonPrice": { "fall": 1.1 },
+    "traceability": 0.7
   },
   {
     "id": "good.whiskey",
+    "name": "Whiskey (taxed)",
+    "category": "high_value",
+    "basePriceCents": 4500,
+    "weightFactor": 0.7,
+    "legal": "legal",
+    "seasons": ["spring", "summer", "fall", "winter"],
+    "seasonPrice": { "winter": 1.1 },
+    "traceability": 0.8
+  },
+  {
+    "id": "good.furs",
+    "name": "Furs",
+    "category": "high_value",
+    "basePriceCents": 7000,
+    "weightFactor": 0.3,
+    "legal": "legal",
+    "seasons": ["winter", "spring"],
+    "seasonPrice": { "fall": 1.15, "winter": 1.1 },
+    "traceability": 0.3
+  },
+  {
+    "id": "good.wild_rice",
+    "name": "Wild rice",
+    "category": "high_value",
+    "basePriceCents": 3500,
+    "weightFactor": 0.6,
+    "legal": "legal",
+    "seasons": ["fall"],
+    "traceability": 0.2
+  },
+  {
+    "id": "good.maple_sugar",
+    "name": "Maple sugar",
+    "category": "high_value",
+    "basePriceCents": 3000,
+    "weightFactor": 0.7,
+    "legal": "legal",
+    "seasons": ["spring"],
+    "traceability": 0.2
+  },
+  {
+    "id": "good.copper",
+    "name": "Copper ingots",
+    "category": "high_value",
+    "basePriceCents": 6000,
+    "weightFactor": 1,
+    "legal": "legal",
+    "seasons": ["spring", "summer", "fall"],
+    "traceability": 0.9
+  },
+  {
+    "id": "good.untaxed_whiskey",
     "name": "Untaxed whiskey",
     "category": "contraband",
+    "basePriceCents": 7000,
+    "smugglerPriceCents": 3000,
+    "weightFactor": 0.7,
+    "legal": "contraband",
+    "seasons": ["spring", "summer", "fall", "winter"],
+    "traceability": 0.2
+  },
+  {
+    "id": "good.venison",
+    "name": "Poached venison",
+    "category": "contraband",
     "basePriceCents": 2500,
-    "weightKg": 40,
-    "volumeM3": 0.05,
-    "seasons": ["spring", "summer", "fall", "winter"]
+    "weightFactor": 0.6,
+    "legal": "contraband",
+    "seasons": ["fall", "winter"],
+    "traceability": 0.2
   }
 ]

@@ -295,7 +295,7 @@ visibilityAt(position, gameTime) → meters (fog, rain, night)
 
 `id, name, tier, propulsion (sail|steam), lengthM, displayScale (03 §3.5), hullMaxSpeedKn, accelTau, decelTau, turnRateCurve[], polar[] (sail only), sailChangeTimeS, engineSpeedKn (steam only), draftEmptyM, draftFullM, cargoCapacity, hullHP, riggingHP, sweeps (bool), sweepsKn, sweepsTurnDegS, anchorRodeM, buoyancy, visibilityProfile, modelId, LODs[]`
 
-- **Built in Phase 1** (`data/schemas/ships.ts`). Curves are `[x, y]` pairs: `polar` is `[degrees off the bow, factor]` and `turnRateCurve` is `[knots, degrees per second]`. `buoyancy` replaces `buoyancySamples[]` with the S2 sampler's spans and spring periods (`length, beam, heavePeriod, pitchPeriod, rollPeriod, damping`), since §5.1 samples fixed points from those spans. `cargoCapacity` is m³ until plan 05 picks the unit.
+- **Built in Phase 1** (`data/schemas/ships.ts`). Curves are `[x, y]` pairs: `polar` is `[degrees off the bow, factor]` and `turnRateCurve` is `[knots, degrees per second]`. `buoyancy` replaces `buoyancySamples[]` with the S2 sampler's spans and spring periods (`length, beam, heavePeriod, pitchPeriod, rollPeriod, damping`), since §5.1 samples fixed points from those spans. `cargoCapacity` is in cargo units (CU) since Phase 4 piece A ([05 §16.8](05-ports-economy-trading.md)); the hold's load (CU × weight factor) sets the draft and `cargoSpeedLoss` (0.2) in `loadFactor`.
 - Rules shared by every sailing ship (sail factors, the wind-strength curve, trim, stall, heel, leeway, head seas) are not per class. They live in `src/sim/sailing/handling.ts` and go into tuning presets alongside the ship record.
 
 Weapons, crew size for boarding and upgrade slots belong to plans 07 and 10 but live in the same record.

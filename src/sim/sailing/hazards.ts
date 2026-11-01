@@ -45,7 +45,10 @@ export type MooringState = 'free' | 'docking' | 'docked' | 'castingOff';
 export interface HazardState {
   hull: number;
   rigging: number;
-  /** Hold fill, 0 empty … 1 full; sets the draft between draftEmptyM and draftFullM. */
+  /**
+   * The hold's load, 0 empty … 1 full of the heaviest goods (plan 05 `holdLoad01`): sets
+   * the draft between draftEmptyM and draftFullM and the cargo speed loss.
+   */
   cargo01: number;
   /** Overpressing strain, 0–1 (plan 02 §3.5). Rigging tears above strainDamageAt. */
   strain: number;
@@ -231,8 +234,8 @@ function applyCondition(s: SailingState, h: HazardState, c: HazardClass): void {
   const r = c.rules;
   const leak = 1 - clamp01(h.hull / c.hullHP);
   const rig = clamp01(h.rigging / c.riggingHP);
-  // Plan 05 multiplies its cargo load in here once there is cargo.
-  s.loadFactor = 1 - r.leakSpeedLoss * leak;
+  // Water in the hold and cargo in it both slow her (plan 02 §3, §6.1; plan 05 §3).
+  s.loadFactor = (1 - r.leakSpeedLoss * leak) * (1 - r.cargoSpeedLoss * clamp01(h.cargo01));
   s.riggingCondition = r.riggingConditionMin + (1 - r.riggingConditionMin) * rig;
   s.sailChangeScale = 1 + r.riggingSailSlowdown * (1 - rig);
   h.draft =

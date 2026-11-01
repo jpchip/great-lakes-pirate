@@ -10,7 +10,8 @@ import { restoreVoyage } from '../src/sim/chart/voyage';
 import { resolveStart } from '../src/sim/location';
 import { APOSTLES_ID, spawnPose, zoneDef } from '../src/sim/terrain/zones';
 import { advanceWeather } from '../src/sim/weather/weather';
-import { worldStateSchema } from '../src/sim/world-state';
+import { parseWorldState, worldStateSchema } from '../src/sim/world-state';
+import { gameEconomy } from '../src/sim/economy/defs';
 
 const fixturesDir = join(import.meta.dirname, 'fixtures', 'saves');
 const fixtureFiles = readdirSync(fixturesDir).filter((f) => /^v\d+\.json$/.test(f));
@@ -108,10 +109,10 @@ describe('v3 → v4: the voyage joins the save (plan 03 §20, piece D)', () => {
 
   it('gives a v3 run no voyage and keeps the rest', () => {
     const before = v3();
-    const state = worldStateSchema.parse(migrateSave(v3(), 3));
-    expect(state.voyage).toBeNull();
-    expect(state.player).toEqual(before['player']);
-    expect(state.environment).toEqual(before['environment']);
+    const state = migrateSave(v3(), 3, 4);
+    expect(state['voyage']).toBeNull();
+    expect(state['player']).toEqual(before['player']);
+    expect(state['environment']).toEqual(before['environment']);
   });
 
   it('a v4 save made mid-voyage comes back on its course, where it was', () => {
@@ -131,5 +132,47 @@ describe('v3 → v4: the voyage joins the save (plan 03 §20, piece D)', () => {
     expect(p.y).toBeCloseTo(at.chartPos.y, 0);
     // The zone behind the chart is the one the voyage left.
     expect(resolveStart(at).zoneId).toBe('zone.twin_ports');
+  });
+});
+
+describe('v4 → v5: the economy joins the save (plan 05 §16, Phase 4 piece A)', () => {
+  const v4 = (): Record<string, unknown> =>
+    (JSON.parse(readFileSync(join(fixturesDir, 'v4.json'), 'utf8')) as Fixture).state;
+
+  it('gives a 0.3.0 run a default Deckhand captain where it was saved', () => {
+    const before = v4();
+    const state = parseWorldState(migrateSave(v4(), 4));
+    expect(state.player.captain.background).toBe('deckhand');
+    expect(state.player.purse).toBe(15_000);
+    expect(state.player.cargo).toEqual([{ good: 'good.rope_canvas', qty: 5 }]);
+    expect(state.player.location).toEqual((before['player'] as { location: unknown }).location);
+    expect(state.voyage).toEqual(before['voyage']);
+    expect(state.environment).toEqual(before['environment']);
+  });
+
+  it('fills every port market on load', () => {
+    const state = parseWorldState(migrateSave(v4(), 4));
+    for (const [port, pm] of gameEconomy().markets) {
+      for (const good of pm.goods.keys()) {
+        expect(state.markets[port]?.[good]?.stock, `${port} ${good}`).toBeGreaterThan(0);
+      }
+    }
+  });
+
+  it('a v5 save keeps its purse, hold and traded stocks, and fills the rest', () => {
+    const fixture = JSON.parse(readFileSync(join(fixturesDir, 'v5.json'), 'utf8')) as Fixture;
+    const state = parseWorldState(migrateSave(fixture.state, 5));
+    expect(state.player.captain).toEqual({
+      name: 'Ada Lindqvist',
+      shipName: 'Wren',
+      background: 'fisherman',
+    });
+    expect(state.player.purse).toBe(23_450);
+    expect(state.player.cargo[1]?.hot?.region).toBe('region.chequamegon');
+    expect(state.markets['port.bayfield']?.['good.salted_fish']).toEqual({
+      stock: 163.5,
+      lastPlayerTradeAt: 38_000,
+    });
+    expect(state.markets['port.ashland']?.['good.lumber']?.stock).toBeGreaterThan(0);
   });
 });

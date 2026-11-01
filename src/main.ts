@@ -23,6 +23,7 @@ import type { SignalStation } from './audio/world-audio';
 import { cloneTransform, createGameWorld } from './gameplay/ecs';
 import { createSchooner } from './gameplay/schooner';
 import { npcParade } from './gameplay/npc-ships';
+import { attachEconomy } from './gameplay/economy';
 import { clearArena, materializeArena, type ArenaPlay } from './gameplay/arena';
 import {
   ARENA_BOUNDS,
@@ -395,6 +396,20 @@ async function boot(): Promise<void> {
     model: 'schooner',
     playerControlled: true,
   });
+
+  // Markets drift on the world tick; the hold's load sets the draft (plan 05, piece A).
+  const economy = attachEconomy(ctx, hazards);
+  // For the console and the e2e tests until the trade screen lands (piece B):
+  // `__glpEconomy.prices('port.bayfield')`, `__glpEconomy.buy('port.bayfield', 'good.lumber', 5)`.
+  if (import.meta.env.DEV || params.has('debug')) {
+    const hook = {
+      ...economy,
+      purse: () => ctx.state.player.purse,
+      cargo: () => ctx.state.player.cargo,
+      load: () => hazards.state.cargo01,
+    };
+    (window as unknown as { __glpEconomy: typeof hook }).__glpEconomy = hook;
+  }
 
   // `?npcs` puts one of each NPC class in a line abreast ahead, steaming on (`?npcs=stop`
   // lays them to, `?npcs=meet` heads them toward you), to look at the Phase 3 ships.

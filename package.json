@@ -20,6 +20,7 @@
     "e2e": "playwright test",
     "bench:save": "playwright test --config bench/s6/playwright.config.ts",
     "bench:weather": "vitest run --config bench/s9/vitest.config.ts",
+    "bench:economy": "vitest run --config bench/economy/vitest.config.ts",
     "bench:stream": "playwright test --config bench/stream/playwright.config.ts",
     "bench:chart": "playwright test --config bench/chart/playwright.config.ts",
     "bench:transitions": "playwright test --config bench/transitions/playwright.config.ts",
