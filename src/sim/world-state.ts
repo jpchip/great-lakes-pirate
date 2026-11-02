@@ -178,7 +178,7 @@ export const knowledgeSchema = z.object({
 /**
  * Contraband's saved state (plan 05 §6; Phase 4 piece H): the island smuggler's cash and
  * stock for the night and her trust in you, the ports whose merchants turned you away and
- * the week they did, and whether you know where she lies. Optional and filled on load, so
+ * the week they did, the ports where you have a receiver, and whether you know where she lies. Optional and filled on load, so
  * a v6 save from before piece H needs no migration.
  */
 export const contrabandStateSchema = z.object({
@@ -189,6 +189,8 @@ export const contrabandStateSchema = z.object({
     dealtCents: z.number().int().nonnegative(),
   }),
   refusals: z.record(z.string(), z.number().int()),
+  /** Ports with a merchant who has taken a lot from you: your receiver there. */
+  receivers: z.array(z.string()).default([]),
   known: z.boolean(),
 });
 

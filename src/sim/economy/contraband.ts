@@ -54,6 +54,11 @@ export interface DetectionRules {
   confiscateHeat: number;
   /** On the quiet, a merchant pays this share of contraband's base value, less the port's spread. */
   contrabandSale: number;
+  /** A receiver (a merchant who has taken a lot from you) pays this share of what an unknowing one would. */
+  receiverShare: number;
+  /** A receiver still won't touch a lot at least this hot and this traceable (fresh marked goods). */
+  tooHotHeat: number;
+  tooHotMarks: number;
 }
 
 export function defaultDetectionRules(): DetectionRules {
@@ -71,6 +76,9 @@ export function defaultDetectionRules(): DetectionRules {
     confiscateHot: 0.25,
     confiscateHeat: 0.5,
     contrabandSale: 0.85,
+    receiverShare: 0.75,
+    tooHotHeat: 0.5,
+    tooHotMarks: 0.6,
   };
 }
 
@@ -158,7 +166,26 @@ export type Refusals = Record<string, number>;
 
 export type OfferOutcome = 'sold' | 'refused' | 'confiscated';
 
-export type OfferRefusal = 'badLot' | 'notTraded' | 'turnedAway';
+export type OfferRefusal = 'badLot' | 'notTraded' | 'turnedAway' | 'tooHot';
+
+/**
+ * What the merchants remember of you: the ports that turned you away and the week, and
+ * the ports where a merchant has taken a lot from you (your receiver there). A receiver
+ * never calls the law and takes every lot but the hottest marked goods, at a discount.
+ */
+export interface MerchantMemory {
+  refusals: Refusals;
+  receivers: string[];
+}
+
+/** Too hot even for a receiver: fresh, marked goods (company crates, stamped ingots). */
+export function tooHotForReceiver(stack: CargoStack, gameSeconds: number, rules = RULES): boolean {
+  return (
+    !!stack.hot &&
+    stack.hot.traceability >= rules.tooHotMarks &&
+    heatNow(stack.hot, gameSeconds, rules) >= rules.tooHotHeat
+  );
+}
 
 /** What `HotGoodsDetected` carries (plan 05 §6.1; Phase 5 turns it into Wanted). */
 export interface HotGoodsDetectedEvent {
@@ -181,6 +208,8 @@ export type OfferResult =
       good: string;
       qty: number;
       totalCents: number;
+      /** Sold to your receiver here, or this sale made the merchant one. */
+      receiver: 'known' | 'new';
     }
   | {
       ok: true;
@@ -207,33 +236,34 @@ export function offerRolls(
 
 /**
  * Offers a whole lot (one stack of the hold) to the port's merchants. Sold: the purse is
- * paid and a hot lot moves the market like any sale. Refused: the lot stays aboard.
- * Confiscated: it's gone. Either detection marks the port as having turned you away for
- * the week.
+ * paid, a hot lot moves the market like any sale, and the merchant who took it becomes
+ * your receiver in the port. Refused: the lot stays aboard. Confiscated: it's gone. Either
+ * detection marks the port as having turned you away for the week.
+ *
+ * At a port where you have a receiver there's no roll: the receiver takes the lot at
+ * `receiverShare` of the price, or turns down one too hot to handle without a word to
+ * anyone.
  */
 export function offerLot(
   defs: EconomyDefs,
   markets: MarketsState,
   trader: Trader,
-  refusals: Refusals,
+  memory: MerchantMemory,
   port: string,
   stackIndex: number,
   gameSeconds: number,
   runSeed: string,
   rules = RULES,
 ): OfferResult {
+  const { refusals, receivers } = memory;
   const stack = trader.cargo[stackIndex];
   const kind = stack ? offerKind(defs, stack) : undefined;
   if (!stack || !kind) return { ok: false, reason: 'badLot' };
   const market = defs.markets.get(port);
   if (!market) return { ok: false, reason: 'notTraded' };
   if (kind === 'hot' && !market.goods.has(stack.good)) return { ok: false, reason: 'notTraded' };
-  if (refusals[port] === weekOf(gameSeconds)) return { ok: false, reason: 'turnedAway' };
-
-  const chance = detectionChance(defs, stack, port, gameSeconds, rules);
-  const [found, kept] = offerRolls(runSeed, port, stack, gameSeconds);
   const { good, qty } = stack;
-  if (found >= chance) {
+  const sale = (share: number, receiver: 'known' | 'new'): OfferResult => {
     let totalCents: number;
     if (kind === 'hot') {
       totalCents = quote(defs, markets, port, good, qty, 'sell', gameSeconds).totalCents;
@@ -241,10 +271,21 @@ export function offerLot(
     } else {
       totalCents = quietSaleCents(defs, port, good, qty, rules);
     }
+    totalCents = Math.floor(totalCents * share);
     trader.cargo.splice(stackIndex, 1);
     trader.purse += totalCents;
-    return { ok: true, outcome: 'sold', kind, good, qty, totalCents };
+    if (!receivers.includes(port)) receivers.push(port);
+    return { ok: true, outcome: 'sold', kind, good, qty, totalCents, receiver };
+  };
+  if (receivers.includes(port)) {
+    if (tooHotForReceiver(stack, gameSeconds, rules)) return { ok: false, reason: 'tooHot' };
+    return sale(rules.receiverShare, 'known');
   }
+  if (refusals[port] === weekOf(gameSeconds)) return { ok: false, reason: 'turnedAway' };
+
+  const chance = detectionChance(defs, stack, port, gameSeconds, rules);
+  const [found, kept] = offerRolls(runSeed, port, stack, gameSeconds);
+  if (found >= chance) return sale(1, 'new');
   const heat = stack.hot ? heatNow(stack.hot, gameSeconds, rules) : 0;
   const keepShare =
     kind === 'contraband'

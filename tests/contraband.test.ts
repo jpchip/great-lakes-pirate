@@ -18,7 +18,8 @@ import {
   offerLot,
   quietSaleCents,
   riskWord,
-  type Refusals,
+  tooHotForReceiver,
+  type MerchantMemory,
 } from '../src/sim/economy/contraband';
 import { gameEconomy, portInfo } from '../src/sim/economy/defs';
 import type { CargoStack, Hold } from '../src/sim/economy/hold';
@@ -39,7 +40,7 @@ import {
 import { loadZoneTerrain } from '../src/sim/terrain/load';
 import { manifestFrame } from '../src/sim/terrain/zones';
 import { BACKGROUNDS, createWorldState, parseWorldState } from '../src/sim/world-state';
-import type { PortSnapshot } from '../src/ui/port/model';
+import { portSnapshot, type PortSnapshot } from '../src/ui/port/model';
 import type { SmugglerSnapshot } from '../src/ui/port/smuggler-model';
 
 /** Phase 4 piece H: hot goods, contraband at a merchant's, and the island smuggler. */
@@ -132,7 +133,7 @@ describe('offering a lot (piece H)', () => {
     const state = createWorldState('offer');
     state.player.cargo = cargo;
     state.player.purse = 0;
-    return { state, refusals: {} as Refusals };
+    return { state, refusals: { refusals: {}, receivers: [] } as MerchantMemory };
   };
 
   it('comes out at about the odds, and the same way for the same lot in the same week', () => {
@@ -253,7 +254,8 @@ describe('offering a lot (piece H)', () => {
       const whiskey = state.player.cargo.filter((s) => s.good === 'good.untaxed_whiskey');
       expect(whiskey.length).toBe(r.outcome === 'refused' ? 1 : 0);
       expect(state.player.cargo.some((s) => s.good === 'good.flour')).toBe(true);
-      expect(refusals['port.bayfield']).toBe(0);
+      expect(refusals.refusals['port.bayfield']).toBe(0);
+      expect(refusals.receivers).toEqual([]);
       if (r.outcome === 'refused') {
         const again = offerLot(
           defs,
@@ -291,6 +293,134 @@ describe('offering a lot (piece H)', () => {
     const traded = defs.markets.get('port.bayfield')?.goods.has('good.iron_ore');
     const r = offerLot(defs, state.markets, state.player, refusals, 'port.bayfield', 1, 0, 'x');
     if (!traded) expect(r).toEqual({ ok: false, reason: 'notTraded' });
+  });
+});
+
+describe('receivers: a merchant who has taken a lot keeps taking them (piece H)', () => {
+  /** A Bayfield sale that goes through on the first try, and its run seed. */
+  const firstSale = (cargo: () => Hold) => {
+    for (let i = 0; i < 200; i++) {
+      const state = createWorldState('receiver');
+      state.player.cargo = cargo();
+      state.player.purse = 0;
+      const memory: MerchantMemory = { refusals: {}, receivers: [] };
+      const r = offerLot(defs, state.markets, state.player, memory, 'port.bayfield', 0, 0, `r${i}`);
+      if (r.ok && r.outcome === 'sold') return { state, memory, r };
+    }
+    throw new Error('never sold');
+  };
+
+  it('makes the merchant who takes a first lot your receiver in that port', () => {
+    const { memory, r } = firstSale(() => [{ good: 'good.untaxed_whiskey', qty: 6 }]);
+    expect(r).toMatchObject({ receiver: 'new' });
+    expect(memory.receivers).toEqual(['port.bayfield']);
+  });
+
+  it('then always buys, with no roll and no law, at three quarters of the price', () => {
+    const { state, memory } = firstSale(() => [{ good: 'good.untaxed_whiskey', qty: 6 }]);
+    const rules = defaultDetectionRules();
+    // Every week, every lot, every seed: sold.
+    for (let w = 0; w < 30; w++) {
+      state.player.cargo = [{ good: 'good.untaxed_whiskey', qty: 12 }];
+      const purse = state.player.purse;
+      const r = offerLot(
+        defs,
+        state.markets,
+        state.player,
+        memory,
+        'port.bayfield',
+        0,
+        w * WEEK,
+        `w${w}`,
+      );
+      const full = quietSaleCents(defs, 'port.bayfield', 'good.untaxed_whiskey', 12);
+      expect(r).toEqual({
+        ok: true,
+        outcome: 'sold',
+        kind: 'contraband',
+        good: 'good.untaxed_whiskey',
+        qty: 12,
+        totalCents: Math.floor(full * rules.receiverShare),
+        receiver: 'known',
+      });
+      expect(state.player.purse - purse).toBe(Math.floor(full * rules.receiverShare));
+    }
+    // A hot lot too, at three quarters of what the market pays.
+    state.player.cargo = [hot('good.flour', 4, 'region.chequamegon', 30 * WEEK)];
+    const q = quote(defs, state.markets, 'port.bayfield', 'good.flour', 4, 'sell', 30 * WEEK);
+    const r = offerLot(
+      defs,
+      state.markets,
+      state.player,
+      memory,
+      'port.bayfield',
+      0,
+      30 * WEEK,
+      'h',
+    );
+    expect(r).toMatchObject({ ok: true, outcome: 'sold', receiver: 'known' });
+    expect(r.ok && r.outcome === 'sold' && r.totalCents).toBe(Math.floor(q.totalCents * 0.75));
+  });
+
+  it('turns down fresh marked goods without a word to anyone, and takes them once they cool', () => {
+    const { state, memory } = firstSale(() => [{ good: 'good.untaxed_whiskey', qty: 6 }]);
+    const copper = hot('good.copper', 3, 'region.chequamegon', 0);
+    expect(tooHotForReceiver(copper, 0)).toBe(true);
+    expect(tooHotForReceiver(hot('good.grain', 3), 0)).toBe(false);
+    state.player.cargo = [copper];
+    expect(offerLot(defs, state.markets, state.player, memory, 'port.bayfield', 0, 0, 'c')).toEqual(
+      {
+        ok: false,
+        reason: 'tooHot',
+      },
+    );
+    expect(state.player.cargo).toEqual([copper]);
+    // Three weeks on its heat has halved.
+    const later = 3 * WEEK + 3600;
+    expect(tooHotForReceiver(copper, later)).toBe(false);
+    expect(
+      offerLot(defs, state.markets, state.player, memory, 'port.bayfield', 0, later, 'c'),
+    ).toMatchObject({ ok: true, outcome: 'sold', receiver: 'known' });
+  });
+
+  it('is one port only: the next port is a gamble of its own', () => {
+    const { state, memory } = firstSale(() => [{ good: 'good.untaxed_whiskey', qty: 6 }]);
+    let found = false;
+    for (let i = 0; i < 100 && !found; i++) {
+      state.player.cargo = [{ good: 'good.untaxed_whiskey', qty: 12 }];
+      const m: MerchantMemory = { refusals: {}, receivers: [...memory.receivers] };
+      const r = offerLot(defs, state.markets, state.player, m, 'port.ashland', 0, 0, `a${i}`);
+      if (r.ok && r.outcome !== 'sold') found = true;
+    }
+    expect(found).toBe(true);
+  });
+
+  it('shows on the port screen and in the ledger', () => {
+    const state = createWorldState('receiver-screen');
+    state.player.cargo = [
+      { good: 'good.untaxed_whiskey', qty: 2 },
+      hot('good.copper', 1, 'region.chequamegon', 0),
+    ];
+    const snap = portSnapshot({
+      defs,
+      markets: state.markets,
+      knowledge: {},
+      trader: state.player,
+      capacity: 20,
+      load01: 0,
+      cargoSpeedLoss: 0.2,
+      port: 'port.bayfield',
+      gameSeconds: 0,
+      refusals: { 'port.bayfield': 0 },
+      receivers: ['port.bayfield'],
+    });
+    const whiskey = snap.hold.find((h) => h.good === 'good.untaxed_whiskey');
+    const copper = snap.hold.find((h) => h.good === 'good.copper');
+    expect(whiskey?.offer).toMatchObject({ receiver: true, tooHot: false, turnedAway: false });
+    expect(copper?.offer).toMatchObject({ receiver: true, tooHot: true });
+    expect(snap.ledger.receivers).toEqual([
+      { id: 'port.bayfield', text: 'Bayfield: a merchant who asks no questions' },
+    ]);
   });
 });
 
@@ -386,7 +516,12 @@ describe('the island smuggler (plan 05 §6.2)', () => {
     expect(knowsAnchorage(undefined, 'deckhand')).toBe(false);
     expect(knowsAnchorage(undefined, 'saloon_keeper')).toBe(true);
     expect(knowsAnchorage(undefined, 'deckhand', true)).toBe(true);
-    const contraband = { smuggler: freshSmugglerState(0), refusals: {}, known: true };
+    const contraband = {
+      smuggler: freshSmugglerState(0),
+      refusals: {},
+      receivers: [],
+      known: true,
+    };
     expect(knowsAnchorage(contraband, 'deckhand')).toBe(true);
   });
 
@@ -397,8 +532,14 @@ describe('the island smuggler (plan 05 §6.2)', () => {
     delete old['contraband'];
     expect(parseWorldState(old).contraband).toEqual(state.contraband);
     if (state.contraband) state.contraband.refusals['port.bayfield'] = 3;
+    if (state.contraband) state.contraband.receivers.push('port.washburn');
     const round = parseWorldState(JSON.parse(JSON.stringify(state)));
     expect(round.contraband?.refusals).toEqual({ 'port.bayfield': 3 });
+    expect(round.contraband?.receivers).toEqual(['port.washburn']);
+    // A slice saved before receivers came in gets none.
+    const early = JSON.parse(JSON.stringify(state)) as { contraband: Record<string, unknown> };
+    delete early.contraband['receivers'];
+    expect(parseWorldState(early).contraband?.receivers).toEqual([]);
   });
 });
 

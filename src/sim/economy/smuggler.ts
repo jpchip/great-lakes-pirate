@@ -34,6 +34,8 @@ export interface ContrabandState {
   smuggler: SmugglerState;
   /** Ports whose merchants turned you away, and the week they did. */
   refusals: Refusals;
+  /** Ports where a merchant has taken a lot from you: your receiver there. */
+  receivers: string[];
   /** Where she lies is known (a background, a dev command); rumors (piece K) add their own. */
   known: boolean;
 }
@@ -79,7 +81,7 @@ export function freshSmugglerState(
 }
 
 export function freshContrabandState(gameSeconds: number): ContrabandState {
-  return { smuggler: freshSmugglerState(gameSeconds), refusals: {}, known: false };
+  return { smuggler: freshSmugglerState(gameSeconds), refusals: {}, receivers: [], known: false };
 }
 
 /** A new night: her cash and her stock are made up again; her trust stays. */

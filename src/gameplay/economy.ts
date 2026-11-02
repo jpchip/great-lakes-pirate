@@ -105,7 +105,7 @@ export function attachEconomy(
         defs,
         markets(),
         player(),
-        contraband.refusals,
+        contraband,
         port,
         stackIndex,
         now(),

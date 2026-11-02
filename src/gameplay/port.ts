@@ -71,6 +71,8 @@ const OFFER_REFUSALS: Record<OfferRefusal, string> = {
   badLot: 'Nobody needs persuading to buy that.',
   notTraded: "They don't deal in that here, honest or otherwise.",
   turnedAway: "They've turned you away once this week. Nobody here will look at it now.",
+  tooHot:
+    "Your receiver won't touch goods that fresh and that well marked. Let them cool, or take them to the smuggler.",
 };
 
 /** What came of offering a lot, in a line for the screen. */
@@ -78,9 +80,14 @@ export function offerMessage(r: OfferResult, portName: string): string {
   if (!r.ok) return OFFER_REFUSALS[r.reason];
   const what = `${r.qty} CU of ${r.good === 'good.untaxed_whiskey' ? 'untaxed whiskey' : 'it'}`;
   if (r.outcome === 'sold') {
-    return r.kind === 'hot'
-      ? `No questions asked: sold for ${formatCents(r.totalCents)}.`
-      : `Sold on the quiet for ${formatCents(r.totalCents)}.`;
+    if (r.receiver === 'known') {
+      return `Your receiver takes it for ${formatCents(r.totalCents)}, no questions asked.`;
+    }
+    const sold =
+      r.kind === 'hot'
+        ? `No questions asked: sold for ${formatCents(r.totalCents)}.`
+        : `Sold on the quiet for ${formatCents(r.totalCents)}.`;
+    return `${sold} The merchant says to bring more: you have a receiver in ${portName}.`;
   }
   if (r.outcome === 'refused') {
     return r.kind === 'hot'
@@ -119,6 +126,7 @@ export function attachPorts(opts: PortControlOptions): PortControl {
       port,
       gameSeconds: now(),
       refusals: ctx.state.contraband?.refusals,
+      receivers: ctx.state.contraband?.receivers,
     });
   };
   /** Writes down this port's prices as they stand now (plan 05 §4.3). */
@@ -191,7 +199,14 @@ export function attachPorts(opts: PortControlOptions): PortControl {
     openJournal() {
       if (journalOpen || openPort) return;
       journalOpen = true;
-      opts.showJournal(ledgerSnapshot(economy.defs, ctx.state.knowledge.prices, now()));
+      opts.showJournal(
+        ledgerSnapshot(
+          economy.defs,
+          ctx.state.knowledge.prices,
+          now(),
+          ctx.state.contraband?.receivers,
+        ),
+      );
       opts.onOpen(true);
     },
     closeJournal() {

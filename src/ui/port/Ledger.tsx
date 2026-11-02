@@ -166,8 +166,15 @@ export function Ledger({ ledger, here }: { ledger: LedgerSnapshot; here?: string
         ) : (
           <Empty text="No rumors heard yet." />
         ))}
+      {tab === 'standing' && ledger.receivers.length > 0 && (
+        <ul class="ledger-list" data-testid="ledger-receivers">
+          {ledger.receivers.map((r) => (
+            <li key={r.id}>{r.text}</li>
+          ))}
+        </ul>
+      )}
       {tab === 'standing' &&
-        (ledger.standing.length ? (
+        (ledger.standing.length || ledger.receivers.length ? (
           <ul class="ledger-list">
             {ledger.standing.map((s) => (
               <li key={s.id}>

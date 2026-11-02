@@ -15,6 +15,7 @@ import {
   detectionChance,
   offerKind,
   riskWord,
+  tooHotForReceiver,
   weekOf,
   type OfferKind,
   type Refusals,
@@ -103,7 +104,16 @@ export interface HoldRow {
    * A hot or contraband lot can be offered to the port's merchants (piece H): the risk in a
    * word, and whether they've already turned you away this week.
    */
-  offer?: { kind: OfferKind; risk: string; turnedAway: boolean } | undefined;
+  offer?:
+    | {
+        kind: OfferKind;
+        risk: string;
+        turnedAway: boolean;
+        /** You have a receiver here: no risk, a discount, and the hottest marked goods refused. */
+        receiver: boolean;
+        tooHot: boolean;
+      }
+    | undefined;
 }
 
 export interface StoreRow {
@@ -157,6 +167,8 @@ export interface LedgerSnapshot {
   /** Goods with a known price somewhere, in trade-screen order. */
   goods: { id: string; name: string }[];
   prices: Record<string, Record<string, LedgerPrice>>;
+  /** Ports where a merchant takes hot goods from you (piece H). */
+  receivers: { id: string; text: string }[];
   /** Pieces F and K fill these. */
   contracts: { id: string; text: string }[];
   rumors: { id: string; text: string; age: string }[];
@@ -175,6 +187,8 @@ export interface PortSources {
   gameSeconds: number;
   /** Ports whose merchants turned you away this week (piece H). */
   refusals?: Refusals | undefined;
+  /** Ports where you have a receiver (piece H). */
+  receivers?: readonly string[] | undefined;
 }
 
 const portName = (id: string): string => portInfo(id)?.name ?? id;
@@ -209,6 +223,7 @@ export function ledgerSnapshot(
   defs: EconomyDefs,
   knowledge: PriceKnowledge,
   gameSeconds: number,
+  receivers: readonly string[] = [],
 ): LedgerSnapshot {
   const ports: (LedgerPort & { seenAt: number })[] = [];
   const goods = new Set<string>();
@@ -251,6 +266,10 @@ export function ledgerSnapshot(
       .sort(goodOrder(defs))
       .map((id) => ({ id, name: defs.goods.get(id)?.name ?? id })),
     prices,
+    receivers: receivers.map((id) => ({
+      id,
+      text: `${portName(id)}: a merchant who asks no questions`,
+    })),
     contracts: [],
     rumors: [],
     standing: [],
@@ -296,7 +315,8 @@ export function portSnapshot(src: PortSources): PortSnapshot {
     }
   }
 
-  const turnedAway = src.refusals?.[port] === weekOf(gameSeconds);
+  const receiver = src.receivers?.includes(port) ?? false;
+  const turnedAway = !receiver && src.refusals?.[port] === weekOf(gameSeconds);
   const hold: HoldRow[] = trader.cargo
     .map((s: CargoStack, index): HoldRow => {
       const traded = pm?.goods.has(s.good) ?? false;
@@ -320,6 +340,8 @@ export function portSnapshot(src: PortSources): PortSnapshot {
                 kind,
                 risk: riskWord(detectionChance(defs, s, port, gameSeconds)),
                 turnedAway,
+                receiver,
+                tooHot: receiver && tooHotForReceiver(s, gameSeconds),
               }
             : undefined,
       };
@@ -353,6 +375,6 @@ export function portSnapshot(src: PortSources): PortSnapshot {
     market,
     hold,
     stores,
-    ledger: ledgerSnapshot(defs, knowledge, gameSeconds),
+    ledger: ledgerSnapshot(defs, knowledge, gameSeconds, src.receivers),
   };
 }

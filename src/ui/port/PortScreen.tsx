@@ -317,9 +317,13 @@ function Hold({
               <span class="hud-num">{h.qty} CU</span>
               <small class="port-dim">
                 {h.offer
-                  ? h.offer.turnedAway
-                    ? 'Turned away here this week'
-                    : `Offer it on the quiet: ${h.offer.risk}`
+                  ? h.offer.tooHot
+                    ? 'Too hot for your receiver here'
+                    : h.offer.receiver
+                      ? 'Your receiver here takes it'
+                      : h.offer.turnedAway
+                        ? 'Turned away here this week'
+                        : `Offer it on the quiet: ${h.offer.risk}`
                   : h.hot
                     ? 'No merchant here deals in it'
                     : h.contract
@@ -333,7 +337,7 @@ function Hold({
                   type="button"
                   class="port-mini"
                   data-testid={`offer-${h.good}`}
-                  disabled={h.offer.turnedAway}
+                  disabled={h.offer.turnedAway || h.offer.tooHot}
                   title={
                     h.offer.kind === 'hot'
                       ? 'Offer the whole lot to a merchant. If he knows the goods, he refuses or calls the law.'
