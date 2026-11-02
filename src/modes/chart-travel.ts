@@ -60,6 +60,7 @@ import {
   type ChartSession,
   type EncounterChoice,
 } from './chart';
+import { forecastSkill } from '../sim/character/perks';
 import type { GameContext } from './context';
 import type { Mode, ModeMachine } from './machine';
 
@@ -235,6 +236,7 @@ export function createChartTravel(host: ChartTravelHost): ChartTravel {
     // A forecast is redrawn once per world tick (the sim only moves then).
     if (!forecast || forecast.leadHours !== forecastLead || Math.abs(forecast.at - at) >= 600) {
       forecast = weatherPicture(sky.state, geo, clock.gameSeconds, forecastLead);
+      forecast.spreadScale = forecastSkill(ctx.state.player.captain);
     }
     return forecast;
   };
@@ -528,6 +530,7 @@ export function createChartTravel(host: ChartTravelHost): ChartTravel {
           locked: host.pursued(),
           forecastLead: Math.min(forecastLead, host.forecastHours?.() ?? Infinity),
           forecastHours: host.forecastHours?.(),
+          forecastSkill: forecastSkill(ctx.state.player.captain),
         }),
       );
     },
