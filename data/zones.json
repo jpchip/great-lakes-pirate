@@ -175,11 +175,11 @@
     "entries": [
       {
         "id": "entry.twin_ports_east",
-        "name": "East of Minnesota Point, from the open lake",
+        "name": "Off Minnesota Point, between the canal and Superior Entry",
         "toward": "the Apostle Islands",
-        "x": 1700,
-        "z": -100,
-        "headingDeg": 270
+        "x": 400,
+        "z": 250,
+        "headingDeg": 300
       }
     ],
     "setPieces": [
@@ -328,17 +328,17 @@
         "id": "entry.two_harbors_east",
         "name": "East of Agate Bay, from the open lake",
         "toward": "the Apostle Islands",
-        "x": 1200,
-        "z": 100,
-        "headingDeg": 270
+        "x": 500,
+        "z": 0,
+        "headingDeg": 277
       },
       {
         "id": "entry.two_harbors_south",
         "name": "South of Agate Bay, from Duluth",
         "toward": "Duluth and the Twin Ports",
-        "x": 200,
-        "z": 1200,
-        "headingDeg": 0
+        "x": 100,
+        "z": 500,
+        "headingDeg": 334
       }
     ],
     "setPieces": [

@@ -6,6 +6,7 @@ import type { PriceShockEvent } from '../sim/economy/market';
 import type { CargoDelivered } from '../sim/traffic/cargo';
 import type { HailNews } from '../sim/traffic/news';
 import type { TradeCompletedEvent } from '../sim/economy/trade';
+import type { ShipPurchasedEvent, ShipRepairedEvent, UpgradeEvent } from '../sim/shipyard/shipyard';
 import type { GameWorld } from '../gameplay/ecs';
 import type { LocalWeather } from '../sim/weather/local-weather';
 import type { ZoneTerrain } from '../sim/terrain/zone-terrain';
@@ -83,6 +84,14 @@ export interface GameEvents {
   };
   /** The captain let the clock run on at anchor or alongside (piece E). */
   LayAtAnchor: { until: 'dawn' | 'dusk' | 'wind'; seconds: number };
+  /**
+   * The shipyard (plan 10 §11, Phase 4 piece G): a new hull bought with the old one traded
+   * in, an upgrade fitted or taken out, and repairs at a yard, a chandlery or with a kit.
+   */
+  ShipPurchased: ShipPurchasedEvent;
+  UpgradeInstalled: UpgradeEvent;
+  UpgradeRemoved: UpgradeEvent;
+  ShipRepaired: ShipRepairedEvent;
 }
 
 /** Everything a mode needs; built once at boot and handed to each mode. */

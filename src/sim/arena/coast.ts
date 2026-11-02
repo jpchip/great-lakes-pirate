@@ -1,4 +1,4 @@
-import { chartToZone, type Chart, type ZoneFrame } from '../../core/coords';
+import { chartToZone, zoneToChart, type Chart, type ZoneFrame } from '../../core/coords';
 import type { ChartGeography, Ring } from '../chart/geography';
 
 /**
@@ -12,6 +12,15 @@ import type { ChartGeography, Ring } from '../chart/geography';
 export const COAST_VIEW_M = 6000;
 /** Spacing along the shore, zone meters. */
 export const COAST_STEP_M = 40;
+/** The silhouette's crest stands this many crest-heights inland of the shore. */
+export const CREST_INLAND = 8;
+/** And its back slope runs down to this many crest-heights inland. */
+export const BACK_INLAND = 40;
+/**
+ * A ring edge longer than this (chart meters) is where the chart's data was cut off, not
+ * a shore: the lake ring's straight eastern edge out in open water. No silhouette there.
+ */
+const CUT_EDGE_M = 10_000;
 
 export interface CoastPoint {
   x: number;
@@ -21,6 +30,13 @@ export interface CoastPoint {
   nz: number;
   /** Crest height, meters. */
   heightM: number;
+  /**
+   * How far the silhouette may run inland, zone meters: its full profile
+   * (BACK_INLAND crest-heights), or less where the land is narrower than that, so a
+   * spit, a point or a small island never throws its back slope out over the water
+   * beyond it. Half the land's width along the normal, so the two shores meet mid-way.
+   */
+  inlandM: number;
 }
 
 export interface CoastRun {
@@ -96,6 +112,12 @@ export function coastRuns(
       const dz = b.z - a.z;
       const len = Math.hypot(dx, dz);
       if (len === 0) continue;
+      if (len * frame.compression > CUT_EDGE_M) {
+        flush();
+        carry = 0;
+        s += len;
+        continue;
+      }
       // Left of travel in the zone frame (x east, z south) is (dz, -dx).
       const lx = dz / len;
       const lz = -dx / len;
@@ -110,7 +132,9 @@ export function coastRuns(
           continue;
         }
         const heightM = minH + spanH * along01(s + t, seed);
-        run.push({ x, z, nx, nz, heightM });
+        const full = heightM * BACK_INLAND;
+        const inlandM = Math.min(full, landWidthM(geo, frame, x, z, nx, nz, 2 * full) / 2);
+        run.push({ x, z, nx, nz, heightM, inlandM });
       }
       carry = t - len;
       s += len;
@@ -118,6 +142,57 @@ export function coastRuns(
     flush();
   }
   return runs;
+}
+
+/**
+ * How far the land runs from the shore point (x, z) along the inland normal before the
+ * water comes back, zone meters, up to `maxM`: where that ray first crosses a shore. It
+ * starts a little inland so the shore it stands on doesn't count.
+ */
+function landWidthM(
+  geo: ChartGeography,
+  frame: ZoneFrame,
+  x: number,
+  z: number,
+  nx: number,
+  nz: number,
+  maxM: number,
+): number {
+  const start = 1;
+  const a = zoneToChart({ x: x + nx * start, z: z + nz * start }, frame);
+  const b = zoneToChart({ x: x + nx * maxM, z: z + nz * maxM }, frame);
+  const minX = Math.min(a.x, b.x);
+  const maxX = Math.max(a.x, b.x);
+  const minY = Math.min(a.y, b.y);
+  const maxY = Math.max(a.y, b.y);
+  let best = 1;
+  for (const ring of [geo.water, ...geo.islands]) {
+    const r = ring.bounds;
+    if (r.min.x > maxX || r.max.x < minX || r.min.y > maxY || r.max.y < minY) continue;
+    const pts = ring.points;
+    for (let i = 0, j = pts.length - 1; i < pts.length; j = i++) {
+      const c = pts[j] as Chart;
+      const d = pts[i] as Chart;
+      if (Math.max(c.x, d.x) < minX || Math.min(c.x, d.x) > maxX) continue;
+      if (Math.max(c.y, d.y) < minY || Math.min(c.y, d.y) > maxY) continue;
+      const t = crossing(a, b, c, d);
+      if (t !== undefined && t < best) best = t;
+    }
+  }
+  return start + best * (maxM - start);
+}
+
+/** Fraction along a → b where it crosses segment c → d, if it does. */
+function crossing(a: Chart, b: Chart, c: Chart, d: Chart): number | undefined {
+  const rx = b.x - a.x;
+  const ry = b.y - a.y;
+  const sx = d.x - c.x;
+  const sy = d.y - c.y;
+  const denom = rx * sy - ry * sx;
+  if (denom === 0) return undefined;
+  const t = ((c.x - a.x) * sy - (c.y - a.y) * sx) / denom;
+  const u = ((c.x - a.x) * ry - (c.y - a.y) * rx) / denom;
+  return t >= 0 && t <= 1 && u >= 0 && u <= 1 ? t : undefined;
 }
 
 function hash(id: string): number {

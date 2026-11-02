@@ -1,16 +1,16 @@
 import * as THREE from 'three';
-import type { CoastRun } from '../../sim/arena/coast';
+import { BACK_INLAND, CREST_INLAND, type CoastRun } from '../../sim/arena/coast';
 
 /**
  * The coast seen from an arena (plan 03 §6.3, Phase 3 piece G): one low, flat-shaded
  * mesh of shore silhouettes from the chart's coastline, a beach rising to a crest a
  * little inland and a long back slope behind it. Fog does the rest: at these distances
  * only the skyline reads. One draw call.
+ *
+ * Where the land is narrower than that profile (a spit, a point, a small island) the
+ * profile shrinks to fit inside it, lower and shorter, so it never stands out over the
+ * water on the far side as a wall the ship sails into.
  */
-
-/** Crest this many crest-heights inland of the shore, and the back slope's foot further. */
-const CREST_INLAND = 8;
-const BACK_INLAND = 40;
 
 const LAND_COLOR = 0x46553f;
 
@@ -20,10 +20,14 @@ export function createCoastMesh(runs: readonly CoastRun[]): THREE.Mesh {
   for (const run of runs) {
     const base = positions.length / 3;
     for (const p of run.points) {
-      const h = p.heightM;
+      const { heightM: h } = p;
+      // 1 where the whole profile fits; less on narrow land, which gets a smaller hill.
+      const fit = Math.min(1, p.inlandM / (h * BACK_INLAND));
+      const crestH = h * Math.max(fit, 0.3);
+      const crest = h * CREST_INLAND * fit;
       positions.push(p.x, -4, p.z);
-      positions.push(p.x + p.nx * h * CREST_INLAND, h, p.z + p.nz * h * CREST_INLAND);
-      positions.push(p.x + p.nx * h * BACK_INLAND, h * 0.6, p.z + p.nz * h * BACK_INLAND);
+      positions.push(p.x + p.nx * crest, crestH, p.z + p.nz * crest);
+      positions.push(p.x + p.nx * p.inlandM, crestH * 0.6, p.z + p.nz * p.inlandM);
     }
     for (let i = 0; i + 1 < run.points.length; i++) {
       const a = base + i * 3;

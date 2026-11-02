@@ -36,7 +36,8 @@ export type Action =
   | 'Hail'
   | 'Port'
   | 'Journal'
-  | 'LieAtAnchor';
+  | 'LieAtAnchor'
+  | 'Repair';
 
 export type Bindings = Record<InputContext, Partial<Record<Action, readonly string[]>>>;
 
@@ -67,6 +68,8 @@ export const DEFAULT_BINDINGS: Bindings = {
     Journal: ['KeyJ'],
     // Phase 4 piece E: lie at anchor until dawn, dusk or a shift of wind.
     LieAtAnchor: ['KeyZ'],
+    // Phase 4 piece G: use a patch or mend kit from the lockers at sea.
+    Repair: ['KeyK'],
     // Reserved for combat (plan 07).
     AimMode: ['Tab'],
     Fire: ['Mouse0'],
@@ -193,6 +196,7 @@ export const REBINDABLE: Partial<Record<InputContext, readonly Action[]>> = {
     'Port',
     'Journal',
     'LieAtAnchor',
+    'Repair',
   ],
 };
 

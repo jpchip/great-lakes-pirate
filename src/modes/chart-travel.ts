@@ -61,6 +61,7 @@ import {
   type ChartSession,
   type EncounterChoice,
 } from './chart';
+import { forecastSkill } from '../sim/character/perks';
 import type { GameContext } from './context';
 import type { Mode, ModeMachine } from './machine';
 
@@ -107,6 +108,11 @@ export interface ChartTravelHost {
    * built from `seed` when absent.
    */
   contacts?: Contact[] | undefined;
+  /**
+   * How far ahead the chart forecasts, game hours: 12 with the ship's plain barometer, 24
+   * with an aneroid (plan 04 §5.4, plan 10 §5.5; Phase 4 piece G). All leads without it.
+   */
+  forecastHours?: () => number;
   /** The Morrill hunts and forces meetings (`?cutter=hunt`, dev only until Phase 5). */
   cutterHunts?: boolean;
 }
@@ -238,6 +244,7 @@ export function createChartTravel(host: ChartTravelHost): ChartTravel {
     // A forecast is redrawn once per world tick (the sim only moves then).
     if (!forecast || forecast.leadHours !== forecastLead || Math.abs(forecast.at - at) >= 600) {
       forecast = weatherPicture(sky.state, geo, clock.gameSeconds, forecastLead);
+      forecast.spreadScale = forecastSkill(ctx.state.player.captain);
     }
     return forecast;
   };
@@ -470,11 +477,17 @@ export function createChartTravel(host: ChartTravelHost): ChartTravel {
       notice = undefined;
     },
     setForecast(leadHours) {
-      forecastLead = Math.max(0, leadHours);
+      forecastLead = Math.min(Math.max(0, leadHours), host.forecastHours?.() ?? Infinity);
       forecast = undefined;
     },
     resumeFrom(contactId, result) {
       chart.resumeFrom(contactId);
+      // Back on the voyage, wherever the arena left the chart: at sea, where she was met.
+      trip = 'sea';
+      if (session.voyage) {
+        session.position = session.voyage.position;
+        session.heading = session.voyage.heading;
+      }
       if (result === 'caught') {
         // Boarded and searched; with no Wanted until Phase 5 she lets you go, voyage over.
         session.voyage = undefined;
@@ -530,7 +543,9 @@ export function createChartTravel(host: ChartTravelHost): ChartTravel {
           backLabel: backLabel(),
           notice,
           locked: host.pursued(),
-          forecastLead,
+          forecastLead: Math.min(forecastLead, host.forecastHours?.() ?? Infinity),
+          forecastHours: host.forecastHours?.(),
+          forecastSkill: forecastSkill(ctx.state.player.captain),
         }),
       );
     },
