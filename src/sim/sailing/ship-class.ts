@@ -32,6 +32,8 @@ export interface SailingClass {
   autoTrimFactor: number;
   manualTrimMin: number;
   trimSweetSpot: number;
+  /** Extra speed with the sheets in the sweet spot by hand (the Deckhand's perk; 0 or absent otherwise). */
+  trimmedBonus?: number;
   trimFalloff: number;
   trimRate: number;
   rudderRampS: number;

@@ -1007,3 +1007,366 @@ body[data-mode='chart'] .chart-layer {
 .ledger-list {
   padding-left: 18px;
 }
+
+/*
+ * The main menu and character creation (plan 13 §5, Phase 4 piece C): a dawn sky over the
+ * lake behind a logbook card, before the game boots into a run.
+ */
+.front {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow-y: auto;
+  pointer-events: auto;
+  color: var(--ink);
+}
+
+.front-sky {
+  position: fixed;
+  inset: 0;
+  background:
+    linear-gradient(180deg, transparent 62%, rgba(18, 30, 38, 0.9) 62.4%, #1b2630 100%),
+    linear-gradient(180deg, #2f4a5c 0%, #8d8a83 38%, #e0b955 58%, #d9c393 62%);
+}
+
+.front-sky::after {
+  /* The low line of the islands on the horizon. */
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 58%;
+  height: 4.4%;
+  background: #24323b;
+  clip-path: polygon(
+    0 100%,
+    0 70%,
+    8% 40%,
+    16% 55%,
+    22% 30%,
+    30% 60%,
+    38% 75%,
+    52% 72%,
+    60% 45%,
+    66% 20%,
+    74% 50%,
+    84% 65%,
+    92% 55%,
+    100% 70%,
+    100% 100%
+  );
+}
+
+.front-body {
+  position: relative;
+  width: 100%;
+  max-height: 100%;
+  display: flex;
+  justify-content: center;
+  padding: 24px 0;
+}
+
+.front .loading {
+  z-index: 1;
+}
+
+.title-card {
+  width: min(460px, calc(100vw - 32px));
+  padding: 26px 30px 22px;
+  text-align: center;
+  background: var(--paper);
+  border: 1px solid var(--paper-dark);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.35);
+}
+
+.title-card h2 {
+  margin: 0 0 8px;
+}
+
+.title-kicker {
+  font-size: 12px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  opacity: 0.7;
+}
+
+.title-name {
+  margin: 6px 0 0;
+  font-size: 40px;
+  font-weight: normal;
+  font-variant: small-caps;
+  letter-spacing: 0.04em;
+}
+
+.title-saved {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin: 8px 0 4px;
+  text-align: left;
+}
+
+.title-saved-name {
+  font-size: 16px;
+}
+
+.title-saved-meta {
+  font-size: 13px;
+  color: #5a4a38;
+}
+
+.title-buttons {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 2px;
+  margin: 10px auto 0;
+  width: 220px;
+}
+
+.title-buttons .menu-button {
+  align-self: stretch;
+  font-size: 16px;
+}
+
+.menu-button.danger {
+  color: var(--paper);
+  background: var(--signal-red);
+  border-color: var(--signal-red);
+}
+
+.menu.create {
+  width: min(720px, calc(100vw - 32px));
+  max-height: none;
+}
+
+.create-top {
+  display: flex;
+  gap: 18px;
+  align-items: center;
+}
+
+.create-names {
+  flex: 1;
+}
+
+.create-names input {
+  min-width: 220px;
+  padding: 3px 6px;
+  font: 15px var(--serif);
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.45);
+  border: 1px solid var(--paper-dark);
+}
+
+.menu-row.bad input,
+.menu-note.bad {
+  border-color: var(--signal-red);
+  color: var(--signal-red);
+}
+
+.create-seed {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.create-seed input {
+  min-width: 160px;
+  font-variant-numeric: tabular-nums;
+}
+
+.create-heading {
+  margin: 14px 0 6px;
+  font-size: 15px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border-bottom: 1px solid var(--paper-dark);
+}
+
+.create-portraits {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.create-portrait-pick {
+  padding: 2px;
+  background: none;
+  border: 2px solid transparent;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+.create-portrait-pick.chosen {
+  border-color: var(--lake-teal);
+}
+
+.create-backgrounds {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.create-background {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  padding: 6px 10px;
+  font: 15px var(--serif);
+  color: var(--ink);
+  text-align: left;
+  background: rgba(255, 255, 255, 0.3);
+  border: 1px solid var(--paper-dark);
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.create-background.chosen {
+  /* Shape as well as color: a heavier border and a bold name (plan 13 §2.2). */
+  border: 2px solid var(--lake-teal);
+  font-weight: bold;
+}
+
+.create-background-port {
+  font-size: 12px;
+  font-weight: normal;
+  color: #5a4a38;
+}
+
+.create-harder {
+  color: var(--signal-red);
+}
+
+.create-detail {
+  margin-top: 8px;
+  font-size: 14px;
+}
+
+.create-blurb {
+  margin: 0 0 6px;
+  font-style: italic;
+}
+
+.create-facts {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 2px 12px;
+  margin: 0 0 6px;
+}
+
+.create-facts dt {
+  color: #5a4a38;
+}
+
+.create-facts dd {
+  margin: 0;
+}
+
+.create-perks {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.create-footer {
+  justify-content: space-between;
+}
+
+@media (max-width: 720px) {
+  .create-backgrounds {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .create-top {
+    flex-direction: column;
+  }
+}
+
+/* The First Week tracker (plan 12 §3): a small enamel card under the clock and barometer. */
+.first-week-tracker {
+  position: absolute;
+  top: 94px;
+  left: 16px;
+  max-width: 280px;
+  padding: 6px 10px 8px;
+  font-size: 13px;
+  background: var(--enamel);
+  border: 1px solid rgba(184, 137, 46, 0.6);
+  border-radius: 3px;
+  pointer-events: auto;
+}
+
+.first-week-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.first-week-kicker {
+  width: auto;
+  flex: 1;
+  color: var(--brass-light);
+}
+
+.first-week-close {
+  padding: 0 4px;
+  font: 16px var(--serif);
+  line-height: 1;
+  color: var(--hud-text);
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+
+.first-week-next {
+  margin: 2px 0;
+  font-size: 14px;
+}
+
+.first-week-page {
+  margin-bottom: 8px;
+}
+
+.first-week-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.first-week-list li {
+  display: flex;
+  gap: 8px;
+  margin: 3px 0;
+  font-size: 15px;
+}
+
+.first-week-list li.done > span:last-child {
+  text-decoration: line-through;
+  color: #5a4a38;
+}
+
+.first-week-list small {
+  display: block;
+  font-size: 12px;
+  color: #5a4a38;
+}
+
+.first-week-box {
+  flex: none;
+  width: 16px;
+  height: 16px;
+  font-size: 13px;
+  line-height: 16px;
+  text-align: center;
+  color: var(--lake-teal);
+  border: 1px solid var(--ink);
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+}

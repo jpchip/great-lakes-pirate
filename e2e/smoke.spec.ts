@@ -12,7 +12,7 @@ function collectErrors(page: Page): string[] {
 // CI runs without WebGL, so the smoke test boots with the null renderer (plan 01 §9).
 test('boots with the null renderer without console errors', async ({ page }) => {
   const errors = collectErrors(page);
-  await page.goto('/?renderer=null');
+  await page.goto('/?renderer=null&play');
   await expect(page.locator('body')).toHaveAttribute('data-renderer', 'null');
   await expect(page.locator('body')).toHaveAttribute('data-mode', 'sailing');
   // The Phase 1 test bay's terrain loads with or without a renderer.
@@ -25,7 +25,7 @@ test('creates a run, autosaves it, and continues it after a reload', async ({ pa
   const errors = collectErrors(page);
   const body = page.locator('body');
 
-  await page.goto('/?renderer=null');
+  await page.goto('/?renderer=null&play');
   await expect(body).toHaveAttribute('data-save', 'created');
   const runId = await body.getAttribute('data-run-id');
   expect(runId).toBeTruthy();
@@ -45,7 +45,7 @@ test('creates a run, autosaves it, and continues it after a reload', async ({ pa
 // saves to the settings store and rebinds keys.
 test('shows the sailing HUD and answers the helm', async ({ page }) => {
   const errors = collectErrors(page);
-  await page.goto('/?renderer=null');
+  await page.goto('/?renderer=null&play');
   await expect(page.getByTestId('hud-wind')).toBeVisible();
   await expect(page.getByTestId('hud-clock')).toContainText('1900');
   // Weather v1 (plan 04 §24): the sim drives the wind, so the barometer reads.
@@ -59,7 +59,7 @@ test('shows the sailing HUD and answers the helm', async ({ page }) => {
 test('settings pause the game, persist, and rebind keys', async ({ page }) => {
   const errors = collectErrors(page);
   const body = page.locator('body');
-  await page.goto('/?renderer=null');
+  await page.goto('/?renderer=null&play');
   await expect(page.getByTestId('hud-wind')).toBeVisible();
 
   await page.keyboard.press('Escape');
@@ -104,7 +104,7 @@ test('loads the sailing and world sounds and unlocks audio on the first key pres
 }) => {
   const errors = collectErrors(page);
   const body = page.locator('body');
-  await page.goto('/?renderer=null');
+  await page.goto('/?renderer=null&play');
   await expect(body).toHaveAttribute('data-mode', 'sailing');
   await expect(body).toHaveAttribute('data-audio-bank', '40');
   await page.keyboard.press('KeyW');
@@ -116,7 +116,7 @@ test('loads the sailing and world sounds and unlocks audio on the first key pres
 test('sets a volume on the settings screen and keeps it after a reload', async ({ page }) => {
   const errors = collectErrors(page);
   const body = page.locator('body');
-  await page.goto('/?renderer=null');
+  await page.goto('/?renderer=null&play');
   await expect(body).toHaveAttribute('data-mode', 'sailing');
   await page.getByTestId('open-settings').click();
   await page.getByTestId('tab-sound').click();
@@ -134,7 +134,7 @@ test('sets a volume on the settings screen and keeps it after a reload', async (
 test('continues from where the ship was saved', async ({ page }) => {
   const errors = collectErrors(page);
   const body = page.locator('body');
-  await page.goto('/?renderer=null');
+  await page.goto('/?renderer=null&play');
   await expect(body).toHaveAttribute('data-start', 'spawn');
   const spawn = await body.getAttribute('data-start-pose');
   // Make sail and let her move off the spawn, then save as the tab hides.
@@ -158,7 +158,7 @@ test('continues from where the ship was saved', async ({ page }) => {
 test('enters a zone by id at an entry point and saves on arrival', async ({ page }) => {
   const errors = collectErrors(page);
   const body = page.locator('body');
-  await page.goto('/?renderer=null&debug');
+  await page.goto('/?renderer=null&debug&play');
   await expect(body).toHaveAttribute('data-mode', 'sailing');
   await page.evaluate(() =>
     (
@@ -191,7 +191,7 @@ interface EconomyHook {
 test('trades at a market and keeps the purse and hold through a reload', async ({ page }) => {
   const errors = collectErrors(page);
   const body = page.locator('body');
-  await page.goto('/?renderer=null&debug');
+  await page.goto('/?renderer=null&debug&play');
   await expect(body).toHaveAttribute('data-save', 'created');
   // The last dev hook goes in right before the autosave listeners: boot is done.
   await page.waitForFunction(() => '__glpChart' in window);
@@ -314,7 +314,7 @@ test('sails from the Apostles to the Twin Ports on the chart, through a reload',
   // Saved on the chart with the voyage; a reload comes back under way.
   await page.evaluate(() => window.dispatchEvent(new Event('pagehide')));
   await expect(body).toHaveAttribute('data-saved-mode', 'chart');
-  await page.goto('/?renderer=null&debug');
+  await page.goto('/?renderer=null&debug&play');
   await expect(body).toHaveAttribute('data-start', 'chart');
   await expect(body).toHaveAttribute('data-mode', 'chart');
   await expect(page.getByTestId('chart-status')).toContainText('Under way');
@@ -565,5 +565,72 @@ test('docks at Bayfield, trades on the port screen, and keeps the ledger', async
     (window as unknown as { __glpPort: PortHook }).__glpPort.knowledge(),
   );
   expect(Object.keys(known)).toEqual(['port.bayfield']);
+  expect(errors).toEqual([]);
+});
+
+// Phase 4 piece C: the main menu, character creation and a new captain's first morning,
+// docked at the starting port with the First Week checklist; Continue brings the run back.
+test('creates a captain from the main menu and starts docked at dawn', async ({ page }) => {
+  const errors = collectErrors(page);
+  const body = page.locator('body');
+  await page.goto('/?renderer=null');
+  await expect(page.getByTestId('main-menu')).toBeVisible();
+  await expect(body).toHaveAttribute('data-mode', 'mainMenu');
+  // A fresh browser has no run to continue.
+  await expect(page.getByTestId('menu-continue')).toHaveCount(0);
+
+  // Settings open from the menu and Esc comes back.
+  await page.getByTestId('menu-settings').click();
+  await expect(page.getByTestId('settings-menu')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.getByTestId('main-menu')).toBeVisible();
+
+  await page.getByTestId('menu-new-run').click();
+  await expect(page.getByTestId('character-creation')).toBeVisible();
+  await expect(body).toHaveAttribute('data-mode', 'characterCreation');
+  await page.getByTestId('create-name').fill('');
+  await page.getByTestId('create-start').click();
+  await expect(page.getByTestId('create-problem')).toBeVisible();
+  await page.getByTestId('create-name').fill('Ida Bergquist');
+  await page.getByTestId('create-ship').fill('Kittiwake');
+  await page.getByTestId('portrait-woman').click();
+  await page.getByTestId('background-fisherman').click();
+  await expect(page.getByTestId('background-detail')).toContainText('salted fish');
+  await page.getByTestId('create-start').click();
+
+  // Docked at Bayfield's fish dock at dawn: the port screen opens on the first tick.
+  const screen = page.getByTestId('port-screen');
+  await expect(screen).toBeVisible({ timeout: 20_000 });
+  await expect(screen).toHaveAttribute('data-port', 'port.bayfield');
+  await expect(body).toHaveAttribute('data-save', 'created');
+  await expect(page.getByTestId('port-purse')).toHaveText('$100.00');
+  await page.getByTestId('sell-good.salted_fish').click({ modifiers: ['Shift'] });
+  await expect(page.getByTestId('hold-row')).toHaveCount(0);
+
+  // Back aboard: the First Week tracker has ticked the sale off.
+  await page.keyboard.press('Escape');
+  await expect(page.getByTestId('first-week-count')).toHaveText('1/5');
+  await expect(page.getByTestId('first-week-next')).toContainText('freight contract');
+  await expect(page.getByTestId('hud-clock')).toContainText('May 7, 1900');
+  // The journal has the whole list.
+  await page.keyboard.press('KeyJ');
+  await expect(page.getByTestId('first-week-sell')).toHaveClass(/done/);
+  await page.keyboard.press('KeyJ');
+
+  // Continue brings the captain back from the menu.
+  await page.evaluate(() => window.dispatchEvent(new Event('pagehide')));
+  await page.waitForTimeout(500);
+  await page.reload();
+  await expect(page.getByTestId('saved-run')).toContainText('Ida Bergquist');
+  await expect(page.getByTestId('saved-run')).toContainText('Kittiwake');
+  await page.getByTestId('menu-continue').click();
+  await expect(body).toHaveAttribute('data-save', 'loaded');
+  await expect(body).toHaveAttribute('data-mode', 'sailing');
+  await expect(page.getByTestId('first-week-count')).toHaveText('1/5');
+
+  // A new run over it asks first.
+  await page.reload();
+  await page.getByTestId('menu-new-run').click();
+  await expect(page.getByTestId('menu-replace')).toContainText('Kittiwake');
   expect(errors).toEqual([]);
 });

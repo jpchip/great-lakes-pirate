@@ -5,6 +5,7 @@ import { APOSTLES_ID } from './terrain/zones';
 import { createWeatherState, type WeatherState } from './weather/weather';
 import { gameEconomy } from './economy/defs';
 import { createMarkets, syncMarkets } from './economy/market';
+import { firstWeekSchema } from './character/first-week';
 
 /**
  * WorldState skeleton (plan 01 §3.1, plan 16 §5.2). Each slice is filled in by its
@@ -103,12 +104,15 @@ export const BACKGROUNDS = [
 
 /**
  * Who the player is (plan 12 §2; added in save v5, Phase 4 piece A). Character creation
- * (piece C) fills it; until then every run, and every migrated 0.3.0 run, is a Deckhand.
+ * (piece C) fills it; a migrated 0.3.0 run, and a run started past the main menu by a
+ * check (`?play`), is a Deckhand. The portrait is a preset id from `data/portraits.json`
+ * (piece C; absent before it, which shows the first preset).
  */
 export const captainSchema = z.object({
   name: z.string().min(1),
   shipName: z.string().min(1),
   background: z.enum(BACKGROUNDS),
+  portrait: z.string().optional(),
 });
 
 export type Captain = z.infer<typeof captainSchema>;
@@ -200,6 +204,11 @@ export const worldStateSchema = z.object({
   markets: marketsSchema,
   traffic: trafficStateSchema.optional(),
   knowledge: knowledgeSchema,
+  /**
+   * The Captain's First Week checklist (plan 12 §3, Phase 4 piece C). Only a run made in
+   * character creation has one; absent otherwise, so no save version bump.
+   */
+  firstWeek: firstWeekSchema.optional(),
   environment: z.looseObject({
     clock: clockStateSchema,
     /** Saved so a reload continues the same random sequence (plan 16 §4.4). */
@@ -211,8 +220,10 @@ export const worldStateSchema = z.object({
 
 export type WorldState = z.infer<typeof worldStateSchema>;
 
-export function createWorldState(seed: string): WorldState {
+/** `startSeconds`: the game time the run opens at (character creation: May 7 at dawn). */
+export function createWorldState(seed: string, startSeconds = 0): WorldState {
   const clock = createClockState();
+  clock.gameSeconds = startSeconds;
   return {
     // A new run starts at the Apostles spawn.
     player: {

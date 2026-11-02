@@ -173,6 +173,7 @@ export function trimFactorAt(
 ): number {
   if (!manual) return c.autoTrimFactor;
   const off = Math.abs(trim - ideal) - c.trimSweetSpot;
+  if (off <= 0) return 1 + (c.trimmedBonus ?? 0);
   return 1 - (1 - c.manualTrimMin) * clamp01(off / c.trimFalloff);
 }
 

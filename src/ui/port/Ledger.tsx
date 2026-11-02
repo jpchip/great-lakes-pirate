@@ -1,3 +1,4 @@
+import type { ComponentChildren } from 'preact';
 import { useState } from 'preact/hooks';
 import { formatCents } from '../../sim/economy/knowledge';
 import type { LedgerSnapshot } from './model';
@@ -182,8 +183,19 @@ export function Ledger({ ledger, here }: { ledger: LedgerSnapshot; here?: string
   );
 }
 
-/** The journal at the helm (J): the ledger on its own page, over the paused game. */
-export function Journal({ ledger, close }: { ledger: LedgerSnapshot; close(): void }) {
+/**
+ * The journal at the helm (J): the ledger on its own page, over the paused game, under
+ * the First Week checklist while the run has one (piece C).
+ */
+export function Journal({
+  ledger,
+  close,
+  extra,
+}: {
+  ledger: LedgerSnapshot;
+  close(): void;
+  extra?: ComponentChildren;
+}) {
   return (
     <div class="menu-backdrop" data-testid="journal">
       <div class="menu port" role="dialog" aria-modal="true" aria-label="Journal">
@@ -191,6 +203,7 @@ export function Journal({ ledger, close }: { ledger: LedgerSnapshot; close(): vo
           <h2>Ledger</h2>
           <span class="menu-paused">{ledger.dateText}</span>
         </header>
+        {extra}
         <Ledger ledger={ledger} />
         <footer class="menu-footer">
           <button

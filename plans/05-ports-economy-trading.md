@@ -531,10 +531,50 @@ The four Apostles harbors are 55k triangles together, well inside the 250k harbo
 - Jared's look at the trade screen (§16.4 piece B's "Needs Jared").
 - Trade sounds (coins, the ledger) are piece J's, on `TradeCompleted` and `StoresBought`.
 
+## 19. Phase 4 Piece C: the Main Menu and a New Run (2026-11-02)
+
+**Goal** (§16.4, piece C): a main menu (Continue, New run, Settings) before the game boots into a run; character creation with the captain's name, the ship's name, a background with its money, cargo and port, and a portrait preset; the perks that touch Phase 4 wired and the rest stored; May 7 at dawn in the starting port; the First Week checklist in the journal, without step 6.
+
+**Result:** open the game and the title card comes up over a dawn sky. New run opens character creation: name your captain and schooner, pick a likeness and a background, and set out. The game loads and the ship lies alongside her starting pier at sunrise on May 7, 1900 (04:45), with the port screen open for her first sale and the First Week tracker under the clock. Reload, and the menu offers Continue with the captain, ship, place, week and purse. Screenshots are in the project files (`new-run/`).
+
+### 19.1 What was built
+
+| Piece | Where | Notes |
+|---|---|---|
+| Backgrounds | `data/backgrounds.json`, `data/schemas/backgrounds.ts`, `src/sim/character/backgrounds.ts` | Plan 12 §2.2's six: start money, cargo in CU, the start pier, the hideout (Stockton for all, §16.5), the "harder start" flag (Saloon Keeper, Ex-Navy) and two perks, each with the phase that wires it. Cargo is worth about $70–140: Deckhand 5 CU rope and canvas (piece A's start), Fisherman 8 CU salted fish, Lumberjack 12 CU lumber, Saloon Keeper 2 CU whiskey, Ex-Navy 3 CU powder and shot, Poacher 2 CU furs. Every starting cargo sells in its starting port |
+| Starting piers | `data/backgrounds.json` | Bayfield's city dock (Deckhand, Poacher) and fish dock (Fisherman), Washburn's lumber dock (Lumberjack), Duluth's city dock (Saloon Keeper) and Two Harbors' city dock (Ex-Navy). A test checks each has a berth on the baked terrain |
+| Portraits | `data/portraits.json`, `src/ui/menu/Portrait.tsx` | Eight presets drawn as an SVG bust in an oval (skin, hair, beard, hat, coat) until Phase 7 gives the captain a body (§16.5) |
+| New run | `src/sim/character/new-run.ts` | `createNewRun(setup)`: the captain, the background's purse and hold, the clock at sunrise on day 0 (the first minute the sun clears the horizon, 04:45), the starting port's zone and an empty First Week. The game places her at a free berth on the start pier as if just docked, so the first tick raises `ShipDocked` and the port screen opens, then saves |
+| Save | `src/sim/world-state.ts` | `player.captain.portrait` and a top-level `firstWeek {done[], hidden}`, both optional (no version bump, like pieces D and K). A 0.3.0 run and a run started past the menu (`?play`) have no checklist and show the first portrait |
+| Main menu | `src/ui/menu/`, `src/main.ts` | Before the boot: the save is read, then the title card shows Continue (with the saved captain, ship, place, week and purse), New run and Settings (the game's settings screen, with the volumes kept in storage). New run over a saved run asks first ("There is only ever one run") and clears every save slot. A save that can't be read is kept and the menu says this session won't be saved (plan 16 §6.3). The mode machine goes `boot → mainMenu ⇄ characterCreation → sailing` |
+| Character creation | `src/ui/menu/MainMenu.tsx`, `model.ts` | Name, schooner, run seed (eight letters, editable, plan 12 §2.1 step 5), likeness and the six background cards with the port, the harder-start tag, the money and cargo, the hideout and both perks ("from phase 6" on the ones that wait). Names are trimmed and must be 1–32 characters. Esc steps back |
+| Perks | `src/sim/character/perks.ts` | **Deckhand:** sail changes take 0.75× as long; the hand-trim sweet spot is 1.5× wider and gives 1.05× speed when the sheets are in it (`trimmedBonus` on the sailing class). **Fisherman:** this moment's salted and fresh fish prices in every port go into the ledger at the start and on every world tick; the chart's forecast cones and wind ranges are a third tighter (`forecastSkill`). **Saloon Keeper:** piece K reads the background for better rumors. The others are stored with the background for their phases. `withSailingPerks` must be applied wherever the player's class is rebuilt (piece G's new hulls) |
+| First Week | `src/sim/character/first-week.ts`, `src/gameplay/captain.ts`, `src/ui/hud/FirstWeek.tsx` | Five steps that name the starting cargo, port and hideout (12 §3, step 6 left for Phase 7). They tick from the bus's tap by event name, so the steps from pieces E, F and K work as soon as those land: selling the starting cargo (`TradeCompleted`), `ContractCompleted` (F), `StorageChanged` in with goods (E), `RumorHeard` from a saloon (K), `VoyageStarted`. A tracker under the barometer shows the next step and can be put away; the journal (J) lists them all and brings it back |
+| Checks | `?play`, `?newrun=` | The menu is skipped with `?play` or any switch that starts somewhere (`?zone`, `?harbor`, `?spawn`, `?encounter` and the like), so the checks and benches boot as before. `?newrun=fisherman` starts a new captain of that background past the menu |
+
+### 19.2 Decisions made in the piece
+
+- **The run opens docked, with the port screen up.** "At dawn in the starting port" read most usefully as alongside the pier, ready for step 1.
+- **The Fisherman's ledger is kept current, not just filled once.** "Knows fish prices in every port" is a standing skill, so the fish entries follow the world tick. His pre-charted Apostles reefs wait for the chart's hazards.
+- **No permadeath notice yet** (12 §2.1 step 6): nothing can kill the captain until Phase 5, so the confirm comes with death. The replace-run prompt says the one-run rule in its place.
+- **Hall of Captains and Credits** stay off the menu until Phase 9 and the release (13 §5).
+- **The default run** (a check past the menu, or a migrated 0.3.0 run) is still piece A's Deckhand named "Captain" at the Apostles spawn at midnight, so every earlier test and bench is unchanged.
+
+### 19.3 Checks
+
+`tests/character.test.ts` (19 tests): the six backgrounds and their ports, cards and portraits; setup checks; sunrise; a new run's captain, purse, hold, place, clock and checklist, and its save round trip; an old run without the new fields; a berth at every starting pier on the real terrain; each wired perk; the checklist's steps, its event matching, and ticking from the bus (including an event raised by name before its piece is merged). The e2e smoke test drives the menu: settings and back, a refused empty name, a Fisherman with a portrait, docked at Bayfield's fish dock with $100, selling the fish, the tracker at 1/5, the journal, Continue after a reload, and the replace prompt. The other smoke tests now open with `?play`. The full unit suite and all 15 e2e smoke tests pass.
+
+### 19.4 Still to do
+
+- Jared's background picker look (§16.4 piece C's "Needs Jared"), screenshots in `new-run/`.
+- Steps 2–4 tick once pieces F, E and K merge with the event names agreed (`ContractCompleted`, `StorageChanged`, `RumorHeard`).
+- Piece G applies `withSailingPerks` when it swaps the player's hull.
+
 ---
 
 ## Changelog
 
+- v0.6: Phase 4 piece C built (§19): the main menu, character creation, six backgrounds and portraits, the new run docked at dawn, the Phase 4 perks, the First Week checklist.
 - v0.6: Phase 4 piece D built (§16.9): flows and manifests, deliveries that move stock, the traffic save slice, ships in the zones and at berths, look her over and hailing; two company names replaced after the names check.
 - v0.5: Phase 4 piece B built (§18): piers with ports, the port screen, the trade screen, price knowledge, the ledger in journal v1, the chandlery, save v6.
 - v0.5: Phase 4 piece A built (§16.8): goods in CU, port markets with drift and seasons, the purse and the hold, cargo load, save v5, the balance harness.
