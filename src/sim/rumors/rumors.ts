@@ -8,7 +8,14 @@ import { portInfo, type EconomyDefs } from '../economy/defs';
 import type { PriceKnowledge } from '../economy/knowledge';
 import { unitPrices, type MarketsState } from '../economy/market';
 import type { TrafficDefs } from '../traffic/cargo';
-import { dayWord, goodName, portName, upcomingSailings, type HailNews } from '../traffic/news';
+import {
+  dayWord,
+  goodName,
+  goodUnit,
+  portName,
+  upcomingSailings,
+  type HailNews,
+} from '../traffic/news';
 import type { WeatherState } from '../weather/weather';
 import type { Background, Rumor } from '../world-state';
 
@@ -54,6 +61,15 @@ export interface ToldRumor {
 
 /** Draws 0–1; the saloon passes the run's saved RNG, the tests a fixed sequence. */
 export type Rand = () => number;
+
+/** A price as a hand says it: to the nickel, whole dollars bare ("$8", "$7.65"). */
+export function talkPrice(cents: number): string {
+  const nickel = Math.max(5, Math.round(cents / 5) * 5);
+  const dollars = Math.floor(nickel / 100);
+  const rest = nickel % 100;
+  if (dollars === 0) return `${rest} cents`;
+  return rest === 0 ? `$${dollars}` : `$${dollars}.${String(rest).padStart(2, '0')}`;
+}
 
 const clamp = (v: number, lo: number, hi: number): number => Math.min(hi, Math.max(lo, v));
 const pick = <T>(rand: Rand, list: readonly T[]): T => {
@@ -235,9 +251,10 @@ function priceDraft(
         return {
           text: fill(pick(r, defs.kinds.price.templates), {
             good: goodName(world.economy, g.good),
-            deal: dear ? 'fetching a good price' : 'going cheap',
+            unit: goodUnit(world.economy, g.good),
+            deal: pick(r, dear ? defs.priceTalk.dear : defs.priceTalk.cheap),
             port: portName(there),
-            price: `$${(cents / 100).toFixed(2)}`,
+            price: talkPrice(cents),
           }),
           price: { port: there, good: g.good, buyCents: buy, sellCents: sell, seenAt },
         };

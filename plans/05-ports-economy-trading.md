@@ -560,7 +560,7 @@ The four Apostles harbors are 55k triangles together, well inside the 250k harbo
 - **Three rounds a saloon a day.** Enough to hear something useful in each port without draining the bar every visit; it's one number in `rumors.json`.
 - **Legends are tall tales that are true.** They're shown as Tall tale or Doubtful, but they all lead somewhere in Phase 9.
 - **Rumors don't age prices out of the book.** A heard price only fills a gap or replaces an older one, so the ledger never trades a price you saw for an older one you heard.
-- **Talk doesn't name the good's qualifier:** "brownstone", not "brownstone (salvaged)", in rumors and hails alike.
+- **Nobody on the lake says "CU".** Each good has a `talk` name and unit in `goods.json` ("coal oil" for kerosene, "wheat" for grain, sold by the ton, barrel, bale or crate), and rumors and hails use them: "coal oil's bringing top dollar at Duluth, $19.20 the barrel". Prices are told to the nickel. The ship card and the trade screen still count in CU. Price clauses ("going for a song", "bringing top dollar") are in `rumors.json`. A test fails if any rumor says CU or carries a parenthesis or an ampersand.
 
 ### 19.3 Checks
 

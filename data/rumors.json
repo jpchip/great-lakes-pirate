@@ -1,16 +1,34 @@
 {
-  "roundCents": { "huge": 200, "large": 125, "medium": 75, "small": 50, "tiny": 25 },
+  "roundCents": {
+    "huge": 200,
+    "large": 125,
+    "medium": 75,
+    "small": 50,
+    "tiny": 25
+  },
   "roundsPerDay": 3,
   "keep": 40,
-  "saloonKeeper": { "reliabilityBonus": 0.15, "freeRounds": 1 },
+  "saloonKeeper": {
+    "reliabilityBonus": 0.15,
+    "freeRounds": 1
+  },
   "hailReliability": 0.95,
   "weatherLeadHours": 18,
   "shipmentHorizonDays": 2,
   "smugglerRegions": ["region.chequamegon", "region.apostles"],
   "smugglerDecoys": [
-    { "id": "anchorage.sand_east", "where": "behind Sand Island, on the east side" },
-    { "id": "anchorage.basswood_bight", "where": "in the bight off Basswood Island" },
-    { "id": "anchorage.long_spit", "where": "inside the spit at Long Island" }
+    {
+      "id": "anchorage.sand_east",
+      "where": "behind Sand Island, on the east side"
+    },
+    {
+      "id": "anchorage.basswood_bight",
+      "where": "in the bight off Basswood Island"
+    },
+    {
+      "id": "anchorage.long_spit",
+      "where": "inside the spit at Long Island"
+    }
   ],
   "kinds": {
     "shipment": {
@@ -20,7 +38,7 @@
       "templates": [
         "{ship} is loading {good} at {port}{to}, sailing {when}.",
         "The {ship}'s taking on {good} at {port}. Means to clear{to} {when}.",
-        "Watch for the {ship}: {good} out of {port}{to}, {when}."
+        "Keep an eye out for the {ship}: {good} out of {port}{to}, {when}."
       ]
     },
     "price": {
@@ -28,9 +46,9 @@
       "reliability": 0.8,
       "label": "Prices",
       "templates": [
-        "{good} is {deal} at {port}: {price} a CU, last I heard.",
-        "A fellow just in from {port} says {good} is {deal} there, {price} a CU.",
-        "If it's {good} you're after, {port} has it {deal}. {price} a CU."
+        "{good} is {deal} at {port}, {price} the {unit}, by what I heard.",
+        "A fellow off the {port} boat says {good}'s {deal} there. {price} the {unit}.",
+        "If it's {good} you're after, mind {port}. It's {deal} there, {price} the {unit}."
       ]
     },
     "weather": {
@@ -150,5 +168,9 @@
         "Nobody fishes the old camp on Outer Island anymore. Not since the nets started coming up full of things no lake ever made."
       ]
     }
-  ]
+  ],
+  "priceTalk": {
+    "cheap": ["going cheap", "going for a song", "a bargain", "selling for next to nothing"],
+    "dear": ["fetching a fine price", "bringing top dollar", "scarce and dear", "wanted badly"]
+  }
 }

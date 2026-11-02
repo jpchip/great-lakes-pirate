@@ -64,6 +64,11 @@ export const rumorsFileSchema = z.object({
   }),
   /** Hailed ships talk about what they've seen themselves. */
   hailReliability: z.number().min(0).max(1),
+  /** How a price is put: clauses that follow "is" ("going cheap", "fetching a fine price"). */
+  priceTalk: z.object({
+    cheap: z.array(z.string().min(1)).min(1),
+    dear: z.array(z.string().min(1)).min(1),
+  }),
   /** Weather talk looks this many game hours ahead. */
   weatherLeadHours: z.number().positive(),
   /** Shipment talk covers sailings within this many game days. */

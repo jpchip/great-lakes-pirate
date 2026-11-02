@@ -46,6 +46,12 @@ export const goodSchema = z.object({
    * crates and stamped ingots near 1. Scales the detection chance of selling it hot.
    */
   traceability: z.number().min(0).max(1),
+  /**
+   * How a deckhand talks about it (rumors, hails; plan 05 §9): the name without the trade
+   * screen's qualifiers, and what it's sold by ("flour", "barrel"). A CU is the game's unit,
+   * not a word anybody on the lake ever said.
+   */
+  talk: z.object({ name: z.string().min(1), unit: z.string().min(1) }),
   /** Game days before it spoils (fresh fish, §3). Cut for Phase 4 (§14), kept as data. */
   spoilDays: z.number().positive().optional(),
 });

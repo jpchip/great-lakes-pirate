@@ -90,9 +90,15 @@ export function portName(id: string | undefined, fallback = 'port'): string {
   return (id && PORT_NAMES.get(id)) ?? fallback;
 }
 
+/** What a hand calls a good: "coal oil", not "Kerosene"; "wheat", not "Grain (wheat)". */
 export function goodName(economy: EconomyDefs, id: string): string {
-  // Talk drops the trade screen's qualifiers: "brownstone", not "brownstone (salvaged)".
-  return (economy.goods.get(id)?.name ?? id).replace(/\s*\(.*\)$/, '').toLowerCase();
+  const g = economy.goods.get(id);
+  return g?.talk.name ?? id;
+}
+
+/** What it's sold by in talk: "ton", "barrel", "bale". Never "CU". */
+export function goodUnit(economy: EconomyDefs, id: string): string {
+  return economy.goods.get(id)?.talk.unit ?? 'lot';
 }
 
 /** "today", "tomorrow", "the week of Jun 4": when a sailing is, as talk has it. */

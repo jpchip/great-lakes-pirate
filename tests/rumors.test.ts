@@ -12,13 +12,13 @@ import { createContacts } from '../src/sim/chart/traffic';
 import { gameEconomy } from '../src/sim/economy/defs';
 import { recordPrices, type PriceKnowledge } from '../src/sim/economy/knowledge';
 import {
-  addRumor,
   hailRumor,
   isStale,
   knowsRumor,
   noteHeardPrices,
   rumorDefs,
   rumorDrafts,
+  talkPrice,
   saloonTerms,
   tellRumor,
   type RumorWorld,
@@ -58,7 +58,8 @@ function tellMany(port: string, n: number, seed: string, bonus = 0): Rumor[] {
   const rand = rng(seed);
   for (let i = 0; i < n; i++) {
     const t = tellRumor(w, heard, port, T0 + i * DAY, rand, { reliabilityBonus: bonus });
-    if (t) addRumor(heard, t.rumor);
+    // Untrimmed: the ledger's cap of 40 would drop early rumors from a long run.
+    if (t) heard.unshift(t.rumor);
   }
   return heard;
 }
@@ -76,6 +77,35 @@ describe('rumors.json', () => {
     const ports = new Set(economy.markets.keys());
     for (const l of rumorDefs().legends)
       for (const p of l.ports) expect(ports.has(p), l.id).toBe(true);
+  });
+});
+
+describe('talk sounds like the lake, not the game', () => {
+  it('never says CU, and sells each good by a unit a hand would use', () => {
+    const heard = [
+      ...tellMany('port.bayfield', 60, 'voice-a'),
+      ...tellMany('port.duluth', 60, 'voice-b'),
+    ];
+    expect(heard.length).toBeGreaterThan(40);
+    for (const r of heard) {
+      expect(r.text, r.text).not.toMatch(/\bCUs?\b/);
+      expect(r.text, r.text).not.toMatch(/[()&]/);
+    }
+    for (const g of economy.goods.values()) {
+      expect(g.talk.unit).not.toMatch(/cu/i);
+      expect(g.talk.name).not.toMatch(/[()&]/);
+    }
+    expect(
+      heard.some((r) => /\bthe (ton|barrel|bale|crate|case|keg|cask|sack|box|load)\b/.test(r.text)),
+    ).toBe(true);
+  });
+
+  it('puts a price to the nickel, whole dollars bare', () => {
+    expect(talkPrice(765)).toBe('$7.65');
+    expect(talkPrice(768)).toBe('$7.70');
+    expect(talkPrice(800)).toBe('$8');
+    expect(talkPrice(41)).toBe('40 cents');
+    expect(talkPrice(1)).toBe('5 cents');
   });
 });
 
