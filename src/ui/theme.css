@@ -1062,38 +1062,6 @@ body[data-mode='chart'] .chart-layer {
   margin: 4px 0;
 }
 
-.yard-stats {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 1px 10px;
-  margin: 4px 0;
-  font-size: 13px;
-}
-
-.yard-stats dt {
-  color: #6b5b48;
-}
-
-.yard-stats dd {
-  margin: 0;
-  text-align: right;
-}
-
-.yard-sum {
-  width: 100%;
-  font-size: 13px;
-  border-collapse: collapse;
-}
-
-.yard-sum .num {
-  text-align: right;
-}
-
-.yard-net td {
-  font-weight: bold;
-  border-top: 1px solid var(--ink);
-}
-
 .yard-bar {
   display: grid;
   grid-template-columns: 40px 1fr 40px;
@@ -1109,4 +1077,61 @@ body[data-mode='chart'] .chart-layer {
 
 .yard-work {
   white-space: nowrap;
+}
+
+/* Spare port screens: explanations live in "?" tooltips, details in icons. */
+.port-help,
+.port-icon {
+  display: inline-block;
+  margin-left: 6px;
+  font-size: 11px;
+  color: #6b5b48;
+  cursor: help;
+}
+
+.port-help {
+  width: 15px;
+  height: 15px;
+  line-height: 13px;
+  text-align: center;
+  font-style: normal;
+  border: 1px solid #6b5b48;
+  border-radius: 50%;
+}
+
+.port-help:hover,
+.port-help:focus {
+  color: var(--ink);
+  border-color: var(--brass);
+  background: var(--paper-dark);
+}
+
+.port-mini.primary {
+  color: #fff;
+  background: var(--lake-teal);
+  border-color: var(--lake-teal);
+}
+
+.yard-line {
+  margin: 2px 0 6px;
+  font-size: 13px;
+}
+
+.yard-buy {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 14px;
+}
+
+.yard-slots {
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+}
+
+.yard-slots li {
+  display: flex;
+  justify-content: space-between;
 }

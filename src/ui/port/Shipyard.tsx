@@ -1,4 +1,5 @@
 import { formatCents } from '../../sim/economy/knowledge';
+import { Help } from './Help';
 import type { PortActions } from './PortScreen';
 import {
   CATEGORY_NAMES,
@@ -10,14 +11,15 @@ import {
 
 /**
  * The shipyard tab and the chandlery's fittings (plan 10 §12, plan 13 §5; Phase 4 piece
- * G). Hulls side by side with the trade-in worked out, upgrades by category with the
- * slots they take, and repairs. Yard work takes game time, which passes when you confirm
- * (the screen says how long); a chandler fits his gear on the spot.
+ * G). Kept spare: numbers on the page, explanations in "?" tooltips. Hulls side by side
+ * with the trade-in worked out, upgrades by category, repairs. Yard work takes game time,
+ * which passes when you confirm; a chandler fits his gear on the spot.
  */
 
 const pct = (v: number): string => `${Math.round(v * 100)}%`;
+/** Yard time as a few characters: "12 h", "2 d"; nothing for work done on the spot. */
 const hoursText = (h: number): string =>
-  h <= 0 ? 'on the spot' : h < 24 ? `${h} h in the yard` : `${Math.round(h / 24)} d in the yard`;
+  h <= 0 ? '' : h < 24 ? `${h} h` : `${Math.round(h / 24)} d`;
 
 function Bar({ label, value, testid }: { label: string; value: number; testid: string }) {
   return (
@@ -31,41 +33,31 @@ function Bar({ label, value, testid }: { label: string; value: number; testid: s
   );
 }
 
-function Stats({ stats }: { stats: HullStats }) {
-  return (
-    <dl class="yard-stats">
-      <dt>Hull speed</dt>
-      <dd class="hud-num">{stats.speedKn} kn</dd>
-      <dt>Hold</dt>
-      <dd class="hud-num">{stats.cargoCu} CU</dd>
-      <dt>Draft</dt>
-      <dd class="hud-num">{stats.draftM}</dd>
-      <dt>Hull / rig</dt>
-      <dd class="hud-num">
-        {stats.hullHp} / {stats.riggingHp}
-      </dd>
-      <dt>Sail change</dt>
-      <dd class="hud-num">{stats.sailChangeS} s</dd>
-    </dl>
-  );
+/** One line of the numbers that matter; the rest sit in its tooltip. */
+function statLine(s: HullStats): string {
+  return `${s.speedKn} kn · ${s.cargoCu} CU · ${s.draftM}`;
 }
 
-/** Her name, class, condition and slots: beside the shipyard and fittings. */
+function statDetail(s: HullStats): string {
+  return `Hull speed ${s.speedKn} kn, hold ${s.cargoCu} CU, draft ${s.draftM}, hull ${s.hullHp} HP, rigging ${s.riggingHp} HP, sail change ${s.sailChangeS} s`;
+}
+
+/** Her condition, numbers and slots: beside the shipyard and fittings. */
 export function ShipPanel({ yard }: { yard: YardSnapshot }) {
   return (
     <aside class="port-hold yard-ship" data-testid="yard-ship">
       <h3>{yard.shipName}</h3>
-      <p class="port-dim">{yard.className}</p>
       <Bar label="Hull" value={yard.hull01} testid="yard-hull" />
       <Bar label="Rig" value={yard.rigging01} testid="yard-rigging" />
-      <Stats stats={yard.stats} />
-      <h3>Slots</h3>
-      <ul>
+      <p class="yard-line hud-num" title={statDetail(yard.stats)}>
+        {statLine(yard.stats)}
+      </p>
+      <ul class="yard-slots">
         {yard.slots.map((s) => (
           <li key={s.category}>
             <span>{s.label}</span>
             <span class="hud-num">
-              {s.used} / {s.total}
+              {s.used}/{s.total}
             </span>
           </li>
         ))}
@@ -83,18 +75,14 @@ function RepairLine({
   actions: PortActions;
   setMessage(m: string | undefined): void;
 }) {
-  const what = yard.place === 'shipyard' ? 'Hull and rigging' : 'Rigging';
-  if (!yard.repair)
-    return (
-      <p class="port-dim">
-        {what}: sound, nothing for the {yard.place === 'shipyard' ? 'yard' : 'chandler'} to do.
-      </p>
-    );
+  const what = yard.place === 'shipyard' ? 'Repair hull and rig' : 'Mend rigging';
+  if (!yard.repair) return null;
+  const time = hoursText(yard.repair.hours);
   return (
     <div class="yard-repair">
       <span>
-        {what} made sound: <strong class="hud-num">{formatCents(yard.repair.totalCents)}</strong>,{' '}
-        {hoursText(yard.repair.hours)}
+        {what} <strong class="hud-num">{formatCents(yard.repair.totalCents)}</strong>
+        {time && <small class="port-dim"> · {time}</small>}
       </span>
       <button
         type="button"
@@ -121,22 +109,15 @@ function UpgradeTable({
   setMessage(m: string | undefined): void;
 }) {
   let category = '';
+  const timed = place === 'shipyard';
   return (
     <table class="port-table" data-testid={`upgrades-${place}`}>
-      <thead>
-        <tr>
-          <th>Upgrade</th>
-          <th class="num">Price</th>
-          <th>Work</th>
-          <th />
-        </tr>
-      </thead>
       <tbody>
         {rows.map((u) => {
           const header =
             u.category !== category ? (
               <tr class="port-category" key={`cat-${u.category}`}>
-                <td colSpan={4}>{CATEGORY_NAMES[u.category]}</td>
+                <td colSpan={timed ? 4 : 3}>{CATEGORY_NAMES[u.category]}</td>
               </tr>
             ) : null;
           category = u.category;
@@ -149,14 +130,23 @@ function UpgradeTable({
             >
               <td>
                 {u.name}
-                {u.transferable && <small class="port-role"> moves to a new hull</small>}
-                <br />
-                <small class="port-dim">{u.blurb}</small>
+                <Help text={u.blurb} />
+                {u.transferable && (
+                  <span
+                    class="port-icon"
+                    title="Moves to a new hull"
+                    aria-label="moves to a new hull"
+                  >
+                    ⇄
+                  </span>
+                )}
               </td>
               <td class="num hud-num">{formatCents(u.priceCents)}</td>
-              <td class="yard-work">
-                <small>{hoursText(u.hours)}</small>
-              </td>
+              {timed && (
+                <td class="num hud-num port-dim" title="Game time in the yard">
+                  {hoursText(u.hours)}
+                </td>
+              )}
               <td class="port-actions">
                 {u.fitted ? (
                   <button
@@ -198,41 +188,35 @@ function HullCard({
   actions: PortActions;
   setMessage(m: string | undefined): void;
 }) {
+  const extras = [
+    hull.movingNames.length > 0 ? `Comes across: ${hull.movingNames.join(', ')}.` : '',
+    hull.overflowText ? `${hull.overflowText}.` : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
   return (
     <div class={`yard-hull${hull.current ? ' current' : ''}`} data-testid={`hull-${hull.classId}`}>
       <h4>
         {hull.name} <small class="port-dim">T{hull.tier}</small>
+        <Help text={statDetail(hull.stats)} />
+        {extras && <Help text={extras} label="!" />}
       </h4>
-      <Stats stats={hull.stats} />
+      <p class="yard-line hud-num">{statLine(hull.stats)}</p>
       {hull.current ? (
-        <p class="port-dim">You sail her now.</p>
+        <p class="port-dim">Yours</p>
       ) : (
-        <>
-          <table class="yard-sum">
-            <tbody>
-              <tr>
-                <td>Price</td>
-                <td class="num hud-num">{formatCents(hull.priceCents)}</td>
-              </tr>
-              <tr>
-                <td>Your ship in trade</td>
-                <td class="num hud-num">−{formatCents(hull.tradeInCents)}</td>
-              </tr>
-              <tr class="yard-net">
-                <td>{hull.netCents >= 0 ? 'To pay' : 'The yard pays you'}</td>
-                <td class="num hud-num" data-testid={`hull-net-${hull.classId}`}>
-                  {formatCents(Math.abs(hull.netCents))}
-                </td>
-              </tr>
-            </tbody>
-          </table>
-          {hull.movingNames.length > 0 && (
-            <p class="port-dim">Comes across: {hull.movingNames.join(', ')}.</p>
-          )}
-          {hull.overflowText && <p class="port-dim">{hull.overflowText}.</p>}
+        <div class="yard-buy">
+          <span
+            title={`Price ${formatCents(hull.priceCents)}, your ship in trade −${formatCents(hull.tradeInCents)}`}
+          >
+            {hull.netCents >= 0 ? 'Pay' : 'Receive'}{' '}
+            <strong class="hud-num" data-testid={`hull-net-${hull.classId}`}>
+              {formatCents(Math.abs(hull.netCents))}
+            </strong>
+          </span>
           <button
             type="button"
-            class="menu-button primary"
+            class="port-mini primary"
             data-testid={`buy-hull-${hull.classId}`}
             disabled={!!hull.refusal}
             title={hull.refusal}
@@ -240,10 +224,9 @@ function HullCard({
               setMessage(actions.buyHull(hull.classId) ?? `She's yours: the ${hull.name}.`)
             }
           >
-            Buy her
+            Buy
           </button>
-          {hull.refusal && <small class="port-dim"> {hull.refusal}</small>}
-        </>
+        </div>
       )}
     </div>
   );
@@ -260,14 +243,11 @@ export function Shipyard({
 }) {
   return (
     <div class="port-chandlery yard" data-testid="shipyard">
-      <h3>Repairs</h3>
       <RepairLine yard={yard} actions={actions} setMessage={setMessage} />
-      <h3>Hulls</h3>
-      <p class="menu-note">
-        One ship at a time: buying a hull trades in yours at half her price by her condition, and a
-        quarter for the gear left aboard. Instruments and the anchor come across if she has the
-        slots.
-      </p>
+      <h3>
+        Hulls
+        <Help text="One ship at a time: a new hull trades yours in at half her price by her condition, plus a quarter of the value of gear left aboard. Instruments and the anchor come across if she has slots; cargo that won't fit is sold here at 80%." />
+      </h3>
       <div class="yard-hulls">
         {yard.hulls.map((h) => (
           <HullCard key={h.classId} hull={h} actions={actions} setMessage={setMessage} />
@@ -296,13 +276,11 @@ export function Fittings({
 }) {
   return (
     <div class="yard-fittings" data-testid="fittings">
-      <h3>Rigging repair</h3>
       <RepairLine yard={yard} actions={actions} setMessage={setMessage} />
-      <h3>Fittings</h3>
-      <p class="menu-note">
-        Ship: hull {pct(yard.hull01)}, rig {pct(yard.rigging01)}. Instruments and gear, fitted while
-        you wait.
-      </p>
+      <h3>
+        Fittings
+        <Help text="Instruments and gear, fitted while you wait." />
+      </h3>
       <UpgradeTable
         rows={yard.upgrades}
         place="chandlery"
