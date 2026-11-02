@@ -5,7 +5,7 @@ import { EventBus } from './core/events';
 import { DEFAULT_BINDINGS, InputMapper, type InputContext } from './core/input';
 import { createLoop } from './core/loop';
 import { Rng } from './core/rng';
-import { openSaveDb } from './core/save/db';
+import { deleteRun, openSaveDb, type GlpDatabase } from './core/save/db';
 import {
   SettingsStore,
   applyBindingOverrides,
@@ -15,7 +15,7 @@ import {
   type Settings,
 } from './core/settings';
 import { createWorkerEncoder } from './core/save/encoder';
-import { loadRun } from './core/save/load';
+import { loadRun, type LoadedRun } from './core/save/load';
 import { RunSaver } from './core/save/run-saver';
 import { AssetLoader, EMPTY_MANIFEST } from './core/assets';
 import { createGameAudio, type GameAudio } from './audio/game-audio';
@@ -91,12 +91,19 @@ import {
 import { TEST_BAY_ISLANDS, stubIslandShelter } from './sim/weather/shelter';
 import { advanceWeather, placeFogBank } from './sim/weather/weather';
 import { createSea } from './sim/weather/waves';
-import { createWorldState, parseWorldState, type WorldState } from './sim/world-state';
+import { BACKGROUNDS, createWorldState, parseWorldState, type WorldState } from './sim/world-state';
 import type { ZoneDef } from '../data/schemas/zones';
 import { anchorRefusedNotice, dockRefusedNotice, NOTICE_S, sampleHud } from './ui/hud/model';
 import { offersChart } from './sim/terrain/zone-edge';
 import { arenaLoadingScreen, loadingScreen, type Arrival } from './ui/loading/model';
 import { mountGameUi } from './ui/mount';
+import { showMainMenu } from './ui/menu/mount-menu';
+import type { MenuChoice } from './ui/menu/MainMenu';
+import { randomSeed, savedRunSummary } from './ui/menu/model';
+import { allPortraits, backgroundDef, type BackgroundKey } from './sim/character/backgrounds';
+import { createNewRun, startingPort } from './sim/character/new-run';
+import { withSailingPerks } from './sim/character/perks';
+import { attachCaptain } from './gameplay/captain';
 
 /** Periodic autosave while safe (plan 16 §4.1). */
 const AUTOSAVE_INTERVAL_MS = 2 * 60_000;
@@ -120,51 +127,112 @@ interface OpenedRun {
   status: SaveStatus;
 }
 
-/** Continue the run in IndexedDB, or start a new one (plan 16 §3, §6.3). */
-async function openRun(): Promise<OpenedRun> {
+/** The save database and the run in it, read before the main menu (Phase 4 piece C). */
+interface PreparedRun {
+  db: GlpDatabase | undefined;
+  loaded: LoadedRun<WorldState> | undefined;
+  /** `unavailable`: no IndexedDB; `error`: a run is there but no slot reads. */
+  problem: 'unavailable' | 'error' | undefined;
+}
+
+async function prepareRun(): Promise<PreparedRun> {
   let db;
   try {
     db = await openSaveDb();
   } catch (err) {
     // Session-only play when IndexedDB is unavailable (plan 16 §8).
     console.warn('IndexedDB unavailable; this run will not be saved', err);
-    return {
-      state: createWorldState(crypto.randomUUID()),
-      saver: undefined,
-      status: 'unavailable',
-    };
+    return { db: undefined, loaded: undefined, problem: 'unavailable' };
   }
-
-  const encoder = createWorkerEncoder();
   try {
-    const loaded = await loadRun(db, parseWorldState);
-    if (loaded) {
-      const { runId, seed, createdAt, playTimeMs } = loaded.envelope;
-      const run = { runId, seed, createdAt, gameVersion: __GAME_VERSION__ };
-      return {
-        state: loaded.state,
-        saver: new RunSaver(db, encoder, run, playTimeMs),
-        status: loaded.recovered ? 'recovered' : 'loaded',
-      };
-    }
+    return { db, loaded: await loadRun(db, parseWorldState), problem: undefined };
   } catch (err) {
     // Never silently delete an unreadable run (plan 16 §6.3); play this session unsaved.
     console.warn('Could not load the saved run', err);
-    return { state: createWorldState(crypto.randomUUID()), saver: undefined, status: 'error' };
+    return { db: undefined, loaded: undefined, problem: 'error' };
   }
+}
 
+/**
+ * Continue the run in IndexedDB, or start a new one (plan 16 §3, §6.3). `choice` is the
+ * main menu's; without one (a check that skips the menu) a saved run continues and a
+ * missing one starts as the default Deckhand. A new captain replaces the saved run.
+ */
+async function openRun(
+  pre: PreparedRun,
+  choice: MenuChoice | undefined,
+  params: URLSearchParams,
+): Promise<OpenedRun> {
+  const setup = choice?.kind === 'new' ? choice.setup : undefined;
+  const fresh = (seed: string): WorldState =>
+    setup ? createNewRun(setup) : createWorldState(seed);
+  if (pre.problem || !pre.db) {
+    const status = pre.problem ?? 'unavailable';
+    return { state: fresh(setup?.seed ?? crypto.randomUUID()), saver: undefined, status };
+  }
+  const { db, loaded } = pre;
+  const encoder = createWorkerEncoder();
+  if (loaded && !setup) {
+    const { runId, seed, createdAt, playTimeMs } = loaded.envelope;
+    const run = { runId, seed, createdAt, gameVersion: __GAME_VERSION__ };
+    return {
+      state: loaded.state,
+      saver: new RunSaver(db, encoder, run, playTimeMs),
+      status: loaded.recovered ? 'recovered' : 'loaded',
+    };
+  }
+  // One run at a time (plan 16 §3): a new captain clears every slot of the old one.
+  if (loaded) await deleteRun(db);
   // `?seed=abc` starts a new run from that seed, so the same weather can be revisited.
-  const seed = new URLSearchParams(window.location.search).get('seed') ?? crypto.randomUUID();
+  const seed = setup?.seed ?? params.get('seed') ?? crypto.randomUUID();
   const run = {
     runId: crypto.randomUUID(),
     seed,
     createdAt: new Date().toISOString(),
     gameVersion: __GAME_VERSION__,
   };
-  const state = createWorldState(seed);
+  const state = fresh(seed);
   const saver = new RunSaver(db, encoder, run);
   await saver.save(state);
   return { state, saver, status: 'created' };
+}
+
+/**
+ * URL switches that start the game straight in a place for a check; with any of them, or
+ * `?play`, the main menu is skipped (Phase 4 piece C) and the run continues or starts as
+ * before. `?newrun=fisherman` skips it too, with a new captain of that background.
+ */
+const START_SWITCHES = [
+  'play',
+  'newrun',
+  'zone',
+  'entry',
+  'harbor',
+  'spawn',
+  'light',
+  'fogbank',
+  'encounter',
+  'npcs',
+  'bench',
+  'ship',
+] as const;
+
+function devNewRun(params: URLSearchParams): MenuChoice | undefined {
+  const key = params.get('newrun');
+  if (!key) return undefined;
+  const background = (BACKGROUNDS as readonly string[]).includes(key)
+    ? (key as BackgroundKey)
+    : 'deckhand';
+  return {
+    kind: 'new',
+    setup: {
+      name: 'Ole Haugen',
+      shipName: 'Lizzie Bell',
+      background,
+      portrait: allPortraits()[0]?.id ?? 'portrait.weathered',
+      seed: params.get('seed') ?? randomSeed(),
+    },
+  };
 }
 
 /**
@@ -245,9 +313,45 @@ async function boot(): Promise<void> {
 
   const machine = new ModeMachine();
   machine.onTransition((_, to) => (document.body.dataset['mode'] = to));
-  machine.register({ id: 'boot' }).transition('boot');
+  machine
+    .register({ id: 'boot' })
+    .register({ id: 'mainMenu' })
+    .register({ id: 'characterCreation' })
+    .transition('boot');
 
-  const [{ state, saver, status }, settings] = await Promise.all([openRun(), loadSettings()]);
+  const [prepared, settings] = await Promise.all([prepareRun(), loadSettings()]);
+  // The main menu (Phase 4 piece C) comes up before the game boots into a run, unless a
+  // check asks to start somewhere (START_SWITCHES).
+  let choice: MenuChoice | undefined = devNewRun(params);
+  if (!START_SWITCHES.some((k) => params.has(k))) {
+    machine.transition('mainMenu');
+    const menuRoot =
+      document.getElementById('ui') ?? document.body.appendChild(document.createElement('div'));
+    choice = await showMainMenu({
+      root: menuRoot,
+      settings,
+      storage: browserStorage(),
+      saved: prepared.loaded ? savedRunSummary(prepared.loaded.state) : undefined,
+      savedProblem:
+        prepared.problem === 'error'
+          ? "The saved run couldn't be read. It's kept, but this session won't be saved."
+          : prepared.problem === 'unavailable'
+            ? "This browser can't keep a save, so this run won't be saved."
+            : undefined,
+      onCreating: (creating) => machine.transition(creating ? 'characterCreation' : 'mainMenu'),
+      loading: (c) =>
+        c.kind === 'new'
+          ? { title: startingPort(c.setup.background).portName, line: 'May 7, 1900, at dawn' }
+          : {
+              title: prepared.loaded ? savedRunSummary(prepared.loaded.state).shipName : 'the lake',
+              line: 'Back aboard',
+            },
+    });
+  }
+  const { state, saver, status } = await openRun(prepared, choice, params);
+  /** A new captain opens the run docked at the background's starting pier (plan 12 §3). */
+  const startPier =
+    choice?.kind === 'new' ? backgroundDef(choice.setup.background).startPier : undefined;
   document.body.dataset['save'] = status;
   if (saver) document.body.dataset['runId'] = saver.run.runId;
 
@@ -391,6 +495,8 @@ async function boot(): Promise<void> {
   const { record: shipRecord, handling, hazardRules, sailing, hazards } = schooner;
   const shipTransform = { position: { x: spawn.x, y: 0, z: spawn.z }, heading: spawn.heading };
   sailing.state.manualTrim = settings.value.sailing.manualTrim;
+  // The captain's sailing perks (plan 12 §2.2, piece C): the Deckhand's quick hands and trim.
+  sailing.cls = withSailingPerks(sailing.cls, state.player.captain);
   const playerShip = ctx.world.add({
     id: 'ship.player',
     transform: shipTransform,
@@ -666,6 +772,9 @@ async function boot(): Promise<void> {
     document.getElementById('ui') ?? document.body.appendChild(document.createElement('div'));
   // The port screen and the journal (Phase 4 piece B); attached once the UI is up.
   const portsRef: { current: PortControl | undefined } = { current: undefined };
+  const captainRef: { current: ReturnType<typeof attachCaptain> | undefined } = {
+    current: undefined,
+  };
   const ui = mountGameUi({
     root: uiRoot,
     settings,
@@ -692,6 +801,7 @@ async function boot(): Promise<void> {
       setLookout: (pref) => settings.update((s) => (s.chart.lookout = pref)),
       setForecast: (lead) => travelRef.current?.setForecast(lead),
     },
+    setFirstWeekHidden: (hidden) => captainRef.current?.setHidden(hidden),
     onTakeToChart: () => {
       if (machine.mode === 'sailing' && !machine.gameplayPaused) travelRef.current?.takeToChart();
     },
@@ -745,6 +855,8 @@ async function boot(): Promise<void> {
     castOff: () => input.trigger('Interact'),
   });
   portsRef.current = ports;
+  // The Fisherman's fish prices and the First Week checklist (piece C).
+  captainRef.current = attachCaptain(ctx, economy.defs, (week) => ui.setFirstWeek(week));
   if (import.meta.env.DEV || params.has('debug')) {
     const hook = {
       /** Opens a port's screen wherever the ship is. */
@@ -1418,9 +1530,32 @@ async function boot(): Promise<void> {
     },
   });
 
-  // No menu UI yet: go straight through the main menu into the saved run, on the chart if
-  // it was saved there (piece D) and no `?zone=` asks for a zone.
-  machine.transition('mainMenu');
+  // A new captain lies alongside the starting pier at dawn: the berth is taken as if just
+  // docked, so the first tick raises ShipDocked and the port screen opens (piece C).
+  if (startPier) {
+    const berth =
+      freeBerths().find((b) => b.dockId === startPier) ??
+      sailingOptions.berths.find((b) => b.dockId === startPier);
+    if (berth) {
+      placeShip(berth.pose);
+      const h = hazards.state;
+      h.mooring = 'docking';
+      h.berthId = berth.id;
+      h.mooringS = Number.MAX_SAFE_INTEGER;
+      h.from = { ...berth.pose };
+      spawn.x = berth.pose.x;
+      spawn.z = berth.pose.z;
+      spawn.heading = berth.pose.heading;
+      // So a reload before the first autosave comes back to the pier, not the zone's spawn.
+      saveNow();
+    } else {
+      console.warn(`No free berth at ${startPier}; starting at the zone's spawn`);
+    }
+  }
+
+  // Into the run from the main menu, on the chart if it was saved there (piece D) and no
+  // `?zone=` asks for a zone.
+  if (machine.mode === 'boot') machine.transition('mainMenu');
   const savedAt = state.player.location;
   if (savedAt.mode === 'chart' && !paramDef) {
     chartTravel.resume(savedAt, state.voyage);

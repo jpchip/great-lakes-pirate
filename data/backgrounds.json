@@ -1,0 +1,146 @@
+[
+  {
+    "id": "background.deckhand",
+    "name": "Deckhand",
+    "blurb": "Twenty seasons before the mast on other men's schooners. Now the deck is yours.",
+    "purseCents": 15000,
+    "cargo": [{ "good": "good.rope_canvas", "qty": 5 }],
+    "startPier": "pier.bayfield_city",
+    "hideout": "hideout.stockton",
+    "harderStart": false,
+    "perks": [
+      {
+        "id": "perk.quick_hands",
+        "name": "Quick hands",
+        "text": "Sail changes take a quarter less time.",
+        "phase": 4
+      },
+      {
+        "id": "perk.sail_trimmer",
+        "name": "Sail trimmer",
+        "text": "A wider sweet spot when trimming by hand, and 5% more speed when the sheets are right.",
+        "phase": 4
+      }
+    ]
+  },
+  {
+    "id": "background.fisherman",
+    "name": "Fisherman",
+    "blurb": "You know every reef from Sand Island to Outer, and what whitefish fetch in every port.",
+    "purseCents": 10000,
+    "cargo": [{ "good": "good.salted_fish", "qty": 8 }],
+    "startPier": "pier.bayfield_fish",
+    "hideout": "hideout.stockton",
+    "harderStart": false,
+    "perks": [
+      {
+        "id": "perk.fish_market",
+        "name": "Fish market",
+        "text": "Always knows this week's fish prices in every port. The Apostles reefs come pre-charted later.",
+        "phase": 4
+      },
+      {
+        "id": "perk.weather_eye",
+        "name": "Weather eye",
+        "text": "Reads the barometer and the sky well: the chart's forecasts are a third tighter.",
+        "phase": 4
+      }
+    ]
+  },
+  {
+    "id": "background.lumberjack",
+    "name": "Lumberjack / Teamster",
+    "blurb": "Logs down the Sioux River and the mill's lumber to the dock. You can carry more than most.",
+    "purseCents": 12000,
+    "cargo": [{ "good": "good.lumber", "qty": 12 }],
+    "startPier": "pier.washburn_lumber",
+    "hideout": "hideout.stockton",
+    "harderStart": false,
+    "perks": [
+      {
+        "id": "perk.strong_back",
+        "name": "Strong back",
+        "text": "Carries crates faster on foot, and one more CU in the rowboat.",
+        "phase": 7
+      },
+      {
+        "id": "perk.builder",
+        "name": "Builder",
+        "text": "Building materials cost 15% less and go up faster.",
+        "phase": 8
+      }
+    ]
+  },
+  {
+    "id": "background.saloon_keeper",
+    "name": "Saloon Keeper",
+    "blurb": "You poured for every dockhand on Minnesota Point and heard everything they said.",
+    "purseCents": 18000,
+    "cargo": [{ "good": "good.whiskey", "qty": 2 }],
+    "startPier": "pier.duluth_city",
+    "hideout": "hideout.stockton",
+    "harderStart": true,
+    "perks": [
+      {
+        "id": "perk.saloon_talk",
+        "name": "Saloon talk",
+        "text": "Better rumors in every saloon. Bribes cost a quarter less once there are officers to bribe.",
+        "phase": 4
+      },
+      {
+        "id": "perk.whiskey_trick",
+        "name": "Whiskey trick",
+        "text": "The whiskey trick works faster, and on bigger crews.",
+        "phase": 6
+      }
+    ]
+  },
+  {
+    "id": "background.ex_navy",
+    "name": "Ex-Navy",
+    "blurb": "Gunner's mate on the Michigan until the Navy had no more use for you.",
+    "purseCents": 13000,
+    "cargo": [{ "good": "good.powder_shot", "qty": 3 }],
+    "startPier": "pier.two_harbors_city",
+    "hideout": "hideout.stockton",
+    "harderStart": true,
+    "perks": [
+      {
+        "id": "perk.gunnery",
+        "name": "Gunnery",
+        "text": "Better aim with the cannon and the swivel, and a faster swivel reload.",
+        "phase": 6
+      },
+      {
+        "id": "perk.quarterdeck_voice",
+        "name": "Quarterdeck voice",
+        "text": "More intimidating when boarding.",
+        "phase": 6
+      }
+    ]
+  },
+  {
+    "id": "background.poacher",
+    "name": "Poacher / Trapper",
+    "blurb": "Winters on the traplines of the mainland, and a pair of furs nobody asked you about.",
+    "purseCents": 10000,
+    "cargo": [{ "good": "good.furs", "qty": 2 }],
+    "startPier": "pier.bayfield_city",
+    "hideout": "hideout.stockton",
+    "harderStart": false,
+    "perks": [
+      {
+        "id": "perk.woodcraft",
+        "name": "Woodcraft",
+        "text": "Tracking, better trap yields, faster carcass carrying and slower warmth loss.",
+        "phase": 7
+      },
+      {
+        "id": "perk.boot_lockpick",
+        "name": "Boot lockpick",
+        "text": "A lockpick hidden in your boot, and quieter on foot.",
+        "phase": 5
+      }
+    ]
+  }
+]

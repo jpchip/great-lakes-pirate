@@ -1,0 +1,74 @@
+[
+  {
+    "id": "portrait.weathered",
+    "name": "Weathered",
+    "skin": "#c99872",
+    "hair": "#5a4632",
+    "beard": "full",
+    "hat": "cap",
+    "coat": "#2f3b4a"
+  },
+  {
+    "id": "portrait.young",
+    "name": "Young hand",
+    "skin": "#e1b897",
+    "hair": "#a9783f",
+    "beard": "none",
+    "hat": "none",
+    "coat": "#5b4636"
+  },
+  {
+    "id": "portrait.greybeard",
+    "name": "Greybeard",
+    "skin": "#d8a982",
+    "hair": "#b9b4ab",
+    "beard": "full",
+    "hat": "sou'wester",
+    "coat": "#6d6a2f"
+  },
+  {
+    "id": "portrait.mustache",
+    "name": "Mustache",
+    "skin": "#b98560",
+    "hair": "#2b2118",
+    "beard": "mustache",
+    "hat": "bowler",
+    "coat": "#3a2c22"
+  },
+  {
+    "id": "portrait.lumber",
+    "name": "Woodsman",
+    "skin": "#a8714d",
+    "hair": "#3c2a1c",
+    "beard": "full",
+    "hat": "wool",
+    "coat": "#8a2f28"
+  },
+  {
+    "id": "portrait.captain",
+    "name": "Officer",
+    "skin": "#8d5a3b",
+    "hair": "#1e1914",
+    "beard": "mustache",
+    "hat": "cap",
+    "coat": "#1f2a3a"
+  },
+  {
+    "id": "portrait.woman",
+    "name": "Braided",
+    "skin": "#dcae8a",
+    "hair": "#6e3f22",
+    "beard": "none",
+    "hat": "none",
+    "coat": "#2f5a5c"
+  },
+  {
+    "id": "portrait.woman_hat",
+    "name": "Bonneted",
+    "skin": "#9b6847",
+    "hair": "#2b2118",
+    "beard": "none",
+    "hat": "bonnet",
+    "coat": "#4a3550"
+  }
+]

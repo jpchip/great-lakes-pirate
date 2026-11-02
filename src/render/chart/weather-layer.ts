@@ -206,7 +206,7 @@ export class WeatherLayer {
     night: number,
   ): void {
     const { ctx } = this;
-    const spread = forecast ? forecastSpreadM(pic.leadHours) : 0;
+    const spread = forecast ? forecastSpreadM(pic.leadHours, pic.spreadScale) : 0;
     for (const bank of pic.fogBanks) {
       const s = view.toScreen(bank.pos);
       const r = (bank.radiusM + spread) / view.metersPerPx;
@@ -289,7 +289,7 @@ export class WeatherLayer {
 
   private drawCells(view: WeatherView, pic: ChartWeatherPicture, forecast: boolean): void {
     const { ctx } = this;
-    const spread = forecast ? forecastSpreadM(pic.leadHours) * 0.5 : 0;
+    const spread = forecast ? forecastSpreadM(pic.leadHours, pic.spreadScale) * 0.5 : 0;
     for (const cell of pic.cells) {
       const s = view.toScreen(cell.pos);
       const r = (cell.radiusM + spread) / view.metersPerPx;
@@ -464,14 +464,20 @@ export class WeatherLayer {
         ctx.moveTo(s.x, s.y);
         ctx.lineTo(next.x, next.y);
         ctx.stroke();
-        const cone = forecastSpreadM(pic.leadHours + ahead) / view.metersPerPx;
+        const cone = forecastSpreadM(pic.leadHours + ahead, pic.spreadScale) / view.metersPerPx;
         ctx.setLineDash([2, 4]);
         ctx.beginPath();
         ctx.arc(next.x, next.y, cone, 0, Math.PI * 2);
         ctx.stroke();
         if (forecast) {
           ctx.beginPath();
-          ctx.arc(s.x, s.y, forecastSpreadM(pic.leadHours) / view.metersPerPx, 0, Math.PI * 2);
+          ctx.arc(
+            s.x,
+            s.y,
+            forecastSpreadM(pic.leadHours, pic.spreadScale) / view.metersPerPx,
+            0,
+            Math.PI * 2,
+          );
           ctx.stroke();
         }
         ctx.restore();

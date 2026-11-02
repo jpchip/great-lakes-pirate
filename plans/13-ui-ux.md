@@ -249,6 +249,8 @@ UI and settings preferences are stored **outside the run save** (a separate Inde
 
 ---
 
+**Phase 4 piece C as built (2026-11-02).** The main menu comes up before the game boots: a title card over a dawn sky with Continue (the saved captain, ship, place, week and purse beside a portrait), New run and Settings (the game's settings screen; volumes kept in storage until the mixer starts). New run over a saved run asks first. Character creation is one logbook page: captain's name, schooner, run seed, eight likeness presets and six background cards (port, "harder start" in `signal-red` text as well as color, money and cargo, hideout, both perks with "from phase N" on the ones that wait). The First Week is a page at the top of the journal and a small enamel tracker under the barometer with the next step and its hint, which can be put away ([05 §19](05-ports-economy-trading.md)).
+
 ## 13. Cut List
 1. 3D preview in character creation (use 2D portraits).
 2. Player-written journal notes.
@@ -275,6 +277,7 @@ All resolved.
 ---
 
 ## Changelog
+- v0.6: Phase 4 piece C: main menu, character creation and the First Week tracker built (§12).
 - v0.5: Phase 3 piece D: chart HUD, encounter card, lookout setting and chart locked banner built (§12).
 - v0.4: Phase 1 HUD v1 and settings screen built (§12).
 - v0.3: Gap review: removed the stale minimap mention in §2.1; §11 links to plan 16 directly.

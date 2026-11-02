@@ -108,6 +108,8 @@ export interface ChartHudSources {
   locked: boolean;
   /** Hours ahead the chart draws the weather for. */
   forecastLead?: number;
+  /** The captain's forecasting (1, or less for the Fisherman's weather eye). */
+  forecastSkill?: number;
 }
 
 export const LOOKOUT_LABELS: Record<LookoutPref, string> = {
@@ -201,7 +203,14 @@ function weatherHud(src: ChartHudSources): ChartWeatherHud | undefined {
   const { session, gameSeconds } = src;
   const sky = session.sky;
   if (!sky) return undefined;
-  const f = forecastAt(sky.state, session.geo, session.position, gameSeconds, OUTLOOK_HOURS);
+  const f = forecastAt(
+    sky.state,
+    session.geo,
+    session.position,
+    gameSeconds,
+    OUTLOOK_HOURS,
+    src.forecastSkill,
+  );
   const glass = barometerSnapshot(f.barometer);
   const course = session.voyage
     ? remainingCourse(session.voyage)
