@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'preact/hooks';
+import { useEffect, useRef, useState } from 'preact/hooks';
 import { signal } from '@preact/signals';
 import { allPortraits, portraitDef, type BackgroundKey } from '../../sim/character/backgrounds';
 import { checkSetup, NAME_MAX, type NewRunSetup } from '../../sim/character/new-run';
@@ -287,20 +287,24 @@ function Create({ back, start }: { back(): void; start(setup: NewRunSetup): void
 
 export function MainMenu({ saved, savedProblem, settings, choose, onCreating }: MainMenuProps) {
   const [screen, setScreenState] = useState<Screen>('title');
+  // The screen as of the last change, read by the Esc listener, which is added once: a
+  // listener re-added after each render would miss an Esc pressed before the effect ran.
+  const current = useRef<Screen>('title');
   const setScreen = (next: Screen): void => {
-    if ((next === 'create') !== (screen === 'create')) onCreating?.(next === 'create');
+    if ((next === 'create') !== (current.current === 'create')) onCreating?.(next === 'create');
+    current.current = next;
     setScreenState(next);
   };
   // Esc steps back to the title (plan 13 §6).
   useEffect(() => {
     const onKey = (e: KeyboardEvent): void => {
-      if (e.code !== 'Escape' || screen === 'title') return;
+      if (e.code !== 'Escape' || current.current === 'title') return;
       e.preventDefault();
       setScreen('title');
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [screen]);
+  }, []);
   return (
     <div class="front" data-testid="front-menu" data-screen={screen}>
       <div class="front-sky" />
