@@ -531,9 +531,14 @@ The four Apostles harbors are 55k triangles together, well inside the 250k harbo
 - Jared's look at the trade screen (§16.4 piece B's "Needs Jared").
 - Trade sounds (coins, the ledger) are piece J's, on `TradeCompleted` and `StoresBought`.
 
+## 19. Phase 4 Piece G: the Shipyard (2026-11-02)
+
+The shipyard, upgrades and repairs are recorded in [plan 10 §17](10-ship-upgrades-customization.md). What touches this plan: Duluth gains the `shipyard` service (§3 of plan 10 names it with Superior and Ashland), the T2's `cargoCapacity` is 45 CU, `GameEconomy.capacity` follows the ship's class and expanded hold, cargo that won't fit a new hull is sold to the port's market at 80% of its sell price (moving the stock as a sale would), and the chandlery tab gains rigging repair and instrument fittings. Patch and mend kits from §18's chandlery are now used at sea with K.
+
 ---
 
 ## Changelog
+- v0.7: Phase 4 piece G recorded (§19): Duluth's shipyard, the T2's hold, cargo sold on a trade-in, chandlery repairs and fittings.
 
 - v0.6: Phase 4 piece D built (§16.9): flows and manifests, deliveries that move stock, the traffic save slice, ships in the zones and at berths, look her over and hailing; two company names replaced after the names check.
 - v0.5: Phase 4 piece B built (§18): piers with ports, the port screen, the trade screen, price knowledge, the ledger in journal v1, the chandlery, save v6.

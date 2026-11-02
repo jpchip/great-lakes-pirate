@@ -2,6 +2,7 @@ import { useEffect, useState } from 'preact/hooks';
 import { formatCents } from '../../sim/economy/knowledge';
 import type { TradeSide } from '../../sim/economy/market';
 import { Ledger } from './Ledger';
+import { Fittings, Shipyard, ShipPanel } from './Shipyard';
 import {
   CATEGORY_LABELS,
   type ElsewhereSnapshot,
@@ -28,6 +29,11 @@ export interface PortActions {
   /** What `qty` CU would cost or fetch now, cents. */
   quote(good: string, qty: number, side: TradeSide): number;
   buyStores(item: string, qty: number): string | undefined;
+  /** The shipyard and the chandlery's fittings (piece G). */
+  buyHull(classId: string): string | undefined;
+  fit(upgrade: string, place: 'shipyard' | 'chandlery'): string | undefined;
+  unfit(upgrade: string, place: 'shipyard' | 'chandlery'): string | undefined;
+  repair(place: 'shipyard' | 'chandlery'): string | undefined;
   /** Close the screen and stay alongside. */
   close(): void;
   /** Close the screen and cast off (F). */
@@ -37,6 +43,7 @@ export interface PortActions {
 const TAB_LABELS: Record<PortTab, string> = {
   market: 'Market',
   chandlery: 'Chandlery',
+  shipyard: 'Shipyard',
   ledger: 'Ledger',
 };
 
@@ -429,8 +436,19 @@ export function PortScreen({
           )}
           {shown === 'chandlery' && (
             <>
-              <Chandlery port={port} actions={actions} setMessage={setMessage} />
+              <div class="port-chandlery-col">
+                <Chandlery port={port} actions={actions} setMessage={setMessage} />
+                {port.fittings && (
+                  <Fittings yard={port.fittings} actions={actions} setMessage={setMessage} />
+                )}
+              </div>
               <Hold port={port} />
+            </>
+          )}
+          {shown === 'shipyard' && port.shipyard && (
+            <>
+              <Shipyard yard={port.shipyard} actions={actions} setMessage={setMessage} />
+              <ShipPanel yard={port.shipyard} />
             </>
           )}
           {shown === 'ledger' && <Ledger ledger={port.ledger} here={port.port} />}
