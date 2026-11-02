@@ -25,7 +25,10 @@ import { createSchooner } from './gameplay/schooner';
 import { npcParade } from './gameplay/npc-ships';
 import { attachEconomy } from './gameplay/economy';
 import { attachPorts, type PortControl } from './gameplay/port';
+import { attachContracts, contractsOf } from './gameplay/contracts';
 import { attachSmuggler, type SmugglerControl } from './gameplay/smuggler';
+import { attachStash, type StashControl } from './gameplay/stash';
+import { siteDef } from './sim/hideouts/stash';
 import { attachShipyard } from './gameplay/shipyard';
 import { BASE_INSTRUMENTS, type Instruments } from './sim/shipyard/fit';
 import { defaultShipState } from './sim/shipyard/shipyard';
@@ -63,6 +66,7 @@ import type { GameContext, GameEvents } from './modes/context';
 import { ModeMachine } from './modes/machine';
 import { createSailingMode, type SailingModeOptions, type SailingView } from './modes/sailing';
 import { createChartTravel, type ChartTravel } from './modes/chart-travel';
+import { allContacts } from './modes/chart';
 import { loadAssets } from './render/assets';
 import { browserStorage, isQualityId } from './render/quality';
 import { GameRenderer } from './render/renderer';
@@ -596,6 +600,24 @@ async function boot(): Promise<void> {
   // zones and the markets. A stable per-run number from the save (the RNG state moves on
   // as the run plays), so the timetables and manifests are the same after a reload.
   const trafficSeed = `run-${state.environment.weather.noiseSeed}`;
+  // Freight contracts (plan 05 §5.2, Phase 4 piece F): the boards follow from the same seed.
+  const contracts = attachContracts(ctx, economy, trafficSeed);
+  if (import.meta.env.DEV || params.has('debug')) {
+    const hook = {
+      board: (port: string) => contracts.board(port),
+      accept: (port: string, offerId: string) => contracts.accept(port, offerId),
+      arrive: (port: string) => contracts.arrive(port),
+      steal: (contractId: string, port: string) => contracts.steal(contractId, port),
+      abandon: (contractId: string, port: string) => contracts.abandon(contractId, port),
+      state: () => contractsOf(state).contracts,
+      standing: () => contractsOf(state).captain.standing,
+      /** Sets Standing with a port or company, for trying what it opens. */
+      setStanding: (id: string, value: number) => {
+        contractsOf(state).captain.standing[id] = Math.max(0, Math.min(100, value));
+      },
+    };
+    (window as unknown as { __glpContracts: typeof hook }).__glpContracts = hook;
+  }
   const traffic = attachTraffic(
     ctx,
     createContacts(
@@ -847,6 +869,8 @@ async function boot(): Promise<void> {
   // The port screen and the journal (Phase 4 piece B); attached once the UI is up.
   const portsRef: { current: PortControl | undefined } = { current: undefined };
   const smugglerRef: { current: SmugglerControl | undefined } = { current: undefined };
+  // The Stockton stash and lying at anchor (Phase 4 piece E); attached with the ports.
+  const stashRef: { current: StashControl | undefined } = { current: undefined };
   const captainRef: { current: ReturnType<typeof attachCaptain> | undefined } = {
     current: undefined,
   };
@@ -859,6 +883,9 @@ async function boot(): Promise<void> {
       quote: (good, qty, side) => portsRef.current?.actions.quote(good, qty, side) ?? 0,
       buyStores: (item, qty) => portsRef.current?.actions.buyStores(item, qty),
       offer: (index) => portsRef.current?.actions.offer(index),
+      acceptContract: (id) => portsRef.current?.actions.acceptContract(id),
+      abandonContract: (id) => portsRef.current?.actions.abandonContract(id),
+      stealContract: (id) => portsRef.current?.actions.stealContract(id),
       buyHull: (classId) => portsRef.current?.actions.buyHull(classId),
       fit: (upgrade, place) => portsRef.current?.actions.fit(upgrade, place),
       unfit: (upgrade, place) => portsRef.current?.actions.unfit(upgrade, place),
@@ -867,13 +894,23 @@ async function boot(): Promise<void> {
       castOff: () => portsRef.current?.actions.castOff(),
       closeJournal: () => portsRef.current?.closeJournal(),
       openDocked: () => {
-        if (machine.mode === 'sailing' && !machine.gameplayPaused) portsRef.current?.openDocked();
+        if (machine.mode !== 'sailing' || machine.gameplayPaused) return;
+        if (!portsRef.current?.openDocked()) stashRef.current?.openHere();
       },
     },
     smuggler: {
       buy: (good, qty) => smugglerRef.current?.actions.buy(good, qty),
       fence: (index, qty) => smugglerRef.current?.actions.fence(index, qty),
       close: () => smugglerRef.current?.close(),
+    },
+    stash: {
+      stash: (index, qty) => stashRef.current?.actions.stash(index, qty),
+      take: (index, qty) => stashRef.current?.actions.take(index, qty),
+      stashCash: (cents) => stashRef.current?.actions.stashCash(cents),
+      takeCash: (cents) => stashRef.current?.actions.takeCash(cents),
+      lie: (until) => stashRef.current?.actions.lie(until),
+      close: () => stashRef.current?.actions.close(),
+      castOff: () => stashRef.current?.actions.castOff(),
     },
     chart: {
       sail: () => travelRef.current?.setSail(),
@@ -919,6 +956,7 @@ async function boot(): Promise<void> {
   const ports = attachPorts({
     ctx,
     economy,
+    contracts,
     hazards,
     shipyard,
     berthPier: (berthId) => sailingOptions.berths.find((b) => b.id === berthId)?.dockId,
@@ -996,6 +1034,67 @@ async function boot(): Promise<void> {
       close: () => smuggler.close(),
     };
     (window as unknown as { __glpContraband: typeof hook }).__glpContraband = hook;
+  }
+
+  // Alongside the Stockton landing or anchored off it, the stash opens; Z lies at anchor.
+  let contextBeforeStash: InputContext = 'sailing';
+  const stash = attachStash({
+    ctx,
+    economy,
+    hazards,
+    berthPier: (berthId) => sailingOptions.berths.find((b) => b.id === berthId)?.dockId,
+    shipPose,
+    speedMs: () => sailing.state.speed,
+    zone: () =>
+      zone && !arena ? { id: zoneData.id, frame: manifestFrame(zone.manifest) } : undefined,
+    nearestUnderWayM(p) {
+      if (arena) return 0;
+      let best = Number.POSITIVE_INFINITY;
+      for (const s of traffic.shown.values()) {
+        const t = s.entity.transform;
+        if (s.berthed || !t) continue;
+        best = Math.min(best, Math.hypot(t.position.x - p.x, t.position.z - p.z));
+      }
+      return best;
+    },
+    showStash: (snapshot) => ui.setStash(snapshot),
+    showLie: (r) => ui.setLie(r === undefined),
+    onOpen(open) {
+      if (open) {
+        machine.pushOverlay('trade');
+        contextBeforeStash = input.context;
+        input.context = 'menu';
+      } else {
+        machine.removeOverlay('trade');
+        input.context = contextBeforeStash;
+        input.endTick();
+      }
+      if (cameraRig) cameraRig.suspended = open;
+      document.body.dataset['stash'] = stash.openHideout ?? (stash.lieOpen ? 'lie' : 'closed');
+      hudClock = HUD_INTERVAL_S;
+    },
+    castOff: () => input.trigger('Interact'),
+    afterLie(text) {
+      showNotice(text);
+      void saveControls.saveNow();
+    },
+  });
+  stashRef.current = stash;
+  if (import.meta.env.DEV || params.has('debug')) {
+    const hook = {
+      /** Opens a hideout's storage wherever the ship is. */
+      open: (id = 'hideout.stockton') => stash.open(id),
+      close: () => stash.actions.close(),
+      here: () => stash.hideoutHere,
+      hideouts: () => state.hideouts,
+      stash: (index: number, qty: number) => stash.actions.stash(index, qty),
+      take: (index: number, qty: number) => stash.actions.take(index, qty),
+      stashCash: (cents: number) => stash.actions.stashCash(cents),
+      takeCash: (cents: number) => stash.actions.takeCash(cents),
+      lie: (until: 'dawn' | 'dusk' | 'wind') => stash.actions.lie(until),
+      refusal: () => stash.lieRefusal(),
+    };
+    (window as unknown as { __glpStash: typeof hook }).__glpStash = hook;
   }
   // The Fisherman's fish prices and the First Week checklist (piece C).
   captainRef.current = attachCaptain(ctx, economy.defs, (week) => ui.setFirstWeek(week));
@@ -1474,9 +1573,11 @@ async function boot(): Promise<void> {
           })),
           player: shipPose(),
         },
-      /** Puts the ship at (x, z) in the arena, keeping her heading, e.g. past the edge. */
-      place: (x: number, z: number) => {
-        if (arena) placeShip({ x, z, heading: shipPose().heading });
+      /** Puts the ship at (x, z) in the arena, keeping her heading or turning to `headingDeg`. */
+      place: (x: number, z: number, headingDeg?: number) => {
+        const heading =
+          headingDeg === undefined ? shipPose().heading : (headingDeg * Math.PI) / 180;
+        if (arena) placeShip({ x, z, heading });
       },
       hooks: arenaHooks,
     };
@@ -1581,7 +1682,8 @@ async function boot(): Promise<void> {
       meet(kind: string, forced = false) {
         const { session } = chartTravel;
         // Nearest on the water; one lying in port only if none of that kind is out.
-        const near = session.contacts
+        // Traffic, and the sky's squalls and fog banks (`storm`, `fog`).
+        const near = allContacts(session)
           .filter((c) => c.kind === kind)
           .sort(
             (a, b) =>
@@ -1615,6 +1717,12 @@ async function boot(): Promise<void> {
   });
   window.addEventListener('pagehide', saveNow);
 
+  /** The stash's name for the HUD's P button while moored there (piece E). */
+  const stashHereName = (): string | undefined => {
+    const id = stash.hideoutHere;
+    const site = id ? state.hideouts?.[id]?.siteId : undefined;
+    return site ? siteDef(site)?.shortName : undefined;
+  };
   const loop = createLoop({
     tick(dt) {
       // A key that just changed the mode (M off the chart) mustn't act again in the new one.
@@ -1623,8 +1731,12 @@ async function boot(): Promise<void> {
       if (arena?.run.result) leaveArena(arena.run.result);
       // A key that just changed the mode (M off the chart) mustn't act again in the new one.
       // In an arena, M leaves it (the arena reads ToggleChart); it doesn't open the chart.
+      // `arena` is already cleared by the time that press is seen here, so ask whether the
+      // ship is still in the arena's space (until the chart or zone takes her back), or the
+      // same press opens the chart as a look from the departure zone and the voyage stalls.
       const sameContext = input.context === contextBefore;
-      if (sameContext && !arena && input.context === 'sailing' && input.pressed('ToggleChart')) {
+      const chartFree = !arena && !inArenaSpace && !changingZone;
+      if (sameContext && chartFree && input.context === 'sailing' && input.pressed('ToggleChart')) {
         const refused = chartTravel.fromHelm({ atEdge: atEdge(), inHarbor: inHarbor() });
         if (refused) showNotice(refused);
       }
@@ -1649,7 +1761,10 @@ async function boot(): Promise<void> {
       } else if (sameContext && inGame && input.pressed('Journal')) {
         ports.openJournal();
       } else if (sameContext && !arena && input.context === 'sailing' && input.pressed('Port')) {
-        ports.openDocked();
+        if (!ports.openDocked()) stash.openHere();
+      } else if (sameContext && input.context === 'sailing' && input.pressed('LieAtAnchor')) {
+        const refused = stash.openLie();
+        if (refused) showNotice(refused);
       }
       input.endTick();
     },
@@ -1691,7 +1806,7 @@ async function boot(): Promise<void> {
             portName:
               ports.dockedPort && hazards.state.mooring === 'docked' && !ports.openPort
                 ? portInfo(ports.dockedPort)?.name
-                : undefined,
+                : stashHereName(),
           }),
         );
       }

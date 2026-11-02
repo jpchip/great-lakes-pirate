@@ -106,6 +106,21 @@
         "blendM": 50
       },
       {
+        "id": "setpiece.stockton",
+        "name": "Presque Isle bay stash",
+        "site": "site.stockton",
+        "at": {
+          "lat": 46.9243,
+          "lon": -90.5621
+        },
+        "bearingDeg": 200,
+        "alongM": 140,
+        "inlandM": 60,
+        "seawardM": 90,
+        "groundM": 1.4,
+        "blendM": 30
+      },
+      {
         "id": "setpiece.washburn",
         "name": "Washburn docks",
         "port": "port.washburn",

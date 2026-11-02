@@ -1,16 +1,17 @@
 import type { Good } from '../../../data/schemas/goods';
 import type { PortService } from '../../../data/schemas/ports';
 import { portInfo, type EconomyDefs } from '../../sim/economy/defs';
-import { holdUsed, isClean, type CargoStack } from '../../sim/economy/hold';
+import { holdFree, holdUsed, isClean, type CargoStack } from '../../sim/economy/hold';
 import {
   ageText,
+  formatCents,
   bestKnownPurchase,
   bestKnownSale,
   STALE_WEEKS,
   weeksSince,
   type PriceKnowledge,
 } from '../../sim/economy/knowledge';
-import { unitPrices, type MarketsState } from '../../sim/economy/market';
+import { quote, unitPrices, type MarketsState } from '../../sim/economy/market';
 import {
   detectionChance,
   offerKind,
@@ -27,7 +28,19 @@ import {
   type ShipStores,
 } from '../../sim/economy/chandlery';
 import { maxBuyable, type Trader } from '../../sim/economy/trade';
-import { weekLabel } from '../hud/model';
+import { clockLabel, weekLabel } from '../hud/model';
+import {
+  cargoName,
+  companyName,
+  contractCargo,
+  depositCredit,
+  shipyardDiscount,
+  standingOf,
+  type BoardOffer,
+  type ContractDefs,
+  type ContractsState,
+  type Standing,
+} from '../../sim/economy/contracts';
 import type { ShipState } from '../../sim/shipyard/shipyard';
 import { yardSnapshot, type YardSnapshot } from './shipyard-model';
 
@@ -38,12 +51,13 @@ import { yardSnapshot, type YardSnapshot } from './shipyard-model';
  * these; buying and selling go back through the port's actions.
  */
 
-export type PortTab = 'market' | 'chandlery' | 'shipyard' | 'ledger';
+export type PortTab = 'market' | 'chandlery' | 'freight' | 'shipyard' | 'ledger';
 
-/** The services with a tab, in order. Pieces F, G and K add the freight agent, shipyard and saloon. */
+/** The services with a tab, in order. Piece K adds the saloon. */
 const SERVICE_TABS: readonly [PortService, PortTab][] = [
   ['market', 'market'],
   ['chandlery', 'chandlery'],
+  ['freight', 'freight'],
   ['shipyard', 'shipyard'],
 ];
 
@@ -99,6 +113,11 @@ export interface HoldRow {
   hot: boolean;
   /** A freight contract's cargo (piece F). */
   contract: boolean;
+  /** Its contract, and where it's bound. */
+  contractId?: string | undefined;
+  contractTo?: string | undefined;
+  /** What selling it here would fetch: the theft (plan 05 §5.2). Undefined when it can't. */
+  stealCents?: number | undefined;
   /** What a CU fetches here, when this port buys it and it's clean. */
   sellCents: number | undefined;
   /** The stack's place in the hold, for offering it (rows are sorted). */
@@ -130,11 +149,63 @@ export interface StoreRow {
   maxBuy: number;
 }
 
+/** An offer on the freight agent's board (plan 05 §5.2, plan 13 §5 contracts board). */
+export interface OfferRow {
+  id: string;
+  company: string;
+  kind: 'freight' | 'rush' | 'mail' | 'fragile';
+  /** A company's own business, on Standing with it. */
+  companyTier: boolean;
+  toName: string;
+  cargo: string;
+  qty: number;
+  payCents: number;
+  depositCents: number;
+  /** "by 18:00, Wk of May 14 (in 14 h)" if taken now, and the short form, "due in 34 h". */
+  dueText: string;
+  dueShort: string;
+  note: string;
+  /** Why it can't be taken now; undefined when it can. */
+  blocked: string | undefined;
+  /** It needs more Standing: a teaser of what Standing opens. */
+  locked: boolean;
+}
+
+/** A contract in hand. */
+export interface HeldContractRow {
+  id: string;
+  company: string;
+  kind: OfferRow['kind'];
+  fromName: string;
+  toName: string;
+  cargo: string;
+  qty: number;
+  aboard: number;
+  payCents: number;
+  depositCents: number;
+  dueText: string;
+  dueShort: string;
+  /** Late: inside the late window, half pay. Failed: past it, cargo to hand back. */
+  status: 'onTime' | 'late' | 'failed';
+  /** Fragile knocks taken, each a quarter of the pay. */
+  hits: number;
+}
+
+export interface FreightSnapshot {
+  offers: OfferRow[];
+  held: HeldContractRow[];
+  /** Standing with this port, and what it opens now. */
+  portStanding: number;
+  perks: string[];
+}
+
 export interface PortSnapshot {
   port: string;
   portName: string;
   dateText: string;
   purseCents: number;
+  /** Cash stashed at the hideouts (plan 05 §2; Phase 4 piece E): safe, but not to hand. */
+  stashedCents?: number | undefined;
   tabs: PortTab[];
   capacity: number;
   usedCu: number;
@@ -143,6 +214,10 @@ export interface PortSnapshot {
   market: MarketRow[];
   hold: HoldRow[];
   stores: StoreRow[];
+  /** The freight agent's tab, at a port that has one (piece F). */
+  freight: FreightSnapshot | undefined;
+  /** What happened on arriving: deliveries paid, failed cargo handed back. */
+  notices: string[];
   /** The shipyard tab, and the chandlery's fittings and rigging repair (piece G). */
   shipyard: YardSnapshot | undefined;
   fittings: YardSnapshot | undefined;
@@ -175,10 +250,20 @@ export interface LedgerSnapshot {
   prices: Record<string, Record<string, LedgerPrice>>;
   /** Ports where a merchant takes hot goods from you (piece H). */
   receivers: { id: string; text: string }[];
-  /** Pieces F and K fill these. */
-  contracts: { id: string; text: string }[];
+  /** Contracts in hand, then the last few finished (piece F). Piece K fills the rumors. */
+  contracts: { id: string; text: string; done: boolean }[];
   rumors: { id: string; text: string; age: string }[];
-  standing: { id: string; name: string; value: number }[];
+  /** Ports first, then companies; a company you stole from is marked. */
+  standing: { id: string; name: string; value: number; burned: boolean }[];
+}
+
+/** What the contract parts of the screens read. */
+export interface ContractSources {
+  defs: ContractDefs;
+  state: ContractsState;
+  standing: Standing;
+  /** The board at the open port, priced for this captain. */
+  board?: readonly BoardOffer[];
 }
 
 export interface PortSources {
@@ -195,6 +280,8 @@ export interface PortSources {
   refusals?: Refusals | undefined;
   /** Ports where you have a receiver (piece H). */
   receivers?: readonly string[] | undefined;
+  contracts?: ContractSources | undefined;
+  notices?: string[] | undefined;
   /** The player's ship and her name, for the shipyard and fittings (piece G). */
   ship?: { state: ShipState; name: string } | undefined;
 }
@@ -227,11 +314,97 @@ function elsewhere(
   };
 }
 
+/** "due in 34 h", or "overdue". */
+export function dueShort(dueAt: number, gameSeconds: number): string {
+  const hours = Math.ceil((dueAt - gameSeconds) / 3600);
+  return hours > 0 ? `due in ${hours} h` : 'overdue';
+}
+
+/** "by 18:00, Wk of May 14 (in 14 h)"; "overdue" once past. */
+export function dueText(dueAt: number, gameSeconds: number): string {
+  const hours = Math.ceil((dueAt - gameSeconds) / 3600);
+  const left = hours > 0 ? `in ${hours} h` : 'overdue';
+  return `by ${clockLabel(dueAt)}, ${weekLabel(dueAt)} (${left})`;
+}
+
+const KIND_WORD: Record<OfferRow['kind'], string> = {
+  freight: '',
+  rush: 'Rush: ',
+  mail: 'Mail: ',
+  fragile: 'Fragile: ',
+};
+
+const OUTCOME_WORD = {
+  delivered: 'delivered',
+  late: 'delivered late',
+  failed: 'failed',
+  abandoned: 'handed back',
+  stolen: 'stolen',
+} as const;
+
+function ledgerContracts(
+  econ: EconomyDefs,
+  c: ContractSources,
+  gameSeconds: number,
+): LedgerSnapshot['contracts'] {
+  const out: LedgerSnapshot['contracts'] = [];
+  for (const k of c.state.active) {
+    const what = `${KIND_WORD[k.kind]}${k.qty} CU of ${cargoName(econ, c.defs, k.good).toLowerCase()}`;
+    const route = `${portName(k.from)} → ${portName(k.to)} for ${companyName(c.defs, k.company)}`;
+    const when =
+      k.status === 'failed'
+        ? 'failed: hand the cargo back at a freight agent'
+        : `${dueText(k.dueAt, gameSeconds)}, pays ${formatCents(k.payCents)}`;
+    out.push({ id: k.id, text: `${what}, ${route}, ${when}`, done: false });
+  }
+  for (const h of c.state.history) {
+    const what = `${h.qty} CU of ${cargoName(econ, c.defs, h.good).toLowerCase()}`;
+    const paid = h.payCents > 0 ? `, ${formatCents(h.payCents)}` : '';
+    out.push({
+      id: `${h.id}:${h.outcome}`,
+      text: `${weekLabel(h.at)}: ${what}, ${portName(h.from)} → ${portName(h.to)} for ${companyName(c.defs, h.company)}, ${OUTCOME_WORD[h.outcome]}${paid}`,
+      done: true,
+    });
+  }
+  return out;
+}
+
+function ledgerStanding(c: ContractSources): LedgerSnapshot['standing'] {
+  const ids = new Set([...Object.keys(c.standing), ...c.state.burned]);
+  return [...ids]
+    .map((id) => ({
+      id,
+      name: id.startsWith('port.') ? portName(id) : companyName(c.defs, id),
+      value: Math.round(standingOf(c.standing, id)),
+      burned: c.state.burned.includes(id),
+    }))
+    .sort(
+      (a, b) =>
+        Number(b.id.startsWith('port.')) - Number(a.id.startsWith('port.')) ||
+        b.value - a.value ||
+        a.name.localeCompare(b.name),
+    );
+}
+
+/** What this port's Standing opens now (plan 05 §5.2), in a few words each. */
+export function standingPerks(defs: ContractDefs, value: number): string[] {
+  const perks: string[] = [];
+  const credit = depositCredit(defs.rules, value);
+  if (credit === 0) perks.push('No deposit asked');
+  else if (credit < 1) perks.push('Half deposits');
+  const bonus = Math.round(defs.rules.standingPayBonus * value);
+  if (bonus > 0) perks.push(`+${bonus}% pay`);
+  const discount = Math.round(shipyardDiscount(value, defs.rules) * 100);
+  if (discount > 0) perks.push(`${discount}% off at the shipyard`);
+  return perks;
+}
+
 export function ledgerSnapshot(
   defs: EconomyDefs,
   knowledge: PriceKnowledge,
   gameSeconds: number,
-  receivers: readonly string[] = [],
+  contracts?: ContractSources,
+  receivers?: readonly string[],
 ): LedgerSnapshot {
   const ports: (LedgerPort & { seenAt: number })[] = [];
   const goods = new Set<string>();
@@ -274,14 +447,68 @@ export function ledgerSnapshot(
       .sort(goodOrder(defs))
       .map((id) => ({ id, name: defs.goods.get(id)?.name ?? id })),
     prices,
-    receivers: receivers.map((id) => ({
+    receivers: (receivers ?? []).map((id) => ({
       id,
       text: `${portName(id)}: a merchant who asks no questions`,
     })),
-    contracts: [],
+    contracts: contracts ? ledgerContracts(defs, contracts, gameSeconds) : [],
     rumors: [],
-    standing: [],
+    standing: contracts ? ledgerStanding(contracts) : [],
   };
+}
+
+function freightSnapshot(
+  src: PortSources,
+  c: ContractSources,
+  services: readonly PortService[],
+): FreightSnapshot | undefined {
+  if (!services.includes('freight')) return undefined;
+  const { defs: econ, trader, capacity, port, gameSeconds } = src;
+  const free = holdFree(trader.cargo, capacity);
+  const offers: OfferRow[] = (c.board ?? []).map(({ terms: t, locked }) => {
+    let blocked: string | undefined;
+    if (locked) {
+      const who = locked.with.startsWith('port.')
+        ? portName(locked.with)
+        : (c.defs.companies.get(locked.with)?.short ?? locked.with);
+      blocked = `Needs Standing ${locked.need} with ${who}`;
+    } else if (free < t.qty) blocked = 'No room';
+    else if (trader.purse < t.depositCents) blocked = 'No deposit';
+    return {
+      id: t.id,
+      company: companyName(c.defs, t.company),
+      kind: t.kind,
+      companyTier: t.tier === 'company',
+      toName: portName(t.to),
+      cargo: cargoName(econ, c.defs, t.good),
+      qty: t.qty,
+      payCents: t.payCents,
+      depositCents: t.depositCents,
+      dueText: dueText(gameSeconds + t.allowSeconds, gameSeconds),
+      dueShort: dueShort(gameSeconds + t.allowSeconds, gameSeconds),
+      note: t.note,
+      blocked,
+      locked: !!locked,
+    };
+  });
+  const held: HeldContractRow[] = c.state.active.map((k) => ({
+    id: k.id,
+    company: companyName(c.defs, k.company),
+    kind: k.kind,
+    fromName: portName(k.from),
+    toName: portName(k.to),
+    cargo: cargoName(econ, c.defs, k.good),
+    qty: k.qty,
+    aboard: contractCargo(trader.cargo, k.id),
+    payCents: k.payCents,
+    depositCents: k.depositCents,
+    dueText: dueText(k.dueAt, gameSeconds),
+    dueShort: dueShort(k.dueAt, gameSeconds),
+    status: k.status === 'failed' ? 'failed' : gameSeconds > k.dueAt ? 'late' : 'onTime',
+    hits: k.hits,
+  }));
+  const value = Math.round(standingOf(c.standing, port));
+  return { offers, held, portStanding: value, perks: standingPerks(c.defs, value) };
 }
 
 export function portSnapshot(src: PortSources): PortSnapshot {
@@ -290,7 +517,10 @@ export function portSnapshot(src: PortSources): PortSnapshot {
   const pm = defs.markets.get(port);
   const services = info?.services ?? [];
   const tabs: PortTab[] = SERVICE_TABS.filter(
-    ([service, tab]) => services.includes(service) && (tab !== 'market' || !!pm),
+    ([service, tab]) =>
+      services.includes(service) &&
+      (tab !== 'market' || !!pm) &&
+      (tab !== 'freight' || !!src.contracts),
   ).map(([, tab]) => tab);
   tabs.push('ledger');
 
@@ -334,12 +564,20 @@ export function portSnapshot(src: PortSources): PortSnapshot {
         traded && isClean(s)
           ? unitPrices(defs, markets, port, s.good, gameSeconds)?.sellCents
           : undefined;
+      const c = src.contracts;
+      const k = s.contract ? c?.state.active.find((x) => x.id === s.contract) : undefined;
       return {
         good: s.good,
-        name: defs.goods.get(s.good)?.name ?? s.good,
+        name: c ? cargoName(defs, c.defs, s.good) : (defs.goods.get(s.good)?.name ?? s.good),
         qty: s.qty,
         hot: !!s.hot,
         contract: !!s.contract,
+        contractId: s.contract,
+        contractTo: k ? portName(k.to) : undefined,
+        stealCents:
+          k && traded && k.to !== port
+            ? quote(defs, markets, port, s.good, s.qty, 'sell', gameSeconds).totalCents
+            : undefined,
         sellCents: sell,
         index,
         offer:
@@ -397,8 +635,10 @@ export function portSnapshot(src: PortSources): PortSnapshot {
     market,
     hold,
     stores,
-    ledger: ledgerSnapshot(defs, knowledge, gameSeconds, src.receivers),
+    freight: src.contracts ? freightSnapshot(src, src.contracts, services) : undefined,
+    notices: src.notices ?? [],
     shipyard: yard('shipyard'),
     fittings: yard('chandlery'),
+    ledger: ledgerSnapshot(defs, knowledge, gameSeconds, src.contracts, src.receivers),
   };
 }

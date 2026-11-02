@@ -7,6 +7,12 @@ import type { CargoDelivered } from '../sim/traffic/cargo';
 import type { HailNews } from '../sim/traffic/news';
 import type { TradeCompletedEvent } from '../sim/economy/trade';
 import type { HotGoodsDetectedEvent } from '../sim/economy/contraband';
+import type {
+  ContractAcceptedEvent,
+  ContractCompletedEvent,
+  ContractFailedEvent,
+  ContractStolenEvent,
+} from '../sim/economy/contracts';
 import type { SmugglerDealtEvent } from '../sim/economy/smuggler';
 import type { ShipPurchasedEvent, ShipRepairedEvent, UpgradeEvent } from '../sim/shipyard/shipyard';
 import type { GameWorld } from '../gameplay/ecs';
@@ -81,6 +87,29 @@ export interface GameEvents {
   ContrabandSold: { port: string; good: string; qty: number; totalCents: number };
   SmugglerDealt: SmugglerDealtEvent;
   SmugglerLearned: { anchorage: string; source: string };
+  /**
+   * Freight contracts (plan 05 §5.2, §11; Phase 4 piece F): taken at a freight agent,
+   * delivered at the destination, failed (expired or handed back), or stolen by selling
+   * the cargo, which Phase 5 turns into Wanted.
+   */
+  ContractAccepted: ContractAcceptedEvent;
+  ContractCompleted: ContractCompletedEvent;
+  ContractFailed: ContractFailedEvent;
+  ContractStolen: ContractStolenEvent;
+  /**
+   * Hideouts (plan 09 §12, Phase 4 piece E): goods or cash moved between the ship and a
+   * hideout's storage. `in` is from the ship into the stash; a cargo move sets `good` and
+   * `qty`, a cash move `cents`.
+   */
+  StorageChanged: {
+    hideout: string;
+    direction: 'in' | 'out';
+    good?: string;
+    qty?: number;
+    cents?: number;
+  };
+  /** The captain let the clock run on at anchor or alongside (piece E). */
+  LayAtAnchor: { until: 'dawn' | 'dusk' | 'wind'; seconds: number };
   /**
    * The shipyard (plan 10 §11, Phase 4 piece G): a new hull bought with the old one traded
    * in, an upgrade fitted or taken out, and repairs at a yard, a chandlery or with a kit.

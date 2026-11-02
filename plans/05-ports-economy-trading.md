@@ -573,13 +573,102 @@ The four Apostles harbors are 55k triangles together, well inside the 250k harbo
 
 The shipyard, upgrades and repairs are recorded in [plan 10 §17](10-ship-upgrades-customization.md). What touches this plan: Duluth gains the `shipyard` service (§3 of plan 10 names it with Superior and Ashland), the T2's `cargoCapacity` is 45 CU, `GameEconomy.capacity` follows the ship's class and expanded hold, cargo that won't fit a new hull is sold to the port's market at 80% of its sell price (moving the stock as a sale would), and the chandlery tab gains rigging repair and instrument fittings. Patch and mend kits from §18's chandlery are now used at sea with K. The yard rebuilds the sailing class through `adjustClass`, so the Deckhand's perks from §19 stay on a new hull.
 
-## 21. Phase 4 Piece H: Contraband and the Island Smuggler (2026-11-01)
+## 21. Phase 4 Piece E: the Stockton Stash (2026-11-02)
+
+**Goal** (§16.4, piece E): Stockton Island's Presque Isle bay as every background's starting hideout, a fixed prefab with storage for cargo and cash, lying at anchor until a set hour, the stash on the chart, and cash on hand kept apart from cash stashed (§2).
+
+**Result:** sail out of Bayfield to the south shore of Stockton, come alongside the stash landing under the shack, and the stash screen opens over the paused game. Stash the hold and some of the purse, lie at anchor until dusk, and find it all still there after a reload, with none of it in the hold. Screenshots are in the project files (`stockton-stash/`).
+
+### 21.1 What was built
+
+| Piece | Where | Notes |
+|---|---|---|
+| Footprint | `data/zones.json`, `public/world/apostles/` | `setpiece.stockton` at the head of Presque Isle bay (46.9243° N, 90.5621° W) facing 200°, 140 m along, 60 m inland, flattened to 1.4 m. Set pieces now name a `port` or a hideout `site`, not both. Rebaked with `geo:build` and `geo:canopy`: 21k samples flattened; two height tiles and two Stockton on-foot tiles changed. As in piece I, the rebake also carries the few thousand wind cells near the zone's edges that a GDAL 3.8 bake computes differently (§17.3) |
+| Sites | `data/sites.json`, `data/schemas/sites.ts` | Plan 09 §12's `sites.json` with its first site: `site.stockton` (Apostles region, concealment 0.6, abandoned, an anchorage 70 m off the landing with a 90 m radius, a 40 CU shed and a strongbox, the start for all six backgrounds) |
+| Prefab | `data/harbors.json`, `src/render/harbors/harbor-kit.ts` | `harbor.stockton` in the harbor kit: a 34 m plank **landing** (a new pier kind) and three new building kinds, a fisherman's **shack** with a stovepipe and a lit window, an iron-strapped **strongbox** and a **storage shed** with barrels and crates by the door. 800 triangles; no NPC ship berths there (it has no port) |
+| Save | `src/sim/world-state.ts` | A `hideouts` slice (plan 09 §12's shape: site, when claimed, `storage.goods` as hold stacks and `storage.cash` in cents). Optional and filled on load with the background's starting hideout, like piece D's `traffic`, so there's **no save version bump** and saves from before piece E get an empty stash |
+| Storage | `src/sim/hideouts/stash.ts` | Moves keep each lot's identity: hot goods stay hot with their heat and time, contract cargo keeps its contract, so stashing launders nothing. The shed holds 40 CU (two T1 holds); taking goods aboard stops at the hold's room. Cash needs a strongbox |
+| Stash screen | `src/gameplay/stash.ts`, `src/ui/stash/` | Opens on docking at the landing, or with **P** anchored inside the anchorage. The hold and the shed side by side with capacity bars, hot goods marked; shift-click moves a whole lot, ctrl-click one CU, a click picks it for the slider (13 §6). Purse ↔ strongbox in dollars (shift-click moves it all). Esc goes back aboard, F casts off, the HUD's button reads "Stockton stash **P**". `StorageChanged` on every move (plan 09 §12; piece C ticks the First Week's step 3 from it) |
+| Lie at anchor | `src/sim/hideouts/lie-at-anchor.ts` | **Z** (rebindable), or the stash screen's footer: until dawn, until dusk, or until the wind backs or veers 45° or changes 8 kn (at most a game day). Allowed anchored in a lee (shelter from the wind as it blows ≥ 0.3, or under 6 kn anywhere) or alongside any pier; refused under way, aground, dragging, or with a ship under way within 350 m. The world ticks run as on the chart (markets, traffic, weather), then the game saves (09 §3's autosave point) and the HUD says how long she lay. `LayAtAnchor` on the bus |
+| Chart | `src/render/chart/chart-view.ts`, `src/modes/chart-travel.ts` | Each hideout is marked in signal red, a penciled cross in a ring with its name, "Stockton stash" |
+| Cash | `src/ui/port/` | The port screen's header shows "Stashed $…" beside the purse when there's money in a strongbox |
+| Dev hook | `src/main.ts` | `__glpStash`: `open`, `close`, `here`, `hideouts`, `stash`, `take`, `stashCash`, `takeCash`, `lie`, `refusal`. `?harbor=stockton` starts 120 m off the landing |
+
+### 21.2 Decisions made in the piece
+
+- **The landing is the mooring.** A short plank stage the auto-dock already knows, so "moored there" is docking at it, as at a port. Anchored in the bay works too (P), since a hideout's whole point is a quiet anchorage.
+- **40 CU in the shed.** Plan 09 §5.4 sizes storage pieces at 5–40 CU; a starting hideout's "basic storage" is two T1 holds, so a captain can lay up a season's cargo without a warehouse. Phase 8's pieces add to it.
+- **Lying at anchor works alongside any pier too,** not only at anchor, since plan 03 §2 lists in port and moored. Ships berthed in a harbor don't count as "in sight"; only ships under way do.
+- **No fade or progress screen for the lie.** A day of world ticks runs in a few milliseconds, so the clock just jumps and the HUD says how long it was.
+
+### 21.3 Checks
+
+`tests/stash.test.ts` (13 tests): the starting stash for every background, a save from before piece E gaining it on load, storage surviving a save round trip and never showing in the hold, moves keeping hot and contract lots apart, the shed's capacity and the hold's room, cash both ways, the lie's refusals, dawn and dusk from the sun, the wind shift and the day cap, the stash screen opening at the landing and raising `StorageChanged`, and on the baked zone: an anchorage 3–30 m deep in the lee of a northwester (shelter above 0.3) and the prefab on dry ground. `tests/harbors.test.ts` docks the T1 at the landing's berths on the real terrain. A new e2e smoke test docks at the landing, stashes the cargo and $100 through the screen, lies until dusk, reloads and finds both in the stash and neither aboard. The full unit suite (865) and all 15 e2e smoke tests pass.
+
+### 21.4 Still to do
+
+- Jared's look at the stash (§16.4 piece E's "Needs Jared").
+- Criterion 6's full round trip to Duluth and back runs in piece L's playtest; the e2e test covers the reload.
+- The quarry ruin plan 09 §2.1 lists for the site, and the smuggler's anchorage nearby, are piece H's and Phase 8's.
+
+## 22. Phase 4 Piece F: Contracts and Standing (2026-11-02)
+
+**Goal** (§16.4, piece F): `contracts.json` templates and the freight agent's offers by port and season (§5.2), with deposits, deadlines, rush and mail variants and company contracts; Standing per port and company and what it opens in Phase 4; contract cargo marked, and selling it the once-per-company theft raising `ContractStolen`. Plus a contracts bot in the balance harness against the §5.3 target.
+
+**Result:** dock at Duluth, open the **Freight agent** tab, take 13 CU of kerosene for the Gogebic & Lake Shore's ore dock, sail it to Ashland, and the agent pays you and hands the deposit back as you come alongside. Screenshots are in the project files (`contracts/`).
+
+### 22.1 What was built
+
+| Area | Built | Where |
+|---|---|---|
+| Templates | 25 templates, each one shipper's standing business: what it sends, from which ports to which, how much and in what season. Every company in `factions.json` but the Revenue Service ships something (Hollister's fish out of Bayfield and salt back, the railroads' stores to Two Harbors and Ashland, Whitlock's camp stores and lumber, Northland Packet's mail and package freight, the barge works' yard stores, maple sugar in spring and wild rice in fall). **Every contract has a shipper**, so stealing any of them burns a company | `data/contracts.json`, `data/schemas/contracts.ts` |
+| Kinds and tiers | **Freight**; **rush** (half the allowance, 1.5× pay); **mail** (2–4 CU of mail sacks, 2.5× pay, Standing counts double both ways; a parcel, not a market good, so it can't be sold); **fragile** (1.4× pay, and each hard knock on the way, a strike, a knockdown or a hard grounding, costs a quarter of it). **Company** tier templates are a firm's better business: larger lots at 1.25× pay, offered at Standing 20–25 with the firm | `contract-rules.ts` |
+| The board | Every port with a freight agent (all but La Pointe; a `freight` service in `ports.json`) posts a board each game day (a calendar week): 2 offers in Duluth and Superior, 1 elsewhere, drawn from the templates leaving that port that are in season. A board is a pure function of the run's seed, the port and the week, like the traffic's manifests, so only the offers taken are saved. Offers that need more Standing are listed greyed with what they need | `src/sim/economy/contracts.ts` |
+| Terms | Pay a CU = 25¢ + 5¢ a real minute of the passage (the harness's passage table, now `passages.ts`), × kind, × tier, + up to 10% at Standing 100. The deposit is a third of the pay. Time allowed: the passage's game time × 3 + 6 h (at least 12 h) for freight and fragile, × 2 + 4 h for mail, × 1.5 + 2 h for rush. A late window of half the allowance pays half; past it the contract fails | `contract-rules.ts` |
+| Taking and delivering | Taking loads the cargo marked with the contract and pays the deposit. Docking at the destination delivers: pay plus the deposit back, shown as a line at the top of the port screen. A failed contract's deposit is lost and its cargo is handed back at the next freight agent. **Hand back** on the freight tab gives a contract up (deposit lost, a little Standing). The world tick fails contracts past their window | `src/gameplay/contracts.ts`, `src/gameplay/port.ts` |
+| Standing | Per port and company, 0–100 (`player.standing`). On time: +2 the offering port, +1 the destination, +3 the shipper; late −2/0/−3; failed −5/−2/−8; handed back −3/0/−4. What it opens: company-tier contracts (20–25 with the firm), more pay (up to +10%), half deposits at 30 and none at 60 with the port, and `shipyardDiscount()` (up to 15% at 100, plan 10 §3) for piece G | `contracts.ts` |
+| Theft | Contract cargo on the hold panel of a market that buys it has a **Sell…** button; the second click sells it at the market's price. The shipper drops to Standing 0 for good and never appears on a board again, the offering port loses 10, and `ContractStolen` (with `TradeCompleted`) goes on the bus for Phase 5 | `stealContract` |
+| Screens | The **Freight agent** tab: the board (cargo, destination, shipper, pay, deposit, the due time if taken now, and why an offer can't be taken), the contracts in hand with their state, and Standing with the port and what it opens. The ledger's Contracts tab lists those in hand and the last 12 finished; its Standing tab lists every port and company, a burned one marked | `src/ui/port/` |
+| Events | `ContractAccepted`, `ContractCompleted` (`{ contractId, from, to, company, good, qty, payCents, late }`; piece C ticks the First Week's step 2 on it), `ContractFailed` (`expired` or `abandoned`), `ContractStolen` | `src/modes/context.ts` |
+| Save | A `contracts` slice (in hand, taken offer ids, burned companies, the last 12 finished, a tally) and `player.standing`, both optional and filled on load like the traffic slice, so **no version bump** and no clash with the pieces building in parallel | `src/sim/world-state.ts` |
+| Dev hook | `__glpContracts` (dev builds and `?debug`): `board`, `accept`, `arrive`, `steal`, `abandon`, `state`, `standing`, `setStanding` | `src/main.ts` |
+
+### 22.2 Balance (§5.3)
+
+The harness's legit bot gained a contracts mode (`runTrader` with `contracts`): at each call it delivers, then for each passage it weighs the offers bound there against the trade they would push out of the hold, and sails for a contract that's near its due time.
+
+| Check | Result |
+|---|---|
+| T2 on the legit path (net worth $1,350: a $1,600 T2 less the T1 trade-in), Deckhand start, 8 runs from the four starting ports and two seeds | **8.6–9.0 real hours** with contracts, about $118–122 a real hour; trade alone is 10.6 h at ~$104 |
+| Contracts in those 12 h | 35–45 delivered, none late or failed, $240–310 in pay; Standing reaches 30–45 with Duluth and up to 84 with Northland Packet (the mail) |
+| Deep purse with contracts (criterion 4) | Under the $150 an hour and $150 a game day ceilings with a 45 CU hold over 6 real hours, the hardest case found (early hours pay best) |
+| Take-and-hand-back loop | Loses the deposit every time |
+
+`tests/economy-balance.test.ts` runs the T2 check from Bayfield and Duluth (8–12 h, better than trade alone) and the ceiling with contracts; `npm run bench:economy` prints all eight runs.
+
+### 22.3 Decisions made in the piece
+
+- **Contracts fill the hold; they don't replace trade.** With pay near trade's per CU, a contract mostly pays for space a good cargo leaves empty (market depth limits how much is worth buying), with no money tied up. A typical offer pays **$5–15**, well under the §5.2 example ($90 for 15 CU), because a board of better-paying offers put the perfect-knowledge bot at a T2 in 5 hours. The bot is the fastest a player can be, so it sits at the low end of 8–12 on purpose. If contracts feel too small to bother with in play, the lever is fewer, larger offers rather than more pay.
+- **A board a week, one or two offers.** The board changes with the calendar week (a game day), which also matches the "by the week of June 4" wording.
+- **Delivery happens on docking**, at any port, so La Pointe takes contracts in without a freight agent of its own; it posts none.
+- **Contract cargo doesn't move the markets** when loaded or delivered: it's consigned, like most of a traffic ship's hold (§16.9). Selling it as theft does.
+- **Standing with a port is shared by everyone's contracts there;** a company's is earned only with that company. Phase 5's crimes lower it too (plan 06 §4.3).
+
+### 22.4 Still to do
+
+- Jared's feel for contract pay against trade (§22.3).
+- The `stamp` sound for a taken contract (plan 15 §17, piece J) on `ContractAccepted`.
+- Phase 5 turns `ContractStolen` into Wanted (plan 06 §2: 40, always traced).
+- Piece G applies `shipyardDiscount(standing[port])` at the shipyards; piece C ticks First Week step 2 on `ContractCompleted`.
+- Mail sacks weigh like the heaviest goods in the hold's load (an unknown good's weight factor is 1); a 2–4 CU lot hardly shows.
+
+## 23. Phase 4 Piece H: Contraband and the Island Smuggler (2026-11-01)
 
 **Goal** (§16.4, piece H): hot goods (§6.1) with a dev command to make cargo hot until Phase 6 can, untaxed whiskey, and the island smuggler (decision 1): a boat at an Apostles anchorage after dark that sells contraband and fences hot goods at 40–70% with weekly cash (§6.2). Selling hot goods or contraband to a merchant rolls detection: refused or confiscated, with `HotGoodsDetected` raised for Phase 5. Her anchorage is learned from a rumor or the starting background.
 
 **Result:** after dark the fish tug *Whippoorwill* lies to her anchor in Oak Island's lee, about seven nautical miles north of Bayfield. Come alongside slowly and F opens her screen over the paused game: buy her untaxed whiskey at $30 a CU, or sell her a hot lot for 40% of its value. Take the whiskey into Bayfield and offer it from the hold on the port screen: sold on the quiet for about $55 a CU, refused, or taken off you by the revenue man. Screenshots are in the project files (`smuggler/`).
 
-### 21.1 What was built
+### 23.1 What was built
 
 | Piece | Where | Notes |
 |---|---|---|
@@ -596,7 +685,7 @@ The shipyard, upgrades and repairs are recorded in [plan 10 §17](10-ship-upgrad
 | Save | `src/sim/world-state.ts` | A `contraband` slice: her cash, stock and night, what you've dealt with her, the ports that turned you away and the week, and whether you know her anchorage. Optional and filled on load, so no version bump and no migration. The `receivers` list defaults to empty |
 | Dev hook | `src/main.ts` | `__glpContraband` (dev builds and `?debug`): `makeHot(good, qty, region, heat)` is the dev command until Phase 6's theft, `alongside()` lays the ship beside her, `open()`, `learn()`, `known()`, `present()`, `state()`, `offer(port, index)`. `?hour=23` starts after dark |
 
-### 21.2 Decisions made in the piece
+### 23.2 Decisions made in the piece
 
 - **Oak Island's lee.** The south shore of Oak Island, off the sandspit: sheltered from the north and northwest, close to Bayfield and Red Cliff but out of sight of both, and in `region.apostles` with La Pointe rather than the Bayfield–Ashland region. The rumors thread (piece K) uses the same id and name, from `smugglerAnchorage()`.
 - **A fish tug, not a sailing boat.** The fish tug is the one small NPC class drawn, and a tug with no catch aboard is a believable smuggler in 1900 (not checked against sources). She keeps her stack's smoke and her lit windows; a model with one lantern and no lights can come with the art pass.
@@ -606,11 +695,11 @@ The shipyard, upgrades and repairs are recorded in [plan 10 §17](10-ship-upgrad
 - **Receivers (Jared, 2026-11-02).** A risk every time made offering not worth trying, so the first sale in a port is the gamble and a receiver is safe after it. Receivers pay 75%, so the smuggler (40–70% of base value, no questions about how hot) stays the outlet for fresh marked goods. With a receiver in Bayfield, a night's 12 CU of whiskey nets about $11 a CU over her price, about $130 a game day: smuggling's steady income, bounded by her stock, until Phase 5's Wanted puts a price on it.
 - **Contraband pays on the quiet.** An undetected whiskey sale fetches about $55 a CU in Bayfield against $30 from her, with about a 6-in-10 chance of being found out on a full night's 12 CU (half of those confiscated). That is the "big margins" of §6.3 with the cost Phase 4 allows (§16.5); Phase 5's Wanted adds the real cost.
 
-### 21.3 Checks
+### 23.3 Checks
 
 `tests/contraband.test.ts` (28 tests, five on receivers): heat and its cooling, the dev command, the detection odds by heat, region, marks, port and lot, the roll coming out at the odds over 400 runs and the same way twice, quiet sales leaving the market alone, hot sales moving it, refusal and confiscation with the event and the week's turning away (criterion 7), the anchorage and the dark, the 40–70% rate, what she won't take, her stock and cash for a night and the next, knowing her anchorage, the save slice, her boat coming and going in play, her screen and its deals, offering from the port screen, and her anchorage's water on the baked Apostles. The e2e smoke test meets her at 23:00, fences hot rope and canvas at 40%, buys her whiskey and offers it in Bayfield. The full unit suite and the e2e tests pass.
 
-### 21.4 Still to do
+### 23.4 Still to do
 
 - Jared's feel for the smuggler (§16.4 piece H's "Needs Jared").
 - Piece K wires its smuggler rumor into `knowsAnchorage`; piece J can hang coin sounds on `SmugglerDealt` and `ContrabandSold`.
@@ -621,7 +710,9 @@ The shipyard, upgrades and repairs are recorded in [plan 10 §17](10-ship-upgrad
 
 ## Changelog
 - v0.7: Phase 4 piece G recorded (§20): Duluth's shipyard, the T2's hold, cargo sold on a trade-in, chandlery repairs and fittings.
-
+- v0.7: Phase 4 piece E built (§21): the Stockton stash at Presque Isle bay, `sites.json`, the hideouts save slice, the stash screen, lying at anchor, the stash on the chart.
+- v0.7: Phase 4 piece F built (§22): contract templates and boards, deposits and deadlines, rush, mail, fragile and company contracts, Standing and what it opens, contract theft, the freight agent tab, the contracts bot in the balance harness.
+- v0.7: Phase 4 piece H built (§23): hot goods and detection, the island smuggler at Oak Island's lee, receivers, and her anchorage on the chart.
 - v0.6: Phase 4 piece C built (§19): the main menu, character creation, six backgrounds and portraits, the new run docked at dawn, the Phase 4 perks, the First Week checklist.
 - v0.6: Phase 4 piece D built (§16.9): flows and manifests, deliveries that move stock, the traffic save slice, ships in the zones and at berths, look her over and hailing; two company names replaced after the names check.
 - v0.5: Phase 4 piece B built (§18): piers with ports, the port screen, the trade screen, price knowledge, the ledger in journal v1, the chandlery, save v6.

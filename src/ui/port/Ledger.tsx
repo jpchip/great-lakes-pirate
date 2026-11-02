@@ -149,11 +149,13 @@ export function Ledger({ ledger, here }: { ledger: LedgerSnapshot; here?: string
         (ledger.contracts.length ? (
           <ul class="ledger-list">
             {ledger.contracts.map((c) => (
-              <li key={c.id}>{c.text}</li>
+              <li key={c.id} class={c.done ? 'ledger-done' : ''}>
+                {c.text}
+              </li>
             ))}
           </ul>
         ) : (
-          <Empty text="No contracts in hand." />
+          <Empty text="No contracts yet. A port's freight agent has them." />
         ))}
       {tab === 'rumors' &&
         (ledger.rumors.length ? (
@@ -179,7 +181,7 @@ export function Ledger({ ledger, here }: { ledger: LedgerSnapshot; here?: string
           <ul class="ledger-list">
             {ledger.standing.map((s) => (
               <li key={s.id}>
-                {s.name}: {s.value}
+                {s.name}: {s.burned ? '0, for good (you stole their cargo)' : s.value}
               </li>
             ))}
           </ul>

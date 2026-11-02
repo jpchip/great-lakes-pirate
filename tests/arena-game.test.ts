@@ -11,7 +11,7 @@ import {
   stepArenaRun,
   type ArenaInputs,
 } from '../src/sim/arena/arena';
-import { coastRuns } from '../src/sim/arena/coast';
+import { BACK_INLAND, coastRuns } from '../src/sim/arena/coast';
 import {
   CONTACT_CLASS,
   DEV_ARENA_AT_GEO,
@@ -221,6 +221,44 @@ describe('arena land', () => {
         false,
       );
     expect(chartToZone(off.origin, off)).toEqual({ x: 0, z: -0 });
+  });
+
+  it('keeps each silhouette on its own land, never out over the water beyond it', () => {
+    // Among the Apostles, where Sand, York and Eagle islands are narrower than a full
+    // profile: their back slopes used to stand out over the lake as a dark wall.
+    const frame = arenaFrame(geo.projection.geoToChart({ lat: 46.96, lon: -90.98 }));
+    const runs = coastRuns(geo, frame);
+    let over = 0;
+    let n = 0;
+    let narrowed = 0;
+    for (const r of runs) {
+      for (const p of r.points) {
+        n++;
+        if (p.inlandM < p.heightM * BACK_INLAND) narrowed++;
+        // The back slope's foot, a little short of it so a shore's own wobble doesn't count.
+        const reach = p.inlandM * 0.9;
+        const c = zoneToChart({ x: p.x + p.nx * reach, z: p.z + p.nz * reach }, frame);
+        if (isWater(geo, c)) over++;
+      }
+    }
+    expect(n).toBeGreaterThan(200);
+    expect(narrowed).toBeGreaterThan(0);
+    expect(over / n).toBeLessThan(0.02);
+  });
+
+  it('draws no coast along the edge where the chart data was cut off', () => {
+    // The lake ring's straight eastern edge (chart x ≈ 83.5 km) is open lake, not shore.
+    const ring = geo.water.points;
+    const east = Math.max(...ring.map((p) => p.x));
+    const frame = arenaFrame({ x: east - 2000, y: 20_000 });
+    const edgeX = chartToZone({ x: east, y: 0 }, frame).x;
+    const ends = ring.filter((p) => p.x === east).map((p) => chartToZone(p, frame).z);
+    expect(ends.length).toBe(2);
+    // Only the real shores that meet it at its two ends may come near it.
+    const along = coastRuns(geo, frame).flatMap((r) =>
+      r.points.filter((p) => edgeX - p.x < 50 && ends.every((z) => Math.abs(p.z - z) > 500)),
+    );
+    expect(along).toEqual([]);
   });
 });
 

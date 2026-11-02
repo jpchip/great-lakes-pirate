@@ -483,6 +483,62 @@
     }
   },
   {
+    "id": "harbor.stockton",
+    "name": "Presque Isle bay",
+    "setPiece": "setpiece.stockton",
+    "piers": [
+      {
+        "id": "pier.stockton_landing",
+        "name": "Stash landing",
+        "kind": "landing",
+        "alongM": 0,
+        "inlandM": 20,
+        "lengthM": 34,
+        "widthM": 3.5,
+        "deckM": 1.3
+      }
+    ],
+    "buildings": [
+      {
+        "kind": "shack",
+        "name": "The shack",
+        "alongM": -26,
+        "inlandM": 24,
+        "widthM": 5,
+        "depthM": 4,
+        "heightM": 2.8,
+        "yawDeg": 8
+      },
+      {
+        "kind": "strongbox",
+        "name": "Strongbox",
+        "alongM": -18,
+        "inlandM": 21,
+        "widthM": 1.4,
+        "depthM": 1,
+        "heightM": 0.9,
+        "yawDeg": 8
+      },
+      {
+        "kind": "storageShed",
+        "name": "Storage shed",
+        "alongM": 22,
+        "inlandM": 26,
+        "widthM": 7,
+        "depthM": 5,
+        "heightM": 3.2,
+        "yawDeg": -6
+      }
+    ],
+    "town": {
+      "houses": 0,
+      "alongM": [-40, 40],
+      "inlandM": [10, 40],
+      "maxGroundM": 6,
+      "seed": 1900
+    }
+  },
+  {
     "id": "harbor.duluth_canal",
     "name": "Duluth Ship Canal",
     "setPiece": "setpiece.duluth_canal",
