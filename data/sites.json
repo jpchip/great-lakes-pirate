@@ -2,7 +2,7 @@
   {
     "id": "site.stockton",
     "name": "Presque Isle bay, Stockton Island",
-    "shortName": "Stockton stash",
+    "shortName": "Stockton Stash",
     "zone": "zone.apostles",
     "island": "island.stockton",
     "setPiece": "setpiece.stockton",

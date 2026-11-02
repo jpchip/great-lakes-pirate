@@ -604,7 +604,7 @@ test('stashes cargo and cash at Stockton and keeps them through a reload', async
   // Esc goes back aboard; the HUD offers the stash, and P reopens it.
   await page.keyboard.press('Escape');
   await expect(screen).toHaveCount(0);
-  await expect(page.getByTestId('hud-port')).toHaveText(/Stockton stash/);
+  await expect(page.getByTestId('hud-port')).toHaveText(/Stockton Stash/);
   await page.keyboard.press('KeyP');
   await expect(screen).toBeVisible();
   // Alongside, the captain can lie until dusk; the clock runs on.

@@ -61,7 +61,7 @@ export function stashSnapshot(opts: {
   const site = siteDef(h.siteId);
   return {
     hideout: opts.hideoutId,
-    siteName: site?.name ?? h.siteId,
+    siteName: 'Stockton Stash',
     blurb: site?.blurb ?? '',
     dateText: weekLabel(opts.gameSeconds),
     purseCents: player.purse,

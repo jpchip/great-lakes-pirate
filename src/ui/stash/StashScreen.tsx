@@ -217,7 +217,6 @@ export function LieButtons({
   ];
   return (
     <span class="stash-lie" title={refusal}>
-      <span class="port-dim">Lie at anchor:</span>
       {choices.map(([id, label]) => (
         <button
           type="button"
@@ -253,9 +252,7 @@ export function StashScreen({ stash, actions }: { stash: StashSnapshot; actions:
       <div class="menu port" role="dialog" aria-modal="true" aria-label={stash.siteName}>
         <header class="menu-header">
           <h2>{stash.siteName}</h2>
-          <span class="port-purse">{stash.dateText}</span>
         </header>
-        <p class="menu-note">{stash.blurb}</p>
         {message && (
           <p class="port-message" role="status" data-testid="stash-message">
             {message}
@@ -263,7 +260,7 @@ export function StashScreen({ stash, actions }: { stash: StashSnapshot; actions:
         )}
         <div class="port-body stash-body">
           <Column
-            title="Your hold"
+            title="Hold"
             rows={stash.hold}
             used={stash.holdUsed}
             capacity={stash.holdCapacity}
@@ -273,7 +270,7 @@ export function StashScreen({ stash, actions }: { stash: StashSnapshot; actions:
             testid="stash-hold"
           />
           <Column
-            title="The storage shed"
+            title="Shed"
             rows={stash.stash}
             used={stash.stashUsed}
             capacity={stash.stashCapacity}
@@ -295,10 +292,6 @@ export function StashScreen({ stash, actions }: { stash: StashSnapshot; actions:
           />
         )}
         <Cash stash={stash} actions={actions} setMessage={setMessage} />
-        <p class="menu-note">
-          What's stored here is safe: it isn't aboard, so it can't be lost with the ship or found in
-          a search.
-        </p>
         <footer class="menu-footer port-footer">
           <LieButtons refusal={stash.lieRefusal} lie={actions.lie} setMessage={setMessage} />
           <button
@@ -332,7 +325,6 @@ export function LieDialog({ actions }: { actions: StashActions }) {
         <header class="menu-header">
           <h2>Lie at anchor</h2>
         </header>
-        <p class="menu-note">Let the hours pass here. The lake goes on without you.</p>
         {message && (
           <p class="port-message" role="status">
             {message}

@@ -243,7 +243,7 @@ describe('the stash in play (piece E)', () => {
     hazards.state.mooring = 'docked';
     expect(stash.openHideout).toBe('hideout.stockton');
     expect(opens).toEqual([true]);
-    expect(shown.at(-1)?.siteName).toBe('Presque Isle bay, Stockton Island');
+    expect(shown.at(-1)?.siteName).toBe('Stockton Stash');
     expect(shown.at(-1)?.stashCapacity).toBe(40);
 
     economy.syncLoad();
