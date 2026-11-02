@@ -15,6 +15,7 @@ import {
 import type { PortActions } from '../ui/port/PortScreen';
 import type { GameEconomy } from './economy';
 import type { ShipHazards } from './hazards';
+import type { RumorControl } from './rumors';
 
 /**
  * Ports at the pier (plan 05 §7, Phase 4 piece B). Docking at a berth on one of a port's
@@ -45,6 +46,8 @@ export interface PortControlOptions {
   ctx: GameContext;
   economy: GameEconomy;
   hazards: ShipHazards;
+  /** The saloons' talk (piece K); without it no port shows a saloon. */
+  rumors?: RumorControl | undefined;
   /** The pier a berth belongs to, from the zone's berths. */
   berthPier(berthId: string): string | undefined;
   /** Show or hide the screens. */
@@ -91,6 +94,11 @@ export function attachPorts(opts: PortControlOptions): PortControl {
       cargoSpeedLoss: hazards.cls.rules.cargoSpeedLoss,
       port,
       gameSeconds: now(),
+      rumors: ctx.state.knowledge.rumors,
+      saloon:
+        opts.rumors && portInfo(port)?.services.includes('tavern')
+          ? opts.rumors.terms(port)
+          : undefined,
     });
   };
   /** Writes down this port's prices as they stand now (plan 05 §4.3). */
@@ -163,7 +171,9 @@ export function attachPorts(opts: PortControlOptions): PortControl {
     openJournal() {
       if (journalOpen || openPort) return;
       journalOpen = true;
-      opts.showJournal(ledgerSnapshot(economy.defs, ctx.state.knowledge.prices, now()));
+      opts.showJournal(
+        ledgerSnapshot(economy.defs, ctx.state.knowledge.prices, now(), ctx.state.knowledge.rumors),
+      );
       opts.onOpen(true);
     },
     closeJournal() {
@@ -190,6 +200,13 @@ export function attachPorts(opts: PortControlOptions): PortControl {
         });
         refresh();
         return undefined;
+      },
+      buyRound() {
+        const port = openPort;
+        if (!port || !opts.rumors) return 'The saloon is closed.';
+        const r = opts.rumors.buyRound(port);
+        refresh();
+        return r.ok ? undefined : r.reason;
       },
       close,
       castOff() {

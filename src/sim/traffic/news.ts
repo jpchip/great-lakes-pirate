@@ -91,10 +91,12 @@ export function portName(id: string | undefined, fallback = 'port'): string {
 }
 
 export function goodName(economy: EconomyDefs, id: string): string {
-  return (economy.goods.get(id)?.name ?? id).toLowerCase();
+  // Talk drops the trade screen's qualifiers: "brownstone", not "brownstone (salvaged)".
+  return (economy.goods.get(id)?.name ?? id).replace(/\s*\(.*\)$/, '').toLowerCase();
 }
 
-function dayWord(at: number, now: number): string {
+/** "today", "tomorrow", "the week of Jun 4": when a sailing is, as talk has it. */
+export function dayWord(at: number, now: number): string {
   const days = (at - now) / SECONDS_PER_GAME_DAY;
   if (days < 0.5) return 'today';
   if (days < 1.5) return 'tomorrow';
@@ -102,24 +104,36 @@ function dayWord(at: number, now: number): string {
   return `the week of ${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })}`;
 }
 
+/** A loaded sailing on the timetable: a ship, her first cargo, where from and to, and when. */
+export interface Sailing {
+  shipId: string;
+  good: string;
+  fromPort: string;
+  toPort: string | undefined;
+  at: number;
+}
+
 /**
- * A shipment tip: the next trade ship (not this one) to sail loaded from a port within
- * three game days, chosen by the hail's draw. The name and cargo are the sim's own.
+ * Every trade ship (but `exceptId`) that sails loaded from a port after `gameSeconds` and
+ * within `horizonDays` game days, soonest first. The names, cargo and times are the sim's
+ * own: the source of shipment tips at sea and in the saloons (piece K).
  */
-export function shipmentTip(
+export function upcomingSailings(
   defs: TrafficDefs,
   economy: EconomyDefs,
   contacts: readonly Contact[],
-  self: Contact,
   gameSeconds: number,
-): HailNews['tip'] {
-  const horizon = gameSeconds + 3 * SECONDS_PER_GAME_DAY;
-  const options: NonNullable<HailNews['tip']>[] = [];
+  horizonDays: number,
+  exceptId?: string,
+): Sailing[] {
+  const horizon = gameSeconds + horizonDays * SECONDS_PER_GAME_DAY;
+  const options: Sailing[] = [];
   for (const c of contacts) {
     const s = c.schedule;
-    if (!s || c.id === self.id || !c.prize) continue;
+    if (!s || c.id === exceptId || !c.prize) continue;
     const k0 = Math.floor((gameSeconds + s.phaseS) / cycleS(s));
-    for (let k = k0; k <= k0 + 2; k++) {
+    const cycles = Math.ceil((horizonDays * SECONDS_PER_GAME_DAY) / cycleS(s)) + 1;
+    for (let k = k0; k <= k0 + cycles; k++) {
       if (!sailsInCycle(s, k)) continue;
       const start = cycleStartS(s, k);
       const transit = s.lengthM / s.speedMs;
@@ -133,8 +147,23 @@ export function shipmentTip(
       }
     }
   }
-  if (options.length === 0) return undefined;
   options.sort((a, b) => a.at - b.at || a.shipId.localeCompare(b.shipId));
+  return options;
+}
+
+/**
+ * A shipment tip: the next trade ship (not this one) to sail loaded from a port within
+ * three game days, chosen by the hail's draw. The name and cargo are the sim's own.
+ */
+export function shipmentTip(
+  defs: TrafficDefs,
+  economy: EconomyDefs,
+  contacts: readonly Contact[],
+  self: Contact,
+  gameSeconds: number,
+): HailNews['tip'] {
+  const options = upcomingSailings(defs, economy, contacts, gameSeconds, 3, self.id);
+  if (options.length === 0) return undefined;
   const u = hash01(`${self.id}:${Math.floor(gameSeconds / 3600)}:tip`);
   return options[Math.floor(u * Math.min(options.length, 4))];
 }

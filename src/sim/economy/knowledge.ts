@@ -17,6 +17,8 @@ export interface SeenPrice {
   sellCents: number;
   /** Game seconds when seen. */
   seenAt: number;
+  /** Heard, not seen with your own eyes (piece K): a rumor's or a hailed ship's. */
+  heard?: 'rumor' | 'hail' | undefined;
 }
 
 export type PriceKnowledge = Record<string, Record<string, SeenPrice>>;

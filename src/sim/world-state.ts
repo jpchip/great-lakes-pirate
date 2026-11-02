@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { RUMOR_KINDS } from '../../data/schemas/rumors';
 import { createClockState } from '../core/time';
 import { Rng } from '../core/rng';
 import { APOSTLES_ID } from './terrain/zones';
@@ -112,6 +113,7 @@ export const captainSchema = z.object({
 });
 
 export type Captain = z.infer<typeof captainSchema>;
+export type Background = Captain['background'];
 
 /** A stolen lot's flags (plan 05 §6.1). */
 const hotMetaSchema = z.object({
@@ -157,6 +159,31 @@ export const trafficStateSchema = z.object({
 export type TrafficState = z.infer<typeof trafficStateSchema>;
 
 /**
+ * A rumor in the ledger (plan 05 §9; Phase 4 piece K). `truth` is rolled when it's told
+ * and never shown: the ledger shows `reliability` as a word with the teller. `draft` is
+ * what the talk was about, so it isn't told twice; `subject` what it came out naming (a
+ * false smuggler rumor names a decoy anchorage).
+ */
+export const rumorSchema = z.object({
+  id: z.string(),
+  kind: z.enum(RUMOR_KINDS),
+  source: z.enum(['saloon', 'hail']),
+  /** The saloon it was heard in. */
+  port: z.string().optional(),
+  heardAt: z.number(),
+  text: z.string(),
+  teller: z.string().optional(),
+  reliability: z.number().min(0).max(1),
+  truth: z.boolean(),
+  draft: z.string(),
+  subject: z.string().optional(),
+  /** Game seconds after which it's stale: the sailing's gone, the weather's come. */
+  expiresAt: z.number().optional(),
+});
+
+export type Rumor = z.infer<typeof rumorSchema>;
+
+/**
  * What the captain knows of prices elsewhere (plan 05 §4.3, §11 `knowledge.prices`; save
  * v6, Phase 4 piece B): per port and good, the last prices seen and when.
  */
@@ -169,9 +196,16 @@ export const knowledgeSchema = z.object({
         buyCents: z.number().int().nonnegative(),
         sellCents: z.number().int().nonnegative(),
         seenAt: z.number(),
+        /** Heard, not seen (piece K): from a rumor or a hailed ship. */
+        heard: z.enum(['rumor', 'hail']).optional(),
       }),
     ),
   ),
+  /**
+   * Rumors heard, newest first (plan 05 §9, §11 `knowledge.rumors`; Phase 4 piece K).
+   * Absent in a save from before piece K: it starts empty, so no version bump.
+   */
+  rumors: z.array(rumorSchema).default([]),
 });
 
 /** Ship's stores in the lockers, by store id (plan 05 §7; save v6). */
@@ -225,7 +259,7 @@ export function createWorldState(seed: string): WorldState {
     voyage: null,
     markets: createMarkets(gameEconomy(), clock.gameSeconds),
     traffic: { deliveredTo: clock.gameSeconds, ships: {} },
-    knowledge: { prices: {} },
+    knowledge: { prices: {}, rumors: [] },
     environment: {
       clock,
       rng: Rng.fromSeed(seed).getState(),
