@@ -134,8 +134,9 @@ export interface OfferRow {
   qty: number;
   payCents: number;
   depositCents: number;
-  /** "by 18:00, Wk of May 14 (in 14 h)" if taken now. */
+  /** "by 18:00, Wk of May 14 (in 14 h)" if taken now, and the short form, "due in 34 h". */
   dueText: string;
+  dueShort: string;
   note: string;
   /** Why it can't be taken now; undefined when it can. */
   blocked: string | undefined;
@@ -156,6 +157,7 @@ export interface HeldContractRow {
   payCents: number;
   depositCents: number;
   dueText: string;
+  dueShort: string;
   /** Late: inside the late window, half pay. Failed: past it, cargo to hand back. */
   status: 'onTime' | 'late' | 'failed';
   /** Fragile knocks taken, each a quarter of the pay. */
@@ -270,6 +272,12 @@ function elsewhere(
     age: ageText(seen.seenAt, gameSeconds),
     stale: weeksSince(seen.seenAt, gameSeconds) >= STALE_WEEKS,
   };
+}
+
+/** "due in 34 h", or "overdue". */
+export function dueShort(dueAt: number, gameSeconds: number): string {
+  const hours = Math.ceil((dueAt - gameSeconds) / 3600);
+  return hours > 0 ? `due in ${hours} h` : 'overdue';
 }
 
 /** "by 18:00, Wk of May 14 (in 14 h)"; "overdue" once past. */
@@ -418,9 +426,9 @@ function freightSnapshot(
       const who = locked.with.startsWith('port.')
         ? portName(locked.with)
         : (c.defs.companies.get(locked.with)?.short ?? locked.with);
-      blocked = `Needs Standing ${locked.need} with ${who} (you have ${Math.round(locked.have)})`;
-    } else if (free < t.qty) blocked = `Needs ${t.qty} CU free in the hold`;
-    else if (trader.purse < t.depositCents) blocked = "You haven't the deposit";
+      blocked = `Needs Standing ${locked.need} with ${who}`;
+    } else if (free < t.qty) blocked = 'No room';
+    else if (trader.purse < t.depositCents) blocked = 'No deposit';
     return {
       id: t.id,
       company: companyName(c.defs, t.company),
@@ -432,6 +440,7 @@ function freightSnapshot(
       payCents: t.payCents,
       depositCents: t.depositCents,
       dueText: dueText(gameSeconds + t.allowSeconds, gameSeconds),
+      dueShort: dueShort(gameSeconds + t.allowSeconds, gameSeconds),
       note: t.note,
       blocked,
       locked: !!locked,
@@ -449,6 +458,7 @@ function freightSnapshot(
     payCents: k.payCents,
     depositCents: k.depositCents,
     dueText: dueText(k.dueAt, gameSeconds),
+    dueShort: dueShort(k.dueAt, gameSeconds),
     status: k.status === 'failed' ? 'failed' : gameSeconds > k.dueAt ? 'late' : 'onTime',
     hits: k.hits,
   }));

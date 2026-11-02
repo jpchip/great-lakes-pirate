@@ -978,8 +978,70 @@ body[data-mode='chart'] .chart-layer {
 }
 
 .port-freight h3 {
-  margin: 12px 0 4px;
+  margin: 12px 0 6px;
   font-size: 16px;
+}
+
+.freight-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.freight-head h3 {
+  margin-top: 0;
+}
+
+.freight-standing {
+  font-size: 14px;
+  cursor: help;
+}
+
+.freight-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.freight-card {
+  display: grid;
+  grid-template-columns: 1fr auto 96px;
+  align-items: center;
+  gap: 16px;
+  padding: 8px 10px;
+  margin-bottom: 6px;
+  background: rgba(255, 255, 255, 0.25);
+  border: 1px solid var(--paper-dark);
+  border-radius: 3px;
+}
+
+.freight-main {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.freight-route {
+  font-size: 16px;
+}
+
+.freight-pay {
+  font-size: 18px;
+}
+
+.freight-card .port-mini {
+  justify-self: end;
+}
+
+.freight-blocked {
+  justify-self: end;
+  text-align: right;
+  font-size: 12px;
+  color: var(--fog-gray);
+}
+
+.freight-card.locked {
+  color: var(--fog-gray);
 }
 
 .port-kind {
@@ -988,15 +1050,11 @@ body[data-mode='chart'] .chart-layer {
   color: var(--lake-teal);
 }
 
-.port-row.locked {
-  color: var(--fog-gray);
-}
-
-.port-freight li.late {
+.freight-card.late {
   color: #7a4a12;
 }
 
-.port-freight li.failed {
+.freight-card.failed {
   color: var(--signal-red);
 }
 

@@ -250,7 +250,8 @@ export function attachPorts(opts: PortControlOptions): PortControl {
         const r = opts.contracts.accept(port, offerId);
         if (!r.ok) return ACCEPT_REFUSALS[r.reason];
         refresh();
-        return `Taken: ${r.contract.qty} CU aboard for ${portInfo(r.contract.to)?.name ?? r.contract.to}.`;
+        // The offer moves to In hand on the screen; that says it went through.
+        return undefined;
       },
       abandonContract(contractId) {
         const port = openPort;

@@ -589,10 +589,9 @@ test('takes a freight contract at Bayfield and delivers it', async ({ page }) =>
 
   await page.getByTestId('port-tab-freight').click();
   await expect(page.getByTestId('freight')).toBeVisible();
-  const take = page.locator('[data-testid^="accept-"]:not([disabled])').first();
+  const take = page.locator('button[data-testid^="accept-"]').first();
   await expect(take).toBeVisible();
   await take.click();
-  await expect(page.getByTestId('port-message')).toContainText('Taken');
   await expect(page.locator('li[data-testid^="held-port"]')).toHaveCount(1);
   await expect(page.getByTestId('hold-row').filter({ hasText: 'contract' })).toHaveCount(1);
 

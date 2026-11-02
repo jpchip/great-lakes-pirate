@@ -395,7 +395,7 @@ describe('contracts in the game', () => {
     const snap = must(shown.at(-1));
     expect(snap.tabs).toContain('freight');
     const offer = must(must(snap.freight).offers.find((o) => !o.blocked));
-    expect(ports.actions.acceptContract(offer.id)).toMatch(/^Taken/);
+    expect(ports.actions.acceptContract(offer.id)).toBeUndefined();
     expect(hazards.state.cargo01).toBeGreaterThan(0);
     expect(must(shown.at(-1)?.freight).held[0]?.id).toBe(offer.id);
     expect(must(shown.at(-1)).hold.some((h) => h.contractId === offer.id)).toBe(true);

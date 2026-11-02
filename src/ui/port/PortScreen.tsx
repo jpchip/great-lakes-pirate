@@ -391,8 +391,9 @@ const KIND_HINT: Record<OfferRow['kind'], string> = {
 };
 
 /**
- * The freight agent (plan 05 §5.2; plan 13 §5 contracts board): this week's offers with
- * their pay, deposit and deadline, the contracts in hand, and Standing with the port.
+ * The freight agent (plan 05 §5.2; plan 13 §5 contracts board). Each offer is one line:
+ * where it goes and what, the pay, and Take. The shipper, deposit and time allowed sit
+ * small beneath; the exact due date and the shipper's note are in the tooltip.
  */
 function Freight({
   port,
@@ -407,106 +408,98 @@ function Freight({
   if (!f) return <p class="port-dim">No freight agent here.</p>;
   return (
     <div class="port-freight" data-testid="freight">
-      <p class="menu-note">
-        Standing with {port.portName}: <strong class="hud-num">{f.portStanding}</strong>
-        {f.perks.length > 0 && <span class="port-dim"> · {f.perks.join(' · ')}</span>}. The board
-        changes every week. The deposit comes back on delivery.
-      </p>
+      <div class="freight-head">
+        <h3>This week's board</h3>
+        <span
+          class="freight-standing"
+          title={f.perks.length ? f.perks.join(' · ') : 'Deliver on time to raise it'}
+        >
+          Standing <strong class="hud-num">{f.portStanding}</strong>
+        </span>
+      </div>
       {f.offers.length === 0 ? (
         <p class="port-dim">Nothing on the board this week.</p>
       ) : (
-        <table class="port-table" data-testid="offers-table">
-          <thead>
-            <tr>
-              <th>Cargo</th>
-              <th>To</th>
-              <th>Shipper</th>
-              <th class="num">Pays</th>
-              <th class="num">Deposit</th>
-              <th>Due if taken now</th>
-              <th />
-            </tr>
-          </thead>
-          <tbody>
-            {f.offers.map((o) => (
-              <tr
-                key={o.id}
-                class={`port-row${o.locked ? ' locked' : ''}`}
-                data-testid={`offer-${o.id}`}
-              >
-                <td>
-                  {KIND_LABEL[o.kind] && (
-                    <small class="port-kind" title={KIND_HINT[o.kind]}>
-                      {KIND_LABEL[o.kind]}{' '}
-                    </small>
-                  )}
-                  {o.qty} CU {o.cargo.toLowerCase()}
-                  <br />
-                  <small class="port-dim">{o.note}</small>
-                </td>
-                <td>{o.toName}</td>
-                <td>
+        <ul class="freight-list" data-testid="offers-table">
+          {f.offers.map((o) => (
+            <li
+              key={o.id}
+              class={`freight-card${o.locked ? ' locked' : ''}`}
+              data-testid={`offer-${o.id}`}
+              title={`${o.note}. Due ${o.dueText}.${KIND_HINT[o.kind] ? ` ${KIND_HINT[o.kind]}.` : ''}`}
+            >
+              <div class="freight-main">
+                <span class="freight-route">
+                  {KIND_LABEL[o.kind] && <span class="port-kind">{KIND_LABEL[o.kind]} </span>}
+                  {o.qty} CU {o.cargo.toLowerCase()} <span class="port-dim">to</span> {o.toName}
+                </span>
+                <small class="port-dim">
                   {o.company}
-                  {o.companyTier && <small class="port-dim"> (company)</small>}
-                </td>
-                <td class="num hud-num">{formatCents(o.payCents)}</td>
-                <td class="num hud-num">{o.depositCents ? formatCents(o.depositCents) : '—'}</td>
-                <td>
-                  <small>{o.dueText}</small>
-                </td>
-                <td class="port-actions">
-                  <button
-                    type="button"
-                    class="port-mini"
-                    data-testid={`accept-${o.id}`}
-                    disabled={!!o.blocked}
-                    title={o.blocked ?? 'Take it: the cargo goes aboard and the deposit is paid'}
-                    onClick={() => setMessage(actions.acceptContract(o.id))}
-                  >
-                    Take
-                  </button>
-                  {o.blocked && (
-                    <>
-                      <br />
-                      <small class="port-dim">{o.blocked}</small>
-                    </>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
-      <h3>In hand</h3>
-      {f.held.length === 0 ? (
-        <p class="port-dim">No contracts in hand.</p>
-      ) : (
-        <ul class="ledger-list" data-testid="held-contracts">
-          {f.held.map((h) => (
-            <li key={h.id} data-testid={`held-${h.id}`} class={h.status}>
-              <span>
-                {KIND_LABEL[h.kind] ? `${KIND_LABEL[h.kind]}: ` : ''}
-                {h.aboard} of {h.qty} CU {h.cargo.toLowerCase()}, {h.fromName} → {h.toName} for{' '}
-                {h.company}.{' '}
-                {h.status === 'failed'
-                  ? 'Failed: the agent takes the cargo back.'
-                  : `Pays ${formatCents(h.payCents)}${h.status === 'late' ? ' (late: half)' : ''}, ${h.dueText}.`}
-                {h.hits > 0 && ` Knocked about ${h.hits}×.`}
-              </span>{' '}
-              {h.status !== 'failed' && (
+                  {o.companyTier ? ' (company)' : ''} · {o.dueShort}
+                  {o.depositCents ? ` · deposit ${formatCents(o.depositCents)}` : ''}
+                </small>
+              </div>
+              <strong class="freight-pay hud-num">{formatCents(o.payCents)}</strong>
+              {o.blocked ? (
+                <small class="freight-blocked" data-testid={`blocked-${o.id}`}>
+                  {o.blocked}
+                </small>
+              ) : (
                 <button
                   type="button"
                   class="port-mini"
-                  data-testid={`abandon-${h.id}`}
-                  title="Hand it back here: the cargo goes ashore and the deposit is lost"
-                  onClick={() => setMessage(actions.abandonContract(h.id))}
+                  data-testid={`accept-${o.id}`}
+                  onClick={() => setMessage(actions.acceptContract(o.id))}
                 >
-                  Hand back
+                  Take
                 </button>
               )}
             </li>
           ))}
         </ul>
+      )}
+      {f.held.length > 0 && (
+        <>
+          <h3>In hand</h3>
+          <ul class="freight-list" data-testid="held-contracts">
+            {f.held.map((h) => (
+              <li
+                key={h.id}
+                data-testid={`held-${h.id}`}
+                class={`freight-card ${h.status}`}
+                title={h.status === 'failed' ? undefined : `Due ${h.dueText}`}
+              >
+                <div class="freight-main">
+                  <span class="freight-route">
+                    {h.aboard} CU {h.cargo.toLowerCase()} <span class="port-dim">to</span>{' '}
+                    {h.toName}
+                  </span>
+                  <small class="port-dim">
+                    {h.status === 'failed'
+                      ? 'Failed: the agent takes the cargo back'
+                      : `${h.dueShort}${h.status === 'late' ? ', late: half pay' : ''}${h.hits ? ` · knocked ${h.hits}×` : ''}`}
+                  </small>
+                </div>
+                <strong class="freight-pay hud-num">
+                  {h.status === 'failed' ? '—' : formatCents(h.payCents)}
+                </strong>
+                {h.status !== 'failed' ? (
+                  <button
+                    type="button"
+                    class="port-mini"
+                    data-testid={`abandon-${h.id}`}
+                    title="Hand it back here: the cargo goes ashore and the deposit is lost"
+                    onClick={() => setMessage(actions.abandonContract(h.id))}
+                  >
+                    Hand back
+                  </button>
+                ) : (
+                  <span />
+                )}
+              </li>
+            ))}
+          </ul>
+        </>
       )}
     </div>
   );
