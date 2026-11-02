@@ -14,6 +14,7 @@ import {
 } from '../src/sim/economy/harness';
 import { buy, sell, type Trader } from '../src/sim/economy/trade';
 import { Rng } from '../src/core/rng';
+import { gameContracts } from '../src/sim/economy/contracts';
 
 /**
  * The balance harness, short (plan 17 §3; plan 05 §16.3 criteria 2–4). The long runs are
@@ -61,6 +62,53 @@ describe('the legit bot (criterion 2)', () => {
     expect(mean).toBeGreaterThan(2_000);
     expect(mean).toBeLessThan(6_000);
   });
+});
+
+describe('the contracts bot (plan 05 §5.3)', () => {
+  /** A T2 at ~$1,600 less a T1 trade-in of ~$250 (plan 10 §3), as the long report counts it. */
+  const T2_NET_WORTH = 160_000 - 25_000;
+
+  it.each(['port.bayfield', 'port.duluth'])(
+    'affords a T2 on the legit path in 8–12 real hours from %s, sooner than trade alone',
+    (start) => {
+      const o = {
+        start,
+        purse: 15_000,
+        cargo: [{ good: 'good.rope_canvas', qty: 5 }],
+        capacity: T1,
+        realMinutes: 13 * 60,
+      };
+      const run = runTrader(new EconomySim(defs, DAWN), legs, {
+        ...o,
+        contracts: { defs: gameContracts(), seed: `ci-${start}` },
+      });
+      const t2 = must(run.timeline.find((t) => t.netWorth >= T2_NET_WORTH));
+      expect(t2.realMinutes / 60).toBeGreaterThanOrEqual(8);
+      expect(t2.realMinutes / 60).toBeLessThanOrEqual(12);
+      const c = must(run.contracts);
+      expect(c.tally.delivered).toBeGreaterThan(20);
+      expect(c.tally.failed + c.tally.late).toBe(0);
+      // Trade alone is slower over the same hours.
+      const trade = runTrader(new EconomySim(defs, DAWN), legs, o);
+      expect(trade.endNetWorth).toBeLessThan(run.endNetWorth);
+    },
+    30_000,
+  );
+
+  it('stays under the profit ceiling with a deep purse and a 45 CU hold', () => {
+    const run = runTrader(new EconomySim(defs, DAWN), legs, {
+      start: 'port.bayfield',
+      purse: 1_000_000,
+      capacity: 45,
+      realMinutes: 360,
+      contracts: { defs: gameContracts(), seed: 'ci-ceiling' },
+    });
+    const profit = run.endNetWorth - run.startNetWorth;
+    expect(profit / (run.realMinutes / 60)).toBeLessThan(PROFIT_CEILING_CENTS_PER_REAL_HOUR);
+    expect(profit / (run.gameSeconds / SECONDS_PER_GAME_DAY)).toBeLessThan(
+      PROFIT_CEILING_CENTS_PER_GAME_DAY,
+    );
+  }, 30_000);
 });
 
 describe('the dumping bot (criterion 3)', () => {

@@ -48,6 +48,18 @@ export interface ChartFrame {
   etaLabel: string | undefined;
   /** The weather to draw (Phase 3 piece E): as it stands, or a forecast. */
   weather?: ChartWeatherPicture | undefined;
+  /** Places the captain knows of (Phase 4 piece H: the smuggler's anchorage). */
+  marks?: readonly ChartMark[] | undefined;
+  /** The captain's hideouts (Phase 4 piece E): the stash, marked in pencil. */
+  hideouts?: readonly { id: string; name: string; pos: Chart }[];
+}
+
+export type ChartMarkKind = 'smuggler';
+
+export interface ChartMark {
+  pos: Chart;
+  label: string;
+  kind: ChartMarkKind;
 }
 
 const FONT = '"Libre Caslon Text", "Iowan Old Style", Georgia, serif';
@@ -215,6 +227,8 @@ export class ChartView {
     if (frame.weather) this.weatherLayer.drawLive(ctx, this, frame.weather, 1 - frame.daylight);
     this.drawLights(geo, frame.daylight);
     this.drawPorts(geo);
+    this.drawMarks(frame.marks ?? [], frame.daylight);
+    this.drawHideouts(frame);
     this.drawLanes(frame);
     this.drawSpotRange(frame);
     this.drawContacts(frame);
@@ -583,6 +597,46 @@ export class ChartView {
     }
   }
 
+  /**
+   * Known places in pencil: the smuggler's anchorage is a small lantern (a diamond in a
+   * ring) with its name in italic, glowing faintly at night when she's there.
+   */
+  private drawMarks(marks: readonly ChartMark[], daylight: number): void {
+    const { ctx } = this;
+    for (const m of marks) {
+      const s = this.toScreen(m.pos);
+      const night = 1 - daylight;
+      if (night > 0) {
+        const glow = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, 12);
+        glow.addColorStop(0, `rgba(255, 190, 100, ${0.6 * night})`);
+        glow.addColorStop(1, 'rgba(255, 190, 100, 0)');
+        ctx.fillStyle = glow;
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, 12, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, 6, 0, Math.PI * 2);
+      ctx.strokeStyle = CHART_COLORS.ink;
+      ctx.lineWidth = 1;
+      ctx.setLineDash([2, 2]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.beginPath();
+      ctx.moveTo(s.x, s.y - 3.5);
+      ctx.lineTo(s.x + 2.5, s.y);
+      ctx.lineTo(s.x, s.y + 3.5);
+      ctx.lineTo(s.x - 2.5, s.y);
+      ctx.closePath();
+      ctx.fillStyle = CHART_COLORS.ink;
+      ctx.fill();
+      ctx.font = `italic 11px ${FONT}`;
+      ctx.textBaseline = 'middle';
+      ctx.textAlign = 'left';
+      ctx.fillText(m.label, s.x + 9, s.y);
+    }
+  }
+
   private drawPorts(geo: ChartGeography): void {
     const { ctx } = this;
     ctx.font = `600 12px ${FONT}`;
@@ -605,6 +659,33 @@ export class ChartView {
       ctx.textAlign = left ? 'right' : 'left';
       haloText(ctx, port.name, s.x + (left ? -8 : 8), s.y);
     }
+  }
+
+  /** A hideout as the captain would mark it: a penciled cross in a ring, and its name. */
+  private drawHideouts(frame: ChartFrame): void {
+    if (!frame.hideouts?.length) return;
+    const { ctx } = this;
+    ctx.save();
+    ctx.font = `italic 600 12px ${FONT}`;
+    ctx.textBaseline = 'middle';
+    for (const h of frame.hideouts) {
+      const s = this.toScreen(h.pos);
+      ctx.strokeStyle = CHART_COLORS.signalRed;
+      ctx.lineWidth = 1.6;
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, 6.5, 0, Math.PI * 2);
+      ctx.stroke();
+      ctx.beginPath();
+      ctx.moveTo(s.x - 4, s.y - 4);
+      ctx.lineTo(s.x + 4, s.y + 4);
+      ctx.moveTo(s.x + 4, s.y - 4);
+      ctx.lineTo(s.x - 4, s.y + 4);
+      ctx.stroke();
+      ctx.textAlign = 'left';
+      ctx.fillStyle = CHART_COLORS.signalRed;
+      haloText(ctx, h.name, s.x + 10, s.y + 10);
+    }
+    ctx.restore();
   }
 
   private drawSpotRange(frame: ChartFrame): void {

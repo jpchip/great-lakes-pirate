@@ -5,6 +5,8 @@ import { shockMarket, tickMarkets, unitPrices, quote, type TradeSide } from '../
 import { buy, maxBuyable, sell, type TradeResult } from '../sim/economy/trade';
 import type { GameContext } from '../modes/context';
 import type { ShipHazards } from './hazards';
+import { makeHot, offerLot, type OfferResult } from '../sim/economy/contraband';
+import { freshContrabandState } from '../sim/economy/smuggler';
 
 /**
  * The economy in the running game (plan 05 §4, Phase 4 piece A): markets drift on every
@@ -14,7 +16,10 @@ import type { ShipHazards } from './hazards';
  */
 export interface GameEconomy {
   defs: EconomyDefs;
-  capacity: number;
+  /** The hold's size, CU: the ship's class with her upgrades (piece G). */
+  readonly capacity: number;
+  /** A new hull or a bigger hold (piece G). */
+  setCapacity(cu: number): void;
   buy(port: string, good: string, qty: number): TradeResult;
   sell(port: string, good: string, qty: number): TradeResult;
   quote(
@@ -28,17 +33,31 @@ export interface GameEconomy {
   prices(port: string): { good: string; buyCents: number; sellCents: number; stock: number }[];
   /** A market event for testing and, later, the event system (plan 12). */
   shock(port: string, good: string, stockFactor: number, cause: string): void;
+  /**
+   * Offers one lot of the hold (a hot or contraband stack) to a port's merchants (piece H):
+   * sold, refused or confiscated, raising `TradeCompleted`, `ContrabandSold` or
+   * `HotGoodsDetected`.
+   */
+  offer(port: string, stackIndex: number): OfferResult;
+  /** Marks clean cargo hot, as if just stolen in `region` (the dev command until Phase 6). */
+  makeHot(good: string, qty: number, region: string, heat?: number): number;
   /** Sets the ship's load from the hold; call after anything else changes the hold. */
   syncLoad(): void;
   dispose(): void;
+}
+
+/** The run's stable seed for rolls that must come out the same after a reload. */
+export function runSeed(ctx: GameContext): string {
+  return `run-${ctx.state.environment.weather.noiseSeed}`;
 }
 
 export function attachEconomy(
   ctx: GameContext,
   hazards: ShipHazards | undefined,
   defs: EconomyDefs = gameEconomy(),
-  capacity: number = cargoCapacity(),
+  initialCapacity: number = cargoCapacity(),
 ): GameEconomy {
+  let capacity = initialCapacity;
   const now = (): number => ctx.state.environment.clock.gameSeconds;
   const markets = (): typeof ctx.state.markets => ctx.state.markets;
   const player = (): typeof ctx.state.player => ctx.state.player;
@@ -61,7 +80,13 @@ export function attachEconomy(
 
   return {
     defs,
-    capacity,
+    get capacity() {
+      return capacity;
+    },
+    setCapacity(cu) {
+      capacity = cu;
+      syncLoad();
+    },
     buy: (port, good, qty) =>
       settle(buy(defs, markets(), player(), capacity, port, good, qty, now())),
     sell: (port, good, qty) => settle(sell(defs, markets(), player(), port, good, qty, now())),
@@ -83,6 +108,46 @@ export function attachEconomy(
     shock(port, good, stockFactor, cause) {
       const e = shockMarket(defs, markets(), port, good, stockFactor, cause, now());
       if (e) ctx.events.emit('PriceShock', e);
+    },
+    offer(port, stackIndex) {
+      const contraband = (ctx.state.contraband ??= freshContrabandState(now()));
+      const r = offerLot(
+        defs,
+        markets(),
+        player(),
+        contraband,
+        port,
+        stackIndex,
+        now(),
+        runSeed(ctx),
+      );
+      if (!r.ok) return r;
+      syncLoad();
+      if (r.outcome !== 'sold') {
+        ctx.events.emit('HotGoodsDetected', r.event);
+      } else if (r.kind === 'hot') {
+        ctx.events.emit('TradeCompleted', {
+          port,
+          good: r.good,
+          side: 'sell',
+          qty: r.qty,
+          totalCents: r.totalCents,
+          nextUnitCents: unitPrices(defs, markets(), port, r.good, now())?.sellCents ?? 0,
+        });
+      } else {
+        ctx.events.emit('ContrabandSold', {
+          port,
+          good: r.good,
+          qty: r.qty,
+          totalCents: r.totalCents,
+        });
+      }
+      return r;
+    },
+    makeHot(good, qty, region, heat) {
+      const n = makeHot(defs, player().cargo, good, qty, region, now(), heat);
+      syncLoad();
+      return n;
     },
     syncLoad,
     dispose: offTick,

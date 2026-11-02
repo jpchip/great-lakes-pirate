@@ -3,12 +3,13 @@ import { idOf } from './common';
 
 /**
  * What a port offers at its piers (plan 05 §7). The port screen (Phase 4 piece B) shows a
- * tab for each service that's built: the market and the chandlery now, the freight
- * agent, shipyard and saloon as their pieces land.
+ * tab for each service that's built: the market, the chandlery and the freight agent
+ * (piece F), then the shipyard and saloon as their pieces land.
  */
 export const PORT_SERVICES = [
   'market',
   'chandlery',
+  'freight',
   'shipyard',
   'fence',
   'tavern',

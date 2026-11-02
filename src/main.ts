@@ -5,7 +5,7 @@ import { EventBus } from './core/events';
 import { DEFAULT_BINDINGS, InputMapper, type InputContext } from './core/input';
 import { createLoop } from './core/loop';
 import { Rng } from './core/rng';
-import { openSaveDb } from './core/save/db';
+import { deleteRun, openSaveDb, type GlpDatabase } from './core/save/db';
 import {
   SettingsStore,
   applyBindingOverrides,
@@ -15,7 +15,7 @@ import {
   type Settings,
 } from './core/settings';
 import { createWorkerEncoder } from './core/save/encoder';
-import { loadRun } from './core/save/load';
+import { loadRun, type LoadedRun } from './core/save/load';
 import { RunSaver } from './core/save/run-saver';
 import { AssetLoader, EMPTY_MANIFEST } from './core/assets';
 import { createGameAudio, type GameAudio } from './audio/game-audio';
@@ -25,6 +25,14 @@ import { createSchooner } from './gameplay/schooner';
 import { npcParade } from './gameplay/npc-ships';
 import { attachEconomy } from './gameplay/economy';
 import { attachPorts, type PortControl } from './gameplay/port';
+import { attachContracts, contractsOf } from './gameplay/contracts';
+import { attachSmuggler, type SmugglerControl } from './gameplay/smuggler';
+import { attachStash, type StashControl } from './gameplay/stash';
+import { siteDef } from './sim/hideouts/stash';
+import { attachShipyard } from './gameplay/shipyard';
+import { BASE_INSTRUMENTS, type Instruments } from './sim/shipyard/fit';
+import { defaultShipState } from './sim/shipyard/shipyard';
+import { DEFAULT_SHIP_CAMERA } from './gameplay/camera/ship-camera';
 import { attachTraffic, HAIL_RANGE_M, LOOK_RANGE_M, type TrafficZone } from './gameplay/traffic';
 import { createContacts, type Contact } from './sim/chart/traffic';
 import { portInfo } from './sim/economy/defs';
@@ -52,12 +60,13 @@ import { clearArenaCentre, sampleArenaLand } from './sim/arena/land';
 import { westernSuperiorChart } from './sim/chart/chart-data';
 import { bearing, distance, toWorldChart } from './sim/chart/geography';
 import { OPEN_WATER } from './sim/weather/shelter';
-import { FULL_SAIL, updateTargetSpeed } from './sim/sailing/controller';
+import { FULL_SAIL, speedKn, updateTargetSpeed } from './sim/sailing/controller';
 import type { SaveControls } from './debug/overlay';
 import type { GameContext, GameEvents } from './modes/context';
 import { ModeMachine } from './modes/machine';
 import { createSailingMode, type SailingModeOptions, type SailingView } from './modes/sailing';
 import { createChartTravel, type ChartTravel } from './modes/chart-travel';
+import { allContacts } from './modes/chart';
 import { loadAssets } from './render/assets';
 import { browserStorage, isQualityId } from './render/quality';
 import { GameRenderer } from './render/renderer';
@@ -92,12 +101,19 @@ import {
 import { TEST_BAY_ISLANDS, stubIslandShelter } from './sim/weather/shelter';
 import { advanceWeather, placeFogBank } from './sim/weather/weather';
 import { createSea } from './sim/weather/waves';
-import { createWorldState, parseWorldState, type WorldState } from './sim/world-state';
+import { BACKGROUNDS, createWorldState, parseWorldState, type WorldState } from './sim/world-state';
 import type { ZoneDef } from '../data/schemas/zones';
 import { anchorRefusedNotice, dockRefusedNotice, NOTICE_S, sampleHud } from './ui/hud/model';
 import { offersChart } from './sim/terrain/zone-edge';
 import { arenaLoadingScreen, loadingScreen, type Arrival } from './ui/loading/model';
 import { mountGameUi } from './ui/mount';
+import { showMainMenu } from './ui/menu/mount-menu';
+import type { MenuChoice } from './ui/menu/MainMenu';
+import { randomSeed, savedRunSummary } from './ui/menu/model';
+import { allPortraits, backgroundDef, type BackgroundKey } from './sim/character/backgrounds';
+import { createNewRun, startingPort } from './sim/character/new-run';
+import { withSailingPerks } from './sim/character/perks';
+import { attachCaptain } from './gameplay/captain';
 
 /** Periodic autosave while safe (plan 16 §4.1). */
 const AUTOSAVE_INTERVAL_MS = 2 * 60_000;
@@ -121,51 +137,112 @@ interface OpenedRun {
   status: SaveStatus;
 }
 
-/** Continue the run in IndexedDB, or start a new one (plan 16 §3, §6.3). */
-async function openRun(): Promise<OpenedRun> {
+/** The save database and the run in it, read before the main menu (Phase 4 piece C). */
+interface PreparedRun {
+  db: GlpDatabase | undefined;
+  loaded: LoadedRun<WorldState> | undefined;
+  /** `unavailable`: no IndexedDB; `error`: a run is there but no slot reads. */
+  problem: 'unavailable' | 'error' | undefined;
+}
+
+async function prepareRun(): Promise<PreparedRun> {
   let db;
   try {
     db = await openSaveDb();
   } catch (err) {
     // Session-only play when IndexedDB is unavailable (plan 16 §8).
     console.warn('IndexedDB unavailable; this run will not be saved', err);
-    return {
-      state: createWorldState(crypto.randomUUID()),
-      saver: undefined,
-      status: 'unavailable',
-    };
+    return { db: undefined, loaded: undefined, problem: 'unavailable' };
   }
-
-  const encoder = createWorkerEncoder();
   try {
-    const loaded = await loadRun(db, parseWorldState);
-    if (loaded) {
-      const { runId, seed, createdAt, playTimeMs } = loaded.envelope;
-      const run = { runId, seed, createdAt, gameVersion: __GAME_VERSION__ };
-      return {
-        state: loaded.state,
-        saver: new RunSaver(db, encoder, run, playTimeMs),
-        status: loaded.recovered ? 'recovered' : 'loaded',
-      };
-    }
+    return { db, loaded: await loadRun(db, parseWorldState), problem: undefined };
   } catch (err) {
     // Never silently delete an unreadable run (plan 16 §6.3); play this session unsaved.
     console.warn('Could not load the saved run', err);
-    return { state: createWorldState(crypto.randomUUID()), saver: undefined, status: 'error' };
+    return { db: undefined, loaded: undefined, problem: 'error' };
   }
+}
 
+/**
+ * Continue the run in IndexedDB, or start a new one (plan 16 §3, §6.3). `choice` is the
+ * main menu's; without one (a check that skips the menu) a saved run continues and a
+ * missing one starts as the default Deckhand. A new captain replaces the saved run.
+ */
+async function openRun(
+  pre: PreparedRun,
+  choice: MenuChoice | undefined,
+  params: URLSearchParams,
+): Promise<OpenedRun> {
+  const setup = choice?.kind === 'new' ? choice.setup : undefined;
+  const fresh = (seed: string): WorldState =>
+    setup ? createNewRun(setup) : createWorldState(seed);
+  if (pre.problem || !pre.db) {
+    const status = pre.problem ?? 'unavailable';
+    return { state: fresh(setup?.seed ?? crypto.randomUUID()), saver: undefined, status };
+  }
+  const { db, loaded } = pre;
+  const encoder = createWorkerEncoder();
+  if (loaded && !setup) {
+    const { runId, seed, createdAt, playTimeMs } = loaded.envelope;
+    const run = { runId, seed, createdAt, gameVersion: __GAME_VERSION__ };
+    return {
+      state: loaded.state,
+      saver: new RunSaver(db, encoder, run, playTimeMs),
+      status: loaded.recovered ? 'recovered' : 'loaded',
+    };
+  }
+  // One run at a time (plan 16 §3): a new captain clears every slot of the old one.
+  if (loaded) await deleteRun(db);
   // `?seed=abc` starts a new run from that seed, so the same weather can be revisited.
-  const seed = new URLSearchParams(window.location.search).get('seed') ?? crypto.randomUUID();
+  const seed = setup?.seed ?? params.get('seed') ?? crypto.randomUUID();
   const run = {
     runId: crypto.randomUUID(),
     seed,
     createdAt: new Date().toISOString(),
     gameVersion: __GAME_VERSION__,
   };
-  const state = createWorldState(seed);
+  const state = fresh(seed);
   const saver = new RunSaver(db, encoder, run);
   await saver.save(state);
   return { state, saver, status: 'created' };
+}
+
+/**
+ * URL switches that start the game straight in a place for a check; with any of them, or
+ * `?play`, the main menu is skipped (Phase 4 piece C) and the run continues or starts as
+ * before. `?newrun=fisherman` skips it too, with a new captain of that background.
+ */
+const START_SWITCHES = [
+  'play',
+  'newrun',
+  'zone',
+  'entry',
+  'harbor',
+  'spawn',
+  'light',
+  'fogbank',
+  'encounter',
+  'npcs',
+  'bench',
+  'ship',
+] as const;
+
+function devNewRun(params: URLSearchParams): MenuChoice | undefined {
+  const key = params.get('newrun');
+  if (!key) return undefined;
+  const background = (BACKGROUNDS as readonly string[]).includes(key)
+    ? (key as BackgroundKey)
+    : 'deckhand';
+  return {
+    kind: 'new',
+    setup: {
+      name: 'Ole Haugen',
+      shipName: 'Lizzie Bell',
+      background,
+      portrait: allPortraits()[0]?.id ?? 'portrait.weathered',
+      seed: params.get('seed') ?? randomSeed(),
+    },
+  };
 }
 
 /**
@@ -246,9 +323,45 @@ async function boot(): Promise<void> {
 
   const machine = new ModeMachine();
   machine.onTransition((_, to) => (document.body.dataset['mode'] = to));
-  machine.register({ id: 'boot' }).transition('boot');
+  machine
+    .register({ id: 'boot' })
+    .register({ id: 'mainMenu' })
+    .register({ id: 'characterCreation' })
+    .transition('boot');
 
-  const [{ state, saver, status }, settings] = await Promise.all([openRun(), loadSettings()]);
+  const [prepared, settings] = await Promise.all([prepareRun(), loadSettings()]);
+  // The main menu (Phase 4 piece C) comes up before the game boots into a run, unless a
+  // check asks to start somewhere (START_SWITCHES).
+  let choice: MenuChoice | undefined = devNewRun(params);
+  if (!START_SWITCHES.some((k) => params.has(k))) {
+    machine.transition('mainMenu');
+    const menuRoot =
+      document.getElementById('ui') ?? document.body.appendChild(document.createElement('div'));
+    choice = await showMainMenu({
+      root: menuRoot,
+      settings,
+      storage: browserStorage(),
+      saved: prepared.loaded ? savedRunSummary(prepared.loaded.state) : undefined,
+      savedProblem:
+        prepared.problem === 'error'
+          ? "The saved run couldn't be read. It's kept, but this session won't be saved."
+          : prepared.problem === 'unavailable'
+            ? "This browser can't keep a save, so this run won't be saved."
+            : undefined,
+      onCreating: (creating) => machine.transition(creating ? 'characterCreation' : 'mainMenu'),
+      loading: (c) =>
+        c.kind === 'new'
+          ? { title: startingPort(c.setup.background).portName, line: 'May 7, 1900, at dawn' }
+          : {
+              title: prepared.loaded ? savedRunSummary(prepared.loaded.state).shipName : 'the lake',
+              line: 'Back aboard',
+            },
+    });
+  }
+  const { state, saver, status } = await openRun(prepared, choice, params);
+  /** A new captain opens the run docked at the background's starting pier (plan 12 §3). */
+  const startPier =
+    choice?.kind === 'new' ? backgroundDef(choice.setup.background).startPier : undefined;
   document.body.dataset['save'] = status;
   if (saver) document.body.dataset['runId'] = saver.run.runId;
 
@@ -385,10 +498,14 @@ async function boot(): Promise<void> {
       });
     }
   }
-  // `?ship=t2` sails the T2 schooner instead of the T1 (Phase 4 piece G) until the
-  // shipyard sells one.
-  const shipClass = PLAYER_SHIP_IDS[params.get('ship') ?? ''];
-  const schooner = createSchooner(spawn.x, spawn.z, spawn.heading, shipClass);
+  // The ship the run sails (Phase 4 piece G: the shipyard sells and fits her). `?ship=t2`
+  // puts the run in a sound, bare T2 (or `t1`), for checks.
+  state.player.ship ??= defaultShipState();
+  const askedClass = PLAYER_SHIP_IDS[params.get('ship') ?? ''];
+  if (askedClass && askedClass !== state.player.ship.classId) {
+    state.player.ship = defaultShipState(askedClass);
+  }
+  const schooner = createSchooner(spawn.x, spawn.z, spawn.heading, state.player.ship.classId);
   const { record: shipRecord, handling, hazardRules, sailing, hazards } = schooner;
   const shipTransform = { position: { x: spawn.x, y: 0, z: spawn.z }, heading: spawn.heading };
   sailing.state.manualTrim = settings.value.sailing.manualTrim;
@@ -417,10 +534,91 @@ async function boot(): Promise<void> {
     (window as unknown as { __glpEconomy: typeof hook }).__glpEconomy = hook;
   }
 
+  // The shipyard (Phase 4 piece G): the ship's class, upgrades and condition. A new hull
+  // rebuilds her model (the view draws a ship from her class as she's added); instruments
+  // set the spyglass, the look-her-over range and the chart's forecast.
+  let instruments: Instruments = { ...BASE_INSTRUMENTS };
+  const baseSpyglassFov = DEFAULT_SHIP_CAMERA.spyglassFovDeg;
+  /** The ship camera, once the view is up. */
+  const shipCamera: { current?: { params: { spyglassFovDeg: number } } | undefined } = {};
+  const applyInstruments = (): void => {
+    const cam = shipCamera.current;
+    if (cam) cam.params.spyglassFovDeg = baseSpyglassFov * instruments.spyglassFovMul;
+  };
+  const lookRangeM = (): number => LOOK_RANGE_M * instruments.lookRangeMul;
+  const shipyard = attachShipyard({
+    ctx,
+    economy,
+    sailing,
+    hazards,
+    buoyancy: schooner.buoyancy,
+    handling,
+    rules: hazardRules,
+    // The captain's sailing perks (plan 12 §2.2, piece C). refit() rebuilds the class at
+    // the start and on every hull or upgrade, so the Deckhand's hands survive a new ship.
+    adjustClass: (cls) => withSailingPerks(cls, state.player.captain),
+    onHullChanged: () => {
+      ctx.world.remove(playerShip);
+      ctx.world.add(playerShip);
+    },
+    onInstruments: (next) => {
+      instruments = next;
+      applyInstruments();
+    },
+  });
+  if (import.meta.env.DEV || params.has('debug')) {
+    const hook = {
+      ship: () => {
+        shipyard.sync();
+        return shipyard.ship;
+      },
+      fit: () => shipyard.fit,
+      buy: (port: string, classId: string) => shipyard.buyHull(port, classId),
+      install: (port: string, id: string, source: 'shipyard' | 'chandlery' = 'shipyard') =>
+        shipyard.install(port, id, source),
+      remove: (port: string, id: string, source: 'shipyard' | 'chandlery' = 'shipyard') =>
+        shipyard.remove(port, id, source),
+      repair: (port: string, place: 'shipyard' | 'chandlery' = 'shipyard') =>
+        shipyard.repair(port, place),
+      kit: () => shipyard.useKit(),
+      /** Adds cash to the purse, for trying the yard. */
+      grant(cents: number) {
+        state.player.purse += Math.max(0, Math.round(cents));
+      },
+      /** The class the helm sails now. */
+      sailing: () => sailing.cls.id,
+      /** Knocks the pools down to these shares, for trying repairs. */
+      damage(hull01: number, rigging01: number) {
+        hazards.state.hull = hull01 * hazards.cls.hullHP;
+        hazards.state.rigging = rigging01 * hazards.cls.riggingHP;
+        shipyard.sync();
+      },
+    };
+    (window as unknown as { __glpShipyard: typeof hook }).__glpShipyard = hook;
+  }
+
   // The lake's traffic (plan 05 §8, Phase 4 piece D): one set of ships for the chart, the
   // zones and the markets. A stable per-run number from the save (the RNG state moves on
   // as the run plays), so the timetables and manifests are the same after a reload.
   const trafficSeed = `run-${state.environment.weather.noiseSeed}`;
+  // Freight contracts (plan 05 §5.2, Phase 4 piece F): the boards follow from the same seed.
+  const contracts = attachContracts(ctx, economy, trafficSeed);
+  if (import.meta.env.DEV || params.has('debug')) {
+    const hook = {
+      board: (port: string) => contracts.board(port),
+      accept: (port: string, offerId: string) => contracts.accept(port, offerId),
+      arrive: (port: string) => contracts.arrive(port),
+      steal: (contractId: string, port: string) => contracts.steal(contractId, port),
+      abandon: (contractId: string, port: string) => contracts.abandon(contractId, port),
+      state: () => contractsOf(state).contracts,
+      standing: () => contractsOf(state).captain.standing,
+      /** Sets Standing with a port or company, for trying what it opens. */
+      setStanding: (id: string, value: number) => {
+        contractsOf(state).captain.standing[id] = Math.max(0, Math.min(100, value));
+      },
+    };
+    (window as unknown as { __glpContracts: typeof hook }).__glpContracts = hook;
+  }
   const traffic = attachTraffic(
     ctx,
     createContacts(
@@ -532,6 +730,8 @@ async function boot(): Promise<void> {
       // entered from a zone keeps the place recorded on the way in; its frame isn't the zone's.
       if (!changingZone && !travelRef.current?.record(state) && !inArenaSpace)
         recordZonePose(state, zoneData.id, shipPose());
+      // Her damage as it stands (piece G).
+      shipyard.sync();
       try {
         await saver.save(state);
         const at = state.player.location;
@@ -653,6 +853,8 @@ async function boot(): Promise<void> {
 
   // Settings apply live (plan 13 §11): the renderer, the camera, the keys and the helm.
   const cameraRig = scene?.cameraRig;
+  shipCamera.current = cameraRig?.ship;
+  applyInstruments();
   if (cameraRig) cameraRig.spyglassDown = () => input.isDown('Spyglass');
   const applySettings = (s: Settings, previous: Settings | undefined): void => {
     if (renderer && previous && s.graphics.quality !== previous.graphics.quality) {
@@ -682,6 +884,12 @@ async function boot(): Promise<void> {
     document.getElementById('ui') ?? document.body.appendChild(document.createElement('div'));
   // The port screen and the journal (Phase 4 piece B); attached once the UI is up.
   const portsRef: { current: PortControl | undefined } = { current: undefined };
+  const smugglerRef: { current: SmugglerControl | undefined } = { current: undefined };
+  // The Stockton stash and lying at anchor (Phase 4 piece E); attached with the ports.
+  const stashRef: { current: StashControl | undefined } = { current: undefined };
+  const captainRef: { current: ReturnType<typeof attachCaptain> | undefined } = {
+    current: undefined,
+  };
   const ui = mountGameUi({
     root: uiRoot,
     settings,
@@ -690,12 +898,35 @@ async function boot(): Promise<void> {
       sell: (good, qty) => portsRef.current?.actions.sell(good, qty),
       quote: (good, qty, side) => portsRef.current?.actions.quote(good, qty, side) ?? 0,
       buyStores: (item, qty) => portsRef.current?.actions.buyStores(item, qty),
+      offer: (index) => portsRef.current?.actions.offer(index),
+      acceptContract: (id) => portsRef.current?.actions.acceptContract(id),
+      abandonContract: (id) => portsRef.current?.actions.abandonContract(id),
+      stealContract: (id) => portsRef.current?.actions.stealContract(id),
+      buyHull: (classId) => portsRef.current?.actions.buyHull(classId),
+      fit: (upgrade, place) => portsRef.current?.actions.fit(upgrade, place),
+      unfit: (upgrade, place) => portsRef.current?.actions.unfit(upgrade, place),
+      repair: (place) => portsRef.current?.actions.repair(place),
       close: () => portsRef.current?.close(),
       castOff: () => portsRef.current?.actions.castOff(),
       closeJournal: () => portsRef.current?.closeJournal(),
       openDocked: () => {
-        if (machine.mode === 'sailing' && !machine.gameplayPaused) portsRef.current?.openDocked();
+        if (machine.mode !== 'sailing' || machine.gameplayPaused) return;
+        if (!portsRef.current?.openDocked()) stashRef.current?.openHere();
       },
+    },
+    smuggler: {
+      buy: (good, qty) => smugglerRef.current?.actions.buy(good, qty),
+      fence: (index, qty) => smugglerRef.current?.actions.fence(index, qty),
+      close: () => smugglerRef.current?.close(),
+    },
+    stash: {
+      stash: (index, qty) => stashRef.current?.actions.stash(index, qty),
+      take: (index, qty) => stashRef.current?.actions.take(index, qty),
+      stashCash: (cents) => stashRef.current?.actions.stashCash(cents),
+      takeCash: (cents) => stashRef.current?.actions.takeCash(cents),
+      lie: (until) => stashRef.current?.actions.lie(until),
+      close: () => stashRef.current?.actions.close(),
+      castOff: () => stashRef.current?.actions.castOff(),
     },
     chart: {
       sail: () => travelRef.current?.setSail(),
@@ -708,6 +939,7 @@ async function boot(): Promise<void> {
       setLookout: (pref) => settings.update((s) => (s.chart.lookout = pref)),
       setForecast: (lead) => travelRef.current?.setForecast(lead),
     },
+    setFirstWeekHidden: (hidden) => captainRef.current?.setHidden(hidden),
     onTakeToChart: () => {
       if (machine.mode === 'sailing' && !machine.gameplayPaused) travelRef.current?.takeToChart();
     },
@@ -740,7 +972,9 @@ async function boot(): Promise<void> {
   const ports = attachPorts({
     ctx,
     economy,
+    contracts,
     hazards,
+    shipyard,
     berthPier: (berthId) => sailingOptions.berths.find((b) => b.id === berthId)?.dockId,
     showPort: (snapshot) => ui.setPort(snapshot),
     showJournal: (snapshot) => ui.setJournal(snapshot),
@@ -762,6 +996,125 @@ async function boot(): Promise<void> {
     castOff: () => input.trigger('Interact'),
   });
   portsRef.current = ports;
+  // The island smuggler (Phase 4 piece H): her boat after dark in Oak Island's lee, and her
+  // screen, which pauses the game like the port screen.
+  let contextBeforeSmuggler: InputContext = 'sailing';
+  const smuggler = attachSmuggler({
+    ctx,
+    economy,
+    show: (snapshot) => ui.setSmuggler(snapshot),
+    onOpen(open) {
+      if (open) {
+        machine.pushOverlay('trade');
+        contextBeforeSmuggler = input.context;
+        input.context = 'menu';
+      } else {
+        machine.removeOverlay('trade');
+        input.context = contextBeforeSmuggler;
+        input.endTick();
+      }
+      if (cameraRig) cameraRig.suspended = open;
+      document.body.dataset['smuggler'] = open ? 'open' : 'closed';
+      hudClock = HUD_INTERVAL_S;
+    },
+  });
+  smugglerRef.current = smuggler;
+  const smugglerZone = (z: LoadedZone | undefined) =>
+    z ? { id: z.manifest.zone, frame: manifestFrame(z.manifest) } : undefined;
+  smuggler.setZone(smugglerZone(zone));
+  if (import.meta.env.DEV || params.has('debug')) {
+    // `__glpContraband.makeHot('good.rope_canvas', 5)` marks cargo hot until Phase 6's theft
+    // can; `alongside()` puts the ship beside the smuggler; `learn()` marks her anchorage.
+    const hook = {
+      makeHot: (good: string, qty = 99, region = 'region.chequamegon', heat = 1) =>
+        economy.makeHot(good, qty, region, heat),
+      offer: (port: string, index: number) => economy.offer(port, index),
+      state: () => state.contraband,
+      present: () => smuggler.present,
+      known: () => smuggler.known(),
+      learn: () => smuggler.learn('dev'),
+      anchorage: () => smuggler.anchorage,
+      /** Lays the ship alongside her, stopped, heading her way. */
+      alongside() {
+        const a = smuggler.anchorage;
+        if (!a) return false;
+        const heading = (smuggler.def.anchorage.headingDeg * Math.PI) / 180;
+        // Abeam to starboard of her, 40 m off.
+        placeShip({
+          x: a.x + Math.cos(heading) * 40,
+          z: a.z + Math.sin(heading) * 40,
+          heading,
+        });
+        return true;
+      },
+      open: () => smuggler.comeAlongside(shipPose(), speedKn(sailing.state)),
+      close: () => smuggler.close(),
+    };
+    (window as unknown as { __glpContraband: typeof hook }).__glpContraband = hook;
+  }
+
+  // Alongside the Stockton landing or anchored off it, the stash opens; Z lies at anchor.
+  let contextBeforeStash: InputContext = 'sailing';
+  const stash = attachStash({
+    ctx,
+    economy,
+    hazards,
+    berthPier: (berthId) => sailingOptions.berths.find((b) => b.id === berthId)?.dockId,
+    shipPose,
+    speedMs: () => sailing.state.speed,
+    zone: () =>
+      zone && !arena ? { id: zoneData.id, frame: manifestFrame(zone.manifest) } : undefined,
+    nearestUnderWayM(p) {
+      if (arena) return 0;
+      let best = Number.POSITIVE_INFINITY;
+      for (const s of traffic.shown.values()) {
+        const t = s.entity.transform;
+        if (s.berthed || !t) continue;
+        best = Math.min(best, Math.hypot(t.position.x - p.x, t.position.z - p.z));
+      }
+      return best;
+    },
+    showStash: (snapshot) => ui.setStash(snapshot),
+    showLie: (r) => ui.setLie(r === undefined),
+    onOpen(open) {
+      if (open) {
+        machine.pushOverlay('trade');
+        contextBeforeStash = input.context;
+        input.context = 'menu';
+      } else {
+        machine.removeOverlay('trade');
+        input.context = contextBeforeStash;
+        input.endTick();
+      }
+      if (cameraRig) cameraRig.suspended = open;
+      document.body.dataset['stash'] = stash.openHideout ?? (stash.lieOpen ? 'lie' : 'closed');
+      hudClock = HUD_INTERVAL_S;
+    },
+    castOff: () => input.trigger('Interact'),
+    afterLie(text) {
+      showNotice(text);
+      void saveControls.saveNow();
+    },
+  });
+  stashRef.current = stash;
+  if (import.meta.env.DEV || params.has('debug')) {
+    const hook = {
+      /** Opens a hideout's storage wherever the ship is. */
+      open: (id = 'hideout.stockton') => stash.open(id),
+      close: () => stash.actions.close(),
+      here: () => stash.hideoutHere,
+      hideouts: () => state.hideouts,
+      stash: (index: number, qty: number) => stash.actions.stash(index, qty),
+      take: (index: number, qty: number) => stash.actions.take(index, qty),
+      stashCash: (cents: number) => stash.actions.stashCash(cents),
+      takeCash: (cents: number) => stash.actions.takeCash(cents),
+      lie: (until: 'dawn' | 'dusk' | 'wind') => stash.actions.lie(until),
+      refusal: () => stash.lieRefusal(),
+    };
+    (window as unknown as { __glpStash: typeof hook }).__glpStash = hook;
+  }
+  // The Fisherman's fish prices and the First Week checklist (piece C).
+  captainRef.current = attachCaptain(ctx, economy.defs, (week) => ui.setFirstWeek(week));
   if (import.meta.env.DEV || params.has('debug')) {
     const hook = {
       /** Opens a port's screen wherever the ship is. */
@@ -841,7 +1194,11 @@ async function boot(): Promise<void> {
     if (machine.mode !== 'sailing' || hazards.state.mooring !== 'free') return [];
     const near = traffic.nearest(shipPose(), HAIL_RANGE_M);
     if (!near) return [];
-    if (!arena && near.distanceM <= LOOK_RANGE_M) return ['F look her over · H hail'];
+    if (smuggler.isSmuggler(near.id)) {
+      const chip = smuggler.chip(shipPose(), speedKn(sailing.state));
+      return chip ? [chip] : [];
+    }
+    if (!arena && near.distanceM <= lookRangeM()) return ['F look her over · H hail'];
     return ['H to hail'];
   };
   const hideCard = (): void => {
@@ -853,8 +1210,11 @@ async function boot(): Promise<void> {
   // zone, F with no berth in reach looks over the nearest ship instead.
   ctx.events.on('DockRefused', (e) => {
     if (arena) return;
-    const near = e.reason === 'noBerth' ? traffic.nearest(shipPose(), LOOK_RANGE_M) : undefined;
-    if (near) showCard(traffic.lookOver(near.id));
+    const near = e.reason === 'noBerth' ? traffic.nearest(shipPose(), lookRangeM()) : undefined;
+    if (near && smuggler.isSmuggler(near.id)) {
+      const refused = smuggler.comeAlongside(shipPose(), speedKn(sailing.state));
+      if (refused) showNotice(refused);
+    } else if (near) showCard(traffic.lookOver(near.id));
     else showNotice(dockRefusedNotice(e.reason));
   });
   // For the console and the e2e tests: `__glpTraffic.shown()`, `__glpTraffic.hail(id)`.
@@ -944,6 +1304,7 @@ async function boot(): Promise<void> {
       allBerths = mooringBerths(nextDocks, ctx.terrain);
       traffic.setZone(trafficZone(zone));
       traffic.step(undefined);
+      smuggler.setZone(smugglerZone(zone));
       sailingOptions.berths = freeBerths();
       audio?.setZone({
         stations: signalStations(zone),
@@ -1065,6 +1426,7 @@ async function boot(): Promise<void> {
       allBerths = [];
       sailingOptions.berths = [];
       traffic.setZone(undefined);
+      smuggler.setZone(undefined);
       audio?.setZone({ stations: [], harbors: [] });
 
       // The arena sits at the encounter point, nudged off any shore, in its own frame.
@@ -1229,9 +1591,11 @@ async function boot(): Promise<void> {
           })),
           player: shipPose(),
         },
-      /** Puts the ship at (x, z) in the arena, keeping her heading, e.g. past the edge. */
-      place: (x: number, z: number) => {
-        if (arena) placeShip({ x, z, heading: shipPose().heading });
+      /** Puts the ship at (x, z) in the arena, keeping her heading or turning to `headingDeg`. */
+      place: (x: number, z: number, headingDeg?: number) => {
+        const heading =
+          headingDeg === undefined ? shipPose().heading : (headingDeg * Math.PI) / 180;
+        if (arena) placeShip({ x, z, heading });
       },
       hooks: arenaHooks,
     };
@@ -1256,6 +1620,7 @@ async function boot(): Promise<void> {
     enterZone: (id, pose, arrival, onLoaded) => enterZone(id, pose, arrival, false, onLoaded),
     save: () => saveControls.saveNow(),
     pursued: () => pursued || !!arena?.run.pursued,
+    forecastHours: () => instruments.forecastHours,
     // Engage, or a failed avoid, meets them here; leaving reloads the zone and resumes the voyage.
     enterArena: (enc, travel) => {
       const zoneId = zoneData.id;
@@ -1279,6 +1644,16 @@ async function boot(): Promise<void> {
     seed: trafficSeed,
     contacts: traffic.contacts as Contact[],
     cutterHunts: params.get('cutter') === 'hunt',
+    marks: () =>
+      smuggler.known()
+        ? [
+            {
+              at: smuggler.def.anchorage.at,
+              label: `${smuggler.def.anchorage.name} (after dark)`,
+              kind: 'smuggler' as const,
+            },
+          ]
+        : [],
   });
   travelRef.current = chartTravel;
   machine.register(chartTravel.mode);
@@ -1325,7 +1700,8 @@ async function boot(): Promise<void> {
       meet(kind: string, forced = false) {
         const { session } = chartTravel;
         // Nearest on the water; one lying in port only if none of that kind is out.
-        const near = session.contacts
+        // Traffic, and the sky's squalls and fog banks (`storm`, `fog`).
+        const near = allContacts(session)
           .filter((c) => c.kind === kind)
           .sort(
             (a, b) =>
@@ -1359,6 +1735,12 @@ async function boot(): Promise<void> {
   });
   window.addEventListener('pagehide', saveNow);
 
+  /** The stash's name for the HUD's P button while moored there (piece E). */
+  const stashHereName = (): string | undefined => {
+    const id = stash.hideoutHere;
+    const site = id ? state.hideouts?.[id]?.siteId : undefined;
+    return site ? siteDef(site)?.shortName : undefined;
+  };
   const loop = createLoop({
     tick(dt) {
       // A key that just changed the mode (M off the chart) mustn't act again in the new one.
@@ -1367,19 +1749,29 @@ async function boot(): Promise<void> {
       if (arena?.run.result) leaveArena(arena.run.result);
       // A key that just changed the mode (M off the chart) mustn't act again in the new one.
       // In an arena, M leaves it (the arena reads ToggleChart); it doesn't open the chart.
+      // `arena` is already cleared by the time that press is seen here, so ask whether the
+      // ship is still in the arena's space (until the chart or zone takes her back), or the
+      // same press opens the chart as a look from the departure zone and the voyage stalls.
       const sameContext = input.context === contextBefore;
-      if (sameContext && !arena && input.context === 'sailing' && input.pressed('ToggleChart')) {
+      const chartFree = !arena && !inArenaSpace && !changingZone;
+      if (sameContext && chartFree && input.context === 'sailing' && input.pressed('ToggleChart')) {
         const refused = chartTravel.fromHelm({ atEdge: atEdge(), inHarbor: inHarbor() });
         if (refused) showNotice(refused);
       }
       // The traffic sails on the clock: in the zone, every tick (Phase 4 piece D).
       if (machine.mode === 'sailing' && !arena && !changingZone) {
         if (traffic.step(hazards.state.berthId)) sailingOptions.berths = freeBerths();
+        smuggler.step(shipPose());
       }
       if (sameContext && input.context === 'sailing' && input.pressed('Hail')) {
         const near = traffic.nearest(shipPose(), HAIL_RANGE_M);
-        if (near) showCard(traffic.hail(near.id));
+        if (near && smuggler.isSmuggler(near.id)) showNotice('She shows a lantern: come alongside');
+        else if (near) showCard(traffic.hail(near.id));
         else showNotice('No ship within hail');
+      }
+      // A patch or mend kit from the lockers (piece G): not while the port screen is up.
+      if (sameContext && !arena && input.context === 'sailing' && input.pressed('Repair')) {
+        showNotice(shipyard.useKit());
       }
       const inGame = input.context === 'sailing' || input.context === 'chart';
       if (sameContext && inGame && input.pressed('Pause')) {
@@ -1387,7 +1779,10 @@ async function boot(): Promise<void> {
       } else if (sameContext && inGame && input.pressed('Journal')) {
         ports.openJournal();
       } else if (sameContext && !arena && input.context === 'sailing' && input.pressed('Port')) {
-        ports.openDocked();
+        if (!ports.openDocked()) stash.openHere();
+      } else if (sameContext && input.context === 'sailing' && input.pressed('LieAtAnchor')) {
+        const refused = stash.openLie();
+        if (refused) showNotice(refused);
       }
       input.endTick();
     },
@@ -1431,16 +1826,39 @@ async function boot(): Promise<void> {
             portName:
               ports.dockedPort && hazards.state.mooring === 'docked' && !ports.openPort
                 ? portInfo(ports.dockedPort)?.name
-                : undefined,
+                : stashHereName(),
           }),
         );
       }
     },
   });
 
-  // No menu UI yet: go straight through the main menu into the saved run, on the chart if
-  // it was saved there (piece D) and no `?zone=` asks for a zone.
-  machine.transition('mainMenu');
+  // A new captain lies alongside the starting pier at dawn: the berth is taken as if just
+  // docked, so the first tick raises ShipDocked and the port screen opens (piece C).
+  if (startPier) {
+    const berth =
+      freeBerths().find((b) => b.dockId === startPier) ??
+      sailingOptions.berths.find((b) => b.dockId === startPier);
+    if (berth) {
+      placeShip(berth.pose);
+      const h = hazards.state;
+      h.mooring = 'docking';
+      h.berthId = berth.id;
+      h.mooringS = Number.MAX_SAFE_INTEGER;
+      h.from = { ...berth.pose };
+      spawn.x = berth.pose.x;
+      spawn.z = berth.pose.z;
+      spawn.heading = berth.pose.heading;
+      // So a reload before the first autosave comes back to the pier, not the zone's spawn.
+      saveNow();
+    } else {
+      console.warn(`No free berth at ${startPier}; starting at the zone's spawn`);
+    }
+  }
+
+  // Into the run from the main menu, on the chart if it was saved there (piece D) and no
+  // `?zone=` asks for a zone.
+  if (machine.mode === 'boot') machine.transition('mainMenu');
   const savedAt = state.player.location;
   if (savedAt.mode === 'chart' && !paramDef) {
     chartTravel.resume(savedAt, state.voyage);

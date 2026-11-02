@@ -1,13 +1,13 @@
 import { render } from 'preact';
 import { computed, signal } from '@preact/signals';
-import { bindingOverrides, DEFAULT_BINDINGS, rebind, type Action } from '../core/input';
-import { applyBindingOverrides, type SettingsStore } from '../core/settings';
+import type { Action } from '../core/input';
+import type { SettingsStore } from '../core/settings';
 import { Hud } from './hud/Hud';
 import type { HudSnapshot } from './hud/model';
 import type { CaptionView } from '../audio/captions';
 import { Captions } from './hud/Captions';
-import { SettingsMenu, type AudioControls } from './settings/SettingsMenu';
-import type { AudioSettings, VolumeId } from '../audio/settings';
+import { SettingsMenu } from './settings/SettingsMenu';
+import { settingsControls, type AudioVolumes } from './settings/controls';
 import { LoadingScreen } from './loading/LoadingScreen';
 import { ShipCardView } from './hud/ShipCardView';
 import type { ShipCard } from './hud/ship-card';
@@ -17,6 +17,13 @@ import type { LoadingScreen as LoadingModel } from './loading/model';
 import { PortScreen, type PortActions } from './port/PortScreen';
 import { Journal } from './port/Ledger';
 import type { LedgerSnapshot, PortSnapshot, PortTab } from './port/model';
+import { SmugglerScreen, type SmugglerActions } from './port/SmugglerScreen';
+import type { SmugglerSnapshot } from './port/smuggler-model';
+import { LieDialog, StashScreen } from './stash/StashScreen';
+import type { StashSnapshot } from './stash/model';
+import type { StashActions } from '../gameplay/stash';
+import { FirstWeekPage, FirstWeekTracker } from './hud/FirstWeek';
+import type { FirstWeekSnapshot } from '../gameplay/captain';
 import './theme.css';
 
 /**
@@ -34,16 +41,16 @@ export interface GameUiOptions {
   chart?: ChartHudActions | undefined;
   /** "Take to the chart" at the soft edge. */
   onTakeToChart?: (() => void) | undefined;
+  /** Put the First Week tracker away or bring it back (Phase 4 piece C). */
+  setFirstWeekHidden?: ((hidden: boolean) => void) | undefined;
   /** The port screen's buttons and the journal's (Phase 4 piece B). */
   port?: (PortActions & { closeJournal(): void; openDocked(): void }) | undefined;
+  /** Alongside the island smuggler (Phase 4 piece H). */
+  smuggler?: SmugglerActions | undefined;
+  /** The stash screen's buttons and the lie-at-anchor choice (Phase 4 piece E). */
+  stash?: StashActions | undefined;
   /** The game's sound volumes, when it has Web Audio. */
-  audio?:
-    | {
-        settings: AudioSettings;
-        setVolume(id: VolumeId, volume: number): void;
-        setMuted(muted: boolean): void;
-      }
-    | undefined;
+  audio?: AudioVolumes | undefined;
 }
 
 export interface GameUi {
@@ -63,6 +70,14 @@ export interface GameUi {
   setPort(snapshot: PortSnapshot | undefined): void;
   /** The journal's ledger at the helm; undefined closes it. */
   setJournal(snapshot: LedgerSnapshot | undefined): void;
+  /** The island smuggler's screen; undefined closes it. */
+  setSmuggler(snapshot: SmugglerSnapshot | undefined): void;
+  /** The stash screen; undefined closes it (Phase 4 piece E). */
+  setStash(snapshot: StashSnapshot | undefined): void;
+  /** The lie-at-anchor choice: true opens it, false closes it. */
+  setLie(open: boolean): void;
+  /** The First Week checklist (Phase 4 piece C); undefined for a run without one. */
+  setFirstWeek(snapshot: FirstWeekSnapshot | undefined): void;
   /** Show a port screen tab (J in port turns to the ledger). */
   setPortTab(tab: PortTab): void;
   readonly menuOpen: boolean;
@@ -78,7 +93,14 @@ export function mountGameUi({
   chart: chartActions,
   onTakeToChart,
   port: portActions,
+  smuggler: smugglerActions,
+  stash: stashActions,
+  setFirstWeekHidden = () => undefined,
 }: GameUiOptions): GameUi {
+  const smuggler = signal<SmugglerSnapshot | undefined>(undefined);
+  const stash = signal<StashSnapshot | undefined>(undefined);
+  const lie = signal(false);
+  const firstWeek = signal<FirstWeekSnapshot | undefined>(undefined);
   const port = signal<PortSnapshot | undefined>(undefined);
   const portTab = signal<PortTab>('market');
   const journal = signal<LedgerSnapshot | undefined>(undefined);
@@ -90,38 +112,15 @@ export function mountGameUi({
   const menuOpen = signal(false);
   const reloadNote = signal(false);
   const loading = signal<LoadingModel | undefined>(undefined);
-  const current = signal(settings.value);
-  settings.subscribe((s) => (current.value = s));
+  const controls = settingsControls(settings, audio);
+  const { current, bindings } = controls;
   const density = computed(() => current.value.ui.hudDensity);
-  const bindings = computed(() => applyBindingOverrides(DEFAULT_BINDINGS, current.value.bindings));
 
   const setMenu = (open: boolean): void => {
     if (menuOpen.value === open) return;
     menuOpen.value = open;
     onMenu(open);
   };
-  const update = (change: Parameters<SettingsStore['update']>[0]): void => settings.update(change);
-  const doRebind = (action: Action, code: string): void => {
-    const next = rebind(bindings.value, 'sailing', action, code);
-    settings.update((s) => (s.bindings = bindingOverrides(next)));
-  };
-  const resetBindings = (): void => settings.update((s) => (s.bindings = {}));
-  // The volumes live in the mixer; a signal copy re-renders the sliders as they move.
-  const audioSettings = audio ? signal<AudioSettings>({ ...audio.settings }) : undefined;
-  const audioControls: AudioControls | undefined =
-    audio && audioSettings
-      ? {
-          settings: audioSettings,
-          setVolume(id, volume) {
-            audio.setVolume(id, volume);
-            audioSettings.value = { ...audio.settings };
-          },
-          setMuted(muted) {
-            audio.setMuted(muted);
-            audioSettings.value = { ...audio.settings };
-          },
-        }
-      : undefined;
 
   // Esc closes the menu (plan 13 §6); opening is the sailing Pause action, in main.
   window.addEventListener('keydown', (e) => {
@@ -129,6 +128,12 @@ export function mountGameUi({
     if (menuOpen.value) {
       e.preventDefault();
       setMenu(false);
+    } else if (smuggler.value) {
+      e.preventDefault();
+      smugglerActions?.close();
+    } else if (stash.value || lie.value) {
+      e.preventDefault();
+      stashActions?.close();
     } else if (port.value) {
       e.preventDefault();
       portActions?.close();
@@ -142,7 +147,13 @@ export function mountGameUi({
     if (menuOpen.value || e.repeat) return;
     const keys = bindings.value.sailing;
     const is = (action: Action): boolean => (keys[action] ?? []).includes(e.code);
-    if (port.value && is('Interact')) {
+    if (smuggler.value && is('Interact')) {
+      e.preventDefault();
+      smugglerActions?.close();
+    } else if (stash.value && is('Interact')) {
+      e.preventDefault();
+      stashActions?.castOff();
+    } else if (port.value && is('Interact')) {
       e.preventDefault();
       portActions?.castOff();
     } else if (port.value && is('Journal')) {
@@ -175,30 +186,61 @@ export function mountGameUi({
             setTab={(t) => (portTab.value = t)}
           />
         )}
+        {smuggler.value && smugglerActions && !menuOpen.value && (
+          <SmugglerScreen smuggler={smuggler.value} actions={smugglerActions} />
+        )}
+        {stash.value && stashActions && !menuOpen.value && (
+          <StashScreen stash={stash.value} actions={stashActions} />
+        )}
+        {lie.value && stashActions && !menuOpen.value && <LieDialog actions={stashActions} />}
         {journal.value && portActions && !menuOpen.value && (
-          <Journal ledger={journal.value} close={portActions.closeJournal} />
+          <Journal
+            ledger={journal.value}
+            close={portActions.closeJournal}
+            extra={
+              firstWeek.value && (
+                <FirstWeekPage week={firstWeek.value} setHidden={setFirstWeekHidden} />
+              )
+            }
+          />
         )}
-        {!menuOpen.value && !port.value && !journal.value && (
-          <button
-            type="button"
-            class="hud-menu-button"
-            data-testid="open-settings"
-            title="Settings (Esc)"
-            onClick={() => setMenu(true)}
-          >
-            Settings
-          </button>
-        )}
+        {firstWeek.value &&
+          !firstWeek.value.hidden &&
+          !menuOpen.value &&
+          !port.value &&
+          !journal.value &&
+          !smuggler.value &&
+          !stash.value &&
+          !lie.value &&
+          !chart.value && (
+            <FirstWeekTracker week={firstWeek.value} setHidden={setFirstWeekHidden} />
+          )}
+        {!menuOpen.value &&
+          !port.value &&
+          !journal.value &&
+          !smuggler.value &&
+          !stash.value &&
+          !lie.value && (
+            <button
+              type="button"
+              class="hud-menu-button"
+              data-testid="open-settings"
+              title="Settings (Esc)"
+              onClick={() => setMenu(true)}
+            >
+              Settings
+            </button>
+          )}
         {menuOpen.value && (
           <SettingsMenu
             settings={current}
             bindings={bindings}
-            update={update}
-            rebind={doRebind}
-            resetBindings={resetBindings}
+            update={controls.update}
+            rebind={controls.rebind}
+            resetBindings={controls.resetBindings}
             close={() => setMenu(false)}
             reloadNote={reloadNote}
-            audio={audioControls}
+            audio={controls.audio}
           />
         )}
         <LoadingScreen screen={loading} />
@@ -248,8 +290,20 @@ export function mountGameUi({
       if (snapshot && port.value?.port !== snapshot.port) portTab.value = 'market';
       port.value = snapshot;
     },
+    setStash(snapshot) {
+      stash.value = snapshot;
+    },
+    setLie(open) {
+      lie.value = open;
+    },
     setJournal(snapshot) {
       journal.value = snapshot;
+    },
+    setSmuggler(snapshot) {
+      smuggler.value = snapshot;
+    },
+    setFirstWeek(snapshot) {
+      firstWeek.value = snapshot;
     },
     setPortTab(tab) {
       portTab.value = tab;

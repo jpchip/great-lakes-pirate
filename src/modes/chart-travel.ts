@@ -1,6 +1,6 @@
-import { zoneToChart, type Chart, type ZoneFrame } from '../core/coords';
+import { zoneToChart, type Chart, type Geo, type ZoneFrame } from '../core/coords';
 import { dayAndHour } from '../core/time';
-import { ChartView } from '../render/chart/chart-view';
+import { ChartView, type ChartMarkKind } from '../render/chart/chart-view';
 import { westernSuperiorChart } from '../sim/chart/chart-data';
 import {
   createChartSky,
@@ -36,6 +36,7 @@ import {
   type SavedVoyage,
 } from '../sim/chart/voyage';
 import { recordChartPosition } from '../sim/location';
+import { siteDef, siteGeo } from '../sim/hideouts/stash';
 import type { Pose } from '../sim/terrain/test-bay';
 import { entryPose, findZoneDef, nearestEntry, zoneDef } from '../sim/terrain/zones';
 import type { PlayerLocation, WorldState } from '../sim/world-state';
@@ -60,6 +61,7 @@ import {
   type ChartSession,
   type EncounterChoice,
 } from './chart';
+import { forecastSkill } from '../sim/character/perks';
 import type { GameContext } from './context';
 import type { Mode, ModeMachine } from './machine';
 
@@ -106,8 +108,15 @@ export interface ChartTravelHost {
    * built from `seed` when absent.
    */
   contacts?: Contact[] | undefined;
+  /**
+   * How far ahead the chart forecasts, game hours: 12 with the ship's plain barometer, 24
+   * with an aneroid (plan 04 §5.4, plan 10 §5.5; Phase 4 piece G). All leads without it.
+   */
+  forecastHours?: () => number;
   /** The Morrill hunts and forces meetings (`?cutter=hunt`, dev only until Phase 5). */
   cutterHunts?: boolean;
+  /** Places the captain knows to mark on the chart, e.g. the smuggler's anchorage (piece H). */
+  marks?: (() => readonly { at: Geo; label: string; kind: ChartMarkKind }[]) | undefined;
 }
 
 export interface ChartTravel {
@@ -170,6 +179,13 @@ function placeName(zone: ChartZone): string {
 export function createChartTravel(host: ChartTravelHost): ChartTravel {
   const { ctx, machine } = host;
   const geo = westernSuperiorChart();
+  /** The captain's hideouts on the chart (Phase 4 piece E), at their set pieces. */
+  const chartHideouts = (): { id: string; name: string; pos: Chart }[] =>
+    Object.entries(ctx.state.hideouts ?? {}).flatMap(([id, h]) => {
+      const site = siteDef(h.siteId);
+      const at = site && siteGeo(site);
+      return site && at ? [{ id, name: site.shortName, pos: geo.projection.geoToChart(at) }] : [];
+    });
   const clock = ctx.state.environment.clock;
   const hour = (): number => dayAndHour(clock.gameSeconds).hour;
 
@@ -230,6 +246,7 @@ export function createChartTravel(host: ChartTravelHost): ChartTravel {
     // A forecast is redrawn once per world tick (the sim only moves then).
     if (!forecast || forecast.leadHours !== forecastLead || Math.abs(forecast.at - at) >= 600) {
       forecast = weatherPicture(sky.state, geo, clock.gameSeconds, forecastLead);
+      forecast.spreadScale = forecastSkill(ctx.state.player.captain);
     }
     return forecast;
   };
@@ -341,6 +358,7 @@ export function createChartTravel(host: ChartTravelHost): ChartTravel {
           voyage: session.voyage,
           contacts,
           lanes: knownLanes,
+          hideouts: chartHideouts(),
           weather: pictureNow(),
           now: clock.gameSeconds,
           daylight: daylight(h),
@@ -348,6 +366,11 @@ export function createChartTravel(host: ChartTravelHost): ChartTravel {
           visible,
           hoverWaypoint: plotting.hoverWaypoint,
           etaLabel: eta,
+          marks: (host.marks?.() ?? []).map((m) => ({
+            pos: geo.projection.geoToChart(m.at),
+            label: m.label,
+            kind: m.kind,
+          })),
         });
       },
     },
@@ -461,11 +484,17 @@ export function createChartTravel(host: ChartTravelHost): ChartTravel {
       notice = undefined;
     },
     setForecast(leadHours) {
-      forecastLead = Math.max(0, leadHours);
+      forecastLead = Math.min(Math.max(0, leadHours), host.forecastHours?.() ?? Infinity);
       forecast = undefined;
     },
     resumeFrom(contactId, result) {
       chart.resumeFrom(contactId);
+      // Back on the voyage, wherever the arena left the chart: at sea, where she was met.
+      trip = 'sea';
+      if (session.voyage) {
+        session.position = session.voyage.position;
+        session.heading = session.voyage.heading;
+      }
       if (result === 'caught') {
         // Boarded and searched; with no Wanted until Phase 5 she lets you go, voyage over.
         session.voyage = undefined;
@@ -521,7 +550,9 @@ export function createChartTravel(host: ChartTravelHost): ChartTravel {
           backLabel: backLabel(),
           notice,
           locked: host.pursued(),
-          forecastLead,
+          forecastLead: Math.min(forecastLead, host.forecastHours?.() ?? Infinity),
+          forecastHours: host.forecastHours?.(),
+          forecastSkill: forecastSkill(ctx.state.player.captain),
         }),
       );
     },

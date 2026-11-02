@@ -5,6 +5,12 @@ import { APOSTLES_ID } from './terrain/zones';
 import { createWeatherState, type WeatherState } from './weather/weather';
 import { gameEconomy } from './economy/defs';
 import { createMarkets, syncMarkets } from './economy/market';
+import { createContractsState, type ContractsState } from './economy/contracts';
+import { CONTRACT_KINDS, CONTRACT_TIERS } from '../../data/schemas/contracts';
+import { freshContrabandState } from './economy/smuggler';
+import { startingHideouts, syncHideouts } from './hideouts/stash';
+import { firstWeekSchema } from './character/first-week';
+import { defaultShipState } from './shipyard/shipyard';
 
 /**
  * WorldState skeleton (plan 01 §3.1, plan 16 §5.2). Each slice is filled in by its
@@ -103,12 +109,15 @@ export const BACKGROUNDS = [
 
 /**
  * Who the player is (plan 12 §2; added in save v5, Phase 4 piece A). Character creation
- * (piece C) fills it; until then every run, and every migrated 0.3.0 run, is a Deckhand.
+ * (piece C) fills it; a migrated 0.3.0 run, and a run started past the main menu by a
+ * check (`?play`), is a Deckhand. The portrait is a preset id from `data/portraits.json`
+ * (piece C; absent before it, which shows the first preset).
  */
 export const captainSchema = z.object({
   name: z.string().min(1),
   shipName: z.string().min(1),
   background: z.enum(BACKGROUNDS),
+  portrait: z.string().optional(),
 });
 
 export type Captain = z.infer<typeof captainSchema>;
@@ -174,8 +183,111 @@ export const knowledgeSchema = z.object({
   ),
 });
 
+/**
+ * Contraband's saved state (plan 05 §6; Phase 4 piece H): the island smuggler's cash and
+ * stock for the night and her trust in you, the ports whose merchants turned you away and
+ * the week they did, the ports where you have a receiver, and whether you know where she lies. Optional and filled on load, so
+ * a v6 save from before piece H needs no migration.
+ */
+export const contrabandStateSchema = z.object({
+  smuggler: z.object({
+    night: z.number().int(),
+    cashCents: z.number().int().nonnegative(),
+    stock: z.record(z.string(), z.number().int().nonnegative()),
+    dealtCents: z.number().int().nonnegative(),
+  }),
+  refusals: z.record(z.string(), z.number().int()),
+  /** Ports with a merchant who has taken a lot from you: your receiver there. */
+  receivers: z.array(z.string()).default([]),
+  known: z.boolean(),
+});
+
+/**
+ * Hideouts and what's stored in them (plan 09 §12 `hideouts[id]`; Phase 4 piece E): the
+ * site, when it was claimed, and its storage of goods (stacks as in the hold, hot and
+ * contract flags kept) and cash in the strongbox. Absent in a save from before piece E:
+ * the background's starting hideout is given on load, empty, so no version bump.
+ */
+export const hideoutsSchema = z.record(
+  z.string(),
+  z.object({
+    siteId: z.string(),
+    claimedAt: z.number(),
+    storage: z.object({
+      goods: z.array(cargoStackSchema),
+      cash: z.number().int().nonnegative(),
+    }),
+  }),
+);
+
 /** Ship's stores in the lockers, by store id (plan 05 §7; save v6). */
 export const storesSchema = z.record(z.string(), z.number().int().nonnegative());
+
+/** Standing by port or company id, 0–100 (plan 05 §5.2, §11 `player.standing`; piece F). */
+export const standingSchema = z.record(z.string(), z.number().min(0).max(100));
+
+const contractSchema = z.object({
+  id: z.string(),
+  template: z.string(),
+  company: z.string(),
+  kind: z.enum(CONTRACT_KINDS),
+  tier: z.enum(CONTRACT_TIERS),
+  from: z.string(),
+  to: z.string(),
+  good: z.string(),
+  qty: z.number().int().positive(),
+  payCents: z.number().int().nonnegative(),
+  depositCents: z.number().int().nonnegative(),
+  allowSeconds: z.number().nonnegative(),
+  lateSeconds: z.number().nonnegative(),
+  note: z.string(),
+  acceptedAt: z.number(),
+  dueAt: z.number(),
+  expiresAt: z.number(),
+  status: z.enum(['active', 'failed']),
+  hits: z.number().int().nonnegative(),
+});
+
+const outcomeSchema = z.enum(['delivered', 'late', 'failed', 'abandoned', 'stolen']);
+
+/**
+ * Freight contracts (plan 05 §5.2, §11 `contracts`; Phase 4 piece F): the ones in hand,
+ * the offers taken from boards still posted, the companies you've stolen from, the last
+ * few finished for the ledger, and a count of each outcome. The boards themselves follow
+ * from the run's seed and the clock. Absent in a save from before piece F: it starts
+ * empty, like the traffic slice, so no version bump.
+ */
+export const contractsStateSchema: z.ZodType<ContractsState> = z.object({
+  active: z.array(contractSchema),
+  taken: z.array(z.string()),
+  burned: z.array(z.string()),
+  history: z.array(
+    z.object({
+      id: z.string(),
+      company: z.string(),
+      from: z.string(),
+      to: z.string(),
+      good: z.string(),
+      qty: z.number().int().nonnegative(),
+      outcome: outcomeSchema,
+      at: z.number(),
+      payCents: z.number().int().nonnegative(),
+    }),
+  ),
+  tally: z.record(outcomeSchema, z.number().int().nonnegative()),
+});
+
+/**
+ * The player's ship (plan 10 §11 `player.ship`; Phase 4 piece G): her class, the share
+ * left of each damage pool, and the upgrades fitted. Her name is the captain's
+ * `shipName`. Absent in a save from before the shipyard: a sound, bare T1.
+ */
+export const shipStateSchema = z.object({
+  classId: z.string(),
+  hull01: z.number().min(0).max(1),
+  rigging01: z.number().min(0).max(1),
+  upgrades: z.array(z.string()),
+});
 
 /** A Phase 4 captain before character creation: the Deckhand of plan 12 §2.2. */
 export function defaultCaptain(): Captain {
@@ -195,11 +307,23 @@ export const worldStateSchema = z.object({
     cargo: z.array(cargoStackSchema),
     /** Patch and mend kits, lamp oil, provisions (the chandlery; piece B). */
     stores: storesSchema,
+    /** Standing with ports and companies (piece F); absent before it, filled on load. */
+    standing: standingSchema.optional(),
+    /** Her class, condition and upgrades (piece G); filled on load when absent. */
+    ship: shipStateSchema.optional(),
   }),
   voyage: voyageSchema.nullable(),
   markets: marketsSchema,
   traffic: trafficStateSchema.optional(),
+  contraband: contrabandStateSchema.optional(),
+  contracts: contractsStateSchema.optional(),
+  hideouts: hideoutsSchema.optional(),
   knowledge: knowledgeSchema,
+  /**
+   * The Captain's First Week checklist (plan 12 §3, Phase 4 piece C). Only a run made in
+   * character creation has one; absent otherwise, so no save version bump.
+   */
+  firstWeek: firstWeekSchema.optional(),
   environment: z.looseObject({
     clock: clockStateSchema,
     /** Saved so a reload continues the same random sequence (plan 16 §4.4). */
@@ -211,8 +335,10 @@ export const worldStateSchema = z.object({
 
 export type WorldState = z.infer<typeof worldStateSchema>;
 
-export function createWorldState(seed: string): WorldState {
+/** `startSeconds`: the game time the run opens at (character creation: May 7 at dawn). */
+export function createWorldState(seed: string, startSeconds = 0): WorldState {
   const clock = createClockState();
+  clock.gameSeconds = startSeconds;
   return {
     // A new run starts at the Apostles spawn.
     player: {
@@ -221,10 +347,15 @@ export function createWorldState(seed: string): WorldState {
       purse: DECKHAND_PURSE_CENTS,
       cargo: DECKHAND_CARGO.map((s) => ({ ...s })),
       stores: {},
+      standing: {},
+      ship: defaultShipState(),
     },
     voyage: null,
     markets: createMarkets(gameEconomy(), clock.gameSeconds),
     traffic: { deliveredTo: clock.gameSeconds, ships: {} },
+    contraband: freshContrabandState(clock.gameSeconds),
+    contracts: createContractsState(),
+    hideouts: startingHideouts(defaultCaptain().background, clock.gameSeconds),
     knowledge: { prices: {} },
     environment: {
       clock,
@@ -239,5 +370,14 @@ export function parseWorldState(state: unknown): WorldState {
   const parsed = worldStateSchema.parse(state);
   syncMarkets(gameEconomy(), parsed.markets, parsed.environment.clock.gameSeconds);
   parsed.traffic ??= { deliveredTo: parsed.environment.clock.gameSeconds, ships: {} };
+  parsed.contraband ??= freshContrabandState(parsed.environment.clock.gameSeconds);
+  parsed.contracts ??= createContractsState();
+  parsed.player.standing ??= {};
+  parsed.hideouts = syncHideouts(
+    parsed.hideouts,
+    parsed.player.captain.background,
+    parsed.environment.clock.gameSeconds,
+  );
+  parsed.player.ship ??= defaultShipState();
   return parsed;
 }

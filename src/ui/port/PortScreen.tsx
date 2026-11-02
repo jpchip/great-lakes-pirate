@@ -1,11 +1,15 @@
 import { useEffect, useState } from 'preact/hooks';
 import { formatCents } from '../../sim/economy/knowledge';
 import type { TradeSide } from '../../sim/economy/market';
+import { Help } from './Help';
 import { Ledger } from './Ledger';
+import { Fittings, Shipyard, ShipPanel } from './Shipyard';
 import {
   CATEGORY_LABELS,
   type ElsewhereSnapshot,
+  type HoldRow,
   type MarketRow,
+  type OfferRow,
   type PortSnapshot,
   type PortTab,
 } from './model';
@@ -28,6 +32,20 @@ export interface PortActions {
   /** What `qty` CU would cost or fetch now, cents. */
   quote(good: string, qty: number, side: TradeSide): number;
   buyStores(item: string, qty: number): string | undefined;
+  /**
+   * Offers a whole hot or contraband lot (a stack of the hold, by its index) to the port's
+   * merchants (piece H). Always returns what came of it, in a line.
+   */
+  offer(index: number): string | undefined;
+  /** The freight agent (piece F): take an offer, hand a contract back, sell its cargo. */
+  acceptContract(offerId: string): string | undefined;
+  abandonContract(contractId: string): string | undefined;
+  stealContract(contractId: string): string | undefined;
+  /** The shipyard and the chandlery's fittings (piece G). */
+  buyHull(classId: string): string | undefined;
+  fit(upgrade: string, place: 'shipyard' | 'chandlery'): string | undefined;
+  unfit(upgrade: string, place: 'shipyard' | 'chandlery'): string | undefined;
+  repair(place: 'shipyard' | 'chandlery'): string | undefined;
   /** Close the screen and stay alongside. */
   close(): void;
   /** Close the screen and cast off (F). */
@@ -37,6 +55,8 @@ export interface PortActions {
 const TAB_LABELS: Record<PortTab, string> = {
   market: 'Market',
   chandlery: 'Chandlery',
+  freight: 'Freight agent',
+  shipyard: 'Shipyard',
   ledger: 'Ledger',
 };
 
@@ -57,7 +77,6 @@ function Elsewhere({ seen, label }: { seen: ElsewhereSnapshot | undefined; label
       title={`${label} at ${seen.portName}, ${seen.age}`}
     >
       {formatCents(seen.cents)} <small>{seen.portName}</small>
-      <small class="port-age">, {seen.age}</small>
     </span>
   );
 }
@@ -76,7 +95,7 @@ function CapacityBar({ port }: { port: PortSnapshot }) {
         <div style={{ width: `${(frac * 100).toFixed(1)}%` }} />
       </div>
       <span class="port-dim">
-        {port.speedLoss >= 0.005 ? `Laden: −${Math.round(port.speedLoss * 100)}% speed` : 'Light'}
+        {port.speedLoss >= 0.005 ? `−${Math.round(port.speedLoss * 100)}% speed` : ''}
       </span>
     </div>
   );
@@ -212,7 +231,7 @@ function Market({
               Stock
             </th>
             <th class="num">Aboard</th>
-            <th title="The best price you know of to sell it elsewhere">Best sale elsewhere</th>
+            <th title="The best price you know of to sell it elsewhere">Elsewhere</th>
             <th />
           </tr>
         </thead>
@@ -237,12 +256,13 @@ function Market({
                 <td>
                   {r.name}
                   {r.role !== 'neutral' && (
-                    <small
-                      class="port-role"
+                    <span
+                      class="port-icon"
                       title={r.role === 'export' ? 'Made here: cheap' : 'Wanted here: dear'}
+                      aria-label={r.role === 'export' ? 'made here' : 'wanted here'}
                     >
-                      {r.role === 'export' ? ' made here' : ' wanted here'}
-                    </small>
+                      {r.role === 'export' ? '▾' : '▴'}
+                    </span>
                   )}
                 </td>
                 <td class="num hud-num">{formatCents(r.buyCents)}</td>
@@ -286,7 +306,54 @@ function Market({
   );
 }
 
-function Hold({ port }: { port: PortSnapshot }) {
+/**
+ * Contract cargo on a market that buys it can be sold: the theft of plan 05 §5.2. The
+ * first click asks; the second sells, and burns the shipper for good.
+ */
+function StealButton({
+  row,
+  actions,
+  setMessage,
+}: {
+  row: HoldRow;
+  actions: PortActions;
+  setMessage(m: string | undefined): void;
+}) {
+  const [asking, setAsking] = useState(false);
+  if (row.stealCents === undefined || !row.contractId) return null;
+  const id = row.contractId;
+  return (
+    <button
+      type="button"
+      class={`port-mini${asking ? ' danger' : ''}`}
+      data-testid={`steal-${id}`}
+      title="Sell the shipper's cargo as your own. They will know who carried it."
+      onClick={() => {
+        if (!asking) {
+          setAsking(true);
+          setMessage(
+            `Sell it for ${formatCents(row.stealCents ?? 0)}? The shipper will never deal with you again.`,
+          );
+          return;
+        }
+        setAsking(false);
+        setMessage(actions.stealContract(id) ?? 'Sold. Word will get around.');
+      }}
+    >
+      {asking ? 'Sell it' : 'Sell…'}
+    </button>
+  );
+}
+
+function Hold({
+  port,
+  actions,
+  setMessage,
+}: {
+  port: PortSnapshot;
+  actions?: PortActions | undefined;
+  setMessage?: ((m: string | undefined) => void) | undefined;
+}) {
   return (
     <aside class="port-hold" data-testid="port-hold">
       <h3>Your hold</h3>
@@ -297,25 +364,189 @@ function Hold({ port }: { port: PortSnapshot }) {
         <ul>
           {port.hold.map((h, i) => (
             <li key={`${h.good}-${i}`} class={h.hot ? 'hot' : ''} data-testid="hold-row">
-              <span>
+              <span
+                title={
+                  h.hot
+                    ? 'No honest merchant will take it'
+                    : h.contract
+                      ? `Carried for a contract${h.contractTo ? ` to ${h.contractTo}` : ''}`
+                      : h.sellCents === undefined
+                        ? 'Not traded here'
+                        : undefined
+                }
+              >
                 {h.hot && <Ember />} {h.name}
                 {h.contract && <small class="port-dim"> (contract)</small>}
               </span>
               <span class="hud-num">{h.qty} CU</span>
-              <small class="port-dim">
-                {h.hot
-                  ? 'No honest merchant will take it'
-                  : h.contract
-                    ? 'Carried for a contract'
-                    : h.sellCents !== undefined
-                      ? `${formatCents(h.sellCents)} here`
-                      : 'Not traded here'}
-              </small>
+              {h.offer ? (
+                <small class="port-dim">
+                  {h.offer.tooHot
+                    ? 'Too hot for your receiver here'
+                    : h.offer.receiver
+                      ? 'Your receiver here takes it'
+                      : h.offer.turnedAway
+                        ? 'Turned away here this week'
+                        : `Offer it on the quiet: ${h.offer.risk}`}
+                </small>
+              ) : (
+                h.sellCents !== undefined && (
+                  <small class="port-dim">{formatCents(h.sellCents)} here</small>
+                )
+              )}
+              {h.offer && actions && setMessage && (
+                <button
+                  type="button"
+                  class="port-mini"
+                  data-testid={`offer-${h.good}`}
+                  disabled={h.offer.turnedAway || h.offer.tooHot}
+                  title={
+                    h.offer.kind === 'hot'
+                      ? 'Offer the whole lot to a merchant. If they know the goods, they refuse or call the law.'
+                      : 'Offer the whole lot to a merchant on the quiet. If they won’t have it, they refuse or call the revenue man.'
+                  }
+                  onClick={() => setMessage(actions.offer(h.index))}
+                >
+                  Offer
+                </button>
+              )}
+              {actions && setMessage && (
+                <StealButton row={h} actions={actions} setMessage={setMessage} />
+              )}
             </li>
           ))}
         </ul>
       )}
     </aside>
+  );
+}
+
+const KIND_LABEL: Record<OfferRow['kind'], string | undefined> = {
+  freight: undefined,
+  rush: 'Rush',
+  mail: 'Mail',
+  fragile: 'Fragile',
+};
+
+const KIND_HINT: Record<OfferRow['kind'], string> = {
+  freight: '',
+  rush: 'A tight deadline, and half again the pay',
+  mail: 'Good pay, and double the Standing either way',
+  fragile: 'Every hard knock on the way costs a quarter of the pay',
+};
+
+/**
+ * The freight agent (plan 05 §5.2; plan 13 §5 contracts board). Each offer is one line:
+ * where it goes and what, the pay, and Take. The shipper, deposit and time allowed sit
+ * small beneath; the exact due date and the shipper's note are in the tooltip.
+ */
+function Freight({
+  port,
+  actions,
+  setMessage,
+}: {
+  port: PortSnapshot;
+  actions: PortActions;
+  setMessage(m: string | undefined): void;
+}) {
+  const f = port.freight;
+  if (!f) return <p class="port-dim">No freight agent here.</p>;
+  return (
+    <div class="port-freight" data-testid="freight">
+      <div class="freight-head">
+        <h3>This week's board</h3>
+        <span
+          class="freight-standing"
+          title={f.perks.length ? f.perks.join(' · ') : 'Deliver on time to raise it'}
+        >
+          Standing <strong class="hud-num">{f.portStanding}</strong>
+        </span>
+      </div>
+      {f.offers.length === 0 ? (
+        <p class="port-dim">Nothing on the board this week.</p>
+      ) : (
+        <ul class="freight-list" data-testid="offers-table">
+          {f.offers.map((o) => (
+            <li
+              key={o.id}
+              class={`freight-card${o.locked ? ' locked' : ''}`}
+              data-testid={`offer-${o.id}`}
+              title={`${o.note}. Due ${o.dueText}.${KIND_HINT[o.kind] ? ` ${KIND_HINT[o.kind]}.` : ''}`}
+            >
+              <div class="freight-main">
+                <span class="freight-route">
+                  {KIND_LABEL[o.kind] && <span class="port-kind">{KIND_LABEL[o.kind]} </span>}
+                  {o.qty} CU {o.cargo.toLowerCase()} <span class="port-dim">to</span> {o.toName}
+                </span>
+                <small class="port-dim">
+                  {o.company}
+                  {o.companyTier ? ' (company)' : ''} · {o.dueShort}
+                  {o.depositCents ? ` · deposit ${formatCents(o.depositCents)}` : ''}
+                </small>
+              </div>
+              <strong class="freight-pay hud-num">{formatCents(o.payCents)}</strong>
+              {o.blocked ? (
+                <small class="freight-blocked" data-testid={`blocked-${o.id}`}>
+                  {o.blocked}
+                </small>
+              ) : (
+                <button
+                  type="button"
+                  class="port-mini"
+                  data-testid={`accept-${o.id}`}
+                  onClick={() => setMessage(actions.acceptContract(o.id))}
+                >
+                  Take
+                </button>
+              )}
+            </li>
+          ))}
+        </ul>
+      )}
+      {f.held.length > 0 && (
+        <>
+          <h3>In hand</h3>
+          <ul class="freight-list" data-testid="held-contracts">
+            {f.held.map((h) => (
+              <li
+                key={h.id}
+                data-testid={`held-${h.id}`}
+                class={`freight-card ${h.status}`}
+                title={h.status === 'failed' ? undefined : `Due ${h.dueText}`}
+              >
+                <div class="freight-main">
+                  <span class="freight-route">
+                    {h.aboard} CU {h.cargo.toLowerCase()} <span class="port-dim">to</span>{' '}
+                    {h.toName}
+                  </span>
+                  <small class="port-dim">
+                    {h.status === 'failed'
+                      ? 'Failed: the agent takes the cargo back'
+                      : `${h.dueShort}${h.status === 'late' ? ', late: half pay' : ''}${h.hits ? ` · knocked ${h.hits}×` : ''}`}
+                  </small>
+                </div>
+                <strong class="freight-pay hud-num">
+                  {h.status === 'failed' ? '—' : formatCents(h.payCents)}
+                </strong>
+                {h.status !== 'failed' ? (
+                  <button
+                    type="button"
+                    class="port-mini"
+                    data-testid={`abandon-${h.id}`}
+                    title="Hand it back here: the cargo goes ashore and the deposit is lost"
+                    onClick={() => setMessage(actions.abandonContract(h.id))}
+                  >
+                    Hand back
+                  </button>
+                ) : (
+                  <span />
+                )}
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+    </div>
   );
 }
 
@@ -330,13 +561,13 @@ function Chandlery({
 }) {
   return (
     <div class="port-chandlery">
-      <p class="menu-note">
-        Ship's stores go in the lockers, not the hold. The chandler doesn't buy them back.
-      </p>
       <table class="port-table" data-testid="chandlery-table">
         <thead>
           <tr>
-            <th>Store</th>
+            <th>
+              Stores
+              <Help text="Ship's stores go in the lockers, not the hold. The chandler doesn't buy them back." />
+            </th>
             <th class="num">Price</th>
             <th class="num">Aboard</th>
             <th />
@@ -347,8 +578,7 @@ function Chandlery({
             <tr key={s.id} class="port-row">
               <td>
                 {s.name}
-                <br />
-                <small class="port-dim">{s.blurb}</small>
+                <Help text={s.blurb} />
               </td>
               <td class="num hud-num">{formatCents(s.priceCents)}</td>
               <td class="num hud-num">
@@ -397,6 +627,12 @@ export function PortScreen({
             <strong class="hud-num" data-testid="port-purse">
               {formatCents(port.purseCents)}
             </strong>
+            {port.stashedCents ? (
+              <span class="port-dim" data-testid="port-stashed">
+                {' '}
+                · Stashed {formatCents(port.stashedCents)}
+              </span>
+            ) : null}
           </span>
         </header>
         <nav class="menu-tabs">
@@ -415,6 +651,13 @@ export function PortScreen({
             </button>
           ))}
         </nav>
+        {port.notices.length > 0 && (
+          <ul class="port-notices" role="status" data-testid="port-notices">
+            {port.notices.map((n, i) => (
+              <li key={i}>{n}</li>
+            ))}
+          </ul>
+        )}
         {message && (
           <p class="port-message" role="status" data-testid="port-message">
             {message}
@@ -424,13 +667,30 @@ export function PortScreen({
           {shown === 'market' && (
             <>
               <Market port={port} actions={actions} setMessage={setMessage} />
-              <Hold port={port} />
+              <Hold port={port} actions={actions} setMessage={setMessage} />
             </>
           )}
           {shown === 'chandlery' && (
             <>
-              <Chandlery port={port} actions={actions} setMessage={setMessage} />
+              <div class="port-chandlery-col">
+                <Chandlery port={port} actions={actions} setMessage={setMessage} />
+                {port.fittings && (
+                  <Fittings yard={port.fittings} actions={actions} setMessage={setMessage} />
+                )}
+              </div>
               <Hold port={port} />
+            </>
+          )}
+          {shown === 'freight' && (
+            <>
+              <Freight port={port} actions={actions} setMessage={setMessage} />
+              <Hold port={port} />
+            </>
+          )}
+          {shown === 'shipyard' && port.shipyard && (
+            <>
+              <Shipyard yard={port.shipyard} actions={actions} setMessage={setMessage} />
+              <ShipPanel yard={port.shipyard} />
             </>
           )}
           {shown === 'ledger' && <Ledger ledger={port.ledger} here={port.port} />}
