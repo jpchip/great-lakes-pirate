@@ -1,0 +1,112 @@
+[
+  {
+    "id": "upgrade.reinforced_planking",
+    "name": "Reinforced planking",
+    "category": "hull",
+    "blurb": "Doubled planking and extra frames: a quarter more hull to lose before she leaks badly, at a fifth of a knot.",
+    "priceCents": 12000,
+    "sources": ["shipyard"],
+    "installHours": 12,
+    "transferable": false,
+    "effects": { "hullHpMul": 1.25, "speedKn": -0.2 }
+  },
+  {
+    "id": "upgrade.improved_pumps",
+    "name": "Improved pumps",
+    "category": "utility",
+    "blurb": "Bigger bilge pumps: a holed hull floods half as fast, so she keeps her speed and sits higher until you can patch her.",
+    "priceCents": 8000,
+    "sources": ["shipyard"],
+    "installHours": 4,
+    "transferable": false,
+    "effects": { "leakMul": 0.5 }
+  },
+  {
+    "id": "upgrade.quality_canvas",
+    "name": "Quality canvas",
+    "category": "rigging",
+    "blurb": "A new suit of close-woven cotton duck that holds its shape: 5% faster at every sail.",
+    "priceCents": 9000,
+    "sources": ["shipyard"],
+    "installHours": 8,
+    "transferable": false,
+    "effects": { "speedMul": 1.05 }
+  },
+  {
+    "id": "upgrade.storm_sails",
+    "name": "Storm sails",
+    "category": "rigging",
+    "blurb": "Heavy-weather canvas for the reefed and half sails: they carry 4 knots more wind before the rigging strains.",
+    "priceCents": 7000,
+    "sources": ["shipyard"],
+    "installHours": 6,
+    "transferable": false,
+    "effects": { "safeWindKn": [0, 4, 4, 0] }
+  },
+  {
+    "id": "upgrade.improved_blocks",
+    "name": "Improved blocks and rigging",
+    "category": "rigging",
+    "blurb": "Bronze-sheaved blocks and new running rigging: sail changes take 40% less time, which helps most when sailing solo.",
+    "priceCents": 4500,
+    "sources": ["shipyard", "chandlery"],
+    "installHours": 3,
+    "transferable": false,
+    "effects": { "sailChangeMul": 0.6 }
+  },
+  {
+    "id": "upgrade.expanded_hold",
+    "name": "Expanded hold",
+    "category": "cargo",
+    "blurb": "Bulkheads moved and the 'tween deck opened up: a quarter more cargo, sitting a little deeper and a fifth of a knot slower.",
+    "priceCents": 15000,
+    "sources": ["shipyard"],
+    "installHours": 16,
+    "transferable": false,
+    "effects": { "cargoMul": 1.25, "draftFullM": 0.2, "speedKn": -0.2 }
+  },
+  {
+    "id": "upgrade.aneroid_barometer",
+    "name": "Aneroid barometer",
+    "category": "instruments",
+    "blurb": "A fine Naudet aneroid that reads small changes in the glass: the chart's forecast reaches a full day ahead instead of twelve hours.",
+    "priceCents": 4000,
+    "sources": ["shipyard", "chandlery"],
+    "installHours": 0,
+    "transferable": true,
+    "effects": { "forecastHours": 24 }
+  },
+  {
+    "id": "upgrade.sounding_machine",
+    "name": "Sounding machine",
+    "category": "instruments",
+    "blurb": "A Kelvin sounding machine instead of the hand lead: the depth warning sounds at three times your draft, not twice.",
+    "priceCents": 5500,
+    "sources": ["shipyard", "chandlery"],
+    "installHours": 0,
+    "transferable": true,
+    "effects": { "shallowWarnDrafts": 3 }
+  },
+  {
+    "id": "upgrade.marine_telescope",
+    "name": "Marine telescope",
+    "category": "instruments",
+    "blurb": "A long brass telescope instead of the old spyglass: twice the magnification, and you can make out a ship's papers half again as far off.",
+    "priceCents": 3500,
+    "sources": ["shipyard", "chandlery"],
+    "installHours": 0,
+    "transferable": true,
+    "effects": { "spyglassFovMul": 0.5, "lookRangeMul": 1.5 }
+  },
+  {
+    "id": "upgrade.heavy_anchor",
+    "name": "Heavy anchor",
+    "category": "utility",
+    "blurb": "A heavier bower and more chain: holds in a full gale where the old one would drag.",
+    "priceCents": 3000,
+    "sources": ["shipyard", "chandlery"],
+    "installHours": 0,
+    "transferable": true,
+    "effects": { "anchorHoldMul": 1.5 }
+  }
+]

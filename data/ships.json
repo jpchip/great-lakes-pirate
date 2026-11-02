@@ -49,7 +49,9 @@
     "visibilityProfile": "low",
     "conspicuity": 0.75,
     "modelId": "ship.schooner",
-    "LODs": []
+    "LODs": [],
+    "priceCents": 50000,
+    "slots": { "hull": 1, "rigging": 1, "cargo": 1, "instruments": 2, "utility": 1 }
   },
   {
     "id": "ship.t2_schooner",
@@ -86,7 +88,7 @@
     "sweepsTurnDegS": 2,
     "draftEmptyM": 2.5,
     "draftFullM": 3.2,
-    "cargoCapacity": 90,
+    "cargoCapacity": 45,
     "hullHP": 160,
     "riggingHP": 130,
     "anchorRodeM": 45,
@@ -101,7 +103,9 @@
     "visibilityProfile": "medium",
     "conspicuity": 0.9,
     "modelId": "ship.t2_schooner",
-    "LODs": []
+    "LODs": [],
+    "priceCents": 160000,
+    "slots": { "hull": 2, "rigging": 2, "cargo": 1, "instruments": 3, "utility": 2 }
   },
   {
     "id": "ship.ore_freighter",

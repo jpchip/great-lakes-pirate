@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { idOf } from './common';
+import { UPGRADE_CATEGORIES } from './upgrades';
 
 /**
  * Ship classes (plan 02 §12, plan 01 §8). Authored in data units: speeds in game knots
@@ -74,6 +75,10 @@ const shipBase = {
   modelId: z.string().min(1),
   /** Lower-detail model ids, nearest first. */
   LODs: z.array(z.string().min(1)),
+  /** What a shipyard asks for her new, integer cents (plan 10 §2; player classes). */
+  priceCents: z.number().int().positive().optional(),
+  /** Upgrade slots by category (plan 10 §4; player classes). */
+  slots: z.record(z.enum(UPGRADE_CATEGORIES), z.number().int().nonnegative()).optional(),
 };
 
 export const sailShipSchema = z.object({
@@ -105,6 +110,10 @@ export const shipSchema = z
   .refine(
     (s) => (s.role === 'player') === (s.tier !== undefined),
     'Player classes, and only they, have a tier',
+  )
+  .refine(
+    (s) => (s.role === 'player') === (s.priceCents !== undefined && s.slots !== undefined),
+    'Player classes, and only they, have a price and upgrade slots',
   )
   .refine(
     (s) => !s.whistle || (s.whistle.kind === 'steam') === (s.propulsion === 'steam'),

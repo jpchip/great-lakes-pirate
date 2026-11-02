@@ -63,6 +63,7 @@ const ACTION_LABELS: Partial<Record<Action, string>> = {
   ToggleChart: 'Chart',
   Port: 'Port screen (docked)',
   Journal: 'Journal',
+  Repair: 'Use a repair kit',
 };
 
 const HUD_LABELS: Record<HudDensity, string> = {

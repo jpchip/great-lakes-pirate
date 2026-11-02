@@ -293,9 +293,76 @@ So she is about 12% faster on every point of sail, slower to gather way and to c
 
 **Needs Jared:** the T2 look (screenshots in the project's `t2-schooner/` folder). Not yet: the shipyard, trade-in, upgrades, repairs and saving the ship's tier and condition (piece G's second half), and no T2 sailing audio changes (she uses the T1's mix).
 
+## 17. Phase 4 Piece G, Second Half: Shipyard, Upgrades and Repairs (2026-11-02)
+
+**Goal** ([05 §16.4](05-ports-economy-trading.md), piece G): buying and trading in at Superior, Ashland and Duluth (§3), about ten upgrades with their effects wired into the controller, repairs at a shipyard and a chandlery and with the chandlery's kits at sea (§8), and the ship's tier, condition and fit in the save.
+
+**Result:** dock at Ashland's city dock with $1,400 in the purse, open the Shipyard tab, and buy the T2 with the T1 in trade at half her price: her model swaps alongside the pier, the hold grows to 45 CU, and she sails on the T2's numbers. Fit quality canvas and the yard keeps her 8 game hours. Run her aground, cast off with a patch kit, and K patches the hull. Screenshots are in the project files (`shipyard/`).
+
+### 17.1 What was built
+
+| Part | Where | What |
+|---|---|---|
+| Hulls | `data/ships.json`, `data/schemas/ships.ts` | Player classes carry `priceCents` (T1 $500, T2 $1,600, §2) and `slots` by category (§4: T1 1/1/1/2/1, T2 2/2/1/3/2 for hull, rigging, cargo, instruments, utility). The T2's hold is now **45 CU** (piece A converted only the T1; the record still said 90) |
+| Upgrades | `data/upgrades.json`, `data/schemas/upgrades.ts` | Ten, from §5 and the §13 list: reinforced planking, improved pumps, quality canvas, storm sails, improved blocks and rigging, expanded hold, aneroid barometer, sounding machine, marine telescope, heavy anchor. Each has a category, a plain-words blurb (§12), a price, where it's fitted (shipyard, chandlery or both), yard hours, whether it moves to a new hull, and its effects |
+| Fit | `src/sim/shipyard/fit.ts` | `fitShip(record, rules, upgrades)` folds the effects into the class record (hull speed, hull HP, hold, laden draft, sail-change time) and the hazard rules (safe wind per sail level, anchor holding, leak speed and draft, the depth warning). The controller and hazards run on the fitted numbers with no upgrade code of their own. Instruments outside the sim come back separately: the chart's forecast reach, the spyglass's field of view and the look-her-over range |
+| Shipyard | `src/sim/shipyard/shipyard.ts` | Pure functions over `player.ship`, the purse, the hold and the lockers, each all or nothing: `buyHull` with `tradeInQuote` (§3: 50% of her price × condition, weighted by pool size, plus 25% of the gear left aboard; transferable gear moves while the new hull has slots; cargo that won't fit is sold at 80% of what it fetches there, cheapest first, and contract or hot cargo that won't fit stops the sale), `installUpgrade` and `removeUpgrade` (a quarter back), `repairQuote` and `repairShip`, `useKit`. Prices carry the port's spread, as the chandlery's do, and take piece F's Standing discount (up to 15%) when it lands |
+| In the game | `src/gameplay/shipyard.ts`, `src/main.ts` | `attachShipyard` keeps the player entity on her class and fit: a hull or an upgrade rebuilds the sailing and hazard classes, resizes the hold (`GameEconomy.setCapacity`), resets buoyancy to the hull's, and keeps damage as a share of each pool. A new hull re-adds the entity, so the view draws her from her class's lines. Yard work is a time skip at the screen (§6), with every world tick run, so markets and the clock move on. An `adjustClass` hook lets piece C's perks ride on each rebuilt class |
+| Port screen | `src/ui/port/Shipyard.tsx`, `shipyard-model.ts`, `PortScreen.tsx` | A **Shipyard** tab at the three yards: repairs, the hulls side by side with their fitted numbers and the trade-in sum ("To pay" or "The yard pays you"), what comes across and what's sold off, the upgrades by category with price and yard time, and her condition and slots beside them. The **Chandlery** tab gains rigging repair and the fittings a chandler sells, fitted on the spot |
+| At sea | `src/core/input.ts` | **K** (Repair, rebindable) uses a patch kit on the hull or a mend kit on the rigging, whichever she needs most, and says what it did on the HUD |
+| Save | `src/sim/world-state.ts` | `player.ship = {classId, hull01, rigging01, upgrades}` in save v6, optional and filled on load with a sound, bare T1, the way piece D added `traffic`, so there's no version bump to collide with the other Phase 4 pieces. Damage now survives a reload; the name stays `player.captain.shipName` |
+| Events | `src/modes/context.ts` | `ShipPurchased` (with the trade-in, cargo sold off and gear moved), `UpgradeInstalled`, `UpgradeRemoved`, `ShipRepaired` |
+| Dev hook | `src/main.ts` | `__glpShipyard` (dev builds and `?debug`): `ship`, `fit`, `buy`, `install`, `remove`, `repair`, `kit`, `damage`, `grant`, `sailing`. `?ship=t2` now puts the run in a sound, bare T2 |
+
+### 17.2 The upgrades
+
+| Upgrade | Slot | Price | Where | Effect |
+|---|---|---|---|---|
+| Reinforced planking | Hull | $120 | Yard, 12 h | Hull HP ×1.25, −0.2 kn |
+| Improved pumps | Utility | $80 | Yard, 4 h | A leak costs half the speed and draft |
+| Quality canvas | Rigging | $90 | Yard, 8 h | Hull speed ×1.05 |
+| Storm sails | Rigging | $70 | Yard, 6 h | Reefed and Half carry 4 kn more wind before strain (40 → 44, 27 → 31) |
+| Improved blocks and rigging | Rigging | $45 | Yard 3 h, chandlery | Sail changes take 40% less time (T1 4 → 2.4 s) |
+| Expanded hold | Cargo | $150 | Yard, 16 h | Hold ×1.25 (T1 25 CU, T2 56), laden draft +0.2 m, −0.2 kn |
+| Aneroid barometer | Instruments | $40 | Yard, chandlery | The chart forecasts 24 h ahead instead of 12 |
+| Sounding machine | Instruments | $55 | Yard, chandlery | The depth warning at 3 drafts instead of 2 |
+| Marine telescope | Instruments | $35 | Yard, chandlery | Spyglass field of view halved (twice the magnification), look her over from 240 m instead of 160 |
+| Heavy anchor | Utility | $30 | Yard, chandlery | Anchor holding ×1.5 (30 → 45 kn): holds in a gale |
+
+The four instruments and the anchor move to a new hull; sails, planking, the hold and the pumps stay with the old one. A T1 has room for one rigging upgrade and two of the three instruments, so she can't carry everything; a T2 nearly can.
+
+### 17.3 Repairs
+
+| Where | What | Cost |
+|---|---|---|
+| Shipyard | Hull and rigging to full | A wrecked hull costs a quarter of the hull's price and a stripped rig a tenth, pro rata, plus a game hour per 8% of hull and 15% of rigging missing |
+| Chandlery | Rigging to full | A third over the yard's rigging rate, while you wait |
+| At sea | A patch kit (hull) or mend kit (rigging) from the lockers | A fifth of the pool each, up to 80%: the rest is yard work |
+
+### 17.4 Decisions made in the piece
+
+- **Instruments use what the game already shows.** The aneroid lengthens the chart's forecast (the plain barometer now forecasts to 12 h; the 24 h lead needs the aneroid), the sounding machine moves the depth warning, the telescope narrows the spyglass and reaches further to look a ship over. No new HUD instruments.
+- **Kits only go to 80%.** Plan 02 §6.1 calls at-sea repairs partial; this makes "partial" a number and keeps the yards worth a visit. The cargo lumber and pitch of plan 02 §6.1 become the chandlery's kits, which piece B already sells.
+- **Downgrading is allowed.** Buying the T1 back with a T2 in trade pays out the difference. Up and back down always loses (unit tested), as does fitting and removing an upgrade.
+- **Repairing before a trade-in pays a little.** The yard's hull rate is slightly under what the condition adds to a trade-in ($125 against $139 for a wrecked T1 hull), so a careful captain repairs first. It can't loop: every trade-in buys a hull at full price.
+- **Upgrades are installed instantly at the screen, with the yard hours passing as a time skip** (§6, decided 2026-10-22). The ship stays at her berth through it.
+- **No model attachments yet.** None of the ten is a ★ upgrade, so no meshes change; topsails and the crow's nest wait for a later pass.
+
+### 17.5 Checks
+
+`tests/shipyard.test.ts` (21 tests): the yards and prices, the trade-in sum, buying the T2 at Superior for $1,350 with a sound T1, cargo sold off at 80% and contract cargo blocking the sale, no money loop up and down the hulls or in and out of an upgrade, upgrades changing a minute's beam-reach speed and every effect folded into the class and rules, slots per tier, chandlery fittings, yard and chandlery repairs, kits and their cap, the hull swap in the game (class, hold, buoyancy, model), damage kept through an upgrade with the yard's time passing, K, and `player.ship` through a save and from an older save. The e2e smoke test buys a T2 at Ashland with the mouse, fits quality canvas, repairs her, and patches the hull at sea with K.
+
+### 17.6 Still to do
+
+- Jared's feel of the upgrades (§16.4's "Upgrade feel").
+- Piece F's Standing discount into `hullPriceCents` and `upgradePriceCents`, and piece C's perks into `adjustClass`.
+- The sailing bench before and after (criterion 8) with the T2 and a full fit.
+- Ship naming at purchase (§3) comes with character creation's name field (piece C); the new hull keeps the captain's `shipName` until then.
+
 ---
 
 ## Changelog
+- v0.5: Phase 4 piece G, second half (§17): the shipyard, trade-in, ten upgrades, repairs and kits, `player.ship` in the save.
 - v0.4: Phase 4 piece G, first half (§16): the T2 schooner's record, lines, deck layout, yawl boat and handling.
 - v0.3: Gap review: auto-sell excess cargo, T3 single swivel, shipyard wait before districts exist.
 - v0.2: Decisions: hull variants (MVP+), trade-in rule, T1-only shipless building, dark-tanned sails, starting prices.
