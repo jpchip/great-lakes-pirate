@@ -17,6 +17,11 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 - **Arriving in the Twin Ports and Two Harbors puts you just off the harbor** instead of out at the zone's edge (playtest: the run in took minutes even downwind). The Twin Ports entry is now about 600 m off Minnesota Point between the Duluth canal and Superior Entry, heading for the canal, and Two Harbors' east and south entries are about 700 m from Agate Bay, heading in. "Take to the chart" still shows on arrival.
 
+### Fixed
+
+- **No more black wall in open-water arenas.** The coast silhouettes an arena draws gave every shore a hill reaching up to 2 km inland, so a small island, a point or a spit threw its back slope out over the water on the far side. Sailing into one filled the view with a dark mass (black at dawn, lit from behind), first seen in a fog bank encounter among the Apostles. Each silhouette now fits inside its own land, lower and shorter where the land is narrow, and the chart's cut-off eastern edge out in the lake no longer gets a coast at all.
+- **Leaving an arena with M carries on the voyage from where you met them.** The same key press also opened the chart as a look from the zone you set out from, which stalled the voyage and sent you back to your starting point on "Back to the helm".
+
 ## [0.3.0] - 2026-11-01
 
 The **Hybrid Travel** build (Phase 3): take to a chart baked from the real lake, plot a course across western Superior through the weather sim's weather, meet ships on their timetables in open-water arenas, and arrive in the Twin Ports and Two Harbors, with harbors to dock at and the run saved wherever you stop.

@@ -473,6 +473,12 @@ export function createChartTravel(host: ChartTravelHost): ChartTravel {
     },
     resumeFrom(contactId, result) {
       chart.resumeFrom(contactId);
+      // Back on the voyage, wherever the arena left the chart: at sea, where she was met.
+      trip = 'sea';
+      if (session.voyage) {
+        session.position = session.voyage.position;
+        session.heading = session.voyage.heading;
+      }
       if (result === 'caught') {
         // Boarded and searched; with no Wanted until Phase 5 she lets you go, voyage over.
         session.voyage = undefined;
