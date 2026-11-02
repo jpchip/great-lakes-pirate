@@ -144,6 +144,8 @@ export interface ChartWeatherPicture {
   cells: StormCell[];
   fogBanks: ChartFogBank[];
   centres: ChartPressureCentre[];
+  /** Scales a forecast's drawn uncertainty: under 1 for a weather-wise captain (the Fisherman). */
+  spreadScale?: number;
 }
 
 /** Sample the sim on a grid over `bounds`. About 1,300 points over the western lake. */
@@ -419,14 +421,17 @@ function isThunder(state: WeatherState, worldP: Chart, t: number): boolean {
   return squall > 0 && thunderstormAt(state, worldP, t) > 0.5 * squall;
 }
 
-/** How far a forecast position may be off after `leadHours`, meters. */
-export function forecastSpreadM(leadHours: number): number {
-  return 12_000 + 4_000 * Math.max(leadHours, 0);
+/**
+ * How far a forecast position may be off after `leadHours`, meters. `skill` scales it:
+ * 1 for most captains, less for one who reads the sky well (plan 12 §2.2, the Fisherman).
+ */
+export function forecastSpreadM(leadHours: number, skill = 1): number {
+  return (12_000 + 4_000 * Math.max(leadHours, 0)) * skill;
 }
 
-/** The ± share on a forecast wind speed after `leadHours`. */
-export function forecastWindSpread(leadHours: number): number {
-  return Math.min(0.5, 0.12 + 0.02 * Math.max(leadHours, 0));
+/** The ± share on a forecast wind speed after `leadHours`, scaled by `skill`. */
+export function forecastWindSpread(leadHours: number, skill = 1): number {
+  return Math.min(0.5, 0.12 + 0.02 * Math.max(leadHours, 0)) * skill;
 }
 
 // ---------------------------------------------------------------------------------
@@ -513,11 +518,12 @@ export function forecastAt(
   p: Chart,
   now: number,
   leadHours: number,
+  skill = 1,
 ): ChartForecast {
   const world = toWorldChart(geo, p);
   const at = now + leadHours * HOUR;
   const w = windAt(state, world, at);
-  const spread = forecastWindSpread(leadHours);
+  const spread = forecastWindSpread(leadHours, skill);
   return {
     barometer: barometerAt(state, world, now),
     leadHours,

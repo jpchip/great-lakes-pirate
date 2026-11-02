@@ -246,7 +246,7 @@ Sinking with a failed survival check · drowning · combat (boarding at bad odds
 ---
 
 ## 11. Phasing
-- **Phase 4:** character creation (name, appearance presets, background), starting scenario, First Week checklist (trade parts). Starting hideouts attach in Phase 8, when hideouts exist.
+- **Phase 4:** character creation (name, appearance presets, background), starting scenario, First Week checklist (trade parts). Starting hideouts attach in Phase 8, when hideouts exist. **Built 2026-11-02 (Phase 4 piece C, [05 §19](05-ports-economy-trading.md)):** `data/backgrounds.json` and eight portrait presets; a new run opens docked at the background's starting pier at sunrise on May 7, 1900; the Deckhand's and Fisherman's perks wired (the Saloon Keeper's rumors by piece K), the rest stored for their phases; the First Week's five steps in the journal and on a HUD tracker. The run seed is on the creation screen; the permadeath notice waits for Phase 5.
 - **Phase 5:** jail, bail, the release summary; newspapers v1 (headlines, WANTED); death and end screen plus run summary.
 - **Phase 8:** the event system with the first ~10 events, letters, Ambitions.
 - **Phase 9:** the full event catalog, the Hollister feud, copycat rivals, nickname generation, poker, the Mataafa event, voluntary endings, Hall of Captains.
@@ -280,6 +280,7 @@ All resolved.
 ---
 
 ## Changelog
+- v0.4: Phase 4 piece C built (§11): character creation, backgrounds, the new run and the First Week.
 - v0.3: Gap review: pre-built starting hideouts, MVP starting sites, Bayfield lockup, batch time skip for sentences.
 - v0.2: Decisions: newspaper nicknames, Retire and Lawman endings, poker, per-background starting hideouts and ports (with an adaptive First Week), Hall of Captains.
 - v0.1: Initial sandbox plan: character creation and 6 backgrounds with perks, the starting scenario and First Week onboarding, Ambitions, voluntary endings, the data-driven event system and catalog (Seavey-inspired opportunities, Hollister feud, poker), newspapers and nickname generation, copycat rival templates and lifecycle, jail sentences and bail, release summary, death causes, end-of-run front page and summary, data/state, phasing.

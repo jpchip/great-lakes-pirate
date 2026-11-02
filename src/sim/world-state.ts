@@ -6,6 +6,8 @@ import { createWeatherState, type WeatherState } from './weather/weather';
 import { gameEconomy } from './economy/defs';
 import { createMarkets, syncMarkets } from './economy/market';
 import { freshContrabandState } from './economy/smuggler';
+import { firstWeekSchema } from './character/first-week';
+import { defaultShipState } from './shipyard/shipyard';
 
 /**
  * WorldState skeleton (plan 01 §3.1, plan 16 §5.2). Each slice is filled in by its
@@ -104,12 +106,15 @@ export const BACKGROUNDS = [
 
 /**
  * Who the player is (plan 12 §2; added in save v5, Phase 4 piece A). Character creation
- * (piece C) fills it; until then every run, and every migrated 0.3.0 run, is a Deckhand.
+ * (piece C) fills it; a migrated 0.3.0 run, and a run started past the main menu by a
+ * check (`?play`), is a Deckhand. The portrait is a preset id from `data/portraits.json`
+ * (piece C; absent before it, which shows the first preset).
  */
 export const captainSchema = z.object({
   name: z.string().min(1),
   shipName: z.string().min(1),
   background: z.enum(BACKGROUNDS),
+  portrait: z.string().optional(),
 });
 
 export type Captain = z.infer<typeof captainSchema>;
@@ -197,6 +202,18 @@ export const contrabandStateSchema = z.object({
 /** Ship's stores in the lockers, by store id (plan 05 §7; save v6). */
 export const storesSchema = z.record(z.string(), z.number().int().nonnegative());
 
+/**
+ * The player's ship (plan 10 §11 `player.ship`; Phase 4 piece G): her class, the share
+ * left of each damage pool, and the upgrades fitted. Her name is the captain's
+ * `shipName`. Absent in a save from before the shipyard: a sound, bare T1.
+ */
+export const shipStateSchema = z.object({
+  classId: z.string(),
+  hull01: z.number().min(0).max(1),
+  rigging01: z.number().min(0).max(1),
+  upgrades: z.array(z.string()),
+});
+
 /** A Phase 4 captain before character creation: the Deckhand of plan 12 §2.2. */
 export function defaultCaptain(): Captain {
   return { name: 'Captain', shipName: 'Schooner', background: 'deckhand' };
@@ -215,12 +232,19 @@ export const worldStateSchema = z.object({
     cargo: z.array(cargoStackSchema),
     /** Patch and mend kits, lamp oil, provisions (the chandlery; piece B). */
     stores: storesSchema,
+    /** Her class, condition and upgrades (piece G); filled on load when absent. */
+    ship: shipStateSchema.optional(),
   }),
   voyage: voyageSchema.nullable(),
   markets: marketsSchema,
   traffic: trafficStateSchema.optional(),
   contraband: contrabandStateSchema.optional(),
   knowledge: knowledgeSchema,
+  /**
+   * The Captain's First Week checklist (plan 12 §3, Phase 4 piece C). Only a run made in
+   * character creation has one; absent otherwise, so no save version bump.
+   */
+  firstWeek: firstWeekSchema.optional(),
   environment: z.looseObject({
     clock: clockStateSchema,
     /** Saved so a reload continues the same random sequence (plan 16 §4.4). */
@@ -232,8 +256,10 @@ export const worldStateSchema = z.object({
 
 export type WorldState = z.infer<typeof worldStateSchema>;
 
-export function createWorldState(seed: string): WorldState {
+/** `startSeconds`: the game time the run opens at (character creation: May 7 at dawn). */
+export function createWorldState(seed: string, startSeconds = 0): WorldState {
   const clock = createClockState();
+  clock.gameSeconds = startSeconds;
   return {
     // A new run starts at the Apostles spawn.
     player: {
@@ -242,6 +268,7 @@ export function createWorldState(seed: string): WorldState {
       purse: DECKHAND_PURSE_CENTS,
       cargo: DECKHAND_CARGO.map((s) => ({ ...s })),
       stores: {},
+      ship: defaultShipState(),
     },
     voyage: null,
     markets: createMarkets(gameEconomy(), clock.gameSeconds),
@@ -262,5 +289,6 @@ export function parseWorldState(state: unknown): WorldState {
   syncMarkets(gameEconomy(), parsed.markets, parsed.environment.clock.gameSeconds);
   parsed.traffic ??= { deliveredTo: parsed.environment.clock.gameSeconds, ships: {} };
   parsed.contraband ??= freshContrabandState(parsed.environment.clock.gameSeconds);
+  parsed.player.ship ??= defaultShipState();
   return parsed;
 }

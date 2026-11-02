@@ -60,6 +60,7 @@ import {
   type ChartSession,
   type EncounterChoice,
 } from './chart';
+import { forecastSkill } from '../sim/character/perks';
 import type { GameContext } from './context';
 import type { Mode, ModeMachine } from './machine';
 
@@ -106,6 +107,11 @@ export interface ChartTravelHost {
    * built from `seed` when absent.
    */
   contacts?: Contact[] | undefined;
+  /**
+   * How far ahead the chart forecasts, game hours: 12 with the ship's plain barometer, 24
+   * with an aneroid (plan 04 §5.4, plan 10 §5.5; Phase 4 piece G). All leads without it.
+   */
+  forecastHours?: () => number;
   /** The Morrill hunts and forces meetings (`?cutter=hunt`, dev only until Phase 5). */
   cutterHunts?: boolean;
   /** Places the captain knows to mark on the chart, e.g. the smuggler's anchorage (piece H). */
@@ -232,6 +238,7 @@ export function createChartTravel(host: ChartTravelHost): ChartTravel {
     // A forecast is redrawn once per world tick (the sim only moves then).
     if (!forecast || forecast.leadHours !== forecastLead || Math.abs(forecast.at - at) >= 600) {
       forecast = weatherPicture(sky.state, geo, clock.gameSeconds, forecastLead);
+      forecast.spreadScale = forecastSkill(ctx.state.player.captain);
     }
     return forecast;
   };
@@ -468,7 +475,7 @@ export function createChartTravel(host: ChartTravelHost): ChartTravel {
       notice = undefined;
     },
     setForecast(leadHours) {
-      forecastLead = Math.max(0, leadHours);
+      forecastLead = Math.min(Math.max(0, leadHours), host.forecastHours?.() ?? Infinity);
       forecast = undefined;
     },
     resumeFrom(contactId, result) {
@@ -528,7 +535,9 @@ export function createChartTravel(host: ChartTravelHost): ChartTravel {
           backLabel: backLabel(),
           notice,
           locked: host.pursued(),
-          forecastLead,
+          forecastLead: Math.min(forecastLead, host.forecastHours?.() ?? Infinity),
+          forecastHours: host.forecastHours?.(),
+          forecastSkill: forecastSkill(ctx.state.player.captain),
         }),
       );
     },

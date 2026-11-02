@@ -17,6 +17,7 @@ import {
 import type { PortActions } from '../ui/port/PortScreen';
 import type { GameEconomy } from './economy';
 import type { ShipHazards } from './hazards';
+import type { GameShipyard } from './shipyard';
 
 /**
  * Ports at the pier (plan 05 §7, Phase 4 piece B). Docking at a berth on one of a port's
@@ -47,6 +48,8 @@ export interface PortControlOptions {
   ctx: GameContext;
   economy: GameEconomy;
   hazards: ShipHazards;
+  /** The shipyard, chandlery fittings and repairs (piece G); without it those don't show. */
+  shipyard?: GameShipyard | undefined;
   /** The pier a berth belongs to, from the zone's berths. */
   berthPier(berthId: string): string | undefined;
   /** Show or hide the screens. */
@@ -127,6 +130,10 @@ export function attachPorts(opts: PortControlOptions): PortControl {
       gameSeconds: now(),
       refusals: ctx.state.contraband?.refusals,
       receivers: ctx.state.contraband?.receivers,
+      ship: opts.shipyard && {
+        state: (opts.shipyard.sync(), opts.shipyard.ship),
+        name: player.captain.shipName,
+      },
     });
   };
   /** Writes down this port's prices as they stand now (plan 05 §4.3). */
@@ -177,6 +184,18 @@ export function attachPorts(opts: PortControlOptions): PortControl {
     note(port);
     refresh();
     return undefined;
+  };
+
+  /** Shipyard and chandlery work at the open port; the screen refreshes after it. */
+  const yardWork = (
+    work: (y: GameShipyard, port: string) => string | undefined,
+  ): string | undefined => {
+    const port = openPort;
+    if (!port || !opts.shipyard) return 'The yard is closed.';
+    const refused = work(opts.shipyard, port);
+    if (!refused && economy.defs.markets.has(port)) note(port);
+    refresh();
+    return refused;
   };
 
   return {
@@ -241,6 +260,18 @@ export function attachPorts(opts: PortControlOptions): PortControl {
         });
         refresh();
         return undefined;
+      },
+      buyHull(classId) {
+        return yardWork((y, port) => y.buyHull(port, classId));
+      },
+      fit(upgrade, place) {
+        return yardWork((y, port) => y.install(port, upgrade, place));
+      },
+      unfit(upgrade, place) {
+        return yardWork((y, port) => y.remove(port, upgrade, place));
+      },
+      repair(place) {
+        return yardWork((y, port) => y.repair(port, place));
       },
       close,
       castOff() {

@@ -1,6 +1,6 @@
 # 05 — Ports, Economy & Trading
 
-Status: DRAFT v0.5 (decisions made; gap review applied; Phase 4 scope proposed; pieces A, B, D, H and I built)
+Status: DRAFT v0.6 (decisions made; gap review applied; Phase 4 scope proposed; pieces A, B, C, D, G, H and I built)
 Parent: [00-master-plan.md](00-master-plan.md)
 Inputs: [R1a gazetteer](R1a-western-superior-gazetteer.md) (ports, industries), [03](03-world-scale-chart-travel.md) (routes, chart, encounters), [04](04-water-weather-seasons.md) (seasons; 1 game day = 1 week), [02](02-arcade-sailing.md) (cargo load, shipless play), [01](01-tech-architecture.md) (sim layer, data files)
 Feeds: 06 (hot goods, informants), 07 (what's in the holds), 08 (fences, warehouses), 09 (materials), 10 (ship prices), 12 (contracts, events)
@@ -531,13 +531,55 @@ The four Apostles harbors are 55k triangles together, well inside the 250k harbo
 - Jared's look at the trade screen (§16.4 piece B's "Needs Jared").
 - Trade sounds (coins, the ledger) are piece J's, on `TradeCompleted` and `StoresBought`.
 
-## 19. Phase 4 Piece H: Contraband and the Island Smuggler (2026-11-01)
+## 19. Phase 4 Piece C: the Main Menu and a New Run (2026-11-02)
+
+**Goal** (§16.4, piece C): a main menu (Continue, New run, Settings) before the game boots into a run; character creation with the captain's name, the ship's name, a background with its money, cargo and port, and a portrait preset; the perks that touch Phase 4 wired and the rest stored; May 7 at dawn in the starting port; the First Week checklist in the journal, without step 6.
+
+**Result:** open the game and the title card comes up over a dawn sky. New run opens character creation: name your captain and schooner, pick a likeness and a background, and set out. The game loads and the ship lies alongside her starting pier at sunrise on May 7, 1900 (04:45), with the port screen open for her first sale and the First Week tracker under the clock. Reload, and the menu offers Continue with the captain, ship, place, week and purse. Screenshots are in the project files (`new-run/`).
+
+### 19.1 What was built
+
+| Piece | Where | Notes |
+|---|---|---|
+| Backgrounds | `data/backgrounds.json`, `data/schemas/backgrounds.ts`, `src/sim/character/backgrounds.ts` | Plan 12 §2.2's six: start money, cargo in CU, the start pier, the hideout (Stockton for all, §16.5), the "harder start" flag (Saloon Keeper, Ex-Navy) and two perks, each with the phase that wires it. Cargo is worth about $70–140: Deckhand 5 CU rope and canvas (piece A's start), Fisherman 8 CU salted fish, Lumberjack 12 CU lumber, Saloon Keeper 2 CU whiskey, Ex-Navy 3 CU powder and shot, Poacher 2 CU furs. Every starting cargo sells in its starting port |
+| Starting piers | `data/backgrounds.json` | Bayfield's city dock (Deckhand, Poacher) and fish dock (Fisherman), Washburn's lumber dock (Lumberjack), Duluth's city dock (Saloon Keeper) and Two Harbors' city dock (Ex-Navy). A test checks each has a berth on the baked terrain |
+| Portraits | `data/portraits.json`, `src/ui/menu/Portrait.tsx` | Eight presets drawn as an SVG bust in an oval (skin, hair and its style, beard, hat, coat; hair and hat ties are kept off the face) until Phase 7 gives the captain a body (§16.5) |
+| New run | `src/sim/character/new-run.ts` | `createNewRun(setup)`: the captain, the background's purse and hold, the clock at sunrise on day 0 (the first minute the sun clears the horizon, 04:45), the starting port's zone and an empty First Week. The game places her at a free berth on the start pier as if just docked, so the first tick raises `ShipDocked` and the port screen opens, then saves |
+| Save | `src/sim/world-state.ts` | `player.captain.portrait` and a top-level `firstWeek {done[], hidden}`, both optional (no version bump, like pieces D and K). A 0.3.0 run and a run started past the menu (`?play`) have no checklist and show the first portrait |
+| Main menu | `src/ui/menu/`, `src/main.ts` | Before the boot: the save is read, then the title card shows Continue (with the saved captain, ship, place, week and purse), New run and Settings (the game's settings screen, with the volumes kept in storage). New run over a saved run asks first ("There is only ever one run") and clears every save slot. A save that can't be read is kept and the menu says this session won't be saved (plan 16 §6.3). The mode machine goes `boot → mainMenu ⇄ characterCreation → sailing` |
+| Character creation | `src/ui/menu/MainMenu.tsx`, `model.ts` | Name, schooner, run seed (eight letters, editable, plan 12 §2.1 step 5), likeness and the six background cards with the port, the harder-start tag, the money and cargo, the hideout and both perks ("from phase 6" on the ones that wait). Names are trimmed and must be 1–32 characters. Esc steps back |
+| Perks | `src/sim/character/perks.ts` | **Deckhand:** sail changes take 0.75× as long; the hand-trim sweet spot is 1.5× wider and gives 1.05× speed when the sheets are in it (`trimmedBonus` on the sailing class). **Fisherman:** this moment's salted and fresh fish prices in every port go into the ledger at the start and on every world tick; the chart's forecast cones and wind ranges are a third tighter (`forecastSkill`). **Saloon Keeper:** piece K reads the background for better rumors. The others are stored with the background for their phases. The shipyard passes `withSailingPerks` as `adjustClass`, so a new hull or upgrade keeps them |
+| First Week | `src/sim/character/first-week.ts`, `src/gameplay/captain.ts`, `src/ui/hud/FirstWeek.tsx` | Five steps that name the starting cargo, port and hideout (12 §3, step 6 left for Phase 7). They tick from the bus's tap by event name, so the steps from pieces E, F and K work as soon as those land: selling the starting cargo (`TradeCompleted`), `ContractCompleted` (F), `StorageChanged` in with goods (E), `RumorHeard` from a saloon (K), `VoyageStarted`. A tracker under the barometer shows the next step and can be put away; the journal (J) lists them all and brings it back |
+| Checks | `?play`, `?newrun=` | The menu is skipped with `?play` or any switch that starts somewhere (`?zone`, `?harbor`, `?spawn`, `?encounter` and the like), so the checks and benches boot as before. `?newrun=fisherman` starts a new captain of that background past the menu |
+
+### 19.2 Decisions made in the piece
+
+- **The run opens docked, with the port screen up.** "At dawn in the starting port" read most usefully as alongside the pier, ready for step 1.
+- **The Fisherman's ledger is kept current, not just filled once.** "Knows fish prices in every port" is a standing skill, so the fish entries follow the world tick. His pre-charted Apostles reefs wait for the chart's hazards.
+- **No permadeath notice yet** (12 §2.1 step 6): nothing can kill the captain until Phase 5, so the confirm comes with death. The replace-run prompt says the one-run rule in its place.
+- **Hall of Captains and Credits** stay off the menu until Phase 9 and the release (13 §5).
+- **The default run** (a check past the menu, or a migrated 0.3.0 run) is still piece A's Deckhand named "Captain" at the Apostles spawn at midnight, so every earlier test and bench is unchanged.
+
+### 19.3 Checks
+
+`tests/character.test.ts` (19 tests): the six backgrounds and their ports, cards and portraits; setup checks; sunrise; a new run's captain, purse, hold, place, clock and checklist, and its save round trip; an old run without the new fields; a berth at every starting pier on the real terrain; each wired perk; the checklist's steps, its event matching, and ticking from the bus (including an event raised by name before its piece is merged). The e2e smoke test drives the menu: settings and back, a refused empty name, a Fisherman with a portrait, docked at Bayfield's fish dock with $100, selling the fish, the tracker at 1/5, the journal, Continue after a reload, and the replace prompt. The other smoke tests now open with `?play`. The full unit suite and all 15 e2e smoke tests pass.
+
+### 19.4 Still to do
+
+- Jared's background picker look (§16.4 piece C's "Needs Jared"), screenshots in `new-run/`.
+- Steps 2–4 tick once pieces F, E and K merge with the event names agreed (`ContractCompleted`, `StorageChanged`, `RumorHeard`).
+
+## 20. Phase 4 Piece G: the Shipyard (2026-11-02)
+
+The shipyard, upgrades and repairs are recorded in [plan 10 §17](10-ship-upgrades-customization.md). What touches this plan: Duluth gains the `shipyard` service (§3 of plan 10 names it with Superior and Ashland), the T2's `cargoCapacity` is 45 CU, `GameEconomy.capacity` follows the ship's class and expanded hold, cargo that won't fit a new hull is sold to the port's market at 80% of its sell price (moving the stock as a sale would), and the chandlery tab gains rigging repair and instrument fittings. Patch and mend kits from §18's chandlery are now used at sea with K. The yard rebuilds the sailing class through `adjustClass`, so the Deckhand's perks from §19 stay on a new hull.
+
+## 21. Phase 4 Piece H: Contraband and the Island Smuggler (2026-11-01)
 
 **Goal** (§16.4, piece H): hot goods (§6.1) with a dev command to make cargo hot until Phase 6 can, untaxed whiskey, and the island smuggler (decision 1): a boat at an Apostles anchorage after dark that sells contraband and fences hot goods at 40–70% with weekly cash (§6.2). Selling hot goods or contraband to a merchant rolls detection: refused or confiscated, with `HotGoodsDetected` raised for Phase 5. Her anchorage is learned from a rumor or the starting background.
 
 **Result:** after dark the fish tug *Whippoorwill* lies to her anchor in Oak Island's lee, about seven nautical miles north of Bayfield. Come alongside slowly and F opens her screen over the paused game: buy her untaxed whiskey at $30 a CU, or sell her a hot lot for 40% of its value. Take the whiskey into Bayfield and offer it from the hold on the port screen: sold on the quiet for about $55 a CU, refused, or taken off you by the revenue man. Screenshots are in the project files (`smuggler/`).
 
-### 19.1 What was built
+### 21.1 What was built
 
 | Piece | Where | Notes |
 |---|---|---|
@@ -554,7 +596,7 @@ The four Apostles harbors are 55k triangles together, well inside the 250k harbo
 | Save | `src/sim/world-state.ts` | A `contraband` slice: her cash, stock and night, what you've dealt with her, the ports that turned you away and the week, and whether you know her anchorage. Optional and filled on load, so no version bump and no migration. The `receivers` list defaults to empty |
 | Dev hook | `src/main.ts` | `__glpContraband` (dev builds and `?debug`): `makeHot(good, qty, region, heat)` is the dev command until Phase 6's theft, `alongside()` lays the ship beside her, `open()`, `learn()`, `known()`, `present()`, `state()`, `offer(port, index)`. `?hour=23` starts after dark |
 
-### 19.2 Decisions made in the piece
+### 21.2 Decisions made in the piece
 
 - **Oak Island's lee.** The south shore of Oak Island, off the sandspit: sheltered from the north and northwest, close to Bayfield and Red Cliff but out of sight of both, and in `region.apostles` with La Pointe rather than the Bayfield–Ashland region. The rumors thread (piece K) uses the same id and name, from `smugglerAnchorage()`.
 - **A fish tug, not a sailing boat.** The fish tug is the one small NPC class drawn, and a tug with no catch aboard is a believable smuggler in 1900 (not checked against sources). She keeps her stack's smoke and her lit windows; a model with one lantern and no lights can come with the art pass.
@@ -564,11 +606,11 @@ The four Apostles harbors are 55k triangles together, well inside the 250k harbo
 - **Receivers (Jared, 2026-11-02).** A risk every time made offering not worth trying, so the first sale in a port is the gamble and a receiver is safe after it. Receivers pay 75%, so the smuggler (40–70% of base value, no questions about how hot) stays the outlet for fresh marked goods. With a receiver in Bayfield, a night's 12 CU of whiskey nets about $11 a CU over her price, about $130 a game day: smuggling's steady income, bounded by her stock, until Phase 5's Wanted puts a price on it.
 - **Contraband pays on the quiet.** An undetected whiskey sale fetches about $55 a CU in Bayfield against $30 from her, with about a 6-in-10 chance of being found out on a full night's 12 CU (half of those confiscated). That is the "big margins" of §6.3 with the cost Phase 4 allows (§16.5); Phase 5's Wanted adds the real cost.
 
-### 19.3 Checks
+### 21.3 Checks
 
 `tests/contraband.test.ts` (28 tests, five on receivers): heat and its cooling, the dev command, the detection odds by heat, region, marks, port and lot, the roll coming out at the odds over 400 runs and the same way twice, quiet sales leaving the market alone, hot sales moving it, refusal and confiscation with the event and the week's turning away (criterion 7), the anchorage and the dark, the 40–70% rate, what she won't take, her stock and cash for a night and the next, knowing her anchorage, the save slice, her boat coming and going in play, her screen and its deals, offering from the port screen, and her anchorage's water on the baked Apostles. The e2e smoke test meets her at 23:00, fences hot rope and canvas at 40%, buys her whiskey and offers it in Bayfield. The full unit suite and the e2e tests pass.
 
-### 19.4 Still to do
+### 21.4 Still to do
 
 - Jared's feel for the smuggler (§16.4 piece H's "Needs Jared").
 - Piece K wires its smuggler rumor into `knowsAnchorage`; piece J can hang coin sounds on `SmugglerDealt` and `ContrabandSold`.
@@ -578,9 +620,9 @@ The four Apostles harbors are 55k triangles together, well inside the 250k harbo
 ---
 
 ## Changelog
+- v0.7: Phase 4 piece G recorded (§20): Duluth's shipyard, the T2's hold, cargo sold on a trade-in, chandlery repairs and fittings.
 
-- v0.6: Receivers (§19): a merchant who takes a lot keeps taking them, safely, at 75%.
-- v0.6: Phase 4 piece H built (§19): hot goods cooling and detection at merchants, untaxed whiskey sold on the quiet, the island smuggler in Oak Island's lee after dark with her fence screen, her anchorage on the chart, the `contraband` save slice.
+- v0.6: Phase 4 piece C built (§19): the main menu, character creation, six backgrounds and portraits, the new run docked at dawn, the Phase 4 perks, the First Week checklist.
 - v0.6: Phase 4 piece D built (§16.9): flows and manifests, deliveries that move stock, the traffic save slice, ships in the zones and at berths, look her over and hailing; two company names replaced after the names check.
 - v0.5: Phase 4 piece B built (§18): piers with ports, the port screen, the trade screen, price knowledge, the ledger in journal v1, the chandlery, save v6.
 - v0.5: Phase 4 piece A built (§16.8): goods in CU, port markets with drift and seasons, the purse and the hold, cargo load, save v5, the balance harness.

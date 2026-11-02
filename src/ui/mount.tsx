@@ -1,11 +1,11 @@
 import { render } from 'preact';
 import { computed, signal } from '@preact/signals';
-import { bindingOverrides, DEFAULT_BINDINGS, rebind, type Action } from '../core/input';
-import { applyBindingOverrides, type SettingsStore } from '../core/settings';
+import type { Action } from '../core/input';
+import type { SettingsStore } from '../core/settings';
 import { Hud } from './hud/Hud';
 import type { HudSnapshot } from './hud/model';
-import { SettingsMenu, type AudioControls } from './settings/SettingsMenu';
-import type { AudioSettings, VolumeId } from '../audio/settings';
+import { SettingsMenu } from './settings/SettingsMenu';
+import { settingsControls, type AudioVolumes } from './settings/controls';
 import { LoadingScreen } from './loading/LoadingScreen';
 import { ShipCardView } from './hud/ShipCardView';
 import type { ShipCard } from './hud/ship-card';
@@ -17,6 +17,8 @@ import { Journal } from './port/Ledger';
 import type { LedgerSnapshot, PortSnapshot, PortTab } from './port/model';
 import { SmugglerScreen, type SmugglerActions } from './port/SmugglerScreen';
 import type { SmugglerSnapshot } from './port/smuggler-model';
+import { FirstWeekPage, FirstWeekTracker } from './hud/FirstWeek';
+import type { FirstWeekSnapshot } from '../gameplay/captain';
 import './theme.css';
 
 /**
@@ -34,18 +36,14 @@ export interface GameUiOptions {
   chart?: ChartHudActions | undefined;
   /** "Take to the chart" at the soft edge. */
   onTakeToChart?: (() => void) | undefined;
+  /** Put the First Week tracker away or bring it back (Phase 4 piece C). */
+  setFirstWeekHidden?: ((hidden: boolean) => void) | undefined;
   /** The port screen's buttons and the journal's (Phase 4 piece B). */
   port?: (PortActions & { closeJournal(): void; openDocked(): void }) | undefined;
   /** Alongside the island smuggler (Phase 4 piece H). */
   smuggler?: SmugglerActions | undefined;
   /** The game's sound volumes, when it has Web Audio. */
-  audio?:
-    | {
-        settings: AudioSettings;
-        setVolume(id: VolumeId, volume: number): void;
-        setMuted(muted: boolean): void;
-      }
-    | undefined;
+  audio?: AudioVolumes | undefined;
 }
 
 export interface GameUi {
@@ -65,6 +63,8 @@ export interface GameUi {
   setJournal(snapshot: LedgerSnapshot | undefined): void;
   /** The island smuggler's screen; undefined closes it. */
   setSmuggler(snapshot: SmugglerSnapshot | undefined): void;
+  /** The First Week checklist (Phase 4 piece C); undefined for a run without one. */
+  setFirstWeek(snapshot: FirstWeekSnapshot | undefined): void;
   /** Show a port screen tab (J in port turns to the ledger). */
   setPortTab(tab: PortTab): void;
   readonly menuOpen: boolean;
@@ -81,8 +81,10 @@ export function mountGameUi({
   onTakeToChart,
   port: portActions,
   smuggler: smugglerActions,
+  setFirstWeekHidden = () => undefined,
 }: GameUiOptions): GameUi {
   const smuggler = signal<SmugglerSnapshot | undefined>(undefined);
+  const firstWeek = signal<FirstWeekSnapshot | undefined>(undefined);
   const port = signal<PortSnapshot | undefined>(undefined);
   const portTab = signal<PortTab>('market');
   const journal = signal<LedgerSnapshot | undefined>(undefined);
@@ -93,38 +95,15 @@ export function mountGameUi({
   const menuOpen = signal(false);
   const reloadNote = signal(false);
   const loading = signal<LoadingModel | undefined>(undefined);
-  const current = signal(settings.value);
-  settings.subscribe((s) => (current.value = s));
+  const controls = settingsControls(settings, audio);
+  const { current, bindings } = controls;
   const density = computed(() => current.value.ui.hudDensity);
-  const bindings = computed(() => applyBindingOverrides(DEFAULT_BINDINGS, current.value.bindings));
 
   const setMenu = (open: boolean): void => {
     if (menuOpen.value === open) return;
     menuOpen.value = open;
     onMenu(open);
   };
-  const update = (change: Parameters<SettingsStore['update']>[0]): void => settings.update(change);
-  const doRebind = (action: Action, code: string): void => {
-    const next = rebind(bindings.value, 'sailing', action, code);
-    settings.update((s) => (s.bindings = bindingOverrides(next)));
-  };
-  const resetBindings = (): void => settings.update((s) => (s.bindings = {}));
-  // The volumes live in the mixer; a signal copy re-renders the sliders as they move.
-  const audioSettings = audio ? signal<AudioSettings>({ ...audio.settings }) : undefined;
-  const audioControls: AudioControls | undefined =
-    audio && audioSettings
-      ? {
-          settings: audioSettings,
-          setVolume(id, volume) {
-            audio.setVolume(id, volume);
-            audioSettings.value = { ...audio.settings };
-          },
-          setMuted(muted) {
-            audio.setMuted(muted);
-            audioSettings.value = { ...audio.settings };
-          },
-        }
-      : undefined;
 
   // Esc closes the menu (plan 13 §6); opening is the sailing Pause action, in main.
   window.addEventListener('keydown', (e) => {
@@ -187,8 +166,25 @@ export function mountGameUi({
           <SmugglerScreen smuggler={smuggler.value} actions={smugglerActions} />
         )}
         {journal.value && portActions && !menuOpen.value && (
-          <Journal ledger={journal.value} close={portActions.closeJournal} />
+          <Journal
+            ledger={journal.value}
+            close={portActions.closeJournal}
+            extra={
+              firstWeek.value && (
+                <FirstWeekPage week={firstWeek.value} setHidden={setFirstWeekHidden} />
+              )
+            }
+          />
         )}
+        {firstWeek.value &&
+          !firstWeek.value.hidden &&
+          !menuOpen.value &&
+          !port.value &&
+          !journal.value &&
+          !smuggler.value &&
+          !chart.value && (
+            <FirstWeekTracker week={firstWeek.value} setHidden={setFirstWeekHidden} />
+          )}
         {!menuOpen.value && !port.value && !journal.value && !smuggler.value && (
           <button
             type="button"
@@ -204,12 +200,12 @@ export function mountGameUi({
           <SettingsMenu
             settings={current}
             bindings={bindings}
-            update={update}
-            rebind={doRebind}
-            resetBindings={resetBindings}
+            update={controls.update}
+            rebind={controls.rebind}
+            resetBindings={controls.resetBindings}
             close={() => setMenu(false)}
             reloadNote={reloadNote}
-            audio={audioControls}
+            audio={controls.audio}
           />
         )}
         <LoadingScreen screen={loading} />
@@ -248,6 +244,9 @@ export function mountGameUi({
     },
     setSmuggler(snapshot) {
       smuggler.value = snapshot;
+    },
+    setFirstWeek(snapshot) {
+      firstWeek.value = snapshot;
     },
     setPortTab(tab) {
       portTab.value = tab;
