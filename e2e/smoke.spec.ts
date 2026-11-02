@@ -329,8 +329,8 @@ test('sails from the Apostles to the Twin Ports on the chart, through a reload',
   await expect(body).toHaveAttribute('data-zone', 'zone.twin_ports');
   await expect(body).toHaveAttribute('data-mode', 'sailing');
   await expect(body).toHaveAttribute('data-saved-mode', 'zone');
-  // The Twin Ports' east entry (data/zones.json), heading west.
-  await expect(body).toHaveAttribute('data-saved-pose', /^1700\.\d\d,-100\.\d\d,4\.71\d\d$/);
+  // The Twin Ports' east entry (data/zones.json), just off Minnesota Point, heading for the canal.
+  await expect(body).toHaveAttribute('data-saved-pose', /^400\.\d\d,250\.\d\d,5\.23\d\d$/);
 
   // The Twin Ports offer the chart from just outside the harbor, so it's on offer here.
   await expect(page.getByTestId('take-to-chart')).toBeVisible();
