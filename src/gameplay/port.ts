@@ -15,6 +15,9 @@ import {
 } from '../ui/port/model';
 import type { PortActions } from '../ui/port/PortScreen';
 import type { GameEconomy } from './economy';
+import { contractsOf, type GameContracts } from './contracts';
+import { cargoName, companyName, type AcceptRefusal } from '../sim/economy/contracts';
+import { formatCents } from '../sim/economy/knowledge';
 import type { ShipHazards } from './hazards';
 import type { GameShipyard } from './shipyard';
 
@@ -46,6 +49,8 @@ export interface PortControl {
 export interface PortControlOptions {
   ctx: GameContext;
   economy: GameEconomy;
+  /** The freight agent (piece F); without it the screen has no freight tab. */
+  contracts?: GameContracts | undefined;
   hazards: ShipHazards;
   /** The shipyard, chandlery fittings and repairs (piece G); without it those don't show. */
   shipyard?: GameShipyard | undefined;
@@ -69,6 +74,19 @@ const TRADE_REFUSALS: Record<TradeRefusal, string> = {
   noCargo: "You haven't that much to sell.",
 };
 
+const ACCEPT_REFUSALS: Record<AcceptRefusal, string> = {
+  unknown: 'That offer is gone from the board.',
+  locked: "They don't know you well enough for that one yet.",
+  noRoom: 'There is no room in the hold for it.',
+  noMoney: "You haven't the deposit.",
+};
+
+const STEAL_REFUSALS = {
+  unknown: 'That contract is not yours.',
+  notTraded: 'No one here buys that.',
+  noCargo: 'None of that cargo is aboard.',
+} as const;
+
 const STORE_REFUSALS: Record<StoreRefusal, string> = {
   badQty: 'Choose how many.',
   unknown: "The chandler doesn't stock that.",
@@ -82,6 +100,13 @@ export function attachPorts(opts: PortControlOptions): PortControl {
   let dockedPort: string | undefined;
   let openPort: string | undefined;
   let journalOpen = false;
+  /** What happened on arriving at the open port, shown until the screen closes. */
+  let notices: string[] = [];
+  const contractSources = () => {
+    if (!opts.contracts) return undefined;
+    const { contracts, captain } = contractsOf(ctx.state);
+    return { defs: opts.contracts.defs, state: contracts, standing: captain.standing };
+  };
 
   const snapshot = (port: string): PortSnapshot => {
     const player = ctx.state.player;
@@ -95,6 +120,11 @@ export function attachPorts(opts: PortControlOptions): PortControl {
       cargoSpeedLoss: hazards.cls.rules.cargoSpeedLoss,
       port,
       gameSeconds: now(),
+      contracts: (() => {
+        const c = contractSources();
+        return c && { ...c, board: opts.contracts?.board(port) ?? [] };
+      })(),
+      notices,
       ship: opts.shipyard && {
         state: (opts.shipyard.sync(), opts.shipyard.ship),
         name: player.captain.shipName,
@@ -118,8 +148,10 @@ export function attachPorts(opts: PortControlOptions): PortControl {
       journalOpen = false;
       opts.showJournal(undefined);
     }
+    if (openPort !== port) notices = [];
     openPort = port;
     if (economy.defs.markets.has(port)) note(port);
+    if (opts.contracts) notices = [...notices, ...arrivalNotices(port)];
     ctx.events.emit('PortVisited', { port });
     refresh();
     if (!wasOpen) opts.onOpen(true);
@@ -127,6 +159,7 @@ export function attachPorts(opts: PortControlOptions): PortControl {
   const close = (): void => {
     if (!openPort) return;
     openPort = undefined;
+    notices = [];
     opts.showPort(undefined);
     opts.onOpen(false);
   };
@@ -142,6 +175,24 @@ export function attachPorts(opts: PortControlOptions): PortControl {
   });
   // A zone change takes the ship off the pier without a cast-off.
   const offZone = ctx.events.on('ZoneExited', () => (dockedPort = undefined));
+
+  /** Deliveries and handed-back cargo on arriving, in a line each. */
+  const arrivalNotices = (port: string): string[] => {
+    const c = opts.contracts;
+    if (!c) return [];
+    const a = c.arrive(port);
+    const name = (good: string): string => cargoName(economy.defs, c.defs, good).toLowerCase();
+    return [
+      ...a.delivered.map(
+        (d) =>
+          `Delivered ${d.contract.qty} CU of ${name(d.contract.good)} for ${companyName(c.defs, d.contract.company)}: paid ${formatCents(d.payCents)}${d.depositCents ? ` and the ${formatCents(d.depositCents)} deposit back` : ''}${d.late ? ' (late: half pay)' : ''}.`,
+      ),
+      ...a.returned.map(
+        (r) =>
+          `Handed back ${name(r.good)} for ${companyName(c.defs, r.company)}: the contract failed.`,
+      ),
+    ];
+  };
 
   const trade = (side: TradeSide, good: string, qty: number): string | undefined => {
     const port = openPort;
@@ -185,7 +236,9 @@ export function attachPorts(opts: PortControlOptions): PortControl {
     openJournal() {
       if (journalOpen || openPort) return;
       journalOpen = true;
-      opts.showJournal(ledgerSnapshot(economy.defs, ctx.state.knowledge.prices, now()));
+      opts.showJournal(
+        ledgerSnapshot(economy.defs, ctx.state.knowledge.prices, now(), contractSources()),
+      );
       opts.onOpen(true);
     },
     closeJournal() {
@@ -210,6 +263,32 @@ export function attachPorts(opts: PortControlOptions): PortControl {
           qty: r.qty,
           totalCents: r.totalCents,
         });
+        refresh();
+        return undefined;
+      },
+      acceptContract(offerId) {
+        const port = openPort;
+        if (!port || !opts.contracts) return 'The freight agent is closed.';
+        const r = opts.contracts.accept(port, offerId);
+        if (!r.ok) return ACCEPT_REFUSALS[r.reason];
+        refresh();
+        // The offer moves to In hand on the screen; that says it went through.
+        return undefined;
+      },
+      abandonContract(contractId) {
+        const port = openPort;
+        if (!port || !opts.contracts) return 'The freight agent is closed.';
+        const why = opts.contracts.abandon(contractId, port);
+        if (why) return why === 'noAgent' ? 'There is no freight agent here.' : 'No such contract.';
+        refresh();
+        return 'Handed back. The deposit is theirs.';
+      },
+      stealContract(contractId) {
+        const port = openPort;
+        if (!port || !opts.contracts) return 'The market is closed.';
+        const why = opts.contracts.steal(contractId, port);
+        if (why) return STEAL_REFUSALS[why];
+        note(port);
         refresh();
         return undefined;
       },

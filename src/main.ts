@@ -25,6 +25,7 @@ import { createSchooner } from './gameplay/schooner';
 import { npcParade } from './gameplay/npc-ships';
 import { attachEconomy } from './gameplay/economy';
 import { attachPorts, type PortControl } from './gameplay/port';
+import { attachContracts, contractsOf } from './gameplay/contracts';
 import { attachStash, type StashControl } from './gameplay/stash';
 import { siteDef } from './sim/hideouts/stash';
 import { attachShipyard } from './gameplay/shipyard';
@@ -598,6 +599,24 @@ async function boot(): Promise<void> {
   // zones and the markets. A stable per-run number from the save (the RNG state moves on
   // as the run plays), so the timetables and manifests are the same after a reload.
   const trafficSeed = `run-${state.environment.weather.noiseSeed}`;
+  // Freight contracts (plan 05 §5.2, Phase 4 piece F): the boards follow from the same seed.
+  const contracts = attachContracts(ctx, economy, trafficSeed);
+  if (import.meta.env.DEV || params.has('debug')) {
+    const hook = {
+      board: (port: string) => contracts.board(port),
+      accept: (port: string, offerId: string) => contracts.accept(port, offerId),
+      arrive: (port: string) => contracts.arrive(port),
+      steal: (contractId: string, port: string) => contracts.steal(contractId, port),
+      abandon: (contractId: string, port: string) => contracts.abandon(contractId, port),
+      state: () => contractsOf(state).contracts,
+      standing: () => contractsOf(state).captain.standing,
+      /** Sets Standing with a port or company, for trying what it opens. */
+      setStanding: (id: string, value: number) => {
+        contractsOf(state).captain.standing[id] = Math.max(0, Math.min(100, value));
+      },
+    };
+    (window as unknown as { __glpContracts: typeof hook }).__glpContracts = hook;
+  }
   const traffic = attachTraffic(
     ctx,
     createContacts(
@@ -861,6 +880,9 @@ async function boot(): Promise<void> {
       sell: (good, qty) => portsRef.current?.actions.sell(good, qty),
       quote: (good, qty, side) => portsRef.current?.actions.quote(good, qty, side) ?? 0,
       buyStores: (item, qty) => portsRef.current?.actions.buyStores(item, qty),
+      acceptContract: (id) => portsRef.current?.actions.acceptContract(id),
+      abandonContract: (id) => portsRef.current?.actions.abandonContract(id),
+      stealContract: (id) => portsRef.current?.actions.stealContract(id),
       buyHull: (classId) => portsRef.current?.actions.buyHull(classId),
       fit: (upgrade, place) => portsRef.current?.actions.fit(upgrade, place),
       unfit: (upgrade, place) => portsRef.current?.actions.unfit(upgrade, place),
@@ -926,6 +948,7 @@ async function boot(): Promise<void> {
   const ports = attachPorts({
     ctx,
     economy,
+    contracts,
     hazards,
     shipyard,
     berthPier: (berthId) => sailingOptions.berths.find((b) => b.id === berthId)?.dockId,

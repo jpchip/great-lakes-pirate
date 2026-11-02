@@ -591,6 +591,56 @@ test('docks at Bayfield, trades on the port screen, and keeps the ledger', async
   expect(errors).toEqual([]);
 });
 
+interface ContractsHook {
+  state(): { active: { id: string; to: string }[]; tally: Record<string, number> };
+  standing(): Record<string, number>;
+}
+
+// Phase 4 piece F: the freight agent's board at Bayfield, taking a contract onto the hold,
+// and delivering it at its destination for the pay, the deposit back and Standing.
+test('takes a freight contract at Bayfield and delivers it', async ({ page }) => {
+  const errors = collectErrors(page);
+  const body = page.locator('body');
+  await page.goto('/?renderer=null&debug&harbor=bayfield');
+  await expect(body).toHaveAttribute('data-terrain', 'loaded');
+  await page.waitForFunction(() => '__glpPort' in window && '__glpContracts' in window);
+  await page.evaluate(() =>
+    (window as unknown as { __glpPort: PortHook }).__glpPort.dock('bayfield_city'),
+  );
+  const screen = page.getByTestId('port-screen');
+  await expect(screen).toBeVisible({ timeout: 15_000 });
+
+  await page.getByTestId('port-tab-freight').click();
+  await expect(page.getByTestId('freight')).toBeVisible();
+  const take = page.locator('button[data-testid^="accept-"]').first();
+  await expect(take).toBeVisible();
+  await take.click();
+  await expect(page.locator('li[data-testid^="held-port"]')).toHaveCount(1);
+  await expect(page.getByTestId('hold-row').filter({ hasText: 'contract' })).toHaveCount(1);
+
+  const to = await page.evaluate(
+    () =>
+      (window as unknown as { __glpContracts: ContractsHook }).__glpContracts.state().active[0]?.to,
+  );
+  expect(to).toBeTruthy();
+  await page.evaluate((port) => {
+    const hook = (window as unknown as { __glpPort: { close(): void; open(p: string): void } })
+      .__glpPort;
+    hook.close();
+    hook.open(port as string);
+  }, to);
+  await expect(page.getByTestId('port-notices')).toContainText('Delivered');
+  const tally = await page.evaluate(
+    () => (window as unknown as { __glpContracts: ContractsHook }).__glpContracts.state().tally,
+  );
+  expect(tally['delivered']).toBe(1);
+  const standing = await page.evaluate(() =>
+    (window as unknown as { __glpContracts: ContractsHook }).__glpContracts.standing(),
+  );
+  expect(standing['port.bayfield']).toBeGreaterThan(0);
+  expect(errors).toEqual([]);
+});
+
 interface StashHook {
   hideouts(): Record<string, { storage: { goods: { good: string; qty: number }[]; cash: number } }>;
   lie(until: 'dawn' | 'dusk' | 'wind'): string | undefined;

@@ -6,6 +6,12 @@ import type { PriceShockEvent } from '../sim/economy/market';
 import type { CargoDelivered } from '../sim/traffic/cargo';
 import type { HailNews } from '../sim/traffic/news';
 import type { TradeCompletedEvent } from '../sim/economy/trade';
+import type {
+  ContractAcceptedEvent,
+  ContractCompletedEvent,
+  ContractFailedEvent,
+  ContractStolenEvent,
+} from '../sim/economy/contracts';
 import type { ShipPurchasedEvent, ShipRepairedEvent, UpgradeEvent } from '../sim/shipyard/shipyard';
 import type { GameWorld } from '../gameplay/ecs';
 import type { LocalWeather } from '../sim/weather/local-weather';
@@ -70,6 +76,15 @@ export interface GameEvents {
   /** Ports (plan 05 §7, Phase 4 piece B): the port screen opened, and the chandlery. */
   PortVisited: { port: string };
   StoresBought: { port: string; item: string; qty: number; totalCents: number };
+  /**
+   * Freight contracts (plan 05 §5.2, §11; Phase 4 piece F): taken at a freight agent,
+   * delivered at the destination, failed (expired or handed back), or stolen by selling
+   * the cargo, which Phase 5 turns into Wanted.
+   */
+  ContractAccepted: ContractAcceptedEvent;
+  ContractCompleted: ContractCompletedEvent;
+  ContractFailed: ContractFailedEvent;
+  ContractStolen: ContractStolenEvent;
   /**
    * Hideouts (plan 09 §12, Phase 4 piece E): goods or cash moved between the ship and a
    * hideout's storage. `in` is from the ship into the stash; a cargo move sets `good` and

@@ -1,8 +1,4 @@
-import chartJson from '../../../data/chart.json';
-import portsJson from '../../../data/ports.json';
-import { chartFileSchema } from '../../../data/schemas/chart';
-import { portsFileSchema } from '../../../data/schemas/ports';
-import { R_SAILING, SECONDS_PER_GAME_DAY, WORLD_TICK_GAME_SECONDS } from '../../core/time';
+import { SECONDS_PER_GAME_DAY, WORLD_TICK_GAME_SECONDS } from '../../core/time';
 import type { EconomyDefs } from './defs';
 import type { Hold } from './hold';
 import {
@@ -14,8 +10,25 @@ import {
   type MarketsState,
 } from './market';
 import { buy, maxBuyable, sell, type Trader } from './trade';
+import {
+  acceptContract,
+  arriveAt,
+  boardOffers,
+  createContractsState,
+  deliveryPay,
+  contractCargo,
+  type BoardSources,
+  type ContractCaptain,
+  type ContractDefs,
+  type ContractsState,
+  type ContractTerms,
+  type Standing,
+} from './contracts';
 import type { Contact } from '../chart/traffic';
 import { runTraffic, type TrafficDefs } from '../traffic/cargo';
+import type { PassageTable } from './passages';
+
+export { passageTable, type Passage, type PassageTable } from './passages';
 
 /**
  * The economy's balance harness (plan 17 §3, plan 05 §16.3 criteria 2–4): headless bots
@@ -33,20 +46,6 @@ import { runTraffic, type TrafficDefs } from '../traffic/cargo';
  *   out of season. Its profit per real hour and per game day must stay under a ceiling.
  */
 
-/** In a zone, 13 nm takes ~4 real minutes (plan 03 §3.3: Bayfield → Ashland). */
-const ZONE_NM_PER_REAL_MIN = 13 / 4;
-/** On the chart, ~2.5 real seconds per game hour (plan 03 §5.3). */
-const CHART_REAL_S_PER_GAME_HOUR = 2.5;
-/** A T1 averaging this through a mixed passage, game knots (plan 02 §3). */
-const CRUISE_KN = 7;
-/** Courses bend around points and islands: sailed distance over the straight line. */
-const DETOUR = 1.2;
-/** Harbor to the zone's edge, each end of a passage between zones, nm. */
-const ZONE_EDGE_NM = 10;
-/** Docking, trading and casting off, real minutes. */
-const PORT_CALL_REAL_MIN = 2;
-const EARTH_RADIUS_NM = 3440.065;
-
 /**
  * The loop hunter's ceiling (plan 17 §3): no trading pattern may clear more than this
  * per real hour, or per game day, without risk. $150 an hour would buy a T2 (~$1,600,
@@ -55,58 +54,6 @@ const EARTH_RADIUS_NM = 3440.065;
  */
 export const PROFIT_CEILING_CENTS_PER_REAL_HOUR = 15_000;
 export const PROFIT_CEILING_CENTS_PER_GAME_DAY = 15_000;
-
-export interface Passage {
-  realMinutes: number;
-  gameSeconds: number;
-}
-
-/** How long each passage between two ports with markets takes, real and game time. */
-export type PassageTable = (from: string, to: string) => Passage;
-
-function haversineNm(a: readonly [number, number], b: readonly [number, number]): number {
-  const rad = Math.PI / 180;
-  const dLat = (b[1] - a[1]) * rad;
-  const dLon = (b[0] - a[0]) * rad;
-  const h =
-    Math.sin(dLat / 2) ** 2 + Math.cos(a[1] * rad) * Math.cos(b[1] * rad) * Math.sin(dLon / 2) ** 2;
-  return 2 * EARTH_RADIUS_NM * Math.asin(Math.sqrt(h));
-}
-
-/**
- * Passages from the chart's port positions: sailed in a zone at the zone's pace, or out
- * to the zone edge, across the chart at its compression and in again.
- */
-export function passageTable(): PassageTable {
-  const at = new Map<string, readonly [number, number]>();
-  for (const f of chartFileSchema.parse(chartJson)) if (f.kind === 'port') at.set(f.id, f.at);
-  const zone = new Map(portsFileSchema.parse(portsJson).map((p) => [p.id, p.zone]));
-  const cache = new Map<string, Passage>();
-  return (from, to) => {
-    const key = `${from}>${to}`;
-    const hit = cache.get(key);
-    if (hit) return hit;
-    const a = at.get(from);
-    const b = at.get(to);
-    if (!a || !b) throw new Error(`No chart position for ${a ? to : from}`);
-    const nm = haversineNm(a, b) * DETOUR;
-    let p: Passage;
-    if (zone.get(from) === zone.get(to)) {
-      const real = nm / ZONE_NM_PER_REAL_MIN + PORT_CALL_REAL_MIN;
-      p = { realMinutes: real, gameSeconds: real * 60 * R_SAILING };
-    } else {
-      const inZone = Math.min(nm, 2 * ZONE_EDGE_NM);
-      const chartHours = (nm - inZone) / CRUISE_KN;
-      const zoneReal = inZone / ZONE_NM_PER_REAL_MIN + PORT_CALL_REAL_MIN;
-      p = {
-        realMinutes: zoneReal + (chartHours * CHART_REAL_S_PER_GAME_HOUR) / 60,
-        gameSeconds: zoneReal * 60 * R_SAILING + chartHours * 3600,
-      };
-    }
-    cache.set(key, p);
-    return p;
-  };
-}
 
 /** A headless economy: markets and a clock that ticks them like the game does. */
 /** The lake's traffic for a headless run (Phase 4 piece D): its ships move the markets. */
@@ -167,7 +114,8 @@ export class EconomySim {
   /** The trader's cash plus its hold at what this port would pay now. */
   netWorth(trader: Trader, port: string): number {
     let w = trader.purse;
-    for (const s of trader.cargo) w += this.sellQuote(port, s.good, s.qty);
+    // Contract cargo isn't the trader's to value; its deposit (counted by the bot) is.
+    for (const s of trader.cargo) if (!s.contract) w += this.sellQuote(port, s.good, s.qty);
     return w;
   }
 }
@@ -180,6 +128,18 @@ export interface TraderRun {
   realMinutes: number;
   gameSeconds: number;
   trades: number;
+  /** With `contracts`: how they went, and the Standing earned. */
+  contracts?: {
+    tally: ContractsState['tally'];
+    payCents: number;
+    standing: Standing;
+  };
+}
+
+/** The contracts bot's freight agents: the run's boards, as the game draws them. */
+export interface TraderContracts {
+  defs: ContractDefs;
+  seed: string;
 }
 
 export interface TraderOptions {
@@ -191,6 +151,8 @@ export interface TraderOptions {
   realMinutes: number;
   /** Sell a held good at a port paying at least this share of the best price anywhere. */
   sellShare?: number;
+  /** Take freight contracts too (the contracts bot, plan 05 §5.3). */
+  contracts?: TraderContracts;
 }
 
 interface Plan {
@@ -248,24 +210,62 @@ function planLeg(
   return plan;
 }
 
-/** The legit bot (plan 17 §3 "legit trader"). */
+/** A contract this close to due (game seconds of slack after the passage) is sailed for. */
+const CONTRACT_URGENT_SLACK_S = 6 * 3600;
+
+/**
+ * The legit bot (plan 17 §3 "legit trader"). With `contracts` it is the **contracts bot**:
+ * at each call it delivers what's due, then for each passage it might sail weighs the
+ * board's offers bound there against the trade they'd crowd out of the hold, and takes
+ * the ones that pay more. A contract near its due time decides the next passage.
+ */
 export function runTrader(sim: EconomySim, legs: PassageTable, o: TraderOptions): TraderRun {
   const defs = sim.defs;
-  const trader: Trader = { purse: o.purse, cargo: (o.cargo ?? []).map((s) => ({ ...s })) };
+  const captain: ContractCaptain = {
+    purse: o.purse,
+    cargo: (o.cargo ?? []).map((s) => ({ ...s })),
+    standing: {},
+  };
+  const trader: Trader = captain;
+  const book = createContractsState();
   const sellShare = o.sellShare ?? 0.95;
   const ports = sim.ports();
   let port = o.start;
   let real = 0;
   const startGame = sim.gameSeconds;
   let trades = 0;
-  const startNetWorth = sim.netWorth(trader, port);
+  let contractPay = 0;
+  const deposits = (): number => {
+    let n = 0;
+    for (const c of book.active) if (c.status === 'active') n += c.depositCents;
+    return n;
+  };
+  const worth = (): number => sim.netWorth(trader, port) + deposits();
+  const startNetWorth = worth();
   const timeline: TraderRun['timeline'] = [];
   const boughtFor = new Set<string>();
+  const board = (): BoardSources | undefined =>
+    o.contracts && {
+      defs: o.contracts.defs,
+      econ: defs,
+      passages: legs,
+      seed: o.contracts.seed,
+      state: book,
+      standing: captain.standing,
+      gameSeconds: sim.gameSeconds,
+    };
 
   for (;;) {
+    const src = board();
+    if (src) {
+      for (const d of arriveAt(src.defs, book, captain, port, sim.gameSeconds).delivered) {
+        contractPay += d.payCents;
+      }
+    }
     // Sell what was bought for this port, and anything else that fetches close to the
     // best price on the lake here.
     for (const stack of [...trader.cargo]) {
+      if (stack.contract) continue;
       const here = sim.sellQuote(port, stack.good, stack.qty);
       if (here <= 0) continue;
       const best = Math.max(...ports.map((p) => sim.sellQuote(p, stack.good, stack.qty)));
@@ -278,25 +278,80 @@ export function runTrader(sim: EconomySim, legs: PassageTable, o: TraderOptions)
       realMinutes: real,
       gameSeconds: sim.gameSeconds - startGame,
       port,
-      netWorth: sim.netWorth(trader, port),
+      netWorth: worth(),
     });
     if (real >= o.realMinutes) break;
 
+    // A contract near its due time picks the passage.
+    let only: string | undefined;
+    let tightest = Infinity;
+    for (const c of book.active) {
+      if (c.status !== 'active' || c.to === port) continue;
+      const slack = c.dueAt - sim.gameSeconds - legs(port, c.to).gameSeconds;
+      if (slack < CONTRACT_URGENT_SLACK_S && slack < tightest) {
+        tightest = slack;
+        only = c.to;
+      }
+    }
+    const offers = src ? boardOffers(src, port).filter((b) => !b.locked) : [];
+
     // Pick the passage that pays best per real minute, counting what's already aboard.
-    let best: Plan | undefined;
+    let best: (Plan & { take: ContractTerms[] }) | undefined;
     for (const to of ports) {
-      if (to === port) continue;
+      if (to === port || (only && to !== only)) continue;
       const leg = legs(port, to);
-      const plan = planLeg(sim, trader, o.capacity, port, to, leg.realMinutes);
+      let plan = planLeg(sim, trader, o.capacity, port, to, leg.realMinutes);
+      let reserved = 0;
+      let deposit = 0;
+      let pay = 0;
+      const take: ContractTerms[] = [];
+      // Offers bound there, best pay a CU first, each taken if it beats the trade it displaces.
+      const bound = offers
+        .map((b) => b.terms)
+        .filter((t) => t.to === to)
+        .sort((a, b) => b.payCents / b.qty - a.payCents / a.qty);
+      for (const t of bound) {
+        if (deposit + t.depositCents > trader.purse) continue;
+        if (reserved + t.qty > o.capacity) continue;
+        const trial = planLeg(
+          sim,
+          trader,
+          o.capacity - reserved - t.qty,
+          port,
+          to,
+          leg.realMinutes,
+        );
+        if (t.payCents + trial.profit <= plan.profit) continue;
+        plan = trial;
+        reserved += t.qty;
+        deposit += t.depositCents;
+        pay += t.payCents;
+        take.push(t);
+      }
       let carried = 0;
       for (const s of trader.cargo) {
+        if (s.contract) continue;
         carried += sim.sellQuote(to, s.good, s.qty) - sim.sellQuote(port, s.good, s.qty);
       }
-      plan.profit += Math.max(0, carried);
-      plan.perMinute = plan.profit / leg.realMinutes;
-      if (!best || plan.perMinute > best.perMinute) best = plan;
+      for (const c of book.active) {
+        if (c.status !== 'active' || c.to !== to || !src) continue;
+        if (sim.gameSeconds + leg.gameSeconds > c.expiresAt) continue;
+        const p = deliveryPay(
+          src.defs,
+          c,
+          contractCargo(trader.cargo, c.id),
+          sim.gameSeconds + leg.gameSeconds,
+        );
+        carried += p.payCents;
+      }
+      const profit = plan.profit + pay + Math.max(0, carried);
+      const candidate = { ...plan, profit, perMinute: profit / leg.realMinutes, take };
+      if (!best || candidate.perMinute > best.perMinute) best = candidate;
     }
     if (!best) break;
+    if (src) {
+      for (const t of best.take) acceptContract(src, captain, o.capacity, port, t.id);
+    }
     boughtFor.clear();
     for (const b of best.buys) {
       boughtFor.add(b.good);
@@ -317,6 +372,9 @@ export function runTrader(sim: EconomySim, legs: PassageTable, o: TraderOptions)
     realMinutes: real,
     gameSeconds: sim.gameSeconds - startGame,
     trades,
+    ...(o.contracts && {
+      contracts: { tally: book.tally, payCents: contractPay, standing: captain.standing },
+    }),
   };
 }
 
