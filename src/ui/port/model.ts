@@ -19,6 +19,8 @@ import {
 } from '../../sim/economy/chandlery';
 import { maxBuyable, type Trader } from '../../sim/economy/trade';
 import { weekLabel } from '../hud/model';
+import type { ShipState } from '../../sim/shipyard/shipyard';
+import { yardSnapshot, type YardSnapshot } from './shipyard-model';
 
 /**
  * What the port screen and the ledger show (plan 05 §12, plan 13 §5; Phase 4 piece B),
@@ -27,12 +29,13 @@ import { weekLabel } from '../hud/model';
  * these; buying and selling go back through the port's actions.
  */
 
-export type PortTab = 'market' | 'chandlery' | 'ledger';
+export type PortTab = 'market' | 'chandlery' | 'shipyard' | 'ledger';
 
 /** The services with a tab, in order. Pieces F, G and K add the freight agent, shipyard and saloon. */
 const SERVICE_TABS: readonly [PortService, PortTab][] = [
   ['market', 'market'],
   ['chandlery', 'chandlery'],
+  ['shipyard', 'shipyard'],
 ];
 
 /** The trade screen sorts by the plan 05 §3 grouping, then by name. */
@@ -115,6 +118,9 @@ export interface PortSnapshot {
   market: MarketRow[];
   hold: HoldRow[];
   stores: StoreRow[];
+  /** The shipyard tab, and the chandlery's fittings and rigging repair (piece G). */
+  shipyard: YardSnapshot | undefined;
+  fittings: YardSnapshot | undefined;
   ledger: LedgerSnapshot;
 }
 
@@ -158,6 +164,8 @@ export interface PortSources {
   cargoSpeedLoss: number;
   port: string;
   gameSeconds: number;
+  /** The player's ship and her name, for the shipyard and fittings (piece G). */
+  ship?: { state: ShipState; name: string } | undefined;
 }
 
 const portName = (id: string): string => portInfo(id)?.name ?? id;
@@ -312,6 +320,20 @@ export function portSnapshot(src: PortSources): PortSnapshot {
       })
     : [];
 
+  const yard = (place: 'shipyard' | 'chandlery'): YardSnapshot | undefined =>
+    src.ship && services.includes(place)
+      ? yardSnapshot({
+          defs,
+          markets,
+          owner: trader,
+          ship: src.ship.state,
+          shipName: src.ship.name,
+          port,
+          place,
+          gameSeconds,
+        })
+      : undefined;
+
   return {
     port,
     portName: info?.name ?? port,
@@ -324,6 +346,8 @@ export function portSnapshot(src: PortSources): PortSnapshot {
     market,
     hold,
     stores,
+    shipyard: yard('shipyard'),
+    fittings: yard('chandlery'),
     ledger: ledgerSnapshot(defs, knowledge, gameSeconds),
   };
 }

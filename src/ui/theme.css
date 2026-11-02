@@ -1370,3 +1370,131 @@ body[data-mode='chart'] .chart-layer {
   overflow: hidden;
   clip: rect(0 0 0 0);
 }
+
+/*
+ * The shipyard tab and the chandlery's fittings (plan 10 §12; Phase 4 piece G): hulls side
+ * by side with the trade-in sum, upgrades in the ruled tables, her condition beside them.
+ */
+.port-chandlery-col {
+  flex: 1;
+  min-width: 0;
+}
+
+.yard h3,
+.yard-fittings h3 {
+  margin: 12px 0 4px;
+  font-size: 16px;
+}
+
+.yard h3:first-child {
+  margin-top: 0;
+}
+
+.yard-repair {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 14px;
+}
+
+.yard-hulls {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 10px;
+}
+
+.yard-hull {
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.25);
+  border: 1px solid var(--paper-dark);
+  border-radius: 3px;
+  font-size: 14px;
+}
+
+.yard-hull.current {
+  border-color: var(--brass);
+}
+
+.yard-hull h4 {
+  margin: 0 0 4px;
+  font-size: 15px;
+}
+
+.yard-hull p {
+  margin: 4px 0;
+}
+
+.yard-bar {
+  display: grid;
+  grid-template-columns: 40px 1fr 40px;
+  align-items: center;
+  gap: 6px;
+}
+
+.yard p.port-dim,
+.yard-fittings p.port-dim {
+  margin: 2px 0;
+  font-size: 14px;
+}
+
+.yard-work {
+  white-space: nowrap;
+}
+
+/* Spare port screens: explanations live in "?" tooltips, details in icons. */
+.port-help,
+.port-icon {
+  display: inline-block;
+  margin-left: 6px;
+  font-size: 11px;
+  color: #6b5b48;
+  cursor: help;
+}
+
+.port-help {
+  width: 15px;
+  height: 15px;
+  line-height: 13px;
+  text-align: center;
+  font-style: normal;
+  border: 1px solid #6b5b48;
+  border-radius: 50%;
+}
+
+.port-help:hover,
+.port-help:focus {
+  color: var(--ink);
+  border-color: var(--brass);
+  background: var(--paper-dark);
+}
+
+.port-mini.primary {
+  color: #fff;
+  background: var(--lake-teal);
+  border-color: var(--lake-teal);
+}
+
+.yard-line {
+  margin: 2px 0 6px;
+  font-size: 13px;
+}
+
+.yard-buy {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 14px;
+}
+
+.yard-slots {
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: 13px;
+}
+
+.yard-slots li {
+  display: flex;
+  justify-content: space-between;
+}

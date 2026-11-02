@@ -41,6 +41,11 @@ export const hazardRulesSchema = z.object({
   cargoSpeedLoss: z.number().min(0).max(1),
   /** Extra draft at 0 hull, meters: a leaking ship sits lower (plan 02 §6.1). */
   leakSinkM: z.number().nonnegative(),
+  /**
+   * The depth readout warns under this many drafts of water (plan 02 §6.2: 2; the
+   * sounding machine upgrade, plan 10 §5.5, makes it 3).
+   */
+  shallowWarnDrafts: z.number().positive(),
   /** riggingCondition at 0 rigging HP (plan 02 §3.1: 0.5–1.0). */
   riggingConditionMin: z.number().min(0).max(1),
   /** Extra sail-change time at 0 rigging HP, as a share of the normal time. */
@@ -130,6 +135,7 @@ export function defaultHazardRules(): HazardRules {
     leakSpeedLoss: 0.3,
     cargoSpeedLoss: 0.2,
     leakSinkM: 0.4,
+    shallowWarnDrafts: 2,
     riggingConditionMin: 0.5,
     riggingSailSlowdown: 1,
     safeWindKn: [999, 40, 27, 19],

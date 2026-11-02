@@ -14,7 +14,10 @@ import type { ShipHazards } from './hazards';
  */
 export interface GameEconomy {
   defs: EconomyDefs;
-  capacity: number;
+  /** The hold's size, CU: the ship's class with her upgrades (piece G). */
+  readonly capacity: number;
+  /** A new hull or a bigger hold (piece G). */
+  setCapacity(cu: number): void;
   buy(port: string, good: string, qty: number): TradeResult;
   sell(port: string, good: string, qty: number): TradeResult;
   quote(
@@ -37,8 +40,9 @@ export function attachEconomy(
   ctx: GameContext,
   hazards: ShipHazards | undefined,
   defs: EconomyDefs = gameEconomy(),
-  capacity: number = cargoCapacity(),
+  initialCapacity: number = cargoCapacity(),
 ): GameEconomy {
+  let capacity = initialCapacity;
   const now = (): number => ctx.state.environment.clock.gameSeconds;
   const markets = (): typeof ctx.state.markets => ctx.state.markets;
   const player = (): typeof ctx.state.player => ctx.state.player;
@@ -61,7 +65,13 @@ export function attachEconomy(
 
   return {
     defs,
-    capacity,
+    get capacity() {
+      return capacity;
+    },
+    setCapacity(cu) {
+      capacity = cu;
+      syncLoad();
+    },
     buy: (port, good, qty) =>
       settle(buy(defs, markets(), player(), capacity, port, good, qty, now())),
     sell: (port, good, qty) => settle(sell(defs, markets(), player(), port, good, qty, now())),

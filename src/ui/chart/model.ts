@@ -110,6 +110,8 @@ export interface ChartHudSources {
   forecastLead?: number;
   /** The captain's forecasting (1, or less for the Fisherman's weather eye). */
   forecastSkill?: number;
+  /** The furthest lead the ship's barometer gives, game hours; all leads when absent. */
+  forecastHours?: number | undefined;
 }
 
 export const LOOKOUT_LABELS: Record<LookoutPref, string> = {
@@ -237,7 +239,7 @@ function weatherHud(src: ChartHudSources): ChartWeatherHud | undefined {
     leadText: src.forecastLead
       ? `The chart shows the weather expected at ${clockLabel(gameSeconds + src.forecastLead * 3600)}.`
       : undefined,
-    leads: FORECAST_LEADS,
+    leads: FORECAST_LEADS.filter((h) => h <= (src.forecastHours ?? Infinity)),
   };
 }
 

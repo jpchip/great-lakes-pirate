@@ -6,6 +6,7 @@ import { createWeatherState, type WeatherState } from './weather/weather';
 import { gameEconomy } from './economy/defs';
 import { createMarkets, syncMarkets } from './economy/market';
 import { firstWeekSchema } from './character/first-week';
+import { defaultShipState } from './shipyard/shipyard';
 
 /**
  * WorldState skeleton (plan 01 §3.1, plan 16 §5.2). Each slice is filled in by its
@@ -181,6 +182,18 @@ export const knowledgeSchema = z.object({
 /** Ship's stores in the lockers, by store id (plan 05 §7; save v6). */
 export const storesSchema = z.record(z.string(), z.number().int().nonnegative());
 
+/**
+ * The player's ship (plan 10 §11 `player.ship`; Phase 4 piece G): her class, the share
+ * left of each damage pool, and the upgrades fitted. Her name is the captain's
+ * `shipName`. Absent in a save from before the shipyard: a sound, bare T1.
+ */
+export const shipStateSchema = z.object({
+  classId: z.string(),
+  hull01: z.number().min(0).max(1),
+  rigging01: z.number().min(0).max(1),
+  upgrades: z.array(z.string()),
+});
+
 /** A Phase 4 captain before character creation: the Deckhand of plan 12 §2.2. */
 export function defaultCaptain(): Captain {
   return { name: 'Captain', shipName: 'Schooner', background: 'deckhand' };
@@ -199,6 +212,8 @@ export const worldStateSchema = z.object({
     cargo: z.array(cargoStackSchema),
     /** Patch and mend kits, lamp oil, provisions (the chandlery; piece B). */
     stores: storesSchema,
+    /** Her class, condition and upgrades (piece G); filled on load when absent. */
+    ship: shipStateSchema.optional(),
   }),
   voyage: voyageSchema.nullable(),
   markets: marketsSchema,
@@ -232,6 +247,7 @@ export function createWorldState(seed: string, startSeconds = 0): WorldState {
       purse: DECKHAND_PURSE_CENTS,
       cargo: DECKHAND_CARGO.map((s) => ({ ...s })),
       stores: {},
+      ship: defaultShipState(),
     },
     voyage: null,
     markets: createMarkets(gameEconomy(), clock.gameSeconds),
@@ -250,5 +266,6 @@ export function parseWorldState(state: unknown): WorldState {
   const parsed = worldStateSchema.parse(state);
   syncMarkets(gameEconomy(), parsed.markets, parsed.environment.clock.gameSeconds);
   parsed.traffic ??= { deliveredTo: parsed.environment.clock.gameSeconds, ships: {} };
+  parsed.player.ship ??= defaultShipState();
   return parsed;
 }

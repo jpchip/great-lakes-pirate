@@ -329,8 +329,8 @@ test('sails from the Apostles to the Twin Ports on the chart, through a reload',
   await expect(body).toHaveAttribute('data-zone', 'zone.twin_ports');
   await expect(body).toHaveAttribute('data-mode', 'sailing');
   await expect(body).toHaveAttribute('data-saved-mode', 'zone');
-  // The Twin Ports' east entry (data/zones.json), heading west.
-  await expect(body).toHaveAttribute('data-saved-pose', /^1700\.\d\d,-100\.\d\d,4\.71\d\d$/);
+  // The Twin Ports' east entry (data/zones.json), just off Minnesota Point, heading for the canal.
+  await expect(body).toHaveAttribute('data-saved-pose', /^400\.\d\d,250\.\d\d,5\.23\d\d$/);
 
   // The Twin Ports offer the chart from just outside the harbor, so it's on offer here.
   await expect(page.getByTestId('take-to-chart')).toBeVisible();
@@ -632,5 +632,78 @@ test('creates a captain from the main menu and starts docked at dawn', async ({ 
   await page.reload();
   await page.getByTestId('menu-new-run').click();
   await expect(page.getByTestId('menu-replace')).toContainText('Kittiwake');
+  expect(errors).toEqual([]);
+});
+
+interface ShipyardHook {
+  ship(): { classId: string; hull01: number; rigging01: number; upgrades: string[] };
+  grant(cents: number): void;
+  damage(hull01: number, rigging01: number): void;
+  sailing(): string;
+}
+
+// Phase 4 piece G: Ashland's shipyard sells the T2 with the T1 in trade, fits an upgrade,
+// and repairs her; at sea, K uses a patch kit from the lockers.
+test('buys a T2 at Ashland, fits and repairs her, and patches the hull at sea', async ({
+  page,
+}) => {
+  const errors = collectErrors(page);
+  const body = page.locator('body');
+  await page.goto('/?renderer=null&debug&harbor=ashland,2');
+  await expect(body).toHaveAttribute('data-terrain', 'loaded');
+  await page.waitForFunction(() => '__glpChart' in window);
+  await page.evaluate(() => {
+    const w = window as unknown as { __glpShipyard: ShipyardHook };
+    w.__glpShipyard.grant(200_000);
+  });
+  const docked = await page.evaluate(() =>
+    (window as unknown as { __glpPort: PortHook }).__glpPort.dock('ashland_city'),
+  );
+  expect(docked).toBe(true);
+  const screen = page.getByTestId('port-screen');
+  await expect(screen).toBeVisible({ timeout: 15_000 });
+
+  await page.getByTestId('port-tab-shipyard').click();
+  await expect(page.getByTestId('shipyard')).toBeVisible();
+  await page.getByTestId('buy-hull-ship.t2_schooner').click();
+  await expect(page.getByTestId('port-message')).toContainText("She's yours");
+  const yard = (): Promise<ReturnType<ShipyardHook['ship']>> =>
+    page.evaluate(() =>
+      (window as unknown as { __glpShipyard: ShipyardHook }).__glpShipyard.ship(),
+    );
+  expect((await yard()).classId).toBe('ship.t2_schooner');
+  expect(
+    await page.evaluate(() =>
+      (window as unknown as { __glpShipyard: ShipyardHook }).__glpShipyard.sailing(),
+    ),
+  ).toBe('ship.t2_schooner');
+
+  await page.getByTestId('fit-upgrade.quality_canvas').click();
+  await expect(page.getByTestId('upgrade-row-upgrade.quality_canvas')).toHaveClass(/selected/);
+  expect((await yard()).upgrades).toEqual(['upgrade.quality_canvas']);
+
+  // Damage her, then the yard makes her sound.
+  await page.keyboard.press('Escape');
+  await page.evaluate(() =>
+    (window as unknown as { __glpShipyard: ShipyardHook }).__glpShipyard.damage(0.4, 0.6),
+  );
+  await page.keyboard.press('KeyP');
+  await page.getByTestId('port-tab-shipyard').click();
+  await page.getByTestId('repair-shipyard').click();
+  expect(await yard()).toMatchObject({ hull01: 1, rigging01: 1 });
+
+  // A patch kit from the chandlery, cast off, and K patches a damaged hull.
+  await page.getByTestId('port-tab-chandlery').click();
+  await page.getByTestId('store-store.patch_kit').click();
+  await page.keyboard.press('KeyF');
+  await expect(screen).toHaveCount(0);
+  await page.evaluate(() =>
+    (window as unknown as { __glpShipyard: ShipyardHook }).__glpShipyard.damage(0.5, 1),
+  );
+  await page.keyboard.press('KeyK');
+  await expect(
+    page.getByTestId('hud-status').filter({ hasText: 'Patched the hull: 70%' }),
+  ).toHaveCount(1);
+  expect((await yard()).hull01).toBeCloseTo(0.7, 2);
   expect(errors).toEqual([]);
 });

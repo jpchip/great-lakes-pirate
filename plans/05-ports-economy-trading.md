@@ -548,7 +548,7 @@ The four Apostles harbors are 55k triangles together, well inside the 250k harbo
 | Save | `src/sim/world-state.ts` | `player.captain.portrait` and a top-level `firstWeek {done[], hidden}`, both optional (no version bump, like pieces D and K). A 0.3.0 run and a run started past the menu (`?play`) have no checklist and show the first portrait |
 | Main menu | `src/ui/menu/`, `src/main.ts` | Before the boot: the save is read, then the title card shows Continue (with the saved captain, ship, place, week and purse), New run and Settings (the game's settings screen, with the volumes kept in storage). New run over a saved run asks first ("There is only ever one run") and clears every save slot. A save that can't be read is kept and the menu says this session won't be saved (plan 16 §6.3). The mode machine goes `boot → mainMenu ⇄ characterCreation → sailing` |
 | Character creation | `src/ui/menu/MainMenu.tsx`, `model.ts` | Name, schooner, run seed (eight letters, editable, plan 12 §2.1 step 5), likeness and the six background cards with the port, the harder-start tag, the money and cargo, the hideout and both perks ("from phase 6" on the ones that wait). Names are trimmed and must be 1–32 characters. Esc steps back |
-| Perks | `src/sim/character/perks.ts` | **Deckhand:** sail changes take 0.75× as long; the hand-trim sweet spot is 1.5× wider and gives 1.05× speed when the sheets are in it (`trimmedBonus` on the sailing class). **Fisherman:** this moment's salted and fresh fish prices in every port go into the ledger at the start and on every world tick; the chart's forecast cones and wind ranges are a third tighter (`forecastSkill`). **Saloon Keeper:** piece K reads the background for better rumors. The others are stored with the background for their phases. `withSailingPerks` must be applied wherever the player's class is rebuilt (piece G's new hulls) |
+| Perks | `src/sim/character/perks.ts` | **Deckhand:** sail changes take 0.75× as long; the hand-trim sweet spot is 1.5× wider and gives 1.05× speed when the sheets are in it (`trimmedBonus` on the sailing class). **Fisherman:** this moment's salted and fresh fish prices in every port go into the ledger at the start and on every world tick; the chart's forecast cones and wind ranges are a third tighter (`forecastSkill`). **Saloon Keeper:** piece K reads the background for better rumors. The others are stored with the background for their phases. The shipyard passes `withSailingPerks` as `adjustClass`, so a new hull or upgrade keeps them |
 | First Week | `src/sim/character/first-week.ts`, `src/gameplay/captain.ts`, `src/ui/hud/FirstWeek.tsx` | Five steps that name the starting cargo, port and hideout (12 §3, step 6 left for Phase 7). They tick from the bus's tap by event name, so the steps from pieces E, F and K work as soon as those land: selling the starting cargo (`TradeCompleted`), `ContractCompleted` (F), `StorageChanged` in with goods (E), `RumorHeard` from a saloon (K), `VoyageStarted`. A tracker under the barometer shows the next step and can be put away; the journal (J) lists them all and brings it back |
 | Checks | `?play`, `?newrun=` | The menu is skipped with `?play` or any switch that starts somewhere (`?zone`, `?harbor`, `?spawn`, `?encounter` and the like), so the checks and benches boot as before. `?newrun=fisherman` starts a new captain of that background past the menu |
 
@@ -568,11 +568,15 @@ The four Apostles harbors are 55k triangles together, well inside the 250k harbo
 
 - Jared's background picker look (§16.4 piece C's "Needs Jared"), screenshots in `new-run/`.
 - Steps 2–4 tick once pieces F, E and K merge with the event names agreed (`ContractCompleted`, `StorageChanged`, `RumorHeard`).
-- Piece G applies `withSailingPerks` when it swaps the player's hull.
+
+## 20. Phase 4 Piece G: the Shipyard (2026-11-02)
+
+The shipyard, upgrades and repairs are recorded in [plan 10 §17](10-ship-upgrades-customization.md). What touches this plan: Duluth gains the `shipyard` service (§3 of plan 10 names it with Superior and Ashland), the T2's `cargoCapacity` is 45 CU, `GameEconomy.capacity` follows the ship's class and expanded hold, cargo that won't fit a new hull is sold to the port's market at 80% of its sell price (moving the stock as a sale would), and the chandlery tab gains rigging repair and instrument fittings. Patch and mend kits from §18's chandlery are now used at sea with K. The yard rebuilds the sailing class through `adjustClass`, so the Deckhand's perks from §19 stay on a new hull.
 
 ---
 
 ## Changelog
+- v0.7: Phase 4 piece G recorded (§20): Duluth's shipyard, the T2's hold, cargo sold on a trade-in, chandlery repairs and fittings.
 
 - v0.6: Phase 4 piece C built (§19): the main menu, character creation, six backgrounds and portraits, the new run docked at dawn, the Phase 4 perks, the First Week checklist.
 - v0.6: Phase 4 piece D built (§16.9): flows and manifests, deliveries that move stock, the traffic save slice, ships in the zones and at berths, look her over and hailing; two company names replaced after the names check.
