@@ -28,6 +28,11 @@ export interface PortActions {
   /** What `qty` CU would cost or fetch now, cents. */
   quote(good: string, qty: number, side: TradeSide): number;
   buyStores(item: string, qty: number): string | undefined;
+  /**
+   * Offers a whole hot or contraband lot (a stack of the hold, by its index) to the port's
+   * merchants (piece H). Always returns what came of it, in a line.
+   */
+  offer(index: number): string | undefined;
   /** Close the screen and stay alongside. */
   close(): void;
   /** Close the screen and cast off (F). */
@@ -286,7 +291,15 @@ function Market({
   );
 }
 
-function Hold({ port }: { port: PortSnapshot }) {
+function Hold({
+  port,
+  actions,
+  setMessage,
+}: {
+  port: PortSnapshot;
+  actions?: PortActions | undefined;
+  setMessage?: ((m: string | undefined) => void) | undefined;
+}) {
   return (
     <aside class="port-hold" data-testid="port-hold">
       <h3>Your hold</h3>
@@ -303,14 +316,34 @@ function Hold({ port }: { port: PortSnapshot }) {
               </span>
               <span class="hud-num">{h.qty} CU</span>
               <small class="port-dim">
-                {h.hot
-                  ? 'No honest merchant will take it'
-                  : h.contract
-                    ? 'Carried for a contract'
-                    : h.sellCents !== undefined
-                      ? `${formatCents(h.sellCents)} here`
-                      : 'Not traded here'}
+                {h.offer
+                  ? h.offer.turnedAway
+                    ? 'Turned away here this week'
+                    : `Offer it on the quiet: ${h.offer.risk}`
+                  : h.hot
+                    ? 'No merchant here deals in it'
+                    : h.contract
+                      ? 'Carried for a contract'
+                      : h.sellCents !== undefined
+                        ? `${formatCents(h.sellCents)} here`
+                        : 'Not traded here'}
               </small>
+              {h.offer && actions && setMessage && (
+                <button
+                  type="button"
+                  class="port-mini"
+                  data-testid={`offer-${h.good}`}
+                  disabled={h.offer.turnedAway}
+                  title={
+                    h.offer.kind === 'hot'
+                      ? 'Offer the whole lot to a merchant. If he knows the goods, he refuses or calls the law.'
+                      : 'Offer the whole lot to a merchant on the quiet. If he won’t have it, he refuses or calls the revenue man.'
+                  }
+                  onClick={() => setMessage(actions.offer(h.index))}
+                >
+                  Offer
+                </button>
+              )}
             </li>
           ))}
         </ul>
@@ -424,7 +457,7 @@ export function PortScreen({
           {shown === 'market' && (
             <>
               <Market port={port} actions={actions} setMessage={setMessage} />
-              <Hold port={port} />
+              <Hold port={port} actions={actions} setMessage={setMessage} />
             </>
           )}
           {shown === 'chandlery' && (

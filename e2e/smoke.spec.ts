@@ -493,6 +493,7 @@ interface PortHook {
   docked(): string | undefined;
   knowledge(): Record<string, Record<string, { sellCents: number }>>;
   stores(): Record<string, number>;
+  open(port: string): void;
 }
 
 // Phase 4 piece B: docking at a port's pier opens its screen; selling and buying there move
@@ -565,5 +566,63 @@ test('docks at Bayfield, trades on the port screen, and keeps the ledger', async
     (window as unknown as { __glpPort: PortHook }).__glpPort.knowledge(),
   );
   expect(Object.keys(known)).toEqual(['port.bayfield']);
+  expect(errors).toEqual([]);
+});
+
+interface ContrabandHook {
+  present(): boolean;
+  alongside(): boolean;
+  makeHot(good: string, qty?: number): number;
+  learn(): void;
+  known(): boolean;
+}
+
+// Phase 4 piece H: after dark the island smuggler lies in Oak Island's lee. Alongside her,
+// F opens her screen: buy untaxed whiskey, fence a hot lot, sheer off. Then try the whiskey
+// on a Bayfield merchant from the port screen's hold.
+test('meets the island smuggler after dark and tries her whiskey in Bayfield', async ({ page }) => {
+  const errors = collectErrors(page);
+  const body = page.locator('body');
+  await page.goto('/?renderer=null&debug&hour=23');
+  await expect(body).toHaveAttribute('data-terrain', 'loaded');
+  await page.waitForFunction(() => '__glpContraband' in window);
+  await page.waitForFunction(() =>
+    (window as unknown as { __glpContraband: ContrabandHook }).__glpContraband.present(),
+  );
+  await page.evaluate(() => {
+    const h = (window as unknown as { __glpContraband: ContrabandHook }).__glpContraband;
+    h.makeHot('good.rope_canvas', 5);
+    h.alongside();
+  });
+  await expect(page.getByTestId('hud-status').filter({ hasText: 'F trade with' })).toHaveCount(1, {
+    timeout: 10_000,
+  });
+  await page.keyboard.press('KeyF');
+  const screen = page.getByTestId('smuggler-screen');
+  await expect(screen).toBeVisible({ timeout: 10_000 });
+  await expect(body).toHaveAttribute('data-smuggler', 'open');
+
+  // The hot rope and canvas fetch 40% of their value.
+  await expect(page.getByTestId('smuggler-lot').first()).toContainText('40% of its value');
+  await page.getByTestId('smuggler-sell-good.rope_canvas').click({ modifiers: ['Shift'] });
+  await expect(page.getByTestId('smuggler-message')).toContainText('swung across');
+  // Shift-click buys all the whiskey the purse and hold allow.
+  await page.getByTestId('smuggler-buy-good.untaxed_whiskey').click({ modifiers: ['Shift'] });
+  await expect(page.getByTestId('smuggler-message')).toContainText('untaxed whiskey handed down');
+  await expect(page.getByTestId('smuggler-lot').filter({ hasText: 'barrels enough' })).toHaveCount(
+    1,
+  );
+  await page.keyboard.press('Escape');
+  await expect(screen).toHaveCount(0);
+
+  // On a Bayfield merchant: sold on the quiet, refused or confiscated, but always an answer.
+  await page.evaluate(() =>
+    (window as unknown as { __glpPort: PortHook }).__glpPort.open('port.bayfield'),
+  );
+  await expect(page.getByTestId('port-screen')).toBeVisible();
+  await page.getByTestId('offer-good.untaxed_whiskey').click();
+  await expect(page.getByTestId('port-message')).toContainText(
+    /Sold on the quiet|won't have|revenue man/,
+  );
   expect(errors).toEqual([]);
 });

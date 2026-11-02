@@ -1007,3 +1007,19 @@ body[data-mode='chart'] .chart-layer {
 .ledger-list {
   padding-left: 18px;
 }
+
+/*
+ * The island smuggler's screen (Phase 4 piece H): the port screen's paper by lantern
+ * light, warmed and darkened at the edges.
+ */
+.menu.smuggler {
+  width: min(900px, calc(100vw - 32px));
+  background:
+    radial-gradient(ellipse at 50% 35%, rgba(255, 196, 110, 0.12), rgba(40, 24, 8, 0.28) 100%),
+    var(--paper);
+}
+
+.menu.smuggler h3 {
+  margin: 4px 0 8px;
+  font-size: 15px;
+}

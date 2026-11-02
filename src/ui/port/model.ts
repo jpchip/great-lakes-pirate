@@ -12,6 +12,14 @@ import {
 } from '../../sim/economy/knowledge';
 import { unitPrices, type MarketsState } from '../../sim/economy/market';
 import {
+  detectionChance,
+  offerKind,
+  riskWord,
+  weekOf,
+  type OfferKind,
+  type Refusals,
+} from '../../sim/economy/contraband';
+import {
   storeItems,
   storePriceCents,
   storeRoom,
@@ -89,6 +97,13 @@ export interface HoldRow {
   contract: boolean;
   /** What a CU fetches here, when this port buys it and it's clean. */
   sellCents: number | undefined;
+  /** The stack's place in the hold, for offering it (rows are sorted). */
+  index: number;
+  /**
+   * A hot or contraband lot can be offered to the port's merchants (piece H): the risk in a
+   * word, and whether they've already turned you away this week.
+   */
+  offer?: { kind: OfferKind; risk: string; turnedAway: boolean } | undefined;
 }
 
 export interface StoreRow {
@@ -158,6 +173,8 @@ export interface PortSources {
   cargoSpeedLoss: number;
   port: string;
   gameSeconds: number;
+  /** Ports whose merchants turned you away this week (piece H). */
+  refusals?: Refusals | undefined;
 }
 
 const portName = (id: string): string => portInfo(id)?.name ?? id;
@@ -279,9 +296,12 @@ export function portSnapshot(src: PortSources): PortSnapshot {
     }
   }
 
+  const turnedAway = src.refusals?.[port] === weekOf(gameSeconds);
   const hold: HoldRow[] = trader.cargo
-    .map((s: CargoStack) => {
+    .map((s: CargoStack, index): HoldRow => {
       const traded = pm?.goods.has(s.good) ?? false;
+      const kind = offerKind(defs, s);
+      const offerable = !!pm && !!kind && (kind === 'contraband' || traded);
       const sell =
         traded && isClean(s)
           ? unitPrices(defs, markets, port, s.good, gameSeconds)?.sellCents
@@ -293,6 +313,15 @@ export function portSnapshot(src: PortSources): PortSnapshot {
         hot: !!s.hot,
         contract: !!s.contract,
         sellCents: sell,
+        index,
+        offer:
+          offerable && kind
+            ? {
+                kind,
+                risk: riskWord(detectionChance(defs, s, port, gameSeconds)),
+                turnedAway,
+              }
+            : undefined,
       };
     })
     .sort((a, b) => goodOrder(defs)(a.good, b.good) || Number(a.hot) - Number(b.hot));

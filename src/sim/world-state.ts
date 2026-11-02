@@ -5,6 +5,7 @@ import { APOSTLES_ID } from './terrain/zones';
 import { createWeatherState, type WeatherState } from './weather/weather';
 import { gameEconomy } from './economy/defs';
 import { createMarkets, syncMarkets } from './economy/market';
+import { freshContrabandState } from './economy/smuggler';
 
 /**
  * WorldState skeleton (plan 01 §3.1, plan 16 §5.2). Each slice is filled in by its
@@ -174,6 +175,23 @@ export const knowledgeSchema = z.object({
   ),
 });
 
+/**
+ * Contraband's saved state (plan 05 §6; Phase 4 piece H): the island smuggler's cash and
+ * stock for the night and her trust in you, the ports whose merchants turned you away and
+ * the week they did, and whether you know where she lies. Optional and filled on load, so
+ * a v6 save from before piece H needs no migration.
+ */
+export const contrabandStateSchema = z.object({
+  smuggler: z.object({
+    night: z.number().int(),
+    cashCents: z.number().int().nonnegative(),
+    stock: z.record(z.string(), z.number().int().nonnegative()),
+    dealtCents: z.number().int().nonnegative(),
+  }),
+  refusals: z.record(z.string(), z.number().int()),
+  known: z.boolean(),
+});
+
 /** Ship's stores in the lockers, by store id (plan 05 §7; save v6). */
 export const storesSchema = z.record(z.string(), z.number().int().nonnegative());
 
@@ -199,6 +217,7 @@ export const worldStateSchema = z.object({
   voyage: voyageSchema.nullable(),
   markets: marketsSchema,
   traffic: trafficStateSchema.optional(),
+  contraband: contrabandStateSchema.optional(),
   knowledge: knowledgeSchema,
   environment: z.looseObject({
     clock: clockStateSchema,
@@ -225,6 +244,7 @@ export function createWorldState(seed: string): WorldState {
     voyage: null,
     markets: createMarkets(gameEconomy(), clock.gameSeconds),
     traffic: { deliveredTo: clock.gameSeconds, ships: {} },
+    contraband: freshContrabandState(clock.gameSeconds),
     knowledge: { prices: {} },
     environment: {
       clock,
@@ -239,5 +259,6 @@ export function parseWorldState(state: unknown): WorldState {
   const parsed = worldStateSchema.parse(state);
   syncMarkets(gameEconomy(), parsed.markets, parsed.environment.clock.gameSeconds);
   parsed.traffic ??= { deliveredTo: parsed.environment.clock.gameSeconds, ships: {} };
+  parsed.contraband ??= freshContrabandState(parsed.environment.clock.gameSeconds);
   return parsed;
 }

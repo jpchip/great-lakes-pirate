@@ -15,6 +15,8 @@ import type { LoadingScreen as LoadingModel } from './loading/model';
 import { PortScreen, type PortActions } from './port/PortScreen';
 import { Journal } from './port/Ledger';
 import type { LedgerSnapshot, PortSnapshot, PortTab } from './port/model';
+import { SmugglerScreen, type SmugglerActions } from './port/SmugglerScreen';
+import type { SmugglerSnapshot } from './port/smuggler-model';
 import './theme.css';
 
 /**
@@ -34,6 +36,8 @@ export interface GameUiOptions {
   onTakeToChart?: (() => void) | undefined;
   /** The port screen's buttons and the journal's (Phase 4 piece B). */
   port?: (PortActions & { closeJournal(): void; openDocked(): void }) | undefined;
+  /** Alongside the island smuggler (Phase 4 piece H). */
+  smuggler?: SmugglerActions | undefined;
   /** The game's sound volumes, when it has Web Audio. */
   audio?:
     | {
@@ -59,6 +63,8 @@ export interface GameUi {
   setPort(snapshot: PortSnapshot | undefined): void;
   /** The journal's ledger at the helm; undefined closes it. */
   setJournal(snapshot: LedgerSnapshot | undefined): void;
+  /** The island smuggler's screen; undefined closes it. */
+  setSmuggler(snapshot: SmugglerSnapshot | undefined): void;
   /** Show a port screen tab (J in port turns to the ledger). */
   setPortTab(tab: PortTab): void;
   readonly menuOpen: boolean;
@@ -74,7 +80,9 @@ export function mountGameUi({
   chart: chartActions,
   onTakeToChart,
   port: portActions,
+  smuggler: smugglerActions,
 }: GameUiOptions): GameUi {
+  const smuggler = signal<SmugglerSnapshot | undefined>(undefined);
   const port = signal<PortSnapshot | undefined>(undefined);
   const portTab = signal<PortTab>('market');
   const journal = signal<LedgerSnapshot | undefined>(undefined);
@@ -124,6 +132,9 @@ export function mountGameUi({
     if (menuOpen.value) {
       e.preventDefault();
       setMenu(false);
+    } else if (smuggler.value) {
+      e.preventDefault();
+      smugglerActions?.close();
     } else if (port.value) {
       e.preventDefault();
       portActions?.close();
@@ -137,7 +148,10 @@ export function mountGameUi({
     if (menuOpen.value || e.repeat) return;
     const keys = bindings.value.sailing;
     const is = (action: Action): boolean => (keys[action] ?? []).includes(e.code);
-    if (port.value && is('Interact')) {
+    if (smuggler.value && is('Interact')) {
+      e.preventDefault();
+      smugglerActions?.close();
+    } else if (port.value && is('Interact')) {
       e.preventDefault();
       portActions?.castOff();
     } else if (port.value && is('Journal')) {
@@ -169,10 +183,13 @@ export function mountGameUi({
             setTab={(t) => (portTab.value = t)}
           />
         )}
+        {smuggler.value && smugglerActions && !menuOpen.value && (
+          <SmugglerScreen smuggler={smuggler.value} actions={smugglerActions} />
+        )}
         {journal.value && portActions && !menuOpen.value && (
           <Journal ledger={journal.value} close={portActions.closeJournal} />
         )}
-        {!menuOpen.value && !port.value && !journal.value && (
+        {!menuOpen.value && !port.value && !journal.value && !smuggler.value && (
           <button
             type="button"
             class="hud-menu-button"
@@ -228,6 +245,9 @@ export function mountGameUi({
     },
     setJournal(snapshot) {
       journal.value = snapshot;
+    },
+    setSmuggler(snapshot) {
+      smuggler.value = snapshot;
     },
     setPortTab(tab) {
       portTab.value = tab;

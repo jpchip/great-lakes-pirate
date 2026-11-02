@@ -48,6 +48,16 @@ export interface ChartFrame {
   etaLabel: string | undefined;
   /** The weather to draw (Phase 3 piece E): as it stands, or a forecast. */
   weather?: ChartWeatherPicture | undefined;
+  /** Places the captain knows of (Phase 4 piece H: the smuggler's anchorage). */
+  marks?: readonly ChartMark[] | undefined;
+}
+
+export type ChartMarkKind = 'smuggler';
+
+export interface ChartMark {
+  pos: Chart;
+  label: string;
+  kind: ChartMarkKind;
 }
 
 const FONT = '"Libre Caslon Text", "Iowan Old Style", Georgia, serif';
@@ -215,6 +225,7 @@ export class ChartView {
     if (frame.weather) this.weatherLayer.drawLive(ctx, this, frame.weather, 1 - frame.daylight);
     this.drawLights(geo, frame.daylight);
     this.drawPorts(geo);
+    this.drawMarks(frame.marks ?? [], frame.daylight);
     this.drawLanes(frame);
     this.drawSpotRange(frame);
     this.drawContacts(frame);
@@ -580,6 +591,46 @@ export class ChartView {
       ctx.strokeStyle = light.status === 'lit' ? CHART_COLORS.ink : CHART_COLORS.fogGray;
       ctx.lineWidth = 1;
       ctx.stroke();
+    }
+  }
+
+  /**
+   * Known places in pencil: the smuggler's anchorage is a small lantern (a diamond in a
+   * ring) with its name in italic, glowing faintly at night when she's there.
+   */
+  private drawMarks(marks: readonly ChartMark[], daylight: number): void {
+    const { ctx } = this;
+    for (const m of marks) {
+      const s = this.toScreen(m.pos);
+      const night = 1 - daylight;
+      if (night > 0) {
+        const glow = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, 12);
+        glow.addColorStop(0, `rgba(255, 190, 100, ${0.6 * night})`);
+        glow.addColorStop(1, 'rgba(255, 190, 100, 0)');
+        ctx.fillStyle = glow;
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, 12, 0, Math.PI * 2);
+        ctx.fill();
+      }
+      ctx.beginPath();
+      ctx.arc(s.x, s.y, 6, 0, Math.PI * 2);
+      ctx.strokeStyle = CHART_COLORS.ink;
+      ctx.lineWidth = 1;
+      ctx.setLineDash([2, 2]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.beginPath();
+      ctx.moveTo(s.x, s.y - 3.5);
+      ctx.lineTo(s.x + 2.5, s.y);
+      ctx.lineTo(s.x, s.y + 3.5);
+      ctx.lineTo(s.x - 2.5, s.y);
+      ctx.closePath();
+      ctx.fillStyle = CHART_COLORS.ink;
+      ctx.fill();
+      ctx.font = `italic 11px ${FONT}`;
+      ctx.textBaseline = 'middle';
+      ctx.textAlign = 'left';
+      ctx.fillText(m.label, s.x + 9, s.y);
     }
   }
 

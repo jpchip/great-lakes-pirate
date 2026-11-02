@@ -25,6 +25,7 @@ import { createSchooner } from './gameplay/schooner';
 import { npcParade } from './gameplay/npc-ships';
 import { attachEconomy } from './gameplay/economy';
 import { attachPorts, type PortControl } from './gameplay/port';
+import { attachSmuggler, type SmugglerControl } from './gameplay/smuggler';
 import { attachTraffic, HAIL_RANGE_M, LOOK_RANGE_M, type TrafficZone } from './gameplay/traffic';
 import { createContacts, type Contact } from './sim/chart/traffic';
 import { portInfo } from './sim/economy/defs';
@@ -52,7 +53,7 @@ import { clearArenaCentre, sampleArenaLand } from './sim/arena/land';
 import { westernSuperiorChart } from './sim/chart/chart-data';
 import { bearing, distance, toWorldChart } from './sim/chart/geography';
 import { OPEN_WATER } from './sim/weather/shelter';
-import { FULL_SAIL, updateTargetSpeed } from './sim/sailing/controller';
+import { FULL_SAIL, speedKn, updateTargetSpeed } from './sim/sailing/controller';
 import type { SaveControls } from './debug/overlay';
 import type { GameContext, GameEvents } from './modes/context';
 import { ModeMachine } from './modes/machine';
@@ -666,6 +667,7 @@ async function boot(): Promise<void> {
     document.getElementById('ui') ?? document.body.appendChild(document.createElement('div'));
   // The port screen and the journal (Phase 4 piece B); attached once the UI is up.
   const portsRef: { current: PortControl | undefined } = { current: undefined };
+  const smugglerRef: { current: SmugglerControl | undefined } = { current: undefined };
   const ui = mountGameUi({
     root: uiRoot,
     settings,
@@ -674,12 +676,18 @@ async function boot(): Promise<void> {
       sell: (good, qty) => portsRef.current?.actions.sell(good, qty),
       quote: (good, qty, side) => portsRef.current?.actions.quote(good, qty, side) ?? 0,
       buyStores: (item, qty) => portsRef.current?.actions.buyStores(item, qty),
+      offer: (index) => portsRef.current?.actions.offer(index),
       close: () => portsRef.current?.close(),
       castOff: () => portsRef.current?.actions.castOff(),
       closeJournal: () => portsRef.current?.closeJournal(),
       openDocked: () => {
         if (machine.mode === 'sailing' && !machine.gameplayPaused) portsRef.current?.openDocked();
       },
+    },
+    smuggler: {
+      buy: (good, qty) => smugglerRef.current?.actions.buy(good, qty),
+      fence: (index, qty) => smugglerRef.current?.actions.fence(index, qty),
+      close: () => smugglerRef.current?.close(),
     },
     chart: {
       sail: () => travelRef.current?.setSail(),
@@ -745,6 +753,62 @@ async function boot(): Promise<void> {
     castOff: () => input.trigger('Interact'),
   });
   portsRef.current = ports;
+  // The island smuggler (Phase 4 piece H): her boat after dark in Oak Island's lee, and her
+  // screen, which pauses the game like the port screen.
+  let contextBeforeSmuggler: InputContext = 'sailing';
+  const smuggler = attachSmuggler({
+    ctx,
+    economy,
+    show: (snapshot) => ui.setSmuggler(snapshot),
+    onOpen(open) {
+      if (open) {
+        machine.pushOverlay('trade');
+        contextBeforeSmuggler = input.context;
+        input.context = 'menu';
+      } else {
+        machine.removeOverlay('trade');
+        input.context = contextBeforeSmuggler;
+        input.endTick();
+      }
+      if (cameraRig) cameraRig.suspended = open;
+      document.body.dataset['smuggler'] = open ? 'open' : 'closed';
+      hudClock = HUD_INTERVAL_S;
+    },
+  });
+  smugglerRef.current = smuggler;
+  const smugglerZone = (z: LoadedZone | undefined) =>
+    z ? { id: z.manifest.zone, frame: manifestFrame(z.manifest) } : undefined;
+  smuggler.setZone(smugglerZone(zone));
+  if (import.meta.env.DEV || params.has('debug')) {
+    // `__glpContraband.makeHot('good.rope_canvas', 5)` marks cargo hot until Phase 6's theft
+    // can; `alongside()` puts the ship beside the smuggler; `learn()` marks her anchorage.
+    const hook = {
+      makeHot: (good: string, qty = 99, region = 'region.chequamegon', heat = 1) =>
+        economy.makeHot(good, qty, region, heat),
+      offer: (port: string, index: number) => economy.offer(port, index),
+      state: () => state.contraband,
+      present: () => smuggler.present,
+      known: () => smuggler.known(),
+      learn: () => smuggler.learn('dev'),
+      anchorage: () => smuggler.anchorage,
+      /** Lays the ship alongside her, stopped, heading her way. */
+      alongside() {
+        const a = smuggler.anchorage;
+        if (!a) return false;
+        const heading = (smuggler.def.anchorage.headingDeg * Math.PI) / 180;
+        // Abeam to starboard of her, 40 m off.
+        placeShip({
+          x: a.x + Math.cos(heading) * 40,
+          z: a.z + Math.sin(heading) * 40,
+          heading,
+        });
+        return true;
+      },
+      open: () => smuggler.comeAlongside(shipPose(), speedKn(sailing.state)),
+      close: () => smuggler.close(),
+    };
+    (window as unknown as { __glpContraband: typeof hook }).__glpContraband = hook;
+  }
   if (import.meta.env.DEV || params.has('debug')) {
     const hook = {
       /** Opens a port's screen wherever the ship is. */
@@ -824,6 +888,10 @@ async function boot(): Promise<void> {
     if (machine.mode !== 'sailing' || hazards.state.mooring !== 'free') return [];
     const near = traffic.nearest(shipPose(), HAIL_RANGE_M);
     if (!near) return [];
+    if (smuggler.isSmuggler(near.id)) {
+      const chip = smuggler.chip(shipPose(), speedKn(sailing.state));
+      return chip ? [chip] : [];
+    }
     if (!arena && near.distanceM <= LOOK_RANGE_M) return ['F look her over · H hail'];
     return ['H to hail'];
   };
@@ -837,7 +905,10 @@ async function boot(): Promise<void> {
   ctx.events.on('DockRefused', (e) => {
     if (arena) return;
     const near = e.reason === 'noBerth' ? traffic.nearest(shipPose(), LOOK_RANGE_M) : undefined;
-    if (near) showCard(traffic.lookOver(near.id));
+    if (near && smuggler.isSmuggler(near.id)) {
+      const refused = smuggler.comeAlongside(shipPose(), speedKn(sailing.state));
+      if (refused) showNotice(refused);
+    } else if (near) showCard(traffic.lookOver(near.id));
     else showNotice(dockRefusedNotice(e.reason));
   });
   // For the console and the e2e tests: `__glpTraffic.shown()`, `__glpTraffic.hail(id)`.
@@ -927,6 +998,7 @@ async function boot(): Promise<void> {
       allBerths = mooringBerths(nextDocks, ctx.terrain);
       traffic.setZone(trafficZone(zone));
       traffic.step(undefined);
+      smuggler.setZone(smugglerZone(zone));
       sailingOptions.berths = freeBerths();
       audio?.setZone({
         stations: signalStations(zone),
@@ -1047,6 +1119,7 @@ async function boot(): Promise<void> {
       allBerths = [];
       sailingOptions.berths = [];
       traffic.setZone(undefined);
+      smuggler.setZone(undefined);
       audio?.setZone({ stations: [], harbors: [] });
 
       // The arena sits at the encounter point, nudged off any shore, in its own frame.
@@ -1261,6 +1334,16 @@ async function boot(): Promise<void> {
     seed: trafficSeed,
     contacts: traffic.contacts as Contact[],
     cutterHunts: params.get('cutter') === 'hunt',
+    marks: () =>
+      smuggler.known()
+        ? [
+            {
+              at: smuggler.def.anchorage.at,
+              label: `${smuggler.def.anchorage.name} (after dark)`,
+              kind: 'smuggler' as const,
+            },
+          ]
+        : [],
   });
   travelRef.current = chartTravel;
   machine.register(chartTravel.mode);
@@ -1357,10 +1440,12 @@ async function boot(): Promise<void> {
       // The traffic sails on the clock: in the zone, every tick (Phase 4 piece D).
       if (machine.mode === 'sailing' && !arena && !changingZone) {
         if (traffic.step(hazards.state.berthId)) sailingOptions.berths = freeBerths();
+        smuggler.step(shipPose());
       }
       if (sameContext && input.context === 'sailing' && input.pressed('Hail')) {
         const near = traffic.nearest(shipPose(), HAIL_RANGE_M);
-        if (near) showCard(traffic.hail(near.id));
+        if (near && smuggler.isSmuggler(near.id)) showNotice('She shows a lantern: come alongside');
+        else if (near) showCard(traffic.hail(near.id));
         else showNotice('No ship within hail');
       }
       const inGame = input.context === 'sailing' || input.context === 'chart';

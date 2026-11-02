@@ -1,6 +1,6 @@
-import { zoneToChart, type Chart, type ZoneFrame } from '../core/coords';
+import { zoneToChart, type Chart, type Geo, type ZoneFrame } from '../core/coords';
 import { dayAndHour } from '../core/time';
-import { ChartView } from '../render/chart/chart-view';
+import { ChartView, type ChartMarkKind } from '../render/chart/chart-view';
 import { westernSuperiorChart } from '../sim/chart/chart-data';
 import {
   createChartSky,
@@ -108,6 +108,8 @@ export interface ChartTravelHost {
   contacts?: Contact[] | undefined;
   /** The Morrill hunts and forces meetings (`?cutter=hunt`, dev only until Phase 5). */
   cutterHunts?: boolean;
+  /** Places the captain knows to mark on the chart, e.g. the smuggler's anchorage (piece H). */
+  marks?: (() => readonly { at: Geo; label: string; kind: ChartMarkKind }[]) | undefined;
 }
 
 export interface ChartTravel {
@@ -348,6 +350,11 @@ export function createChartTravel(host: ChartTravelHost): ChartTravel {
           visible,
           hoverWaypoint: plotting.hoverWaypoint,
           etaLabel: eta,
+          marks: (host.marks?.() ?? []).map((m) => ({
+            pos: geo.projection.geoToChart(m.at),
+            label: m.label,
+            kind: m.kind,
+          })),
         });
       },
     },
