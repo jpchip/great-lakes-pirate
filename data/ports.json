@@ -32,7 +32,7 @@
     "name": "Duluth",
     "zone": "zone.twin_ports",
     "wantedRegion": "region.duluth",
-    "services": ["market", "chandlery", "tavern", "jail"]
+    "services": ["market", "chandlery", "shipyard", "tavern", "jail"]
   },
   {
     "id": "port.superior",

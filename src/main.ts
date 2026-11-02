@@ -25,6 +25,10 @@ import { createSchooner } from './gameplay/schooner';
 import { npcParade } from './gameplay/npc-ships';
 import { attachEconomy } from './gameplay/economy';
 import { attachPorts, type PortControl } from './gameplay/port';
+import { attachShipyard } from './gameplay/shipyard';
+import { BASE_INSTRUMENTS, type Instruments } from './sim/shipyard/fit';
+import { defaultShipState } from './sim/shipyard/shipyard';
+import { DEFAULT_SHIP_CAMERA } from './gameplay/camera/ship-camera';
 import { attachTraffic, HAIL_RANGE_M, LOOK_RANGE_M, type TrafficZone } from './gameplay/traffic';
 import { createContacts, type Contact } from './sim/chart/traffic';
 import { portInfo } from './sim/economy/defs';
@@ -384,10 +388,14 @@ async function boot(): Promise<void> {
       });
     }
   }
-  // `?ship=t2` sails the T2 schooner instead of the T1 (Phase 4 piece G) until the
-  // shipyard sells one.
-  const shipClass = PLAYER_SHIP_IDS[params.get('ship') ?? ''];
-  const schooner = createSchooner(spawn.x, spawn.z, spawn.heading, shipClass);
+  // The ship the run sails (Phase 4 piece G: the shipyard sells and fits her). `?ship=t2`
+  // puts the run in a sound, bare T2 (or `t1`), for checks.
+  state.player.ship ??= defaultShipState();
+  const askedClass = PLAYER_SHIP_IDS[params.get('ship') ?? ''];
+  if (askedClass && askedClass !== state.player.ship.classId) {
+    state.player.ship = defaultShipState(askedClass);
+  }
+  const schooner = createSchooner(spawn.x, spawn.z, spawn.heading, state.player.ship.classId);
   const { record: shipRecord, handling, hazardRules, sailing, hazards } = schooner;
   const shipTransform = { position: { x: spawn.x, y: 0, z: spawn.z }, heading: spawn.heading };
   sailing.state.manualTrim = settings.value.sailing.manualTrim;
@@ -414,6 +422,66 @@ async function boot(): Promise<void> {
       load: () => hazards.state.cargo01,
     };
     (window as unknown as { __glpEconomy: typeof hook }).__glpEconomy = hook;
+  }
+
+  // The shipyard (Phase 4 piece G): the ship's class, upgrades and condition. A new hull
+  // rebuilds her model (the view draws a ship from her class as she's added); instruments
+  // set the spyglass, the look-her-over range and the chart's forecast.
+  let instruments: Instruments = { ...BASE_INSTRUMENTS };
+  const baseSpyglassFov = DEFAULT_SHIP_CAMERA.spyglassFovDeg;
+  /** The ship camera, once the view is up. */
+  const shipCamera: { current?: { params: { spyglassFovDeg: number } } | undefined } = {};
+  const applyInstruments = (): void => {
+    const cam = shipCamera.current;
+    if (cam) cam.params.spyglassFovDeg = baseSpyglassFov * instruments.spyglassFovMul;
+  };
+  const lookRangeM = (): number => LOOK_RANGE_M * instruments.lookRangeMul;
+  const shipyard = attachShipyard({
+    ctx,
+    economy,
+    sailing,
+    hazards,
+    buoyancy: schooner.buoyancy,
+    handling,
+    rules: hazardRules,
+    onHullChanged: () => {
+      ctx.world.remove(playerShip);
+      ctx.world.add(playerShip);
+    },
+    onInstruments: (next) => {
+      instruments = next;
+      applyInstruments();
+    },
+  });
+  if (import.meta.env.DEV || params.has('debug')) {
+    const hook = {
+      ship: () => {
+        shipyard.sync();
+        return shipyard.ship;
+      },
+      fit: () => shipyard.fit,
+      buy: (port: string, classId: string) => shipyard.buyHull(port, classId),
+      install: (port: string, id: string, source: 'shipyard' | 'chandlery' = 'shipyard') =>
+        shipyard.install(port, id, source),
+      remove: (port: string, id: string, source: 'shipyard' | 'chandlery' = 'shipyard') =>
+        shipyard.remove(port, id, source),
+      repair: (port: string, place: 'shipyard' | 'chandlery' = 'shipyard') =>
+        shipyard.repair(port, place),
+      kit: () => shipyard.useKit(),
+      /** Adds cash to the purse, for trying the yard. */
+      grant(cents: number) {
+        state.player.purse += Math.max(0, Math.round(cents));
+      },
+      /** The class the helm sails now. */
+      sailing: () => sailing.cls.id,
+      /** Knocks the pools down to these shares, for trying repairs. */
+      damage(hull01: number, rigging01: number) {
+        hazards.state.hull = hull01 * hazards.cls.hullHP;
+        hazards.state.rigging = rigging01 * hazards.cls.riggingHP;
+        shipyard.sync();
+      },
+    };
+    (window as unknown as { __glpShipyard: typeof hook }).__glpShipyard = hook;
   }
 
   // The lake's traffic (plan 05 §8, Phase 4 piece D): one set of ships for the chart, the
@@ -517,6 +585,8 @@ async function boot(): Promise<void> {
       // entered from a zone keeps the place recorded on the way in; its frame isn't the zone's.
       if (!changingZone && !travelRef.current?.record(state) && !inArenaSpace)
         recordZonePose(state, zoneData.id, shipPose());
+      // Her damage as it stands (piece G).
+      shipyard.sync();
       try {
         await saver.save(state);
         const at = state.player.location;
@@ -638,6 +708,8 @@ async function boot(): Promise<void> {
 
   // Settings apply live (plan 13 §11): the renderer, the camera, the keys and the helm.
   const cameraRig = scene?.cameraRig;
+  shipCamera.current = cameraRig?.ship;
+  applyInstruments();
   if (cameraRig) cameraRig.spyglassDown = () => input.isDown('Spyglass');
   const applySettings = (s: Settings, previous: Settings | undefined): void => {
     if (renderer && previous && s.graphics.quality !== previous.graphics.quality) {
@@ -674,6 +746,10 @@ async function boot(): Promise<void> {
       sell: (good, qty) => portsRef.current?.actions.sell(good, qty),
       quote: (good, qty, side) => portsRef.current?.actions.quote(good, qty, side) ?? 0,
       buyStores: (item, qty) => portsRef.current?.actions.buyStores(item, qty),
+      buyHull: (classId) => portsRef.current?.actions.buyHull(classId),
+      fit: (upgrade, place) => portsRef.current?.actions.fit(upgrade, place),
+      unfit: (upgrade, place) => portsRef.current?.actions.unfit(upgrade, place),
+      repair: (place) => portsRef.current?.actions.repair(place),
       close: () => portsRef.current?.close(),
       castOff: () => portsRef.current?.actions.castOff(),
       closeJournal: () => portsRef.current?.closeJournal(),
@@ -725,6 +801,7 @@ async function boot(): Promise<void> {
     ctx,
     economy,
     hazards,
+    shipyard,
     berthPier: (berthId) => sailingOptions.berths.find((b) => b.id === berthId)?.dockId,
     showPort: (snapshot) => ui.setPort(snapshot),
     showJournal: (snapshot) => ui.setJournal(snapshot),
@@ -824,7 +901,7 @@ async function boot(): Promise<void> {
     if (machine.mode !== 'sailing' || hazards.state.mooring !== 'free') return [];
     const near = traffic.nearest(shipPose(), HAIL_RANGE_M);
     if (!near) return [];
-    if (!arena && near.distanceM <= LOOK_RANGE_M) return ['F look her over · H hail'];
+    if (!arena && near.distanceM <= lookRangeM()) return ['F look her over · H hail'];
     return ['H to hail'];
   };
   const hideCard = (): void => {
@@ -836,7 +913,7 @@ async function boot(): Promise<void> {
   // zone, F with no berth in reach looks over the nearest ship instead.
   ctx.events.on('DockRefused', (e) => {
     if (arena) return;
-    const near = e.reason === 'noBerth' ? traffic.nearest(shipPose(), LOOK_RANGE_M) : undefined;
+    const near = e.reason === 'noBerth' ? traffic.nearest(shipPose(), lookRangeM()) : undefined;
     if (near) showCard(traffic.lookOver(near.id));
     else showNotice(dockRefusedNotice(e.reason));
   });
@@ -1238,6 +1315,7 @@ async function boot(): Promise<void> {
     enterZone: (id, pose, arrival, onLoaded) => enterZone(id, pose, arrival, false, onLoaded),
     save: () => saveControls.saveNow(),
     pursued: () => pursued || !!arena?.run.pursued,
+    forecastHours: () => instruments.forecastHours,
     // Engage, or a failed avoid, meets them here; leaving reloads the zone and resumes the voyage.
     enterArena: (enc, travel) => {
       const zoneId = zoneData.id;
@@ -1362,6 +1440,10 @@ async function boot(): Promise<void> {
         const near = traffic.nearest(shipPose(), HAIL_RANGE_M);
         if (near) showCard(traffic.hail(near.id));
         else showNotice('No ship within hail');
+      }
+      // A patch or mend kit from the lockers (piece G): not while the port screen is up.
+      if (sameContext && !arena && input.context === 'sailing' && input.pressed('Repair')) {
+        showNotice(shipyard.useKit());
       }
       const inGame = input.context === 'sailing' || input.context === 'chart';
       if (sameContext && inGame && input.pressed('Pause')) {
