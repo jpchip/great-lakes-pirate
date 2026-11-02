@@ -1,0 +1,19 @@
+{
+  "source": "cc0",
+  "tool": "OpenGameArt: 100 CC0 metal and wood SFX",
+  "author": "rubberduck",
+  "reference": "https://opengameart.org/content/100-cc0-metal-and-wood-sfx",
+  "date": "2026-11-01",
+  "license": "CC0 1.0",
+  "modifications": [],
+  "originalFile": "metal_slam_01.ogg",
+  "description": "A railroad car's coupling taking up slack: one heavy iron bang",
+  "durationS": 0.573,
+  "pipeline": [
+    "decoded to mono 48000 Hz",
+    "edge fades",
+    "RMS-normalized toward -24 dB (-4.1 dB)",
+    "Opus 64 kbps mono in Ogg (ffmpeg libopus)"
+  ],
+  "inputHash": "ba8cc5af068c5814"
+}

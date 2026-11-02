@@ -73,6 +73,11 @@ then `npm run audio` encodes them as usual. The code is `tools/audio/synth.ts` a
 | `music/chart-voyage`     | "The Long Reach" (concertina, guitar, tin whistle): the chart's theme    |
 | `chart/stinger-*`        | Encounter stingers: sail, threat, hunted, squall, derelict, clear        |
 | `chart/fog-fade`         | The loading screen's fade to fog: wind and sea with a ship's bell        |
+| `harbor/mill-saw`        | A sawmill's head saw taking one cut through a log (Phase 4)              |
+| `harbor/ore-dump`        | An ore car dumping into an ore dock's pocket (Phase 4)                   |
+
+The package steamer's chime (`ships/whistle-chime`) was synthesized here until Phase 4; it is
+now a public-domain recording, so `audio:synth` leaves it alone.
 
 ## The weather and wildlife set (Phase 2)
 
@@ -83,3 +88,15 @@ then `npm run audio` encodes them as usual. The code is `tools/audio/synth.ts` a
 | `weather/thunder-far`  | OpenGameArt, CC0                                                  | A distant roll                                     |
 | `wildlife/gull-1…5`    | OpenGameArt, CC0                                                  | Gull calls along the shores and at the harbors     |
 | `wildlife/loon-1…4`    | US Fish and Wildlife Service via Wikimedia Commons, public domain | Loon calls across the water at dusk and night      |
+
+## The harbor and port set (Phase 4)
+
+| Sound                       | Source                                               | Plays as                                               |
+| --------------------------- | ---------------------------------------------------- | ------------------------------------------------------ |
+| `harbor/hammer-wood`        | OpenGameArt, CC0 (bart)                              | Caulking mallets at a shipyard, sliced into bursts     |
+| `harbor/hammer-metal`       | OpenGameArt, CC0 (bart)                              | A cooper driving hoops, sliced into bursts             |
+| `harbor/car-bang`           | OpenGameArt, CC0 (rubberduck)                        | A railroad car's coupling; a train's slack running out |
+| `port/coins-1…3`, `-pile`   | OpenGameArt, CC0 (rubberduck)                        | Coins counted out for a trade; the heap for a big one  |
+| `port/pen`                  | OpenGameArt, CC0 (NachtmahrTV, AntumDeluge)          | The ledger entry after a trade, sliced                 |
+| `port/paper-open`, `-close` | OpenGameArt, CC0 (Spring Spring)                     | The port screen and the journal opening and closing    |
+| `ships/whistle-chime`       | radio aporee via the Internet Archive, public domain | The package steamer's chime whistle                    |

@@ -58,6 +58,8 @@ const chartSchema = z.object({
 
 const uiSchema = z.object({
   hudDensity: z.enum(HUD_DENSITIES).catch('minimal'),
+  /** Captions for directional sounds: fog signals and whistles (plan 13 §9, plan 15 §5). */
+  captions: z.boolean().catch(true),
 });
 
 export const settingsSchema = z.object({

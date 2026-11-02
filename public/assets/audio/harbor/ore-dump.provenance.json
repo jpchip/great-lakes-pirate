@@ -1,0 +1,19 @@
+{
+  "source": "procedural",
+  "tool": "tools/audio/synth.ts (tools/audio/lib/synth.ts)",
+  "author": "Great Lakes Pirate contributors",
+  "reference": "Modal steel-plate clangs, low-passed and band-passed noise for the rush, dense short rock pings",
+  "date": "2026-11-01",
+  "license": "CC BY 4.0",
+  "attribution": "Great Lakes Pirate contributors",
+  "modifications": [],
+  "description": "An ore car dumping into an ore dock's pocket: door clang, the ore rushing down, door shut",
+  "durationS": 6.5,
+  "pipeline": [
+    "decoded to mono 48000 Hz",
+    "edge fades",
+    "RMS-normalized toward -24 dB (-6.6 dB)",
+    "Opus 64 kbps mono in Ogg (ffmpeg libopus)"
+  ],
+  "inputHash": "c4ceaf0daccb2cd5"
+}

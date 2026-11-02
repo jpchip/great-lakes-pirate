@@ -1,0 +1,12 @@
+{
+  "id": "amb.harbor.hammer-metal",
+  "name": "hammer-metal",
+  "description": "Hammering on iron, driving barrel hoops or spikes (sliced at runtime)",
+  "source": "source.wav",
+  "kind": "oneshot",
+  "bus": "ambience",
+  "bundles": [
+    "harbor-audio"
+  ],
+  "highpassHz": 90
+}

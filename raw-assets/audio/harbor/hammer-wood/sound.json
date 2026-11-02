@@ -1,0 +1,12 @@
+{
+  "id": "amb.harbor.hammer-wood",
+  "name": "hammer-wood",
+  "description": "Steady wooden hammering, a mallet on the caulking iron (sliced at runtime)",
+  "source": "source.wav",
+  "kind": "oneshot",
+  "bus": "ambience",
+  "bundles": [
+    "harbor-audio"
+  ],
+  "highpassHz": 90
+}

@@ -1,0 +1,11 @@
+{
+  "id": "ui.ledger.open",
+  "name": "paper-open",
+  "description": "Paper unfolding: the journal or the port screen opens",
+  "source": "source.wav",
+  "kind": "oneshot",
+  "bus": "ui",
+  "bundles": [
+    "port-audio"
+  ]
+}

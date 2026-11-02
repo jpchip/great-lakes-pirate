@@ -1,5 +1,6 @@
 import type { ShipRecord } from '../../data/schemas/ships';
 import type { SoundBank } from './bank';
+import type { CaptionFeed } from './captions';
 import { PRIORITY, type AudioMixer, type AudioPoint } from './mixer';
 import {
   SHORT_BLAST_S,
@@ -59,11 +60,29 @@ interface ShipState {
   passed: boolean;
 }
 
+/** What each kind of signal says, for its caption (plan 15 §5). */
+export const SIGNAL_CAPTIONS: Readonly<Record<FogSignalCase, string>> = {
+  'steam-under-way': 'whistle, three blasts (under way in fog)',
+  'starboard-tack': 'fog horn, one blast (starboard tack)',
+  'port-tack': 'fog horn, two blasts (port tack)',
+  running: 'fog horn, three blasts (wind abaft the beam)',
+  'at-anchor': "ship's bell (lying stopped)",
+};
+
+/** The passing signal's caption: one short blast, or two. */
+export function passingCaption(n: 1 | 2): string {
+  return n === 1
+    ? 'one short blast (passing port to port)'
+    : 'two short blasts (passing starboard to starboard)';
+}
+
 export class ShipWhistles {
   /** The latest readout, for the dev panel. */
   readonly levels = { shipsSounding: 0, lastSignal: '' };
   /** True while a ship's whistle is sounding within earshot (the music ducks under it). */
   heard = false;
+  /** Where the signals' captions go (plan 15 §5); none when unset. */
+  captions: CaptionFeed | undefined;
   private readonly ships = new Map<string, ShipState>();
   private heardUntilS = 0;
   private last: { frame: WhistleFrame; ships: readonly WhistleShip[] } | undefined;
@@ -195,9 +214,17 @@ export class ShipWhistles {
       this.level(ship, d, f.damping, 'passing') ??
       (force ? { gain: 0.05, lowpassHz: 800 } : undefined);
     if (!level) return;
-    for (const [startS, lengthS] of passingPattern(n)) {
+    const pattern = passingPattern(n);
+    for (const [startS, lengthS] of pattern) {
       this.sound(ship, 'passing', at, lengthS, startS + d / SOUND_MS, level, f);
     }
+    const [lastAt, lastLength] = pattern[pattern.length - 1] ?? [0, 1];
+    this.captions?.push(
+      { key: ship.id, text: `${ship.record.name}: ${passingCaption(n)}`, at },
+      f.nowS,
+      d / SOUND_MS,
+      lastAt + lastLength,
+    );
   }
 
   private sound(
@@ -215,6 +242,14 @@ export class ShipWhistles {
     const buffer = this.bank.get(bell ? WORLD_SOUND.bell : whistle.soundId);
     if (!buffer) return;
     this.levels.lastSignal = `${ship.record.name}: ${c}`;
+    if (c !== 'passing') {
+      this.captions?.push(
+        { key: ship.id, text: `${ship.record.name}: ${SIGNAL_CAPTIONS[c]}`, at },
+        f.nowS,
+        delay,
+        bell ? 2 : lengthS,
+      );
+    }
     this.heardUntilS = Math.max(this.heardUntilS, f.nowS + delay + (bell ? 2 : lengthS) + 0.5);
     this.mixer.play({
       buffer,

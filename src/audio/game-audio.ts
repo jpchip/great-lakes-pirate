@@ -1,5 +1,5 @@
 import { AudioContext as SharedAudioContext } from 'three';
-import { calendarDate } from '../core/time';
+import { calendarDate, dayAndHour } from '../core/time';
 import { headSeaAmplitude } from '../sim/sailing/controller';
 import { sunAt } from '../sim/weather/celestial';
 import { seaScaleAt } from '../sim/weather/waves';
@@ -13,6 +13,10 @@ import {
   ChartMusic,
   stingerFor,
 } from './chart-audio';
+import { CaptionFeed, type CaptionView } from './captions';
+import { HARBOR_AUDIO_BUNDLE, HarborWorks } from './harbor-audio';
+import type { WorkSite } from './harbor-mix';
+import { PORT_AUDIO_BUNDLE, TradeCues } from './port-audio';
 import { AudioMixer, placeListener, unlockAudio, type AudioPoint, type AudioState } from './mixer';
 import { MusicDirector, createStreamPlayer, type MusicPlayer } from './music';
 import { SailingSoundscape } from './sailing-audio';
@@ -27,7 +31,9 @@ import { fogMix, musicMood, type MusicMood } from './world-mix';
  * the autoplay unlock, the sailing soundscape fed from the player's ship each frame, the
  * world around it (weather, fog signals, birds; Phase 2 piece H), the NPC ships' whistles
  * (Phase 3 piece J), open-water music, and on the chart its theme and the encounter
- * stingers, with the fade-to-fog sound under each loading screen (piece J, part 2).
+ * stingers, with the fade-to-fog sound under each loading screen (piece J, part 2);
+ * since Phase 4 piece J, the harbors at work, the trade sounds at the port screen, and
+ * captions for the fog signals and whistles.
  */
 
 export const SAILING_AUDIO_BUNDLE = 'sailing-audio';
@@ -53,6 +59,13 @@ export interface GameAudio {
   music: MusicDirector;
   chartMusic: ChartMusic;
   chartCues: ChartCues;
+  harbor: HarborWorks;
+  trade: TradeCues;
+  captions: CaptionFeed;
+  /** The captions showing now, with arrows from the listener's view (plan 15 §5). */
+  captionsNow(): CaptionView[];
+  /** The port screen or the journal opened (true) or the last one closed (false). */
+  portScreen(open: boolean): void;
   /** The music mood now, for the dev panel. */
   readonly mood: MusicMood;
   /**
@@ -62,10 +75,11 @@ export interface GameAudio {
   update(frameSeconds: number, mode: string | undefined, loading?: boolean): void;
   /** Hear from the camera instead of the ship once there is one. */
   setListener(pose: () => ListenerPose): void;
-  /** A new zone's fog signals and harbors (Phase 3 piece A). */
+  /** A new zone's fog signals, harbors and harbor work sites (Phase 3 piece A). */
   setZone(zone: {
     stations: readonly SignalStation[];
     harbors: readonly { x: number; z: number }[];
+    sites?: readonly WorkSite[];
   }): void;
   setVolume(id: VolumeId, volume: number): void;
   setMuted(muted: boolean): void;
@@ -79,6 +93,10 @@ export interface GameAudioOptions {
   stations?: readonly SignalStation[];
   /** Points in the harbors (pier roots), where the gulls gather. */
   harbors?: readonly { x: number; z: number }[];
+  /** Where the harbors are heard at work (Phase 4 piece J). */
+  sites?: readonly WorkSite[];
+  /** Show captions for directional cues (Settings → Sound); on by default. */
+  captions?: boolean;
   /** Each lock-state change, e.g. for a "click to enable sound" hint. */
   onState?: (state: AudioState) => void;
 }
@@ -103,13 +121,30 @@ export async function createGameAudio(options: GameAudioOptions): Promise<GameAu
       return new Map<string, string>();
     });
   const [bank, musicUrls, chartUrls] = await Promise.all([
-    loadSoundBank(ctx, [SAILING_AUDIO_BUNDLE, WORLD_AUDIO_BUNDLE, CHART_AUDIO_BUNDLE], baseUrl),
+    loadSoundBank(
+      ctx,
+      [
+        SAILING_AUDIO_BUNDLE,
+        WORLD_AUDIO_BUNDLE,
+        CHART_AUDIO_BUNDLE,
+        HARBOR_AUDIO_BUNDLE,
+        PORT_AUDIO_BUNDLE,
+      ],
+      baseUrl,
+    ),
     urlsOf(MUSIC_BUNDLE),
     urlsOf(CHART_MUSIC_BUNDLE),
   ]);
   const sailing = new SailingSoundscape(mixer, bank);
   const world = new WorldSoundscape(mixer, bank, options.stations);
   const whistles = new ShipWhistles(mixer, bank);
+  const captions = new CaptionFeed();
+  captions.enabled = options.captions ?? true;
+  world.captions = captions;
+  whistles.captions = captions;
+  const harbor = new HarborWorks(mixer, bank);
+  harbor.setSites(options.sites ?? []);
+  const trade = new TradeCues(mixer, bank);
   const records = new Map(SHIP_RECORDS.map((r) => [r.id, r]));
   const whistleShips: WhistleShip[] = [];
   const players: Partial<Record<Exclude<MusicMood, 'quiet'>, MusicPlayer>> = {};
@@ -131,6 +166,13 @@ export async function createGameAudio(options: GameAudioOptions): Promise<GameAu
   });
   game.events.on('EncounterAvoided', ({ escaped }) => {
     if (running()) chartCues.stinger(escaped ? 'clear' : 'hunted');
+  });
+
+  game.events.on('TradeCompleted', ({ totalCents }) => {
+    if (running()) trade.paid(totalCents);
+  });
+  game.events.on('StoresBought', ({ totalCents }) => {
+    if (running()) trade.paid(totalCents);
   });
 
   const isPlayer = (shipId: string | undefined): boolean => {
@@ -159,6 +201,7 @@ export async function createGameAudio(options: GameAudioOptions): Promise<GameAu
   let mood: MusicMood = 'quiet';
   let nowS = 0;
   let listener: (() => ListenerPose) | undefined;
+  let lastPose: ListenerPose | undefined;
   const towardShore = { x: 0, z: 0 };
   let harbors = options.harbors ?? [];
   const persist = (): void => saveAudioSettings(settings, storage);
@@ -172,6 +215,18 @@ export async function createGameAudio(options: GameAudioOptions): Promise<GameAu
     music,
     chartMusic,
     chartCues,
+    harbor,
+    trade,
+    captions,
+    captionsNow() {
+      if (!lastPose || !active) return [];
+      return captions.visible(nowS, lastPose.at, lastPose.forward);
+    },
+    portScreen(open) {
+      if (!running()) return;
+      if (open) trade.opened();
+      else trade.closed();
+    },
     get mood() {
       return mood;
     },
@@ -215,6 +270,7 @@ export async function createGameAudio(options: GameAudioOptions): Promise<GameAu
         forward: { x: Math.sin(state.heading), y: 0, z: -Math.cos(state.heading) },
       };
       placeListener(ctx, pose.at, pose.forward);
+      lastPose = pose;
       const terrain = game.terrain;
       if (terrain) terrain.shoreNormalAt(state.x, state.z, towardShore);
       let harborDistanceM = Infinity;
@@ -243,6 +299,19 @@ export async function createGameAudio(options: GameAudioOptions): Promise<GameAu
           // The shore normal points out to sea; the shore is the other way.
           towardShore: { x: -towardShore.x, z: -towardShore.z },
           harborDistanceM,
+        },
+        frameSeconds,
+      );
+
+      const { hour } = dayAndHour(gameSeconds);
+      harbor.update(
+        {
+          listener: pose.at,
+          hour,
+          month0: calendarDate(gameSeconds).getUTCMonth(),
+          rain01,
+          storm01,
+          damping: fogMix(fogVisibilityM, state.windKn).damping,
         },
         frameSeconds,
       );
@@ -282,6 +351,8 @@ export async function createGameAudio(options: GameAudioOptions): Promise<GameAu
     setZone(zone) {
       world.setStations(zone.stations);
       harbors = zone.harbors;
+      harbor.setSites(zone.sites ?? []);
+      captions.clear();
     },
     setVolume(id, volume) {
       mixer.setVolume(id, volume);

@@ -1,0 +1,19 @@
+{
+  "source": "cc0",
+  "tool": "OpenGameArt: 80 CC0 RPG SFX",
+  "author": "rubberduck",
+  "reference": "https://opengameart.org/content/80-cc0-rpg-sfx",
+  "date": "2026-11-01",
+  "license": "CC0 1.0",
+  "modifications": [],
+  "originalFile": "item_coins_03.ogg",
+  "description": "A few coins counted onto the counter",
+  "durationS": 0.482,
+  "pipeline": [
+    "decoded to mono 48000 Hz",
+    "edge fades",
+    "peak-normalized toward -3 dB (-4.4 dB)",
+    "Opus 48 kbps mono in Ogg (ffmpeg libopus)"
+  ],
+  "inputHash": "890f1e9b6486a603"
+}
