@@ -237,6 +237,7 @@ interface ChartHook {
   secondsPerHour(s: number): void;
   setPursued(on: boolean): void;
   meet(kind: string, forced?: boolean): string | undefined;
+  travel: { session: { position: { x: number; y: number } } };
 }
 
 interface ArenaHook {
@@ -424,6 +425,28 @@ test('meets a ship from the chart in an arena and sails on', async ({ page }) =>
   await expect(body).toHaveAttribute('data-mode', 'chart');
   await expect(body).toHaveAttribute('data-zone', 'zone.apostles');
   await expect(page.getByTestId('chart-status')).toContainText('Under way');
+  const metAt = await page.evaluate(() => ({
+    ...(window as unknown as { __glpChart: ChartHook }).__glpChart.travel.session.position,
+  }));
+
+  // M leaves an arena too, and the voyage carries on from where she was met: the same
+  // press doesn't also open the chart as a look from the zone she set out from.
+  await page.evaluate(() =>
+    (window as unknown as { __glpChart: ChartHook }).__glpChart.meet('freighter'),
+  );
+  await page.getByTestId('encounter-engage').click();
+  await expect(body).toHaveAttribute('data-arena', 'ship');
+  await expect(body).toHaveAttribute('data-mode', 'sailing');
+  await page.keyboard.press('KeyM');
+  await expect(body).toHaveAttribute('data-arena-result', 'left');
+  await expect(body).toHaveAttribute('data-mode', 'chart');
+  await expect(body).toHaveAttribute('data-zone-load', 'done');
+  await expect(page.getByTestId('chart-hud')).toHaveAttribute('data-trip', 'sea');
+  await expect(page.getByTestId('chart-status')).toContainText('Under way');
+  const resumedAt = await page.evaluate(
+    () => (window as unknown as { __glpChart: ChartHook }).__glpChart.travel.session.position,
+  );
+  expect(Math.hypot(resumedAt.x - metAt.x, resumedAt.y - metAt.y)).toBeLessThan(2000);
 
   // The cutter closes and won't be avoided; caught, the voyage ends.
   await page.evaluate(() =>

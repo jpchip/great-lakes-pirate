@@ -58,6 +58,7 @@ import type { GameContext, GameEvents } from './modes/context';
 import { ModeMachine } from './modes/machine';
 import { createSailingMode, type SailingModeOptions, type SailingView } from './modes/sailing';
 import { createChartTravel, type ChartTravel } from './modes/chart-travel';
+import { allContacts } from './modes/chart';
 import { loadAssets } from './render/assets';
 import { browserStorage, isQualityId } from './render/quality';
 import { GameRenderer } from './render/renderer';
@@ -1211,9 +1212,11 @@ async function boot(): Promise<void> {
           })),
           player: shipPose(),
         },
-      /** Puts the ship at (x, z) in the arena, keeping her heading, e.g. past the edge. */
-      place: (x: number, z: number) => {
-        if (arena) placeShip({ x, z, heading: shipPose().heading });
+      /** Puts the ship at (x, z) in the arena, keeping her heading or turning to `headingDeg`. */
+      place: (x: number, z: number, headingDeg?: number) => {
+        const heading =
+          headingDeg === undefined ? shipPose().heading : (headingDeg * Math.PI) / 180;
+        if (arena) placeShip({ x, z, heading });
       },
       hooks: arenaHooks,
     };
@@ -1307,7 +1310,8 @@ async function boot(): Promise<void> {
       meet(kind: string, forced = false) {
         const { session } = chartTravel;
         // Nearest on the water; one lying in port only if none of that kind is out.
-        const near = session.contacts
+        // Traffic, and the sky's squalls and fog banks (`storm`, `fog`).
+        const near = allContacts(session)
           .filter((c) => c.kind === kind)
           .sort(
             (a, b) =>
@@ -1349,8 +1353,12 @@ async function boot(): Promise<void> {
       if (arena?.run.result) leaveArena(arena.run.result);
       // A key that just changed the mode (M off the chart) mustn't act again in the new one.
       // In an arena, M leaves it (the arena reads ToggleChart); it doesn't open the chart.
+      // `arena` is already cleared by the time that press is seen here, so ask whether the
+      // ship is still in the arena's space (until the chart or zone takes her back), or the
+      // same press opens the chart as a look from the departure zone and the voyage stalls.
       const sameContext = input.context === contextBefore;
-      if (sameContext && !arena && input.context === 'sailing' && input.pressed('ToggleChart')) {
+      const chartFree = !arena && !inArenaSpace && !changingZone;
+      if (sameContext && chartFree && input.context === 'sailing' && input.pressed('ToggleChart')) {
         const refused = chartTravel.fromHelm({ atEdge: atEdge(), inHarbor: inHarbor() });
         if (refused) showNotice(refused);
       }
