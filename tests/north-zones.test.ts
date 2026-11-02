@@ -9,9 +9,10 @@ import { QUALITY_PRESETS } from '../src/render/quality';
 import { strideAt, tileDistance } from '../src/render/terrain/lod';
 import { buildGridGeometry, presetLod } from '../src/render/terrain/terrain-mesh';
 import { loadZoneTerrain, type LoadedZone } from '../src/sim/terrain/load';
-import { edgeFactor } from '../src/sim/terrain/zone-edge';
+import { edgeDistance, edgeFactor } from '../src/sim/terrain/zone-edge';
 import type { ZoneTerrain } from '../src/sim/terrain/zone-terrain';
 import {
+  entryPose,
   manifestFrame,
   setPieceFootprint,
   spawnPose,
@@ -186,6 +187,41 @@ function zoneBasics(slug: string, id: string, tiles: [number, number], get: () =
     expect(terrain.depthAt(spawn.x, spawn.z)).toBeGreaterThan(15);
     expect(terrain.shoreDistanceAt(spawn.x, spawn.z)).toBeGreaterThan(60);
     expect(edgeFactor(terrain.bounds, def.edge, spawn.x, spawn.z)).toBe(0);
+  });
+
+  it.skipIf(!baked)('lands arrivals from the chart just off the harbor, chart on offer', () => {
+    // Playtest, 2026-11-02: arriving out at the edge left minutes of open lake to cross.
+    const { terrain } = get();
+    const def = zoneDef(id);
+    // The harbor mouths: the set pieces that dredge an entry.
+    const fps = [...footprints(get()).values()].filter((fp) => fp.def.cuts?.length);
+    const reach = sailable(terrain, spawnPose(def));
+    for (const entry of def.entries) {
+      const label = entry.id;
+      const pose = entryPose(entry);
+      expect(terrain.depthAt(pose.x, pose.z), label).toBeGreaterThan(15);
+      expect(terrain.shoreDistanceAt(pose.x, pose.z), label).toBeGreaterThan(150);
+      expect(reach(pose), label).toBe(true);
+      // Inside the chart's reach, so "Take to the chart" shows on arrival.
+      expect(edgeDistance(terrain.bounds, pose.x, pose.z), label).toBeLessThan(
+        def.edge.chartFromM ?? 0,
+      );
+      // Under a kilometre from a harbor mouth, and heading toward one.
+      const nearest = Math.min(
+        ...fps.map((fp) => Math.hypot(fp.anchor.x - pose.x, fp.anchor.z - pose.z)),
+      );
+      expect(nearest, label).toBeLessThan(1000);
+      const on = {
+        x: pose.x + Math.sin(pose.heading) * 300,
+        z: pose.z - Math.cos(pose.heading) * 300,
+      };
+      const d = (fp: SetPieceFootprint, p: Zone) =>
+        Math.hypot(fp.anchor.x - p.x, fp.anchor.z - p.z);
+      expect(
+        fps.some((fp) => d(fp, on) < d(fp, pose) - 200),
+        label,
+      ).toBe(true);
+    }
   });
 
   it.skipIf(!baked)('meets the open lake at its edge, for arrivals from the chart', () => {

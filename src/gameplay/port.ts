@@ -4,6 +4,7 @@ import { recordPrices } from '../sim/economy/knowledge';
 import type { TradeSide } from '../sim/economy/market';
 import type { TradeRefusal } from '../sim/economy/trade';
 import { pierPort } from '../sim/harbors';
+import { stashedCash } from '../sim/hideouts/stash';
 import type { StoreRefusal } from '../sim/economy/chandlery';
 import type { GameContext } from '../modes/context';
 import {
@@ -18,6 +19,7 @@ import { contractsOf, type GameContracts } from './contracts';
 import { cargoName, companyName, type AcceptRefusal } from '../sim/economy/contracts';
 import { formatCents } from '../sim/economy/knowledge';
 import type { ShipHazards } from './hazards';
+import type { GameShipyard } from './shipyard';
 
 /**
  * Ports at the pier (plan 05 §7, Phase 4 piece B). Docking at a berth on one of a port's
@@ -50,6 +52,8 @@ export interface PortControlOptions {
   /** The freight agent (piece F); without it the screen has no freight tab. */
   contracts?: GameContracts | undefined;
   hazards: ShipHazards;
+  /** The shipyard, chandlery fittings and repairs (piece G); without it those don't show. */
+  shipyard?: GameShipyard | undefined;
   /** The pier a berth belongs to, from the zone's berths. */
   berthPier(berthId: string): string | undefined;
   /** Show or hide the screens. */
@@ -106,7 +110,7 @@ export function attachPorts(opts: PortControlOptions): PortControl {
 
   const snapshot = (port: string): PortSnapshot => {
     const player = ctx.state.player;
-    return portSnapshot({
+    const snap = portSnapshot({
       defs: economy.defs,
       markets: ctx.state.markets,
       knowledge: ctx.state.knowledge.prices,
@@ -121,7 +125,13 @@ export function attachPorts(opts: PortControlOptions): PortControl {
         return c && { ...c, board: opts.contracts?.board(port) ?? [] };
       })(),
       notices,
+      ship: opts.shipyard && {
+        state: (opts.shipyard.sync(), opts.shipyard.ship),
+        name: player.captain.shipName,
+      },
     });
+    snap.stashedCents = stashedCash(ctx.state.hideouts);
+    return snap;
   };
   /** Writes down this port's prices as they stand now (plan 05 §4.3). */
   const note = (port: string): void => {
@@ -192,6 +202,18 @@ export function attachPorts(opts: PortControlOptions): PortControl {
     note(port);
     refresh();
     return undefined;
+  };
+
+  /** Shipyard and chandlery work at the open port; the screen refreshes after it. */
+  const yardWork = (
+    work: (y: GameShipyard, port: string) => string | undefined,
+  ): string | undefined => {
+    const port = openPort;
+    if (!port || !opts.shipyard) return 'The yard is closed.';
+    const refused = work(opts.shipyard, port);
+    if (!refused && economy.defs.markets.has(port)) note(port);
+    refresh();
+    return refused;
   };
 
   return {
@@ -269,6 +291,18 @@ export function attachPorts(opts: PortControlOptions): PortControl {
         note(port);
         refresh();
         return undefined;
+      },
+      buyHull(classId) {
+        return yardWork((y, port) => y.buyHull(port, classId));
+      },
+      fit(upgrade, place) {
+        return yardWork((y, port) => y.install(port, upgrade, place));
+      },
+      unfit(upgrade, place) {
+        return yardWork((y, port) => y.remove(port, upgrade, place));
+      },
+      repair(place) {
+        return yardWork((y, port) => y.repair(port, place));
       },
       close,
       castOff() {

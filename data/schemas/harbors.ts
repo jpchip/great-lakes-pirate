@@ -22,8 +22,9 @@ export const pierSchema = z.object({
   /**
    * City, fish, lumber and coal docks are plank piers on piles; an ore dock is a tall
    * timber trestle; a canal pier is a timber crib with a concrete cap, lining an entry.
+   * A landing is a hideout's narrow plank stage on a few piles (Phase 4 piece E).
    */
-  kind: z.enum(['city', 'fish', 'lumber', 'coal', 'ore', 'canal']),
+  kind: z.enum(['city', 'fish', 'lumber', 'coal', 'ore', 'canal', 'landing']),
   alongM: z.number(),
   /** Where the walk out to the waterline starts, inland of the anchor. */
   inlandM: z.number().default(40),
@@ -50,6 +51,10 @@ export const buildingKindSchema = z.enum([
   'elevator',
   /** Phase 3: Superior's shipyard, a long building shed by the ways. */
   'shipShed',
+  /** Phase 4 piece E, the Stockton stash: a fisherman's shack, its strongbox and a shed. */
+  'shack',
+  'strongbox',
+  'storageShed',
 ]);
 
 export const buildingSchema = z.object({

@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'preact/hooks';
 import { formatCents } from '../../sim/economy/knowledge';
 import type { TradeSide } from '../../sim/economy/market';
+import { Help } from './Help';
 import { Ledger } from './Ledger';
+import { Fittings, Shipyard, ShipPanel } from './Shipyard';
 import {
   CATEGORY_LABELS,
   type ElsewhereSnapshot,
@@ -34,6 +36,11 @@ export interface PortActions {
   acceptContract(offerId: string): string | undefined;
   abandonContract(contractId: string): string | undefined;
   stealContract(contractId: string): string | undefined;
+  /** The shipyard and the chandlery's fittings (piece G). */
+  buyHull(classId: string): string | undefined;
+  fit(upgrade: string, place: 'shipyard' | 'chandlery'): string | undefined;
+  unfit(upgrade: string, place: 'shipyard' | 'chandlery'): string | undefined;
+  repair(place: 'shipyard' | 'chandlery'): string | undefined;
   /** Close the screen and stay alongside. */
   close(): void;
   /** Close the screen and cast off (F). */
@@ -44,6 +51,7 @@ const TAB_LABELS: Record<PortTab, string> = {
   market: 'Market',
   chandlery: 'Chandlery',
   freight: 'Freight agent',
+  shipyard: 'Shipyard',
   ledger: 'Ledger',
 };
 
@@ -64,7 +72,6 @@ function Elsewhere({ seen, label }: { seen: ElsewhereSnapshot | undefined; label
       title={`${label} at ${seen.portName}, ${seen.age}`}
     >
       {formatCents(seen.cents)} <small>{seen.portName}</small>
-      <small class="port-age">, {seen.age}</small>
     </span>
   );
 }
@@ -83,7 +90,7 @@ function CapacityBar({ port }: { port: PortSnapshot }) {
         <div style={{ width: `${(frac * 100).toFixed(1)}%` }} />
       </div>
       <span class="port-dim">
-        {port.speedLoss >= 0.005 ? `Laden: −${Math.round(port.speedLoss * 100)}% speed` : 'Light'}
+        {port.speedLoss >= 0.005 ? `−${Math.round(port.speedLoss * 100)}% speed` : ''}
       </span>
     </div>
   );
@@ -219,7 +226,7 @@ function Market({
               Stock
             </th>
             <th class="num">Aboard</th>
-            <th title="The best price you know of to sell it elsewhere">Best sale elsewhere</th>
+            <th title="The best price you know of to sell it elsewhere">Elsewhere</th>
             <th />
           </tr>
         </thead>
@@ -244,12 +251,13 @@ function Market({
                 <td>
                   {r.name}
                   {r.role !== 'neutral' && (
-                    <small
-                      class="port-role"
+                    <span
+                      class="port-icon"
                       title={r.role === 'export' ? 'Made here: cheap' : 'Wanted here: dear'}
+                      aria-label={r.role === 'export' ? 'made here' : 'wanted here'}
                     >
-                      {r.role === 'export' ? ' made here' : ' wanted here'}
-                    </small>
+                      {r.role === 'export' ? '▾' : '▴'}
+                    </span>
                   )}
                 </td>
                 <td class="num hud-num">{formatCents(r.buyCents)}</td>
@@ -351,20 +359,24 @@ function Hold({
         <ul>
           {port.hold.map((h, i) => (
             <li key={`${h.good}-${i}`} class={h.hot ? 'hot' : ''} data-testid="hold-row">
-              <span>
+              <span
+                title={
+                  h.hot
+                    ? 'No honest merchant will take it'
+                    : h.contract
+                      ? `Carried for a contract${h.contractTo ? ` to ${h.contractTo}` : ''}`
+                      : h.sellCents === undefined
+                        ? 'Not traded here'
+                        : undefined
+                }
+              >
                 {h.hot && <Ember />} {h.name}
                 {h.contract && <small class="port-dim"> (contract)</small>}
               </span>
               <span class="hud-num">{h.qty} CU</span>
-              <small class="port-dim">
-                {h.hot
-                  ? 'No honest merchant will take it'
-                  : h.contract
-                    ? `Carried for a contract${h.contractTo ? ` to ${h.contractTo}` : ''}`
-                    : h.sellCents !== undefined
-                      ? `${formatCents(h.sellCents)} here`
-                      : 'Not traded here'}
-              </small>
+              {h.sellCents !== undefined && (
+                <small class="port-dim">{formatCents(h.sellCents)} here</small>
+              )}
               {actions && setMessage && (
                 <StealButton row={h} actions={actions} setMessage={setMessage} />
               )}
@@ -516,13 +528,13 @@ function Chandlery({
 }) {
   return (
     <div class="port-chandlery">
-      <p class="menu-note">
-        Ship's stores go in the lockers, not the hold. The chandler doesn't buy them back.
-      </p>
       <table class="port-table" data-testid="chandlery-table">
         <thead>
           <tr>
-            <th>Store</th>
+            <th>
+              Stores
+              <Help text="Ship's stores go in the lockers, not the hold. The chandler doesn't buy them back." />
+            </th>
             <th class="num">Price</th>
             <th class="num">Aboard</th>
             <th />
@@ -533,8 +545,7 @@ function Chandlery({
             <tr key={s.id} class="port-row">
               <td>
                 {s.name}
-                <br />
-                <small class="port-dim">{s.blurb}</small>
+                <Help text={s.blurb} />
               </td>
               <td class="num hud-num">{formatCents(s.priceCents)}</td>
               <td class="num hud-num">
@@ -583,6 +594,12 @@ export function PortScreen({
             <strong class="hud-num" data-testid="port-purse">
               {formatCents(port.purseCents)}
             </strong>
+            {port.stashedCents ? (
+              <span class="port-dim" data-testid="port-stashed">
+                {' '}
+                · Stashed {formatCents(port.stashedCents)}
+              </span>
+            ) : null}
           </span>
         </header>
         <nav class="menu-tabs">
@@ -622,7 +639,12 @@ export function PortScreen({
           )}
           {shown === 'chandlery' && (
             <>
-              <Chandlery port={port} actions={actions} setMessage={setMessage} />
+              <div class="port-chandlery-col">
+                <Chandlery port={port} actions={actions} setMessage={setMessage} />
+                {port.fittings && (
+                  <Fittings yard={port.fittings} actions={actions} setMessage={setMessage} />
+                )}
+              </div>
               <Hold port={port} />
             </>
           )}
@@ -630,6 +652,12 @@ export function PortScreen({
             <>
               <Freight port={port} actions={actions} setMessage={setMessage} />
               <Hold port={port} />
+            </>
+          )}
+          {shown === 'shipyard' && port.shipyard && (
+            <>
+              <Shipyard yard={port.shipyard} actions={actions} setMessage={setMessage} />
+              <ShipPanel yard={port.shipyard} />
             </>
           )}
           {shown === 'ledger' && <Ledger ledger={port.ledger} here={port.port} />}

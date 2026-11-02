@@ -736,6 +736,6 @@ export function stepHazards(
   applyCondition(s, h, c);
 
   h.depth = keelDepth(s, c, env.terrain);
-  h.shallow = h.depth < 2 * h.draft;
+  h.shallow = h.depth < c.rules.shallowWarnDrafts * h.draft;
   return events;
 }

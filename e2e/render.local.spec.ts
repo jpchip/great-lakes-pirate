@@ -9,14 +9,14 @@ test('boots into the WebGL test scene without console errors', async ({ page }) 
     if (msg.type() === 'error') errors.push(msg.text());
   });
 
-  await page.goto('/');
+  await page.goto('/?play');
   await expect(page.locator('#app canvas')).toBeVisible();
   await page.waitForTimeout(1000);
   expect(errors).toEqual([]);
 });
 
 test('shows the dev overlay with ?debug', async ({ page }) => {
-  await page.goto('/?debug');
+  await page.goto('/?debug&play');
   await expect(page.locator('[data-testid="dev-stats"]')).toContainText('calls');
   await expect(page.locator('.lil-gui.root')).toContainText('Measure water');
 });

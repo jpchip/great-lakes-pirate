@@ -45,6 +45,8 @@ export interface SettingsMenuProps {
   reloadNote: ReadonlySignal<boolean>;
   /** Undefined when the browser has no Web Audio. */
   audio?: AudioControls | undefined;
+  /** Opened from the main menu, before a run: no game to pause or go back to. */
+  fromMainMenu?: boolean;
 }
 
 const ACTION_LABELS: Partial<Record<Action, string>> = {
@@ -63,6 +65,8 @@ const ACTION_LABELS: Partial<Record<Action, string>> = {
   ToggleChart: 'Chart',
   Port: 'Port screen (docked)',
   Journal: 'Journal',
+  LieAtAnchor: 'Lie at anchor',
+  Repair: 'Use a repair kit',
 };
 
 const HUD_LABELS: Record<HudDensity, string> = {
@@ -330,7 +334,7 @@ export function SettingsMenu(props: SettingsMenuProps) {
       <div class="menu" role="dialog" aria-modal="true" aria-label="Settings">
         <header class="menu-header">
           <h2>Settings</h2>
-          <span class="menu-paused">Paused</span>
+          {!props.fromMainMenu && <span class="menu-paused">Paused</span>}
         </header>
         <nav class="menu-tabs">
           {tabs.map(([id, label]) => (
@@ -356,7 +360,7 @@ export function SettingsMenu(props: SettingsMenuProps) {
             data-testid="settings-close"
             onClick={props.close}
           >
-            Back to the helm (Esc)
+            {props.fromMainMenu ? 'Back (Esc)' : 'Back to the helm (Esc)'}
           </button>
         </footer>
       </div>

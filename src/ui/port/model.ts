@@ -1,7 +1,7 @@
 import type { Good } from '../../../data/schemas/goods';
 import type { PortService } from '../../../data/schemas/ports';
 import { portInfo, type EconomyDefs } from '../../sim/economy/defs';
-import { holdUsed, isClean, type CargoStack } from '../../sim/economy/hold';
+import { holdFree, holdUsed, isClean, type CargoStack } from '../../sim/economy/hold';
 import {
   ageText,
   formatCents,
@@ -32,7 +32,8 @@ import {
   type ContractsState,
   type Standing,
 } from '../../sim/economy/contracts';
-import { holdFree } from '../../sim/economy/hold';
+import type { ShipState } from '../../sim/shipyard/shipyard';
+import { yardSnapshot, type YardSnapshot } from './shipyard-model';
 
 /**
  * What the port screen and the ledger show (plan 05 §12, plan 13 §5; Phase 4 piece B),
@@ -41,13 +42,14 @@ import { holdFree } from '../../sim/economy/hold';
  * these; buying and selling go back through the port's actions.
  */
 
-export type PortTab = 'market' | 'chandlery' | 'freight' | 'ledger';
+export type PortTab = 'market' | 'chandlery' | 'freight' | 'shipyard' | 'ledger';
 
-/** The services with a tab, in order. Pieces G and K add the shipyard and saloon. */
+/** The services with a tab, in order. Piece K adds the saloon. */
 const SERVICE_TABS: readonly [PortService, PortTab][] = [
   ['market', 'market'],
   ['chandlery', 'chandlery'],
   ['freight', 'freight'],
+  ['shipyard', 'shipyard'],
 ];
 
 /** The trade screen sorts by the plan 05 §3 grouping, then by name. */
@@ -177,6 +179,8 @@ export interface PortSnapshot {
   portName: string;
   dateText: string;
   purseCents: number;
+  /** Cash stashed at the hideouts (plan 05 §2; Phase 4 piece E): safe, but not to hand. */
+  stashedCents?: number | undefined;
   tabs: PortTab[];
   capacity: number;
   usedCu: number;
@@ -189,6 +193,9 @@ export interface PortSnapshot {
   freight: FreightSnapshot | undefined;
   /** What happened on arriving: deliveries paid, failed cargo handed back. */
   notices: string[];
+  /** The shipyard tab, and the chandlery's fittings and rigging repair (piece G). */
+  shipyard: YardSnapshot | undefined;
+  fittings: YardSnapshot | undefined;
   ledger: LedgerSnapshot;
 }
 
@@ -244,6 +251,8 @@ export interface PortSources {
   gameSeconds: number;
   contracts?: ContractSources | undefined;
   notices?: string[] | undefined;
+  /** The player's ship and her name, for the shipyard and fittings (piece G). */
+  ship?: { state: ShipState; name: string } | undefined;
 }
 
 const portName = (id: string): string => portInfo(id)?.name ?? id;
@@ -549,6 +558,20 @@ export function portSnapshot(src: PortSources): PortSnapshot {
       })
     : [];
 
+  const yard = (place: 'shipyard' | 'chandlery'): YardSnapshot | undefined =>
+    src.ship && services.includes(place)
+      ? yardSnapshot({
+          defs,
+          markets,
+          owner: trader,
+          ship: src.ship.state,
+          shipName: src.ship.name,
+          port,
+          place,
+          gameSeconds,
+        })
+      : undefined;
+
   return {
     port,
     portName: info?.name ?? port,
@@ -563,6 +586,8 @@ export function portSnapshot(src: PortSources): PortSnapshot {
     stores,
     freight: src.contracts ? freightSnapshot(src, src.contracts, services) : undefined,
     notices: src.notices ?? [],
+    shipyard: yard('shipyard'),
+    fittings: yard('chandlery'),
     ledger: ledgerSnapshot(defs, knowledge, gameSeconds, src.contracts),
   };
 }

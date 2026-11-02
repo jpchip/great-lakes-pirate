@@ -531,13 +531,93 @@ The four Apostles harbors are 55k triangles together, well inside the 250k harbo
 - Jared's look at the trade screen (§16.4 piece B's "Needs Jared").
 - Trade sounds (coins, the ledger) are piece J's, on `TradeCompleted` and `StoresBought`.
 
-## 19. Phase 4 Piece F: Contracts and Standing (2026-11-02)
+## 19. Phase 4 Piece C: the Main Menu and a New Run (2026-11-02)
+
+**Goal** (§16.4, piece C): a main menu (Continue, New run, Settings) before the game boots into a run; character creation with the captain's name, the ship's name, a background with its money, cargo and port, and a portrait preset; the perks that touch Phase 4 wired and the rest stored; May 7 at dawn in the starting port; the First Week checklist in the journal, without step 6.
+
+**Result:** open the game and the title card comes up over a dawn sky. New run opens character creation: name your captain and schooner, pick a likeness and a background, and set out. The game loads and the ship lies alongside her starting pier at sunrise on May 7, 1900 (04:45), with the port screen open for her first sale and the First Week tracker under the clock. Reload, and the menu offers Continue with the captain, ship, place, week and purse. Screenshots are in the project files (`new-run/`).
+
+### 19.1 What was built
+
+| Piece | Where | Notes |
+|---|---|---|
+| Backgrounds | `data/backgrounds.json`, `data/schemas/backgrounds.ts`, `src/sim/character/backgrounds.ts` | Plan 12 §2.2's six: start money, cargo in CU, the start pier, the hideout (Stockton for all, §16.5), the "harder start" flag (Saloon Keeper, Ex-Navy) and two perks, each with the phase that wires it. Cargo is worth about $70–140: Deckhand 5 CU rope and canvas (piece A's start), Fisherman 8 CU salted fish, Lumberjack 12 CU lumber, Saloon Keeper 2 CU whiskey, Ex-Navy 3 CU powder and shot, Poacher 2 CU furs. Every starting cargo sells in its starting port |
+| Starting piers | `data/backgrounds.json` | Bayfield's city dock (Deckhand, Poacher) and fish dock (Fisherman), Washburn's lumber dock (Lumberjack), Duluth's city dock (Saloon Keeper) and Two Harbors' city dock (Ex-Navy). A test checks each has a berth on the baked terrain |
+| Portraits | `data/portraits.json`, `src/ui/menu/Portrait.tsx` | Eight presets drawn as an SVG bust in an oval (skin, hair and its style, beard, hat, coat; hair and hat ties are kept off the face) until Phase 7 gives the captain a body (§16.5) |
+| New run | `src/sim/character/new-run.ts` | `createNewRun(setup)`: the captain, the background's purse and hold, the clock at sunrise on day 0 (the first minute the sun clears the horizon, 04:45), the starting port's zone and an empty First Week. The game places her at a free berth on the start pier as if just docked, so the first tick raises `ShipDocked` and the port screen opens, then saves |
+| Save | `src/sim/world-state.ts` | `player.captain.portrait` and a top-level `firstWeek {done[], hidden}`, both optional (no version bump, like pieces D and K). A 0.3.0 run and a run started past the menu (`?play`) have no checklist and show the first portrait |
+| Main menu | `src/ui/menu/`, `src/main.ts` | Before the boot: the save is read, then the title card shows Continue (with the saved captain, ship, place, week and purse), New run and Settings (the game's settings screen, with the volumes kept in storage). New run over a saved run asks first ("There is only ever one run") and clears every save slot. A save that can't be read is kept and the menu says this session won't be saved (plan 16 §6.3). The mode machine goes `boot → mainMenu ⇄ characterCreation → sailing` |
+| Character creation | `src/ui/menu/MainMenu.tsx`, `model.ts` | Name, schooner, run seed (eight letters, editable, plan 12 §2.1 step 5), likeness and the six background cards with the port, the harder-start tag, the money and cargo, the hideout and both perks ("from phase 6" on the ones that wait). Names are trimmed and must be 1–32 characters. Esc steps back |
+| Perks | `src/sim/character/perks.ts` | **Deckhand:** sail changes take 0.75× as long; the hand-trim sweet spot is 1.5× wider and gives 1.05× speed when the sheets are in it (`trimmedBonus` on the sailing class). **Fisherman:** this moment's salted and fresh fish prices in every port go into the ledger at the start and on every world tick; the chart's forecast cones and wind ranges are a third tighter (`forecastSkill`). **Saloon Keeper:** piece K reads the background for better rumors. The others are stored with the background for their phases. The shipyard passes `withSailingPerks` as `adjustClass`, so a new hull or upgrade keeps them |
+| First Week | `src/sim/character/first-week.ts`, `src/gameplay/captain.ts`, `src/ui/hud/FirstWeek.tsx` | Five steps that name the starting cargo, port and hideout (12 §3, step 6 left for Phase 7). They tick from the bus's tap by event name, so the steps from pieces E, F and K work as soon as those land: selling the starting cargo (`TradeCompleted`), `ContractCompleted` (F), `StorageChanged` in with goods (E), `RumorHeard` from a saloon (K), `VoyageStarted`. A tracker under the barometer shows the next step and can be put away; the journal (J) lists them all and brings it back |
+| Checks | `?play`, `?newrun=` | The menu is skipped with `?play` or any switch that starts somewhere (`?zone`, `?harbor`, `?spawn`, `?encounter` and the like), so the checks and benches boot as before. `?newrun=fisherman` starts a new captain of that background past the menu |
+
+### 19.2 Decisions made in the piece
+
+- **The run opens docked, with the port screen up.** "At dawn in the starting port" read most usefully as alongside the pier, ready for step 1.
+- **The Fisherman's ledger is kept current, not just filled once.** "Knows fish prices in every port" is a standing skill, so the fish entries follow the world tick. His pre-charted Apostles reefs wait for the chart's hazards.
+- **No permadeath notice yet** (12 §2.1 step 6): nothing can kill the captain until Phase 5, so the confirm comes with death. The replace-run prompt says the one-run rule in its place.
+- **Hall of Captains and Credits** stay off the menu until Phase 9 and the release (13 §5).
+- **The default run** (a check past the menu, or a migrated 0.3.0 run) is still piece A's Deckhand named "Captain" at the Apostles spawn at midnight, so every earlier test and bench is unchanged.
+
+### 19.3 Checks
+
+`tests/character.test.ts` (19 tests): the six backgrounds and their ports, cards and portraits; setup checks; sunrise; a new run's captain, purse, hold, place, clock and checklist, and its save round trip; an old run without the new fields; a berth at every starting pier on the real terrain; each wired perk; the checklist's steps, its event matching, and ticking from the bus (including an event raised by name before its piece is merged). The e2e smoke test drives the menu: settings and back, a refused empty name, a Fisherman with a portrait, docked at Bayfield's fish dock with $100, selling the fish, the tracker at 1/5, the journal, Continue after a reload, and the replace prompt. The other smoke tests now open with `?play`. The full unit suite and all 15 e2e smoke tests pass.
+
+### 19.4 Still to do
+
+- Jared's background picker look (§16.4 piece C's "Needs Jared"), screenshots in `new-run/`.
+- Steps 2–4 tick once pieces F, E and K merge with the event names agreed (`ContractCompleted`, `StorageChanged`, `RumorHeard`).
+
+## 20. Phase 4 Piece G: the Shipyard (2026-11-02)
+
+The shipyard, upgrades and repairs are recorded in [plan 10 §17](10-ship-upgrades-customization.md). What touches this plan: Duluth gains the `shipyard` service (§3 of plan 10 names it with Superior and Ashland), the T2's `cargoCapacity` is 45 CU, `GameEconomy.capacity` follows the ship's class and expanded hold, cargo that won't fit a new hull is sold to the port's market at 80% of its sell price (moving the stock as a sale would), and the chandlery tab gains rigging repair and instrument fittings. Patch and mend kits from §18's chandlery are now used at sea with K. The yard rebuilds the sailing class through `adjustClass`, so the Deckhand's perks from §19 stay on a new hull.
+
+## 21. Phase 4 Piece E: the Stockton Stash (2026-11-02)
+
+**Goal** (§16.4, piece E): Stockton Island's Presque Isle bay as every background's starting hideout, a fixed prefab with storage for cargo and cash, lying at anchor until a set hour, the stash on the chart, and cash on hand kept apart from cash stashed (§2).
+
+**Result:** sail out of Bayfield to the south shore of Stockton, come alongside the stash landing under the shack, and the stash screen opens over the paused game. Stash the hold and some of the purse, lie at anchor until dusk, and find it all still there after a reload, with none of it in the hold. Screenshots are in the project files (`stockton-stash/`).
+
+### 21.1 What was built
+
+| Piece | Where | Notes |
+|---|---|---|
+| Footprint | `data/zones.json`, `public/world/apostles/` | `setpiece.stockton` at the head of Presque Isle bay (46.9243° N, 90.5621° W) facing 200°, 140 m along, 60 m inland, flattened to 1.4 m. Set pieces now name a `port` or a hideout `site`, not both. Rebaked with `geo:build` and `geo:canopy`: 21k samples flattened; two height tiles and two Stockton on-foot tiles changed. As in piece I, the rebake also carries the few thousand wind cells near the zone's edges that a GDAL 3.8 bake computes differently (§17.3) |
+| Sites | `data/sites.json`, `data/schemas/sites.ts` | Plan 09 §12's `sites.json` with its first site: `site.stockton` (Apostles region, concealment 0.6, abandoned, an anchorage 70 m off the landing with a 90 m radius, a 40 CU shed and a strongbox, the start for all six backgrounds) |
+| Prefab | `data/harbors.json`, `src/render/harbors/harbor-kit.ts` | `harbor.stockton` in the harbor kit: a 34 m plank **landing** (a new pier kind) and three new building kinds, a fisherman's **shack** with a stovepipe and a lit window, an iron-strapped **strongbox** and a **storage shed** with barrels and crates by the door. 800 triangles; no NPC ship berths there (it has no port) |
+| Save | `src/sim/world-state.ts` | A `hideouts` slice (plan 09 §12's shape: site, when claimed, `storage.goods` as hold stacks and `storage.cash` in cents). Optional and filled on load with the background's starting hideout, like piece D's `traffic`, so there's **no save version bump** and saves from before piece E get an empty stash |
+| Storage | `src/sim/hideouts/stash.ts` | Moves keep each lot's identity: hot goods stay hot with their heat and time, contract cargo keeps its contract, so stashing launders nothing. The shed holds 40 CU (two T1 holds); taking goods aboard stops at the hold's room. Cash needs a strongbox |
+| Stash screen | `src/gameplay/stash.ts`, `src/ui/stash/` | Opens on docking at the landing, or with **P** anchored inside the anchorage. The hold and the shed side by side with capacity bars, hot goods marked; shift-click moves a whole lot, ctrl-click one CU, a click picks it for the slider (13 §6). Purse ↔ strongbox in dollars (shift-click moves it all). Esc goes back aboard, F casts off, the HUD's button reads "Stockton stash **P**". `StorageChanged` on every move (plan 09 §12; piece C ticks the First Week's step 3 from it) |
+| Lie at anchor | `src/sim/hideouts/lie-at-anchor.ts` | **Z** (rebindable), or the stash screen's footer: until dawn, until dusk, or until the wind backs or veers 45° or changes 8 kn (at most a game day). Allowed anchored in a lee (shelter from the wind as it blows ≥ 0.3, or under 6 kn anywhere) or alongside any pier; refused under way, aground, dragging, or with a ship under way within 350 m. The world ticks run as on the chart (markets, traffic, weather), then the game saves (09 §3's autosave point) and the HUD says how long she lay. `LayAtAnchor` on the bus |
+| Chart | `src/render/chart/chart-view.ts`, `src/modes/chart-travel.ts` | Each hideout is marked in signal red, a penciled cross in a ring with its name, "Stockton stash" |
+| Cash | `src/ui/port/` | The port screen's header shows "Stashed $…" beside the purse when there's money in a strongbox |
+| Dev hook | `src/main.ts` | `__glpStash`: `open`, `close`, `here`, `hideouts`, `stash`, `take`, `stashCash`, `takeCash`, `lie`, `refusal`. `?harbor=stockton` starts 120 m off the landing |
+
+### 21.2 Decisions made in the piece
+
+- **The landing is the mooring.** A short plank stage the auto-dock already knows, so "moored there" is docking at it, as at a port. Anchored in the bay works too (P), since a hideout's whole point is a quiet anchorage.
+- **40 CU in the shed.** Plan 09 §5.4 sizes storage pieces at 5–40 CU; a starting hideout's "basic storage" is two T1 holds, so a captain can lay up a season's cargo without a warehouse. Phase 8's pieces add to it.
+- **Lying at anchor works alongside any pier too,** not only at anchor, since plan 03 §2 lists in port and moored. Ships berthed in a harbor don't count as "in sight"; only ships under way do.
+- **No fade or progress screen for the lie.** A day of world ticks runs in a few milliseconds, so the clock just jumps and the HUD says how long it was.
+
+### 21.3 Checks
+
+`tests/stash.test.ts` (13 tests): the starting stash for every background, a save from before piece E gaining it on load, storage surviving a save round trip and never showing in the hold, moves keeping hot and contract lots apart, the shed's capacity and the hold's room, cash both ways, the lie's refusals, dawn and dusk from the sun, the wind shift and the day cap, the stash screen opening at the landing and raising `StorageChanged`, and on the baked zone: an anchorage 3–30 m deep in the lee of a northwester (shelter above 0.3) and the prefab on dry ground. `tests/harbors.test.ts` docks the T1 at the landing's berths on the real terrain. A new e2e smoke test docks at the landing, stashes the cargo and $100 through the screen, lies until dusk, reloads and finds both in the stash and neither aboard. The full unit suite (865) and all 15 e2e smoke tests pass.
+
+### 21.4 Still to do
+
+- Jared's look at the stash (§16.4 piece E's "Needs Jared").
+- Criterion 6's full round trip to Duluth and back runs in piece L's playtest; the e2e test covers the reload.
+- The quarry ruin plan 09 §2.1 lists for the site, and the smuggler's anchorage nearby, are piece H's and Phase 8's.
+
+## 22. Phase 4 Piece F: Contracts and Standing (2026-11-02)
 
 **Goal** (§16.4, piece F): `contracts.json` templates and the freight agent's offers by port and season (§5.2), with deposits, deadlines, rush and mail variants and company contracts; Standing per port and company and what it opens in Phase 4; contract cargo marked, and selling it the once-per-company theft raising `ContractStolen`. Plus a contracts bot in the balance harness against the §5.3 target.
 
 **Result:** dock at Duluth, open the **Freight agent** tab, take 13 CU of kerosene for the Gogebic & Lake Shore's ore dock, sail it to Ashland, and the agent pays you and hands the deposit back as you come alongside. Screenshots are in the project files (`contracts/`).
 
-### 19.1 What was built
+### 22.1 What was built
 
 | Area | Built | Where |
 |---|---|---|
@@ -553,7 +633,7 @@ The four Apostles harbors are 55k triangles together, well inside the 250k harbo
 | Save | A `contracts` slice (in hand, taken offer ids, burned companies, the last 12 finished, a tally) and `player.standing`, both optional and filled on load like the traffic slice, so **no version bump** and no clash with the pieces building in parallel | `src/sim/world-state.ts` |
 | Dev hook | `__glpContracts` (dev builds and `?debug`): `board`, `accept`, `arrive`, `steal`, `abandon`, `state`, `standing`, `setStanding` | `src/main.ts` |
 
-### 19.2 Balance (§5.3)
+### 22.2 Balance (§5.3)
 
 The harness's legit bot gained a contracts mode (`runTrader` with `contracts`): at each call it delivers, then for each passage it weighs the offers bound there against the trade they would push out of the hold, and sails for a contract that's near its due time.
 
@@ -566,7 +646,7 @@ The harness's legit bot gained a contracts mode (`runTrader` with `contracts`): 
 
 `tests/economy-balance.test.ts` runs the T2 check from Bayfield and Duluth (8–12 h, better than trade alone) and the ceiling with contracts; `npm run bench:economy` prints all eight runs.
 
-### 19.3 Decisions made in the piece
+### 22.3 Decisions made in the piece
 
 - **Contracts fill the hold; they don't replace trade.** With pay near trade's per CU, a contract mostly pays for space a good cargo leaves empty (market depth limits how much is worth buying), with no money tied up. A typical offer pays **$5–15**, well under the §5.2 example ($90 for 15 CU), because a board of better-paying offers put the perfect-knowledge bot at a T2 in 5 hours. The bot is the fastest a player can be, so it sits at the low end of 8–12 on purpose. If contracts feel too small to bother with in play, the lever is fewer, larger offers rather than more pay.
 - **A board a week, one or two offers.** The board changes with the calendar week (a game day), which also matches the "by the week of June 4" wording.
@@ -574,9 +654,9 @@ The harness's legit bot gained a contracts mode (`runTrader` with `contracts`): 
 - **Contract cargo doesn't move the markets** when loaded or delivered: it's consigned, like most of a traffic ship's hold (§16.9). Selling it as theft does.
 - **Standing with a port is shared by everyone's contracts there;** a company's is earned only with that company. Phase 5's crimes lower it too (plan 06 §4.3).
 
-### 19.4 Still to do
+### 22.4 Still to do
 
-- Jared's feel for contract pay against trade (§19.3).
+- Jared's feel for contract pay against trade (§22.3).
 - The `stamp` sound for a taken contract (plan 15 §17, piece J) on `ContractAccepted`.
 - Phase 5 turns `ContractStolen` into Wanted (plan 06 §2: 40, always traced).
 - Piece G applies `shipyardDiscount(standing[port])` at the shipyards; piece C ticks First Week step 2 on `ContractCompleted`.
@@ -585,8 +665,10 @@ The harness's legit bot gained a contracts mode (`runTrader` with `contracts`): 
 ---
 
 ## Changelog
-
-- v0.7: Phase 4 piece F built (§19): contract templates and boards, deposits and deadlines, rush, mail, fragile and company contracts, Standing and what it opens, contract theft, the freight agent tab, the contracts bot in the balance harness.
+- v0.7: Phase 4 piece G recorded (§20): Duluth's shipyard, the T2's hold, cargo sold on a trade-in, chandlery repairs and fittings.
+- v0.7: Phase 4 piece E built (§21): the Stockton stash at Presque Isle bay, `sites.json`, the hideouts save slice, the stash screen, lying at anchor, the stash on the chart.
+- v0.7: Phase 4 piece F built (§22): contract templates and boards, deposits and deadlines, rush, mail, fragile and company contracts, Standing and what it opens, contract theft, the freight agent tab, the contracts bot in the balance harness.
+- v0.6: Phase 4 piece C built (§19): the main menu, character creation, six backgrounds and portraits, the new run docked at dawn, the Phase 4 perks, the First Week checklist.
 - v0.6: Phase 4 piece D built (§16.9): flows and manifests, deliveries that move stock, the traffic save slice, ships in the zones and at berths, look her over and hailing; two company names replaced after the names check.
 - v0.5: Phase 4 piece B built (§18): piers with ports, the port screen, the trade screen, price knowledge, the ledger in journal v1, the chandlery, save v6.
 - v0.5: Phase 4 piece A built (§16.8): goods in CU, port markets with drift and seasons, the purse and the hold, cargo load, save v5, the balance harness.

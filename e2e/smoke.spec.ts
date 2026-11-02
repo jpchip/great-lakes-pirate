@@ -12,7 +12,7 @@ function collectErrors(page: Page): string[] {
 // CI runs without WebGL, so the smoke test boots with the null renderer (plan 01 §9).
 test('boots with the null renderer without console errors', async ({ page }) => {
   const errors = collectErrors(page);
-  await page.goto('/?renderer=null');
+  await page.goto('/?renderer=null&play');
   await expect(page.locator('body')).toHaveAttribute('data-renderer', 'null');
   await expect(page.locator('body')).toHaveAttribute('data-mode', 'sailing');
   // The Phase 1 test bay's terrain loads with or without a renderer.
@@ -25,7 +25,7 @@ test('creates a run, autosaves it, and continues it after a reload', async ({ pa
   const errors = collectErrors(page);
   const body = page.locator('body');
 
-  await page.goto('/?renderer=null');
+  await page.goto('/?renderer=null&play');
   await expect(body).toHaveAttribute('data-save', 'created');
   const runId = await body.getAttribute('data-run-id');
   expect(runId).toBeTruthy();
@@ -45,7 +45,7 @@ test('creates a run, autosaves it, and continues it after a reload', async ({ pa
 // saves to the settings store and rebinds keys.
 test('shows the sailing HUD and answers the helm', async ({ page }) => {
   const errors = collectErrors(page);
-  await page.goto('/?renderer=null');
+  await page.goto('/?renderer=null&play');
   await expect(page.getByTestId('hud-wind')).toBeVisible();
   await expect(page.getByTestId('hud-clock')).toContainText('1900');
   // Weather v1 (plan 04 §24): the sim drives the wind, so the barometer reads.
@@ -59,7 +59,7 @@ test('shows the sailing HUD and answers the helm', async ({ page }) => {
 test('settings pause the game, persist, and rebind keys', async ({ page }) => {
   const errors = collectErrors(page);
   const body = page.locator('body');
-  await page.goto('/?renderer=null');
+  await page.goto('/?renderer=null&play');
   await expect(page.getByTestId('hud-wind')).toBeVisible();
 
   await page.keyboard.press('Escape');
@@ -104,7 +104,7 @@ test('loads the sailing and world sounds and unlocks audio on the first key pres
 }) => {
   const errors = collectErrors(page);
   const body = page.locator('body');
-  await page.goto('/?renderer=null');
+  await page.goto('/?renderer=null&play');
   await expect(body).toHaveAttribute('data-mode', 'sailing');
   await expect(body).toHaveAttribute('data-audio-bank', '40');
   await page.keyboard.press('KeyW');
@@ -116,7 +116,7 @@ test('loads the sailing and world sounds and unlocks audio on the first key pres
 test('sets a volume on the settings screen and keeps it after a reload', async ({ page }) => {
   const errors = collectErrors(page);
   const body = page.locator('body');
-  await page.goto('/?renderer=null');
+  await page.goto('/?renderer=null&play');
   await expect(body).toHaveAttribute('data-mode', 'sailing');
   await page.getByTestId('open-settings').click();
   await page.getByTestId('tab-sound').click();
@@ -134,7 +134,7 @@ test('sets a volume on the settings screen and keeps it after a reload', async (
 test('continues from where the ship was saved', async ({ page }) => {
   const errors = collectErrors(page);
   const body = page.locator('body');
-  await page.goto('/?renderer=null');
+  await page.goto('/?renderer=null&play');
   await expect(body).toHaveAttribute('data-start', 'spawn');
   const spawn = await body.getAttribute('data-start-pose');
   // Make sail and let her move off the spawn, then save as the tab hides.
@@ -158,7 +158,7 @@ test('continues from where the ship was saved', async ({ page }) => {
 test('enters a zone by id at an entry point and saves on arrival', async ({ page }) => {
   const errors = collectErrors(page);
   const body = page.locator('body');
-  await page.goto('/?renderer=null&debug');
+  await page.goto('/?renderer=null&debug&play');
   await expect(body).toHaveAttribute('data-mode', 'sailing');
   await page.evaluate(() =>
     (
@@ -191,7 +191,7 @@ interface EconomyHook {
 test('trades at a market and keeps the purse and hold through a reload', async ({ page }) => {
   const errors = collectErrors(page);
   const body = page.locator('body');
-  await page.goto('/?renderer=null&debug');
+  await page.goto('/?renderer=null&debug&play');
   await expect(body).toHaveAttribute('data-save', 'created');
   // The last dev hook goes in right before the autosave listeners: boot is done.
   await page.waitForFunction(() => '__glpChart' in window);
@@ -237,6 +237,7 @@ interface ChartHook {
   secondsPerHour(s: number): void;
   setPursued(on: boolean): void;
   meet(kind: string, forced?: boolean): string | undefined;
+  travel: { session: { position: { x: number; y: number } } };
 }
 
 interface ArenaHook {
@@ -314,7 +315,7 @@ test('sails from the Apostles to the Twin Ports on the chart, through a reload',
   // Saved on the chart with the voyage; a reload comes back under way.
   await page.evaluate(() => window.dispatchEvent(new Event('pagehide')));
   await expect(body).toHaveAttribute('data-saved-mode', 'chart');
-  await page.goto('/?renderer=null&debug');
+  await page.goto('/?renderer=null&debug&play');
   await expect(body).toHaveAttribute('data-start', 'chart');
   await expect(body).toHaveAttribute('data-mode', 'chart');
   await expect(page.getByTestId('chart-status')).toContainText('Under way');
@@ -329,8 +330,8 @@ test('sails from the Apostles to the Twin Ports on the chart, through a reload',
   await expect(body).toHaveAttribute('data-zone', 'zone.twin_ports');
   await expect(body).toHaveAttribute('data-mode', 'sailing');
   await expect(body).toHaveAttribute('data-saved-mode', 'zone');
-  // The Twin Ports' east entry (data/zones.json), heading west.
-  await expect(body).toHaveAttribute('data-saved-pose', /^1700\.\d\d,-100\.\d\d,4\.71\d\d$/);
+  // The Twin Ports' east entry (data/zones.json), just off Minnesota Point, heading for the canal.
+  await expect(body).toHaveAttribute('data-saved-pose', /^400\.\d\d,250\.\d\d,5\.23\d\d$/);
 
   // The Twin Ports offer the chart from just outside the harbor, so it's on offer here.
   await expect(page.getByTestId('take-to-chart')).toBeVisible();
@@ -424,6 +425,28 @@ test('meets a ship from the chart in an arena and sails on', async ({ page }) =>
   await expect(body).toHaveAttribute('data-mode', 'chart');
   await expect(body).toHaveAttribute('data-zone', 'zone.apostles');
   await expect(page.getByTestId('chart-status')).toContainText('Under way');
+  const metAt = await page.evaluate(() => ({
+    ...(window as unknown as { __glpChart: ChartHook }).__glpChart.travel.session.position,
+  }));
+
+  // M leaves an arena too, and the voyage carries on from where she was met: the same
+  // press doesn't also open the chart as a look from the zone she set out from.
+  await page.evaluate(() =>
+    (window as unknown as { __glpChart: ChartHook }).__glpChart.meet('freighter'),
+  );
+  await page.getByTestId('encounter-engage').click();
+  await expect(body).toHaveAttribute('data-arena', 'ship');
+  await expect(body).toHaveAttribute('data-mode', 'sailing');
+  await page.keyboard.press('KeyM');
+  await expect(body).toHaveAttribute('data-arena-result', 'left');
+  await expect(body).toHaveAttribute('data-mode', 'chart');
+  await expect(body).toHaveAttribute('data-zone-load', 'done');
+  await expect(page.getByTestId('chart-hud')).toHaveAttribute('data-trip', 'sea');
+  await expect(page.getByTestId('chart-status')).toContainText('Under way');
+  const resumedAt = await page.evaluate(
+    () => (window as unknown as { __glpChart: ChartHook }).__glpChart.travel.session.position,
+  );
+  expect(Math.hypot(resumedAt.x - metAt.x, resumedAt.y - metAt.y)).toBeLessThan(2000);
 
   // The cutter closes and won't be avoided; caught, the voyage ends.
   await page.evaluate(() =>
@@ -615,5 +638,212 @@ test('takes a freight contract at Bayfield and delivers it', async ({ page }) =>
     (window as unknown as { __glpContracts: ContractsHook }).__glpContracts.standing(),
   );
   expect(standing['port.bayfield']).toBeGreaterThan(0);
+  expect(errors).toEqual([]);
+});
+
+interface StashHook {
+  hideouts(): Record<string, { storage: { goods: { good: string; qty: number }[]; cash: number } }>;
+  lie(until: 'dawn' | 'dusk' | 'wind'): string | undefined;
+}
+
+// Phase 4 piece E: come alongside the Stockton landing, stash the cargo and some cash,
+// and find them still there after a reload, with nothing of it in the hold.
+test('stashes cargo and cash at Stockton and keeps them through a reload', async ({ page }) => {
+  const errors = collectErrors(page);
+  const body = page.locator('body');
+  await page.goto('/?renderer=null&debug&harbor=stockton');
+  await expect(body).toHaveAttribute('data-terrain', 'loaded');
+  await page.waitForFunction(() => '__glpChart' in window);
+  const docked = await page.evaluate(() =>
+    (window as unknown as { __glpPort: PortHook }).__glpPort.dock('stockton_landing'),
+  );
+  expect(docked).toBe(true);
+
+  const screen = page.getByTestId('stash-screen');
+  await expect(screen).toBeVisible({ timeout: 15_000 });
+  await expect(screen).toHaveAttribute('data-hideout', 'hideout.stockton');
+  await expect(page.getByTestId('port-screen')).toHaveCount(0);
+
+  // Shift-click stashes the whole lot of rope and canvas; the hold empties.
+  await page.getByTestId('stash-0').click({ modifiers: ['Shift'] });
+  await expect(page.getByTestId('stash-hold-row')).toHaveCount(0);
+  await expect(page.getByTestId('stash-store-row')).toHaveCount(1);
+  // $100 into the strongbox.
+  await page.getByTestId('stash-cash-amount').fill('100');
+  await page.getByTestId('stash-cash-in').click();
+  await expect(page.getByTestId('stash-strongbox')).toHaveText('$100.00');
+  await expect(page.getByTestId('stash-purse')).toHaveText('$50.00');
+
+  // Esc goes back aboard; the HUD offers the stash, and P reopens it.
+  await page.keyboard.press('Escape');
+  await expect(screen).toHaveCount(0);
+  await expect(page.getByTestId('hud-port')).toHaveText(/Stockton Stash/);
+  await page.keyboard.press('KeyP');
+  await expect(screen).toBeVisible();
+  // Alongside, the captain can lie until dusk; the clock runs on.
+  await page.getByTestId('lie-dusk').click();
+  await expect(page.getByTestId('stash-message')).toHaveCount(0);
+  await page.keyboard.press('Escape');
+  await expect(page.getByTestId('hud-status').filter({ hasText: /lay at anchor/ })).toHaveCount(1);
+
+  await page.evaluate(() => {
+    delete document.body.dataset['savedMode'];
+    window.dispatchEvent(new Event('pagehide'));
+  });
+  await expect(body).toHaveAttribute('data-saved-mode', /.+/);
+  await page.goto('/?renderer=null&debug&play');
+  await expect(body).toHaveAttribute('data-save', 'loaded');
+  await page.waitForFunction(() => '__glpChart' in window);
+  const after = await page.evaluate(() => ({
+    stash: (window as unknown as { __glpStash: StashHook }).__glpStash.hideouts(),
+    cargo: (window as unknown as { __glpEconomy: EconomyHook }).__glpEconomy.cargo(),
+    purse: (window as unknown as { __glpEconomy: EconomyHook }).__glpEconomy.purse(),
+  }));
+  expect(after.stash['hideout.stockton']?.storage).toEqual({
+    goods: [{ good: 'good.rope_canvas', qty: 5 }],
+    cash: 10_000,
+  });
+  expect(after.cargo).toEqual([]);
+  expect(after.purse).toBe(5_000);
+  expect(errors).toEqual([]);
+});
+
+// Phase 4 piece C: the main menu, character creation and a new captain's first morning,
+// docked at the starting port with the First Week checklist; Continue brings the run back.
+test('creates a captain from the main menu and starts docked at dawn', async ({ page }) => {
+  const errors = collectErrors(page);
+  const body = page.locator('body');
+  await page.goto('/?renderer=null');
+  await expect(page.getByTestId('main-menu')).toBeVisible();
+  await expect(body).toHaveAttribute('data-mode', 'mainMenu');
+  // A fresh browser has no run to continue.
+  await expect(page.getByTestId('menu-continue')).toHaveCount(0);
+
+  // Settings open from the menu and Esc comes back.
+  await page.getByTestId('menu-settings').click();
+  await expect(page.getByTestId('settings-menu')).toBeVisible();
+  await page.keyboard.press('Escape');
+  await expect(page.getByTestId('main-menu')).toBeVisible();
+
+  await page.getByTestId('menu-new-run').click();
+  await expect(page.getByTestId('character-creation')).toBeVisible();
+  await expect(body).toHaveAttribute('data-mode', 'characterCreation');
+  await page.getByTestId('create-name').fill('');
+  await page.getByTestId('create-start').click();
+  await expect(page.getByTestId('create-problem')).toBeVisible();
+  await page.getByTestId('create-name').fill('Ida Bergquist');
+  await page.getByTestId('create-ship').fill('Kittiwake');
+  await page.getByTestId('portrait-woman').click();
+  await page.getByTestId('background-fisherman').click();
+  await expect(page.getByTestId('background-detail')).toContainText('salted fish');
+  await page.getByTestId('create-start').click();
+
+  // Docked at Bayfield's fish dock at dawn: the port screen opens on the first tick.
+  const screen = page.getByTestId('port-screen');
+  await expect(screen).toBeVisible({ timeout: 20_000 });
+  await expect(screen).toHaveAttribute('data-port', 'port.bayfield');
+  await expect(body).toHaveAttribute('data-save', 'created');
+  await expect(page.getByTestId('port-purse')).toHaveText('$100.00');
+  await page.getByTestId('sell-good.salted_fish').click({ modifiers: ['Shift'] });
+  await expect(page.getByTestId('hold-row')).toHaveCount(0);
+
+  // Back aboard: the First Week tracker has ticked the sale off.
+  await page.keyboard.press('Escape');
+  await expect(page.getByTestId('first-week-count')).toHaveText('1/5');
+  await expect(page.getByTestId('first-week-next')).toContainText('freight contract');
+  await expect(page.getByTestId('hud-clock')).toContainText('May 7, 1900');
+  // The journal has the whole list.
+  await page.keyboard.press('KeyJ');
+  await expect(page.getByTestId('first-week-sell')).toHaveClass(/done/);
+  await page.keyboard.press('KeyJ');
+
+  // Continue brings the captain back from the menu.
+  await page.evaluate(() => window.dispatchEvent(new Event('pagehide')));
+  await page.waitForTimeout(500);
+  await page.reload();
+  await expect(page.getByTestId('saved-run')).toContainText('Ida Bergquist');
+  await expect(page.getByTestId('saved-run')).toContainText('Kittiwake');
+  await page.getByTestId('menu-continue').click();
+  await expect(body).toHaveAttribute('data-save', 'loaded');
+  await expect(body).toHaveAttribute('data-mode', 'sailing');
+  await expect(page.getByTestId('first-week-count')).toHaveText('1/5');
+
+  // A new run over it asks first.
+  await page.reload();
+  await page.getByTestId('menu-new-run').click();
+  await expect(page.getByTestId('menu-replace')).toContainText('Kittiwake');
+  expect(errors).toEqual([]);
+});
+
+interface ShipyardHook {
+  ship(): { classId: string; hull01: number; rigging01: number; upgrades: string[] };
+  grant(cents: number): void;
+  damage(hull01: number, rigging01: number): void;
+  sailing(): string;
+}
+
+// Phase 4 piece G: Ashland's shipyard sells the T2 with the T1 in trade, fits an upgrade,
+// and repairs her; at sea, K uses a patch kit from the lockers.
+test('buys a T2 at Ashland, fits and repairs her, and patches the hull at sea', async ({
+  page,
+}) => {
+  const errors = collectErrors(page);
+  const body = page.locator('body');
+  await page.goto('/?renderer=null&debug&harbor=ashland,2');
+  await expect(body).toHaveAttribute('data-terrain', 'loaded');
+  await page.waitForFunction(() => '__glpChart' in window);
+  await page.evaluate(() => {
+    const w = window as unknown as { __glpShipyard: ShipyardHook };
+    w.__glpShipyard.grant(200_000);
+  });
+  const docked = await page.evaluate(() =>
+    (window as unknown as { __glpPort: PortHook }).__glpPort.dock('ashland_city'),
+  );
+  expect(docked).toBe(true);
+  const screen = page.getByTestId('port-screen');
+  await expect(screen).toBeVisible({ timeout: 15_000 });
+
+  await page.getByTestId('port-tab-shipyard').click();
+  await expect(page.getByTestId('shipyard')).toBeVisible();
+  await page.getByTestId('buy-hull-ship.t2_schooner').click();
+  await expect(page.getByTestId('port-message')).toContainText("She's yours");
+  const yard = (): Promise<ReturnType<ShipyardHook['ship']>> =>
+    page.evaluate(() =>
+      (window as unknown as { __glpShipyard: ShipyardHook }).__glpShipyard.ship(),
+    );
+  expect((await yard()).classId).toBe('ship.t2_schooner');
+  expect(
+    await page.evaluate(() =>
+      (window as unknown as { __glpShipyard: ShipyardHook }).__glpShipyard.sailing(),
+    ),
+  ).toBe('ship.t2_schooner');
+
+  await page.getByTestId('fit-upgrade.quality_canvas').click();
+  await expect(page.getByTestId('upgrade-row-upgrade.quality_canvas')).toHaveClass(/selected/);
+  expect((await yard()).upgrades).toEqual(['upgrade.quality_canvas']);
+
+  // Damage her, then the yard makes her sound.
+  await page.keyboard.press('Escape');
+  await page.evaluate(() =>
+    (window as unknown as { __glpShipyard: ShipyardHook }).__glpShipyard.damage(0.4, 0.6),
+  );
+  await page.keyboard.press('KeyP');
+  await page.getByTestId('port-tab-shipyard').click();
+  await page.getByTestId('repair-shipyard').click();
+  expect(await yard()).toMatchObject({ hull01: 1, rigging01: 1 });
+
+  // A patch kit from the chandlery, cast off, and K patches a damaged hull.
+  await page.getByTestId('port-tab-chandlery').click();
+  await page.getByTestId('store-store.patch_kit').click();
+  await page.keyboard.press('KeyF');
+  await expect(screen).toHaveCount(0);
+  await page.evaluate(() =>
+    (window as unknown as { __glpShipyard: ShipyardHook }).__glpShipyard.damage(0.5, 1),
+  );
+  await page.keyboard.press('KeyK');
+  await expect(
+    page.getByTestId('hud-status').filter({ hasText: 'Patched the hull: 70%' }),
+  ).toHaveCount(1);
+  expect((await yard()).hull01).toBeCloseTo(0.7, 2);
   expect(errors).toEqual([]);
 });
