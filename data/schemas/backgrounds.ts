@@ -48,6 +48,8 @@ export const portraitSchema = z.object({
   skin: color,
   hair: color,
   beard: z.enum(['none', 'mustache', 'full']),
+  /** Short, long to the shoulders, or a braid over one shoulder. */
+  hairStyle: z.enum(['short', 'long', 'braid']),
   hat: z.enum(['none', 'cap', "sou'wester", 'bowler', 'wool', 'bonnet']),
   coat: color,
 });
