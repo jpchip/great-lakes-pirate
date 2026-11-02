@@ -4,6 +4,8 @@ import { bindingOverrides, DEFAULT_BINDINGS, rebind, type Action } from '../core
 import { applyBindingOverrides, type SettingsStore } from '../core/settings';
 import { Hud } from './hud/Hud';
 import type { HudSnapshot } from './hud/model';
+import type { CaptionView } from '../audio/captions';
+import { Captions } from './hud/Captions';
 import { SettingsMenu, type AudioControls } from './settings/SettingsMenu';
 import type { AudioSettings, VolumeId } from '../audio/settings';
 import { LoadingScreen } from './loading/LoadingScreen';
@@ -49,6 +51,8 @@ export interface GameUi {
   /** The chart HUD; undefined hides it. */
   setChart(snapshot: ChartHudSnapshot | undefined): void;
   setSpyglass(on: boolean): void;
+  /** Captions for directional sounds (plan 15 §5), newest first. */
+  setCaptions(captions: readonly CaptionView[]): void;
   /** The "look her over" / hail card (Phase 4 piece D); undefined hides it. */
   setShipCard(card: ShipCard | undefined): void;
   /** Show the "antialiasing needs a reload" note under the preset picker. */
@@ -81,6 +85,7 @@ export function mountGameUi({
   const hud = signal<HudSnapshot | undefined>(undefined);
   const chart = signal<ChartHudSnapshot | undefined>(undefined);
   const spyglass = signal(false);
+  const captions = signal<readonly CaptionView[]>([]);
   const shipCard = signal<ShipCard | undefined>(undefined);
   const menuOpen = signal(false);
   const reloadNote = signal(false);
@@ -159,6 +164,7 @@ export function mountGameUi({
           onTakeToChart={onTakeToChart}
           onOpenPort={portActions?.openDocked}
         />
+        {!menuOpen.value && !port.value && !journal.value && <Captions captions={captions} />}
         {!menuOpen.value && <ShipCardView card={shipCard} />}
         {chartActions && <ChartHud chart={chart} actions={chartActions} />}
         {port.value && portActions && !menuOpen.value && (
@@ -211,6 +217,22 @@ export function mountGameUi({
     },
     setSpyglass(on) {
       spyglass.value = on;
+    },
+    setCaptions(next) {
+      // Most HUD samples change nothing; skip the re-render then.
+      const same =
+        next.length === captions.value.length &&
+        next.every((c, i) => {
+          const o = captions.value[i];
+          return (
+            o &&
+            o.key === c.key &&
+            o.text === c.text &&
+            o.arrow === c.arrow &&
+            o.distance === c.distance
+          );
+        });
+      if (!same) captions.value = next;
     },
     setShipCard(card) {
       shipCard.value = card;

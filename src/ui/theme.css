@@ -1007,3 +1007,35 @@ body[data-mode='chart'] .chart-layer {
 .ledger-list {
   padding-left: 18px;
 }
+
+/* Captions for fog signals and whistles (plan 13 §9, Phase 4 piece J): bottom center. */
+.hud-captions {
+  position: absolute;
+  bottom: 60px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  max-width: min(560px, calc(100vw - 32px));
+  pointer-events: none;
+}
+
+.hud-caption {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  padding: 3px 12px;
+  font: 15px var(--serif);
+  color: #f4ead6;
+  background: rgba(12, 16, 20, 0.72);
+  border-radius: 3px;
+}
+
+.hud-caption-arrow {
+  min-width: 1.1em;
+  font-weight: 700;
+  text-align: center;
+  color: var(--brass);
+}

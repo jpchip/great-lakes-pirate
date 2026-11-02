@@ -97,8 +97,9 @@ test('settings pause the game, persist, and rebind keys', async ({ page }) => {
   expect(errors).toEqual([]);
 });
 
-// Plan 15 §8: the sailing (14), world (19, with the ships' whistles) and chart (7: the
-// stingers and the fade to fog) sounds decode up front and audio starts on the first key.
+// Plan 15 §8: the sailing (14), world (19, with the ships' whistles), chart (7: the
+// stingers and the fade to fog), harbor (5) and port (7) sounds decode up front and audio
+// starts on the first key.
 test('loads the sailing and world sounds and unlocks audio on the first key press', async ({
   page,
 }) => {
@@ -106,7 +107,7 @@ test('loads the sailing and world sounds and unlocks audio on the first key pres
   const body = page.locator('body');
   await page.goto('/?renderer=null');
   await expect(body).toHaveAttribute('data-mode', 'sailing');
-  await expect(body).toHaveAttribute('data-audio-bank', '40');
+  await expect(body).toHaveAttribute('data-audio-bank', '52');
   await page.keyboard.press('KeyW');
   await expect(body).toHaveAttribute('data-audio', 'running');
   expect(errors).toEqual([]);
@@ -565,5 +566,44 @@ test('docks at Bayfield, trades on the port screen, and keeps the ledger', async
     (window as unknown as { __glpPort: PortHook }).__glpPort.knowledge(),
   );
   expect(Object.keys(known)).toEqual(['port.bayfield']);
+  expect(errors).toEqual([]);
+});
+
+// Phase 4 piece J: Bayfield is at work (its mill, cooperage and depot), docking opens the
+// port screen to the rustle of paper, a sale counts coins, and a fog signal is captioned
+// with an arrow toward the light.
+test('hears the harbor at work, the coins at the market, and captions a fog signal', async ({
+  page,
+}) => {
+  const errors = collectErrors(page);
+  const body = page.locator('body');
+  await page.goto('/?renderer=null&debug&harbor=bayfield');
+  await expect(body).toHaveAttribute('data-terrain', 'loaded');
+  await page.keyboard.press('KeyW');
+  await expect(body).toHaveAttribute('data-audio', 'running');
+  await expect
+    .poll(async () => Number(await body.getAttribute('data-harbor-sites')))
+    .toBeGreaterThanOrEqual(3);
+
+  await page.waitForFunction(() => '__glpChart' in window);
+  await page.evaluate(() =>
+    (window as unknown as { __glpPort: PortHook }).__glpPort.dock('bayfield_city'),
+  );
+  const screen = page.getByTestId('port-screen');
+  await expect(screen).toBeVisible({ timeout: 15_000 });
+  await expect(body).toHaveAttribute('data-trade-cue', 'open');
+  await page.getByTestId('sell-good.rope_canvas').click({ modifiers: ['Shift'] });
+  await expect(body).toHaveAttribute('data-trade-cue', /^(coins x\d|pile)$/);
+  await page.keyboard.press('Escape');
+  await expect(body).toHaveAttribute('data-trade-cue', 'close');
+
+  // No caption on a clear day until a signal sounds; then one with an arrow.
+  await expect(page.getByTestId('caption')).toHaveCount(0);
+  await page.evaluate(() =>
+    (window as unknown as { __glpAudio: { fogSignal(): void } }).__glpAudio.fogSignal(),
+  );
+  const caption = page.getByTestId('caption').first();
+  await expect(caption).toContainText(/Light: fog (bell|whistle)/, { timeout: 15_000 });
+  await expect(caption.locator('.hud-caption-arrow')).toHaveText(/[↑↗→↘↓↙←↖]/);
   expect(errors).toEqual([]);
 });

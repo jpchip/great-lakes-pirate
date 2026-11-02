@@ -1,0 +1,11 @@
+{
+  "id": "ui.ledger.close",
+  "name": "paper-close",
+  "description": "Paper folded away: the journal or the port screen closes",
+  "source": "source.wav",
+  "kind": "oneshot",
+  "bus": "ui",
+  "bundles": [
+    "port-audio"
+  ]
+}

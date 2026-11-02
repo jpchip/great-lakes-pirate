@@ -1,0 +1,19 @@
+{
+  "source": "cc0",
+  "tool": "OpenGameArt: Pencil Sounds",
+  "author": "NachtmahrTV (freesound.org/s/571800); packed by AntumDeluge",
+  "reference": "https://opengameart.org/content/pencil-sounds",
+  "date": "2026-11-01",
+  "license": "CC0 1.0",
+  "modifications": [],
+  "originalFile": "flac/pencil_write.flac",
+  "description": "A pen scratching an entry into the ledger (sliced at runtime)",
+  "durationS": 1.422,
+  "pipeline": [
+    "decoded to mono 48000 Hz, high-passed at 300 Hz",
+    "edge fades",
+    "peak-normalized toward -3 dB (+2.1 dB)",
+    "Opus 48 kbps mono in Ogg (ffmpeg libopus)"
+  ],
+  "inputHash": "ac4fac1a6d7d7c61"
+}

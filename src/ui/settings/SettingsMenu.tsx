@@ -77,7 +77,7 @@ type Tab = 'graphics' | 'camera' | 'sound' | 'controls';
 const VOLUMES: [VolumeId, string][] = [
   ['master', 'Master'],
   ['music', 'Music'],
-  ['ambience', 'Weather & wildlife'],
+  ['ambience', 'Weather, wildlife & harbors'],
   ['sfx', 'Ship & signals'],
   ['ui', 'Interface'],
 ];
@@ -217,7 +217,14 @@ function Camera({ settings, update }: SettingsMenuProps) {
   );
 }
 
-function Sound({ audio }: SettingsMenuProps) {
+function Sound({ audio, settings, update }: SettingsMenuProps) {
+  const captions = (
+    <Toggle
+      label="Captions for fog signals and whistles"
+      checked={settings.value.ui.captions}
+      onChange={(on) => update((s) => (s.ui.captions = on))}
+    />
+  );
   if (!audio) {
     return (
       <div class="menu-section">
@@ -247,6 +254,7 @@ function Sound({ audio }: SettingsMenuProps) {
         </label>
       ))}
       <Toggle label="Mute all sound" checked={a.muted} onChange={(on) => audio.setMuted(on)} />
+      {captions}
     </div>
   );
 }

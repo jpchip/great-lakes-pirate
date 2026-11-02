@@ -1,0 +1,11 @@
+{
+  "id": "amb.harbor.mill-saw",
+  "name": "mill-saw",
+  "description": "A steam sawmill's head saw taking one cut through a log, and the slab dropping",
+  "kind": "oneshot",
+  "bus": "ambience",
+  "bundles": [
+    "harbor-audio"
+  ],
+  "source": "source.flac"
+}

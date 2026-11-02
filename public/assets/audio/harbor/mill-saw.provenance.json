@@ -1,0 +1,19 @@
+{
+  "source": "procedural",
+  "tool": "tools/audio/synth.ts (tools/audio/lib/synth.ts)",
+  "author": "Great Lakes Pirate contributors",
+  "reference": "Additive saw whine at a 560 Hz tooth rate that sags under load, band-passed noise for the cut, a low thud",
+  "date": "2026-11-01",
+  "license": "CC BY 4.0",
+  "attribution": "Great Lakes Pirate contributors",
+  "modifications": [],
+  "description": "A steam sawmill's head saw taking one cut through a log, and the slab dropping",
+  "durationS": 7.5,
+  "pipeline": [
+    "decoded to mono 48000 Hz",
+    "edge fades",
+    "RMS-normalized toward -24 dB (-9.9 dB)",
+    "Opus 64 kbps mono in Ogg (ffmpeg libopus)"
+  ],
+  "inputHash": "9fedaf7b8b7b908c"
+}

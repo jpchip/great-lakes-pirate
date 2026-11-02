@@ -1,0 +1,11 @@
+{
+  "id": "amb.harbor.ore-dump",
+  "name": "ore-dump",
+  "description": "An ore car dumping into an ore dock's pocket: door clang, the ore rushing down, door shut",
+  "kind": "oneshot",
+  "bus": "ambience",
+  "bundles": [
+    "harbor-audio"
+  ],
+  "source": "source.flac"
+}

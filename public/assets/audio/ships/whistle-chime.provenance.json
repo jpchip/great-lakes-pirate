@@ -1,19 +1,21 @@
 {
-  "source": "procedural",
-  "tool": "tools/audio/synth.ts (tools/audio/lib/synth.ts)",
-  "author": "Great Lakes Pirate contributors",
-  "reference": "Additive steam whistle: A three-bell chime at 262, 311 and 392 Hz, pressure-following pitch, band-passed steam noise",
-  "date": "2026-10-31",
-  "license": "CC BY 4.0",
-  "attribution": "Great Lakes Pirate contributors",
+  "source": "cc0",
+  "tool": "radio aporee, via the Internet Archive: \"William Kennedy & Sons/Black Clawson Kennedy Whistle \\\"There She Blows\\\"\", Community Waterfront Heritage Centre, Owen Sound, Ontario",
+  "author": "radio aporee recordist (azzfam), 2016",
+  "reference": "https://archive.org/details/aporee_34111_39215",
+  "date": "2026-11-01",
+  "license": "Public domain",
+  "attribution": "Recorded by azzfam for radio aporee; marked Public Domain Mark 1.0 by the recordist. A ship whistle put up at the Kennedy foundry around 1940-41, first blown by steam and later by compressed gas.",
   "modifications": [],
-  "description": "Package steamer chime whistle: three bells, one long blast (cut short at runtime)",
-  "durationS": 5,
+  "originalFile": "WilliamKennedySonsBlackClawsonKennedyWhistle.ogg",
+  "description": "Package steamer chime whistle: a real multi-bell ship whistle, one long blast (cut short at runtime)",
+  "durationS": 10.8,
   "pipeline": [
-    "decoded to mono 48000 Hz",
-    "edge fades",
-    "peak-normalized toward -1 dB (-0.1 dB)",
+    "decoded to mono 48000 Hz, high-passed at 70 Hz",
+    "trimmed to 37.4–48.2 s",
+    "edge fades (0.5 s out)",
+    "peak-normalized toward -1 dB (+7.2 dB)",
     "Opus 56 kbps mono in Ogg (ffmpeg libopus)"
   ],
-  "inputHash": "d4bf812fdcdf9d80"
+  "inputHash": "f367a2525c0c57f0"
 }
