@@ -1,0 +1,12 @@
+{
+  "id": "ui.ledger.pen",
+  "name": "pen",
+  "description": "A pen scratching an entry into the ledger (sliced at runtime)",
+  "source": "source.flac",
+  "kind": "oneshot",
+  "bus": "ui",
+  "bundles": [
+    "port-audio"
+  ],
+  "highpassHz": 300
+}

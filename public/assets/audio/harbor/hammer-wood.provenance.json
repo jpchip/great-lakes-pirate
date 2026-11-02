@@ -1,0 +1,19 @@
+{
+  "source": "cc0",
+  "tool": "OpenGameArt: 68 Workshop Sounds",
+  "author": "bart",
+  "reference": "https://opengameart.org/content/68-workshop-sounds",
+  "date": "2026-11-01",
+  "license": "CC0 1.0",
+  "modifications": [],
+  "originalFile": "workshop/workshop - wood hammering.wav",
+  "description": "Steady wooden hammering, a mallet on the caulking iron (sliced at runtime)",
+  "durationS": 9.204,
+  "pipeline": [
+    "decoded to mono 48000 Hz, high-passed at 90 Hz",
+    "edge fades",
+    "RMS-normalized toward -24 dB (-1.4 dB)",
+    "Opus 64 kbps mono in Ogg (ffmpeg libopus)"
+  ],
+  "inputHash": "eec4ed289b4a374e"
+}

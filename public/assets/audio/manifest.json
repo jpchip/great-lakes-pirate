@@ -159,7 +159,7 @@
     "sfx.ship.whistle-chime": {
       "type": "audio",
       "url": "ships/whistle-chime.ogg",
-      "bytes": 40726
+      "bytes": 74717
     },
     "sfx.ship.whistle-cutter": {
       "type": "audio",
@@ -215,6 +215,66 @@
       "type": "audio",
       "url": "music/chart-voyage.ogg",
       "bytes": 1435462
+    },
+    "amb.harbor.car-bang": {
+      "type": "audio",
+      "url": "harbor/car-bang.ogg",
+      "bytes": 6009
+    },
+    "amb.harbor.hammer-metal": {
+      "type": "audio",
+      "url": "harbor/hammer-metal.ogg",
+      "bytes": 47195
+    },
+    "amb.harbor.hammer-wood": {
+      "type": "audio",
+      "url": "harbor/hammer-wood.ogg",
+      "bytes": 65250
+    },
+    "amb.harbor.mill-saw": {
+      "type": "audio",
+      "url": "harbor/mill-saw.ogg",
+      "bytes": 70308
+    },
+    "amb.harbor.ore-dump": {
+      "type": "audio",
+      "url": "harbor/ore-dump.ogg",
+      "bytes": 52980
+    },
+    "ui.trade.coins-1": {
+      "type": "audio",
+      "url": "port/coins-1.ogg",
+      "bytes": 2426
+    },
+    "ui.trade.coins-2": {
+      "type": "audio",
+      "url": "port/coins-2.ogg",
+      "bytes": 3874
+    },
+    "ui.trade.coins-3": {
+      "type": "audio",
+      "url": "port/coins-3.ogg",
+      "bytes": 3077
+    },
+    "ui.trade.coins-pile": {
+      "type": "audio",
+      "url": "port/coins-pile.ogg",
+      "bytes": 10418
+    },
+    "ui.ledger.close": {
+      "type": "audio",
+      "url": "port/paper-close.ogg",
+      "bytes": 9567
+    },
+    "ui.ledger.open": {
+      "type": "audio",
+      "url": "port/paper-open.ogg",
+      "bytes": 8293
+    },
+    "ui.ledger.pen": {
+      "type": "audio",
+      "url": "port/pen.ogg",
+      "bytes": 9696
     }
   },
   "bundles": {
@@ -270,6 +330,22 @@
     ],
     "music-chart": [
       "music.chart.voyage"
+    ],
+    "harbor-audio": [
+      "amb.harbor.car-bang",
+      "amb.harbor.hammer-metal",
+      "amb.harbor.hammer-wood",
+      "amb.harbor.mill-saw",
+      "amb.harbor.ore-dump"
+    ],
+    "port-audio": [
+      "ui.trade.coins-1",
+      "ui.trade.coins-2",
+      "ui.trade.coins-3",
+      "ui.trade.coins-pile",
+      "ui.ledger.close",
+      "ui.ledger.open",
+      "ui.ledger.pen"
     ]
   }
 }

@@ -1,0 +1,11 @@
+{
+  "id": "ui.trade.coins-1",
+  "name": "coins-1",
+  "description": "A few coins counted onto the counter",
+  "source": "source.ogg",
+  "kind": "oneshot",
+  "bus": "ui",
+  "bundles": [
+    "port-audio"
+  ]
+}

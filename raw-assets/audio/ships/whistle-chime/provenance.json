@@ -1,10 +1,11 @@
 {
-  "source": "procedural",
-  "tool": "tools/audio/synth.ts (tools/audio/lib/synth.ts)",
-  "author": "Great Lakes Pirate contributors",
-  "reference": "Additive steam whistle: A three-bell chime at 262, 311 and 392 Hz, pressure-following pitch, band-passed steam noise",
-  "date": "2026-10-31",
-  "license": "CC BY 4.0",
-  "attribution": "Great Lakes Pirate contributors",
-  "modifications": []
+  "source": "cc0",
+  "date": "2026-11-01",
+  "modifications": [],
+  "tool": "radio aporee, via the Internet Archive: \"William Kennedy & Sons/Black Clawson Kennedy Whistle \\\"There She Blows\\\"\", Community Waterfront Heritage Centre, Owen Sound, Ontario",
+  "author": "radio aporee recordist (azzfam), 2016",
+  "reference": "https://archive.org/details/aporee_34111_39215",
+  "license": "Public domain",
+  "originalFile": "WilliamKennedySonsBlackClawsonKennedyWhistle.ogg",
+  "attribution": "Recorded by azzfam for radio aporee; marked Public Domain Mark 1.0 by the recordist. A ship whistle put up at the Kennedy foundry around 1940-41, first blown by steam and later by compressed gas."
 }

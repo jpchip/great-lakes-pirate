@@ -206,6 +206,7 @@ raw-assets/audio/<category>/<name>.(wav|flac) + provenance.json
 | 1 | Sailing ambience (wind, waves, rigging, luffing), sail and anchor SFX, a basic mixer and buses, the autoplay unlock |
 | 2 | Weather ambience (rain, thunder, fog), lighthouse fog signals (directional), gulls and loons, open-water music v1 |
 | 3 | Chart music, steam whistles, encounter stingers |
+| 4 | Harbor work sounds at the ports, trade sounds, captions for the fog signals and whistles (§17) |
 | 5 | Wanted and tier stingers, cutter whistle |
 | 6 | Combat SFX, boiler explosion, the chase music layer |
 | 7 | Footsteps per surface, stealth layers and stingers, guard barks, docks ambience day and night, occlusion and reverb |
@@ -270,10 +271,10 @@ All resolved.
 
 ### Not covered yet
 
-1. **Captions for directional cues** (§5): the fog signals have no caption or arrow yet. They belong with the UI captions of plan 13 §9.
+1. ~~**Captions for directional cues** (§5): the fog signals have no caption or arrow yet. They belong with the UI captions of plan 13 §9.~~ Done (§17).
 2. **Fog signal history:** which Apostles stations had signals in 1900, and their codes, need R1 sources; the data marks all three as assumptions.
 3. **Music:** the synthesized tunes are placeholders, and the *Red Iron Ore* motif waits for R1 to confirm which Great Lakes melodies are public domain (§2).
-4. **Storm music and harbor work sounds** (hammering, the sawmill) are later phases (§11).
+4. **Storm music** is a later phase (§11); ~~harbor work sounds~~ came in Phase 4 (§17).
 
 ## 15. Phase 3 Piece J, Part 1: Ship Whistles (2026-10-31)
 
@@ -292,7 +293,7 @@ All resolved.
 ### Still to do
 
 1. ~~**Part 2, after piece D:** chart music, encounter stingers, and the loading-screen transition sound.~~ Done (§16).
-2. **Captions** (§5): whistles, like the fog signals, have no caption or direction arrow yet (plan 13 §9).
+2. ~~**Captions** (§5): whistles, like the fog signals, have no caption or direction arrow yet (plan 13 §9).~~ Done (§17).
 3. **R1 checks:** the 1895 rule for sailing vessels' fog horns (the tack code here is the international one), whether a stopped steamer rang her bell, and what the *Morrill*'s whistle actually sounded like. The pitches are by ear.
 4. **Piece G's arenas** use the same `game.world` NPC entities, so their ships whistle with no more work; a steamer that turns to pass should then also give the passing signal at the turn.
 
@@ -319,9 +320,36 @@ All resolved.
 2. **Arena music:** the arenas are the sailing mode, so they get the open-water director (quiet in fog and storm); a chase layer for the cutter is Phase 6 (§11).
 3. **Captions** (§5) for the stingers aren't needed (they aren't directional), but the encounter card is what says what was seen.
 
+## 17. Phase 4 Piece J: Harbor Work, Trade Sounds and Captions (2026-11-01)
+
+**Scope** (plan 05 §16.4 piece J; §4.1 "Docks at day", §4.6, §5): harbor work sounds at the ports (hammering, the mill saw, ore cars at the docks), trade sounds (coins, the ledger), captions for the fog signals (a 0.3.0 known limitation), another search for real recordings or a reachable music tool to replace the placeholders, and every file in `CREDITS.md`.
+
+| Part | Where | What it does |
+|---|---|---|
+| Work sites | `src/audio/harbor-mix.ts` (`workSites`, `BUILDING_WORK`, `PIER_WORK`) | Read off the zone's harbor layouts, no new data: a **sawmill** building is a head saw, the **shipShed** caulking mallets, the **cooperage** a hammer on hoops, a **depot** the railroad switching, an **ore** pier dumps cars along its trestle (55% out, on the deck) and switches them ashore, and a **coal** pier switches. Bayfield has its mill, cooper and depot; Ashland a mill, the ore dock and the depot; Washburn two mills, the coal dock and the depot; Superior its mill and shipyard; Duluth the coal dock and Union Depot; Two Harbors the ore dock and the depot. La Pointe stays quiet but for its gulls (a test holds it to that). |
+| Rules | `harbor-mix.ts` (`WORK`, `workActivity`, `workLevel`) | Pure, unit-tested. The 1900 waterfront's hours: the mills 6–18 through the sawing season (May–November), the shipyard and the cooper 7–17:30 with an hour off at noon, the ore docks around the clock in the shipping season under their lamps, the railroad 5–22 all year. Outdoor work (caulking, the yard) stops in a downpour or a storm; the mill does not. Each kind carries its own way: the ore dock 2.3 km, the saw's whine 1.9 km, the yard 1.6 km, caulking 900 m, the cooper 700 m, duller with distance and in fog (the §7 damping). Each game day is a calendar week, so there is no Sunday rule. |
+| Playback | `src/audio/harbor-audio.ts` (`HarborWorks`), `game-audio.ts` | Each site at work and in range fires on its own random clock (a cut every ~14 s, a burst of blows every 7–9 s, a car every ~35 s, a switching move every ~55 s), placed at the site and arriving at the speed of sound. Hammering plays a 1.5–4 s slice of its recording; an ore car is a coupling bang as the car is spotted, then the dump; switching is 3–7 bangs rippling down the train, each softer. Ambience bus, detail priority, so it gives way to signals and the ship. It runs while the port screen is up (the game is paused, the harbor isn't). |
+| Trade sounds | `src/audio/port-audio.ts` (`TradeCues`) | On the UI bus. The port screen or the journal opening and closing rustles paper; `TradeCompleted` and `StoresBought` count coins (1–4 handfuls by the sum, a poured heap from $100) and then a short stroke of the pen writes it into the ledger. |
+| Captions | `src/audio/captions.ts` (`CaptionFeed`), `src/ui/hud/Captions.tsx` | Every fog signal blast from a light, and every ship's fog signal or passing signal, pushes a caption keyed by its source when it is scheduled; the line shows from the moment the sound arrives (so a far whistle's caption comes late, like the sound) and lingers 4 s after. The HUD shows up to three, newest first, bottom center at any HUD density, with an arrow (eight ways) toward the source from where the camera looks and "close by" or "far off". The text says what the signal means: "Outer Island Light: fog whistle", "Schooner-barge: fog horn, two blasts (port tack)", "Package steamer: one short blast (passing port to port)". Settings → Sound has "Captions for fog signals and whistles", on by default (`ui.captions`). |
+| Sounds | `raw-assets/audio/harbor/`, `raw-assets/audio/port/` | 12 new files, 340 KB, decoded up front (bundles `harbor-audio` and `port-audio`). CC0 from OpenGameArt: bart's workshop recordings for the wooden and iron hammering, rubberduck's metal slam for a car coupling and his coins, a pen on paper (NachtmahrTV, packed by AntumDeluge), and Spring Spring's map open and close for the paper. No free mill saw or ore dock recording was found, so both are **synthesized** (`tools/audio/lib/synth-harbor.ts`): the saw is an additive whine at a 560 Hz tooth rate that sags 12% under load with a band-passed scream of the cut and the slab's thud; the ore dump is a modal steel-plate clang, a low roar and a dense rain of rock pings, and the door banged shut. |
+| A real whistle | `raw-assets/audio/ships/whistle-chime/` | The package steamer's chime is now a recording: a multi-bell ship whistle put up at the Kennedy foundry in Owen Sound, Ontario around 1940, recorded in 2016 for radio aporee and marked Public Domain Mark 1.0 by its recordist (via the Internet Archive). One 10.8 s blast, cut at runtime like the synthesized ones. `npm run audio:synth` no longer renders the chime. |
+| Dev panel | `src/debug/audio-panel.ts` | Audio → Play: each kind of harbor work at its nearest site, three trade payments and the ledger opening. Audio → Mix: sites at work and heard, and the last one. `?debug` also puts `__glpAudio.fogSignal()` on the page for the e2e test. |
+
+**The search for real recordings:** OpenGameArt's CC0 packs had the hammering, coins, pen and paper, but no sawmill, ore dock, steam whistle or fog signal. Wikimedia Commons' API is still rate-limited from the cloud machine. The Internet Archive's search, filtered to public-domain and CC0 licenses, turned up the Owen Sound whistle and a few modern foghorns (electric horns, not 1900 diaphones or steam); its "Red Library", "SSE Library" and similar uploads are commercial libraries re-posted with a CC0 claim, so they were left alone. No music generator was reachable without an account and terms to check, so the open-water cues, the chart theme and the stingers stay synthesized placeholders; that wants Jared's pick of a tool (§3.2's license gate) or a recorded performance.
+
+**Checked:** the rules, the sites, the playback (delays, slices, quiet after hours), the trade cues and the captions by unit tests (`tests/audio-harbor.test.ts`), the bundles and credits by the pipeline tests, and in the game with Playwright (`e2e/smoke.spec.ts`): Bayfield has its work sites, docking rustles paper, a sale counts coins, closing rustles again, and a fog signal gets a caption with an arrow. A 60-second preview (`port-audio/preview-60s.mp3` in the project files) runs the Bayfield mill, cooper and yard from the water, an Ashland ore car, a sale with the pen, a big sale's heap, and the new chime whistle. Levels are set by measurement and need a listen in the game.
+
+### Still to do
+
+1. **Music** is still synthesized (§16 item 1); the *Red Iron Ore* motif still waits on R1.
+2. **The whistle's license:** the Owen Sound recording's Public Domain Mark is the recordist's own choice on radio aporee; if Jared would rather not lean on that, the synthesized chime is in git history and `audio:synth` can bring it back.
+3. **Docks at night and saloon interiors** belong with going ashore (Phase 7, §11); ore docks working at night are the one night sound in Phase 4.
+4. **Stamp thunk** for an accepted contract (§4.6) waits on piece F's contracts.
+
 ---
 
 ## Changelog
+- v0.8: Phase 4 piece J built (§17): harbor work sounds at the ports, trade sounds, captions for fog signals and ship whistles, and a recorded chime whistle.
 - v0.7: Phase 3 piece J part 2 built (§16): the chart's traveling theme, six encounter stingers, the fade-to-fog sound and the Interface slider.
 - v0.6: Phase 3 piece J part 1 built (§15): the NPC ships' steam whistles and the schooner-barge's fog horn, fog signals from the 1895 Great Lakes rules, passing signals, and a whistle per class in `ships.json`.
 - v0.5: Phase 2 piece H built (§14): rain, thunder after the lightning, fog hush and damping, directional fog signals with a rhythm per station, gulls and loons, open-water music v1, the Sound tab. Decision row for the Phase 2 sources.

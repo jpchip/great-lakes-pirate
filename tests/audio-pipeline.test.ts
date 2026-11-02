@@ -9,6 +9,8 @@ import {
   WORLD_AUDIO_BUNDLE,
 } from '../src/audio/game-audio';
 import { WORLD_SOUND } from '../src/audio/world-audio';
+import { HARBOR_AUDIO_BUNDLE, HARBOR_SOUND } from '../src/audio/harbor-audio';
+import { PORT_AUDIO_BUNDLE, PORT_SOUND } from '../src/audio/port-audio';
 import {
   CHART_AUDIO_BUNDLE,
   CHART_MUSIC_BUNDLE,
@@ -176,6 +178,24 @@ describe('shipped sounds (plan 15 §3.2, §8)', () => {
     expect(bundle).toContain(CHART_SOUND.transition);
   });
 
+  it('has the harbor work and trade sounds (Phase 4 piece J)', () => {
+    const harbor = manifest.bundles[HARBOR_AUDIO_BUNDLE] ?? [];
+    for (const id of Object.values(HARBOR_SOUND)) expect(harbor, id).toContain(id);
+    const port = manifest.bundles[PORT_AUDIO_BUNDLE] ?? [];
+    for (const id of [
+      ...PORT_SOUND.coins,
+      PORT_SOUND.pile,
+      PORT_SOUND.pen,
+      PORT_SOUND.open,
+      PORT_SOUND.close,
+    ]) {
+      expect(port, id).toContain(id);
+    }
+    // Small: they decode up front with the rest.
+    const bytes = [...harbor, ...port].reduce((s, id) => s + (manifest.assets[id]?.bytes ?? 0), 0);
+    expect(bytes).toBeLessThanOrEqual(512 * 1024);
+  });
+
   it('keeps the initial audio download within 5 MB, music streaming on top', () => {
     const size = (bundle: string): number =>
       (manifest.bundles[bundle] ?? []).reduce(
@@ -183,7 +203,13 @@ describe('shipped sounds (plan 15 §3.2, §8)', () => {
         0,
       );
     // Plan 15 §8: what's decoded up front stays small; the music cues stream on demand.
-    const decoded = [SAILING_AUDIO_BUNDLE, WORLD_AUDIO_BUNDLE, CHART_AUDIO_BUNDLE];
+    const decoded = [
+      SAILING_AUDIO_BUNDLE,
+      WORLD_AUDIO_BUNDLE,
+      CHART_AUDIO_BUNDLE,
+      HARBOR_AUDIO_BUNDLE,
+      PORT_AUDIO_BUNDLE,
+    ];
     const streamed = [MUSIC_BUNDLE, CHART_MUSIC_BUNDLE];
     expect(size(SAILING_AUDIO_BUNDLE) + size(WORLD_AUDIO_BUNDLE)).toBeLessThanOrEqual(
       1.5 * 1024 * 1024,

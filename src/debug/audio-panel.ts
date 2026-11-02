@@ -2,6 +2,7 @@ import type { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js';
 import type { GameAudio } from '../audio/game-audio';
 import { CHART_SOUND, type StingerId } from '../audio/chart-audio';
 import { BUS_IDS, type VolumeId } from '../audio/settings';
+import { WORK_KINDS } from '../audio/harbor-mix';
 
 /**
  * Audio in the dev overlay: bus volumes and mute (also on the settings screen), buttons
@@ -60,6 +61,14 @@ export function createAudioPanel(options: AudioPanelOptions): { update(): void }
     events.add({ play: () => audio.chartCues.stinger(id) }, 'play').name(`Stinger: ${id}`);
   }
   events.add({ play: () => audio.chartCues.transition() }, 'play').name('Fade to fog');
+  // Phase 4 piece J: the harbors at work and the trade sounds.
+  for (const kind of WORK_KINDS) {
+    events.add({ play: () => audio.harbor.workNow(kind) }, 'play').name(`Harbor: ${kind}`);
+  }
+  events.add({ play: () => audio.trade.paid(300) }, 'play').name('Trade: small');
+  events.add({ play: () => audio.trade.paid(4000) }, 'play').name('Trade: large');
+  events.add({ play: () => audio.trade.paid(20000) }, 'play').name('Trade: heap');
+  events.add({ play: () => audio.trade.opened() }, 'play').name('Ledger: open');
 
   const status = {
     context: '',
@@ -68,6 +77,7 @@ export function createAudioPanel(options: AudioPanelOptions): { update(): void }
     chartMusic: '',
     lastStinger: '',
     lastWhistle: '',
+    lastHarbor: '',
   };
   const readout = {
     voices: 0,
@@ -84,6 +94,8 @@ export function createAudioPanel(options: AudioPanelOptions): { update(): void }
     loonsPerS: 0,
     signalsHeard: 0,
     shipsSounding: 0,
+    harborSitesAtWork: 0,
+    harborSitesHeard: 0,
   };
   const mix = folder.addFolder('Mix').close();
   mix.add(status, 'context').disable().listen();
@@ -92,6 +104,7 @@ export function createAudioPanel(options: AudioPanelOptions): { update(): void }
   mix.add(status, 'chartMusic').disable().listen();
   mix.add(status, 'lastStinger').disable().listen();
   mix.add(status, 'lastWhistle').disable().listen();
+  mix.add(status, 'lastHarbor').disable().listen();
   for (const key of Object.keys(readout) as (keyof typeof readout)[]) {
     mix.add(readout, key).disable().listen();
   }
@@ -109,6 +122,9 @@ export function createAudioPanel(options: AudioPanelOptions): { update(): void }
       readout.signalsHeard = w.signalsHeard;
       readout.shipsSounding = audio.whistles.levels.shipsSounding;
       status.lastWhistle = audio.whistles.levels.lastSignal;
+      readout.harborSitesAtWork = audio.harbor.levels.sitesAtWork;
+      readout.harborSitesHeard = audio.harbor.levels.sitesHeard;
+      status.lastHarbor = audio.harbor.levels.last;
       status.mood = audio.mood;
       status.chartMusic = audio.chartMusic.playing
         ? `playing${audio.chartMusic.duckS > 0 ? ' (ducked)' : ''}`

@@ -68,7 +68,8 @@ import { createHazardState, mooringBerths, type MooringBerth } from './sim/saili
 import { PLAYER_SHIP_IDS } from './sim/sailing/ships';
 import { httpBytes, loadZoneTerrain, type LoadedZone } from './sim/terrain/load';
 import { TEST_BAY, type Dock, type Pose } from './sim/terrain/test-bay';
-import { findHarbor, harborZoneId, layoutHarbors } from './sim/harbors';
+import { findHarbor, harborZoneId, layoutHarbors, type HarborLayout } from './sim/harbors';
+import { workSites } from './audio/harbor-mix';
 import { lightsIn, placeLights, viewingSpot } from './sim/lighthouses';
 import { ZoneManager } from './sim/terrain/zone-manager';
 import {
@@ -468,12 +469,17 @@ async function boot(): Promise<void> {
         )
       : [];
   const stations = signalStations(zone);
+  // Where the harbors are heard at work: mills, yards and docks (Phase 4 piece J).
+  const harborSites = (layouts: readonly HarborLayout[]) =>
+    workSites(layouts.map((l) => ({ id: l.def.id, buildings: l.buildings, piers: l.piers })));
   const audio: GameAudio | undefined = await createGameAudio({
     game: ctx,
     target: window,
     storage: browserStorage(),
     stations,
     harbors: harborLayouts.flatMap((l) => l.piers.map((p) => p.root)),
+    sites: harborSites(harborLayouts),
+    captions: settings.value.ui.captions,
     onState: (s) => (document.body.dataset['audio'] = s),
   }).catch((err: unknown) => {
     console.warn('Audio unavailable; running silent', err);
@@ -481,6 +487,11 @@ async function boot(): Promise<void> {
     return undefined;
   });
   if (audio) document.body.dataset['audioBank'] = String(audio.bank.size);
+  // `?debug`: sound the nearest fog signal now, for the captions' e2e test (piece J).
+  if (audio && params.has('debug')) {
+    const hook = { fogSignal: () => audio.world.signalNow() };
+    (window as unknown as { __glpAudio: typeof hook }).__glpAudio = hook;
+  }
   /** The chart's music and cues on the page, for the e2e tests; written only on a change. */
   const audioCuesToDataset = (a: GameAudio): void => {
     const d = document.body.dataset;
@@ -490,6 +501,10 @@ async function boot(): Promise<void> {
     if (stinger && d['stinger'] !== stinger) d['stinger'] = stinger;
     const fades = String(a.chartCues.transitions);
     if (d['audioFades'] !== fades) d['audioFades'] = fades;
+    const trade = a.trade.last;
+    if (trade && d['tradeCue'] !== trade) d['tradeCue'] = trade;
+    const sites = String(a.harbor.siteCount);
+    if (d['harborSites'] !== sites) d['harborSites'] = sites;
   };
 
   let changingZone = false;
@@ -658,6 +673,7 @@ async function boot(): Promise<void> {
     const journal = input.bindings.sailing.Journal;
     if (journal) input.bindings.chart = { ...input.bindings.chart, Journal: journal };
     sailing.state.manualTrim = s.sailing.manualTrim;
+    if (audio) audio.captions.enabled = s.ui.captions;
   };
 
   // The HUD and the settings screen (plan 13 §12). The menu pauses the tick.
@@ -739,6 +755,7 @@ async function boot(): Promise<void> {
         input.endTick();
       }
       if (cameraRig) cameraRig.suspended = open;
+      audio?.portScreen(open);
       document.body.dataset['port'] = ports.openPort ?? (ports.journalOpen ? 'journal' : 'closed');
       hudClock = HUD_INTERVAL_S;
     },
@@ -931,6 +948,7 @@ async function boot(): Promise<void> {
       audio?.setZone({
         stations: signalStations(zone),
         harbors: harborLayouts.flatMap((l) => l.piers.map((p) => p.root)),
+        sites: harborSites(harborLayouts),
       });
       placeShip(pose);
       scene?.setZone(zone, def.edge);
@@ -1390,9 +1408,11 @@ async function boot(): Promise<void> {
       if (hudClock >= HUD_INTERVAL_S && machine.mode === 'chart') {
         hudClock = 0;
         ui.setHud(undefined);
+        ui.setCaptions([]);
         chartTravel.sampleHud();
       } else if (hudClock >= HUD_INTERVAL_S) {
         hudClock = 0;
+        ui.setCaptions(audio?.captionsNow() ?? []);
         ui.setHud(
           sampleHud({
             ship: playerShip,

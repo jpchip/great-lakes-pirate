@@ -1,11 +1,15 @@
 {
   "id": "sfx.ship.whistle-chime",
   "name": "whistle-chime",
-  "description": "Package steamer chime whistle: three bells, one long blast (cut short at runtime)",
+  "description": "Package steamer chime whistle: a real multi-bell ship whistle, one long blast (cut short at runtime)",
+  "source": "source.ogg",
   "kind": "oneshot",
   "bus": "sfx",
+  "trimStartS": 37.4,
+  "trimEndS": 48.2,
+  "fadeOutS": 0.5,
+  "highpassHz": 70,
   "bundles": [
     "world-audio"
-  ],
-  "source": "source.flac"
+  ]
 }

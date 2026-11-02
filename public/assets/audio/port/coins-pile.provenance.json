@@ -1,0 +1,19 @@
+{
+  "source": "cc0",
+  "tool": "OpenGameArt: 80 CC0 RPG SFX",
+  "author": "rubberduck",
+  "reference": "https://opengameart.org/content/80-cc0-rpg-sfx",
+  "date": "2026-11-01",
+  "license": "CC0 1.0",
+  "modifications": [],
+  "originalFile": "item_coins_04.ogg",
+  "description": "A heap of coins poured out: a big sale or purchase",
+  "durationS": 1.61,
+  "pipeline": [
+    "decoded to mono 48000 Hz",
+    "edge fades",
+    "peak-normalized toward -3 dB (-6.1 dB)",
+    "Opus 48 kbps mono in Ogg (ffmpeg libopus)"
+  ],
+  "inputHash": "202c35abb5335e08"
+}
