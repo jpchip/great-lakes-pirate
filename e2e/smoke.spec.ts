@@ -567,3 +567,70 @@ test('docks at Bayfield, trades on the port screen, and keeps the ledger', async
   expect(Object.keys(known)).toEqual(['port.bayfield']);
   expect(errors).toEqual([]);
 });
+
+interface StashHook {
+  hideouts(): Record<string, { storage: { goods: { good: string; qty: number }[]; cash: number } }>;
+  lie(until: 'dawn' | 'dusk' | 'wind'): string | undefined;
+}
+
+// Phase 4 piece E: come alongside the Stockton landing, stash the cargo and some cash,
+// and find them still there after a reload, with nothing of it in the hold.
+test('stashes cargo and cash at Stockton and keeps them through a reload', async ({ page }) => {
+  const errors = collectErrors(page);
+  const body = page.locator('body');
+  await page.goto('/?renderer=null&debug&harbor=stockton');
+  await expect(body).toHaveAttribute('data-terrain', 'loaded');
+  await page.waitForFunction(() => '__glpChart' in window);
+  const docked = await page.evaluate(() =>
+    (window as unknown as { __glpPort: PortHook }).__glpPort.dock('stockton_landing'),
+  );
+  expect(docked).toBe(true);
+
+  const screen = page.getByTestId('stash-screen');
+  await expect(screen).toBeVisible({ timeout: 15_000 });
+  await expect(screen).toHaveAttribute('data-hideout', 'hideout.stockton');
+  await expect(page.getByTestId('port-screen')).toHaveCount(0);
+
+  // Shift-click stashes the whole lot of rope and canvas; the hold empties.
+  await page.getByTestId('stash-0').click({ modifiers: ['Shift'] });
+  await expect(page.getByTestId('stash-hold-row')).toHaveCount(0);
+  await expect(page.getByTestId('stash-store-row')).toHaveCount(1);
+  // $100 into the strongbox.
+  await page.getByTestId('stash-cash-amount').fill('100');
+  await page.getByTestId('stash-cash-in').click();
+  await expect(page.getByTestId('stash-strongbox')).toHaveText('$100.00');
+  await expect(page.getByTestId('stash-purse')).toHaveText('$50.00');
+
+  // Esc goes back aboard; the HUD offers the stash, and P reopens it.
+  await page.keyboard.press('Escape');
+  await expect(screen).toHaveCount(0);
+  await expect(page.getByTestId('hud-port')).toHaveText(/Stockton stash/);
+  await page.keyboard.press('KeyP');
+  await expect(screen).toBeVisible();
+  // Alongside, the captain can lie until dusk; the clock runs on.
+  await page.getByTestId('lie-dusk').click();
+  await expect(page.getByTestId('stash-message')).toHaveCount(0);
+  await page.keyboard.press('Escape');
+  await expect(page.getByTestId('hud-status').filter({ hasText: /lay at anchor/ })).toHaveCount(1);
+
+  await page.evaluate(() => {
+    delete document.body.dataset['savedMode'];
+    window.dispatchEvent(new Event('pagehide'));
+  });
+  await expect(body).toHaveAttribute('data-saved-mode', /.+/);
+  await page.goto('/?renderer=null&debug');
+  await expect(body).toHaveAttribute('data-save', 'loaded');
+  await page.waitForFunction(() => '__glpChart' in window);
+  const after = await page.evaluate(() => ({
+    stash: (window as unknown as { __glpStash: StashHook }).__glpStash.hideouts(),
+    cargo: (window as unknown as { __glpEconomy: EconomyHook }).__glpEconomy.cargo(),
+    purse: (window as unknown as { __glpEconomy: EconomyHook }).__glpEconomy.purse(),
+  }));
+  expect(after.stash['hideout.stockton']?.storage).toEqual({
+    goods: [{ good: 'good.rope_canvas', qty: 5 }],
+    cash: 10_000,
+  });
+  expect(after.cargo).toEqual([]);
+  expect(after.purse).toBe(5_000);
+  expect(errors).toEqual([]);
+});
