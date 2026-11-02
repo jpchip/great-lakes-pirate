@@ -1,0 +1,35 @@
+[
+  {
+    "id": "smuggler.island",
+    "boatName": "Whippoorwill",
+    "classId": "ship.fish_tug",
+    "blurb": "A fish tug with no catch aboard, lying to her anchor with one lantern lit.",
+    "anchorage": {
+      "id": "anchorage.oak_lee",
+      "name": "Oak Island's lee",
+      "where": "in the lee of Oak Island",
+      "zone": "zone.apostles",
+      "region": "region.apostles",
+      "at": {
+        "lat": 46.91126,
+        "lon": -90.70829
+      },
+      "headingDeg": 315
+    },
+    "darkSunDeg": -6,
+    "sells": [
+      {
+        "good": "good.untaxed_whiskey",
+        "cu": 12
+      }
+    ],
+    "weeklyCashCents": 30000,
+    "rate": {
+      "min": 0.4,
+      "trust": 0.15,
+      "cool": 0.15,
+      "trustAtCents": 200000
+    },
+    "knownBy": ["saloon_keeper", "poacher"]
+  }
+]

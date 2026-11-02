@@ -6,6 +6,8 @@ import type { TradeRefusal } from '../sim/economy/trade';
 import { pierPort } from '../sim/harbors';
 import { stashedCash } from '../sim/hideouts/stash';
 import type { StoreRefusal } from '../sim/economy/chandlery';
+import type { OfferRefusal, OfferResult } from '../sim/economy/contraband';
+import { formatCents } from '../sim/economy/knowledge';
 import type { GameContext } from '../modes/context';
 import {
   ledgerSnapshot,
@@ -17,7 +19,6 @@ import type { PortActions } from '../ui/port/PortScreen';
 import type { GameEconomy } from './economy';
 import { contractsOf, type GameContracts } from './contracts';
 import { cargoName, companyName, type AcceptRefusal } from '../sim/economy/contracts';
-import { formatCents } from '../sim/economy/knowledge';
 import type { ShipHazards } from './hazards';
 import type { GameShipyard } from './shipyard';
 
@@ -74,6 +75,38 @@ const TRADE_REFUSALS: Record<TradeRefusal, string> = {
   noCargo: "You haven't that much to sell.",
 };
 
+const OFFER_REFUSALS: Record<OfferRefusal, string> = {
+  badLot: 'Nobody needs persuading to buy that.',
+  notTraded: "They don't deal in that here, honest or otherwise.",
+  turnedAway: "They've turned you away once this week. Nobody here will look at it now.",
+  tooHot:
+    "Your receiver won't touch goods that fresh and that well marked. Let them cool, or take them to the smuggler.",
+};
+
+/** What came of offering a lot, in a line for the screen. */
+export function offerMessage(r: OfferResult, portName: string): string {
+  if (!r.ok) return OFFER_REFUSALS[r.reason];
+  const what = `${r.qty} CU of ${r.good === 'good.untaxed_whiskey' ? 'untaxed whiskey' : 'it'}`;
+  if (r.outcome === 'sold') {
+    if (r.receiver === 'known') {
+      return `Your receiver takes it for ${formatCents(r.totalCents)}, no questions asked.`;
+    }
+    const sold =
+      r.kind === 'hot'
+        ? `No questions asked: sold for ${formatCents(r.totalCents)}.`
+        : `Sold on the quiet for ${formatCents(r.totalCents)}.`;
+    return `${sold} The merchant says to bring more: you have a receiver in ${portName}.`;
+  }
+  if (r.outcome === 'refused') {
+    return r.kind === 'hot'
+      ? `The merchant knows those marks and won't touch them. Word will be round ${portName} by nightfall.`
+      : `The merchant won't have ${what} in the store. Word will be round ${portName} by nightfall.`;
+  }
+  return r.kind === 'hot'
+    ? `The merchant knows those marks and sends for the constable's man: ${r.qty} CU taken off you.`
+    : `The merchant sends for the revenue man: ${what} taken off you.`;
+}
+
 const ACCEPT_REFUSALS: Record<AcceptRefusal, string> = {
   unknown: 'That offer is gone from the board.',
   locked: "They don't know you well enough for that one yet.",
@@ -120,6 +153,8 @@ export function attachPorts(opts: PortControlOptions): PortControl {
       cargoSpeedLoss: hazards.cls.rules.cargoSpeedLoss,
       port,
       gameSeconds: now(),
+      refusals: ctx.state.contraband?.refusals,
+      receivers: ctx.state.contraband?.receivers,
       contracts: (() => {
         const c = contractSources();
         return c && { ...c, board: opts.contracts?.board(port) ?? [] };
@@ -237,7 +272,13 @@ export function attachPorts(opts: PortControlOptions): PortControl {
       if (journalOpen || openPort) return;
       journalOpen = true;
       opts.showJournal(
-        ledgerSnapshot(economy.defs, ctx.state.knowledge.prices, now(), contractSources()),
+        ledgerSnapshot(
+          economy.defs,
+          ctx.state.knowledge.prices,
+          now(),
+          contractSources(),
+          ctx.state.contraband?.receivers,
+        ),
       );
       opts.onOpen(true);
     },
@@ -252,6 +293,14 @@ export function attachPorts(opts: PortControlOptions): PortControl {
       sell: (good, qty) => trade('sell', good, qty),
       quote: (good, qty, side) =>
         openPort ? economy.quote(openPort, good, qty, side).totalCents : 0,
+      offer(index) {
+        const port = openPort;
+        if (!port) return 'The market is closed.';
+        const r = economy.offer(port, index);
+        if (r.ok && r.outcome === 'sold') note(port);
+        refresh();
+        return offerMessage(r, portInfo(port)?.name ?? port);
+      },
       buyStores(item, qty) {
         const port = openPort;
         if (!port) return 'The chandlery is closed.';

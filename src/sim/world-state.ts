@@ -7,6 +7,7 @@ import { gameEconomy } from './economy/defs';
 import { createMarkets, syncMarkets } from './economy/market';
 import { createContractsState, type ContractsState } from './economy/contracts';
 import { CONTRACT_KINDS, CONTRACT_TIERS } from '../../data/schemas/contracts';
+import { freshContrabandState } from './economy/smuggler';
 import { startingHideouts, syncHideouts } from './hideouts/stash';
 import { firstWeekSchema } from './character/first-week';
 import { defaultShipState } from './shipyard/shipyard';
@@ -183,6 +184,25 @@ export const knowledgeSchema = z.object({
 });
 
 /**
+ * Contraband's saved state (plan 05 §6; Phase 4 piece H): the island smuggler's cash and
+ * stock for the night and her trust in you, the ports whose merchants turned you away and
+ * the week they did, the ports where you have a receiver, and whether you know where she lies. Optional and filled on load, so
+ * a v6 save from before piece H needs no migration.
+ */
+export const contrabandStateSchema = z.object({
+  smuggler: z.object({
+    night: z.number().int(),
+    cashCents: z.number().int().nonnegative(),
+    stock: z.record(z.string(), z.number().int().nonnegative()),
+    dealtCents: z.number().int().nonnegative(),
+  }),
+  refusals: z.record(z.string(), z.number().int()),
+  /** Ports with a merchant who has taken a lot from you: your receiver there. */
+  receivers: z.array(z.string()).default([]),
+  known: z.boolean(),
+});
+
+/**
  * Hideouts and what's stored in them (plan 09 §12 `hideouts[id]`; Phase 4 piece E): the
  * site, when it was claimed, and its storage of goods (stacks as in the hold, hot and
  * contract flags kept) and cash in the strongbox. Absent in a save from before piece E:
@@ -295,6 +315,7 @@ export const worldStateSchema = z.object({
   voyage: voyageSchema.nullable(),
   markets: marketsSchema,
   traffic: trafficStateSchema.optional(),
+  contraband: contrabandStateSchema.optional(),
   contracts: contractsStateSchema.optional(),
   hideouts: hideoutsSchema.optional(),
   knowledge: knowledgeSchema,
@@ -332,6 +353,7 @@ export function createWorldState(seed: string, startSeconds = 0): WorldState {
     voyage: null,
     markets: createMarkets(gameEconomy(), clock.gameSeconds),
     traffic: { deliveredTo: clock.gameSeconds, ships: {} },
+    contraband: freshContrabandState(clock.gameSeconds),
     contracts: createContractsState(),
     hideouts: startingHideouts(defaultCaptain().background, clock.gameSeconds),
     knowledge: { prices: {} },
@@ -348,6 +370,7 @@ export function parseWorldState(state: unknown): WorldState {
   const parsed = worldStateSchema.parse(state);
   syncMarkets(gameEconomy(), parsed.markets, parsed.environment.clock.gameSeconds);
   parsed.traffic ??= { deliveredTo: parsed.environment.clock.gameSeconds, ships: {} };
+  parsed.contraband ??= freshContrabandState(parsed.environment.clock.gameSeconds);
   parsed.contracts ??= createContractsState();
   parsed.player.standing ??= {};
   parsed.hideouts = syncHideouts(

@@ -13,6 +13,15 @@ import {
 } from '../../sim/economy/knowledge';
 import { quote, unitPrices, type MarketsState } from '../../sim/economy/market';
 import {
+  detectionChance,
+  offerKind,
+  riskWord,
+  tooHotForReceiver,
+  weekOf,
+  type OfferKind,
+  type Refusals,
+} from '../../sim/economy/contraband';
+import {
   storeItems,
   storePriceCents,
   storeRoom,
@@ -111,6 +120,22 @@ export interface HoldRow {
   stealCents?: number | undefined;
   /** What a CU fetches here, when this port buys it and it's clean. */
   sellCents: number | undefined;
+  /** The stack's place in the hold, for offering it (rows are sorted). */
+  index: number;
+  /**
+   * A hot or contraband lot can be offered to the port's merchants (piece H): the risk in a
+   * word, and whether they've already turned you away this week.
+   */
+  offer?:
+    | {
+        kind: OfferKind;
+        risk: string;
+        turnedAway: boolean;
+        /** You have a receiver here: no risk, a discount, and the hottest marked goods refused. */
+        receiver: boolean;
+        tooHot: boolean;
+      }
+    | undefined;
 }
 
 export interface StoreRow {
@@ -223,6 +248,8 @@ export interface LedgerSnapshot {
   /** Goods with a known price somewhere, in trade-screen order. */
   goods: { id: string; name: string }[];
   prices: Record<string, Record<string, LedgerPrice>>;
+  /** Ports where a merchant takes hot goods from you (piece H). */
+  receivers: { id: string; text: string }[];
   /** Contracts in hand, then the last few finished (piece F). Piece K fills the rumors. */
   contracts: { id: string; text: string; done: boolean }[];
   rumors: { id: string; text: string; age: string }[];
@@ -249,6 +276,10 @@ export interface PortSources {
   cargoSpeedLoss: number;
   port: string;
   gameSeconds: number;
+  /** Ports whose merchants turned you away this week (piece H). */
+  refusals?: Refusals | undefined;
+  /** Ports where you have a receiver (piece H). */
+  receivers?: readonly string[] | undefined;
   contracts?: ContractSources | undefined;
   notices?: string[] | undefined;
   /** The player's ship and her name, for the shipyard and fittings (piece G). */
@@ -373,6 +404,7 @@ export function ledgerSnapshot(
   knowledge: PriceKnowledge,
   gameSeconds: number,
   contracts?: ContractSources,
+  receivers?: readonly string[],
 ): LedgerSnapshot {
   const ports: (LedgerPort & { seenAt: number })[] = [];
   const goods = new Set<string>();
@@ -415,6 +447,10 @@ export function ledgerSnapshot(
       .sort(goodOrder(defs))
       .map((id) => ({ id, name: defs.goods.get(id)?.name ?? id })),
     prices,
+    receivers: (receivers ?? []).map((id) => ({
+      id,
+      text: `${portName(id)}: a merchant who asks no questions`,
+    })),
     contracts: contracts ? ledgerContracts(defs, contracts, gameSeconds) : [],
     rumors: [],
     standing: contracts ? ledgerStanding(contracts) : [],
@@ -517,9 +553,13 @@ export function portSnapshot(src: PortSources): PortSnapshot {
     }
   }
 
+  const receiver = src.receivers?.includes(port) ?? false;
+  const turnedAway = !receiver && src.refusals?.[port] === weekOf(gameSeconds);
   const hold: HoldRow[] = trader.cargo
-    .map((s: CargoStack) => {
+    .map((s: CargoStack, index): HoldRow => {
       const traded = pm?.goods.has(s.good) ?? false;
+      const kind = offerKind(defs, s);
+      const offerable = !!pm && !!kind && (kind === 'contraband' || traded);
       const sell =
         traded && isClean(s)
           ? unitPrices(defs, markets, port, s.good, gameSeconds)?.sellCents
@@ -539,6 +579,17 @@ export function portSnapshot(src: PortSources): PortSnapshot {
             ? quote(defs, markets, port, s.good, s.qty, 'sell', gameSeconds).totalCents
             : undefined,
         sellCents: sell,
+        index,
+        offer:
+          offerable && kind
+            ? {
+                kind,
+                risk: riskWord(detectionChance(defs, s, port, gameSeconds)),
+                turnedAway,
+                receiver,
+                tooHot: receiver && tooHotForReceiver(s, gameSeconds),
+              }
+            : undefined,
       };
     })
     .sort((a, b) => goodOrder(defs)(a.good, b.good) || Number(a.hot) - Number(b.hot));
@@ -588,6 +639,6 @@ export function portSnapshot(src: PortSources): PortSnapshot {
     notices: src.notices ?? [],
     shipyard: yard('shipyard'),
     fittings: yard('chandlery'),
-    ledger: ledgerSnapshot(defs, knowledge, gameSeconds, src.contracts),
+    ledger: ledgerSnapshot(defs, knowledge, gameSeconds, src.contracts, src.receivers),
   };
 }

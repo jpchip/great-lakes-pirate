@@ -15,6 +15,8 @@ import type { LoadingScreen as LoadingModel } from './loading/model';
 import { PortScreen, type PortActions } from './port/PortScreen';
 import { Journal } from './port/Ledger';
 import type { LedgerSnapshot, PortSnapshot, PortTab } from './port/model';
+import { SmugglerScreen, type SmugglerActions } from './port/SmugglerScreen';
+import type { SmugglerSnapshot } from './port/smuggler-model';
 import { LieDialog, StashScreen } from './stash/StashScreen';
 import type { StashSnapshot } from './stash/model';
 import type { StashActions } from '../gameplay/stash';
@@ -41,6 +43,8 @@ export interface GameUiOptions {
   setFirstWeekHidden?: ((hidden: boolean) => void) | undefined;
   /** The port screen's buttons and the journal's (Phase 4 piece B). */
   port?: (PortActions & { closeJournal(): void; openDocked(): void }) | undefined;
+  /** Alongside the island smuggler (Phase 4 piece H). */
+  smuggler?: SmugglerActions | undefined;
   /** The stash screen's buttons and the lie-at-anchor choice (Phase 4 piece E). */
   stash?: StashActions | undefined;
   /** The game's sound volumes, when it has Web Audio. */
@@ -62,6 +66,8 @@ export interface GameUi {
   setPort(snapshot: PortSnapshot | undefined): void;
   /** The journal's ledger at the helm; undefined closes it. */
   setJournal(snapshot: LedgerSnapshot | undefined): void;
+  /** The island smuggler's screen; undefined closes it. */
+  setSmuggler(snapshot: SmugglerSnapshot | undefined): void;
   /** The stash screen; undefined closes it (Phase 4 piece E). */
   setStash(snapshot: StashSnapshot | undefined): void;
   /** The lie-at-anchor choice: true opens it, false closes it. */
@@ -83,9 +89,11 @@ export function mountGameUi({
   chart: chartActions,
   onTakeToChart,
   port: portActions,
+  smuggler: smugglerActions,
   stash: stashActions,
   setFirstWeekHidden = () => undefined,
 }: GameUiOptions): GameUi {
+  const smuggler = signal<SmugglerSnapshot | undefined>(undefined);
   const stash = signal<StashSnapshot | undefined>(undefined);
   const lie = signal(false);
   const firstWeek = signal<FirstWeekSnapshot | undefined>(undefined);
@@ -115,6 +123,9 @@ export function mountGameUi({
     if (menuOpen.value) {
       e.preventDefault();
       setMenu(false);
+    } else if (smuggler.value) {
+      e.preventDefault();
+      smugglerActions?.close();
     } else if (stash.value || lie.value) {
       e.preventDefault();
       stashActions?.close();
@@ -131,7 +142,10 @@ export function mountGameUi({
     if (menuOpen.value || e.repeat) return;
     const keys = bindings.value.sailing;
     const is = (action: Action): boolean => (keys[action] ?? []).includes(e.code);
-    if (stash.value && is('Interact')) {
+    if (smuggler.value && is('Interact')) {
+      e.preventDefault();
+      smugglerActions?.close();
+    } else if (stash.value && is('Interact')) {
       e.preventDefault();
       stashActions?.castOff();
     } else if (port.value && is('Interact')) {
@@ -166,6 +180,9 @@ export function mountGameUi({
             setTab={(t) => (portTab.value = t)}
           />
         )}
+        {smuggler.value && smugglerActions && !menuOpen.value && (
+          <SmugglerScreen smuggler={smuggler.value} actions={smugglerActions} />
+        )}
         {stash.value && stashActions && !menuOpen.value && (
           <StashScreen stash={stash.value} actions={stashActions} />
         )}
@@ -186,22 +203,28 @@ export function mountGameUi({
           !menuOpen.value &&
           !port.value &&
           !journal.value &&
+          !smuggler.value &&
           !stash.value &&
           !lie.value &&
           !chart.value && (
             <FirstWeekTracker week={firstWeek.value} setHidden={setFirstWeekHidden} />
           )}
-        {!menuOpen.value && !port.value && !journal.value && !stash.value && !lie.value && (
-          <button
-            type="button"
-            class="hud-menu-button"
-            data-testid="open-settings"
-            title="Settings (Esc)"
-            onClick={() => setMenu(true)}
-          >
-            Settings
-          </button>
-        )}
+        {!menuOpen.value &&
+          !port.value &&
+          !journal.value &&
+          !smuggler.value &&
+          !stash.value &&
+          !lie.value && (
+            <button
+              type="button"
+              class="hud-menu-button"
+              data-testid="open-settings"
+              title="Settings (Esc)"
+              onClick={() => setMenu(true)}
+            >
+              Settings
+            </button>
+          )}
         {menuOpen.value && (
           <SettingsMenu
             settings={current}
@@ -253,6 +276,9 @@ export function mountGameUi({
     },
     setJournal(snapshot) {
       journal.value = snapshot;
+    },
+    setSmuggler(snapshot) {
+      smuggler.value = snapshot;
     },
     setFirstWeek(snapshot) {
       firstWeek.value = snapshot;

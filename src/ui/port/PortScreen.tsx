@@ -32,6 +32,11 @@ export interface PortActions {
   /** What `qty` CU would cost or fetch now, cents. */
   quote(good: string, qty: number, side: TradeSide): number;
   buyStores(item: string, qty: number): string | undefined;
+  /**
+   * Offers a whole hot or contraband lot (a stack of the hold, by its index) to the port's
+   * merchants (piece H). Always returns what came of it, in a line.
+   */
+  offer(index: number): string | undefined;
   /** The freight agent (piece F): take an offer, hand a contract back, sell its cargo. */
   acceptContract(offerId: string): string | undefined;
   abandonContract(contractId: string): string | undefined;
@@ -346,8 +351,8 @@ function Hold({
   setMessage,
 }: {
   port: PortSnapshot;
-  actions?: PortActions;
-  setMessage?(m: string | undefined): void;
+  actions?: PortActions | undefined;
+  setMessage?: ((m: string | undefined) => void) | undefined;
 }) {
   return (
     <aside class="port-hold" data-testid="port-hold">
@@ -374,8 +379,36 @@ function Hold({
                 {h.contract && <small class="port-dim"> (contract)</small>}
               </span>
               <span class="hud-num">{h.qty} CU</span>
-              {h.sellCents !== undefined && (
-                <small class="port-dim">{formatCents(h.sellCents)} here</small>
+              {h.offer ? (
+                <small class="port-dim">
+                  {h.offer.tooHot
+                    ? 'Too hot for your receiver here'
+                    : h.offer.receiver
+                      ? 'Your receiver here takes it'
+                      : h.offer.turnedAway
+                        ? 'Turned away here this week'
+                        : `Offer it on the quiet: ${h.offer.risk}`}
+                </small>
+              ) : (
+                h.sellCents !== undefined && (
+                  <small class="port-dim">{formatCents(h.sellCents)} here</small>
+                )
+              )}
+              {h.offer && actions && setMessage && (
+                <button
+                  type="button"
+                  class="port-mini"
+                  data-testid={`offer-${h.good}`}
+                  disabled={h.offer.turnedAway || h.offer.tooHot}
+                  title={
+                    h.offer.kind === 'hot'
+                      ? 'Offer the whole lot to a merchant. If they know the goods, they refuse or call the law.'
+                      : 'Offer the whole lot to a merchant on the quiet. If they won’t have it, they refuse or call the revenue man.'
+                  }
+                  onClick={() => setMessage(actions.offer(h.index))}
+                >
+                  Offer
+                </button>
               )}
               {actions && setMessage && (
                 <StealButton row={h} actions={actions} setMessage={setMessage} />
