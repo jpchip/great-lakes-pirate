@@ -573,10 +573,49 @@ The four Apostles harbors are 55k triangles together, well inside the 250k harbo
 
 The shipyard, upgrades and repairs are recorded in [plan 10 §17](10-ship-upgrades-customization.md). What touches this plan: Duluth gains the `shipyard` service (§3 of plan 10 names it with Superior and Ashland), the T2's `cargoCapacity` is 45 CU, `GameEconomy.capacity` follows the ship's class and expanded hold, cargo that won't fit a new hull is sold to the port's market at 80% of its sell price (moving the stock as a sale would), and the chandlery tab gains rigging repair and instrument fittings. Patch and mend kits from §18's chandlery are now used at sea with K. The yard rebuilds the sailing class through `adjustClass`, so the Deckhand's perks from §19 stay on a new hull.
 
+## 21. Phase 4 Piece E: the Stockton Stash (2026-11-02)
+
+**Goal** (§16.4, piece E): Stockton Island's Presque Isle bay as every background's starting hideout, a fixed prefab with storage for cargo and cash, lying at anchor until a set hour, the stash on the chart, and cash on hand kept apart from cash stashed (§2).
+
+**Result:** sail out of Bayfield to the south shore of Stockton, come alongside the stash landing under the shack, and the stash screen opens over the paused game. Stash the hold and some of the purse, lie at anchor until dusk, and find it all still there after a reload, with none of it in the hold. Screenshots are in the project files (`stockton-stash/`).
+
+### 21.1 What was built
+
+| Piece | Where | Notes |
+|---|---|---|
+| Footprint | `data/zones.json`, `public/world/apostles/` | `setpiece.stockton` at the head of Presque Isle bay (46.9243° N, 90.5621° W) facing 200°, 140 m along, 60 m inland, flattened to 1.4 m. Set pieces now name a `port` or a hideout `site`, not both. Rebaked with `geo:build` and `geo:canopy`: 21k samples flattened; two height tiles and two Stockton on-foot tiles changed. As in piece I, the rebake also carries the few thousand wind cells near the zone's edges that a GDAL 3.8 bake computes differently (§17.3) |
+| Sites | `data/sites.json`, `data/schemas/sites.ts` | Plan 09 §12's `sites.json` with its first site: `site.stockton` (Apostles region, concealment 0.6, abandoned, an anchorage 70 m off the landing with a 90 m radius, a 40 CU shed and a strongbox, the start for all six backgrounds) |
+| Prefab | `data/harbors.json`, `src/render/harbors/harbor-kit.ts` | `harbor.stockton` in the harbor kit: a 34 m plank **landing** (a new pier kind) and three new building kinds, a fisherman's **shack** with a stovepipe and a lit window, an iron-strapped **strongbox** and a **storage shed** with barrels and crates by the door. 800 triangles; no NPC ship berths there (it has no port) |
+| Save | `src/sim/world-state.ts` | A `hideouts` slice (plan 09 §12's shape: site, when claimed, `storage.goods` as hold stacks and `storage.cash` in cents). Optional and filled on load with the background's starting hideout, like piece D's `traffic`, so there's **no save version bump** and saves from before piece E get an empty stash |
+| Storage | `src/sim/hideouts/stash.ts` | Moves keep each lot's identity: hot goods stay hot with their heat and time, contract cargo keeps its contract, so stashing launders nothing. The shed holds 40 CU (two T1 holds); taking goods aboard stops at the hold's room. Cash needs a strongbox |
+| Stash screen | `src/gameplay/stash.ts`, `src/ui/stash/` | Opens on docking at the landing, or with **P** anchored inside the anchorage. The hold and the shed side by side with capacity bars, hot goods marked; shift-click moves a whole lot, ctrl-click one CU, a click picks it for the slider (13 §6). Purse ↔ strongbox in dollars (shift-click moves it all). Esc goes back aboard, F casts off, the HUD's button reads "Stockton stash **P**". `StorageChanged` on every move (plan 09 §12; piece C ticks the First Week's step 3 from it) |
+| Lie at anchor | `src/sim/hideouts/lie-at-anchor.ts` | **Z** (rebindable), or the stash screen's footer: until dawn, until dusk, or until the wind backs or veers 45° or changes 8 kn (at most a game day). Allowed anchored in a lee (shelter from the wind as it blows ≥ 0.3, or under 6 kn anywhere) or alongside any pier; refused under way, aground, dragging, or with a ship under way within 350 m. The world ticks run as on the chart (markets, traffic, weather), then the game saves (09 §3's autosave point) and the HUD says how long she lay. `LayAtAnchor` on the bus |
+| Chart | `src/render/chart/chart-view.ts`, `src/modes/chart-travel.ts` | Each hideout is marked in signal red, a penciled cross in a ring with its name, "Stockton stash" |
+| Cash | `src/ui/port/` | The port screen's header shows "Stashed $…" beside the purse when there's money in a strongbox |
+| Dev hook | `src/main.ts` | `__glpStash`: `open`, `close`, `here`, `hideouts`, `stash`, `take`, `stashCash`, `takeCash`, `lie`, `refusal`. `?harbor=stockton` starts 120 m off the landing |
+
+### 21.2 Decisions made in the piece
+
+- **The landing is the mooring.** A short plank stage the auto-dock already knows, so "moored there" is docking at it, as at a port. Anchored in the bay works too (P), since a hideout's whole point is a quiet anchorage.
+- **40 CU in the shed.** Plan 09 §5.4 sizes storage pieces at 5–40 CU; a starting hideout's "basic storage" is two T1 holds, so a captain can lay up a season's cargo without a warehouse. Phase 8's pieces add to it.
+- **Lying at anchor works alongside any pier too,** not only at anchor, since plan 03 §2 lists in port and moored. Ships berthed in a harbor don't count as "in sight"; only ships under way do.
+- **No fade or progress screen for the lie.** A day of world ticks runs in a few milliseconds, so the clock just jumps and the HUD says how long it was.
+
+### 21.3 Checks
+
+`tests/stash.test.ts` (13 tests): the starting stash for every background, a save from before piece E gaining it on load, storage surviving a save round trip and never showing in the hold, moves keeping hot and contract lots apart, the shed's capacity and the hold's room, cash both ways, the lie's refusals, dawn and dusk from the sun, the wind shift and the day cap, the stash screen opening at the landing and raising `StorageChanged`, and on the baked zone: an anchorage 3–30 m deep in the lee of a northwester (shelter above 0.3) and the prefab on dry ground. `tests/harbors.test.ts` docks the T1 at the landing's berths on the real terrain. A new e2e smoke test docks at the landing, stashes the cargo and $100 through the screen, lies until dusk, reloads and finds both in the stash and neither aboard. The full unit suite (865) and all 15 e2e smoke tests pass.
+
+### 21.4 Still to do
+
+- Jared's look at the stash (§16.4 piece E's "Needs Jared").
+- Criterion 6's full round trip to Duluth and back runs in piece L's playtest; the e2e test covers the reload.
+- The quarry ruin plan 09 §2.1 lists for the site, and the smuggler's anchorage nearby, are piece H's and Phase 8's.
+
 ---
 
 ## Changelog
 - v0.7: Phase 4 piece G recorded (§20): Duluth's shipyard, the T2's hold, cargo sold on a trade-in, chandlery repairs and fittings.
+- v0.7: Phase 4 piece E built (§21): the Stockton stash at Presque Isle bay, `sites.json`, the hideouts save slice, the stash screen, lying at anchor, the stash on the chart.
 
 - v0.6: Phase 4 piece C built (§19): the main menu, character creation, six backgrounds and portraits, the new run docked at dawn, the Phase 4 perks, the First Week checklist.
 - v0.6: Phase 4 piece D built (§16.9): flows and manifests, deliveries that move stock, the traffic save slice, ships in the zones and at berths, look her over and hailing; two company names replaced after the names check.

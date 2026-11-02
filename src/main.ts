@@ -25,6 +25,8 @@ import { createSchooner } from './gameplay/schooner';
 import { npcParade } from './gameplay/npc-ships';
 import { attachEconomy } from './gameplay/economy';
 import { attachPorts, type PortControl } from './gameplay/port';
+import { attachStash, type StashControl } from './gameplay/stash';
+import { siteDef } from './sim/hideouts/stash';
 import { attachShipyard } from './gameplay/shipyard';
 import { BASE_INSTRUMENTS, type Instruments } from './sim/shipyard/fit';
 import { defaultShipState } from './sim/shipyard/shipyard';
@@ -846,6 +848,8 @@ async function boot(): Promise<void> {
     document.getElementById('ui') ?? document.body.appendChild(document.createElement('div'));
   // The port screen and the journal (Phase 4 piece B); attached once the UI is up.
   const portsRef: { current: PortControl | undefined } = { current: undefined };
+  // The Stockton stash and lying at anchor (Phase 4 piece E); attached with the ports.
+  const stashRef: { current: StashControl | undefined } = { current: undefined };
   const captainRef: { current: ReturnType<typeof attachCaptain> | undefined } = {
     current: undefined,
   };
@@ -865,8 +869,18 @@ async function boot(): Promise<void> {
       castOff: () => portsRef.current?.actions.castOff(),
       closeJournal: () => portsRef.current?.closeJournal(),
       openDocked: () => {
-        if (machine.mode === 'sailing' && !machine.gameplayPaused) portsRef.current?.openDocked();
+        if (machine.mode !== 'sailing' || machine.gameplayPaused) return;
+        if (!portsRef.current?.openDocked()) stashRef.current?.openHere();
       },
+    },
+    stash: {
+      stash: (index, qty) => stashRef.current?.actions.stash(index, qty),
+      take: (index, qty) => stashRef.current?.actions.take(index, qty),
+      stashCash: (cents) => stashRef.current?.actions.stashCash(cents),
+      takeCash: (cents) => stashRef.current?.actions.takeCash(cents),
+      lie: (until) => stashRef.current?.actions.lie(until),
+      close: () => stashRef.current?.actions.close(),
+      castOff: () => stashRef.current?.actions.castOff(),
     },
     chart: {
       sail: () => travelRef.current?.setSail(),
@@ -934,6 +948,66 @@ async function boot(): Promise<void> {
     castOff: () => input.trigger('Interact'),
   });
   portsRef.current = ports;
+  // Alongside the Stockton landing or anchored off it, the stash opens; Z lies at anchor.
+  let contextBeforeStash: InputContext = 'sailing';
+  const stash = attachStash({
+    ctx,
+    economy,
+    hazards,
+    berthPier: (berthId) => sailingOptions.berths.find((b) => b.id === berthId)?.dockId,
+    shipPose,
+    speedMs: () => sailing.state.speed,
+    zone: () =>
+      zone && !arena ? { id: zoneData.id, frame: manifestFrame(zone.manifest) } : undefined,
+    nearestUnderWayM(p) {
+      if (arena) return 0;
+      let best = Number.POSITIVE_INFINITY;
+      for (const s of traffic.shown.values()) {
+        const t = s.entity.transform;
+        if (s.berthed || !t) continue;
+        best = Math.min(best, Math.hypot(t.position.x - p.x, t.position.z - p.z));
+      }
+      return best;
+    },
+    showStash: (snapshot) => ui.setStash(snapshot),
+    showLie: (r) => ui.setLie(r === undefined),
+    onOpen(open) {
+      if (open) {
+        machine.pushOverlay('trade');
+        contextBeforeStash = input.context;
+        input.context = 'menu';
+      } else {
+        machine.removeOverlay('trade');
+        input.context = contextBeforeStash;
+        input.endTick();
+      }
+      if (cameraRig) cameraRig.suspended = open;
+      document.body.dataset['stash'] = stash.openHideout ?? (stash.lieOpen ? 'lie' : 'closed');
+      hudClock = HUD_INTERVAL_S;
+    },
+    castOff: () => input.trigger('Interact'),
+    afterLie(text) {
+      showNotice(text);
+      void saveControls.saveNow();
+    },
+  });
+  stashRef.current = stash;
+  if (import.meta.env.DEV || params.has('debug')) {
+    const hook = {
+      /** Opens a hideout's storage wherever the ship is. */
+      open: (id = 'hideout.stockton') => stash.open(id),
+      close: () => stash.actions.close(),
+      here: () => stash.hideoutHere,
+      hideouts: () => state.hideouts,
+      stash: (index: number, qty: number) => stash.actions.stash(index, qty),
+      take: (index: number, qty: number) => stash.actions.take(index, qty),
+      stashCash: (cents: number) => stash.actions.stashCash(cents),
+      takeCash: (cents: number) => stash.actions.takeCash(cents),
+      lie: (until: 'dawn' | 'dusk' | 'wind') => stash.actions.lie(until),
+      refusal: () => stash.lieRefusal(),
+    };
+    (window as unknown as { __glpStash: typeof hook }).__glpStash = hook;
+  }
   // The Fisherman's fish prices and the First Week checklist (piece C).
   captainRef.current = attachCaptain(ctx, economy.defs, (week) => ui.setFirstWeek(week));
   if (import.meta.env.DEV || params.has('debug')) {
@@ -1536,6 +1610,12 @@ async function boot(): Promise<void> {
   });
   window.addEventListener('pagehide', saveNow);
 
+  /** The stash's name for the HUD's P button while moored there (piece E). */
+  const stashHereName = (): string | undefined => {
+    const id = stash.hideoutHere;
+    const site = id ? state.hideouts?.[id]?.siteId : undefined;
+    return site ? siteDef(site)?.shortName : undefined;
+  };
   const loop = createLoop({
     tick(dt) {
       // A key that just changed the mode (M off the chart) mustn't act again in the new one.
@@ -1572,7 +1652,10 @@ async function boot(): Promise<void> {
       } else if (sameContext && inGame && input.pressed('Journal')) {
         ports.openJournal();
       } else if (sameContext && !arena && input.context === 'sailing' && input.pressed('Port')) {
-        ports.openDocked();
+        if (!ports.openDocked()) stash.openHere();
+      } else if (sameContext && input.context === 'sailing' && input.pressed('LieAtAnchor')) {
+        const refused = stash.openLie();
+        if (refused) showNotice(refused);
       }
       input.endTick();
     },
@@ -1614,7 +1697,7 @@ async function boot(): Promise<void> {
             portName:
               ports.dockedPort && hazards.state.mooring === 'docked' && !ports.openPort
                 ? portInfo(ports.dockedPort)?.name
-                : undefined,
+                : stashHereName(),
           }),
         );
       }

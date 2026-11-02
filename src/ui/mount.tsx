@@ -15,6 +15,9 @@ import type { LoadingScreen as LoadingModel } from './loading/model';
 import { PortScreen, type PortActions } from './port/PortScreen';
 import { Journal } from './port/Ledger';
 import type { LedgerSnapshot, PortSnapshot, PortTab } from './port/model';
+import { LieDialog, StashScreen } from './stash/StashScreen';
+import type { StashSnapshot } from './stash/model';
+import type { StashActions } from '../gameplay/stash';
 import { FirstWeekPage, FirstWeekTracker } from './hud/FirstWeek';
 import type { FirstWeekSnapshot } from '../gameplay/captain';
 import './theme.css';
@@ -38,6 +41,8 @@ export interface GameUiOptions {
   setFirstWeekHidden?: ((hidden: boolean) => void) | undefined;
   /** The port screen's buttons and the journal's (Phase 4 piece B). */
   port?: (PortActions & { closeJournal(): void; openDocked(): void }) | undefined;
+  /** The stash screen's buttons and the lie-at-anchor choice (Phase 4 piece E). */
+  stash?: StashActions | undefined;
   /** The game's sound volumes, when it has Web Audio. */
   audio?: AudioVolumes | undefined;
 }
@@ -57,6 +62,10 @@ export interface GameUi {
   setPort(snapshot: PortSnapshot | undefined): void;
   /** The journal's ledger at the helm; undefined closes it. */
   setJournal(snapshot: LedgerSnapshot | undefined): void;
+  /** The stash screen; undefined closes it (Phase 4 piece E). */
+  setStash(snapshot: StashSnapshot | undefined): void;
+  /** The lie-at-anchor choice: true opens it, false closes it. */
+  setLie(open: boolean): void;
   /** The First Week checklist (Phase 4 piece C); undefined for a run without one. */
   setFirstWeek(snapshot: FirstWeekSnapshot | undefined): void;
   /** Show a port screen tab (J in port turns to the ledger). */
@@ -74,8 +83,11 @@ export function mountGameUi({
   chart: chartActions,
   onTakeToChart,
   port: portActions,
+  stash: stashActions,
   setFirstWeekHidden = () => undefined,
 }: GameUiOptions): GameUi {
+  const stash = signal<StashSnapshot | undefined>(undefined);
+  const lie = signal(false);
   const firstWeek = signal<FirstWeekSnapshot | undefined>(undefined);
   const port = signal<PortSnapshot | undefined>(undefined);
   const portTab = signal<PortTab>('market');
@@ -103,6 +115,9 @@ export function mountGameUi({
     if (menuOpen.value) {
       e.preventDefault();
       setMenu(false);
+    } else if (stash.value || lie.value) {
+      e.preventDefault();
+      stashActions?.close();
     } else if (port.value) {
       e.preventDefault();
       portActions?.close();
@@ -116,7 +131,10 @@ export function mountGameUi({
     if (menuOpen.value || e.repeat) return;
     const keys = bindings.value.sailing;
     const is = (action: Action): boolean => (keys[action] ?? []).includes(e.code);
-    if (port.value && is('Interact')) {
+    if (stash.value && is('Interact')) {
+      e.preventDefault();
+      stashActions?.castOff();
+    } else if (port.value && is('Interact')) {
       e.preventDefault();
       portActions?.castOff();
     } else if (port.value && is('Journal')) {
@@ -148,6 +166,10 @@ export function mountGameUi({
             setTab={(t) => (portTab.value = t)}
           />
         )}
+        {stash.value && stashActions && !menuOpen.value && (
+          <StashScreen stash={stash.value} actions={stashActions} />
+        )}
+        {lie.value && stashActions && !menuOpen.value && <LieDialog actions={stashActions} />}
         {journal.value && portActions && !menuOpen.value && (
           <Journal
             ledger={journal.value}
@@ -164,10 +186,12 @@ export function mountGameUi({
           !menuOpen.value &&
           !port.value &&
           !journal.value &&
+          !stash.value &&
+          !lie.value &&
           !chart.value && (
             <FirstWeekTracker week={firstWeek.value} setHidden={setFirstWeekHidden} />
           )}
-        {!menuOpen.value && !port.value && !journal.value && (
+        {!menuOpen.value && !port.value && !journal.value && !stash.value && !lie.value && (
           <button
             type="button"
             class="hud-menu-button"
@@ -220,6 +244,12 @@ export function mountGameUi({
       // A fresh visit starts on the market; a refresh after a trade stays on its tab.
       if (snapshot && port.value?.port !== snapshot.port) portTab.value = 'market';
       port.value = snapshot;
+    },
+    setStash(snapshot) {
+      stash.value = snapshot;
+    },
+    setLie(open) {
+      lie.value = open;
     },
     setJournal(snapshot) {
       journal.value = snapshot;

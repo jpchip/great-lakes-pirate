@@ -75,20 +75,28 @@ export const cutSchema = z.object({
  * `groundM` above mean lake level, blending back to the real terrain over `blendM`; the
  * water inside is left as it is.
  */
-export const setPieceSchema = z.object({
-  id: idOf('setpiece'),
-  name: z.string().min(1),
-  port: idOf('port'),
-  at: geoSchema,
-  bearingDeg: z.number().min(0).max(360),
-  alongM: z.number().positive(),
-  inlandM: z.number().positive(),
-  seawardM: z.number().positive(),
-  groundM: z.number().positive(),
-  blendM: z.number().nonnegative(),
-  /** Channels dredged after the land is flattened. */
-  cuts: z.array(cutSchema).optional(),
-});
+export const setPieceSchema = z
+  .object({
+    id: idOf('setpiece'),
+    name: z.string().min(1),
+    /** The port whose screen opens at its piers. A hideout's set piece has none. */
+    port: idOf('port').optional(),
+    /**
+     * The hideout site built on it (plan 09 §2, data/sites.json; Phase 4 piece E): its
+     * landing opens storage instead of a port screen.
+     */
+    site: idOf('site').optional(),
+    at: geoSchema,
+    bearingDeg: z.number().min(0).max(360),
+    alongM: z.number().positive(),
+    inlandM: z.number().positive(),
+    seawardM: z.number().positive(),
+    groundM: z.number().positive(),
+    blendM: z.number().nonnegative(),
+    /** Channels dredged after the land is flattened. */
+    cuts: z.array(cutSchema).optional(),
+  })
+  .refine((p) => !!p.port !== !!p.site, 'A set piece is a port or a hideout site, not both');
 
 /**
  * Where a ship sailing in from the chart arrives (plan 03 §7, Phase 3 piece A): a point in
