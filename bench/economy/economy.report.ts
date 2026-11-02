@@ -12,6 +12,7 @@ import {
   runTrader,
 } from '../../src/sim/economy/harness';
 import { tickMarkets } from '../../src/sim/economy/market';
+import { gameContracts } from '../../src/sim/economy/contracts';
 
 /**
  * The economy's long balance report (plan 17 §3): the legit bot for ten real hours from
@@ -52,6 +53,42 @@ it('economy balance report', () => {
         gameDays: +(run.gameSeconds / SECONDS_PER_GAME_DAY).toFixed(1),
       };
     },
+  );
+
+  // The contracts bot (piece F): the same start trading and carrying freight contracts, the
+  // plan 05 §5.3 legit target of a T2 in 8–12 real hours.
+  report['legitWithContracts'] = [
+    'port.bayfield',
+    'port.washburn',
+    'port.duluth',
+    'port.two_harbors',
+  ].flatMap((start) =>
+    ['a', 'b'].map((seed) => {
+      const run = runTrader(new EconomySim(defs, DAWN), legs, {
+        start,
+        purse: 15_000,
+        cargo: [{ good: 'good.rope_canvas', qty: 5 }],
+        capacity: cargoCapacity(),
+        realMinutes: 720,
+        contracts: { defs: gameContracts(), seed },
+      });
+      const t2 = run.timeline.find((t) => t.netWorth >= 160_000 - 25_000);
+      const c = run.contracts;
+      const top = Object.entries(c?.standing ?? {})
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 3)
+        .map(([id, v]) => `${id} ${Math.round(v)}`);
+      return {
+        start,
+        seed,
+        realHoursToT2: t2 ? +(t2.realMinutes / 60).toFixed(1) : null,
+        perRealHour: dollars((run.endNetWorth - run.startNetWorth) / (run.realMinutes / 60)),
+        contractsDelivered: c?.tally.delivered,
+        contractsLateOrFailed: (c?.tally.late ?? 0) + (c?.tally.failed ?? 0),
+        contractPay: dollars(c?.payCents ?? 0),
+        topStanding: top,
+      };
+    }),
   );
 
   // The loop hunter with each hull's hold and a purse that never runs dry.

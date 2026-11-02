@@ -963,6 +963,53 @@ body[data-mode='chart'] .chart-layer {
   border-left: 3px solid var(--signal-red);
 }
 
+.port-notices {
+  margin: 0 0 8px;
+  padding: 4px 8px 4px 24px;
+  font-size: 14px;
+  color: var(--lake-teal);
+  border-left: 3px solid var(--lake-teal);
+}
+
+/* The freight agent (Phase 4 piece F). */
+.port-freight {
+  flex: 1;
+  min-width: 0;
+}
+
+.port-freight h3 {
+  margin: 12px 0 4px;
+  font-size: 16px;
+}
+
+.port-kind {
+  font-variant: small-caps;
+  font-weight: bold;
+  color: var(--lake-teal);
+}
+
+.port-row.locked {
+  color: var(--fog-gray);
+}
+
+.port-freight li.late {
+  color: #7a4a12;
+}
+
+.port-freight li.failed {
+  color: var(--signal-red);
+}
+
+.port-mini.danger {
+  color: var(--paper);
+  background: var(--signal-red);
+  border-color: var(--signal-red);
+}
+
+.ledger-done {
+  color: #6b5b48;
+}
+
 .port-footer {
   gap: 10px;
 }
