@@ -1,6 +1,6 @@
 # 05 — Ports, Economy & Trading
 
-Status: DRAFT v0.5 (decisions made; gap review applied; Phase 4 scope proposed; pieces A, B and I built)
+Status: DRAFT v0.5 (decisions made; gap review applied; Phase 4 scope proposed; pieces A, B, D, H and I built)
 Parent: [00-master-plan.md](00-master-plan.md)
 Inputs: [R1a gazetteer](R1a-western-superior-gazetteer.md) (ports, industries), [03](03-world-scale-chart-travel.md) (routes, chart, encounters), [04](04-water-weather-seasons.md) (seasons; 1 game day = 1 week), [02](02-arcade-sailing.md) (cargo load, shipless play), [01](01-tech-architecture.md) (sim layer, data files)
 Feeds: 06 (hot goods, informants), 07 (what's in the holds), 08 (fences, warehouses), 09 (materials), 10 (ship prices), 12 (contracts, events)
@@ -531,10 +531,53 @@ The four Apostles harbors are 55k triangles together, well inside the 250k harbo
 - Jared's look at the trade screen (§16.4 piece B's "Needs Jared").
 - Trade sounds (coins, the ledger) are piece J's, on `TradeCompleted` and `StoresBought`.
 
+## 19. Phase 4 Piece H: Contraband and the Island Smuggler (2026-11-01)
+
+**Goal** (§16.4, piece H): hot goods (§6.1) with a dev command to make cargo hot until Phase 6 can, untaxed whiskey, and the island smuggler (decision 1): a boat at an Apostles anchorage after dark that sells contraband and fences hot goods at 40–70% with weekly cash (§6.2). Selling hot goods or contraband to a merchant rolls detection: refused or confiscated, with `HotGoodsDetected` raised for Phase 5. Her anchorage is learned from a rumor or the starting background.
+
+**Result:** after dark the fish tug *Whippoorwill* lies to her anchor in Oak Island's lee, about seven nautical miles north of Bayfield. Come alongside slowly and F opens her screen over the paused game: buy her untaxed whiskey at $30 a CU, or sell her a hot lot for 40% of its value. Take the whiskey into Bayfield and offer it from the hold on the port screen: sold on the quiet for about $55 a CU, refused, or taken off you by the revenue man. Screenshots are in the project files (`smuggler/`).
+
+### 19.1 What was built
+
+| Piece | Where | Notes |
+|---|---|---|
+| The smuggler | `data/smuggler.json`, `data/schemas/smuggler.ts` | One record (a list, so Phase 7's fences can join it): the boat's name and class (the fish tug), her anchorage (`anchorage.oak_lee`, "Oak Island's lee", in `region.apostles`, off the island's south shore at 46.9113 N, 90.7083 W in 20–30 m of water), the sun's depression that counts as dark (−6°, the end of civil twilight), what she sells (12 CU of untaxed whiskey a night), her cash (a week's $300), the fence-rate tuning and the backgrounds that know where she lies (Saloon Keeper and Poacher) |
+| Hot goods and detection | `src/sim/economy/contraband.ts` | Heat halves every 3 weeks. Offering a lot rolls detection: for a hot lot, (0.1 + 0.8 × heat × marks) × region × merchant × lot, where marks is 0.4–1 by traceability, region is 1 where it was taken and 0.15–1 by traceability elsewhere, merchant is the port's alertness by size (Duluth 1 … La Pointe 0.5) and the lot adds 2% a CU past the first up to 1.4×; for contraband, 0.6 × merchant × lot. Capped at 95%. Detected: confiscated with a chance of 50% for contraband and 25% + 50% × heat for hot goods, else refused. Either way the port's merchants won't look at anything of the kind from you again that week. Undetected: a hot lot sells at the market's price and moves the market; contraband sells on the quiet for 85% of its base value less the port's spread, and the market never sees it |
+| Same lot, same answer | `offerRolls` | The rolls are a function of the run, the port, the good, the lot and the week, so a reload or a second try that week can't change the outcome |
+| The fence | `src/sim/economy/smuggler.ts` | Rate = 40% + up to 15% as your dealings with her reach $2,000 + up to 15% as a lot's heat cools (contraband carries no heat). Value is the good's base price. She pays from the week's cash, and what you pay her for whiskey goes into it. A game day is a calendar week, so cash and stock come back each night, counted noon to noon so one night's dealing shares one week's cash. She won't take clean goods, contract cargo (piece F's) or her own whiskey back, so buying from her and selling to her can't loop |
+| The boat | `src/gameplay/smuggler.ts` | In the Apostles zone she's drawn at her anchorage whenever the sun is 6° below the horizon. At dawn she slips away once you're 500 m off or the sun is up, so she never vanishes from alongside. Alongside is within 70 m and at 2.5 kn or less; the HUD says "F trade with the *Whippoorwill*" there and "come alongside slowly" short of it. F with no berth in reach opens her screen instead of looking her over; H gets a lantern shown back |
+| Her screen | `src/ui/port/SmugglerScreen.tsx`, `smuggler-model.ts` | Plan 05 §12's fence screen on the port screen's paper, warmed by lantern light: what she sells with her stock, every lot in the hold with her rate and a CU's price or why she won't take it, her cash left for the week and how far she trusts you. A click deals one CU, shift-click all you can; Esc or F sheers off. The informant-risk hint waits for Wanted (Phase 5) |
+| Merchants | `src/gameplay/port.ts`, `src/ui/port/` | Hot and contraband lots in the port screen's hold get an **Offer** button and the risk in a word (little risk, some risk, risky, very risky; the number stays hidden). Offering always says what came of it in a line. A port that turned you away shows it on the lot for the rest of the week |
+| Events | `src/modes/context.ts` | `HotGoodsDetected` (port, region, good, CU, hot or contraband, refused or confiscated, heat) for Phase 5; `ContrabandSold`; `SmugglerDealt` (buy or fence) for piece J's coin sounds; `SmugglerLearned`. An undetected hot sale raises `TradeCompleted` like any sale |
+| The chart | `src/render/chart/chart-view.ts`, `src/modes/chart-travel.ts` | `ChartFrame.marks`: known places in pencil. Her anchorage is a small lantern with "Oak Island's lee (after dark)" once known, glowing at night |
+| Save | `src/sim/world-state.ts` | A `contraband` slice: her cash, stock and night, what you've dealt with her, the ports that turned you away and the week, and whether you know her anchorage. Optional and filled on load, so no version bump and no migration |
+| Dev hook | `src/main.ts` | `__glpContraband` (dev builds and `?debug`): `makeHot(good, qty, region, heat)` is the dev command until Phase 6's theft, `alongside()` lays the ship beside her, `open()`, `learn()`, `known()`, `present()`, `state()`, `offer(port, index)`. `?hour=23` starts after dark |
+
+### 19.2 Decisions made in the piece
+
+- **Oak Island's lee.** The south shore of Oak Island, off the sandspit: sheltered from the north and northwest, close to Bayfield and Red Cliff but out of sight of both, and in `region.apostles` with La Pointe rather than the Bayfield–Ashland region. The rumors thread (piece K) uses the same id and name, from `smugglerAnchorage()`.
+- **A fish tug, not a sailing boat.** The fish tug is the one small NPC class drawn, and a tug with no catch aboard is a believable smuggler in 1900 (not checked against sources). She keeps her stack's smoke and her lit windows; a model with one lantern and no lights can come with the art pass.
+- **She's there every night, known or not.** Knowing where she lies (a background, a rumor, the dev command) marks the chart; sailing past her finds her anyway. Rumors (piece K) count through `knowsAnchorage`'s `heardOf`, which piece K's `knowsRumor(…, 'smuggler')` should feed when both land.
+- **Whole lots at a merchant.** You offer a whole lot, not a few CU of it, so there's no probing with one CU first. A bigger lot is a little riskier.
+- **Value is the base price.** The fence pays a share of the good's base price, not its price where it was taken, so her rate is the same wherever the theft was.
+- **Contraband pays on the quiet.** An undetected whiskey sale fetches about $55 a CU in Bayfield against $30 from her, with about a 6-in-10 chance of being found out on a full night's 12 CU (half of those confiscated). That is the "big margins" of §6.3 with the cost Phase 4 allows (§16.5); Phase 5's Wanted adds the real cost.
+
+### 19.3 Checks
+
+`tests/contraband.test.ts` (23 tests): heat and its cooling, the dev command, the detection odds by heat, region, marks, port and lot, the roll coming out at the odds over 400 runs and the same way twice, quiet sales leaving the market alone, hot sales moving it, refusal and confiscation with the event and the week's turning away (criterion 7), the anchorage and the dark, the 40–70% rate, what she won't take, her stock and cash for a night and the next, knowing her anchorage, the save slice, her boat coming and going in play, her screen and its deals, offering from the port screen, and her anchorage's water on the baked Apostles. The e2e smoke test meets her at 23:00, fences hot rope and canvas at 40%, buys her whiskey and offers it in Bayfield. The full unit suite and the e2e tests pass.
+
+### 19.4 Still to do
+
+- Jared's feel for the smuggler (§16.4 piece H's "Needs Jared").
+- Piece K wires its smuggler rumor into `knowsAnchorage`; piece J can hang coin sounds on `SmugglerDealt` and `ContrabandSold`.
+- Phase 5 turns `HotGoodsDetected` into Wanted and adds the informant risk to her screen; Phase 6's theft replaces the dev command.
+- The *Whippoorwill* model with a single anchor light and her fires banked (plan 14).
+
 ---
 
 ## Changelog
 
+- v0.6: Phase 4 piece H built (§19): hot goods cooling and detection at merchants, untaxed whiskey sold on the quiet, the island smuggler in Oak Island's lee after dark with her fence screen, her anchorage on the chart, the `contraband` save slice.
 - v0.6: Phase 4 piece D built (§16.9): flows and manifests, deliveries that move stock, the traffic save slice, ships in the zones and at berths, look her over and hailing; two company names replaced after the names check.
 - v0.5: Phase 4 piece B built (§18): piers with ports, the port screen, the trade screen, price knowledge, the ledger in journal v1, the chandlery, save v6.
 - v0.5: Phase 4 piece A built (§16.8): goods in CU, port markets with drift and seasons, the purse and the hold, cargo load, save v5, the balance harness.

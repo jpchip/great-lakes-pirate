@@ -6,6 +6,8 @@ import type { PriceShockEvent } from '../sim/economy/market';
 import type { CargoDelivered } from '../sim/traffic/cargo';
 import type { HailNews } from '../sim/traffic/news';
 import type { TradeCompletedEvent } from '../sim/economy/trade';
+import type { HotGoodsDetectedEvent } from '../sim/economy/contraband';
+import type { SmugglerDealtEvent } from '../sim/economy/smuggler';
 import type { GameWorld } from '../gameplay/ecs';
 import type { LocalWeather } from '../sim/weather/local-weather';
 import type { ZoneTerrain } from '../sim/terrain/zone-terrain';
@@ -69,6 +71,15 @@ export interface GameEvents {
   /** Ports (plan 05 §7, Phase 4 piece B): the port screen opened, and the chandlery. */
   PortVisited: { port: string };
   StoresBought: { port: string; item: string; qty: number; totalCents: number };
+  /**
+   * Contraband (plan 05 §6, Phase 4 piece H): a merchant found out a hot or contraband lot
+   * and refused or confiscated it (Phase 5 turns it into Wanted); a contraband lot sold on
+   * the quiet; a deal with the island smuggler; where she lies became known.
+   */
+  HotGoodsDetected: HotGoodsDetectedEvent;
+  ContrabandSold: { port: string; good: string; qty: number; totalCents: number };
+  SmugglerDealt: SmugglerDealtEvent;
+  SmugglerLearned: { anchorage: string; source: string };
 }
 
 /** Everything a mode needs; built once at boot and handed to each mode. */

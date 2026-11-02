@@ -5,6 +5,8 @@ import type { TradeSide } from '../sim/economy/market';
 import type { TradeRefusal } from '../sim/economy/trade';
 import { pierPort } from '../sim/harbors';
 import type { StoreRefusal } from '../sim/economy/chandlery';
+import type { OfferRefusal, OfferResult } from '../sim/economy/contraband';
+import { formatCents } from '../sim/economy/knowledge';
 import type { GameContext } from '../modes/context';
 import {
   ledgerSnapshot,
@@ -65,6 +67,31 @@ const TRADE_REFUSALS: Record<TradeRefusal, string> = {
   noCargo: "You haven't that much to sell.",
 };
 
+const OFFER_REFUSALS: Record<OfferRefusal, string> = {
+  badLot: 'Nobody needs persuading to buy that.',
+  notTraded: "They don't deal in that here, honest or otherwise.",
+  turnedAway: "They've turned you away once this week. Nobody here will look at it now.",
+};
+
+/** What came of offering a lot, in a line for the screen. */
+export function offerMessage(r: OfferResult, portName: string): string {
+  if (!r.ok) return OFFER_REFUSALS[r.reason];
+  const what = `${r.qty} CU of ${r.good === 'good.untaxed_whiskey' ? 'untaxed whiskey' : 'it'}`;
+  if (r.outcome === 'sold') {
+    return r.kind === 'hot'
+      ? `No questions asked: sold for ${formatCents(r.totalCents)}.`
+      : `Sold on the quiet for ${formatCents(r.totalCents)}.`;
+  }
+  if (r.outcome === 'refused') {
+    return r.kind === 'hot'
+      ? `The merchant knows those marks and won't touch them. Word will be round ${portName} by nightfall.`
+      : `The merchant won't have ${what} in the store. Word will be round ${portName} by nightfall.`;
+  }
+  return r.kind === 'hot'
+    ? `The merchant knows those marks and sends for the constable's man: ${r.qty} CU taken off you.`
+    : `The merchant sends for the revenue man: ${what} taken off you.`;
+}
+
 const STORE_REFUSALS: Record<StoreRefusal, string> = {
   badQty: 'Choose how many.',
   unknown: "The chandler doesn't stock that.",
@@ -91,6 +118,7 @@ export function attachPorts(opts: PortControlOptions): PortControl {
       cargoSpeedLoss: hazards.cls.rules.cargoSpeedLoss,
       port,
       gameSeconds: now(),
+      refusals: ctx.state.contraband?.refusals,
     });
   };
   /** Writes down this port's prices as they stand now (plan 05 §4.3). */
@@ -177,6 +205,14 @@ export function attachPorts(opts: PortControlOptions): PortControl {
       sell: (good, qty) => trade('sell', good, qty),
       quote: (good, qty, side) =>
         openPort ? economy.quote(openPort, good, qty, side).totalCents : 0,
+      offer(index) {
+        const port = openPort;
+        if (!port) return 'The market is closed.';
+        const r = economy.offer(port, index);
+        if (r.ok && r.outcome === 'sold') note(port);
+        refresh();
+        return offerMessage(r, portInfo(port)?.name ?? port);
+      },
       buyStores(item, qty) {
         const port = openPort;
         if (!port) return 'The chandlery is closed.';
