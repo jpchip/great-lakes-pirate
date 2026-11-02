@@ -119,13 +119,13 @@ describe('key rebinding', () => {
 
   it('stores only the differences and rebuilds the same bindings from them', () => {
     expect(bindingOverrides(DEFAULT_BINDINGS)).toEqual({});
-    const b = rebind(DEFAULT_BINDINGS, 'sailing', 'Spyglass', 'KeyZ');
+    const b = rebind(DEFAULT_BINDINGS, 'sailing', 'Spyglass', 'KeyK');
     const overrides = bindingOverrides(b);
-    expect(overrides).toEqual({ sailing: { Spyglass: ['KeyZ'] } });
+    expect(overrides).toEqual({ sailing: { Spyglass: ['KeyK'] } });
     expect(applyBindingOverrides(DEFAULT_BINDINGS, overrides)).toEqual(b);
     // A settings round trip keeps them.
     const s = parseSettings({ bindings: overrides });
-    expect(applyBindingOverrides(DEFAULT_BINDINGS, s.bindings).sailing.Spyglass).toEqual(['KeyZ']);
+    expect(applyBindingOverrides(DEFAULT_BINDINGS, s.bindings).sailing.Spyglass).toEqual(['KeyK']);
   });
 
   it('names keys and mouse buttons for the settings screen', () => {

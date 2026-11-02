@@ -35,7 +35,8 @@ export type Action =
   | 'ToggleChart'
   | 'Hail'
   | 'Port'
-  | 'Journal';
+  | 'Journal'
+  | 'LieAtAnchor';
 
 export type Bindings = Record<InputContext, Partial<Record<Action, readonly string[]>>>;
 
@@ -64,6 +65,8 @@ export const DEFAULT_BINDINGS: Bindings = {
     // Phase 4 piece B: the port screen while docked at a port, and the journal's ledger.
     Port: ['KeyP'],
     Journal: ['KeyJ'],
+    // Phase 4 piece E: lie at anchor until dawn, dusk or a shift of wind.
+    LieAtAnchor: ['KeyZ'],
     // Reserved for combat (plan 07).
     AimMode: ['Tab'],
     Fire: ['Mouse0'],
@@ -189,6 +192,7 @@ export const REBINDABLE: Partial<Record<InputContext, readonly Action[]>> = {
     'ToggleChart',
     'Port',
     'Journal',
+    'LieAtAnchor',
   ],
 };
 

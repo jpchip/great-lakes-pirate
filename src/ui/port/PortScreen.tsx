@@ -397,6 +397,12 @@ export function PortScreen({
             <strong class="hud-num" data-testid="port-purse">
               {formatCents(port.purseCents)}
             </strong>
+            {port.stashedCents ? (
+              <span class="port-dim" data-testid="port-stashed">
+                {' '}
+                · Stashed {formatCents(port.stashedCents)}
+              </span>
+            ) : null}
           </span>
         </header>
         <nav class="menu-tabs">

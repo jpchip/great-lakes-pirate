@@ -36,6 +36,7 @@ import {
   type SavedVoyage,
 } from '../sim/chart/voyage';
 import { recordChartPosition } from '../sim/location';
+import { siteDef, siteGeo } from '../sim/hideouts/stash';
 import type { Pose } from '../sim/terrain/test-bay';
 import { entryPose, findZoneDef, nearestEntry, zoneDef } from '../sim/terrain/zones';
 import type { PlayerLocation, WorldState } from '../sim/world-state';
@@ -170,6 +171,13 @@ function placeName(zone: ChartZone): string {
 export function createChartTravel(host: ChartTravelHost): ChartTravel {
   const { ctx, machine } = host;
   const geo = westernSuperiorChart();
+  /** The captain's hideouts on the chart (Phase 4 piece E), at their set pieces. */
+  const chartHideouts = (): { id: string; name: string; pos: Chart }[] =>
+    Object.entries(ctx.state.hideouts ?? {}).flatMap(([id, h]) => {
+      const site = siteDef(h.siteId);
+      const at = site && siteGeo(site);
+      return site && at ? [{ id, name: site.shortName, pos: geo.projection.geoToChart(at) }] : [];
+    });
   const clock = ctx.state.environment.clock;
   const hour = (): number => dayAndHour(clock.gameSeconds).hour;
 
@@ -341,6 +349,7 @@ export function createChartTravel(host: ChartTravelHost): ChartTravel {
           voyage: session.voyage,
           contacts,
           lanes: knownLanes,
+          hideouts: chartHideouts(),
           weather: pictureNow(),
           now: clock.gameSeconds,
           daylight: daylight(h),

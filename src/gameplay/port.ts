@@ -4,6 +4,7 @@ import { recordPrices } from '../sim/economy/knowledge';
 import type { TradeSide } from '../sim/economy/market';
 import type { TradeRefusal } from '../sim/economy/trade';
 import { pierPort } from '../sim/harbors';
+import { stashedCash } from '../sim/hideouts/stash';
 import type { StoreRefusal } from '../sim/economy/chandlery';
 import type { GameContext } from '../modes/context';
 import {
@@ -81,7 +82,7 @@ export function attachPorts(opts: PortControlOptions): PortControl {
 
   const snapshot = (port: string): PortSnapshot => {
     const player = ctx.state.player;
-    return portSnapshot({
+    const snap = portSnapshot({
       defs: economy.defs,
       markets: ctx.state.markets,
       knowledge: ctx.state.knowledge.prices,
@@ -92,6 +93,8 @@ export function attachPorts(opts: PortControlOptions): PortControl {
       port,
       gameSeconds: now(),
     });
+    snap.stashedCents = stashedCash(ctx.state.hideouts);
+    return snap;
   };
   /** Writes down this port's prices as they stand now (plan 05 §4.3). */
   const note = (port: string): void => {

@@ -1007,3 +1007,65 @@ body[data-mode='chart'] .chart-layer {
 .ledger-list {
   padding-left: 18px;
 }
+
+/* The stash screen (Phase 4 piece E). */
+.stash-column {
+  flex: 1;
+  min-width: 0;
+}
+
+.stash-column h3 {
+  margin: 0 0 4px;
+  font-size: 16px;
+}
+
+.stash-column ul {
+  margin: 6px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.stash-column li {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 10px;
+  align-items: center;
+  padding: 3px 0;
+  border-bottom: 1px solid rgba(43, 33, 24, 0.12);
+}
+
+.stash-column li.hot {
+  background: rgba(212, 82, 29, 0.08);
+}
+
+.stash-cash {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  margin: 12px 0 4px;
+  padding: 6px 0;
+  border-top: 1px solid var(--paper-dark);
+}
+
+.stash-cash-move {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.stash-cash-move input {
+  width: 80px;
+}
+
+.stash-lie {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: auto;
+  flex-wrap: wrap;
+}
+
+.menu.lie {
+  width: min(640px, calc(100vw - 32px));
+}

@@ -69,6 +69,20 @@ export interface GameEvents {
   /** Ports (plan 05 §7, Phase 4 piece B): the port screen opened, and the chandlery. */
   PortVisited: { port: string };
   StoresBought: { port: string; item: string; qty: number; totalCents: number };
+  /**
+   * Hideouts (plan 09 §12, Phase 4 piece E): goods or cash moved between the ship and a
+   * hideout's storage. `in` is from the ship into the stash; a cargo move sets `good` and
+   * `qty`, a cash move `cents`.
+   */
+  StorageChanged: {
+    hideout: string;
+    direction: 'in' | 'out';
+    good?: string;
+    qty?: number;
+    cents?: number;
+  };
+  /** The captain let the clock run on at anchor or alongside (piece E). */
+  LayAtAnchor: { until: 'dawn' | 'dusk' | 'wind'; seconds: number };
 }
 
 /** Everything a mode needs; built once at boot and handed to each mode. */

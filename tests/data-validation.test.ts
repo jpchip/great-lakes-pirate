@@ -52,7 +52,9 @@ describe('data cross-references', () => {
     for (const site of sites) {
       const piece = zones.flatMap((z) => z.setPieces).find((p) => p.id === site.setPiece);
       expect(piece?.site, site.id).toBe(site.id);
-      expect(zones.find((z) => z.setPieces.includes(piece!))?.id, site.id).toBe(site.zone);
+      expect(zones.find((z) => z.setPieces.some((p) => p.id === site.setPiece))?.id, site.id).toBe(
+        site.zone,
+      );
     }
   });
 

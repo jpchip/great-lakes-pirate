@@ -107,6 +107,8 @@ export interface PortSnapshot {
   portName: string;
   dateText: string;
   purseCents: number;
+  /** Cash stashed at the hideouts (plan 05 §2; Phase 4 piece E): safe, but not to hand. */
+  stashedCents?: number | undefined;
   tabs: PortTab[];
   capacity: number;
   usedCu: number;

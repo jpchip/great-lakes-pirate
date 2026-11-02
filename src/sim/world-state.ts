@@ -5,6 +5,7 @@ import { APOSTLES_ID } from './terrain/zones';
 import { createWeatherState, type WeatherState } from './weather/weather';
 import { gameEconomy } from './economy/defs';
 import { createMarkets, syncMarkets } from './economy/market';
+import { startingHideouts, syncHideouts } from './hideouts/stash';
 
 /**
  * WorldState skeleton (plan 01 §3.1, plan 16 §5.2). Each slice is filled in by its
@@ -174,6 +175,24 @@ export const knowledgeSchema = z.object({
   ),
 });
 
+/**
+ * Hideouts and what's stored in them (plan 09 §12 `hideouts[id]`; Phase 4 piece E): the
+ * site, when it was claimed, and its storage of goods (stacks as in the hold, hot and
+ * contract flags kept) and cash in the strongbox. Absent in a save from before piece E:
+ * the background's starting hideout is given on load, empty, so no version bump.
+ */
+export const hideoutsSchema = z.record(
+  z.string(),
+  z.object({
+    siteId: z.string(),
+    claimedAt: z.number(),
+    storage: z.object({
+      goods: z.array(cargoStackSchema),
+      cash: z.number().int().nonnegative(),
+    }),
+  }),
+);
+
 /** Ship's stores in the lockers, by store id (plan 05 §7; save v6). */
 export const storesSchema = z.record(z.string(), z.number().int().nonnegative());
 
@@ -199,6 +218,7 @@ export const worldStateSchema = z.object({
   voyage: voyageSchema.nullable(),
   markets: marketsSchema,
   traffic: trafficStateSchema.optional(),
+  hideouts: hideoutsSchema.optional(),
   knowledge: knowledgeSchema,
   environment: z.looseObject({
     clock: clockStateSchema,
@@ -225,6 +245,7 @@ export function createWorldState(seed: string): WorldState {
     voyage: null,
     markets: createMarkets(gameEconomy(), clock.gameSeconds),
     traffic: { deliveredTo: clock.gameSeconds, ships: {} },
+    hideouts: startingHideouts(defaultCaptain().background, clock.gameSeconds),
     knowledge: { prices: {} },
     environment: {
       clock,
@@ -239,5 +260,10 @@ export function parseWorldState(state: unknown): WorldState {
   const parsed = worldStateSchema.parse(state);
   syncMarkets(gameEconomy(), parsed.markets, parsed.environment.clock.gameSeconds);
   parsed.traffic ??= { deliveredTo: parsed.environment.clock.gameSeconds, ships: {} };
+  parsed.hideouts = syncHideouts(
+    parsed.hideouts,
+    parsed.player.captain.background,
+    parsed.environment.clock.gameSeconds,
+  );
   return parsed;
 }
