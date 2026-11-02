@@ -531,10 +531,51 @@ The four Apostles harbors are 55k triangles together, well inside the 250k harbo
 - Jared's look at the trade screen (§16.4 piece B's "Needs Jared").
 - Trade sounds (coins, the ledger) are piece J's, on `TradeCompleted` and `StoresBought`.
 
+## 19. Phase 4 Piece K: Rumors and Price News (2026-11-01)
+
+**Goal** (§16.4, piece K): rumor templates (§9) filled from the live sim: shipment tips from real manifests and timetables, price tips, the weather outlook, the smuggler's anchorage, island legend teasers for Phase 9. Reliability and age, kept in the ledger. Saloon drinks as the price.
+
+**Result:** dock at Bayfield, open the Saloon tab and buy a round, and someone at the bar tells you the *Lydia Crane* is loading lumber at Washburn for Duluth today, or that flour is going cheap in Ashland, or that a flat calm is coming this evening. The talk goes in the ledger's Rumors page with its teller and how far to trust it. Screenshots are in the project files (`rumors/`).
+
+### 19.1 What was built
+
+| Piece | Where | Notes |
+|---|---|---|
+| Templates | `data/rumors.json`, `data/schemas/rumors.ts` | §11's `rumors.json`: round prices by market size, rounds a day, the Saloon Keeper's perk, and per kind a weight in the draw, a base reliability, a ledger label and three lines with `{placeholders}`. Four teller bands (Reliable, Likely, Doubtful, Tall tale) with names. Five legends from plan 11 §8 with the saloons that tell them (the copycat's hoard is dynamic and waits for Phase 6). Three decoy anchorages for false smuggler talk |
+| Shipment tips | `src/sim/rumors/rumors.ts`, `upcomingSailings` in `src/sim/traffic/news.ts` | Ships sailing loaded from this port or another in its zone in the next two game days, from this port first: the name, first cargo, destination and day are the timetable's and the manifest's (piece D). The hail's tip now uses the same function. A false tip has the wrong day or another of the port's exports. Stale six hours after the stated sailing |
+| Price tips | same | Another port, a good going cheap (base over ask) or fetching a good price (bid over base), one of the three most striking. The teller saw it up to a day and a half ago; a false one is 15–40% off. The price goes into `knowledge.prices` marked `heard: 'rumor'` if it's newer than what the ledger holds; a market visit writes over it |
+| Weather | same | The port's outlook 18 game hours ahead from the chart's forecast (`forecastAt`, plan 04), in words: fair, rain, squalls, fog, a stiff blow, a gale or a flat calm, with the wind in five-knot bands. A false one has other weather with a wind to match from a different quarter |
+| Smuggler | same, `src/sim/rumors/sources.ts` | Told only in saloons in `region.chequamegon` and `region.apostles` (Bayfield, Ashland, Washburn, La Pointe). The spot comes from a source function; until piece H lands it's a placeholder with H's id, `anchorage.oak_lee`, "in the lee of Oak Island". A false one names a decoy. `knowsRumor(rumors, 'smuggler')` is true once a true one is heard, and then it isn't told again |
+| Legends | same | Each told once, as a tall tale, but always true (plan 11 builds them) |
+| Reliability | same | Kind base ± 0.15 per teller, + 0.15 for the Saloon Keeper; the rumor is true with that chance, rolled when told and saved but never shown. The ledger shows the band's word and the teller |
+| Saloon | `src/gameplay/rumors.ts`, `src/ui/port/PortScreen.tsx` | A Saloon tab where the port has a `tavern`. A round costs $0.25 (tiny) to $2 (huge) from the purse and brings one rumor; three rounds a day buy talk in each saloon, then "the bar's talked out". The Saloon Keeper's first round each day is on the house (plan 12 §2.2). Nothing new to tell costs nothing. The run's RNG is written back to the save after each draw |
+| Hails | `src/gameplay/rumors.ts` | `ShipHailed` (piece D) now writes her last port's prices into the ledger as `heard: 'hail'` where newer, and her shipment tip into the rumors (reliability 0.95, true) |
+| Ledger | `src/ui/port/Ledger.tsx`, `model.ts` | The Rumors page: newest first, the kind, the words, the teller and band (or "Hailed the *Wren*"), where and how long ago, past ones in fog gray and marked "past". Heard prices carry "(heard)" in both price pages. Keeps the last 40 |
+| Save | `src/sim/world-state.ts` | `knowledge.rumors[]` (§11), defaulting to empty on load, so a v6 save without it loads and no version bump is needed. About 300 bytes a rumor |
+| Events | `src/modes/context.ts` | `RumorHeard { rumor, costCents }`, for piece C's First Week step and piece J's sounds |
+
+### 19.2 Decisions made in the piece
+
+- **La Pointe gets a saloon.** §7 has saloons in every port; `ports.json` had left La Pointe without a `tavern`. It's where the Devils Island and Hermit Island tales are told.
+- **Three rounds a saloon a day.** Enough to hear something useful in each port without draining the bar every visit; it's one number in `rumors.json`.
+- **Legends are tall tales that are true.** They're shown as Tall tale or Doubtful, but they all lead somewhere in Phase 9.
+- **Rumors don't age prices out of the book.** A heard price only fills a gap or replaces an older one, so the ledger never trades a price you saw for an older one you heard.
+- **Talk doesn't name the good's qualifier:** "brownstone", not "brownstone (salvaged)", in rumors and hails alike.
+
+### 19.3 Checks
+
+`tests/rumors.test.ts` (19 tests): round prices in §9's range, legends in real saloons, shipment tips that match the timetable, smuggler talk only in the islands, every kind told over a season with no unfilled placeholders, truth rates within 10% of reliability over 120 rumors, the Saloon Keeper's truer talk and free round, no legend or known smuggler told twice, staleness, heard prices never overwriting newer ones, hails into the ledger, the saloon's daily limit and purse, and the save round trip with an old save. The e2e smoke test buys a round at Bayfield and finds it in the ledger. The full unit suite passes.
+
+### 19.4 Still to do
+
+- Swap the placeholder anchorage for piece H's `smugglerAnchorage()` in `src/main.ts` once both land.
+- Cutter whereabouts and fence locations (§9) wait for Phase 5's cutter patrols and Phase 7's fences; newspapers and the telegraph stay cut (§14).
+
 ---
 
 ## Changelog
 
+- v0.7: Phase 4 piece K built (§19): rumors from the live sim in the saloons, reliability and age, heard prices and hails in the ledger, La Pointe's saloon.
 - v0.6: Phase 4 piece D built (§16.9): flows and manifests, deliveries that move stock, the traffic save slice, ships in the zones and at berths, look her over and hailing; two company names replaced after the names check.
 - v0.5: Phase 4 piece B built (§18): piers with ports, the port screen, the trade screen, price knowledge, the ledger in journal v1, the chandlery, save v6.
 - v0.5: Phase 4 piece A built (§16.8): goods in CU, port markets with drift and seasons, the purse and the hold, cargo load, save v5, the balance harness.

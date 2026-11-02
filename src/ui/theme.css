@@ -622,7 +622,8 @@ body[data-mode='chart'] .chart-layer {
   align-items: center;
 }
 
-.chart-row .menu-button:disabled {
+.chart-row .menu-button:disabled,
+.port-saloon .menu-button:disabled {
   cursor: default;
   opacity: 0.5;
 }
@@ -1006,4 +1007,29 @@ body[data-mode='chart'] .chart-layer {
 
 .ledger-list {
   padding-left: 18px;
+}
+
+/* Rumors (Phase 4 piece K): the kind as a small caps tag, past talk in fog gray. */
+.ledger-list.rumors {
+  list-style: none;
+  padding-left: 0;
+}
+
+.rumor {
+  margin: 0 0 8px;
+  line-height: 1.35;
+}
+
+.rumor-kind {
+  font-variant: small-caps;
+  letter-spacing: 0.04em;
+  color: var(--brass);
+}
+
+.rumor.stale {
+  color: #7d766c;
+}
+
+.port-saloon {
+  flex: 1;
 }

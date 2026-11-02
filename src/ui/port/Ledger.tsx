@@ -1,6 +1,6 @@
 import { useState } from 'preact/hooks';
 import { formatCents } from '../../sim/economy/knowledge';
-import type { LedgerSnapshot } from './model';
+import type { LedgerPrice, LedgerSnapshot, RumorRow } from './model';
 
 /**
  * The ledger (plan 05 §12; journal v1, plan 13 §5): the prices you've seen with their
@@ -18,6 +18,31 @@ const TABS: [LedgerTab, string][] = [
   ['rumors', 'Rumors'],
   ['standing', 'Standing'],
 ];
+
+/** One rumor: what was said, who said it and how far to trust it. */
+export function RumorItem({ r, showWhere = false }: { r: RumorRow; showWhere?: boolean }) {
+  return (
+    <li class={`rumor${r.stale ? ' stale' : ''}`} data-testid="rumor">
+      <span class="rumor-kind">{r.kind}</span> “{r.text}”
+      <br />
+      <small class="port-dim">
+        {r.from}
+        {showWhere ? `, ${r.where}` : ''}, {r.age}
+        {r.stale ? ' · past' : ''}
+      </small>
+    </li>
+  );
+}
+
+/** Marks a price heard from a rumor or a hail rather than seen. */
+function Heard({ p }: { p: LedgerPrice }) {
+  return p.heard ? (
+    <small class="port-dim" title="Heard, not seen">
+      {' '}
+      (heard)
+    </small>
+  ) : null;
+}
 
 function Empty({ text }: { text: string }) {
   return <p class="ledger-empty">{text}</p>;
@@ -64,7 +89,10 @@ function ByPort({ ledger, here }: { ledger: LedgerSnapshot; here: string | undef
               if (!p) return null;
               return (
                 <tr key={g.id} class={p.stale ? 'stale' : ''}>
-                  <td>{g.name}</td>
+                  <td>
+                    {g.name}
+                    <Heard p={p} />
+                  </td>
                   <td class="num">{formatCents(p.buyCents)}</td>
                   <td class="num">{formatCents(p.sellCents)}</td>
                 </tr>
@@ -115,7 +143,10 @@ function ByGood({ ledger }: { ledger: LedgerSnapshot }) {
                 <td>{port.name}</td>
                 <td class="num">{formatCents(price.buyCents)}</td>
                 <td class="num">{formatCents(price.sellCents)}</td>
-                <td>{price.age}</td>
+                <td>
+                  {price.age}
+                  <Heard p={price} />
+                </td>
               </tr>
             ) : null,
           )}
@@ -156,11 +187,9 @@ export function Ledger({ ledger, here }: { ledger: LedgerSnapshot; here?: string
         ))}
       {tab === 'rumors' &&
         (ledger.rumors.length ? (
-          <ul class="ledger-list">
+          <ul class="ledger-list rumors" data-testid="ledger-rumors">
             {ledger.rumors.map((r) => (
-              <li key={r.id}>
-                {r.text} <span class="ledger-age">({r.age})</span>
-              </li>
+              <RumorItem key={r.id} r={r} showWhere />
             ))}
           </ul>
         ) : (

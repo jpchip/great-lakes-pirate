@@ -10,7 +10,7 @@ import type { GameWorld } from '../gameplay/ecs';
 import type { LocalWeather } from '../sim/weather/local-weather';
 import type { ZoneTerrain } from '../sim/terrain/zone-terrain';
 import type { Sea } from '../sim/weather/waves';
-import type { WorldState } from '../sim/world-state';
+import type { Rumor, WorldState } from '../sim/world-state';
 
 /** Events shared across layers. Each system plan adds its own (plan 01 §3.5). */
 export interface GameEvents {
@@ -69,6 +69,12 @@ export interface GameEvents {
   /** Ports (plan 05 §7, Phase 4 piece B): the port screen opened, and the chandlery. */
   PortVisited: { port: string };
   StoresBought: { port: string; item: string; qty: number; totalCents: number };
+  /**
+   * Rumors (plan 05 §9, Phase 4 piece K): a round bought in a saloon brought talk, or a
+   * hailed ship's tip went in the ledger. `costCents` is what the round cost (0 on the
+   * house or at sea).
+   */
+  RumorHeard: { rumor: Rumor; costCents: number };
 }
 
 /** Everything a mode needs; built once at boot and handed to each mode. */

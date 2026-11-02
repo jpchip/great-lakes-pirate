@@ -25,6 +25,8 @@ import { createSchooner } from './gameplay/schooner';
 import { npcParade } from './gameplay/npc-ships';
 import { attachEconomy } from './gameplay/economy';
 import { attachPorts, type PortControl } from './gameplay/port';
+import { attachRumors } from './gameplay/rumors';
+import { placeholderSmugglerAnchorage } from './sim/rumors/sources';
 import { attachTraffic, HAIL_RANGE_M, LOOK_RANGE_M, type TrafficZone } from './gameplay/traffic';
 import { createContacts, type Contact } from './sim/chart/traffic';
 import { portInfo } from './sim/economy/defs';
@@ -674,6 +676,7 @@ async function boot(): Promise<void> {
       sell: (good, qty) => portsRef.current?.actions.sell(good, qty),
       quote: (good, qty, side) => portsRef.current?.actions.quote(good, qty, side) ?? 0,
       buyStores: (item, qty) => portsRef.current?.actions.buyStores(item, qty),
+      buyRound: () => portsRef.current?.actions.buyRound(),
       close: () => portsRef.current?.close(),
       castOff: () => portsRef.current?.actions.castOff(),
       closeJournal: () => portsRef.current?.closeJournal(),
@@ -721,10 +724,18 @@ async function boot(): Promise<void> {
   // Docking at a port's pier opens its screen; J opens the ledger (Phase 4 piece B). Both
   // pause the tick and take the keys, like the settings screen.
   let contextBeforeScreen: InputContext = 'sailing';
+  // Saloon talk and hailed news for the ledger (Phase 4 piece K).
+  const rumors = attachRumors({
+    ctx,
+    economy: economy.defs,
+    traffic,
+    smugglerAnchorage: placeholderSmugglerAnchorage,
+  });
   const ports = attachPorts({
     ctx,
     economy,
     hazards,
+    rumors,
     berthPier: (berthId) => sailingOptions.berths.find((b) => b.id === berthId)?.dockId,
     showPort: (snapshot) => ui.setPort(snapshot),
     showJournal: (snapshot) => ui.setJournal(snapshot),

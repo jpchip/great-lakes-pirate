@@ -25,7 +25,7 @@
     "name": "La Pointe",
     "zone": "zone.apostles",
     "wantedRegion": "region.apostles",
-    "services": ["market"]
+    "services": ["market", "tavern"]
   },
   {
     "id": "port.duluth",

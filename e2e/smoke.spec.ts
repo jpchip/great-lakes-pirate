@@ -536,10 +536,17 @@ test('docks at Bayfield, trades on the port screen, and keeps the ledger', async
   );
   expect(stores).toEqual({ 'store.lamp_oil': 1 });
 
+  // A round in the saloon brings a rumor (piece K), which the ledger keeps.
+  await page.getByTestId('port-tab-saloon').click();
+  await page.getByTestId('saloon-round').click();
+  await expect(page.getByTestId('saloon').getByTestId('rumor')).toHaveCount(1);
+
   // J turns to the ledger, which has Bayfield's prices.
   await page.keyboard.press('KeyJ');
   await expect(page.getByTestId('ledger')).toBeVisible();
   await expect(page.getByTestId('ledger-port')).toContainText('Bayfield');
+  await page.getByTestId('ledger-tab-rumors').click();
+  await expect(page.getByTestId('ledger-rumors').getByTestId('rumor')).toHaveCount(1);
 
   // Esc goes back aboard, still docked; the HUD offers the port again, and P reopens it.
   await page.keyboard.press('Escape');

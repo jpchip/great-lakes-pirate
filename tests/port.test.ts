@@ -334,7 +334,7 @@ describe('v5 → v6: price knowledge and ship stores join the save (piece B)', (
   it('gives a v5 run an empty ledger and empty lockers, keeping the rest', () => {
     const v5 = fixture(5);
     const state = parseWorldState(migrateSave(v5.state, 5));
-    expect(state.knowledge).toEqual({ prices: {} });
+    expect(state.knowledge).toEqual({ prices: {}, rumors: [] });
     expect(state.player.stores).toEqual({});
     expect(state.player.purse).toBe(23_450);
   });

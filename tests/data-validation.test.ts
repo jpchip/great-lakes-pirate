@@ -18,6 +18,8 @@ describe('data definitions', () => {
     const schema = dataFileSchemas[file];
     if (!schema) throw new Error(`No schema for ${file}`);
     const parsed = schema.parse(JSON.parse(readFileSync(join(dataDir, file), 'utf8')));
+    // A settings file (rumors.json) is one object; the rest are lists of definitions.
+    if (!Array.isArray(parsed)) return;
     const ids = (parsed as { id: string }[]).map((d) => d.id);
     expect(new Set(ids).size).toBe(ids.length);
   });

@@ -1,0 +1,154 @@
+{
+  "roundCents": { "huge": 200, "large": 125, "medium": 75, "small": 50, "tiny": 25 },
+  "roundsPerDay": 3,
+  "keep": 40,
+  "saloonKeeper": { "reliabilityBonus": 0.15, "freeRounds": 1 },
+  "hailReliability": 0.95,
+  "weatherLeadHours": 18,
+  "shipmentHorizonDays": 2,
+  "smugglerRegions": ["region.chequamegon", "region.apostles"],
+  "smugglerDecoys": [
+    { "id": "anchorage.sand_east", "where": "behind Sand Island, on the east side" },
+    { "id": "anchorage.basswood_bight", "where": "in the bight off Basswood Island" },
+    { "id": "anchorage.long_spit", "where": "inside the spit at Long Island" }
+  ],
+  "kinds": {
+    "shipment": {
+      "weight": 4,
+      "reliability": 0.75,
+      "label": "Shipment",
+      "templates": [
+        "{ship} is loading {good} at {port}{to}, sailing {when}.",
+        "The {ship}'s taking on {good} at {port}. Means to clear{to} {when}.",
+        "Watch for the {ship}: {good} out of {port}{to}, {when}."
+      ]
+    },
+    "price": {
+      "weight": 3,
+      "reliability": 0.8,
+      "label": "Prices",
+      "templates": [
+        "{good} is {deal} at {port}: {price} a CU, last I heard.",
+        "A fellow just in from {port} says {good} is {deal} there, {price} a CU.",
+        "If it's {good} you're after, {port} has it {deal}. {price} a CU."
+      ]
+    },
+    "weather": {
+      "weight": 2,
+      "reliability": 0.65,
+      "label": "Weather",
+      "templates": [
+        "The glass says {weather} by {when}, with the wind {wind}.",
+        "My knee says {weather} by {when}. Wind {wind}, mark me.",
+        "Old hands reckon {weather} by {when}, and the wind {wind}."
+      ]
+    },
+    "smuggler": {
+      "weight": 1.5,
+      "reliability": 0.85,
+      "label": "Smuggler",
+      "templates": [
+        "There's a boat lies {where} after dark. Whiskey no exciseman ever saw, and she'll take goods with no questions.",
+        "If you've cargo you'd rather not explain, look {where} once the sun's down.",
+        "A lantern shows {where} most nights. Smuggler's boat. You didn't hear it from me."
+      ]
+    },
+    "legend": {
+      "weight": 1,
+      "reliability": 0.3,
+      "label": "Legend",
+      "templates": ["{line}"]
+    }
+  },
+  "tellers": [
+    {
+      "minReliability": 0.8,
+      "word": "Reliable",
+      "names": [
+        "the harbor master's clerk",
+        "a mate off a lake steamer",
+        "the dock foreman",
+        "the barkeep"
+      ]
+    },
+    {
+      "minReliability": 0.6,
+      "word": "Likely",
+      "names": [
+        "a deckhand",
+        "a fisherman mending nets",
+        "a teamster from the ore dock",
+        "a tug's engineer"
+      ]
+    },
+    {
+      "minReliability": 0.4,
+      "word": "Doubtful",
+      "names": [
+        "a lumberjack in from camp",
+        "a drummer selling patent medicine",
+        "a stranger at the end of the bar"
+      ]
+    },
+    {
+      "minReliability": 0,
+      "word": "Tall tale",
+      "names": [
+        "a man three whiskeys in",
+        "an old sailor who won't stop talking",
+        "a boy who sweeps the floor"
+      ]
+    }
+  ],
+  "legends": [
+    {
+      "id": "legend.lucerne",
+      "name": "The Lucerne's Last Cargo",
+      "island": "island.long",
+      "ports": ["port.ashland", "port.washburn", "port.bayfield"],
+      "lines": [
+        "Fishermen off Long Island say a lantern bobs where the Lucerne went down in '86. All hands lost, and her captain's strongbox with them.",
+        "The Lucerne went down off Long Island with all hands. Some nights there's a light out there, low on the water, where no boat should be."
+      ]
+    },
+    {
+      "id": "legend.quarry_payroll",
+      "name": "The Quarryman's Payroll",
+      "island": "island.hermit",
+      "ports": ["port.bayfield", "port.la_pointe", "port.washburn"],
+      "lines": [
+        "When the quarry company went under in '93, the last payroll never reached the men on Hermit Island. Gold, they say. Nobody's found it.",
+        "Ask the old quarrymen about the Hermit Island payroll and watch them go quiet. It vanished the week the company failed."
+      ]
+    },
+    {
+      "id": "legend.dark_light",
+      "name": "The Dark Light of Minnesota Point",
+      "ports": ["port.duluth", "port.superior", "port.two_harbors"],
+      "lines": [
+        "The old light on Minnesota Point's been dark for years. So who's been showing a lantern up the tower on moonless nights?",
+        "Men off the night tug swear they've seen signals from the dead light on Minnesota Point. Smugglers, or worse."
+      ]
+    },
+    {
+      "id": "legend.devils_grotto",
+      "name": "The Devil's Grotto",
+      "island": "island.devils",
+      "ports": ["port.bayfield", "port.la_pointe"],
+      "lines": [
+        "A drowned man's journal came ashore once. All it said that anyone could read was 'the third cave, at the dark of the moon.' Devils Island has caves enough.",
+        "The sea caves on Devils Island boom like cannon in a northeaster. A smuggler went in one calm night and never came out, so they say."
+      ]
+    },
+    {
+      "id": "legend.ghost_net",
+      "name": "Outer Island's Ghost Net",
+      "island": "island.outer",
+      "ports": ["port.bayfield", "port.la_pointe", "port.ashland"],
+      "lines": [
+        "A fisherman on Outer Island went out one morning and never came back. His nets still come up now and then, with odd things in them.",
+        "Nobody fishes the old camp on Outer Island anymore. Not since the nets started coming up full of things no lake ever made."
+      ]
+    }
+  ]
+}
