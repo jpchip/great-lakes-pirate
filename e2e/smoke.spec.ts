@@ -293,7 +293,7 @@ test('trades at a market and keeps the purse and hold through a reload', async (
   });
   expect(sold).toBe(true);
   const after = await run();
-  expect(after.cargo).toEqual([{ good: 'good.lumber', qty: 10 }]);
+  expect(after.cargo).toEqual([{ good: 'good.lumber', qty: 10, paidCents: expect.any(Number) }]);
   expect(after.load).toBeCloseTo(0.35);
 
   await page.evaluate(() => {
@@ -590,7 +590,7 @@ test('plays the chart theme, the encounter stingers and the fade to fog', async 
 interface PortHook {
   dock(key: string): boolean;
   docked(): string | undefined;
-  knowledge(): Record<string, Record<string, { sellCents: number }>>;
+  knowledge(): Record<string, Record<string, { sellCents: number; heard?: string }>>;
   stores(): Record<string, number>;
   open(port: string): void;
 }
@@ -615,6 +615,15 @@ test('docks at Bayfield, trades on the port screen, and keeps the ledger', async
   await expect(body).toHaveAttribute('data-port', 'port.bayfield');
   await expect(page.getByTestId('port-purse')).toHaveText('$150.00');
 
+  // The market marks what Bayfield makes and wants, with a line of hints above the table.
+  await expect(page.getByTestId('market-hints')).toContainText('salted fish');
+  await expect(
+    page.getByTestId('market-row-good.salted_fish').getByTestId('role-export'),
+  ).toHaveAttribute('aria-label', 'made here');
+  await expect(
+    page.getByTestId('market-row-good.kerosene').getByTestId('role-import'),
+  ).toHaveAttribute('aria-label', 'wanted here');
+
   // Shift-click sells all the rope and canvas.
   await page.getByTestId('sell-good.rope_canvas').click({ modifiers: ['Shift'] });
   await expect(page.getByTestId('hold-row')).toHaveCount(0);
@@ -628,6 +637,8 @@ test('docks at Bayfield, trades on the port screen, and keeps the ledger', async
   await page.getByTestId('trade-confirm').click();
   await expect(page.getByTestId('hold-row')).toHaveCount(1);
   await expect(page.getByTestId('port-capacity')).toContainText('4 / 20 CU');
+  // What the lumber cost shows beside it in the hold and on the market row.
+  await expect(page.getByTestId('hold-paid')).toContainText('paid $');
 
   await page.getByTestId('port-tab-chandlery').click();
   await page.getByTestId('store-store.lamp_oil').click();
@@ -665,13 +676,23 @@ test('docks at Bayfield, trades on the port screen, and keeps the ledger', async
   // At the helm, J opens the ledger on its own.
   await page.keyboard.press('KeyJ');
   await expect(page.getByTestId('journal')).toBeVisible();
+  // At sea it opens on the hold: the lumber, with what it cost.
+  await expect(page.getByTestId('ledger-hold')).toContainText('Hold 4 / 20 CU');
+  await expect(page.getByTestId('ledger-hold-row')).toHaveCount(1);
+  await expect(page.getByTestId('ledger-hold-row')).toContainText('Lumber');
+  await expect(page.getByTestId('ledger-hold-row')).toContainText('$');
   await page.keyboard.press('KeyJ');
   await expect(page.getByTestId('journal')).toHaveCount(0);
 
   const known = await page.evaluate(() =>
     (window as unknown as { __glpPort: PortHook }).__glpPort.knowledge(),
   );
-  expect(Object.keys(known)).toEqual(['port.bayfield']);
+  // Only Bayfield's prices were seen first-hand; the saloon's talk may add a heard price elsewhere.
+  const seen = Object.keys(known).filter((port) =>
+    Object.values(known[port] ?? {}).some((price) => !price.heard),
+  );
+  expect(seen).toEqual(['port.bayfield']);
+  expect(Object.values(known['port.bayfield'] ?? {}).every((price) => !price.heard)).toBe(true);
   expect(errors).toEqual([]);
 });
 
@@ -953,6 +974,89 @@ test('creates a captain from the main menu and starts docked at dawn', async ({ 
   await page.reload();
   await page.getByTestId('menu-new-run').click();
   await expect(page.getByTestId('menu-replace')).toContainText('Kittiwake');
+  expect(errors).toEqual([]);
+});
+
+// Phase 4 criterion 1 (plan 05 §16.3): a new captain works through the whole First Week
+// checklist: sell the starting cargo, deliver a contract, stash goods at Stockton, hear a
+// rumor in a saloon and set out on a voyage, and the tracker ticks each one off.
+test('a new captain completes the First Week', async ({ page }) => {
+  const errors = collectErrors(page);
+  const body = page.locator('body');
+  await page.goto('/?renderer=null&debug&newrun=deckhand&seed=first-week');
+  const screen = page.getByTestId('port-screen');
+  await expect(screen).toBeVisible({ timeout: 20_000 });
+  await expect(screen).toHaveAttribute('data-port', 'port.bayfield');
+  await page.waitForFunction(() => '__glpPort' in window && '__glpContracts' in window);
+
+  // 1. Sell the rope and canvas, and buy a little lumber for the stash.
+  await page.getByTestId('sell-good.rope_canvas').click({ modifiers: ['Shift'] });
+  await page.getByTestId('buy-good.lumber').click();
+  await page.getByTestId('trade-qty').fill('2');
+  await page.getByTestId('trade-confirm').click();
+  await expect(page.getByTestId('hold-row')).toHaveCount(1);
+
+  // 4. A round in the saloon.
+  await page.getByTestId('port-tab-saloon').click();
+  await page.getByTestId('saloon-round').click();
+  await expect(page.getByTestId('saloon').getByTestId('rumor')).toHaveCount(1);
+
+  // 2. Take a contract and deliver it at its port.
+  await page.getByTestId('port-tab-freight').click();
+  await page.locator('button[data-testid^="accept-"]').first().click();
+  const to = await page.evaluate(
+    () =>
+      (window as unknown as { __glpContracts: ContractsHook }).__glpContracts.state().active[0]?.to,
+  );
+  expect(to).toBeTruthy();
+  await page.evaluate((port) => {
+    const hook = (window as unknown as { __glpPort: { close(): void; open(p: string): void } })
+      .__glpPort;
+    hook.close();
+    hook.open(port as string);
+  }, to);
+  await expect(page.getByTestId('port-notices')).toContainText('Delivered');
+  await page.keyboard.press('Escape');
+  await expect(screen).toHaveCount(0);
+  await expect(page.getByTestId('first-week-count')).toHaveText('3/5');
+
+  // 3. Alongside the Stockton landing, stash the lumber.
+  const docked = await page.evaluate(() =>
+    (window as unknown as { __glpPort: PortHook }).__glpPort.dock('stockton_landing'),
+  );
+  expect(docked).toBe(true);
+  const stash = page.getByTestId('stash-screen');
+  await expect(stash).toBeVisible({ timeout: 15_000 });
+  await page.getByTestId('stash-0').click({ modifiers: ['Shift'] });
+  await expect(page.getByTestId('stash-store-row')).toHaveCount(1);
+  await page.keyboard.press('Escape');
+  await expect(stash).toHaveCount(0);
+  await expect(page.getByTestId('first-week-count')).toHaveText('4/5');
+
+  // 5. Out to the west edge's fog, take to the chart and set out for the Twin Ports.
+  await page.keyboard.press('KeyF');
+  await page.evaluate(() =>
+    (
+      window as unknown as { __glpTraffic: { place(x: number, z: number, deg?: number): void } }
+    ).__glpTraffic.place(-3350, -2450, 270),
+  );
+  await expect(page.getByTestId('take-to-chart')).toBeVisible({ timeout: 15_000 });
+  await page.getByTestId('take-to-chart').click();
+  await expect(body).toHaveAttribute('data-mode', 'chart');
+  expect(
+    await page.evaluate(() =>
+      (window as unknown as { __glpChart: ChartHook }).__glpChart.plot([
+        [46.97, -91.6],
+        [46.85, -91.95],
+      ]),
+    ),
+  ).toBe('ok');
+  await page.keyboard.press('Enter');
+  await expect(page.getByTestId('chart-status')).toContainText('Under way');
+  await page.keyboard.press('KeyJ');
+  for (const step of ['sell', 'contract', 'stash', 'rumor', 'voyage']) {
+    await expect(page.getByTestId(`first-week-${step}`)).toHaveClass(/done/);
+  }
   expect(errors).toEqual([]);
 });
 

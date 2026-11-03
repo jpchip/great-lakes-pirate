@@ -251,6 +251,8 @@ UI and settings preferences are stored **outside the run save** (a separate Inde
 
 **Phase 4 piece C as built (2026-11-02).** The main menu comes up before the game boots: a title card over a dawn sky with Continue (the saved captain, ship, place, week and purse beside a portrait), New run and Settings (the game's settings screen; volumes kept in storage until the mixer starts). New run over a saved run asks first. Character creation is one logbook page: captain's name, schooner, run seed, eight likeness presets and six background cards (port, "harder start" in `signal-red` text as well as color, money and cargo, hideout, both perks with "from phase N" on the ones that wait). The First Week is a page at the top of the journal and a small enamel tracker under the barometer with the next step and its hint, which can be put away ([05 §19](05-ports-economy-trading.md)).
 
+**Phase 4 pieces E–K as built (2026-11-01 to 11-03).** The port screen gained a tab per service the port has: Freight (the agent's board, one line per contract with its pay, deposit, due time and Standing), Saloon (a round, and what's said with its teller and how far to trust it), and Shipyard at Superior, Duluth and Ashland (the T1 and T2 side by side with the trade-in, and the upgrades by slot). The chandlery gained repairs and instrument fittings. Moored at Stockton, the Stockton Stash screen moves cargo and cash both ways and offers lying at anchor until dawn, dusk or a shift of wind. The island smuggler's screen trades by lantern light. Hot and contraband lots carry an `ember` diamond in the hold and can be offered on the quiet. The ledger's pages are prices by port and by good, Contracts, Rumors and Standing (with your receivers), and the journal and the chart can stay open while the ship sails on (Settings → Camera & sailing) ([05 §20–24](05-ports-economy-trading.md)).
+
 ## 13. Cut List
 1. 3D preview in character creation (use 2D portraits).
 2. Player-written journal notes.
@@ -277,6 +279,7 @@ All resolved.
 ---
 
 ## Changelog
+- v0.7: Phase 4 pieces E–K: freight, saloon, shipyard, stash and smuggler screens, the ledger's pages, and sailing on with the journal open (§12).
 - v0.6: Phase 4 piece C: main menu, character creation and the First Week tracker built (§12).
 - v0.5: Phase 3 piece D: chart HUD, encounter card, lookout setting and chart locked banner built (§12).
 - v0.4: Phase 1 HUD v1 and settings screen built (§12).

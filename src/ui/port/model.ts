@@ -2,7 +2,7 @@ import type { Good } from '../../../data/schemas/goods';
 import { SECONDS_PER_GAME_DAY } from '../../core/time';
 import type { PortService } from '../../../data/schemas/ports';
 import { portInfo, type EconomyDefs } from '../../sim/economy/defs';
-import { holdFree, holdUsed, isClean, type CargoStack } from '../../sim/economy/hold';
+import { holdFree, holdUsed, isClean, paidPerCu, type CargoStack } from '../../sim/economy/hold';
 import {
   ageText,
   formatCents,
@@ -101,6 +101,8 @@ export interface MarketRow {
   stock: number;
   /** Clean CU of it in the hold: what you can sell here. */
   held: number;
+  /** What a CU of it aboard cost you on average, cents, when you know. */
+  heldPaidCents?: number | undefined;
   maxBuy: number;
   /** Cheap here (an export) or dear (an import): a hint, not a promise. */
   role: 'export' | 'neutral' | 'import';
@@ -124,6 +126,8 @@ export interface HoldRow {
   stealCents?: number | undefined;
   /** What a CU fetches here, when this port buys it and it's clean. */
   sellCents: number | undefined;
+  /** What a CU of the stack cost you on average, cents, when you know. */
+  paidCents?: number | undefined;
   /** The stack's place in the hold, for offering it (rows are sorted). */
   index: number;
   /**
@@ -269,8 +273,22 @@ export interface LedgerPort {
 }
 
 /** The ledger in journal v1 (plan 05 §12, plan 13 §5): prices, contracts, rumors, Standing. */
+/** One stack of the hold, as the ledger lists it at sea. */
+export interface LedgerHoldRow {
+  name: string;
+  qty: number;
+  hot: boolean;
+  /** Carried for a contract, and where it's bound. */
+  contract: boolean;
+  contractTo?: string | undefined;
+  /** What a CU cost you on average, cents, when you know. */
+  paidCents?: number | undefined;
+}
+
 export interface LedgerSnapshot {
   dateText: string;
+  /** What's in the hold, with CU used and capacity. */
+  hold: { rows: LedgerHoldRow[]; usedCu: number; capacity: number };
   /** Ports whose prices you know, nearest in time first. */
   ports: LedgerPort[];
   /** Goods with a known price somewhere, in trade-screen order. */
@@ -453,6 +471,7 @@ export function ledgerSnapshot(
   contracts?: ContractSources,
   receivers?: readonly string[],
   rumors: readonly Rumor[] = [],
+  held?: { cargo: readonly CargoStack[]; capacity: number },
 ): LedgerSnapshot {
   const ports: (LedgerPort & { seenAt: number })[] = [];
   const goods = new Set<string>();
@@ -483,8 +502,27 @@ export function ledgerSnapshot(
     });
   }
   ports.sort((a, b) => b.seenAt - a.seenAt || a.name.localeCompare(b.name));
+  const holdRows: LedgerHoldRow[] = (held?.cargo ?? []).map((s) => {
+    const k = s.contract ? contracts?.state.active.find((x) => x.id === s.contract) : undefined;
+    const paid = paidPerCu(s);
+    return {
+      name: contracts
+        ? cargoName(defs, contracts.defs, s.good)
+        : (defs.goods.get(s.good)?.name ?? s.good),
+      qty: s.qty,
+      hot: !!s.hot,
+      contract: !!s.contract,
+      contractTo: k ? portName(k.to) : undefined,
+      paidCents: paid === undefined ? undefined : Math.round(paid),
+    };
+  });
   return {
     dateText: weekLabel(gameSeconds),
+    hold: {
+      rows: holdRows,
+      usedCu: holdUsed(held?.cargo ?? []),
+      capacity: held?.capacity ?? 0,
+    },
     ports: ports.map((p) => ({
       id: p.id,
       name: p.name,
@@ -577,8 +615,12 @@ export function portSnapshot(src: PortSources): PortSnapshot {
   tabs.push('ledger');
 
   const cleanHeld = new Map<string, number>();
+  const cleanPaid = new Map<string, number>();
   for (const s of trader.cargo) {
-    if (isClean(s)) cleanHeld.set(s.good, (cleanHeld.get(s.good) ?? 0) + s.qty);
+    if (!isClean(s)) continue;
+    cleanHeld.set(s.good, (cleanHeld.get(s.good) ?? 0) + s.qty);
+    const paid = paidPerCu(s);
+    if (paid !== undefined) cleanPaid.set(s.good, Math.round(paid));
   }
 
   const market: MarketRow[] = [];
@@ -597,6 +639,7 @@ export function portSnapshot(src: PortSources): PortSnapshot {
         sellCents: p.sellCents,
         stock: Math.floor(markets[port]?.[good]?.stock ?? 0),
         held: cleanHeld.get(good) ?? 0,
+        heldPaidCents: cleanPaid.get(good),
         maxBuy: maxBuyable(defs, markets, trader, capacity, port, good, gameSeconds),
         role: mg.role,
         bestSale: elsewhere(sale, sale?.sellCents, gameSeconds),
@@ -631,6 +674,7 @@ export function portSnapshot(src: PortSources): PortSnapshot {
             ? quote(defs, markets, port, s.good, s.qty, 'sell', gameSeconds).totalCents
             : undefined,
         sellCents: sell,
+        paidCents: paidPerCu(s) === undefined ? undefined : Math.round(paidPerCu(s) as number),
         index,
         offer:
           offerable && kind
@@ -705,6 +749,9 @@ export function portSnapshot(src: PortSources): PortSnapshot {
     notices: src.notices ?? [],
     shipyard: yard('shipyard'),
     fittings: yard('chandlery'),
-    ledger: ledgerSnapshot(defs, knowledge, gameSeconds, src.contracts, src.receivers, rumors),
+    ledger: ledgerSnapshot(defs, knowledge, gameSeconds, src.contracts, src.receivers, rumors, {
+      cargo: trader.cargo,
+      capacity,
+    }),
   };
 }

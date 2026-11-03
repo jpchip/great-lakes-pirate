@@ -1663,6 +1663,42 @@ body[data-mode='chart'] .chart-layer {
   cursor: help;
 }
 
+.port-role {
+  display: inline-block;
+  margin: 0 6px 0 8px;
+  padding: 0 5px;
+  font-size: 11px;
+  line-height: 16px;
+  border: 1px solid currentColor;
+  border-radius: 3px;
+  cursor: help;
+  white-space: nowrap;
+}
+
+.port-role.made {
+  color: var(--lake-teal);
+}
+
+.port-role.wanted {
+  color: var(--signal-red);
+}
+
+.port-role-icon {
+  margin-left: 6px;
+  padding: 0 3px;
+  font-size: 10px;
+  line-height: 13px;
+}
+
+.port-trade-hints {
+  margin: 0 0 8px;
+  font-size: 14px;
+}
+
+.port-trade-hints .port-role:first-child {
+  margin-left: 0;
+}
+
 .port-help {
   width: 15px;
   height: 15px;

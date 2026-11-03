@@ -64,6 +64,15 @@ const TAB_LABELS: Record<PortTab, string> = {
 };
 
 /** The ember mark for hot goods: a shape as well as a color (plan 13 §2.2). */
+
+/** The names of the goods this port makes (`export`) or wants (`import`), for the hint line. */
+function goodsWith(port: PortSnapshot, role: 'export' | 'import'): string {
+  return port.market
+    .filter((r) => r.role === role)
+    .map((r) => r.name.toLowerCase())
+    .join(', ');
+}
+
 function Ember() {
   return (
     <span class="ember" title="Hot: taken by crime" aria-label="hot">
@@ -220,6 +229,12 @@ function Market({
   let category = '';
   return (
     <div class="port-market">
+      <p class="port-trade-hints" data-testid="market-hints">
+        <span class="port-role made">▾ Made here</span>{' '}
+        {goodsWith(port, 'export') || 'little of note'}
+        <span class="port-role wanted">▴ Wanted here</span>{' '}
+        {goodsWith(port, 'import') || 'nothing in particular'}
+      </p>
       <table class="port-table" data-testid="market-table">
         <thead>
           <tr>
@@ -260,9 +275,14 @@ function Market({
                   {r.name}
                   {r.role !== 'neutral' && (
                     <span
-                      class="port-icon"
-                      title={r.role === 'export' ? 'Made here: cheap' : 'Wanted here: dear'}
+                      class={`port-role port-role-icon ${r.role === 'export' ? 'made' : 'wanted'}`}
+                      data-testid={`role-${r.role}`}
                       aria-label={r.role === 'export' ? 'made here' : 'wanted here'}
+                      title={
+                        r.role === 'export'
+                          ? 'Made here: cheap to buy, a poor place to sell'
+                          : "Wanted here: dear, and they'll pay well for it"
+                      }
                     >
                       {r.role === 'export' ? '▾' : '▴'}
                     </span>
@@ -271,7 +291,15 @@ function Market({
                 <td class="num hud-num">{formatCents(r.buyCents)}</td>
                 <td class="num hud-num">{formatCents(r.sellCents)}</td>
                 <td class="num hud-num">{r.stock}</td>
-                <td class="num hud-num">{r.held || ''}</td>
+                <td class="num hud-num">
+                  {r.held || ''}
+                  {r.held > 0 && r.heldPaidCents !== undefined && (
+                    <small class="port-dim port-paid" title="What a CU of it aboard cost you">
+                      {' '}
+                      @ {formatCents(r.heldPaidCents)}
+                    </small>
+                  )}
+                </td>
                 <td>
                   <Elsewhere seen={r.bestSale} label="Paid" />
                 </td>
@@ -382,6 +410,11 @@ function Hold({
                 {h.contract && <small class="port-dim"> (contract)</small>}
               </span>
               <span class="hud-num">{h.qty} CU</span>
+              {h.paidCents !== undefined && !h.hot && (
+                <small class="port-dim" data-testid="hold-paid" title="What a CU cost you">
+                  paid {formatCents(h.paidCents)}
+                </small>
+              )}
               {h.offer ? (
                 <small class="port-dim">
                   {h.offer.tooHot

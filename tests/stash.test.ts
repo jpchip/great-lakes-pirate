@@ -77,6 +77,16 @@ describe('the Stockton stash (piece E)', () => {
     expect(syncHideouts(back.hideouts, 'deckhand', 0)).toBe(back.hideouts);
   });
 
+  it('carries what the goods cost into the stash and back out', () => {
+    const hold = [{ good: 'good.lumber', qty: 10, paidCents: 5_000 }];
+    const h = fresh();
+    expect(stashGoods(hold, h, 0, 4)).toMatchObject({ ok: true, qty: 4 });
+    expect(hold[0]).toMatchObject({ qty: 6, paidCents: 3_000 });
+    expect(h.storage.goods[0]).toMatchObject({ qty: 4, paidCents: 2_000 });
+    expect(takeGoods(hold, 20, h, 0, 4)).toMatchObject({ ok: true, qty: 4 });
+    expect(hold[0]).toMatchObject({ qty: 10, paidCents: 5_000 });
+  });
+
   it('moves goods both ways, keeping hot and contract lots apart', () => {
     const hold = [
       { good: 'good.lumber', qty: 6 },

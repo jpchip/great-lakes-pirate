@@ -25,6 +25,12 @@ export interface CargoStack {
   hot?: HotMeta | undefined;
   /** The freight contract this cargo belongs to (piece F). */
   contract?: string | undefined;
+  /**
+   * What the stack's CU cost in all, cents: bought at a market, it's the price paid. It
+   * follows the goods through the stash and shrinks with each sale. Absent when unknown
+   * (the starting cargo), so no profit is shown for it.
+   */
+  paidCents?: number | undefined;
 }
 
 export type Hold = CargoStack[];
@@ -64,12 +70,36 @@ export function holdLoad01(
   return Math.min(1, w / capacity);
 }
 
+/** What a CU of the stack cost on average, cents; undefined when the cost isn't known. */
+export function paidPerCu(s: Pick<CargoStack, 'qty' | 'paidCents'>): number | undefined {
+  return s.paidCents === undefined || s.qty <= 0 ? undefined : s.paidCents / s.qty;
+}
+
+/**
+ * Takes `take` CU out of a stack and its share of the cost with them. Returns that share
+ * (undefined when the cost isn't known). Doesn't remove an emptied stack.
+ */
+export function reduceStack(s: CargoStack, take: number): number | undefined {
+  const share = s.paidCents === undefined ? undefined : Math.round((s.paidCents * take) / s.qty);
+  s.qty -= take;
+  if (s.paidCents !== undefined && share !== undefined) s.paidCents -= share;
+  return share;
+}
+
 /** Adds goods, merging a clean lot into the clean stack of the same good. */
 export function addToHold(hold: Hold, stack: CargoStack): void {
   if (stack.qty <= 0) return;
   if (isClean(stack)) {
     const same = hold.find((s) => s.good === stack.good && isClean(s));
     if (same) {
+      // Goods of unknown cost take on the known side's average, so it isn't dragged to $0.
+      const a = paidPerCu(same);
+      const b = paidPerCu(stack);
+      if (a !== undefined || b !== undefined) {
+        same.paidCents = Math.round(
+          (a ?? (b as number)) * same.qty + (b ?? (a as number)) * stack.qty,
+        );
+      }
       same.qty += stack.qty;
       return;
     }
@@ -87,7 +117,7 @@ export function takeCleanFromHold(hold: Hold, goodId: string, qty: number): numb
     const s = hold[i] as CargoStack;
     if (s.good !== goodId || !isClean(s)) continue;
     const take = Math.min(s.qty, left);
-    s.qty -= take;
+    reduceStack(s, take);
     left -= take;
     if (s.qty === 0) hold.splice(i, 1);
   }

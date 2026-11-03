@@ -13,6 +13,9 @@ import {
 } from '../../src/sim/economy/harness';
 import { tickMarkets } from '../../src/sim/economy/market';
 import { gameContracts } from '../../src/sim/economy/contracts';
+import { westernSuperiorChart } from '../../src/sim/chart/chart-data';
+import { createContacts, stepContacts, type Contact } from '../../src/sim/chart/traffic';
+import { gameTraffic, runTraffic } from '../../src/sim/traffic/cargo';
 
 /**
  * The economy's long balance report (plan 17 §3): the legit bot for ten real hours from
@@ -144,6 +147,36 @@ it('economy balance report', () => {
     tickMarkets(defs, sim.markets, DAWN + i * WORLD_TICK_GAME_SECONDS, WORLD_TICK_GAME_SECONDS);
   }
   report['marketTickMs'] = +((performance.now() - t0) / N).toFixed(4);
+
+  // The whole economy tick with traffic (criterion 11): markets, every ship placed on its
+  // timetable, and their calls moving stock, for the real fleet and for six copies of it
+  // (100+ abstract voyages). Copies carry their own ids, so their manifests differ.
+  const trafficDefs = gameTraffic();
+  const fleet = createContacts(westernSuperiorChart().projection, 'bench-traffic', DAWN).filter(
+    (c) => c.schedule,
+  );
+  const tickWithTraffic = (contacts: Contact[]) => {
+    const tsim = new EconomySim(defs, DAWN);
+    const ticks = 5_000;
+    let calls = 0;
+    const s0 = performance.now();
+    for (let i = 0; i < ticks; i++) {
+      const a = DAWN + i * WORLD_TICK_GAME_SECONDS;
+      const b = a + WORLD_TICK_GAME_SECONDS;
+      tickMarkets(defs, tsim.markets, b, WORLD_TICK_GAME_SECONDS);
+      stepContacts(contacts, b);
+      calls += runTraffic(trafficDefs, defs, tsim.markets, contacts, a, b).length;
+    }
+    const ms = (performance.now() - s0) / ticks;
+    return { ships: contacts.length, calls, msPerTick: +ms.toFixed(4) };
+  };
+  const copies = (n: number): Contact[] =>
+    Array.from({ length: n }, (_, k) =>
+      fleet.map((c) => ({ ...c, id: k === 0 ? c.id : `${c.id}~${k}` })),
+    ).flat();
+  const worldTick = [tickWithTraffic(copies(1)), tickWithTraffic(copies(6))];
+  for (const w of worldTick) expect(w.msPerTick).toBeLessThan(1);
+  report['worldTickWithTraffic'] = worldTick;
 
   console.log(JSON.stringify(report, null, 2));
 });

@@ -1,7 +1,14 @@
 import sitesJson from '../../../data/sites.json';
 import { sitesFileSchema, type SiteDef } from '../../../data/schemas/sites';
 import type { Zone, ZoneFrame } from '../../core/coords';
-import { addToHold, holdFree, holdUsed, type CargoStack, type Hold } from '../economy/hold';
+import {
+  addToHold,
+  holdFree,
+  holdUsed,
+  reduceStack,
+  type CargoStack,
+  type Hold,
+} from '../economy/hold';
 import { footprintPoint } from '../harbors';
 import { setPieceFootprint, zoneDef } from '../terrain/zones';
 
@@ -93,9 +100,9 @@ function moveStack(from: Hold, to: Hold, index: number, qty: number, room: numbe
   if (!stack) return { ok: false, reason: 'noStack' };
   const n = Math.min(qty, stack.qty, room);
   if (n <= 0) return { ok: false, reason: 'noRoomHold' };
-  stack.qty -= n;
+  const paid = reduceStack(stack, n);
   if (stack.qty === 0) from.splice(index, 1);
-  addToHold(to, { ...stack, qty: n });
+  addToHold(to, { ...stack, qty: n, paidCents: paid });
   return { ok: true, good: stack.good, qty: n };
 }
 
