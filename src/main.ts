@@ -26,7 +26,8 @@ import { npcParade } from './gameplay/npc-ships';
 import { attachEconomy } from './gameplay/economy';
 import { attachPorts, type PortControl } from './gameplay/port';
 import { attachRumors } from './gameplay/rumors';
-import { placeholderSmugglerAnchorage } from './sim/rumors/sources';
+import { knowsRumor } from './sim/rumors/rumors';
+import { smugglerAnchorage } from './sim/economy/smuggler';
 import { attachContracts, contractsOf } from './gameplay/contracts';
 import { attachSmuggler, type SmugglerControl } from './gameplay/smuggler';
 import { attachStash, type StashControl } from './gameplay/stash';
@@ -982,7 +983,7 @@ async function boot(): Promise<void> {
     ctx,
     economy: economy.defs,
     traffic,
-    smugglerAnchorage: placeholderSmugglerAnchorage,
+    smugglerAnchorage: () => smugglerAnchorage(),
   });
   const ports = attachPorts({
     ctx,
@@ -1030,6 +1031,8 @@ async function boot(): Promise<void> {
     ctx,
     economy,
     show: (snapshot) => ui.setSmuggler(snapshot),
+    // Saloon talk of where she lies puts her on the chart (piece K).
+    heardOf: () => knowsRumor(ctx.state.knowledge.rumors, 'smuggler'),
     onOpen(open) {
       if (open) {
         machine.pushOverlay('trade');
