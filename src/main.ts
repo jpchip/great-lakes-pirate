@@ -913,7 +913,7 @@ async function boot(): Promise<void> {
       castOff: () => portsRef.current?.actions.castOff(),
       closeJournal: () => portsRef.current?.closeJournal(),
       openDocked: () => {
-        if (machine.mode !== 'sailing' || machine.gameplayPaused) return;
+        if (machine.mode !== 'sailing' || machine.overlayOpen) return;
         if (!portsRef.current?.openDocked()) stashRef.current?.openHere();
       },
     },
@@ -944,7 +944,7 @@ async function boot(): Promise<void> {
     },
     setFirstWeekHidden: (hidden) => captainRef.current?.setHidden(hidden),
     onTakeToChart: () => {
-      if (machine.mode === 'sailing' && !machine.gameplayPaused) travelRef.current?.takeToChart();
+      if (machine.mode === 'sailing' && !machine.overlayOpen) travelRef.current?.takeToChart();
     },
     audio: audio && {
       settings: audio.mixer.settings,
@@ -970,8 +970,13 @@ async function boot(): Promise<void> {
   settings.subscribe(applySettings);
 
   // Docking at a port's pier opens its screen; J opens the ledger (Phase 4 piece B). Both
-  // pause the tick and take the keys, like the settings screen.
+  // take the keys, like the settings screen. The port screen pauses the tick; the journal
+  // lets the ship sail on behind it when the player's setting says so (never in an arena).
   let contextBeforeScreen: InputContext = 'sailing';
+  let modeAtScreen = machine.mode;
+  const sailOnOffered = (): boolean => !arena && !inArenaSpace;
+  const sailOnAllowed = (): boolean =>
+    settings.value.sailing.sailOnWhileReading && sailOnOffered() && !changingZone;
   // Saloon talk and hailed news for the ledger (Phase 4 piece K).
   const rumors = attachRumors({
     ctx,
@@ -991,12 +996,17 @@ async function boot(): Promise<void> {
     showJournal: (snapshot) => ui.setJournal(snapshot),
     onOpen(open) {
       if (open) {
-        machine.pushOverlay(ports.openPort ? 'trade' : 'journal');
+        const journal = !ports.openPort;
+        machine.pushOverlay(journal ? 'journal' : 'trade', !(journal && sailOnAllowed()));
+        ui.setJournalSailing(journal && sailOnOffered() ? sailOnAllowed() : undefined);
+        modeAtScreen = machine.mode;
         contextBeforeScreen = input.context;
         input.context = 'menu';
       } else {
         if (!machine.removeOverlay('trade')) machine.removeOverlay('journal');
-        input.context = contextBeforeScreen;
+        ui.setJournalSailing(undefined);
+        // A journal left open across an arrival closes in the new mode, which has set its keys.
+        if (machine.mode === modeAtScreen) input.context = contextBeforeScreen;
         input.endTick();
       }
       if (cameraRig) cameraRig.suspended = open;
@@ -1007,6 +1017,12 @@ async function boot(): Promise<void> {
     castOff: () => input.trigger('Interact'),
   });
   portsRef.current = ports;
+  // P or the setting flips sailing on behind an open journal at once.
+  settings.subscribe(() => {
+    if (!ports.journalOpen) return;
+    machine.setOverlayPauses('journal', !sailOnAllowed());
+    ui.setJournalSailing(sailOnOffered() ? sailOnAllowed() : undefined);
+  });
   // The island smuggler (Phase 4 piece H): her boat after dark in Oak Island's lee, and her
   // screen, which pauses the game like the port screen.
   let contextBeforeSmuggler: InputContext = 'sailing';
@@ -1173,9 +1189,8 @@ async function boot(): Promise<void> {
     berths: allBerths,
     timeWarp,
   };
-  machine
-    .register({ id: 'mainMenu', enter: () => (input.context = 'menu') })
-    .register(createSailingMode(ctx, sailingOptions));
+  const sailingMode = createSailingMode(ctx, sailingOptions);
+  machine.register({ id: 'mainMenu', enter: () => (input.context = 'menu') }).register(sailingMode);
   // A refused F or anchor order says why on the HUD for a few seconds.
   let notice: { text: string; untilS: number } | undefined;
   let hudSeconds = 0;
@@ -1572,7 +1587,13 @@ async function boot(): Promise<void> {
   };
   // For checks from the console and the e2e tests: `__glpZones.enter('zone.apostles', 'north')`.
   if (import.meta.env.DEV || params.has('debug')) {
-    const hook = { stats: () => zones.stats, enter: enterZoneAt };
+    const hook = {
+      stats: () => zones.stats,
+      enter: enterZoneAt,
+      /** Where the ship is and the game clock, to see her sail on behind the journal. */
+      pose: () => ({ ...shipPose() }),
+      clock: () => state.environment.clock.gameSeconds,
+    };
     (window as unknown as { __glpZones: typeof hook }).__glpZones = hook;
     // `__glpArena.enter('cutter')` drops into an arena, `__glpArena.state()` reads it.
     const arenaHook = {
@@ -1631,6 +1652,9 @@ async function boot(): Promise<void> {
     enterZone: (id, pose, arrival, onLoaded) => enterZone(id, pose, arrival, false, onLoaded),
     save: () => saveControls.saveNow(),
     pursued: () => pursued || !!arena?.run.pursued,
+    // A look at the chart from the helm can let the ship sail on in the zone behind it.
+    sailOn: () => sailOnAllowed(),
+    sailTick: (dt) => sailingMode.update?.(dt),
     forecastHours: () => instruments.forecastHours,
     // Engage, or a failed avoid, meets them here; leaving reloads the zone and resumes the voyage.
     enterArena: (enc, travel) => {
@@ -1667,6 +1691,28 @@ async function boot(): Promise<void> {
         : [],
   });
   travelRef.current = chartTravel;
+  // Trouble ends a passage read through: the journal closes and a look at the chart goes
+  // back to the helm, so the player sees what happened (only ever while sailing on).
+  const lookUp = (): void => {
+    if (ports.journalOpen && !machine.gameplayPaused) ports.closeJournal();
+    if (machine.mode === 'chart' && chartTravel.trip === 'look' && sailOnAllowed()) {
+      chartTravel.back();
+    }
+  };
+  const ifPlayer = (e: { shipId: string | undefined }): void => {
+    if (e.shipId === playerShip.id) lookUp();
+  };
+  ctx.events.on('ShipGrounded', ifPlayer);
+  ctx.events.on('ShipStruck', ifPlayer);
+  ctx.events.on('ShipKnockedDown', ifPlayer);
+  ctx.events.on('ShipFoundering', ifPlayer);
+  ctx.events.on('AnchorDragging', (e) => e.dragging && ifPlayer(e));
+  ctx.events.on('EncounterSpotted', lookUp);
+  ctx.events.on('VoyageArrived', lookUp);
+  // A journal open across an arrival or a change of mode closes with it.
+  machine.onTransition(() => {
+    if (ports.journalOpen) ports.closeJournal();
+  });
   machine.register(chartTravel.mode);
   /** Is the ship inside a harbor set piece, where the chart can't be opened? */
   const inHarbor = (): boolean =>
@@ -1769,8 +1815,10 @@ async function boot(): Promise<void> {
         const refused = chartTravel.fromHelm({ atEdge: atEdge(), inHarbor: inHarbor() });
         if (refused) showNotice(refused);
       }
-      // The traffic sails on the clock: in the zone, every tick (Phase 4 piece D).
-      if (machine.mode === 'sailing' && !arena && !changingZone) {
+      // The traffic sails on the clock: in the zone, every tick (Phase 4 piece D), and
+      // behind a look at the chart while the ship sails on.
+      const inZone = machine.mode === 'sailing' || chartTravel.trip === 'look';
+      if (inZone && !arena && !changingZone) {
         if (traffic.step(hazards.state.berthId)) sailingOptions.berths = freeBerths();
         smuggler.step(shipPose());
       }
@@ -1783,6 +1831,10 @@ async function boot(): Promise<void> {
       // A patch or mend kit from the lockers (piece G): not while the port screen is up.
       if (sameContext && !arena && input.context === 'sailing' && input.pressed('Repair')) {
         showNotice(shipyard.useKit());
+      }
+      // A hostile on the ship's track: put the book down.
+      if ((pursued || !!arena?.run.pursued) && ports.journalOpen && !machine.gameplayPaused) {
+        ports.closeJournal();
       }
       const inGame = input.context === 'sailing' || input.context === 'chart';
       if (sameContext && inGame && input.pressed('Pause')) {

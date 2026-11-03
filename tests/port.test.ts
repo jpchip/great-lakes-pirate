@@ -314,6 +314,15 @@ describe('docking at a port (piece B)', () => {
     expect(ports.journalOpen).toBe(false);
     expect(opens).toEqual([true, false, true]);
   });
+
+  it('closes the journal properly when the ship docks behind it', () => {
+    const { ports, opens } = setup();
+    ports.openJournal();
+    ports.open('port.bayfield');
+    expect(ports.journalOpen).toBe(false);
+    expect(ports.openPort).toBe('port.bayfield');
+    expect(opens).toEqual([true, false, true]);
+  });
 });
 
 describe('an on-screen button presses an action for one tick', () => {

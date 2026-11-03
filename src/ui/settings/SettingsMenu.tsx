@@ -200,6 +200,11 @@ function Camera({ settings, update }: SettingsMenuProps) {
         checked={settings.value.sailing.manualTrim}
         onChange={(on) => update((s) => (s.sailing.manualTrim = on))}
       />
+      <Toggle
+        label="Keep sailing with the journal or chart open (P)"
+        checked={settings.value.sailing.sailOnWhileReading}
+        onChange={(on) => update((s) => (s.sailing.sailOnWhileReading = on))}
+      />
       <label class="menu-row">
         <span>Lookouts report on the chart</span>
         <select

@@ -115,6 +115,13 @@ export interface ChartTravelHost {
   forecastHours?: () => number;
   /** The Morrill hunts and forces meetings (`?cutter=hunt`, dev only until Phase 5). */
   cutterHunts?: boolean;
+  /**
+   * Whether a look at the chart lets the ship sail on in the zone behind it, on the orders
+   * she had at the helm (the player's setting; never in an arena). Held when absent.
+   */
+  sailOn?: (() => boolean) | undefined;
+  /** The zone's sailing tick, run under a look while `sailOn` holds. */
+  sailTick?: ((dt: number) => void) | undefined;
   /** Places the captain knows to mark on the chart, e.g. the smuggler's anchorage (piece H). */
   marks?: (() => readonly { at: Geo; label: string; kind: ChartMarkKind }[]) | undefined;
 }
@@ -264,6 +271,9 @@ export function createChartTravel(host: ChartTravelHost): ChartTravel {
   /** The zone the ship's chart position is in, if any. */
   const zoneHere = (): ChartZone | undefined => zoneAt(geo, session.position);
 
+  /** True while a look lets the ship sail on in the zone. */
+  const sailingOn = (): boolean => trip === 'look' && !!host.sailTick && !!host.sailOn?.();
+
   const backLabel = (): string | undefined => {
     if (trip === 'look') return 'Back to the helm';
     if (trip !== 'sea' || session.voyage || arriving) return undefined;
@@ -321,12 +331,25 @@ export function createChartTravel(host: ChartTravelHost): ChartTravel {
       update(dt) {
         session.lookout = host.lookout();
         const input = ctx.input;
-        const free = !session.pending && !notice && !arriving;
+        // Keys only with the chart on top: Enter and Esc over the journal are the journal's.
+        const free = input.context === 'chart' && !session.pending && !notice && !arriving;
         if (free && input.pressed('Confirm')) travel.setSail();
         else if (free && input.pressed('Cancel')) travel.undo();
         else if (free && input.pressed('ToggleChart') && backLabel()) travel.back();
-        // On a look the world is held: chart mode only runs the clock under way.
-        if (trip === 'sea' && !arriving) chart.update(dt);
+        // On a look the world is held, unless the ship sails on behind it: then the zone
+        // runs and the chart follows her. Chart mode only runs its clock under way.
+        if (trip === 'look' && sailingOn()) {
+          // Pursued, the chart locks: back to the helm.
+          if (host.pursued()) {
+            toHelm();
+            return;
+          }
+          host.sailTick?.(dt);
+          const { frame } = host.zone();
+          const pose = host.shipPose();
+          session.position = onChart(pose, frame);
+          session.heading = pose.heading;
+        } else if (trip === 'sea' && !arriving) chart.update(dt);
       },
       render() {
         if (!fitted && view.width > 0) {
@@ -542,12 +565,18 @@ export function createChartTravel(host: ChartTravelHost): ChartTravel {
     },
     sampleHud() {
       if (machine.mode !== 'chart' || !trip) return;
+      if (sailingOn()) {
+        // The wind and the traffic move on with the ship.
+        readSky(session, clock.gameSeconds);
+        placeTraffic(session.contacts, clock.gameSeconds);
+      }
       host.setHud(
         chartHud({
           session,
           trip,
           gameSeconds: clock.gameSeconds,
           backLabel: backLabel(),
+          sailingOn: trip === 'look' && host.sailTick ? sailingOn() : undefined,
           notice,
           locked: host.pursued(),
           forecastLead: Math.min(forecastLead, host.forecastHours?.() ?? Infinity),

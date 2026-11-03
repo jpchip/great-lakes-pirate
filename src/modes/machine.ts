@@ -107,6 +107,16 @@ export class ModeMachine {
     return true;
   }
 
+  /** Changes whether the open overlays with this id stop the gameplay tick. */
+  setOverlayPauses(id: OverlayId, pausesGameplay: boolean): void {
+    for (const o of this.overlays) if (o.id === id) o.pausesGameplay = pausesGameplay;
+  }
+
+  /** True while any overlay is open, paused or not. */
+  get overlayOpen(): boolean {
+    return this.overlays.length > 0;
+  }
+
   /** True while an overlay with this id is open anywhere in the stack. */
   hasOverlay(id: OverlayId): boolean {
     return this.overlays.some((o) => o.id === id);

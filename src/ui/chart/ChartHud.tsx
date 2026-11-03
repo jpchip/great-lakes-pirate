@@ -22,6 +22,8 @@ export interface ChartHudActions {
   setLookout(pref: LookoutPref): void;
   /** Draw the weather as it stands (0) or forecast this many hours ahead. */
   setForecast(leadHours: number): void;
+  /** On a look: sail on behind the chart, or hold the world (the shared setting). */
+  toggleSailOn(): void;
 }
 
 export function ChartHud({
@@ -122,6 +124,22 @@ export function ChartHud({
             ))}
           </select>
         </label>
+        {c.sailingOn !== undefined && (
+          <div class="chart-row chart-sail-on" data-testid="chart-sail-on">
+            <span class={c.sailingOn ? 'sail-on-live' : 'port-dim'}>
+              {c.sailingOn ? 'Sailing on at the helm' : 'The ship is held'}
+            </span>
+            <button
+              type="button"
+              class="menu-button"
+              data-testid="chart-sail-on-toggle"
+              aria-pressed={c.sailingOn}
+              onClick={actions.toggleSailOn}
+            >
+              {c.sailingOn ? 'Hold the ship' : 'Sail on'} <span class="hud-key">P</span>
+            </button>
+          </div>
+        )}
         {c.backLabel && (
           <div class="chart-row">
             <button

@@ -47,6 +47,11 @@ const cameraSchema = z.object({
 const sailingSchema = z.object({
   /** Manual sheet trim with Q/E; auto-trim is the default (plan 02 §3.4). */
   manualTrim: z.boolean().catch(false),
+  /**
+   * The ship sails on while the journal or a look at the chart is open, so a long passage
+   * can be read through; off, they hold the world as the settings screen does.
+   */
+  sailOnWhileReading: z.boolean().catch(true),
 });
 
 export const LOOKOUT_PREFS = ['all', 'threatsAndPrizes', 'threats'] as const;

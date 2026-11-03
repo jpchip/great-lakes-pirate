@@ -67,6 +67,11 @@ export interface ChartHudSnapshot {
   canHeave: boolean;
   /** "Back to the helm" and the like; undefined when there's no way back from here. */
   backLabel: string | undefined;
+  /**
+   * On a look: true while the ship sails on in the zone behind the chart, false while the
+   * world is held. Undefined on a voyage, which runs its own clock.
+   */
+  sailingOn: boolean | undefined;
   lookout: LookoutPref;
   encounter: EncounterCard | undefined;
   notice: ChartNotice | undefined;
@@ -104,6 +109,8 @@ export interface ChartHudSources {
   trip: ChartTrip;
   gameSeconds: number;
   backLabel: string | undefined;
+  /** On a look, whether the ship sails on behind the chart. */
+  sailingOn?: boolean | undefined;
   notice: ChartNotice | undefined;
   locked: boolean;
   /** Hours ahead the chart draws the weather for. */
@@ -297,6 +304,7 @@ export function chartHud(src: ChartHudSources): ChartHudSnapshot {
     canEdit: free,
     canHeave: !!voyage && !pending,
     backLabel: pending ? undefined : src.backLabel,
+    sailingOn: src.sailingOn,
     lookout: session.lookout,
     encounter: pending ? encounterCard(pending, session, gameSeconds) : undefined,
     notice: src.notice,
