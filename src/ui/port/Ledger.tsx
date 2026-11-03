@@ -229,13 +229,22 @@ export function Journal({
   ledger,
   close,
   extra,
+  sailingOn,
+  toggleSailOn,
 }: {
   ledger: LedgerSnapshot;
   close(): void;
   extra?: ComponentChildren;
+  /** True while the ship sails on behind the journal; undefined where it's always held. */
+  sailingOn?: boolean | undefined;
+  toggleSailOn?: (() => void) | undefined;
 }) {
   return (
-    <div class="menu-backdrop" data-testid="journal">
+    <div
+      class={`menu-backdrop${sailingOn ? ' under-way' : ''}`}
+      data-testid="journal"
+      data-sailing={sailingOn === undefined ? 'held' : sailingOn ? 'on' : 'held'}
+    >
       <div class="menu port" role="dialog" aria-modal="true" aria-label="Journal">
         <header class="menu-header">
           <h2>Ledger</h2>
@@ -244,6 +253,22 @@ export function Journal({
         {extra}
         <Ledger ledger={ledger} />
         <footer class="menu-footer">
+          {sailingOn !== undefined && toggleSailOn && (
+            <span class="journal-sail-on">
+              <span class={sailingOn ? 'sail-on-live' : 'port-dim'}>
+                {sailingOn ? 'Sailing on' : 'Ship held'}
+              </span>
+              <button
+                type="button"
+                class="menu-button"
+                data-testid="journal-sail-on"
+                aria-pressed={sailingOn}
+                onClick={toggleSailOn}
+              >
+                {sailingOn ? 'Hold the ship (P)' : 'Sail on (P)'}
+              </button>
+            </span>
+          )}
           <button
             type="button"
             class="menu-button primary"

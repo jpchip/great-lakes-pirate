@@ -97,6 +97,81 @@ test('settings pause the game, persist, and rebind keys', async ({ page }) => {
   expect(errors).toEqual([]);
 });
 
+interface ZonesHook {
+  enter(id: string): Promise<void>;
+  pose(): { x: number; z: number; heading: number };
+  clock(): number;
+}
+
+// A slow passage can be read through: the journal and a look at the chart let the ship
+// sail on behind them, and P holds her again (the choice is the same setting both ways).
+test('keeps sailing with the journal or a look at the chart open, and P holds the ship', async ({
+  page,
+}) => {
+  const errors = collectErrors(page);
+  const body = page.locator('body');
+  await page.goto('/?renderer=null&play&debug');
+  await page.waitForFunction(() => '__glpZones' in window);
+  await page.evaluate(() =>
+    (window as unknown as { __glpZones: ZonesHook }).__glpZones.enter('zone.apostles'),
+  );
+  await expect(body).toHaveAttribute('data-zone-load', 'done');
+  await page.keyboard.press('KeyW');
+  await page.keyboard.press('KeyW');
+  // Give her a few seconds to gather way.
+  await page.waitForTimeout(4000);
+  const zones = () =>
+    page.evaluate(() => {
+      const z = (window as unknown as { __glpZones: ZonesHook }).__glpZones;
+      return { clock: z.clock(), ...z.pose() };
+    });
+
+  // J: the journal opens with the ship sailing on; the clock runs and she moves.
+  await page.keyboard.press('KeyJ');
+  const journal = page.getByTestId('journal');
+  await expect(journal).toHaveAttribute('data-sailing', 'on');
+  const a = await zones();
+  await page.waitForTimeout(1000);
+  const b = await zones();
+  expect(b.clock).toBeGreaterThan(a.clock);
+  // How far depends on the run's wind; that she moves at all is the point.
+  expect(Math.hypot(b.x - a.x, b.z - a.z)).toBeGreaterThan(0.05);
+
+  // P holds the ship: the clock stands still with the journal still open.
+  await page.keyboard.press('KeyP');
+  await expect(journal).toHaveAttribute('data-sailing', 'held');
+  await expect(page.getByTestId('journal-sail-on')).toHaveText('Sail on (P)');
+  const c = await zones();
+  await page.waitForTimeout(500);
+  expect((await zones()).clock).toBe(c.clock);
+  await page.keyboard.press('KeyP');
+  await expect(journal).toHaveAttribute('data-sailing', 'on');
+  await page.keyboard.press('Escape');
+  await expect(journal).toHaveCount(0);
+  await expect(page.getByTestId('settings-menu')).toHaveCount(0);
+
+  // M far from the edge is a look at the chart: the ship sails on behind it too.
+  await page.keyboard.press('KeyM');
+  await expect(page.getByTestId('chart-hud')).toHaveAttribute('data-trip', 'look');
+  await expect(page.getByTestId('chart-sail-on')).toContainText('Sailing on at the helm');
+  const d = await zones();
+  await page.waitForTimeout(800);
+  const e = await zones();
+  expect(e.clock).toBeGreaterThan(d.clock);
+  await page.keyboard.press('KeyP');
+  await expect(page.getByTestId('chart-sail-on')).toContainText('The ship is held');
+  const f = await zones();
+  await page.waitForTimeout(500);
+  expect((await zones()).clock).toBe(f.clock);
+  await page.keyboard.press('KeyM');
+  await expect(body).toHaveAttribute('data-mode', 'sailing');
+
+  // The choice is the setting, kept for next time.
+  await page.keyboard.press('KeyJ');
+  await expect(journal).toHaveAttribute('data-sailing', 'held');
+  expect(errors).toEqual([]);
+});
+
 // Plan 15 §8: the sailing (14), world (19, with the ships' whistles), chart (7: the
 // stingers and the fade to fog), harbor (5) and port (7) sounds decode up front and audio
 // starts on the first key.

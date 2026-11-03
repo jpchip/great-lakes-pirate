@@ -26,6 +26,9 @@ import { FirstWeekPage, FirstWeekTracker } from './hud/FirstWeek';
 import type { FirstWeekSnapshot } from '../gameplay/captain';
 import './theme.css';
 
+/** Sail on or hold the ship, over the journal or a look at the chart. */
+const SAIL_ON_KEY = 'KeyP';
+
 /**
  * The Preact DOM overlay above the canvas (plan 01 §2.2, plan 13 §3): the sailing HUD
  * and the settings screen. It reads the sim through HUD snapshots and the settings
@@ -38,7 +41,7 @@ export interface GameUiOptions {
   /** The menu opened or closed: pause or resume the game. */
   onMenu(open: boolean): void;
   /** The chart HUD's buttons (Phase 3 piece D). */
-  chart?: ChartHudActions | undefined;
+  chart?: Omit<ChartHudActions, 'toggleSailOn'> | undefined;
   /** "Take to the chart" at the soft edge. */
   onTakeToChart?: (() => void) | undefined;
   /** Put the First Week tracker away or bring it back (Phase 4 piece C). */
@@ -70,6 +73,11 @@ export interface GameUi {
   setPort(snapshot: PortSnapshot | undefined): void;
   /** The journal's ledger at the helm; undefined closes it. */
   setJournal(snapshot: LedgerSnapshot | undefined): void;
+  /**
+   * Whether the ship sails on behind the open journal (true) or is held (false);
+   * undefined where the choice isn't offered, as in an arena.
+   */
+  setJournalSailing(on: boolean | undefined): void;
   /** The island smuggler's screen; undefined closes it. */
   setSmuggler(snapshot: SmugglerSnapshot | undefined): void;
   /** The stash screen; undefined closes it (Phase 4 piece E). */
@@ -104,6 +112,7 @@ export function mountGameUi({
   const port = signal<PortSnapshot | undefined>(undefined);
   const portTab = signal<PortTab>('market');
   const journal = signal<LedgerSnapshot | undefined>(undefined);
+  const journalSailing = signal<boolean | undefined>(undefined);
   const hud = signal<HudSnapshot | undefined>(undefined);
   const chart = signal<ChartHudSnapshot | undefined>(undefined);
   const spyglass = signal(false);
@@ -121,6 +130,14 @@ export function mountGameUi({
     menuOpen.value = open;
     onMenu(open);
   };
+
+  // P over the journal or a look at the chart: sail on behind it, or hold the ship. One
+  // setting covers both, so the choice sticks between passages.
+  const toggleSailOn = (): void =>
+    settings.update((s) => (s.sailing.sailOnWhileReading = !s.sailing.sailOnWhileReading));
+  const sailOnOffered = (): boolean =>
+    (!!journal.value && journalSailing.value !== undefined) ||
+    (!journal.value && !port.value && chart.value?.sailingOn !== undefined);
 
   // Esc closes the menu (plan 13 §6); opening is the sailing Pause action, in main.
   window.addEventListener('keydown', (e) => {
@@ -162,6 +179,9 @@ export function mountGameUi({
     } else if (journal.value && is('Journal')) {
       e.preventDefault();
       portActions?.closeJournal();
+    } else if (e.code === SAIL_ON_KEY && sailOnOffered()) {
+      e.preventDefault();
+      toggleSailOn();
     }
   });
 
@@ -177,7 +197,7 @@ export function mountGameUi({
         />
         {!menuOpen.value && !port.value && !journal.value && <Captions captions={captions} />}
         {!menuOpen.value && <ShipCardView card={shipCard} />}
-        {chartActions && <ChartHud chart={chart} actions={chartActions} />}
+        {chartActions && <ChartHud chart={chart} actions={{ ...chartActions, toggleSailOn }} />}
         {port.value && portActions && !menuOpen.value && (
           <PortScreen
             port={port.value}
@@ -197,6 +217,8 @@ export function mountGameUi({
           <Journal
             ledger={journal.value}
             close={portActions.closeJournal}
+            sailingOn={journalSailing.value}
+            toggleSailOn={toggleSailOn}
             extra={
               firstWeek.value && (
                 <FirstWeekPage week={firstWeek.value} setHidden={setFirstWeekHidden} />
@@ -298,6 +320,9 @@ export function mountGameUi({
     },
     setJournal(snapshot) {
       journal.value = snapshot;
+    },
+    setJournalSailing(on) {
+      journalSailing.value = on;
     },
     setSmuggler(snapshot) {
       smuggler.value = snapshot;

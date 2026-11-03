@@ -56,6 +56,23 @@ describe('ModeMachine', () => {
     expect(m.gameplayPaused).toBe(false);
   });
 
+  it('lets the journal switch between holding and sailing on while open', () => {
+    const log: string[] = [];
+    const make = recorder(log);
+    const m = new ModeMachine().register(make('sailing'));
+    m.transition('sailing');
+    m.pushOverlay('journal');
+    m.update(1 / 60);
+    m.setOverlayPauses('journal', false);
+    m.update(1 / 60);
+    expect(log.filter((l) => l.startsWith('update'))).toHaveLength(1);
+    expect(m.overlayOpen).toBe(true);
+    m.setOverlayPauses('journal', true);
+    expect(m.gameplayPaused).toBe(true);
+    m.removeOverlay('journal');
+    expect(m.overlayOpen).toBe(false);
+  });
+
   it('keeps the loading fade over a mode change (Phase 3 piece D)', () => {
     const m = new ModeMachine().register({ id: 'sailing' }).register({ id: 'chart' });
     m.transition('chart');

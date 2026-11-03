@@ -186,11 +186,14 @@ export function attachPorts(opts: PortControlOptions): PortControl {
 
   const open = (port: string): void => {
     if (!portInfo(port)) return;
-    const wasOpen = !!openPort || journalOpen;
-    if (journalOpen) {
+    // The journal gives way to the port screen: closed properly, since it may have let the
+    // ship sail on (docking can finish behind it), where the port screen holds the world.
+    if (journalOpen && !openPort) {
       journalOpen = false;
       opts.showJournal(undefined);
+      opts.onOpen(false);
     }
+    const wasOpen = !!openPort;
     if (openPort !== port) notices = [];
     openPort = port;
     if (economy.defs.markets.has(port)) note(port);

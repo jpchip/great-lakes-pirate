@@ -41,6 +41,7 @@ describe('settings', () => {
     expect(s.camera.rollWithShip).toBe(false);
     expect(s.camera.autoRecenter).toBe(true);
     expect(s.sailing.manualTrim).toBe(false);
+    expect(s.sailing.sailOnWhileReading).toBe(true);
     expect(s.bindings).toEqual({});
   });
 

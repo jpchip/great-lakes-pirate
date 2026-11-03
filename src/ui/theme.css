@@ -471,6 +471,38 @@
   margin-top: 14px;
 }
 
+/* The journal with the ship sailing on: off to the side, the lake still in view. */
+.menu-backdrop.under-way {
+  justify-content: flex-end;
+  padding-right: 24px;
+  background: rgba(10, 14, 18, 0.15);
+}
+
+.menu-backdrop.under-way .menu {
+  width: min(460px, calc(100vw - 32px));
+  overflow-x: auto;
+}
+
+.journal-sail-on {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-right: auto;
+  font-size: 13px;
+}
+
+.sail-on-live {
+  font-style: italic;
+  color: var(--lake-teal);
+}
+
+@media (max-width: 720px) {
+  .menu-backdrop.under-way {
+    justify-content: center;
+    padding-right: 0;
+  }
+}
+
 @media (max-width: 720px) {
   .hud-compass {
     width: 220px;
