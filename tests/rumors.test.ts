@@ -23,7 +23,7 @@ import {
   tellRumor,
   type RumorWorld,
 } from '../src/sim/rumors/rumors';
-import { placeholderSmugglerAnchorage } from '../src/sim/rumors/sources';
+import { smugglerAnchorage } from '../src/sim/economy/smuggler';
 import { gameTraffic } from '../src/sim/traffic/cargo';
 import { upcomingSailings } from '../src/sim/traffic/news';
 import { createWorldState, parseWorldState, type Rumor } from '../src/sim/world-state';
@@ -43,7 +43,7 @@ const world = (state = createWorldState('rumors')): RumorWorld => ({
   markets: state.markets,
   traffic: { defs: tdefs, contacts },
   weather: { state: state.environment.weather, geo },
-  smugglerAnchorage: placeholderSmugglerAnchorage,
+  smugglerAnchorage: () => smugglerAnchorage(),
 });
 
 const rng = (seed: string) => {
@@ -273,7 +273,7 @@ describe('the saloon at the pier', () => {
       ctx,
       economy: econ.defs,
       traffic: { defs: tdefs, contacts },
-      smugglerAnchorage: placeholderSmugglerAnchorage,
+      smugglerAnchorage: () => smugglerAnchorage(),
     });
     const shown: (PortSnapshot | undefined)[] = [];
     const ports = attachPorts({
