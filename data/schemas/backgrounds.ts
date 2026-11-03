@@ -39,8 +39,8 @@ export type PerkDef = z.infer<typeof perkSchema>;
 const color = z.string().regex(/^#[0-9a-f]{6}$/);
 
 /**
- * Portrait presets for character creation (plan 12 §2.1 step 2, Phase 4): a face drawn
- * from a few parts until Phase 7 gives the captain a body (plan 05 §16.5).
+ * Portrait presets for character creation (plan 12 §2.1 step 2, Phase 4): likeness metadata
+ * and colors for saves; the menu shows raster busts in `art/portraits/` until Phase 7.
  */
 export const portraitSchema = z.object({
   id: idOf('portrait'),
