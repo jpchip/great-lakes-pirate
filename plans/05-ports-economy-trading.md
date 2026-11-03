@@ -798,6 +798,8 @@ Washburn is the busiest: the lumber fleet lies at its docks, and each ship adds 
 
 Contracts on top of trade (from §22.2, same report): the T2 in **8.8–9.0 real hours** from every start and seed, about $118–122 a real hour, 35–42 contracts delivered and none late. That's inside §5.3's 8–12 hours.
 
+**Added after Jared's first look (2026-11-03):** a hold stack remembers what it cost (`paidCents` in the save, optional so older saves and the starting cargo show none): the market's Aboard column and the hold panel show the average per CU, and the ledger's new Hold page lists the stacks at sea. "Made here" and "wanted here" marks are small icons with a labeled summary line on the market tab, and `cargoSpeedLoss` is 0, so a loaded hold deepens her draft but doesn't slow her.
+
 ### 25.2 For Jared on the laptop
 
 1. **The playtest route:** a new run from the menu (any background), the First Week by hand, a contract out of Bayfield, the stash at Stockton, then the chart to Duluth and back to check the stash (criterion 6), and the smuggler at Oak Island after dark with her whiskey tried in Bayfield (criterion 7).

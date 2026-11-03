@@ -4,7 +4,7 @@ import { SECONDS_PER_GAME_DAY } from '../../core/time';
 import { sunAt } from '../weather/celestial';
 import { heatNow, offerKind, type Refusals } from './contraband';
 import type { EconomyDefs } from './defs';
-import { addToHold, holdFree, type CargoStack } from './hold';
+import { addToHold, holdFree, reduceStack, type CargoStack } from './hold';
 import type { Trader } from './trade';
 
 /**
@@ -175,7 +175,7 @@ export function buyFromSmuggler(
   state.cashCents += total;
   state.stock[good] = (state.stock[good] ?? 0) - qty;
   state.dealtCents += total;
-  addToHold(trader.cargo, { good, qty });
+  addToHold(trader.cargo, { good, qty, paidCents: total });
   return {
     ok: true,
     event: { smuggler: sm.id, side: 'buy', good, qty, totalCents: total, hot: false },
@@ -203,7 +203,7 @@ export function fenceToSmuggler(
   if (!q.ok) return q;
   const total = q.unitCents * qty;
   if (total > state.cashCents) return { ok: false, reason: 'noCash' };
-  stack.qty -= qty;
+  reduceStack(stack, qty);
   if (stack.qty === 0) trader.cargo.splice(stackIndex, 1);
   trader.purse += total;
   state.cashCents -= total;

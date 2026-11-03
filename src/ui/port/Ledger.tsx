@@ -10,9 +10,10 @@ import type { LedgerPrice, LedgerSnapshot, RumorRow } from './model';
  * are, so color is never the only signal (plan 13 §2.2).
  */
 
-type LedgerTab = 'byPort' | 'byGood' | 'contracts' | 'rumors' | 'standing';
+type LedgerTab = 'hold' | 'byPort' | 'byGood' | 'contracts' | 'rumors' | 'standing';
 
 const TABS: [LedgerTab, string][] = [
+  ['hold', 'Hold'],
   ['byPort', 'Prices by port'],
   ['byGood', 'Prices by good'],
   ['contracts', 'Contracts'],
@@ -47,6 +48,53 @@ function Heard({ p }: { p: LedgerPrice }) {
 
 function Empty({ text }: { text: string }) {
   return <p class="ledger-empty">{text}</p>;
+}
+
+/** What's aboard: each stack, what it cost, and where the contract cargo is bound. */
+function Hold({ ledger }: { ledger: LedgerSnapshot }) {
+  const { rows, usedCu, capacity } = ledger.hold;
+  return (
+    <div data-testid="ledger-hold">
+      <p>
+        Hold {usedCu} / {capacity} CU
+      </p>
+      {rows.length === 0 ? (
+        <Empty text="The hold is empty." />
+      ) : (
+        <table class="ledger-table">
+          <thead>
+            <tr>
+              <th>Cargo</th>
+              <th class="num">CU</th>
+              <th class="num" title="What a CU cost you on average">
+                Paid each
+              </th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r, i) => (
+              <tr key={`${r.name}-${i}`} class={r.hot ? 'hot' : ''} data-testid="ledger-hold-row">
+                <td>
+                  {r.name}
+                  {r.hot && <small class="port-dim"> (hot)</small>}
+                  {r.contract && (
+                    <small class="port-dim">
+                      {' '}
+                      (contract{r.contractTo ? ` to ${r.contractTo}` : ''})
+                    </small>
+                  )}
+                </td>
+                <td class="num hud-num">{r.qty}</td>
+                <td class="num hud-num">
+                  {r.paidCents === undefined ? '—' : formatCents(r.paidCents)}
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      )}
+    </div>
+  );
 }
 
 function ByPort({ ledger, here }: { ledger: LedgerSnapshot; here: string | undefined }) {
@@ -158,7 +206,8 @@ function ByGood({ ledger }: { ledger: LedgerSnapshot }) {
 }
 
 export function Ledger({ ledger, here }: { ledger: LedgerSnapshot; here?: string | undefined }) {
-  const [tab, setTab] = useState<LedgerTab>('byPort');
+  // At sea the hold is what you came to look at; in port it's already beside the market.
+  const [tab, setTab] = useState<LedgerTab>(here ? 'byPort' : 'hold');
   return (
     <div class="ledger" data-testid="ledger">
       <nav class="ledger-tabs">
@@ -174,6 +223,7 @@ export function Ledger({ ledger, here }: { ledger: LedgerSnapshot; here?: string
           </button>
         ))}
       </nav>
+      {tab === 'hold' && <Hold ledger={ledger} />}
       {tab === 'byPort' && <ByPort ledger={ledger} here={here} />}
       {tab === 'byGood' && <ByGood ledger={ledger} />}
       {tab === 'contracts' &&

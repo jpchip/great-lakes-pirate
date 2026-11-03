@@ -2,7 +2,7 @@ import type { MarketDef } from '../../../data/schemas/markets';
 import { Rng } from '../../core/rng';
 import { dayAndHour, SECONDS_PER_GAME_DAY } from '../../core/time';
 import { portInfo, type EconomyDefs } from './defs';
-import type { CargoStack, Hold, HotMeta } from './hold';
+import { reduceStack, type CargoStack, type Hold, type HotMeta } from './hold';
 import { applyTrade, quote, type MarketsState } from './market';
 import type { Trader } from './trade';
 
@@ -333,7 +333,7 @@ export function makeHot(
     const s = hold[i] as CargoStack;
     if (s.good !== good || s.hot || s.contract) continue;
     const take = Math.min(s.qty, left);
-    s.qty -= take;
+    reduceStack(s, take);
     left -= take;
     marked += take;
     if (s.qty === 0) hold.splice(i, 1);

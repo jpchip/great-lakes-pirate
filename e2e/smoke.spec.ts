@@ -293,7 +293,7 @@ test('trades at a market and keeps the purse and hold through a reload', async (
   });
   expect(sold).toBe(true);
   const after = await run();
-  expect(after.cargo).toEqual([{ good: 'good.lumber', qty: 10 }]);
+  expect(after.cargo).toEqual([{ good: 'good.lumber', qty: 10, paidCents: expect.any(Number) }]);
   expect(after.load).toBeCloseTo(0.35);
 
   await page.evaluate(() => {
@@ -637,6 +637,8 @@ test('docks at Bayfield, trades on the port screen, and keeps the ledger', async
   await page.getByTestId('trade-confirm').click();
   await expect(page.getByTestId('hold-row')).toHaveCount(1);
   await expect(page.getByTestId('port-capacity')).toContainText('4 / 20 CU');
+  // What the lumber cost shows beside it in the hold and on the market row.
+  await expect(page.getByTestId('hold-paid')).toContainText('paid $');
 
   await page.getByTestId('port-tab-chandlery').click();
   await page.getByTestId('store-store.lamp_oil').click();
@@ -674,6 +676,11 @@ test('docks at Bayfield, trades on the port screen, and keeps the ledger', async
   // At the helm, J opens the ledger on its own.
   await page.keyboard.press('KeyJ');
   await expect(page.getByTestId('journal')).toBeVisible();
+  // At sea it opens on the hold: the lumber, with what it cost.
+  await expect(page.getByTestId('ledger-hold')).toContainText('Hold 4 / 20 CU');
+  await expect(page.getByTestId('ledger-hold-row')).toHaveCount(1);
+  await expect(page.getByTestId('ledger-hold-row')).toContainText('Lumber');
+  await expect(page.getByTestId('ledger-hold-row')).toContainText('$');
   await page.keyboard.press('KeyJ');
   await expect(page.getByTestId('journal')).toHaveCount(0);
 

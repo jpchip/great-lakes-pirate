@@ -1,7 +1,7 @@
 import type { SailShipRecord } from '../../../data/schemas/ships';
 import type { Upgrade, UpgradeCategory } from '../../../data/schemas/upgrades';
 import type { EconomyDefs } from '../economy/defs';
-import { holdUsed, isClean, type CargoStack, type Hold } from '../economy/hold';
+import { holdUsed, isClean, reduceStack, type CargoStack, type Hold } from '../economy/hold';
 import { applyTrade, quote, type MarketsState } from '../economy/market';
 import { sailShipRecord, SHIP_RECORDS, T1_SCHOONER_ID } from '../sailing/ships';
 import { hasSlot, slotsOf, upgradeDef } from './fit';
@@ -288,7 +288,7 @@ export function buyHull(
       const s = owner.cargo[i] as CargoStack;
       if (s.good !== lot.good || !isClean(s)) continue;
       const take = Math.min(s.qty, left);
-      s.qty -= take;
+      reduceStack(s, take);
       left -= take;
       if (s.qty === 0) owner.cargo.splice(i, 1);
     }

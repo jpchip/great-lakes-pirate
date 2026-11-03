@@ -61,7 +61,7 @@ export function buy(
   if (holdFree(trader.cargo, capacity) < qty) return { ok: false, reason: 'noRoom' };
   if (q.totalCents > trader.purse) return { ok: false, reason: 'noMoney' };
   trader.purse -= q.totalCents;
-  addToHold(trader.cargo, { good, qty });
+  addToHold(trader.cargo, { good, qty, paidCents: q.totalCents });
   applyTrade(markets, port, good, qty, 'buy', gameSeconds);
   return {
     ok: true,

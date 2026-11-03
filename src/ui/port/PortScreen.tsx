@@ -291,7 +291,15 @@ function Market({
                 <td class="num hud-num">{formatCents(r.buyCents)}</td>
                 <td class="num hud-num">{formatCents(r.sellCents)}</td>
                 <td class="num hud-num">{r.stock}</td>
-                <td class="num hud-num">{r.held || ''}</td>
+                <td class="num hud-num">
+                  {r.held || ''}
+                  {r.held > 0 && r.heldPaidCents !== undefined && (
+                    <small class="port-dim port-paid" title="What a CU of it aboard cost you">
+                      {' '}
+                      @ {formatCents(r.heldPaidCents)}
+                    </small>
+                  )}
+                </td>
                 <td>
                   <Elsewhere seen={r.bestSale} label="Paid" />
                 </td>
@@ -402,6 +410,11 @@ function Hold({
                 {h.contract && <small class="port-dim"> (contract)</small>}
               </span>
               <span class="hud-num">{h.qty} CU</span>
+              {h.paidCents !== undefined && !h.hot && (
+                <small class="port-dim" data-testid="hold-paid" title="What a CU cost you">
+                  paid {formatCents(h.paidCents)}
+                </small>
+              )}
               {h.offer ? (
                 <small class="port-dim">
                   {h.offer.tooHot

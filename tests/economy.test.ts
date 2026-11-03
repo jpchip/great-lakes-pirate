@@ -21,6 +21,7 @@ import {
   tickMarkets,
   unitPrices,
 } from '../src/sim/economy/market';
+import { paidPerCu } from '../src/sim/economy/hold';
 import { buy, maxBuyable, sell, type Trader } from '../src/sim/economy/trade';
 import { createSailingState } from '../src/sim/sailing/controller';
 import { defaultHazardRules } from '../src/sim/sailing/hazard-rules';
@@ -103,6 +104,26 @@ describe('the market model (plan 05 §4.1)', () => {
     expect(sell(defs, m, t, 'port.bayfield', 'good.flour', 10, T0).ok).toBe(true);
     const p2 = must(unitPrices(defs, m, 'port.bayfield', 'good.flour', T0));
     expect(p2.midCents).toBe(p0.midCents);
+  });
+
+  it('remembers what the hold cost: bought, merged, part-sold, and unknown for the start', () => {
+    const m = createMarkets(defs, T0);
+    const t: Trader = { purse: 1_000_000, cargo: [{ good: 'good.flour', qty: 4 }] };
+    // The starting cargo has no known cost, so nothing is claimed for it.
+    expect(t.cargo[0]?.paidCents).toBeUndefined();
+    const first = buy(defs, m, t, 20, 'port.bayfield', 'good.flour', 2, T0);
+    const second = buy(defs, m, t, 20, 'port.bayfield', 'good.flour', 2, T0);
+    if (!first.ok || !second.ok) throw new Error('buy failed');
+    // Unknown-cost flour takes on the first purchase's average, then the second weighs in.
+    const p1 = first.event.totalCents / 2;
+    const p2 = second.event.totalCents / 2;
+    const stack = must(t.cargo[0]);
+    expect(stack.qty).toBe(8);
+    expect(paidPerCu(stack)).toBeCloseTo((p1 * 6 + p2 * 2) / 8, 0);
+    // Selling half takes half the cost out with it, leaving the average where it was.
+    const avg = must(paidPerCu(stack));
+    expect(sell(defs, m, t, 'port.bayfield', 'good.flour', 4, T0).ok).toBe(true);
+    expect(paidPerCu(must(t.cargo[0]))).toBeCloseTo(avg, 0);
   });
 
   it('always sells to you dearer than it buys from you', () => {

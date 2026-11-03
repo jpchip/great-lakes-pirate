@@ -290,6 +290,7 @@ export function attachPorts(opts: PortControlOptions): PortControl {
           contractSources(),
           ctx.state.contraband?.receivers,
           ctx.state.knowledge.rumors,
+          { cargo: ctx.state.player.cargo, capacity: economy.capacity },
         ),
       );
       opts.onOpen(true);

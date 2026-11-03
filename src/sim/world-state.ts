@@ -138,6 +138,8 @@ export const cargoStackSchema = z.object({
   qty: z.number().int().positive(),
   hot: hotMetaSchema.optional(),
   contract: z.string().optional(),
+  /** What the stack's CU cost you in all, cents. Absent when unknown (starting cargo). */
+  paidCents: z.number().int().nonnegative().optional(),
 });
 
 /**
