@@ -615,6 +615,15 @@ test('docks at Bayfield, trades on the port screen, and keeps the ledger', async
   await expect(body).toHaveAttribute('data-port', 'port.bayfield');
   await expect(page.getByTestId('port-purse')).toHaveText('$150.00');
 
+  // The market marks what Bayfield makes and wants, with a line of hints above the table.
+  await expect(page.getByTestId('market-hints')).toContainText('salted fish');
+  await expect(
+    page.getByTestId('market-row-good.salted_fish').getByTestId('role-export'),
+  ).toHaveText(/Made here/);
+  await expect(page.getByTestId('market-row-good.kerosene').getByTestId('role-import')).toHaveText(
+    /Wanted here/,
+  );
+
   // Shift-click sells all the rope and canvas.
   await page.getByTestId('sell-good.rope_canvas').click({ modifiers: ['Shift'] });
   await expect(page.getByTestId('hold-row')).toHaveCount(0);
