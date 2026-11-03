@@ -55,7 +55,7 @@ targetSpeed (game knots) =
   × windStrengthFactor       (§3.5)
   × trimFactor               (§3.4)
   × riggingCondition         (0.5–1.0, from rigging damage)
-  × loadFactor               (1.0 empty → ~0.8 full hold)
+  × loadFactor               (1.0, or less only with water in the hold; a loaded hold no longer slows her, since 0.4.0)
   × seaStateFactor           (head seas penalty, §5)
   × iceFactor                (winter, §5)
 ```

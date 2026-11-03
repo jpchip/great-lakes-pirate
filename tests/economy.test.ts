@@ -266,7 +266,7 @@ describe('the hold (plan 05 §6.1, §11)', () => {
 });
 
 describe('the hold on the ship (plan 02 §3, §6.1)', () => {
-  it('sits a loaded schooner deeper and slows her by up to a fifth', () => {
+  it('sits a loaded schooner deeper but does not slow her (arcade, since 0.4.0)', () => {
     const record = sailShipRecord(T1_SCHOONER_ID);
     const c = compileHazardClass(record, defaultHazardRules());
     const step = (cargo01: number) => {
@@ -281,7 +281,7 @@ describe('the hold on the ship (plan 02 §3, §6.1)', () => {
     const full = step(1);
     expect(empty.h.draft).toBeCloseTo(record.draftEmptyM);
     expect(full.h.draft).toBeCloseTo(record.draftFullM);
-    expect(full.s.loadFactor).toBeCloseTo(empty.s.loadFactor * 0.8);
+    expect(full.s.loadFactor).toBeCloseTo(empty.s.loadFactor);
   });
 });
 
