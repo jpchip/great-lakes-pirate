@@ -1683,6 +1683,13 @@ body[data-mode='chart'] .chart-layer {
   color: var(--signal-red);
 }
 
+.port-role-icon {
+  margin-left: 6px;
+  padding: 0 3px;
+  font-size: 10px;
+  line-height: 13px;
+}
+
 .port-trade-hints {
   margin: 0 0 8px;
   font-size: 14px;

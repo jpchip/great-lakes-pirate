@@ -275,15 +275,16 @@ function Market({
                   {r.name}
                   {r.role !== 'neutral' && (
                     <span
-                      class={`port-role ${r.role === 'export' ? 'made' : 'wanted'}`}
+                      class={`port-role port-role-icon ${r.role === 'export' ? 'made' : 'wanted'}`}
                       data-testid={`role-${r.role}`}
+                      aria-label={r.role === 'export' ? 'made here' : 'wanted here'}
                       title={
                         r.role === 'export'
                           ? 'Made here: cheap to buy, a poor place to sell'
                           : "Wanted here: dear, and they'll pay well for it"
                       }
                     >
-                      {r.role === 'export' ? '▾ Made here' : '▴ Wanted here'}
+                      {r.role === 'export' ? '▾' : '▴'}
                     </span>
                   )}
                 </td>

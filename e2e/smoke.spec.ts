@@ -619,10 +619,10 @@ test('docks at Bayfield, trades on the port screen, and keeps the ledger', async
   await expect(page.getByTestId('market-hints')).toContainText('salted fish');
   await expect(
     page.getByTestId('market-row-good.salted_fish').getByTestId('role-export'),
-  ).toHaveText(/Made here/);
-  await expect(page.getByTestId('market-row-good.kerosene').getByTestId('role-import')).toHaveText(
-    /Wanted here/,
-  );
+  ).toHaveAttribute('aria-label', 'made here');
+  await expect(
+    page.getByTestId('market-row-good.kerosene').getByTestId('role-import'),
+  ).toHaveAttribute('aria-label', 'wanted here');
 
   // Shift-click sells all the rope and canvas.
   await page.getByTestId('sell-good.rope_canvas').click({ modifiers: ['Shift'] });
