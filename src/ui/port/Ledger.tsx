@@ -1,3 +1,4 @@
+import type { ComponentChildren } from 'preact';
 import { useState } from 'preact/hooks';
 import { formatCents } from '../../sim/economy/knowledge';
 import type { LedgerPrice, LedgerSnapshot, RumorRow } from './model';
@@ -179,11 +180,13 @@ export function Ledger({ ledger, here }: { ledger: LedgerSnapshot; here?: string
         (ledger.contracts.length ? (
           <ul class="ledger-list">
             {ledger.contracts.map((c) => (
-              <li key={c.id}>{c.text}</li>
+              <li key={c.id} class={c.done ? 'ledger-done' : ''}>
+                {c.text}
+              </li>
             ))}
           </ul>
         ) : (
-          <Empty text="No contracts in hand." />
+          <Empty text="No contracts yet. A port's freight agent has them." />
         ))}
       {tab === 'rumors' &&
         (ledger.rumors.length ? (
@@ -195,12 +198,19 @@ export function Ledger({ ledger, here }: { ledger: LedgerSnapshot; here?: string
         ) : (
           <Empty text="No rumors heard yet." />
         ))}
+      {tab === 'standing' && ledger.receivers.length > 0 && (
+        <ul class="ledger-list" data-testid="ledger-receivers">
+          {ledger.receivers.map((r) => (
+            <li key={r.id}>{r.text}</li>
+          ))}
+        </ul>
+      )}
       {tab === 'standing' &&
-        (ledger.standing.length ? (
+        (ledger.standing.length || ledger.receivers.length ? (
           <ul class="ledger-list">
             {ledger.standing.map((s) => (
               <li key={s.id}>
-                {s.name}: {s.value}
+                {s.name}: {s.burned ? '0, for good (you stole their cargo)' : s.value}
               </li>
             ))}
           </ul>
@@ -211,8 +221,19 @@ export function Ledger({ ledger, here }: { ledger: LedgerSnapshot; here?: string
   );
 }
 
-/** The journal at the helm (J): the ledger on its own page, over the paused game. */
-export function Journal({ ledger, close }: { ledger: LedgerSnapshot; close(): void }) {
+/**
+ * The journal at the helm (J): the ledger on its own page, over the paused game, under
+ * the First Week checklist while the run has one (piece C).
+ */
+export function Journal({
+  ledger,
+  close,
+  extra,
+}: {
+  ledger: LedgerSnapshot;
+  close(): void;
+  extra?: ComponentChildren;
+}) {
   return (
     <div class="menu-backdrop" data-testid="journal">
       <div class="menu port" role="dialog" aria-modal="true" aria-label="Journal">
@@ -220,6 +241,7 @@ export function Journal({ ledger, close }: { ledger: LedgerSnapshot; close(): vo
           <h2>Ledger</h2>
           <span class="menu-paused">{ledger.dateText}</span>
         </header>
+        {extra}
         <Ledger ledger={ledger} />
         <footer class="menu-footer">
           <button

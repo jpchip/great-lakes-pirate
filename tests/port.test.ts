@@ -25,7 +25,7 @@ import {
   type PriceKnowledge,
 } from '../src/sim/economy/knowledge';
 import { unitPrices } from '../src/sim/economy/market';
-import { HARBORS, pierPort } from '../src/sim/harbors';
+import { HARBORS, pierPort, pierSite } from '../src/sim/harbors';
 import { parseWorldState, createWorldState } from '../src/sim/world-state';
 import { ledgerSnapshot, portSnapshot, type PortSnapshot } from '../src/ui/port/model';
 
@@ -40,6 +40,8 @@ describe('piers and their ports', () => {
   it('gives every berthed pier the port of its set piece, with a market', () => {
     for (const h of HARBORS) {
       for (const p of h.piers) {
+        // The Stockton stash's landing (piece E) opens storage, not a port.
+        if (pierSite(p.id)) continue;
         const port = pierPort(p.id);
         expect(port, p.id).toBeDefined();
         expect(portInfo(must(port))?.services, p.id).toContain('market');

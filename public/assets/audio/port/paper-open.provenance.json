@@ -1,0 +1,19 @@
+{
+  "source": "cc0",
+  "tool": "OpenGameArt: Opening and Closing a Map Sounds",
+  "author": "Spring Spring",
+  "reference": "https://opengameart.org/content/opening-and-closing-a-map-sounds",
+  "date": "2026-11-01",
+  "license": "CC0 1.0",
+  "modifications": [],
+  "originalFile": "snd_use_map.wav",
+  "description": "Paper unfolding: the journal or the port screen opens",
+  "durationS": 1.521,
+  "pipeline": [
+    "decoded to mono 48000 Hz",
+    "edge fades",
+    "peak-normalized toward -3 dB (-5.9 dB)",
+    "Opus 48 kbps mono in Ogg (ffmpeg libopus)"
+  ],
+  "inputHash": "4264ebacef05e3eb"
+}

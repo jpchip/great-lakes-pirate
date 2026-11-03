@@ -3,7 +3,10 @@
 // FLAC sources with their sound.json and provenance.json, ready for `npm run audio`:
 // the lighthouse fog whistle and fog bell, the two open-water music v1 cues, and the NPC
 // ships' whistles and the schooner-barge's fog horn (Phase 3 piece J), and the chart's
-// traveling theme, the encounter stingers and the fade-to-fog sound (piece J, part 2).
+// traveling theme, the encounter stingers and the fade-to-fog sound (piece J, part 2),
+// and the harbors' mill saw and ore dump (Phase 4 piece J). The package steamer's chime
+// whistle is a recording since Phase 4 (raw-assets/audio/ships/whistle-chime), so it is
+// no longer rendered here.
 //
 //   npm run audio:synth            # render all, then run `npm run audio`
 //   npm run audio:synth -- ships   # render one category only (ships, chart, music, ...)
@@ -39,6 +42,7 @@ import {
   whistleNote,
 } from './lib/synth.ts';
 import { chartTheme, fogFade, stinger, STINGERS, type StingerName } from './lib/synth-chart.ts';
+import { millSaw, oreDump } from './lib/synth-harbor.ts';
 
 const ROOT = resolve(fileURLToPath(import.meta.url), '..', '..', '..');
 const RAW = join(ROOT, 'raw-assets', 'audio');
@@ -47,6 +51,7 @@ const RATE = SAMPLE_RATE;
 const TODAY = '2026-10-30';
 const TODAY_J = '2026-10-31';
 const TODAY_J2 = '2026-11-01';
+const TODAY_P4J = '2026-11-01';
 /** Render only this category (e.g. `ships`), leaving the other sources untouched. */
 const ONLY = process.argv[2];
 
@@ -233,11 +238,6 @@ function main(): void {
   );
   const whistles: [keyof typeof SHIP_WHISTLES, string, string][] = [
     ['freighter', 'Steam ore freighter whistle: one deep bell, one long blast', 'One 138 Hz bell'],
-    [
-      'chime',
-      'Package steamer chime whistle: three bells, one long blast',
-      'A three-bell chime at 262, 311 and 392 Hz',
-    ],
     ['tug', 'Fish tug whistle: a small shrill bell, one long blast', 'One 587 Hz bell, fast valve'],
     [
       'cutter',
@@ -256,7 +256,8 @@ function main(): void {
         bus: 'sfx',
         bundles: ['world-audio'],
       },
-      shipWhistle(RATE, SHIP_WHISTLES[name], 5, 10 + k),
+      // Seeds as when the chime (now a recording) was second in this list.
+      shipWhistle(RATE, SHIP_WHISTLES[name], 5, 10 + (k === 0 ? 0 : k + 1)),
       `Additive steam whistle: ${how}, pressure-following pitch, band-passed steam noise`,
       TODAY_J,
     );
@@ -329,6 +330,35 @@ function main(): void {
     fogFade(RATE),
     "Low-passed and band-passed noise under a swell envelope, two additive ship's bell strokes, Freeverb-style reverb",
     TODAY_J2,
+  );
+  writeSound(
+    'harbor',
+    {
+      id: 'amb.harbor.mill-saw',
+      name: 'mill-saw',
+      description: "A steam sawmill's head saw taking one cut through a log, and the slab dropping",
+      kind: 'oneshot',
+      bus: 'ambience',
+      bundles: ['harbor-audio'],
+    },
+    millSaw(RATE),
+    'Additive saw whine at a 560 Hz tooth rate that sags under load, band-passed noise for the cut, a low thud',
+    TODAY_P4J,
+  );
+  writeSound(
+    'harbor',
+    {
+      id: 'amb.harbor.ore-dump',
+      name: 'ore-dump',
+      description:
+        "An ore car dumping into an ore dock's pocket: door clang, the ore rushing down, door shut",
+      kind: 'oneshot',
+      bus: 'ambience',
+      bundles: ['harbor-audio'],
+    },
+    oreDump(RATE),
+    'Modal steel-plate clangs, low-passed and band-passed noise for the rush, dense short rock pings',
+    TODAY_P4J,
   );
 }
 

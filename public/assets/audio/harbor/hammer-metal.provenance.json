@@ -1,0 +1,19 @@
+{
+  "source": "cc0",
+  "tool": "OpenGameArt: 68 Workshop Sounds",
+  "author": "bart",
+  "reference": "https://opengameart.org/content/68-workshop-sounds",
+  "date": "2026-11-01",
+  "license": "CC0 1.0",
+  "modifications": [],
+  "originalFile": "workshop/workshop - metal hammering 4.wav",
+  "description": "Hammering on iron, driving barrel hoops or spikes (sliced at runtime)",
+  "durationS": 6.533,
+  "pipeline": [
+    "decoded to mono 48000 Hz, high-passed at 90 Hz",
+    "edge fades",
+    "RMS-normalized toward -24 dB (+1.5 dB)",
+    "Opus 64 kbps mono in Ogg (ffmpeg libopus)"
+  ],
+  "inputHash": "2fce3e337869d864"
+}

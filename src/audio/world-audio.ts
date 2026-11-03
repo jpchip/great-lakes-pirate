@@ -1,5 +1,6 @@
 import type { FogSignal } from '../../data/schemas/lighthouses';
 import type { SoundBank } from './bank';
+import type { CaptionFeed } from './captions';
 import { PRIORITY, type AudioMixer, type AudioPoint, type OneShot } from './mixer';
 import { createNoiseBuffer } from './noise';
 import { RandomTrigger } from './sailing-mix';
@@ -170,6 +171,8 @@ export class WorldSoundscape {
   readonly levels = { rain: 0, hush: 0, gullsPerS: 0, loonsPerS: 0, signalsHeard: 0, thunder: 0 };
   /** True while a fog signal is sounding within earshot (the music ducks under it). */
   signalHeard = false;
+  /** Where the fog signals' captions go (plan 15 §5); none when unset. */
+  captions: CaptionFeed | undefined;
   private readonly ctx: BaseAudioContext;
   private readonly out: GainNode;
   private readonly rain: Bed;
@@ -335,6 +338,16 @@ export class WorldSoundscape {
     const buffer = this.bank.get(id);
     if (!buffer) return;
     this.heardUntilS = Math.max(this.heardUntilS, f.nowS + delay + (whistle ? lengthS : 3) + 0.5);
+    this.captions?.push(
+      {
+        key: station.id,
+        text: `${station.name}: fog ${whistle ? 'whistle' : 'bell'}`,
+        at: station.at,
+      },
+      f.nowS,
+      delay,
+      whistle ? lengthS : 2,
+    );
     this.mixer.play({
       buffer,
       bus: 'sfx',

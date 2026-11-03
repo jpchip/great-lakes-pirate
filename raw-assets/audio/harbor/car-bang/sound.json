@@ -1,0 +1,11 @@
+{
+  "id": "amb.harbor.car-bang",
+  "name": "car-bang",
+  "description": "A railroad car's coupling taking up slack: one heavy iron bang",
+  "source": "source.ogg",
+  "kind": "oneshot",
+  "bus": "ambience",
+  "bundles": [
+    "harbor-audio"
+  ]
+}

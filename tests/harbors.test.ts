@@ -55,6 +55,7 @@ describe('the harbor data', () => {
       'harbor.ashland',
       'harbor.washburn',
       'harbor.la_pointe',
+      'harbor.stockton',
     ]);
     expect(harborsIn('zone.twin_ports').map((h) => h.id)).toEqual([
       'harbor.duluth_canal',
@@ -214,7 +215,9 @@ describe('the harbors on the Apostles zone', () => {
         expect(b.floorM).toBeGreaterThanOrEqual(b.footM);
       }
       const houses = l.buildings.filter((b) => b.kind === 'house').length;
-      expect(houses, l.def.id).toBeGreaterThan(l.def.town.houses * 0.6);
+      // The Stockton stash (piece E) is a shack and a shed, with no town.
+      if (l.def.town.houses === 0) expect(houses, l.def.id).toBe(0);
+      else expect(houses, l.def.id).toBeGreaterThan(l.def.town.houses * 0.6);
       expect(houses, l.def.id).toBeLessThanOrEqual(l.def.town.houses);
     }
   });
@@ -238,7 +241,7 @@ describe('the harbors on the Apostles zone', () => {
   });
 
   it.skipIf(!baked)(
-    'docks at Bayfield, Ashland, Washburn and La Pointe (the piece G exit criterion)',
+    'docks at Bayfield, Ashland, Washburn, La Pointe and the Stockton landing (the piece G exit criterion)',
     () => {
       dockAtEveryPier(zone.terrain, layouts);
     },
@@ -250,8 +253,10 @@ describe('the harbors on the Apostles zone', () => {
     expect(view.group.children).toHaveLength(2 * layouts.length);
     expect(view.triangles).toBeLessThan(250_000);
     for (const l of layouts) {
-      // La Pointe is a village of a few dozen houses; the towns are bigger.
-      const least = l.def.id === 'harbor.la_pointe' ? 4_000 : 10_000;
+      // La Pointe is a village of a few dozen houses, the Stockton stash (piece E) a shack
+      // and a shed; the towns are bigger.
+      const least =
+        l.def.id === 'harbor.stockton' ? 400 : l.def.id === 'harbor.la_pointe' ? 4_000 : 10_000;
       expect(
         buildHarbor(l, (x, z) => zone.terrain.heightAt(x, z)).triangles,
         l.def.id,

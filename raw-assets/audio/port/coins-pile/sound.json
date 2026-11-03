@@ -1,0 +1,11 @@
+{
+  "id": "ui.trade.coins-pile",
+  "name": "coins-pile",
+  "description": "A heap of coins poured out: a big sale or purchase",
+  "source": "source.ogg",
+  "kind": "oneshot",
+  "bus": "ui",
+  "bundles": [
+    "port-audio"
+  ]
+}

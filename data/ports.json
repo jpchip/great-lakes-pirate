@@ -4,21 +4,21 @@
     "name": "Bayfield",
     "zone": "zone.apostles",
     "wantedRegion": "region.chequamegon",
-    "services": ["market", "chandlery", "tavern"]
+    "services": ["market", "chandlery", "freight", "tavern"]
   },
   {
     "id": "port.ashland",
     "name": "Ashland",
     "zone": "zone.apostles",
     "wantedRegion": "region.chequamegon",
-    "services": ["market", "chandlery", "shipyard", "tavern", "jail"]
+    "services": ["market", "chandlery", "freight", "shipyard", "tavern", "jail"]
   },
   {
     "id": "port.washburn",
     "name": "Washburn",
     "zone": "zone.apostles",
     "wantedRegion": "region.chequamegon",
-    "services": ["market", "chandlery", "tavern"]
+    "services": ["market", "chandlery", "freight", "tavern"]
   },
   {
     "id": "port.la_pointe",
@@ -32,20 +32,20 @@
     "name": "Duluth",
     "zone": "zone.twin_ports",
     "wantedRegion": "region.duluth",
-    "services": ["market", "chandlery", "tavern", "jail"]
+    "services": ["market", "chandlery", "freight", "shipyard", "tavern", "jail"]
   },
   {
     "id": "port.superior",
     "name": "Superior",
     "zone": "zone.twin_ports",
     "wantedRegion": "region.superior",
-    "services": ["market", "chandlery", "shipyard", "tavern", "jail"]
+    "services": ["market", "chandlery", "freight", "shipyard", "tavern", "jail"]
   },
   {
     "id": "port.two_harbors",
     "name": "Two Harbors",
     "zone": "zone.two_harbors",
     "wantedRegion": "region.north_shore",
-    "services": ["market", "chandlery", "tavern"]
+    "services": ["market", "chandlery", "freight", "tavern"]
   }
 ]

@@ -332,6 +332,7 @@ All resolved.
 ---
 
 ## Changelog
+- v0.4: Phase 4 piece E (plan 05 §19) built the Stockton Island stash as a fixed prefab: `data/sites.json` with its first site, the `hideouts` save slice of §12, storage transfer for goods and cash, and lying at anchor. Phase 8 replaces the prefab in place and keeps its contents.
 - v0.3: Gap review: MVP = 2 sites, mainland build pads, pre-built starting hideouts, MVP starting sites by background, hideouts end pursuit.
 - v0.2: Decisions: hideouts completely safe, no gathering (sawpit removed), passive production, shipless shipbuilding (§7.4), seven fixed sites.
 - v0.1: Initial hideouts plan: sites (R1-grounded), claiming, functions, grid dimensions and placement types, validity and support rules, piece catalog, storage capacities, materials and gathering, construction time, workstations, recipes, passive production, concealment, build-mode UX, rendering budgets, shared layout editor, data/state, Phase 8 acceptance.

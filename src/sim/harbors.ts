@@ -60,7 +60,9 @@ export interface HarborTerrain {
 export interface PlacedPier extends Dock {
   kind: PierDef['kind'];
   /** The port whose screen opens when a ship docks here (Phase 4 piece B). */
-  port: string;
+  port: string | undefined;
+  /** The hideout site whose storage opens here instead (Phase 4 piece E). */
+  site: string | undefined;
   /** Where the deck meets the land: the shore end, meters from `root` along the pier. */
   shoreM: number;
 }
@@ -106,6 +108,18 @@ const SHORE_M = 0.3;
 const PIER_BITE_M = 6;
 
 /**
+ * The hideout site a pier belongs to (Phase 4 piece E): the stash's landing. Undefined for
+ * a port's piers.
+ */
+export function pierSite(pierId: string): string | undefined {
+  for (const h of HARBORS) {
+    if (!h.piers.some((p) => p.id === pierId)) continue;
+    return zoneDef(harborZoneId(h)).setPieces.find((p) => p.id === h.setPiece)?.site;
+  }
+  return undefined;
+}
+
+/**
  * The port a pier belongs to (Phase 4 piece B): its harbor's set piece's. Undefined for a
  * pier no harbor has (the test bay's greybox pier).
  */
@@ -119,6 +133,7 @@ export function pierPort(pierId: string): string | undefined {
 
 function placePier(def: PierDef, fp: SetPieceFootprint, terrain: HarborTerrain): PlacedPier {
   const port = fp.def.port;
+  const site = fp.def.site;
   const bearing = def.bearingDeg === undefined ? fp.bearing : (def.bearingDeg * Math.PI) / 180;
   const start = footprintPoint(fp, def.alongM, def.inlandM);
   const fx = Math.sin(bearing);
@@ -130,6 +145,7 @@ function placePier(def: PierDef, fp: SetPieceFootprint, terrain: HarborTerrain):
       name: def.name,
       kind: def.kind,
       port,
+      site,
       root: start,
       bearing,
       lengthM: def.lengthM,
@@ -148,6 +164,7 @@ function placePier(def: PierDef, fp: SetPieceFootprint, terrain: HarborTerrain):
     name: def.name,
     kind: def.kind,
     port,
+    site,
     root: { x: start.x + fx * (s - back), z: start.z + fz * (s - back) },
     bearing,
     lengthM: def.lengthM + back,
