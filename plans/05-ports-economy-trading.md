@@ -1,6 +1,6 @@
 # 05 — Ports, Economy & Trading
 
-Status: DRAFT v0.8 (decisions made; gap review applied; Phase 4 pieces A–K built; piece L's playtest checks run, awaiting Jared's laptop playtest)
+Status: DRAFT v0.8 (decisions made; gap review applied; Phase 4 pieces A–L built; 0.4.0 signed off by Jared)
 Parent: [00-master-plan.md](00-master-plan.md)
 Inputs: [R1a gazetteer](R1a-western-superior-gazetteer.md) (ports, industries), [03](03-world-scale-chart-travel.md) (routes, chart, encounters), [04](04-water-weather-seasons.md) (seasons; 1 game day = 1 week), [02](02-arcade-sailing.md) (cargo load, shipless play), [01](01-tech-architecture.md) (sim layer, data files)
 Feeds: 06 (hot goods, informants), 07 (what's in the holds), 08 (fences, warehouses), 09 (materials), 10 (ship prices), 12 (contracts, events)
@@ -807,10 +807,19 @@ Contracts on top of trade (from §22.2, same report): the T2 in **8.8–9.0 real
 3. **The looks the pieces left for you:** the trade screen (B), the background picker (C), the busy harbors (D), the stash (E), contract pay against trade (F), the T2 and the upgrades' feel (G), the smuggler (H), La Pointe and Washburn from the water (I), and the harbor sounds by ear (J).
 4. **Criterion 12**: does the honest front pay its way, and do the Apostles feel like yours to hide in?
 
+### 25.3 Results
+
+**Passed 2026-11-03**, signed off by Jared after playing it on the laptop ("it is good"). 0.4.0 is tagged on the release merge (#71).
+
+His first look changed four things, all in the release PR: the "made here" and "wanted here" marks became small icons with a labeled summary line on the market tab; a loaded hold no longer slows the ship (`cargoSpeedLoss` is 0, and the draft still deepens); the market and hold panel show what the goods aboard cost, and the stash keeps it; and the ledger has a Hold page that it opens on at sea.
+
+**Carried forward:** Jared has lingering doubts about sailing speed after the playtest. Dropping the cargo penalty was the first step, and a pass on base speed is for a later thread. The synthesized music and the guessed 1900 light colors stay in the known limitations.
+
 ---
 
 ## Changelog
 
+- v0.9: Phase 4 signed off (§25.3): the playtest passed and 0.4.0 tagged.
 - v0.8: Phase 4 piece L (§25): the exit criteria checked in the container, a First Week e2e that found the rumor step never ticked (fixed), the economy tick with 100+ ships, new-run save sizes, draw calls with traffic in every harbor, and the 0.4.0 release.
 - v0.7: Phase 4 piece K built (§24): rumors from the live sim in the saloons, reliability and age, heard prices and hails in the ledger, La Pointe's saloon.
 - v0.7: Phase 4 piece G recorded (§20): Duluth's shipyard, the T2's hold, cargo sold on a trade-in, chandlery repairs and fittings.
