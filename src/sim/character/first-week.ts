@@ -108,7 +108,8 @@ export function stepForEvent(
     case 'StorageChanged':
       return p['direction'] === 'in' && typeof p['good'] === 'string' ? 'stash' : undefined;
     case 'RumorHeard':
-      return p['source'] === 'saloon' ? 'rumor' : undefined;
+      // Talk bought in a saloon, not a hailed ship's tip: the rumor carries where it came from.
+      return record(p['rumor'])['source'] === 'saloon' ? 'rumor' : undefined;
     case 'VoyageStarted':
       return 'voyage';
     default:

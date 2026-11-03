@@ -1,6 +1,6 @@
 # 05 — Ports, Economy & Trading
 
-Status: DRAFT v0.6 (decisions made; gap review applied; Phase 4 scope proposed; pieces A, B, C, D, G, H and I built)
+Status: DRAFT v0.8 (decisions made; gap review applied; Phase 4 pieces A–K built; piece L's playtest checks run, awaiting Jared's laptop playtest)
 Parent: [00-master-plan.md](00-master-plan.md)
 Inputs: [R1a gazetteer](R1a-western-superior-gazetteer.md) (ports, industries), [03](03-world-scale-chart-travel.md) (routes, chart, encounters), [04](04-water-weather-seasons.md) (seasons; 1 game day = 1 week), [02](02-arcade-sailing.md) (cargo load, shipless play), [01](01-tech-architecture.md) (sim layer, data files)
 Feeds: 06 (hot goods, informants), 07 (what's in the holds), 08 (fences, warehouses), 09 (materials), 10 (ship prices), 12 (contracts, events)
@@ -750,8 +750,66 @@ The harness's legit bot gained a contracts mode (`runTrader` with `contracts`): 
 
 ---
 
+## 25. Phase 4 Piece L: Playtest and Release (2026-11-03)
+
+**Goal** (§16.4, piece L): check the §16.3 exit criteria with pieces A–K merged, run the balance harness's long report and the benches with traffic in every zone, bring the plans up to date, and tag 0.4.0. Like Phase 3's ([03 §29](03-world-scale-chart-travel.md)), the phase is done when the criteria pass on the baseline laptop and Jared signs off the playtest; this section holds what the cloud container could check and what's left for the laptop.
+
+**Added for the playtest:**
+
+- An e2e test that a new captain completes the First Week (criterion 1): a `?newrun=deckhand` captain sells the rope and canvas at Bayfield, hears a rumor in the saloon, delivers a contract, stashes lumber at Stockton and sets out for the Twin Ports on the chart, and the journal shows all five steps done.
+- **It found a bug:** the rumor step never ticked in play. The checklist read `source` off the `RumorHeard` event, but the source is on the event's rumor. It now reads `rumor.source`, and a hailed ship's tip still doesn't count.
+- `bench:economy` times the whole economy tick with traffic: markets, every ship placed on her timetable, and their calls moving stock, for the real fleet and for six copies of it.
+- `tests/save-size.test.ts` checks a new run's save for each background.
+- The e2e test for the Bayfield port screen expected the ledger to know Bayfield's prices only. A price tip bought in the saloon now adds a heard price elsewhere, so the test checks only the prices seen first-hand.
+
+### 25.1 Checked in the cloud container
+
+Typecheck, lint, Prettier, 1,034 unit tests and the 24 e2e tests (22 smoke tests and the 2 local WebGL checks) pass with pieces A–K merged and the fixes above. Headless Chromium renders on SwiftShader, so frame times here say nothing about the laptop. Draw calls and the Node benches are good.
+
+| # | Criterion | Result here | Still needs |
+|---|---|---|---|
+| 1 | A new captain completes the First Week | The new e2e test drives all five steps through the dev hooks, and found the rumor step bug (fixed) | The route by hand on the laptop |
+| 2 | A legit T1 turns a profit in the first 30 minutes | Legit bot, Deckhand start: **$88 from Bayfield, $86 from Washburn, $67 from Duluth, $90 from Two Harbors** in 30 real minutes; $179–195 in the first hour, about $102–105 a real hour over ten. Pass | By hand |
+| 3 | Dumping a hold crashes the price, which recovers in a few weeks | `tests/economy.test.ts` (dumped stock drifts back on the world tick) and the dumping bot in `tests/economy-balance.test.ts`. Pass | A look on the trade screen |
+| 4 | No money loop; prices stay in their clamps | Loop hunter at 20, 45 and 90 CU: **$105–110 a real hour, $44–46 a game day**, under the $150 ceilings. Buy-sell cycles, contract take-and-return and hull trade-ins all lose (unit tests). A **five-year soak**, 39,283 ticks with a trader working the lake, has no price outside its clamp. Pass | — |
+| 5 | Ships carry plausible cargo and deliveries move stock | `tests/traffic.test.ts`: manifests by flow and season, a busy month moves every port's stock, and calls move the markets once per span. Berthed and under way in every harbor below. Pass | "Look her over" on each class by eye |
+| 6 | The stash survives a reload and a voyage to Duluth and back | The e2e test stashes cargo and cash at Stockton, reloads, and finds them in the stash and not in the hold | The round trip to Duluth on the laptop |
+| 7 | The smuggler loop end to end | The e2e test meets her after dark, buys whiskey and tries it in Bayfield; `tests/contraband.test.ts` checks the detection odds. Pass | The route by hand |
+| 8 | T1 → T2 trade-in, upgrades, repairs, condition saved | `tests/shipyard.test.ts` (the $1,600 less $250 trade-in at Superior, canvas faster and planking slower, repairs, a save round trip); the e2e test buys a T2 at Ashland, fits and repairs her, and patches the hull at sea. Pass | The T2 by feel |
+| 9 | Stealing a contract's cargo pays once and closes the company | `tests/contracts.test.ts`. Pass | — |
+| 10 | A 0.3.0 save loads; a new run's save fits | `tests/save-migrations.test.ts` takes the v4 fixture to v6 as a Deckhand where it was saved. A new run's save is **1.8–2.0 KB** compressed for each background, against the 250 KB budget. Pass | — |
+| 11 | Economy tick ≤ 1 ms with 100+ voyages; zones in the Phase 3 budgets with traffic | Whole economy tick: **0.026 ms with the 23-ship fleet, 0.114 ms with 138 ships**. Market tick alone 0.003 ms. Draw calls on Medium in each harbor with its traffic in (week 21, 10:00, the table below): **47–97**, under 150 | `?bench=water` on Medium and Low in each harbor with ships berthed, on the laptop |
+| 12 | The honest front pays its way; the Apostles feel like yours | — | Jared |
+| 13 | Plans updated, CI green, 0.4.0 tagged | Plans 05 §25, 09, 10 §16–17, 12 §11, 13 §12, 15 §17 and 16 §12 record what was built. Version 0.4.0, the changelog's 0.4.0 section and the README are in the release PR | CI on the PR; the tag on the merge |
+
+Draw calls with traffic (Medium, 1280 × 720, `?play&debug&harbor=<port>&day=20&hour=10`):
+
+| Harbor | Ships shown (berthed) | Draw calls |
+|---|---|---|
+| Bayfield | 7 (5) | 65 |
+| Ashland | 7 (5) | 55 |
+| Washburn | 9 (6) | 88–97 |
+| La Pointe | 5 (3) | 60 |
+| Duluth | 5 (4) | 70 |
+| Superior | 2 (1) | 47 |
+| Two Harbors | 1 (1) | 51 |
+
+Washburn is the busiest: the lumber fleet lies at its docks, and each ship adds draw calls for her hull, rig and lights. It has half the 150 budget to spare.
+
+Contracts on top of trade (from §22.2, same report): the T2 in **8.8–9.0 real hours** from every start and seed, about $118–122 a real hour, 35–42 contracts delivered and none late. That's inside §5.3's 8–12 hours.
+
+### 25.2 For Jared on the laptop
+
+1. **The playtest route:** a new run from the menu (any background), the First Week by hand, a contract out of Bayfield, the stash at Stockton, then the chart to Duluth and back to check the stash (criterion 6), and the smuggler at Oak Island after dark with her whiskey tried in Bayfield (criterion 7).
+2. **Frame times with traffic** (criterion 11): `?bench=water` on Medium and Low at `?harbor=washburn` (the most ships) and `?harbor=bayfield`. Phase 3's budget is a p95 frame of at most 16.7 ms on Medium and never below 30 fps on Low.
+3. **The looks the pieces left for you:** the trade screen (B), the background picker (C), the busy harbors (D), the stash (E), contract pay against trade (F), the T2 and the upgrades' feel (G), the smuggler (H), La Pointe and Washburn from the water (I), and the harbor sounds by ear (J).
+4. **Criterion 12**: does the honest front pay its way, and do the Apostles feel like yours to hide in?
+
+---
+
 ## Changelog
 
+- v0.8: Phase 4 piece L (§25): the exit criteria checked in the container, a First Week e2e that found the rumor step never ticked (fixed), the economy tick with 100+ ships, new-run save sizes, draw calls with traffic in every harbor, and the 0.4.0 release.
 - v0.7: Phase 4 piece K built (§24): rumors from the live sim in the saloons, reliability and age, heard prices and hails in the ledger, La Pointe's saloon.
 - v0.7: Phase 4 piece G recorded (§20): Duluth's shipyard, the T2's hold, cargo sold on a trade-in, chandlery repairs and fittings.
 - v0.7: Phase 4 piece E built (§21): the Stockton stash at Presque Isle bay, `sites.json`, the hideouts save slice, the stash screen, lying at anchor, the stash on the chart.

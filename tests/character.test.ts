@@ -281,8 +281,12 @@ describe('the First Week', () => {
     expect(stepForEvent('StorageChanged', { direction: 'out', good: 'good.salt' }, fish)).toBe(
       undefined,
     );
-    expect(stepForEvent('RumorHeard', { source: 'saloon' }, fish)).toBe('rumor');
-    expect(stepForEvent('RumorHeard', { source: 'hail' }, fish)).toBe(undefined);
+    expect(stepForEvent('RumorHeard', { rumor: { source: 'saloon' }, costCents: 50 }, fish)).toBe(
+      'rumor',
+    );
+    expect(stepForEvent('RumorHeard', { rumor: { source: 'hail' }, costCents: 0 }, fish)).toBe(
+      undefined,
+    );
     expect(stepForEvent('VoyageStarted', {}, fish)).toBe('voyage');
   });
 

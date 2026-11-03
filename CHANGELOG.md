@@ -4,6 +4,10 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-03
+
+The **Trade & Economy** build (Phase 4): make a new captain, dock and trade in seven ports whose prices follow their stock and the traffic that really carries cargo, take freight contracts, buy a bigger schooner, stash goods at Stockton Island, and meet the island smuggler after dark.
+
 ### Added
 
 - **Keep sailing while you read:** the journal (J) and a look at the chart (M at the helm) no longer have to stop the world. With the new setting "Keep sailing with the journal or chart open" (on by default, Settings → Camera & sailing) the ship sails on with the helm and sails as you left them, the clock runs, the journal moves to the side so the lake stays in view, and the chart follows her across it. P over either one holds the ship or lets her sail on, and the choice is remembered. Touching bottom, striking, a knockdown, a dragging anchor, a sighting on a voyage or a hostile on your track closes the journal and brings a look back to the helm. The port screen, the settings screen and anything in an arena still pause.
@@ -23,15 +27,23 @@ All notable changes to this project are recorded here. The format follows [Keep 
 ### Changed
 
 - The package steamer's chime whistle is now a real recording, a multi-bell ship whistle at Owen Sound on Georgian Bay, in place of the synthesized one. The Sound tab's ambience slider is now "Weather, wildlife & harbors".
-
-### Changed
-
 - **Arriving in the Twin Ports and Two Harbors puts you just off the harbor** instead of out at the zone's edge (playtest: the run in took minutes even downwind). The Twin Ports entry is now about 600 m off Minnesota Point between the Duluth canal and Superior Entry, heading for the canal, and Two Harbors' east and south entries are about 700 m from Agate Bay, heading in. "Take to the chart" still shows on arrival.
 
 ### Fixed
 
 - **No more black wall in open-water arenas.** The coast silhouettes an arena draws gave every shore a hill reaching up to 2 km inland, so a small island, a point or a spit threw its back slope out over the water on the far side. Sailing into one filled the view with a dark mass (black at dawn, lit from behind), first seen in a fog bank encounter among the Apostles. Each silhouette now fits inside its own land, lower and shorter where the land is narrow, and the chart's cut-off eastern edge out in the lake no longer gets a coast at all.
 - **Leaving an arena with M carries on the voyage from where you met them.** The same key press also opened the chart as a look from the zone you set out from, which stalled the voyage and sent you back to your starting point on "Back to the helm".
+- **The First Week's "hear a rumor" step now ticks** when you buy a round in a saloon. It was listening for the wrong part of the event, so it never did.
+
+### Known limitations
+
+- Nothing gets you caught yet. A merchant who finds hot goods or contraband refuses or confiscates them and the event is raised, and selling a contract's cargo closes that company to you, but Wanted, the _Morrill_'s hunt and inspections come in Phase 5.
+- Theft at sea comes in Phase 6, so hot goods only come from the smuggler or the dev command `__glpContraband.makeHot`. Hailing is daylight news and talk only.
+- Ports are screens at the pier until the docks districts come on foot in Phase 7, and the captain is a portrait. Red Cliff and Bad River wait for a tribal sources pass, and the Twin Ports waterfront dressing comes with their docks districts.
+- The Stockton stash is a fixed prefab, the starting hideout for every background, until Phase 8's building replaces it in place and keeps its contents.
+- The open-water music, the chart theme, the stingers, the mill saw and the ore dump are synthesized placeholders. No music tool could be reached from the cloud machine.
+- The 1900 characteristics of the Duluth canal, Superior Entry and Two Harbors lights are still best guesses.
+- No dock fees, provisions upkeep, telegraph office, spoilage or passenger contracts (plan 05 §14).
 
 ## [0.3.0] - 2026-11-01
 
@@ -144,7 +156,8 @@ The **Sailing Prototype** (Phase 1): one T1 schooner you can sail, tack, reef, g
 - Volume sliders are only in the dev overlay's Audio folder; the settings screen gets them later.
 - The S7 scale greybox and the S8 chart arena still use their Phase 0 stand-in helms; moving them onto the plan 02 controller is carried over to Phase 2.
 
-[Unreleased]: https://github.com/jpchip/great-lakes-pirate/compare/0.3.0...HEAD
+[Unreleased]: https://github.com/jpchip/great-lakes-pirate/compare/0.4.0...HEAD
+[0.4.0]: https://github.com/jpchip/great-lakes-pirate/compare/0.3.0...0.4.0
 [0.3.0]: https://github.com/jpchip/great-lakes-pirate/compare/0.2.0...0.3.0
 [0.2.0]: https://github.com/jpchip/great-lakes-pirate/compare/0.1.0...0.2.0
 [0.1.0]: https://github.com/jpchip/great-lakes-pirate/releases/tag/0.1.0
