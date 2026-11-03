@@ -20,6 +20,7 @@ import type { GameEconomy } from './economy';
 import { contractsOf, type GameContracts } from './contracts';
 import { cargoName, companyName, type AcceptRefusal } from '../sim/economy/contracts';
 import type { ShipHazards } from './hazards';
+import type { RumorControl } from './rumors';
 import type { GameShipyard } from './shipyard';
 
 /**
@@ -53,6 +54,8 @@ export interface PortControlOptions {
   /** The freight agent (piece F); without it the screen has no freight tab. */
   contracts?: GameContracts | undefined;
   hazards: ShipHazards;
+  /** The saloons' talk (piece K); without it no port shows a saloon. */
+  rumors?: RumorControl | undefined;
   /** The shipyard, chandlery fittings and repairs (piece G); without it those don't show. */
   shipyard?: GameShipyard | undefined;
   /** The pier a berth belongs to, from the zone's berths. */
@@ -153,6 +156,11 @@ export function attachPorts(opts: PortControlOptions): PortControl {
       cargoSpeedLoss: hazards.cls.rules.cargoSpeedLoss,
       port,
       gameSeconds: now(),
+      rumors: ctx.state.knowledge.rumors,
+      saloon:
+        opts.rumors && portInfo(port)?.services.includes('tavern')
+          ? opts.rumors.terms(port)
+          : undefined,
       refusals: ctx.state.contraband?.refusals,
       receivers: ctx.state.contraband?.receivers,
       contracts: (() => {
@@ -278,6 +286,7 @@ export function attachPorts(opts: PortControlOptions): PortControl {
           now(),
           contractSources(),
           ctx.state.contraband?.receivers,
+          ctx.state.knowledge.rumors,
         ),
       );
       opts.onOpen(true);
@@ -314,6 +323,13 @@ export function attachPorts(opts: PortControlOptions): PortControl {
         });
         refresh();
         return undefined;
+      },
+      buyRound() {
+        const port = openPort;
+        if (!port || !opts.rumors) return 'The saloon is closed.';
+        const r = opts.rumors.buyRound(port);
+        refresh();
+        return r.ok ? undefined : r.reason;
       },
       acceptContract(offerId) {
         const port = openPort;

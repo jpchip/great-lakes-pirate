@@ -1,4 +1,5 @@
 import type { Good } from '../../../data/schemas/goods';
+import { SECONDS_PER_GAME_DAY } from '../../core/time';
 import type { PortService } from '../../../data/schemas/ports';
 import { portInfo, type EconomyDefs } from '../../sim/economy/defs';
 import { holdFree, holdUsed, isClean, type CargoStack } from '../../sim/economy/hold';
@@ -28,6 +29,8 @@ import {
   type ShipStores,
 } from '../../sim/economy/chandlery';
 import { maxBuyable, type Trader } from '../../sim/economy/trade';
+import { isStale, reliabilityWord, rumorDefs, type SaloonTerms } from '../../sim/rumors/rumors';
+import type { Rumor } from '../../sim/world-state';
 import { clockLabel, weekLabel } from '../hud/model';
 import {
   cargoName,
@@ -51,14 +54,15 @@ import { yardSnapshot, type YardSnapshot } from './shipyard-model';
  * these; buying and selling go back through the port's actions.
  */
 
-export type PortTab = 'market' | 'chandlery' | 'freight' | 'shipyard' | 'ledger';
+export type PortTab = 'market' | 'chandlery' | 'freight' | 'shipyard' | 'saloon' | 'ledger';
 
-/** The services with a tab, in order. Piece K adds the saloon. */
+/** The services with a tab, in order. Pieces F, G and K add the freight agent, shipyard and saloon. */
 const SERVICE_TABS: readonly [PortService, PortTab][] = [
   ['market', 'market'],
   ['chandlery', 'chandlery'],
   ['freight', 'freight'],
   ['shipyard', 'shipyard'],
+  ['tavern', 'saloon'],
 ];
 
 /** The trade screen sorts by the plan 05 §3 grouping, then by name. */
@@ -214,6 +218,8 @@ export interface PortSnapshot {
   market: MarketRow[];
   hold: HoldRow[];
   stores: StoreRow[];
+  /** The saloon (piece K), when the port has one. */
+  saloon: SaloonSnapshot | undefined;
   /** The freight agent's tab, at a port that has one (piece F). */
   freight: FreightSnapshot | undefined;
   /** What happened on arriving: deliveries paid, failed cargo handed back. */
@@ -224,11 +230,33 @@ export interface PortSnapshot {
   ledger: LedgerSnapshot;
 }
 
+/** A rumor as the ledger and the saloon show it. */
+export interface RumorRow {
+  id: string;
+  kind: string;
+  text: string;
+  age: string;
+  /** "Likely: a deckhand", or "the Gogebic" for a hail. */
+  from: string;
+  /** "Reliable", "Likely", "Doubtful", "Tall tale". */
+  word: string;
+  /** Its time has passed: the ship's sailed, the weather's come. */
+  stale: boolean;
+  where: string;
+}
+
+export interface SaloonSnapshot extends SaloonTerms {
+  /** Today's talk heard here, newest first. */
+  heard: RumorRow[];
+}
+
 export interface LedgerPrice {
   buyCents: number;
   sellCents: number;
   age: string;
   stale: boolean;
+  /** Heard from a rumor or a hail, not seen. */
+  heard: boolean;
 }
 
 export interface LedgerPort {
@@ -252,7 +280,7 @@ export interface LedgerSnapshot {
   receivers: { id: string; text: string }[];
   /** Contracts in hand, then the last few finished (piece F). Piece K fills the rumors. */
   contracts: { id: string; text: string; done: boolean }[];
-  rumors: { id: string; text: string; age: string }[];
+  rumors: RumorRow[];
   /** Ports first, then companies; a company you stole from is marked. */
   standing: { id: string; name: string; value: number; burned: boolean }[];
 }
@@ -276,6 +304,10 @@ export interface PortSources {
   cargoSpeedLoss: number;
   port: string;
   gameSeconds: number;
+  /** Rumors heard (piece K), for the ledger and the saloon. */
+  rumors?: readonly Rumor[];
+  /** The saloon's terms here now, when it has one. */
+  saloon?: SaloonTerms | undefined;
   /** Ports whose merchants turned you away this week (piece H). */
   refusals?: Refusals | undefined;
   /** Ports where you have a receiver (piece H). */
@@ -311,6 +343,21 @@ function elsewhere(
     cents,
     age: ageText(seen.seenAt, gameSeconds),
     stale: weeksSince(seen.seenAt, gameSeconds) >= STALE_WEEKS,
+  };
+}
+
+/** A rumor for the screen: its words, age, teller and how far to trust it. */
+export function rumorRow(r: Rumor, gameSeconds: number): RumorRow {
+  const word = reliabilityWord(r.reliability);
+  return {
+    id: r.id,
+    kind: rumorDefs().kinds[r.kind].label,
+    text: r.text,
+    age: ageText(r.heardAt, gameSeconds),
+    from: r.source === 'hail' ? `Hailed ${r.teller ?? 'a ship'}` : `${word}: ${r.teller ?? 'talk'}`,
+    word,
+    stale: isStale(r, gameSeconds),
+    where: r.port ? portName(r.port) : 'at sea',
   };
 }
 
@@ -405,6 +452,7 @@ export function ledgerSnapshot(
   gameSeconds: number,
   contracts?: ContractSources,
   receivers?: readonly string[],
+  rumors: readonly Rumor[] = [],
 ): LedgerSnapshot {
   const ports: (LedgerPort & { seenAt: number })[] = [];
   const goods = new Set<string>();
@@ -420,6 +468,7 @@ export function ledgerSnapshot(
         sellCents: p.sellCents,
         age: ageText(p.seenAt, gameSeconds),
         stale: weeksSince(p.seenAt, gameSeconds) >= STALE_WEEKS,
+        heard: !!p.heard,
       };
     }
     if (!Number.isFinite(seenAt)) continue;
@@ -452,7 +501,7 @@ export function ledgerSnapshot(
       text: `${portName(id)}: a merchant who asks no questions`,
     })),
     contracts: contracts ? ledgerContracts(defs, contracts, gameSeconds) : [],
-    rumors: [],
+    rumors: rumors.map((r) => rumorRow(r, gameSeconds)),
     standing: contracts ? ledgerStanding(contracts) : [],
   };
 }
@@ -520,8 +569,11 @@ export function portSnapshot(src: PortSources): PortSnapshot {
     ([service, tab]) =>
       services.includes(service) &&
       (tab !== 'market' || !!pm) &&
+      (tab !== 'saloon' || !!src.saloon) &&
       (tab !== 'freight' || !!src.contracts),
   ).map(([, tab]) => tab);
+  const rumors = src.rumors ?? [];
+  const today = Math.floor(gameSeconds / SECONDS_PER_GAME_DAY);
   tabs.push('ledger');
 
   const cleanHeld = new Map<string, number>();
@@ -635,10 +687,24 @@ export function portSnapshot(src: PortSources): PortSnapshot {
     market,
     hold,
     stores,
+    saloon:
+      src.saloon && tabs.includes('saloon')
+        ? {
+            ...src.saloon,
+            heard: rumors
+              .filter(
+                (r) =>
+                  r.source === 'saloon' &&
+                  r.port === port &&
+                  Math.floor(r.heardAt / SECONDS_PER_GAME_DAY) === today,
+              )
+              .map((r) => rumorRow(r, gameSeconds)),
+          }
+        : undefined,
     freight: src.contracts ? freightSnapshot(src, src.contracts, services) : undefined,
     notices: src.notices ?? [],
     shipyard: yard('shipyard'),
     fittings: yard('chandlery'),
-    ledger: ledgerSnapshot(defs, knowledge, gameSeconds, src.contracts, src.receivers),
+    ledger: ledgerSnapshot(defs, knowledge, gameSeconds, src.contracts, src.receivers, rumors),
   };
 }

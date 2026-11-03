@@ -2,7 +2,7 @@ import { useEffect, useState } from 'preact/hooks';
 import { formatCents } from '../../sim/economy/knowledge';
 import type { TradeSide } from '../../sim/economy/market';
 import { Help } from './Help';
-import { Ledger } from './Ledger';
+import { Ledger, RumorItem } from './Ledger';
 import { Fittings, Shipyard, ShipPanel } from './Shipyard';
 import {
   CATEGORY_LABELS,
@@ -32,6 +32,8 @@ export interface PortActions {
   /** What `qty` CU would cost or fetch now, cents. */
   quote(good: string, qty: number, side: TradeSide): number;
   buyStores(item: string, qty: number): string | undefined;
+  /** Buys a round in the saloon for a rumor (piece K); the refusal, or undefined. */
+  buyRound(): string | undefined;
   /**
    * Offers a whole hot or contraband lot (a stack of the hold, by its index) to the port's
    * merchants (piece H). Always returns what came of it, in a line.
@@ -55,6 +57,7 @@ export interface PortActions {
 const TAB_LABELS: Record<PortTab, string> = {
   market: 'Market',
   chandlery: 'Chandlery',
+  saloon: 'Saloon',
   freight: 'Freight agent',
   shipyard: 'Shipyard',
   ledger: 'Ledger',
@@ -604,6 +607,54 @@ function Chandlery({
   );
 }
 
+function Saloon({
+  port,
+  actions,
+  setMessage,
+}: {
+  port: PortSnapshot;
+  actions: PortActions;
+  setMessage(m: string | undefined): void;
+}) {
+  const s = port.saloon;
+  if (!s) return null;
+  const price = s.free ? 'on the house' : formatCents(s.roundCents);
+  return (
+    <div class="port-saloon" data-testid="saloon">
+      <p class="menu-note">
+        Stand a round and the talk comes easier. Some of it is true. A round here is{' '}
+        {formatCents(s.listCents)}
+        {s.free ? '; the keeper knows a fellow saloon man, and the first is on the house' : ''}.
+      </p>
+      <p>
+        <button
+          type="button"
+          class="menu-button primary"
+          data-testid="saloon-round"
+          disabled={s.roundsLeft <= 0 || port.purseCents < s.roundCents}
+          onClick={() => setMessage(actions.buyRound())}
+        >
+          Buy a round ({price})
+        </button>{' '}
+        <span class="port-dim" data-testid="saloon-left">
+          {s.roundsLeft > 0
+            ? `Talk enough for ${s.roundsLeft} more round${s.roundsLeft === 1 ? '' : 's'} today.`
+            : "The bar's talked out for today."}
+        </span>
+      </p>
+      {s.heard.length === 0 ? (
+        <p class="port-dim">Nobody's said anything worth writing down yet.</p>
+      ) : (
+        <ul class="ledger-list rumors">
+          {s.heard.map((r) => (
+            <RumorItem key={r.id} r={r} />
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 export function PortScreen({
   port,
   actions,
@@ -681,6 +732,7 @@ export function PortScreen({
               <Hold port={port} />
             </>
           )}
+          {shown === 'saloon' && <Saloon port={port} actions={actions} setMessage={setMessage} />}
           {shown === 'freight' && (
             <>
               <Freight port={port} actions={actions} setMessage={setMessage} />
