@@ -102,14 +102,15 @@ describe('harbor work rules (Phase 4 piece J)', () => {
     expect(ore.y).toBe(20);
   });
 
-  it('gives every working port something to hear (La Pointe stays a quiet fishing town)', () => {
+  it('gives every working port something to hear (La Pointe and the Stockton stash stay quiet)', () => {
     const working = HARBORS.filter((h) => !h.piers.every((p) => p.kind === 'canal'));
     const quiet = working.filter(
       (h) =>
         !h.buildings.some((b) => BUILDING_WORK[b.kind]) &&
         !h.piers.some((p) => (PIER_WORK[p.kind] ?? []).length > 0),
     );
-    expect(quiet.map((h) => h.id)).toEqual(['harbor.la_pointe']);
+    // Stockton is the stash bay (piece E): a shack and a strongbox, no work to hear.
+    expect(quiet.map((h) => h.id)).toEqual(['harbor.la_pointe', 'harbor.stockton']);
   });
 
   it('plays a site when the listener is in range and the work is on', () => {
