@@ -1,0 +1,33 @@
+{
+  "witnesses": {
+    "keeper": {
+      "delay": { "minH": 1.5, "maxH": 4 },
+      "byReporting": {
+        "fast": { "minH": 0.5, "maxH": 1.5 },
+        "medium": { "minH": 1.5, "maxH": 4 },
+        "slow": { "minH": 1, "maxH": 3, "atDawn": true }
+      }
+    },
+    "crew": { "delay": { "minH": 6, "maxH": 36 } },
+    "cutter": { "delay": { "minH": 0, "maxH": 0 } },
+    "townsfolk": { "delay": { "minH": 0.5, "maxH": 1 } },
+    "merchant": { "delay": { "minH": 0.25, "maxH": 1 } },
+    "freightAgent": { "delay": { "minH": 4, "maxH": 12 } }
+  },
+  "dawnHour": 6,
+  "cutter": {
+    "id": "law.morrill",
+    "name": "Revenue cutter Morrill",
+    "classId": "ship.cutter_morrill",
+    "coalingPort": "port.duluth",
+    "inspectsFromTier": 1,
+    "drawnFromTier": 3
+  },
+  "tug": {
+    "id": "law.chartered_tug",
+    "name": "The chartered tug",
+    "classId": "ship.fish_tug",
+    "fromTier": 5,
+    "days": 3
+  }
+}

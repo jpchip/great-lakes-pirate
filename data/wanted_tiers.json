@@ -1,0 +1,13 @@
+{
+  "tiers": [
+    { "tier": 0, "name": "Clean", "minHeat": 0, "decayPerHour": 1 },
+    { "tier": 1, "name": "Suspicious", "minHeat": 20, "decayPerHour": 0.5 },
+    { "tier": 2, "name": "Wanted", "minHeat": 60, "decayPerHour": 0.4 },
+    { "tier": 3, "name": "Hunted", "minHeat": 150, "decayPerHour": 0.3 },
+    { "tier": 4, "name": "Notorious", "minHeat": 300, "decayPerHour": 0.2, "decayFloor": 150 },
+    { "tier": 5, "name": "Most Wanted", "minHeat": 500, "decayPerHour": 0.1, "decayFloor": 150 }
+  ],
+  "identification": { "unknown": 0.25, "schooner": 0.5, "ship": 1, "person": 1 },
+  "decay": { "graceHours": 12, "presentFactor": 0.25, "alertPerHour": 0.5 },
+  "spread": { "fraction": 0.3, "perFameTier": 0.05, "delayHours": 12 }
+}

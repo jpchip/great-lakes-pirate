@@ -12,6 +12,14 @@ import { freshContrabandState } from './economy/smuggler';
 import { startingHideouts, syncHideouts } from './hideouts/stash';
 import { firstWeekSchema } from './character/first-week';
 import { defaultShipState } from './shipyard/shipyard';
+import {
+  createLawState,
+  fameSchema,
+  jailSchema,
+  profilesSchema,
+  reportsSchema,
+  wantedSchema,
+} from './law/state';
 
 /**
  * WorldState skeleton (plan 01 §3.1, plan 16 §5.2). Each slice is filled in by its
@@ -360,6 +368,15 @@ export const worldStateSchema = z.object({
    * character creation has one; absent otherwise, so no save version bump.
    */
   firstWeek: firstWeekSchema.optional(),
+  /**
+   * The law (plan 06 §10; Phase 5 piece A, save v7): Wanted by region, Fame, the ship's
+   * profile, reports in progress and jail. A 0.4.0 run migrates Clean everywhere.
+   */
+  wanted: wantedSchema,
+  fame: fameSchema,
+  profiles: profilesSchema,
+  reports: reportsSchema,
+  jail: jailSchema,
   environment: z.looseObject({
     clock: clockStateSchema,
     /** Saved so a reload continues the same random sequence (plan 16 §4.4). */
@@ -393,6 +410,7 @@ export function createWorldState(seed: string, startSeconds = 0): WorldState {
     contracts: createContractsState(),
     hideouts: startingHideouts(defaultCaptain().background, clock.gameSeconds),
     knowledge: { prices: {}, rumors: [] },
+    ...createLawState(defaultShipState().classId, defaultCaptain().shipName, clock.gameSeconds),
     environment: {
       clock,
       rng: Rng.fromSeed(seed).getState(),

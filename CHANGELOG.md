@@ -6,6 +6,8 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ### Added
 
+- **The law core (Phase 5 piece A):** crimes now have consequences you can't see yet. Offering a hot lot to a merchant who finds it out is selling hot goods (15 heat), contraband is smuggling (20), and selling contract cargo is theft (40), always traced to you, and its news reaches the neighboring regions half a day later. A witness carries each report to the region's authority after a delay (a merchant within the hour, a lighthouse keeper at dawn if it was night, a ship's crew at her next port), and only then does the heat land. Seven Wanted regions (Ashland is now its own), six tiers from Clean to Most Wanted, heat that fades over a couple of game days away from the region, Fame, and Standing lost when a crime is named to you. Dealing with the island smuggler is a crime too, once something can see you do it (piece B). Buying a new hull sheds the heat tied to the old ship. The dev overlay's Law folder and `__glpLaw` commit crimes, file reports and set tiers. Saves move to v7; a 0.4.0 run loads Clean everywhere ([plan 06 §14.8](plans/06-fame-wanted-law-lighthouses.md)).
+
 - **Waiting in port and at anchor:** the port screen's footer now has Wait: an hour, a four-hour watch, until dawn, until dusk, or until the wind shifts. The clock runs on alongside the pier, the world ticks as it does on the chart (the market moves, ships come and go, the weather changes), the screen shows the new prices and says how long you lay, and the game saves. Back aboard, a **Wait (Z)** button sits on the HUD whenever you're anchored or alongside, opening the same choices ("Lie alongside" or "Lie at anchor"). Z already did this since 0.4.0, but nothing said so.
 
 ### Changed

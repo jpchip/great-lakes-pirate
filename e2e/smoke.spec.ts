@@ -1168,3 +1168,53 @@ test('buys a T2 at Ashland, fits and repairs her, and patches the hull at sea', 
   expect((await yard()).hull01).toBeCloseTo(0.7, 2);
   expect(errors).toEqual([]);
 });
+
+interface LawHook {
+  commit(crime: string, region?: string, kind?: string, identification?: string): unknown[];
+  fileAll(): unknown[];
+  region(): string | undefined;
+  state(): {
+    wanted: Record<string, { heat: number }>;
+    reports: { inProgress: { witness: { kind: string } }[] };
+  };
+}
+
+// Phase 5 piece A: a crime with a witness, its report on the way, the heat landing, and
+// the law's slices kept through a reload (save v7).
+test('files a witnessed crime as heat and keeps it through a reload', async ({ page }) => {
+  const errors = collectErrors(page);
+  const body = page.locator('body');
+  await page.goto('/?renderer=null&debug&play');
+  await expect(body).toHaveAttribute('data-terrain', 'loaded');
+  await page.waitForFunction(() => '__glpChart' in window && '__glpLaw' in window);
+  const before = await page.evaluate(() => {
+    const h = (window as unknown as { __glpLaw: LawHook }).__glpLaw;
+    h.commit('crime.smuggler_deal', 'region.apostles', 'none');
+    h.commit('crime.smuggler_deal', 'region.apostles', 'keeper', 'ship');
+    return { region: h.region(), state: h.state() };
+  });
+  expect(before.region).toMatch(/^region\./);
+  expect(before.state.wanted['region.apostles']?.heat ?? 0).toBe(0);
+  expect(before.state.reports.inProgress.map((r) => r.witness.kind)).toEqual(['keeper']);
+  const filed = await page.evaluate(() => {
+    const h = (window as unknown as { __glpLaw: LawHook }).__glpLaw;
+    h.fileAll();
+    return h.state();
+  });
+  expect(filed.wanted['region.apostles']?.heat).toBe(20);
+  expect(filed.reports.inProgress).toEqual([]);
+
+  await page.evaluate(() => {
+    delete document.body.dataset['savedMode'];
+    window.dispatchEvent(new Event('pagehide'));
+  });
+  await expect(body).toHaveAttribute('data-saved-mode', /.+/);
+  await page.goto('/?renderer=null&debug&play');
+  await expect(body).toHaveAttribute('data-save', 'loaded');
+  await page.waitForFunction(() => '__glpChart' in window && '__glpLaw' in window);
+  const after = await page.evaluate(() =>
+    (window as unknown as { __glpLaw: LawHook }).__glpLaw.state(),
+  );
+  expect(after.wanted['region.apostles']?.heat).toBeGreaterThan(19);
+  expect(errors).toEqual([]);
+});

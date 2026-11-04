@@ -8,6 +8,13 @@ import { flowsFileSchema } from './flows';
 import { goodsFileSchema } from './goods';
 import { harborsFileSchema } from './harbors';
 import { islandsFileSchema } from './islands';
+import {
+  crimesFileSchema,
+  fameTiersFileSchema,
+  lawActorsFileSchema,
+  regionsFileSchema,
+  wantedTiersFileSchema,
+} from './law';
 import { lighthousesFileSchema } from './lighthouses';
 import { marketsFileSchema } from './markets';
 import { portsFileSchema } from './ports';
@@ -27,15 +34,19 @@ export const dataFileSchemas: Readonly<Record<string, z.ZodType>> = {
   'chart-coast.json': chartFileSchema,
   'climate.json': climateFileSchema,
   'contracts.json': contractsFileSchema,
+  'crimes.json': crimesFileSchema,
   'factions.json': factionsFileSchema,
+  'fame_tiers.json': fameTiersFileSchema,
   'flows.json': flowsFileSchema,
   'goods.json': goodsFileSchema,
   'harbors.json': harborsFileSchema,
   'islands.json': islandsFileSchema,
+  'law_actors.json': lawActorsFileSchema,
   'lighthouses.json': lighthousesFileSchema,
   'markets.json': marketsFileSchema,
   'portraits.json': portraitsFileSchema,
   'ports.json': portsFileSchema,
+  'regions.json': regionsFileSchema,
   'routes.json': routesFileSchema,
   'rumors.json': rumorsFileSchema,
   'ships.json': shipsFileSchema,
@@ -43,5 +54,6 @@ export const dataFileSchemas: Readonly<Record<string, z.ZodType>> = {
   'smuggler.json': smugglersFileSchema,
   'stores.json': storesFileSchema,
   'upgrades.json': upgradesFileSchema,
+  'wanted_tiers.json': wantedTiersFileSchema,
   'zones.json': zonesFileSchema,
 };

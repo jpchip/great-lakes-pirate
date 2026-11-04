@@ -15,6 +15,7 @@ import type {
 } from '../sim/economy/contracts';
 import type { LieUntil } from '../sim/hideouts/lie-at-anchor';
 import type { SmugglerDealtEvent } from '../sim/economy/smuggler';
+import type { LawEventOf } from '../sim/law/law';
 import type { ShipPurchasedEvent, ShipRepairedEvent, UpgradeEvent } from '../sim/shipyard/shipyard';
 import type { GameWorld } from '../gameplay/ecs';
 import type { LocalWeather } from '../sim/weather/local-weather';
@@ -125,6 +126,20 @@ export interface GameEvents {
   UpgradeInstalled: UpgradeEvent;
   UpgradeRemoved: UpgradeEvent;
   ShipRepaired: ShipRepairedEvent;
+  /**
+   * The law (plan 06 §2.1, §10; Phase 5 piece A): a crime committed (witnessed or not), a
+   * witness setting off with a report, the report landing (heat or alertness) or stopped
+   * on the way, a region's tier changing, the news of a crime spreading heat to the
+   * neighbors, Fame moving, and a new hull shedding the old ship's record.
+   */
+  CrimeCommitted: Omit<LawEventOf<'CrimeCommitted'>, 'type'>;
+  Witnessed: Omit<LawEventOf<'Witnessed'>, 'type'>;
+  ReportFiled: Omit<LawEventOf<'ReportFiled'>, 'type'>;
+  ReportIntercepted: Omit<LawEventOf<'ReportIntercepted'>, 'type'>;
+  WantedTierChanged: Omit<LawEventOf<'WantedTierChanged'>, 'type'>;
+  HeatSpread: Omit<LawEventOf<'HeatSpread'>, 'type'>;
+  FameChanged: Omit<LawEventOf<'FameChanged'>, 'type'>;
+  ProfileChanged: Omit<LawEventOf<'ProfileChanged'>, 'type'>;
 }
 
 /** Everything a mode needs; built once at boot and handed to each mode. */

@@ -118,6 +118,8 @@ import { allPortraits, backgroundDef, type BackgroundKey } from './sim/character
 import { createNewRun, startingPort } from './sim/character/new-run';
 import { withSailingPerks } from './sim/character/perks';
 import { attachCaptain } from './gameplay/captain';
+import { attachLaw, devWitness } from './gameplay/law';
+import type { Identification, WitnessKind } from './sim/law/witness';
 
 /** Periodic autosave while safe (plan 16 §4.1). */
 const AUTOSAVE_INTERVAL_MS = 2 * 60_000;
@@ -623,6 +625,38 @@ async function boot(): Promise<void> {
     };
     (window as unknown as { __glpContracts: typeof hook }).__glpContracts = hook;
   }
+  // The law (plan 06, Phase 5 piece A): Phase 4's crimes become heat in their regions.
+  const law = attachLaw(ctx, trafficSeed);
+  if (import.meta.env.DEV || params.has('debug')) {
+    // `__glpLaw.commit('crime.smuggler_deal', 'region.apostles', 'keeper', 'ship')` commits
+    // a crime with one witness; `fileAll()` lands every report now.
+    const hook = {
+      commit: (
+        crime: string,
+        region = law.region() ?? 'region.chequamegon',
+        kind: WitnessKind | 'none' = 'keeper',
+        identification: Identification = 'ship',
+      ) =>
+        law.commit({
+          crime,
+          region,
+          witnesses: kind === 'none' ? [] : [devWitness(kind, identification)],
+        }),
+      fileAll: () => law.fileAll(),
+      intercept: (reportId: string) => law.intercept(reportId),
+      setTier: (region: string, tier: number) => law.setTier(region, tier),
+      setHeat: (region: string, heat: number) => law.setHeat(region, heat),
+      region: () => law.region(),
+      state: () => ({
+        wanted: state.wanted,
+        fame: state.fame,
+        profiles: state.profiles,
+        reports: state.reports,
+        jail: state.jail,
+      }),
+    };
+    (window as unknown as { __glpLaw: typeof hook }).__glpLaw = hook;
+  }
   const traffic = attachTraffic(
     ctx,
     createContacts(
@@ -843,6 +877,13 @@ async function boot(): Promise<void> {
         rules: hazardRules,
         events: ctx.events,
       });
+      const { createLawPanel } = await import('./debug/law-panel');
+      const lawPanel = createLawPanel({
+        gui: overlay.gui,
+        law,
+        state: ctx.state,
+        events: ctx.events,
+      });
       view = {
         render(alpha, seaTime, frameSeconds) {
           drawn.render(alpha, seaTime, frameSeconds);
@@ -850,6 +891,7 @@ async function boot(): Promise<void> {
           panel.update();
           audioPanel?.update();
           hazardsPanel.update();
+          lawPanel.update();
         },
       };
     }
