@@ -8,7 +8,7 @@
     "sources": ["shipyard"],
     "installHours": 12,
     "transferable": false,
-    "effects": { "hullHpMul": 1.25, "speedKn": -0.2 }
+    "effects": { "hullHpMul": 1.25, "speedKn": -0.3 }
   },
   {
     "id": "upgrade.improved_pumps",
@@ -63,7 +63,7 @@
     "sources": ["shipyard"],
     "installHours": 16,
     "transferable": false,
-    "effects": { "cargoMul": 1.25, "draftFullM": 0.2, "speedKn": -0.2 }
+    "effects": { "cargoMul": 1.25, "draftFullM": 0.2, "speedKn": -0.3 }
   },
   {
     "id": "upgrade.aneroid_barometer",

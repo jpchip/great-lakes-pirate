@@ -85,7 +85,7 @@ To keep the clock honest: `v₃ᴅ = v_game × R / C`
 |---|---|---|
 | C | 8 | — |
 | R | **24** (1 real minute = 24 game minutes; **one full day ≈ 60 real minutes**) | Day ≈ 35 min and night ≈ 25 min in summer (varies by season) |
-| Schooner cruising (game speed) | 7–8 kn | v₃ᴅ ≈ 11–12 m/s on screen, about 22–24 visual knots. Brisk but readable for arcade. |
+| Schooner cruising (game speed) | 7–8 kn (in a zone 8–10 kn since Phase 5's speed pass, [02 §10.2](02-arcade-sailing.md); the chart still sails 7.5) | v₃ᴅ ≈ 11–12 m/s on screen, about 22–24 visual knots. Brisk but readable for arcade. |
 | Crossing the Apostles (22 nm) | ~2.9 game hours | ~7 real minutes |
 | Bayfield → Ashland (13 nm) | ~1.7 game hours | ~4 real minutes |
 | Bayfield → La Pointe (2 nm) | ~15 game minutes | ~40 real seconds |

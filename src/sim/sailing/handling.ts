@@ -63,7 +63,10 @@ export function defaultHandling(): HandlingRecord {
       [4, 0.4],
       [9, 0.8],
       [12, 0.95],
-      [18, 1],
+      // Past 1.0 in a strong breeze (Phase 5 piece G): a schooner carrying Full in
+      // 18–22 kn is flying, and that's where she outruns the cutter's 12 kn (§10.1).
+      [16, 1.05],
+      [20, 1.25],
     ],
     gustGain: 0.4,
     autoTrimFactor: 0.92,

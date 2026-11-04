@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { SHIP_RECORDS } from '../../src/sim/sailing/ships';
+import { SHIP_RECORDS, serviceSpeedKn } from '../../src/sim/sailing/ships';
 import { GameRenderer } from '../../src/render/renderer';
 import {
   createFunnelSmoke,
@@ -86,7 +86,7 @@ const cells: Cell[] = shown.map((record) => {
   scene.add(model.group);
   const smoke = createFunnelSmoke(lighting);
   scene.add(smoke.points);
-  const speed = record.propulsion === 'steam' ? record.engineSpeedKn : record.hullMaxSpeedKn;
+  const speed = serviceSpeedKn(record);
   const label = `${record.name} · ${(record.lengthM * record.displayScale).toFixed(0)} m drawn · ${model.triangles} tris`;
   const sources = model.stacks.map(() => ({ owed: 0 }));
   return { label, model, scene, smoke, sources, speed };

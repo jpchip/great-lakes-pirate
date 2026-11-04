@@ -7,7 +7,7 @@
     "propulsion": "sail",
     "lengthM": 20,
     "displayScale": 1,
-    "hullMaxSpeedKn": 8,
+    "hullMaxSpeedKn": 10.8,
     "accelTau": 4,
     "decelTau": 7,
     "turnRateCurve": [
@@ -61,7 +61,7 @@
     "propulsion": "sail",
     "lengthM": 30,
     "displayScale": 1,
-    "hullMaxSpeedKn": 9,
+    "hullMaxSpeedKn": 12.2,
     "accelTau": 6,
     "decelTau": 10,
     "turnRateCurve": [

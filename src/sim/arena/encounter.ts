@@ -1,5 +1,6 @@
 import { DEFAULT_COMPRESSION, type Chart } from '../../core/coords';
 import { distance } from '../chart/geography';
+import { classServiceSpeedKn } from '../sailing/ships';
 import type { Contact, ContactKind, Encounter } from '../chart/traffic';
 
 /**
@@ -187,14 +188,18 @@ export function isDevEncounter(id: string | null): id is DevEncounterId {
   return id !== null && (DEV_ENCOUNTERS as readonly string[]).includes(id);
 }
 
-const DEV_SHIPS: Readonly<Record<string, { classId: string; name: string; speedKn: number }>> = {
-  freighter: { classId: 'ship.ore_freighter', name: 'Ore boat Manola', speedKn: 10 },
-  barge: { classId: 'ship.schooner_barge', name: 'Schooner-barge Grampian', speedKn: 7 },
-  steamer: { classId: 'ship.package_steamer', name: 'Steamer Hiram R. Dixon', speedKn: 11 },
-  tug: { classId: 'ship.fish_tug', name: 'Fish tug Ella G.', speedKn: 8 },
-  cutter: { classId: 'ship.cutter_morrill', name: 'Revenue cutter Morrill', speedKn: 12 },
-  derelict: { classId: 'ship.schooner_barge', name: 'Wreck of the Pretoria', speedKn: 0 },
+/** The dev ships' classes; their speeds come from ships.json (`speedKn` 0 lies stopped). */
+const DEV_SHIPS: Readonly<Record<string, { classId: string; name: string; stopped?: true }>> = {
+  freighter: { classId: 'ship.ore_freighter', name: 'Ore boat Manola' },
+  barge: { classId: 'ship.schooner_barge', name: 'Schooner-barge Grampian' },
+  steamer: { classId: 'ship.package_steamer', name: 'Steamer Hiram R. Dixon' },
+  tug: { classId: 'ship.fish_tug', name: 'Fish tug Ella G.' },
+  cutter: { classId: 'ship.cutter_morrill', name: 'Revenue cutter Morrill' },
+  derelict: { classId: 'ship.schooner_barge', name: 'Wreck of the Pretoria', stopped: true },
 };
+
+/** A convoy keeps the pace of its consort on the towline. */
+const CONVOY_KN = 8;
 
 /** Open water on the Bayfield–Duluth track, the North Shore in view: the default check point. */
 export const DEV_ARENA_AT_GEO = { lat: 47.05, lon: -91.3 } as const;
@@ -228,20 +233,25 @@ export function devEncounter(
       ...base,
       kind: 'ship',
       ships: [
-        { id: 'dev.convoy.freighter', ...shipOf('freighter'), heading: crossing, speedKn: 8 },
+        {
+          id: 'dev.convoy.freighter',
+          ...shipOf('freighter'),
+          heading: crossing,
+          speedKn: CONVOY_KN,
+        },
         // The consort on her towline, a few hundred meters astern.
         {
           id: 'dev.convoy.barge',
           ...shipOf('barge'),
           heading: crossing,
-          speedKn: 8,
+          speedKn: CONVOY_KN,
           offset: astern(crossing, CONSORT_ASTERN_M),
         },
         {
           id: 'dev.convoy.tug',
           ...shipOf('tug'),
           heading: crossing + Math.PI,
-          speedKn: 8,
+          speedKn: CONVOY_KN,
           offset: { x: 420, z: -520 },
         },
       ],
@@ -266,5 +276,6 @@ export function devEncounter(
 function shipOf(id: string): { classId: string; name: string; speedKn: number } {
   const ship = DEV_SHIPS[id];
   if (!ship) throw new Error(`No dev ship ${id}`);
-  return ship;
+  const speedKn = ship.stopped ? 0 : classServiceSpeedKn(ship.classId);
+  return { classId: ship.classId, name: ship.name, speedKn };
 }
