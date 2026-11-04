@@ -18,6 +18,8 @@ import type { GameRenderer } from './renderer';
 import { createSchooner, styleSchooner, type SchoonerModel } from './ships/schooner';
 import { schoonerLines, type SchoonerLines } from './ships/schooner-lines';
 import type { NpcView } from './ships/npc-view';
+import { schoonerLamps } from './ships/schooner-lamps';
+import { createRunningLights, type RunningLights } from './ships/running-lights';
 import { OutlineSettings } from './style/outline';
 import { StyleLighting } from './style/stylized-material';
 import {
@@ -29,7 +31,7 @@ import {
 import { createSky, setSkyQuality } from './sky';
 import { createAtmosphere, type Atmosphere } from './atmosphere/atmosphere';
 import { createLighthouses, type LighthouseView } from './lighthouses/lighthouses';
-import { lightClearing, lightsIn } from '../sim/lighthouses';
+import { lampLevel, lightClearing, lightsIn } from '../sim/lighthouses';
 import { createHarbors, type HarborView } from './harbors/harbors';
 import { harborClearings, layoutHarbors, type HarborLayout } from '../sim/harbors';
 import { createTerrainMaterial } from './terrain/terrain-material';
@@ -94,6 +96,8 @@ export interface TestScene {
    */
   setArena(arena: SceneArena | undefined): void;
   render(alpha: number, seaTime: number, frameSeconds: number): void;
+  /** The lenses' clock, real seconds: detection reads it so the beam seen is the beam that hits. */
+  readonly beamSeconds: number;
 }
 
 export interface SceneArena {
@@ -313,6 +317,8 @@ export async function createTestScene(
   const drawn = world.with('transform', 'model');
   // Each ship has its own model: the sails and booms pose to its own sailing state.
   const objects = new Map<Entity, SchoonerModel>();
+  // A schooner's own running lights, lit with her lantern (Phase 5 piece B).
+  const lamps = new Map<Entity, RunningLights>();
   const wakes = new Map<Entity, ShipWake>();
   // The waterline each class's wake is measured from, built once per class.
   const waterlines = new Map<SchoonerLines, WaterlineHull>();
@@ -357,6 +363,11 @@ export async function createTestScene(
     if (e.sailing) model.settle(e.sailing.state, 0);
     objects.set(e, model);
     scene.add(model.group);
+    if (e.lantern) {
+      const lights = createRunningLights(schoonerLamps(lines), 1.6);
+      model.group.add(lights.points);
+      lamps.set(e, lights);
+    }
     if (e.sailing) {
       const wake = createShipWake(waterlineOf(lines), water);
       wakes.set(e, wake);
@@ -369,6 +380,8 @@ export async function createTestScene(
     const model = objects.get(e);
     if (model) scene.remove(model.group);
     objects.delete(e);
+    lamps.get(e)?.dispose();
+    lamps.delete(e);
     npcsPending.delete(e);
     npcs?.remove(e);
     const wake = wakes.get(e);
@@ -439,6 +452,9 @@ export async function createTestScene(
     },
     setZone,
     setArena,
+    get beamSeconds() {
+      return now;
+    },
     onZoneChange(listener) {
       zoneListeners.push(listener);
     },
@@ -513,6 +529,11 @@ export async function createTestScene(
       }
       layer?.harbors.update(environment.sunElevationDeg);
       layer?.lighthouses.update(now, camera.position, environment.sunElevationDeg, f?.density ?? 0);
+      // The schooner's lamps: as bright as the lights ashore once it's dark, a glint by day.
+      for (const [e, lights] of lamps) {
+        const lit = e.lantern?.lit ? Math.max(0.15, lampLevel(environment.sunElevationDeg)) : 0;
+        lights.update(lit, f?.density ?? 0);
+      }
       layer?.terrain.update(camera.position.x, camera.position.y, camera.position.z);
       layer?.vegetation.update(camera.position.x, camera.position.y, camera.position.z);
       water.update(camera, seaTime);
