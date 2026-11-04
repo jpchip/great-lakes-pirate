@@ -305,6 +305,7 @@ All resolved.
 | 2026-10-22 | **No disguise items**; recognition depends on Fame, light and distance. |
 | 2026-10-22 | Reaching a hideout **ends pursuit** (pursuers break off; the hideout may be spotted). |
 | 2026-10-22 | In the MVP, captures are held in Bayfield's lockup. |
+| 2026-11-04 | Phase 5's crimes are the smuggling life: smuggler deals, contraband, hot goods offered to merchants and contract theft; piracy joins the same pipeline in Phase 6 (§14.6). |
 
 ---
 
@@ -410,7 +411,7 @@ Nine pieces, each sized to be one thread. Three can start at once (A, B and G). 
 
 ### 14.6 Decisions for Jared
 
-1. **What crimes can you commit in Phase 5?** Plan 06 assumed piracy, theft and lighthouse raids to watch for, and none of them exist until Phases 6–7.
+1. **What crimes can you commit in Phase 5?** **Decided 2026-11-04: the smuggling life.** Plan 06 assumed piracy, theft and lighthouse raids to watch for, and none of them exist until Phases 6–7.
    - **The smuggling life (recommended):** dealing with the smuggler, carrying contraband in view of the cutter, offering hot goods to a merchant and stealing contract cargo are the crimes. Keepers, crews and the cutter witness the first two at sea; merchants and the freight agent the others. Hot goods stay a dev command until Phase 6. Phase 5 is complete on its own and Phase 6's piracy drops into the same pipeline.
    - **Also pull one piracy crime forward:** add a no-guns hold-up (run down a fish tug or a barge, demand her cargo, she gives it up under the threat). More crimes to see now, but it's a slice of Phase 6's surrender rules built early and rebuilt there.
    - **Swap Phases 5 and 6:** piracy first, so the law arrives with real crimes. The cutter's chase and Wanted wait another phase.
