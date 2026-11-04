@@ -72,6 +72,73 @@
   left: 16px;
 }
 
+/* Under the barometer: the lantern and the eye (Phase 5 piece B). */
+.hud-chip.hud-lantern,
+.hud-chip.hud-eye {
+  position: absolute;
+  left: 16px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.hud-lantern {
+  top: 82px;
+}
+
+.hud-chip.hud-eye {
+  top: 114px;
+}
+
+.hud-lamp {
+  width: 11px;
+  height: 15px;
+}
+
+.lamp-body {
+  fill: none;
+  stroke: var(--hud-text);
+  stroke-width: 1;
+}
+
+.lamp-flame {
+  fill: var(--brass-light);
+}
+
+.hud-lantern.lit {
+  border-color: var(--brass-light);
+}
+
+/* Running dark: a dashed border, so it reads without colour. */
+.hud-lantern.dark {
+  border-style: dashed;
+  color: #c9d3d8;
+}
+
+.hud-eye-icon {
+  width: 16px;
+  height: 10px;
+}
+
+.eye-lid {
+  fill: none;
+  stroke: var(--hud-text);
+  stroke-width: 1.2;
+}
+
+.eye-pupil {
+  fill: var(--hud-text);
+}
+
+.hud-eye.spotted {
+  border: 2px solid var(--brass-light);
+}
+
+.hud-eye.identified {
+  border: 2px solid var(--signal-red);
+  color: #ffd9d2;
+}
+
 .hud-moon {
   width: 16px;
   height: 16px;

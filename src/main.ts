@@ -118,6 +118,9 @@ import { allPortraits, backgroundDef, type BackgroundKey } from './sim/character
 import { createNewRun, startingPort } from './sim/character/new-run';
 import { withSailingPerks } from './sim/character/perks';
 import { attachCaptain } from './gameplay/captain';
+import { attachLantern, DARK_WARNING_M } from './gameplay/lantern';
+import { attachDetection, awarenessChip } from './gameplay/detection';
+import type { PlacedLight } from './sim/lighthouses';
 
 /** Periodic autosave while safe (plan 16 §4.1). */
 const AUTOSAVE_INTERVAL_MS = 2 * 60_000;
@@ -523,6 +526,12 @@ async function boot(): Promise<void> {
     model: 'schooner',
     playerControlled: true,
   });
+  // The lantern (Phase 5 piece B): L lights or douses her running lights, burning lamp oil.
+  // `?lantern=on` (or `off`) sets it for checks, with no oil used.
+  const lantern = attachLantern(ctx, playerShip);
+  if (params.get('lantern') === 'on' || params.get('lantern') === 'off') {
+    lantern.set(params.get('lantern') === 'on');
+  }
 
   // Markets drift on the world tick; the hold's load sets the draft (plan 05, piece A).
   const economy = attachEconomy(ctx, hazards);
@@ -1068,6 +1077,65 @@ async function boot(): Promise<void> {
   smugglerRef.current = smuggler;
   const smugglerZone = (z: LoadedZone | undefined) =>
     z ? { id: z.manifest.zone, frame: manifestFrame(z.manifest) } : undefined;
+
+  // Detection at sea (Phase 5 piece B): the keepers, the crews about and the cutter's
+  // lookout watch for the ship, and whoever has her in sight is a witness (piece A asks).
+  let placedLights: { zone: LoadedZone | undefined; lights: PlacedLight[] } = {
+    zone: undefined,
+    lights: [],
+  };
+  const zoneLights = (): readonly PlacedLight[] => {
+    if (placedLights.zone !== zone) {
+      placedLights = {
+        zone,
+        lights: zone
+          ? placeLights(lightsIn(zone.manifest.zone), manifestFrame(zone.manifest), zone.terrain)
+          : [],
+      };
+    }
+    return placedLights.lights;
+  };
+  const detection = attachDetection({
+    ctx,
+    player: playerShip,
+    zoneId: () => (zone ? zone.manifest.zone : undefined),
+    lights: zoneLights,
+    shipName: (id) =>
+      traffic.contacts.find((c) => c.id === id)?.name ??
+      arena?.encounter.ships.find((s) => s.id === id)?.name,
+    ignore: (id) => smuggler.isSmuggler(id),
+    beamClock: () => scene?.beamSeconds ?? 0,
+  });
+  // For the console and the e2e tests: who's watching, the witnesses, and the lantern.
+  if (import.meta.env.DEV || params.has('debug')) {
+    const hook = {
+      witnesses: () => detection.witnesses(),
+      watchers: () =>
+        detection.watchers.map((w) => ({
+          id: w.observer.id,
+          kind: w.observer.kind,
+          name: w.observer.name,
+          meter: Math.round(w.meter.value * 100) / 100,
+          awareness: w.awareness,
+          by: w.sight.by,
+          backdrop: w.backdrop,
+          vigilance: Math.round(w.observer.vigilance * 100) / 100,
+          distanceM: Math.round(w.distanceM),
+          hullM: Math.round(w.sight.hullM),
+          lanternM: Math.round(w.sight.lanternM),
+        })),
+      conditions: () => detection.conditions,
+      lantern: () => ({ ...lantern.state, nights: lantern.nights() }),
+      toggleLantern: () => lantern.toggle(),
+      setLantern: (lit: boolean) => lantern.set(lit),
+    };
+    (window as unknown as { __glpDetection: typeof hook }).__glpDetection = hook;
+  }
+  ctx.events.on('ZoneEntered', () => detection.reset());
+  ctx.events.on('ArenaEntered', () => detection.reset());
+  ctx.events.on('LanternChanged', (e) => {
+    if (e.reason === 'outOfOil') showNotice('The lamps burned dry: out of lamp oil');
+  });
   smuggler.setZone(smugglerZone(zone));
   if (import.meta.env.DEV || params.has('debug')) {
     // `__glpContraband.makeHot('good.rope_canvas', 5)` marks cargo hot until Phase 6's theft
@@ -1236,6 +1304,13 @@ async function boot(): Promise<void> {
     return Math.hypot(e.position.x - p.x, e.position.z - p.z) > HAIL_RANGE_M * 1.5;
   };
   /** HUD chips for a ship close by: F to look her over (with no berth to dock at), H to hail. */
+  /** Running dark with a ship close aboard: she can't see you to keep clear (§14.5). */
+  const darkChips = (): string[] => {
+    if (machine.mode !== 'sailing' || !lantern.runningDark()) return [];
+    const near = traffic.nearest(shipPose(), DARK_WARNING_M);
+    if (!near || smuggler.isSmuggler(near.id)) return [];
+    return [`Running dark: ${near.contact?.name ?? 'a ship'} can't see you`];
+  };
   const trafficChips = (): string[] => {
     if (machine.mode !== 'sailing' || hazards.state.mooring !== 'free') return [];
     const near = traffic.nearest(shipPose(), HAIL_RANGE_M);
@@ -1842,6 +1917,14 @@ async function boot(): Promise<void> {
         if (traffic.step(hazards.state.berthId)) sailingOptions.berths = freeBerths();
         smuggler.step(shipPose());
       }
+      lantern.step();
+      if (sameContext && input.context === 'sailing' && input.pressed('Lantern')) {
+        showNotice(lantern.toggle());
+        hudClock = HUD_INTERVAL_S;
+      }
+      if (machine.mode === 'sailing' && !machine.gameplayPaused && !changingZone) {
+        detection.step(dt);
+      }
       if (sameContext && input.context === 'sailing' && input.pressed('Hail')) {
         const near = traffic.nearest(shipPose(), HAIL_RANGE_M);
         if (near && smuggler.isSmuggler(near.id)) showNotice('She shows a lantern: come alongside');
@@ -1905,7 +1988,14 @@ async function boot(): Promise<void> {
             extraStatus: [
               ...(arena ? arenaStatus(arena.run, arena.inputs(playerShip)) : []),
               ...trafficChips(),
+              ...darkChips(),
             ],
+            lantern: {
+              lit: lantern.state.lit,
+              nights: Math.floor(lantern.nights()),
+              dark: lantern.runningDark(),
+            },
+            eye: awarenessChip(detection.keenest),
             portName:
               ports.dockedPort && hazards.state.mooring === 'docked' && !ports.openPort
                 ? portInfo(ports.dockedPort)?.name

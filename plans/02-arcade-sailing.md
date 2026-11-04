@@ -33,7 +33,7 @@ Define how the schooner feels and handles: controls, the wind and speed model, w
 | Trim sheets in / out (optional) | **Q / E** | Manual trim (see §3.4); auto-trim by default |
 | Drop / weigh anchor | **X** (hold) | Stops the ship over a few seconds when depth allows |
 | Sweeps out / in | **R** | Row in a calm (§3.6). Added in Phase 1; plan 02 had no key for it |
-| Lantern on / off (dark running) | **L** | Running dark lowers visibility at night (plan 06) |
+| Lantern on / off (dark running) | **L** | Running dark lowers visibility at night (plan 06). Built in Phase 5 piece B: lit, she shows red and green sidelights and a white stern light and burns lamp oil (a can is a week of nights, 70 game hours; a ship comes with her lamps filled); the HUD shows "Lantern lit" or "Running dark" and warns when a ship is close aboard in the dark |
 | Spyglass | **Right mouse (hold)** | Zoomed view; identify ships, flags and lights at range |
 | Camera orbit / zoom | Left or middle drag (free cursor) / wheel | See §8. Drag rather than plain mouse move, so the cursor stays free for the HUD (Phase 1) |
 | Interact (moor, go ashore, board) | **F** | Context-sensitive |

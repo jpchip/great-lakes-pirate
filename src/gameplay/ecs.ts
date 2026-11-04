@@ -48,6 +48,8 @@ export interface Entity {
   /** A traffic ship (plan 03 §6; Phase 3 piece H): its ships.json class, steaming on. */
   npc?: NpcShip;
   playerControlled?: true;
+  /** The ship's running lights (plan 06 §7.1, Phase 5 piece B): lit or dark running. */
+  lantern?: { lit: boolean };
 }
 
 /** An NPC ship: holding a course in a zone; steered by gameplay/arena in an arena. */

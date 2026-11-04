@@ -21,6 +21,7 @@ import type { LocalWeather } from '../sim/weather/local-weather';
 import type { ZoneTerrain } from '../sim/terrain/zone-terrain';
 import type { Sea } from '../sim/weather/waves';
 import type { Rumor, WorldState } from '../sim/world-state';
+import type { Witness } from '../sim/law/witness';
 
 /** Events shared across layers. Each system plan adds its own (plan 01 §3.5). */
 export interface GameEvents {
@@ -125,6 +126,14 @@ export interface GameEvents {
   UpgradeInstalled: UpgradeEvent;
   UpgradeRemoved: UpgradeEvent;
   ShipRepaired: ShipRepairedEvent;
+  /**
+   * Detection at sea (plan 06 §7.1, Phase 5 piece B): a watcher spotted the player's ship,
+   * matched her profile, or lost her again; the lantern lit, doused, or burned out of oil.
+   */
+  PlayerSpotted: { witness: Witness };
+  PlayerIdentified: { witness: Witness };
+  PlayerLostSight: { witnessId: string };
+  LanternChanged: { lit: boolean; reason: 'toggled' | 'outOfOil' };
 }
 
 /** Everything a mode needs; built once at boot and handed to each mode. */
