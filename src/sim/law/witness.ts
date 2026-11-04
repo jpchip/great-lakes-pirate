@@ -1,47 +1,43 @@
 /**
- * The seam between detection (plan 06 §7, Phase 5 piece B) and the law core (piece A):
- * who saw the player, and how well. Detection fills a `WitnessSource` from the keepers,
- * the traffic's crews and the cutter's lookout; the crime pipeline (§2.1) asks it who
- * saw a crime the moment one is committed. Types only, so either side can build on it.
+ * The seam between detection (piece B) and the law (piece A): who saw the player, and
+ * how well (plan 06 §2.3, §7.1). Piece B's observers fill a `WitnessSource`; the law
+ * asks it when a crime is committed at sea. An empty source means nobody saw.
  */
 
-/** Who the witness is (§2.4 sets each kind's report delay). */
+/** Who can witness a crime (plan 06 §2.4, §5.5). */
 export type WitnessKind = 'keeper' | 'crew' | 'cutter' | 'townsfolk' | 'merchant' | 'freightAgent';
 
-/**
- * How well they saw (§2.3): `unknown` saw a light or a shape ("someone"), `schooner` a
- * vague vessel, `ship` matched your ship's profile, `person` knew you by sight.
- * Identification factors: 0.25, 0.5, 1, 1.
- */
+/** Plan 06 §2.3: nobody, "a schooner", your ship's profile, or you. Factors 0.25/0.5/1/1. */
 export type Identification = 'unknown' | 'schooner' | 'ship' | 'person';
 
-/** §2.3's identification factors: what share of a crime's heat a report carries. */
-export const IDENTIFICATION_FACTOR: Readonly<Record<Identification, number>> = {
-  unknown: 0.25,
-  schooner: 0.5,
-  ship: 1,
-  person: 1,
-};
+/** How fast a keeper's report goes (`lighthouses.json` `reporting`). */
+export type Reporting = 'fast' | 'medium' | 'slow';
 
 export interface Witness {
-  /** Stable id: the lighthouse id, the traffic ship's id, `cutter.morrill`. */
+  /** Stable for the observer: a lighthouse id, a traffic ship id, `law.morrill`. */
   id: string;
   kind: WitnessKind;
-  /** For the HUD and the report: "Raspberry Island Light", "the Hesper". */
+  /** For the report eye and the papers: "the Raspberry keeper", "the steamer Hiawatha". */
   name: string;
-  /** The zone they watch from, when they're in one. */
   zoneId?: string;
   identification: Identification;
-  /** A keeper's reporting speed from lighthouses.json (§6.1). */
-  reporting?: 'fast' | 'medium' | 'slow';
-  /** How far off they were, zone meters. */
+  /** A keeper's reporting speed; other kinds leave it out. */
+  reporting?: Reporting;
   distanceM?: number;
 }
 
-/** Who sees the player right now, at spotted or better. Empty means nobody. */
+/** Who sees the player right now, at spotted or better. */
 export interface WitnessSource {
   witnesses(): readonly Witness[];
 }
 
-/** No eyes anywhere: for tests and before detection is attached. */
+/** Nobody's watching: the source until piece B wires its observers in. */
 export const NO_WITNESSES: WitnessSource = { witnesses: () => [] };
+
+/** Identifications from weakest to strongest. */
+export const IDENTIFICATION_ORDER: readonly Identification[] = [
+  'unknown',
+  'schooner',
+  'ship',
+  'person',
+];

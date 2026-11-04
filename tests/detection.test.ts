@@ -36,7 +36,7 @@ import {
   keeperVigilance,
   shipObserver,
 } from '../src/sim/law/observers';
-import { IDENTIFICATION_FACTOR } from '../src/sim/law/witness';
+import { IDENTIFICATION_ORDER } from '../src/sim/law/witness';
 import { eyeLabel } from '../src/ui/hud/model';
 
 const DEG = Math.PI / 180;
@@ -343,10 +343,8 @@ describe('the lantern and its oil (plan 02 §2)', () => {
 });
 
 describe('witnesses for the law core (§2.3)', () => {
-  it('carries the identification factors', () => {
-    expect(IDENTIFICATION_FACTOR.unknown).toBe(0.25);
-    expect(IDENTIFICATION_FACTOR.schooner).toBe(0.5);
-    expect(IDENTIFICATION_FACTOR.ship).toBe(1);
+  it('orders identifications weakest to strongest', () => {
+    expect(IDENTIFICATION_ORDER).toEqual(['unknown', 'schooner', 'ship', 'person']);
   });
 
   it('the HUD names who is watching in words', () => {
