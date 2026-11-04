@@ -1,6 +1,6 @@
 # 02 — Arcade Sailing & Ship Handling
 
-Status: DRAFT v0.6 (decisions made; gap review applied; S2 buoyancy notes; Phase 1 built and playtested; 0.1.0)
+Status: DRAFT v1.0 (decisions made; gap review applied; S2 buoyancy notes; Phase 1 built and playtested; 0.1.0; Phase 5 speed pass)
 Parent: [00-master-plan.md](00-master-plan.md)
 Inputs:
 - [01 tech/architecture](01-tech-architecture.md): minimal physics, 30–60 Hz tick, budgets, shared wave function
@@ -102,10 +102,12 @@ Wind speed comes from the weather system (plan 04) via `windAt(position, time)`.
 |---|---|---|---|
 | 0–3 | Calm | 0.0–0.2 | Becalmed. **Sweeps** (long oars) give ~1.5 kn on T1/T2 (§3.6) |
 | 4–9 | Light | 0.4–0.8 | Full sail is best |
-| 10–18 | Moderate | 0.9–1.0 | Ideal sailing |
-| 19–27 | Strong | 1.0 (capped) | **Overpressed** at Full sail: rigging stress and heel; reefing is wise |
-| 28–40 | Gale | 1.0 at Reefed only | Full or Half sail risks **rigging damage** and a **knockdown** (§6.4). Big waves. |
+| 10–18 | Moderate | 0.9–1.15 (1.0 at 14) | Ideal sailing |
+| 19–27 | Strong | 1.2–1.25 (1.25 from 20) | **Past hull speed** (since Phase 5, §10.2): the fastest she ever goes, and where she outruns the cutter. **Overpressed** at Full sail: rigging stress and heel; reefing is wise |
+| 28–40 | Gale | 1.25, at Reefed only | Full or Half sail risks **rigging damage** and a **knockdown** (§6.4). Big waves. |
 | 40+ | Storm | — | Survival: reef, run before it or shelter in the lee of land |
+
+The built curve (`windStrength` in `src/sim/sailing/handling.ts`): 0 → 0, 3 → 0.2, 4 → 0.4, 9 → 0.8, 12 → 0.95, 16 → 1.05, 20 → 1.25, flat above. The wind it reads includes the gust, so a gusty 16 kn breeze has her surging past hull speed in the puffs.
 
 **Overpressing:** carrying too much sail for the wind builds a "strain" meter. Past a threshold, rigging takes damage (sails tear, which reduces riggingCondition). The HUD warns early (creaking audio, a flashing sail icon).
 
@@ -247,7 +249,7 @@ Lengths and characteristics are loosely based on Great Lakes schooners around 19
 | Masts | 2 | 2–3 | 3 |
 | Length | ~65 ft | ~100 ft | ~140 ft |
 | Crew (invisible) | **0 (solo)** | ~4 | ~8 |
-| Hull max speed (game kn) | 8.0 | 9.0 | 10.0 |
+| Hull max speed (game kn) | 10.8 (8.0 before Phase 5) | 12.2 (9.0) | ~13.5 (draft, +35% like the others) |
 | Acceleration | Quick | Medium | Slow |
 | Turn rate | High | Medium | Low |
 | Draft (empty → full) | 1.5 → 2.0 m | 2.5 → 3.2 m | 3.5 → 4.5 m |
@@ -265,7 +267,34 @@ Lengths and characteristics are loosely based on Great Lakes schooners around 19
 - **Sailing NPCs** (schooners, schooner-barges under tow) use the identical model, driven by AI inputs instead of the keyboard.
 - **Steamers** (freighters, whalebacks, tugs, passenger steamers, the cutter *Morrill*) use an **engine mode**: constant thrust independent of wind, slower turning, and a big draft for freighters. Draft data matches the ship class.
   - Strategic consequence: **the cutter is faster than you in light wind and calms. You win on a broad reach in good wind, in shallows, in fog, or by breaking line of sight around islands.** That gives plan 06's chases their shape.
+  - **Since Phase 5 piece G (§10.2)** that's true in numbers: the T1 on a broad reach at Full makes 12.4 kn in 20 kn of wind on auto-trim and 12.4 kn in 18 kn with the sheets in the sweet spot, against the *Morrill*'s 12. In a working breeze, on a beam reach or running, the cutter is still faster.
 - **Schooner-barges under tow** are linked to their steamer by a tow constraint (a simple distance spring). Cutting the tow line is a tactic (plan 07).
+
+### 10.2 Speed pass (Phase 5 piece G, 2026-11-04)
+Jared's doubts about sailing speed (05 §25.3) and the cutter problem (06 §14.1: the T1 topped out at 8 kn, the *Morrill* steams at 12) were settled by **raising it now and tuning in the playtest** (06 §14.6 decision 2):
+- `hullMaxSpeedKn`: T1 8 → **10.8**, T2 9 → **12.2** (+35%).
+- `windStrength` goes past 1.0 in a strong breeze: 1.05 at 16 kn, **1.25 from 20 kn** (§3.5).
+- The planking and expanded-hold upgrades cost −0.3 kn each, up from −0.2, so they keep about the same share of her speed (10 §4).
+- NPC speeds (dev encounters, route schedules, zone traffic) all read one helper, `serviceSpeedKn` in `src/sim/sailing/ships.ts`, so a retune in `ships.json` lands everywhere. The NPC classes themselves didn't change.
+
+Steady speeds at Full, game knots, auto-trim / manual trim in the sweet spot (no gusts, flat water):
+
+| Wind | T1 beam (90°) | T1 broad (130°) | T2 beam | T2 broad | Before: T1 broad |
+|---|---|---|---|---|---|
+| 6 kn | 5.8 / 6.3 | 6.1 / 6.6 | 6.5 / 7.1 | 6.9 / 7.4 | 4.5 / 4.9 |
+| 10 kn | 8.1 / 8.8 | 8.5 / 9.3 | 9.2 / 10.0 | 9.6 / 10.5 | 6.3 / 6.9 |
+| 14 kn | 9.4 / 10.3 | 9.9 / 10.8 | 10.7 / 11.6 | 11.2 / 12.2 | 7.2 / 7.9 |
+| 18 kn | 10.8 / 11.7 | 11.4 / 12.4 | 12.2 / 13.3 | 12.8 / 14.0 | 7.4 / 8.0 |
+| 20 kn+ | 11.8 / 12.8 | 12.4 / 13.5 | 13.3 / 14.5 | 14.0 / 15.3 | 7.4 / 8.0 |
+
+Unit tested (`tests/sailing.test.ts`): the T1 beats the cutter on a broad reach in 20 kn on auto-trim and in 18 kn trimmed by hand, the T2 in 18 kn on auto-trim; the cutter stays faster in 14 kn, on a beam reach in 18 and running in 22.
+
+**What depends on speed, re-checked:**
+- **Chart voyage times: unchanged.** The chart sails its own abstract schooner (`cruiseKn` 7.5 with tacking folded in, 03 §5.3), not `hullMaxSpeedKn`, and the clock, contract deadlines and the economy bench are tuned to it. Raising it too would shorten every passage about 26%; left for the playtest to call.
+- **Encounter budget: unchanged.** It counts encounters per nautical mile of course (03 §6.4), not per hour.
+- **Zones:** crossing a zone at a working 10 kn takes about a quarter less real time (the Apostles' 7 km in about 8 minutes instead of 11). Streaming has no speed term.
+- **Arena (for piece C):** the arena is 3 km across and holds you at its edge while pursued. Opening the cutter from 520 m to the 900 m pursuit range at 12.4 vs 12 kn takes about 10 minutes, at 13.5 kn about 3, but the edge is 1–2 minutes away at those speeds. So the speed is now there, but the arena can't yet let you win a chase on it: piece C needs to let the range open past the edge (or recenter or grow the arena while pursued).
+- **Docking:** the < 2 kn rule is unchanged. Running down from cruising speed with the sails coming in takes about 50% more water (about 85 m instead of 56 at 14 kn of wind), so harbor approaches want sail off sooner. Worth a feel check.
 
 ---
 
@@ -336,7 +365,7 @@ Weapons, crew size for boarding and upgrade slots belong to plans 07 and 10 but 
 - **Head seas:** the summed amplitude of the gameplay waves running against the bow, times the local wave scale, gives up to a 20% loss at 1.5 m.
 - **Leeway** up to 4° close-hauled at Full sail, none from a beam reach onward. **Heel** up to 14° at Full on a beam reach in 20 kn or more, scaled by the square of the wind below that; none while luffing.
 - **Tack and jibe events** go out on the event bus (`ShipTacked`, `ShipJibed` with `uncontrolled` for strong wind at Half or Full) for hazards and audio to use. The controller deals no damage itself (piece E).
-- **Starting T1 values** (`data/ships.json`): hull 8 kn, accelTau 4 s, decelTau 7 s, turn rate 1.5°/s stopped, 8 at 2 kn, 12.5 at 4 kn, 13.5 at 6 kn, 12 at 8 kn, sweeps 1.5 kn and 3°/s, 20 m long. The buoyancy spans are the S2 values scaled to 20 m (17 × 5 m, periods 2.6 / 3.1 / 3.8 s). With these, in 14 kn a tack from 50–55° takes 8.4–9 s and loses 34–37% of the speed, inside §4's 6–10 s and 30–40% (unit tested). Steady speeds in 14 kn at Full with auto-trim: 4.3 kn at 45°, 6.9 at 90°, 7.2 at 120–135°, 5.4 dead downwind.
+- **Starting T1 values** (`data/ships.json`; Phase 5 piece G raised the hull to 10.8 kn and the wind curve past 1.0, §10.2): hull 8 kn, accelTau 4 s, decelTau 7 s, turn rate 1.5°/s stopped, 8 at 2 kn, 12.5 at 4 kn, 13.5 at 6 kn, 12 at 8 kn, sweeps 1.5 kn and 3°/s, 20 m long. The buoyancy spans are the S2 values scaled to 20 m (17 × 5 m, periods 2.6 / 3.1 / 3.8 s). With these, in 14 kn a tack from 50–55° takes 8.4–9 s and loses 34–37% of the speed, inside §4's 6–10 s and 30–40% (unit tested). Steady speeds in 14 kn at Full with auto-trim: 4.3 kn at 45°, 6.9 at 90°, 7.2 at 120–135°, 5.4 dead downwind.
 - **Tuning panel:** the dev overlay's Sailing folder (dev builds or `?debug`) shows the §3.1 factors live, sets the dev wind, edits every ship and handling number, and saves or loads presets as JSON (`sailing-tuning` v1, the same record shape as ships.json).
 
 **Hazards and mooring (built 2026-10-25, Phase 1 piece E).** `src/sim/sailing/hazards.ts` is pure sim like the controller: `stepHazards` runs right after `stepSailing` on the same ship and corrects where it ended up; `gameplay/hazards.ts` runs it per ship before buoyancy, and the mode puts its events on the bus (`ShipGrounded`, `ShipStruck`, `ShipKnockedDown`, `AnchorDragging`, `ShipDocked` and the rest) for the HUD and audio. The shared rules live in `src/sim/sailing/hazard-rules.ts`; the per-class numbers are the existing ships.json fields (draft, hull and rigging HP, anchor rode, length). Notes on how it reads §6–7:
@@ -411,10 +440,12 @@ All resolved. Follow-ups for other plans: passage prices and shipless earning (0
 | 2026-10-22 | S3 bakes the channel funneling maps. |
 | 2026-10-22 | T3 can hire a harbor tug tow in calms (05 §7). |
 | 2026-10-22 | Speeds are authored in knots and converted to m/s for the sim (01 §8). |
+| 2026-11-04 | Speed pass: both schooners +35% on hull speed and a strong breeze past 1.0, so the T1 outruns the cutter on a broad reach in good wind; tuned in the Phase 5 playtest (§10.2, 06 §14.6). |
 
 ---
 
 ## Changelog
+- v1.0: Phase 5 speed pass (§10.2): T1 10.8 kn and T2 12.2 kn hull speed, wind strength up to 1.25 from 20 kn, measured speeds against the cutter, and what depends on speed.
 - v0.9: Helm swap done: the S7 greybox and S8 arena use the plan 02 controller (§14).
 - v0.8: Phase 1 playtest passed (§14): results, bench numbers, helm swap moved to Phase 2.
 - v0.7: Phase 1 camera built (§14): drag to orbit (§2), boom, collision, tactical and spyglass numbers.

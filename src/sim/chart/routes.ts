@@ -9,7 +9,7 @@ import {
 import type { ShipRecord } from '../../../data/schemas/ships';
 import { KNOT_MS, type Chart, type ChartProjection } from '../../core/coords';
 import { calendarDate } from '../../core/time';
-import { SHIP_RECORDS } from '../sailing/ships';
+import { SHIP_RECORDS, serviceSpeedKn } from '../sailing/ships';
 import { bearing, distance, lerpChart } from './geography';
 import type { Contact, ContactKind } from './traffic';
 
@@ -77,10 +77,6 @@ function shipRecord(id: string): ShipRecord {
   const record = SHIP_RECORDS.find((r) => r.id === id);
   if (!record) throw new Error(`No ship class ${id} in ships.json`);
   return record;
-}
-
-function classSpeedKn(record: ShipRecord): number {
-  return record.propulsion === 'steam' ? record.engineSpeedKn : record.hullMaxSpeedKn;
 }
 
 /** cyrb53-style string hash to [0, 1): a stable per-ship, per-cycle draw. */
@@ -248,7 +244,7 @@ export function createTraffic(
         for (let j = 1; j < points.length; j++) {
           cumM.push((cumM[j - 1] as number) + distance(points[j - 1] as Chart, points[j] as Chart));
         }
-        const speedKn = entry.speedKn ?? classSpeedKn(record);
+        const speedKn = entry.speedKn ?? serviceSpeedKn(record);
         // Each ship's lie-overs vary a little, so the fleet doesn't sail in step.
         const jitter = 0.75 + 0.5 * hash01(`${key}:dwell`);
         const [dwellFrom, dwellTo] = lane.dwellH;

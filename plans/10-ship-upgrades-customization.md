@@ -105,7 +105,7 @@ Numbers are draft tuning values. ★ = visible on the model.
 ### 5.1 Hull
 | Upgrade | Effect | Source |
 |---|---|---|
-| Reinforced planking | +25% hull HP, −0.2 kn | Shipyard; drydock (lumber, iron) |
+| Reinforced planking | +25% hull HP, −0.3 kn | Shipyard; drydock (lumber, iron) |
 | **Ice-strengthened bow** ★ | −70% ice damage, lower ice drag; enables safer winter sailing | Shipyard; smithy plus drydock (iron) |
 | Lightened build | +0.4 kn, faster acceleration, −15% hull HP | Shipyard only |
 | Shallow keel (centerboard) | −0.4 m draft, slightly worse pointing | Shipyard only |
@@ -122,7 +122,7 @@ Numbers are draft tuning values. ★ = visible on the model.
 ### 5.3 Cargo
 | Upgrade | Effect | Source |
 |---|---|---|
-| Expanded hold | +25% CU, −0.2 kn, +draft | Shipyard |
+| Expanded hold | +25% CU, −0.3 kn, +draft | Shipyard |
 | **Hidden compartments** | 4 / 8 / 12 CU (by tier) **invisible to inspections** (relevant at tier ≥ 1; [06 §5.1](06-fame-wanted-law-lighthouses.md)) | Shady shipwright (**Fame-gated**); drydock (lumber) |
 | Cargo hoist / boom ★ | Faster looting and loading transfers ([07 §7.1](07-combat-boarding-targets.md)) | Shipyard; smithy plus workbench |
 | Ice room | Fresh fish doesn't spoil | Workbench (lumber, salt) |
@@ -318,12 +318,12 @@ So she is about 12% faster on every point of sail, slower to gather way and to c
 
 | Upgrade | Slot | Price | Where | Effect |
 |---|---|---|---|---|
-| Reinforced planking | Hull | $120 | Yard, 12 h | Hull HP ×1.25, −0.2 kn |
+| Reinforced planking | Hull | $120 | Yard, 12 h | Hull HP ×1.25, −0.3 kn |
 | Improved pumps | Utility | $80 | Yard, 4 h | A leak costs half the speed and draft |
 | Quality canvas | Rigging | $90 | Yard, 8 h | Hull speed ×1.05 |
 | Storm sails | Rigging | $70 | Yard, 6 h | Reefed and Half carry 4 kn more wind before strain (40 → 44, 27 → 31) |
 | Improved blocks and rigging | Rigging | $45 | Yard 3 h, chandlery | Sail changes take 40% less time (T1 4 → 2.4 s) |
-| Expanded hold | Cargo | $150 | Yard, 16 h | Hold ×1.25 (T1 25 CU, T2 56), laden draft +0.2 m, −0.2 kn |
+| Expanded hold | Cargo | $150 | Yard, 16 h | Hold ×1.25 (T1 25 CU, T2 56), laden draft +0.2 m, −0.3 kn |
 | Aneroid barometer | Instruments | $40 | Yard, chandlery | The chart forecasts 24 h ahead instead of 12 |
 | Sounding machine | Instruments | $55 | Yard, chandlery | The depth warning at 3 drafts instead of 2 |
 | Marine telescope | Instruments | $35 | Yard, chandlery | Spyglass field of view halved (twice the magnification), look her over from 240 m instead of 160 |

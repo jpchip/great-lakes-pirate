@@ -1,7 +1,7 @@
 import type { ShipRecord } from '../../data/schemas/ships';
 import { DEFAULT_COMPRESSION, knotsToMs, sceneSpeed } from '../core/coords';
 import { R_SAILING } from '../core/time';
-import { SHIP_RECORDS } from '../sim/sailing/ships';
+import { SHIP_RECORDS, serviceSpeedKn } from '../sim/sailing/ships';
 import { createBuoyancy } from './buoyancy';
 import { cloneTransform, type Entity } from './ecs';
 
@@ -14,10 +14,7 @@ import { cloneTransform, type Entity } from './ecs';
 /** Every traffic class, in ships.json order. */
 export const NPC_RECORDS: readonly ShipRecord[] = SHIP_RECORDS.filter((r) => r.role === 'npc');
 
-/** A class's service speed, game knots: the engine speed, or a schooner-barge under tow. */
-export function serviceSpeedKn(record: ShipRecord): number {
-  return record.propulsion === 'steam' ? record.engineSpeedKn : record.hullMaxSpeedKn;
-}
+export { serviceSpeedKn };
 
 export function createNpcShipEntity(
   record: ShipRecord,

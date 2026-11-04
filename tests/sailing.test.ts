@@ -3,6 +3,7 @@ import { knotsToMs } from '../src/core/coords';
 import {
   createSailingState,
   headSeaAmplitude,
+  idealTrimAt,
   IDLE_COMMAND,
   speedKn,
   stepSailing,
@@ -15,7 +16,12 @@ import { createCurve, sampleCurve } from '../src/sim/sailing/curve';
 import { defaultHandling } from '../src/sim/sailing/handling';
 import { parsePreset, serializePreset } from '../src/sim/sailing/preset';
 import { compileSailingClass } from '../src/sim/sailing/ship-class';
-import { sailShipRecord, T1_SCHOONER_ID, T2_SCHOONER_ID } from '../src/sim/sailing/ships';
+import {
+  classServiceSpeedKn,
+  sailShipRecord,
+  T1_SCHOONER_ID,
+  T2_SCHOONER_ID,
+} from '../src/sim/sailing/ships';
 import { createSea } from '../src/sim/weather/waves';
 
 const DEG = Math.PI / 180;
@@ -84,7 +90,7 @@ describe('curves', () => {
 describe('ship data', () => {
   it('compiles the T1 record to SI with its no-go zone', () => {
     const c = t1();
-    expect(c.hullMaxSpeed).toBeCloseTo(knotsToMs(8), 9);
+    expect(c.hullMaxSpeed).toBeCloseTo(knotsToMs(10.8), 9);
     expect(c.noGo).toBeCloseTo(40 * DEG, 9);
     expect(c.sweeps).toBe(true);
   });
@@ -108,9 +114,10 @@ describe('speed model (plan 02 §3)', () => {
     expect(broad).toBeGreaterThan(beam);
     expect(beam).toBeGreaterThan(run180);
     expect(run180).toBeGreaterThan(close);
-    // Hull speed × polar × wind × auto-trim, so never above the hull's 8 kn.
-    expect(broad).toBeLessThan(8);
-    expect(broad).toBeGreaterThan(6.5);
+    // Hull speed × polar × wind × auto-trim: in 14 kn the wind factor is 1, so just
+    // under the hull's 10.8 kn.
+    expect(broad).toBeLessThan(10.8);
+    expect(broad).toBeGreaterThan(9.5);
   });
 
   it('is the same on either tack', () => {
@@ -341,12 +348,12 @@ describe('T2 schooner tuning (plan 02 §10, plan 10 §2; Phase 4 piece G)', () =
   const steadyOn = (c: ReturnType<typeof compileSailingClass>, headingDeg: number): number =>
     speedKn(run(ship(headingDeg), 60, north(14), {}, c));
 
-  it('is faster than the T1 on every point of sail, under its 9 kn hull speed', () => {
+  it('is faster than the T1 on every point of sail, under its 12.2 kn hull speed', () => {
     for (const a of [45, 90, 130, 180]) {
       expect(steadyOn(t2(), a)).toBeGreaterThan(steadyOn(t1(), a) * 1.08);
-      expect(steadyOn(t2(), a)).toBeLessThan(9);
+      expect(steadyOn(t2(), a)).toBeLessThan(12.2);
     }
-    expect(steadyOn(t2(), 130)).toBeGreaterThan(7.5);
+    expect(steadyOn(t2(), 130)).toBeGreaterThan(10.5);
   });
 
   it('gathers way more slowly than the T1', () => {
@@ -387,5 +394,39 @@ describe('T2 schooner tuning (plan 02 §10, plan 10 §2; Phase 4 piece G)', () =
     expect(t2().sailChangeTimeS).toBeLessThan(t1().sailChangeTimeS);
     expect(sailShipRecord(T2_SCHOONER_ID).draftEmptyM).toBe(2.5);
     expect(sailShipRecord(T2_SCHOONER_ID).draftFullM).toBe(3.2);
+  });
+});
+
+describe('speed against the cutter (plan 02 §10.1; Phase 5 piece G)', () => {
+  const t2 = (): ReturnType<typeof compileSailingClass> =>
+    compileSailingClass(sailShipRecord(T2_SCHOONER_ID), defaultHandling());
+  const cutterKn = classServiceSpeedKn('ship.cutter_morrill');
+  const broadReach = (windKn: number, c = t1(), manual = false): number => {
+    const s = ship(130);
+    if (manual) {
+      s.manualTrim = true;
+      s.trim = idealTrimAt(c, 130 * DEG);
+    }
+    return speedKn(run(s, 60, north(windKn), {}, c));
+  };
+
+  it('lets a strong breeze push past the hull speed', () => {
+    const rules = defaultHandling();
+    const factor = createCurve(rules.windStrength);
+    expect(sampleCurve(factor, 14)).toBeCloseTo(1, 6);
+    expect(sampleCurve(factor, 20)).toBeGreaterThan(1.2);
+    expect(broadReach(20)).toBeGreaterThan(10.8);
+  });
+
+  it('outruns the cutter on a broad reach in good wind, even on auto-trim', () => {
+    expect(broadReach(20)).toBeGreaterThan(cutterKn);
+    expect(broadReach(18, t1(), true)).toBeGreaterThan(cutterKn);
+    expect(broadReach(18, t2())).toBeGreaterThan(cutterKn);
+  });
+
+  it('leaves the cutter faster in a working breeze and off the wind', () => {
+    expect(broadReach(14, t1(), true)).toBeLessThan(cutterKn);
+    expect(steady(90, 18)).toBeLessThan(cutterKn);
+    expect(steady(180, 22)).toBeLessThan(cutterKn);
   });
 });
