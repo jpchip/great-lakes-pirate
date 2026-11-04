@@ -5,6 +5,7 @@ import type { TradeSide } from '../sim/economy/market';
 import type { TradeRefusal } from '../sim/economy/trade';
 import { pierPort } from '../sim/harbors';
 import { stashedCash } from '../sim/hideouts/stash';
+import type { LieUntil } from '../sim/hideouts/lie-at-anchor';
 import type { StoreRefusal } from '../sim/economy/chandlery';
 import type { OfferRefusal, OfferResult } from '../sim/economy/contraband';
 import { formatCents } from '../sim/economy/knowledge';
@@ -67,6 +68,18 @@ export interface PortControlOptions {
   onOpen(open: boolean): void;
   /** "Cast off" on the port screen: press F at the helm for the next tick. */
   castOff(): void;
+  /**
+   * Waiting alongside (the lie-at-anchor clock, `gameplay/stash`): why it's refused now,
+   * running it (the refusal, or undefined), and the line the last wait came to. Without
+   * it the screen offers no wait.
+   */
+  wait?:
+    | {
+        refusal(): string | undefined;
+        lie(until: LieUntil): string | undefined;
+        lastText(): string | undefined;
+      }
+    | undefined;
 }
 
 const TRADE_REFUSALS: Record<TradeRefusal, string> = {
@@ -174,6 +187,10 @@ export function attachPorts(opts: PortControlOptions): PortControl {
       },
     });
     snap.stashedCents = stashedCash(ctx.state.hideouts);
+    if (opts.wait) {
+      snap.canWait = true;
+      snap.waitRefusal = opts.wait.refusal();
+    }
     return snap;
   };
   /** Writes down this port's prices as they stand now (plan 05 §4.3). */
@@ -377,6 +394,18 @@ export function attachPorts(opts: PortControlOptions): PortControl {
       castOff() {
         close();
         opts.castOff();
+      },
+      wait(until) {
+        const port = openPort;
+        if (!port || !opts.wait) return "You can't wait here.";
+        const refused = opts.wait.lie(until);
+        if (refused) return refused;
+        // The clock ran on behind the screen: the market has moved and the board changed.
+        // Arrival notices belong to the arrival, so they go.
+        notices = [];
+        if (economy.defs.markets.has(port)) note(port);
+        refresh();
+        return opts.wait.lastText();
       },
     },
     dispose() {

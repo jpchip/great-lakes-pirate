@@ -24,6 +24,7 @@ import {
 import {
   lieAtAnchor,
   lieRefusal,
+  lieText,
   secondsUntil,
   SIGHT_M,
   windShifted,
@@ -158,6 +159,30 @@ describe('lying at anchor (piece E)', () => {
     expect(lieRefusal({ ...calm, shelter01: 0.1, windKn: 4 })).toBeUndefined();
     expect(lieRefusal({ ...calm, shelter01: 0, moored: 'docked' })).toBeUndefined();
     expect(lieRefusal({ ...calm, nearestUnderWayM: SIGHT_M - 1 })).toBe('shipInSight');
+    // Harbor traffic coming and going past the pier doesn't stop a wait alongside.
+    expect(lieRefusal({ ...calm, moored: 'docked', nearestUnderWayM: 10 })).toBeUndefined();
+  });
+
+  it('waits an hour or a four-hour watch, and says alongside when docked', () => {
+    for (const [until, hours] of [
+      ['hour', 1],
+      ['watch', 4],
+    ] as const) {
+      let ticks = 0;
+      const passed = lieAtAnchor(
+        until,
+        5000,
+        () => ticks++,
+        () => ({ fromRad: 0, speedKn: 10 }),
+      );
+      expect(passed).toBe(hours * 3600);
+      expect(ticks * WORLD_TICK_GAME_SECONDS).toBe(passed);
+    }
+    expect(lieText('hour', 3600, 'docked')).toBe('You lay alongside an hour.');
+    expect(lieText('watch', 4 * 3600)).toBe('You lay at anchor a watch (4 h).');
+    expect(lieText('dawn', 5 * 3600 + 20 * 60, 'docked')).toBe(
+      'You lay alongside until dawn (5 h 20 m).',
+    );
   });
 
   it('runs on to sunrise or sunset', () => {
@@ -296,6 +321,17 @@ describe('the stash in play (piece E)', () => {
     expect(ticks).toBe(passed / WORLD_TICK_GAME_SECONDS);
     expect(stash.lieOpen).toBe(false);
     expect(notices.at(-1)).toMatch(/^You lay at anchor until dusk/);
+    expect(stash.lastLieText).toBe(notices.at(-1));
+  });
+
+  it('waits alongside a pier for a watch', () => {
+    const { ctx, hazards, stash, notices } = setup();
+    hazards.state.mooring = 'docked';
+    expect(stash.moored).toBe('docked');
+    const t0 = ctx.state.environment.clock.gameSeconds;
+    expect(stash.actions.lie('watch')).toBeUndefined();
+    expect(ctx.state.environment.clock.gameSeconds - t0).toBe(4 * 3600);
+    expect(notices.at(-1)).toBe('You lay alongside a watch (4 h).');
   });
 
   it('refuses an exposed anchorage in a blow', () => {

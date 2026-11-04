@@ -808,6 +808,14 @@ body[data-mode='chart'] .chart-layer {
   bottom: 214px;
 }
 
+.hud-wait {
+  bottom: 214px;
+}
+
+.hud-port ~ .hud-wait {
+  bottom: 258px;
+}
+
 .menu.port {
   width: min(1060px, calc(100vw - 32px));
 }
@@ -1806,4 +1814,15 @@ body[data-mode='chart'] .chart-layer {
 
 .menu.lie {
   width: min(640px, calc(100vw - 32px));
+}
+
+.stash-lie-label {
+  font-weight: 600;
+  margin-right: 2px;
+}
+
+.menu.lie .menu-header {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 4px;
 }

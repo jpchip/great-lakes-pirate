@@ -295,6 +295,48 @@ describe('docking at a port (piece B)', () => {
     expect(ctx.state.player.stores['store.lamp_oil']).toBe(2);
   });
 
+  it('waits alongside from the screen, re-noting the moved prices', () => {
+    const state = createWorldState('port-wait');
+    const ctx = { state, events: new EventBus<GameEvents>() } as unknown as GameContext;
+    const { hazards } = createSchooner(0, 0, 0);
+    const economy = attachEconomy(ctx, hazards);
+    const shown: (PortSnapshot | undefined)[] = [];
+    let refusal: string | undefined = "You're aground: get her off first.";
+    const lies: string[] = [];
+    const ports = attachPorts({
+      ctx,
+      economy,
+      hazards,
+      berthPier: (id) => id,
+      showPort: (s) => shown.push(s),
+      showJournal: () => undefined,
+      onOpen: () => undefined,
+      castOff: () => undefined,
+      wait: {
+        refusal: () => refusal,
+        lie: (until) => {
+          if (refusal) return refusal;
+          lies.push(until);
+          state.environment.clock.gameSeconds += 3600;
+          return undefined;
+        },
+        lastText: () => 'You lay alongside an hour.',
+      },
+    });
+    ports.open('port.bayfield');
+    expect(shown.at(-1)).toMatchObject({ canWait: true, waitRefusal: refusal });
+    expect(ports.actions.wait?.('hour')).toBe(refusal);
+    refusal = undefined;
+    const seen = must(ctx.state.knowledge.prices['port.bayfield']?.['good.rope_canvas']).seenAt;
+    expect(ports.actions.wait?.('hour')).toBe('You lay alongside an hour.');
+    expect(lies).toEqual(['hour']);
+    expect(shown.at(-1)?.waitRefusal).toBeUndefined();
+    const after = must(ctx.state.knowledge.prices['port.bayfield']?.['good.rope_canvas']).seenAt;
+    expect(after).toBe(seen + 3600);
+    ports.close();
+    expect(ports.actions.wait?.('hour')).toBe("You can't wait here.");
+  });
+
   it('casts off from the screen by pressing F for the next tick', () => {
     const { ports, opens, castOffs } = setup();
     ports.open('port.bayfield');

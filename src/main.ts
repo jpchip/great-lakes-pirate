@@ -32,6 +32,7 @@ import { attachContracts, contractsOf } from './gameplay/contracts';
 import { attachSmuggler, type SmugglerControl } from './gameplay/smuggler';
 import { attachStash, type StashControl } from './gameplay/stash';
 import { siteDef } from './sim/hideouts/stash';
+import { LIE_REFUSALS, type LieUntil } from './sim/hideouts/lie-at-anchor';
 import { attachShipyard } from './gameplay/shipyard';
 import { BASE_INSTRUMENTS, type Instruments } from './sim/shipyard/fit';
 import { defaultShipState } from './sim/shipyard/shipyard';
@@ -912,6 +913,7 @@ async function boot(): Promise<void> {
       repair: (place) => portsRef.current?.actions.repair(place),
       close: () => portsRef.current?.close(),
       castOff: () => portsRef.current?.actions.castOff(),
+      wait: (until) => portsRef.current?.actions.wait?.(until),
       closeJournal: () => portsRef.current?.closeJournal(),
       openDocked: () => {
         if (machine.mode !== 'sailing' || machine.overlayOpen) return;
@@ -946,6 +948,11 @@ async function boot(): Promise<void> {
     setFirstWeekHidden: (hidden) => captainRef.current?.setHidden(hidden),
     onTakeToChart: () => {
       if (machine.mode === 'sailing' && !machine.overlayOpen) travelRef.current?.takeToChart();
+    },
+    onWait: () => {
+      if (machine.mode !== 'sailing' || machine.overlayOpen) return;
+      const refused = stashRef.current?.openLie();
+      if (refused) showNotice(refused);
     },
     audio: audio && {
       settings: audio.mixer.settings,
@@ -1016,6 +1023,16 @@ async function boot(): Promise<void> {
       hudClock = HUD_INTERVAL_S;
     },
     castOff: () => input.trigger('Interact'),
+    // Waiting alongside runs the stash's lie-at-anchor clock (attached below).
+    wait: {
+      refusal: () => {
+        const r = stashRef.current?.lieRefusal();
+        return r && LIE_REFUSALS[r];
+      },
+      lie: (until) =>
+        stashRef.current ? stashRef.current.actions.lie(until) : "You can't wait here.",
+      lastText: () => stashRef.current?.lastLieText,
+    },
   });
   portsRef.current = ports;
   // P or the setting flips sailing on behind an open journal at once.
@@ -1105,7 +1122,7 @@ async function boot(): Promise<void> {
       return best;
     },
     showStash: (snapshot) => ui.setStash(snapshot),
-    showLie: (r) => ui.setLie(r === undefined),
+    showLie: (r) => ui.setLie(r === undefined, stash.moored === 'docked'),
     onOpen(open) {
       if (open) {
         machine.pushOverlay('trade');
@@ -1138,7 +1155,7 @@ async function boot(): Promise<void> {
       take: (index: number, qty: number) => stash.actions.take(index, qty),
       stashCash: (cents: number) => stash.actions.stashCash(cents),
       takeCash: (cents: number) => stash.actions.takeCash(cents),
-      lie: (until: 'dawn' | 'dusk' | 'wind') => stash.actions.lie(until),
+      lie: (until: LieUntil) => stash.actions.lie(until),
       refusal: () => stash.lieRefusal(),
     };
     (window as unknown as { __glpStash: typeof hook }).__glpStash = hook;

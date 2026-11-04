@@ -202,6 +202,7 @@ export function Hud({
   spyglass,
   onTakeToChart,
   onOpenPort,
+  onWait,
 }: {
   hud: ReadonlySignal<HudSnapshot | undefined>;
   density: ReadonlySignal<HudDensity>;
@@ -210,6 +211,8 @@ export function Hud({
   onTakeToChart?: (() => void) | undefined;
   /** Back to the port screen while docked at a port (Phase 4 piece B). */
   onOpenPort?: (() => void) | undefined;
+  /** Lie at anchor or alongside (Z), while the ship is moored. */
+  onWait?: (() => void) | undefined;
 }) {
   const h = hud.value;
   const mode = density.value;
@@ -236,6 +239,16 @@ export function Hud({
           onClick={() => onOpenPort?.()}
         >
           {h.portName} <span class="hud-key">P</span>
+        </button>
+      )}
+      {h?.canWait && (
+        <button
+          type="button"
+          class="hud-take-chart hud-wait"
+          data-testid="hud-wait"
+          onClick={() => onWait?.()}
+        >
+          Wait <span class="hud-key">Z</span>
         </button>
       )}
       {h && mode !== 'off' && (

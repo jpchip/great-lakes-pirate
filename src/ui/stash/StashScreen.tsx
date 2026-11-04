@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'preact/hooks';
 import { formatCents } from '../../sim/economy/knowledge';
-import type { LieUntil } from '../../sim/hideouts/lie-at-anchor';
+import { LIE_CHOICES, type LieUntil } from '../../sim/hideouts/lie-at-anchor';
 import type { StashActions } from '../../gameplay/stash';
 import type { StashRow, StashSnapshot } from './model';
 
@@ -9,7 +9,8 @@ import type { StashRow, StashSnapshot } from './model';
  * alongside the Stockton landing, or with P anchored off it, and pauses the game. The hold
  * and the storage shed side by side; the purse and the strongbox below. Plan 13 §6:
  * shift-click moves a whole lot, ctrl-click one CU, a plain click picks it for the slider.
- * The footer lets the captain lie at anchor until dawn, dusk or a shift of wind.
+ * The footer lets the captain lie at anchor an hour, a watch, or until dawn, dusk or a shift
+ * of wind.
  */
 
 type Side = 'in' | 'out';
@@ -205,19 +206,18 @@ export function LieButtons({
   refusal,
   lie,
   setMessage,
+  label,
 }: {
   refusal: string | undefined;
   lie(until: LieUntil): string | undefined;
   setMessage(m: string | undefined): void;
+  /** A word before the buttons, e.g. "Wait". */
+  label?: string | undefined;
 }) {
-  const choices: [LieUntil, string][] = [
-    ['dawn', 'Until dawn'],
-    ['dusk', 'Until dusk'],
-    ['wind', 'Until the wind shifts'],
-  ];
   return (
-    <span class="stash-lie" title={refusal}>
-      {choices.map(([id, label]) => (
+    <span class="stash-lie" title={refusal} data-testid="lie-buttons">
+      {label && <span class="stash-lie-label">{label}</span>}
+      {LIE_CHOICES.map(([id, label]) => (
         <button
           type="button"
           key={id}
@@ -316,14 +316,25 @@ export function StashScreen({ stash, actions }: { stash: StashSnapshot; actions:
   );
 }
 
-/** Lying at anchor away from a stash (Z): the three choices. */
-export function LieDialog({ actions }: { actions: StashActions }) {
+/** Lying at anchor or alongside away from a stash (Z): the choices. */
+export function LieDialog({
+  actions,
+  docked = false,
+}: {
+  actions: StashActions;
+  /** Alongside a pier rather than at anchor: the title says so. */
+  docked?: boolean | undefined;
+}) {
   const [message, setMessage] = useState<string | undefined>(undefined);
+  const title = docked ? 'Lie alongside' : 'Lie at anchor';
   return (
     <div class="menu-backdrop" data-testid="lie-dialog">
-      <div class="menu lie" role="dialog" aria-modal="true" aria-label="Lie at anchor">
+      <div class="menu lie" role="dialog" aria-modal="true" aria-label={title}>
         <header class="menu-header">
-          <h2>Lie at anchor</h2>
+          <h2>{title}</h2>
+          <p class="port-dim">
+            Let the clock run on: the markets, the traffic and the weather go on without you.
+          </p>
         </header>
         {message && (
           <p class="port-message" role="status">

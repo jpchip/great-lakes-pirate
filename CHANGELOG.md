@@ -4,6 +4,14 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ## [Unreleased]
 
+### Added
+
+- **Waiting in port and at anchor:** the port screen's footer now has Wait: an hour, a four-hour watch, until dawn, until dusk, or until the wind shifts. The clock runs on alongside the pier, the world ticks as it does on the chart (the market moves, ships come and go, the weather changes), the screen shows the new prices and says how long you lay, and the game saves. Back aboard, a **Wait (Z)** button sits on the HUD whenever you're anchored or alongside, opening the same choices ("Lie alongside" or "Lie at anchor"). Z already did this since 0.4.0, but nothing said so.
+
+### Changed
+
+- Harbor traffic under way near the pier no longer stops you waiting alongside; a ship in sight still stops a wait at anchor. The notice after a wait alongside says "You lay alongside".
+
 ## [0.4.0] - 2026-11-03
 
 The **Trade & Economy** build (Phase 4): make a new captain, dock and trade in seven ports whose prices follow their stock and the traffic that really carries cargo, take freight contracts, buy a bigger schooner, stash goods at Stockton Island, and meet the island smuggler after dark.
