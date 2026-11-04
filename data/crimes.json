@@ -1,0 +1,91 @@
+[
+  {
+    "id": "crime.smuggler_deal",
+    "name": "Dealing with the smuggler",
+    "heat": 20,
+    "phase": 5,
+    "standing": 3,
+    "notes": "Seen alongside the island smuggler, buying from her or fencing to her (plan 06 §14.6 decision 1). Plan 06 §2.2 has no row for it; it's heated like smuggling."
+  },
+  {
+    "id": "crime.contraband",
+    "name": "Smuggling",
+    "heat": 20,
+    "phase": 5,
+    "standing": 5,
+    "notes": "Caught with contraband: a merchant who finds it out, or the cutter's hold search (piece C). Confiscation is the economy's (plan 05 §6)."
+  },
+  {
+    "id": "crime.hot_goods",
+    "name": "Selling hot goods",
+    "heat": 15,
+    "phase": 5,
+    "standing": 5,
+    "notes": "A merchant found a stolen lot out (HotGoodsDetected). Hot goods stay a dev command until Phase 6's theft."
+  },
+  {
+    "id": "crime.contract_theft",
+    "name": "Stealing contract cargo",
+    "heat": 40,
+    "phase": 5,
+    "traced": true,
+    "news": true,
+    "fame": 5,
+    "notes": "Always traced to you. The company's agents up and down the lake hear of it, so it's Phase 5's crime that spreads (criterion 3). The Standing hit is the contracts' own (plan 05 §5.2)."
+  },
+  {
+    "id": "crime.trespass",
+    "name": "Trespass",
+    "heat": 5,
+    "phase": 7,
+    "notes": "Caught sneaking on the docks at night."
+  },
+  { "id": "crime.petty_theft", "name": "Petty theft", "heat": 10, "phase": 7, "standing": 3 },
+  {
+    "id": "crime.burglary",
+    "name": "Burglary",
+    "heat": 25,
+    "phase": 7,
+    "standing": 8,
+    "notes": "A warehouse, or cargo from a moored ship."
+  },
+  { "id": "crime.assault", "name": "Assault", "heat": 30, "phase": 7, "standing": 8, "fame": 2 },
+  {
+    "id": "crime.piracy",
+    "name": "Piracy",
+    "heat": 50,
+    "phase": 6,
+    "standing": 10,
+    "fame": 10,
+    "notes": "Forcing a surrender and looting at sea."
+  },
+  { "id": "crime.light_doused", "name": "Dousing a lighthouse", "heat": 40, "phase": 7, "fame": 5 },
+  {
+    "id": "crime.sinking",
+    "name": "Sinking a ship",
+    "heat": 90,
+    "phase": 6,
+    "news": true,
+    "standing": 15,
+    "fame": 20
+  },
+  {
+    "id": "crime.killing",
+    "name": "Murder",
+    "heat": 150,
+    "phase": 6,
+    "news": true,
+    "standing": 25,
+    "fame": 30
+  },
+  {
+    "id": "crime.attack_law",
+    "name": "Attacking the law",
+    "heat": 200,
+    "phase": 6,
+    "news": true,
+    "standing": 20,
+    "fame": 40
+  },
+  { "id": "crime.jailbreak", "name": "Jailbreak", "heat": 60, "phase": 7, "news": true, "fame": 15 }
+]

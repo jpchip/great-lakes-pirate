@@ -10,7 +10,7 @@
     "id": "port.ashland",
     "name": "Ashland",
     "zone": "zone.apostles",
-    "wantedRegion": "region.chequamegon",
+    "wantedRegion": "region.ashland",
     "services": ["market", "chandlery", "freight", "shipyard", "tavern", "jail"]
   },
   {

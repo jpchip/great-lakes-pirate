@@ -1,0 +1,250 @@
+[
+  {
+    "id": "region.ashland",
+    "name": "Ashland",
+    "seat": "port.ashland",
+    "anchor": {
+      "lat": 46.6,
+      "lon": -90.88
+    },
+    "areas": [
+      [
+        {
+          "lat": 46.45,
+          "lon": -91.05
+        },
+        {
+          "lat": 46.45,
+          "lon": -90.6
+        },
+        {
+          "lat": 46.63,
+          "lon": -90.7
+        },
+        {
+          "lat": 46.63,
+          "lon": -91.05
+        }
+      ]
+    ],
+    "neighbors": ["region.chequamegon", "region.apostles"]
+  },
+  {
+    "id": "region.chequamegon",
+    "name": "Chequamegon Bay",
+    "seat": "port.bayfield",
+    "anchor": {
+      "lat": 46.74,
+      "lon": -90.86
+    },
+    "areas": [
+      [
+        {
+          "lat": 46.63,
+          "lon": -91.05
+        },
+        {
+          "lat": 46.63,
+          "lon": -90.7
+        },
+        {
+          "lat": 46.72,
+          "lon": -90.76
+        },
+        {
+          "lat": 46.76,
+          "lon": -90.803
+        },
+        {
+          "lat": 46.86,
+          "lon": -90.803
+        },
+        {
+          "lat": 46.86,
+          "lon": -91.05
+        }
+      ]
+    ],
+    "neighbors": ["region.apostles", "region.ashland", "region.south_shore_west"]
+  },
+  {
+    "id": "region.apostles",
+    "name": "Apostle Islands",
+    "seat": "port.la_pointe",
+    "anchor": {
+      "lat": 46.95,
+      "lon": -90.65
+    },
+    "areas": [
+      [
+        {
+          "lat": 46.86,
+          "lon": -91.05
+        },
+        {
+          "lat": 46.86,
+          "lon": -90.803
+        },
+        {
+          "lat": 46.76,
+          "lon": -90.803
+        },
+        {
+          "lat": 46.72,
+          "lon": -90.76
+        },
+        {
+          "lat": 46.63,
+          "lon": -90.7
+        },
+        {
+          "lat": 46.45,
+          "lon": -90.6
+        },
+        {
+          "lat": 46.45,
+          "lon": -90.15
+        },
+        {
+          "lat": 47.25,
+          "lon": -90.15
+        },
+        {
+          "lat": 47.25,
+          "lon": -91.05
+        }
+      ]
+    ],
+    "neighbors": ["region.chequamegon", "region.ashland", "region.south_shore_west"]
+  },
+  {
+    "id": "region.superior",
+    "name": "Superior",
+    "seat": "port.superior",
+    "anchor": {
+      "lat": 46.7,
+      "lon": -92.03
+    },
+    "areas": [
+      [
+        {
+          "lat": 46.45,
+          "lon": -92.25
+        },
+        {
+          "lat": 46.45,
+          "lon": -91.6
+        },
+        {
+          "lat": 46.66,
+          "lon": -91.6
+        },
+        {
+          "lat": 46.71,
+          "lon": -91.95
+        },
+        {
+          "lat": 46.745,
+          "lon": -92.05
+        },
+        {
+          "lat": 46.745,
+          "lon": -92.25
+        }
+      ]
+    ],
+    "neighbors": ["region.duluth", "region.south_shore_west"]
+  },
+  {
+    "id": "region.duluth",
+    "name": "Duluth",
+    "seat": "port.duluth",
+    "anchor": {
+      "lat": 46.8,
+      "lon": -92.05
+    },
+    "areas": [
+      [
+        {
+          "lat": 46.745,
+          "lon": -92.25
+        },
+        {
+          "lat": 46.745,
+          "lon": -92.05
+        },
+        {
+          "lat": 46.71,
+          "lon": -91.95
+        },
+        {
+          "lat": 46.75,
+          "lon": -91.85
+        },
+        {
+          "lat": 46.95,
+          "lon": -91.85
+        },
+        {
+          "lat": 46.95,
+          "lon": -92.25
+        }
+      ]
+    ],
+    "neighbors": ["region.superior", "region.north_shore", "region.south_shore_west"]
+  },
+  {
+    "id": "region.north_shore",
+    "name": "North Shore",
+    "seat": "port.two_harbors",
+    "anchor": {
+      "lat": 47.15,
+      "lon": -91.5
+    },
+    "areas": [],
+    "neighbors": ["region.duluth", "region.south_shore_west", "region.apostles"]
+  },
+  {
+    "id": "region.south_shore_west",
+    "name": "South Shore West",
+    "anchor": {
+      "lat": 46.78,
+      "lon": -91.35
+    },
+    "areas": [
+      [
+        {
+          "lat": 46.71,
+          "lon": -91.95
+        },
+        {
+          "lat": 46.66,
+          "lon": -91.6
+        },
+        {
+          "lat": 46.45,
+          "lon": -91.6
+        },
+        {
+          "lat": 46.45,
+          "lon": -91.05
+        },
+        {
+          "lat": 46.95,
+          "lon": -91.05
+        },
+        {
+          "lat": 46.85,
+          "lon": -91.85
+        }
+      ]
+    ],
+    "neighbors": [
+      "region.superior",
+      "region.duluth",
+      "region.chequamegon",
+      "region.apostles",
+      "region.north_shore"
+    ]
+  }
+]

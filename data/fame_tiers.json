@@ -1,0 +1,10 @@
+{
+  "tiers": [
+    { "tier": 0, "name": "Unknown", "min": 0 },
+    { "tier": 1, "name": "Rumored", "min": 50 },
+    { "tier": 2, "name": "Known", "min": 150 },
+    { "tier": 3, "name": "Infamous", "min": 350 },
+    { "tier": 4, "name": "Legendary", "min": 700 }
+  ],
+  "decay": { "graceDays": 3, "perDay": 0.02, "legendPerDay": 0.01 }
+}
