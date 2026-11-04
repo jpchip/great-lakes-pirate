@@ -185,7 +185,7 @@ describe('upgrades change handling', () => {
     expect(f.record.sailChangeTimeS).toBeCloseTo(2.4);
     expect(f.record.cargoCapacity).toBe(25);
     expect(f.record.draftFullM).toBeCloseTo(2.2);
-    expect(f.record.hullMaxSpeedKn).toBeCloseTo(7.6);
+    expect(f.record.hullMaxSpeedKn).toBeCloseTo(10.2);
     expect(f.rules.shallowWarnDrafts).toBe(3);
     expect(f.rules.anchorHoldKn).toBe(45);
     expect(f.instruments.forecastHours).toBe(24);

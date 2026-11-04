@@ -86,10 +86,10 @@ describe('S7 scale model', () => {
   });
 
   it('reaches at a working schooner speed in the default breeze', () => {
-    // Plan 03 §3.3: a schooner makes 7–8 kn on a beam reach.
+    // Plan 03 §3.3: a schooner makes 8–10 kn on a beam reach (raised in Phase 5 piece G).
     const kn = beamReachSpeed(cls, steadyWind(315, 12)) / knotsToMs(1);
-    expect(kn).toBeGreaterThan(6);
-    expect(kn).toBeLessThanOrEqual(8);
+    expect(kn).toBeGreaterThan(8);
+    expect(kn).toBeLessThanOrEqual(10);
   });
 
   it('keeps real travel time independent of C', () => {

@@ -30,7 +30,7 @@ import {
 import { westernSuperiorChart } from '../src/sim/chart/chart-data';
 import { distance, isWater } from '../src/sim/chart/geography';
 import type { Contact, ContactKind } from '../src/sim/chart/traffic';
-import { SHIP_RECORDS } from '../src/sim/sailing/ships';
+import { SHIP_RECORDS, serviceSpeedKn } from '../src/sim/sailing/ships';
 import { arenaFrame } from '../src/sim/arena/arena';
 
 const DEG = Math.PI / 180;
@@ -45,7 +45,7 @@ function record(id: string) {
 
 function ship(id: string, x: number, z: number, heading: number, hunting = false): SteeredShip {
   const r = record(id);
-  const kn = r.propulsion === 'steam' ? r.engineSpeedKn : r.hullMaxSpeedKn;
+  const kn = serviceSpeedKn(r);
   return {
     x,
     z,
