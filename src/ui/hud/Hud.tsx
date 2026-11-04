@@ -1,6 +1,14 @@
 import type { ReadonlySignal } from '@preact/signals';
 import type { HudDensity } from '../../core/settings';
-import { COMPASS_POINTS, STRAIN_SHOW, type BarometerSnapshot, type HudSnapshot } from './model';
+import {
+  COMPASS_POINTS,
+  eyeLabel,
+  STRAIN_SHOW,
+  type BarometerSnapshot,
+  type EyeSnapshot,
+  type HudSnapshot,
+  type LanternSnapshot,
+} from './model';
 
 /**
  * Sailing HUD v1 (plan 13 §4.1, §12): the wind ring with speed and sail level bottom
@@ -187,6 +195,46 @@ function Barometer({ baro }: { baro: BarometerSnapshot }) {
   );
 }
 
+/**
+ * The lantern chip (plan 02 §9): a lamp drawn lit or dark, with the word, and the nights
+ * of oil aboard on the full HUD. Running dark at night is the one that matters most.
+ */
+function Lantern({ lantern, full }: { lantern: LanternSnapshot; full: boolean }) {
+  const words = lantern.lit ? 'Lantern lit' : lantern.dark ? 'Running dark' : 'Lantern out';
+  return (
+    <div
+      class={`hud-chip hud-lantern${lantern.lit ? ' lit' : ''}${lantern.dark ? ' dark' : ''}`}
+      data-testid="hud-lantern"
+      aria-label={`${words}, ${lantern.nights} nights of lamp oil`}
+    >
+      <svg class="hud-lamp" viewBox="0 0 12 16" aria-hidden="true">
+        <path d="M4 1h4v2H4z M3 3h6l1 9H2z M2 12h8v2H2z" class="lamp-body" />
+        {lantern.lit && <circle cx="6" cy="8" r="2.4" class="lamp-flame" />}
+      </svg>
+      {words}
+      {(full || lantern.nights < 2) && (
+        <span class={`hud-num hud-dim${lantern.nights < 1 ? ' danger' : ''}`}>
+          {' '}
+          {lantern.nights} nights oil
+        </span>
+      )}
+    </div>
+  );
+}
+
+/** The eye (plan 06 §7.1, plan 13 §4.1): who has the ship in sight, drawn and in words. */
+function Eye({ eye }: { eye: EyeSnapshot }) {
+  return (
+    <div class={`hud-chip hud-eye ${eye.level}`} data-testid="hud-eye" role="status">
+      <svg class="hud-eye-icon" viewBox="0 0 16 10" aria-hidden="true">
+        <path d="M1 5C4 0.5 12 0.5 15 5C12 9.5 4 9.5 1 5Z" class="eye-lid" />
+        {eye.level !== 'watching' && <circle cx="8" cy="5" r="2.3" class="eye-pupil" />}
+      </svg>
+      {eyeLabel(eye)}
+    </div>
+  );
+}
+
 /** "Chart locked: you are being pursued" (plan 13 §4.3), on the HUD and the chart. */
 export function ChartLockedBanner() {
   return (
@@ -255,6 +303,8 @@ export function Hud({
         <>
           <Clock hud={h} />
           {h.barometer && <Barometer baro={h.barometer} />}
+          {h.lantern && <Lantern lantern={h.lantern} full={mode === 'full'} />}
+          {h.eye && <Eye eye={h.eye} />}
           <Compass headingDeg={h.headingDeg} />
           <div class="hud-status">
             {h.hull01 !== undefined && <Bar label="Hull" value={h.hull01} testid="hud-hull" />}

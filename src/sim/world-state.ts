@@ -12,6 +12,7 @@ import { freshContrabandState } from './economy/smuggler';
 import { startingHideouts, syncHideouts } from './hideouts/stash';
 import { firstWeekSchema } from './character/first-week';
 import { defaultShipState } from './shipyard/shipyard';
+import { lanternStateSchema } from './law/lantern';
 
 /**
  * WorldState skeleton (plan 01 §3.1, plan 16 §5.2). Each slice is filled in by its
@@ -347,6 +348,8 @@ export const worldStateSchema = z.object({
     standing: standingSchema.optional(),
     /** Her class, condition and upgrades (piece G); filled on load when absent. */
     ship: shipStateSchema.optional(),
+    /** The running lights and the oil in the lamps (Phase 5 piece B); absent until first lit. */
+    lantern: lanternStateSchema.optional(),
   }),
   voyage: voyageSchema.nullable(),
   markets: marketsSchema,

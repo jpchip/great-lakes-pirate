@@ -64,6 +64,36 @@ export interface HudSnapshot {
   portName: string | undefined;
   /** Moored (anchored and holding, or alongside): the HUD offers "Wait" (Z). */
   canWait?: boolean | undefined;
+  /** The lantern (plan 02 §9, Phase 5 piece B): lit or running dark, and the oil aboard. */
+  lantern?: LanternSnapshot | undefined;
+  /** The watcher most aware of the ship (plan 06 §7.1): the HUD's eye. */
+  eye?: EyeSnapshot | undefined;
+}
+
+export interface LanternSnapshot {
+  lit: boolean;
+  /** Nights of lamp oil aboard, rounded down. */
+  nights: number;
+  /** Dark, at night: the stealthy state worth saying out loud. */
+  dark: boolean;
+}
+
+/** Who's watching, in a word and a name (plan 13: never color alone). */
+export interface EyeSnapshot {
+  level: 'watching' | 'spotted' | 'identified';
+  by: string;
+}
+
+/** The eye's words: "Watched by…", "Seen by…", "Known to…". */
+export function eyeLabel(eye: EyeSnapshot): string {
+  switch (eye.level) {
+    case 'watching':
+      return `Watched by ${eye.by}`;
+    case 'spotted':
+      return `Seen by ${eye.by}`;
+    case 'identified':
+      return `Known to ${eye.by}`;
+  }
 }
 
 export interface BarometerSnapshot {
@@ -155,6 +185,8 @@ export interface HudSources {
   portName?: string | undefined;
   /** Whether the ship lies where she can wait; worked out from the hazards when absent. */
   canWait?: boolean | undefined;
+  lantern?: LanternSnapshot | undefined;
+  eye?: EyeSnapshot | undefined;
 }
 
 /** Seconds a refusal chip stays up. */
@@ -250,6 +282,8 @@ export function sampleHud(src: HudSources): HudSnapshot | undefined {
     atEdge,
     chartLocked: src.chartLocked ?? false,
     portName: src.portName,
+    lantern: src.lantern,
+    eye: src.eye,
     canWait:
       src.canWait ??
       (!!hz &&
