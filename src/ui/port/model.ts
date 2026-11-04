@@ -232,6 +232,12 @@ export interface PortSnapshot {
   shipyard: YardSnapshot | undefined;
   fittings: YardSnapshot | undefined;
   ledger: LedgerSnapshot;
+  /**
+   * Waiting alongside (the footer's "Wait" choices): offered when the game can run the clock
+   * on here; `waitRefusal` says why not just now (e.g. aground).
+   */
+  canWait?: boolean | undefined;
+  waitRefusal?: string | undefined;
 }
 
 /** A rumor as the ledger and the saloon show it. */

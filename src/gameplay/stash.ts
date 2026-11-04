@@ -29,7 +29,7 @@ import type { ShipHazards } from './hazards';
  * Coming alongside a hideout's landing opens its storage screen; anchored in its
  * anchorage, P opens it. Moves between the hold and the storage, and between the purse
  * and the strongbox, raise `StorageChanged`. Lying at anchor (Z, or from the screen) runs
- * the clock on to dawn, dusk or a shift of wind, then saves (plan 09 §3: an autosave
+ * the clock on an hour, a watch, or to dawn, dusk or a shift of wind, then saves (plan 09 §3: an autosave
  * point). The screens pause the game; main owns the overlay stack and the keys.
  */
 
@@ -50,6 +50,10 @@ export interface StashControl {
   readonly openHideout: string | undefined;
   /** The "lie at anchor" choice is open (away from a stash). */
   readonly lieOpen: boolean;
+  /** How the ship lies now, for the choice's title: at anchor, alongside, or neither. */
+  readonly moored: 'anchored' | 'docked' | 'no';
+  /** What the last lie came to, in a line ("You lay alongside until dawn (5 h)."). */
+  readonly lastLieText: string | undefined;
   /** Opens the storage of the hideout the ship is moored at; false if none. */
   openHere(): boolean;
   /** Opens a hideout's storage wherever the ship is (the dev hook). */
@@ -100,6 +104,11 @@ export function attachStash(opts: StashControlOptions): StashControl {
   let dockedHideout: string | undefined;
   let openHideout: string | undefined;
   let lieOpen = false;
+  let lastLieText: string | undefined;
+  const moored = (): 'anchored' | 'docked' | 'no' => {
+    const h = hazards.state;
+    return h.mooring === 'docked' ? 'docked' : h.anchor === 'down' ? 'anchored' : 'no';
+  };
 
   const hideoutHere = (): string | undefined => {
     const h = hazards.state;
@@ -117,7 +126,7 @@ export function attachStash(opts: StashControlOptions): StashControl {
     const p = opts.shipPose();
     const wind = ctx.weather.windAt(p, now());
     return lieRefusal({
-      moored: h.mooring === 'docked' ? 'docked' : h.anchor === 'down' ? 'anchored' : 'no',
+      moored: moored(),
       speedMs: opts.speedMs(),
       dragging: h.dragging,
       aground: h.aground,
@@ -212,13 +221,15 @@ export function attachStash(opts: StashControlOptions): StashControl {
     const why = refusalText();
     if (why) return why;
     const p = opts.shipPose();
+    const how = moored() === 'docked' ? 'docked' : 'anchored';
     const seconds = lieAtAnchor(until, now(), tick, () => {
       const w = ctx.weather.windAt(p, now());
       return { fromRad: w.fromRad, speedKn: w.speedKn };
     });
     ctx.weather.tick(now(), p, ctx.sea);
     ctx.events.emit('LayAtAnchor', { until, seconds });
-    const text = lieText(until, seconds);
+    const text = lieText(until, seconds, how);
+    lastLieText = text;
     if (lieOpen) closeLie();
     refresh();
     opts.afterLie(text);
@@ -234,6 +245,12 @@ export function attachStash(opts: StashControlOptions): StashControl {
     },
     get lieOpen() {
       return lieOpen;
+    },
+    get moored() {
+      return moored();
+    },
+    get lastLieText() {
+      return lastLieText;
     },
     openHere() {
       const id = hideoutHere();

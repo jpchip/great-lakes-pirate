@@ -44,6 +44,8 @@ export interface GameUiOptions {
   chart?: Omit<ChartHudActions, 'toggleSailOn'> | undefined;
   /** "Take to the chart" at the soft edge. */
   onTakeToChart?: (() => void) | undefined;
+  /** The HUD's "Wait" while anchored or alongside: opens the lie-at-anchor choice. */
+  onWait?: (() => void) | undefined;
   /** Put the First Week tracker away or bring it back (Phase 4 piece C). */
   setFirstWeekHidden?: ((hidden: boolean) => void) | undefined;
   /** The port screen's buttons and the journal's (Phase 4 piece B). */
@@ -82,8 +84,8 @@ export interface GameUi {
   setSmuggler(snapshot: SmugglerSnapshot | undefined): void;
   /** The stash screen; undefined closes it (Phase 4 piece E). */
   setStash(snapshot: StashSnapshot | undefined): void;
-  /** The lie-at-anchor choice: true opens it, false closes it. */
-  setLie(open: boolean): void;
+  /** The lie-at-anchor choice: true opens it, false closes it; `docked` titles it alongside. */
+  setLie(open: boolean, docked?: boolean): void;
   /** The First Week checklist (Phase 4 piece C); undefined for a run without one. */
   setFirstWeek(snapshot: FirstWeekSnapshot | undefined): void;
   /** Show a port screen tab (J in port turns to the ledger). */
@@ -100,6 +102,7 @@ export function mountGameUi({
   audio,
   chart: chartActions,
   onTakeToChart,
+  onWait,
   port: portActions,
   smuggler: smugglerActions,
   stash: stashActions,
@@ -108,6 +111,7 @@ export function mountGameUi({
   const smuggler = signal<SmugglerSnapshot | undefined>(undefined);
   const stash = signal<StashSnapshot | undefined>(undefined);
   const lie = signal(false);
+  const lieDocked = signal(false);
   const firstWeek = signal<FirstWeekSnapshot | undefined>(undefined);
   const port = signal<PortSnapshot | undefined>(undefined);
   const portTab = signal<PortTab>('market');
@@ -194,6 +198,7 @@ export function mountGameUi({
           spyglass={spyglass}
           onTakeToChart={onTakeToChart}
           onOpenPort={portActions?.openDocked}
+          onWait={onWait}
         />
         {!menuOpen.value && !port.value && !journal.value && <Captions captions={captions} />}
         {!menuOpen.value && <ShipCardView card={shipCard} />}
@@ -212,7 +217,9 @@ export function mountGameUi({
         {stash.value && stashActions && !menuOpen.value && (
           <StashScreen stash={stash.value} actions={stashActions} />
         )}
-        {lie.value && stashActions && !menuOpen.value && <LieDialog actions={stashActions} />}
+        {lie.value && stashActions && !menuOpen.value && (
+          <LieDialog actions={stashActions} docked={lieDocked.value} />
+        )}
         {journal.value && portActions && !menuOpen.value && (
           <Journal
             ledger={journal.value}
@@ -315,8 +322,9 @@ export function mountGameUi({
     setStash(snapshot) {
       stash.value = snapshot;
     },
-    setLie(open) {
+    setLie(open, docked) {
       lie.value = open;
+      lieDocked.value = !!docked;
     },
     setJournal(snapshot) {
       journal.value = snapshot;

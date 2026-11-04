@@ -4,12 +4,17 @@ import { sunAt } from '../weather/celestial';
 /**
  * Lying at anchor until a set hour (plan 03 §2 "wait/sleep", plan 04 §3.3; Phase 4 piece
  * E): anchored in a sheltered spot, or alongside a pier, the captain can let the clock run
- * on until dawn, dusk or a shift of wind. The world ticks run as they do on the chart, so
- * the markets drift, the traffic sails and the weather moves on. It's refused under way,
- * with the anchor dragging, in an exposed spot, or with a ship under way in sight.
+ * on for an hour, a four-hour watch, or until dawn, dusk or a shift of wind. The world ticks
+ * run as they do on the chart, so the markets drift, the traffic sails and the weather moves
+ * on. It's refused under way, with the anchor dragging, in an exposed spot, or at anchor
+ * with a ship under way in sight (alongside a pier, harbor traffic doesn't stop it).
  */
 
-export type LieUntil = 'dawn' | 'dusk' | 'wind';
+/** Until the sun rises or sets, the wind shifts, an hour has passed, or a four-hour watch. */
+export type LieUntil = 'dawn' | 'dusk' | 'wind' | 'hour' | 'watch';
+
+/** The set spans, game seconds. */
+const SPAN_S: Partial<Record<LieUntil, number>> = { hour: 3600, watch: 4 * 3600 };
 
 export type LieRefusal = 'underWay' | 'dragging' | 'exposed' | 'shipInSight' | 'aground';
 
@@ -45,7 +50,8 @@ export function lieRefusal(c: LieCheck): LieRefusal | undefined {
   if (c.dragging) return 'dragging';
   if (c.moored === 'anchored' && c.shelter01 < SHELTERED_01 && c.windKn >= LIGHT_AIRS_KN)
     return 'exposed';
-  if (c.nearestUnderWayM <= SIGHT_M) return 'shipInSight';
+  // Alongside a pier, harbor traffic coming and going is no threat: only at anchor.
+  if (c.moored === 'anchored' && c.nearestUnderWayM <= SIGHT_M) return 'shipInSight';
   return undefined;
 }
 
@@ -101,7 +107,10 @@ export function lieAtAnchor(
 ): number {
   const step = WORLD_TICK_GAME_SECONDS;
   if (until !== 'wind') {
-    const total = secondsUntil(until, gameSeconds);
+    const total =
+      until === 'dawn' || until === 'dusk'
+        ? secondsUntil(until, gameSeconds)
+        : (SPAN_S[until] as number);
     const ticks = Math.max(1, Math.round(total / step));
     for (let k = 0; k < ticks; k++) tick();
     return ticks * step;
@@ -116,13 +125,29 @@ export function lieAtAnchor(
   return passed;
 }
 
+/** The choices, in the order the screens show them. */
+export const LIE_CHOICES: readonly [LieUntil, string][] = [
+  ['hour', 'An hour'],
+  ['watch', 'A watch (4 h)'],
+  ['dawn', 'Until dawn'],
+  ['dusk', 'Until dusk'],
+  ['wind', 'Until the wind shifts'],
+];
+
 /** "5 h 20 m", for the notice after a lie. */
-export function lieText(until: LieUntil, seconds: number): string {
+export function lieText(
+  until: LieUntil,
+  seconds: number,
+  moored: 'anchored' | 'docked' = 'anchored',
+): string {
   const m = Math.round(seconds / 60);
   const span = m >= 60 ? `${Math.floor(m / 60)} h${m % 60 ? ` ${m % 60} m` : ''}` : `${m} m`;
+  const lay = moored === 'docked' ? 'You lay alongside' : 'You lay at anchor';
+  if (until === 'hour') return `${lay} an hour.`;
+  if (until === 'watch') return `${lay} a watch (${span}).`;
   const what =
     until === 'dawn' ? 'until dawn' : until === 'dusk' ? 'until dusk' : 'until the wind shifts';
   return until === 'wind' && seconds >= MAX_LIE_S
-    ? `You lay at anchor a day (${span}); the wind held.`
-    : `You lay at anchor ${what} (${span}).`;
+    ? `${lay} a day (${span}); the wind held.`
+    : `${lay} ${what} (${span}).`;
 }

@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'preact/hooks';
 import { formatCents } from '../../sim/economy/knowledge';
 import type { TradeSide } from '../../sim/economy/market';
+import type { LieUntil } from '../../sim/hideouts/lie-at-anchor';
+import { LieButtons } from '../stash/StashScreen';
 import { Help } from './Help';
 import { Ledger, RumorItem } from './Ledger';
 import { Fittings, Shipyard, ShipPanel } from './Shipyard';
@@ -52,6 +54,11 @@ export interface PortActions {
   close(): void;
   /** Close the screen and cast off (F). */
   castOff(): void;
+  /**
+   * Waits alongside (the lie-at-anchor clock): the refusal, or what the wait came to, in a
+   * line. Optional so the screen still works without it.
+   */
+  wait?(until: LieUntil): string | undefined;
 }
 
 const TAB_LABELS: Record<PortTab, string> = {
@@ -781,6 +788,14 @@ export function PortScreen({
           {shown === 'ledger' && <Ledger ledger={port.ledger} here={port.port} />}
         </div>
         <footer class="menu-footer port-footer">
+          {port.canWait && actions.wait && (
+            <LieButtons
+              label="Wait"
+              refusal={port.waitRefusal}
+              lie={actions.wait}
+              setMessage={setMessage}
+            />
+          )}
           <button
             type="button"
             class="menu-button"

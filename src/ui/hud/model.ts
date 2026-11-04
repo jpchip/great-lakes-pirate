@@ -62,6 +62,8 @@ export interface HudSnapshot {
   chartLocked: boolean;
   /** Docked at a port's pier: its name, for the button back to its screen (piece B). */
   portName: string | undefined;
+  /** Moored (anchored and holding, or alongside): the HUD offers "Wait" (Z). */
+  canWait?: boolean | undefined;
 }
 
 export interface BarometerSnapshot {
@@ -151,6 +153,8 @@ export interface HudSources {
   extraStatus?: readonly string[] | undefined;
   /** The port the ship lies docked at, by name. */
   portName?: string | undefined;
+  /** Whether the ship lies where she can wait; worked out from the hazards when absent. */
+  canWait?: boolean | undefined;
 }
 
 /** Seconds a refusal chip stays up. */
@@ -246,6 +250,11 @@ export function sampleHud(src: HudSources): HudSnapshot | undefined {
     atEdge,
     chartLocked: src.chartLocked ?? false,
     portName: src.portName,
+    canWait:
+      src.canWait ??
+      (!!hz &&
+        !hz.state.aground &&
+        (hz.state.mooring === 'docked' || (hz.state.anchor === 'down' && !hz.state.dragging))),
   };
 }
 

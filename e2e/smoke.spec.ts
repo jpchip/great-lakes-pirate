@@ -848,6 +848,42 @@ interface StashHook {
   lie(until: 'dawn' | 'dusk' | 'wind'): string | undefined;
 }
 
+// Waiting in port: the port screen's footer runs the clock on alongside, the market moves
+// with it, and back aboard the HUD offers the same wait (Z) while moored.
+test('waits alongside at Bayfield from the port screen and the HUD', async ({ page }) => {
+  const errors = collectErrors(page);
+  const body = page.locator('body');
+  await page.goto('/?renderer=null&debug&harbor=bayfield');
+  await expect(body).toHaveAttribute('data-terrain', 'loaded');
+  await page.waitForFunction(() => '__glpChart' in window);
+  const docked = await page.evaluate(() =>
+    (window as unknown as { __glpPort: PortHook }).__glpPort.dock('bayfield_city'),
+  );
+  expect(docked).toBe(true);
+  const screen = page.getByTestId('port-screen');
+  await expect(screen).toBeVisible({ timeout: 15_000 });
+
+  await expect(screen.getByTestId('lie-watch')).toBeEnabled();
+  await screen.getByTestId('lie-watch').click();
+  await expect(page.getByTestId('port-message')).toHaveText('You lay alongside a watch (4 h).');
+  await screen.getByTestId('lie-hour').click();
+  await expect(page.getByTestId('port-message')).toHaveText('You lay alongside an hour.');
+
+  await page.keyboard.press('Escape');
+  await expect(screen).toHaveCount(0);
+  await expect(page.getByTestId('hud-wait')).toBeVisible();
+  await page.getByTestId('hud-wait').click();
+  const dialog = page.getByTestId('lie-dialog');
+  await expect(dialog).toBeVisible();
+  await expect(dialog.getByRole('heading')).toHaveText('Lie alongside');
+  await dialog.getByTestId('lie-dawn').click();
+  await expect(dialog).toHaveCount(0);
+  await expect(
+    page.getByTestId('hud-status').filter({ hasText: /lay alongside until dawn/ }),
+  ).toHaveCount(1);
+  expect(errors).toEqual([]);
+});
+
 // Phase 4 piece E: come alongside the Stockton landing, stash the cargo and some cash,
 // and find them still there after a reload, with nothing of it in the hold.
 test('stashes cargo and cash at Stockton and keeps them through a reload', async ({ page }) => {
@@ -886,7 +922,7 @@ test('stashes cargo and cash at Stockton and keeps them through a reload', async
   await page.getByTestId('lie-dusk').click();
   await expect(page.getByTestId('stash-message')).toHaveCount(0);
   await page.keyboard.press('Escape');
-  await expect(page.getByTestId('hud-status').filter({ hasText: /lay at anchor/ })).toHaveCount(1);
+  await expect(page.getByTestId('hud-status').filter({ hasText: /lay alongside/ })).toHaveCount(1);
 
   await page.evaluate(() => {
     delete document.body.dataset['savedMode'];
