@@ -86,9 +86,11 @@ function findOffer(
 }
 
 describe('the freight agent and its templates', () => {
-  it('has a freight agent at every port with a market but La Pointe', () => {
+  it('has a freight agent at every port with a market but La Pointe and Red Cliff', () => {
     for (const port of econ.markets.keys()) {
-      expect(portInfo(port)?.services.includes('freight'), port).toBe(port !== 'port.la_pointe');
+      expect(portInfo(port)?.services.includes('freight'), port).toBe(
+        port !== 'port.la_pointe' && port !== 'port.red_cliff',
+      );
     }
   });
 
@@ -98,7 +100,7 @@ describe('the freight agent and its templates', () => {
       expect(shippers.has(id), id).toBe(f.kind === 'company');
     }
     for (const port of econ.markets.keys()) {
-      if (port === 'port.la_pointe') continue;
+      if (port === 'port.la_pointe' || port === 'port.red_cliff') continue;
       expect(defs.byOrigin.get(port)?.length ?? 0, port).toBeGreaterThan(0);
     }
   });
@@ -111,6 +113,7 @@ describe('the freight agent and its templates', () => {
     const next = boardOffers(world('run-1').src(DAY), 'port.duluth').map((o) => o.terms.id);
     expect(next).not.toEqual(a.map((t) => t.id));
     expect(boardOffers(world().src(0), 'port.la_pointe')).toEqual([]);
+    expect(boardOffers(world().src(0), 'port.red_cliff')).toEqual([]);
   });
 
   it('keeps to the seasons: no fresh fish in winter, maple sugar only in spring', () => {

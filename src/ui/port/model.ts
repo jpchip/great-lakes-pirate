@@ -660,7 +660,8 @@ export function portSnapshot(src: PortSources): PortSnapshot {
     .map((s: CargoStack, index): HoldRow => {
       const traded = pm?.goods.has(s.good) ?? false;
       const kind = offerKind(defs, s);
-      const offerable = !!pm && !!kind && (kind === 'contraband' || traded);
+      // A trade-only port (Red Cliff) takes no hot goods or contraband: no Offer button.
+      const offerable = !!pm && !info?.tradeOnly && !!kind && (kind === 'contraband' || traded);
       const sell =
         traded && isClean(s)
           ? unitPrices(defs, markets, port, s.good, gameSeconds)?.sellCents
