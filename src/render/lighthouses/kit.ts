@@ -8,11 +8,11 @@ import { box, frustum, gable, merged, part, place, strut } from '../style/parts'
  * the seven lights are built from, each scaled to its own tower height.
  *
  * - **conical:** a tapering round tower on a stone foundation, with a keeper's house beside
- *   it and an oil house (Outer and Michigan Island).
+ *   it and an oil house (Outer and Michigan Island; La Pointe in iron).
  * - **dwelling:** a two-storey keeper's house with the square tower rising through its
  *   seaward end (Raspberry, and Sand Island in brownstone).
  * - **skeleton:** a braced timber or iron frame carrying the lamp, with a small watch house
- *   at its foot (Devils Island, Chequamegon Point and La Pointe).
+ *   at its foot (Devils Island and Chequamegon Point).
  *
  * Each station is three meshes (one draw call each): `body`, all its solid parts merged
  * with vertex colors; `lantern`, the lamp's glass, which glows; and `windows`, the lit
@@ -81,6 +81,16 @@ function conical(def: LighthouseDef): StationParts {
   // A lantern whose floor is the tower's top, with its gallery rail.
   lantern(H, 1.3, glass, body, glassOf(def));
   // The keeper's house, behind the tower and parallel to the shore, and an oil house.
+  // Iron towers (La Pointe on a narrow spit) sit the house closer; white towers keep the
+  // full setback. Landward reach is mirrored in placeLights' STATION_FOOTPRINT.
+  if (def.tower.finish === 'iron') {
+    const houseZ = 3.5;
+    body.push(box(5.5, 4.2, 3.2, 0, 0, houseZ, PALETTE.brick));
+    body.push(gable(5.5, 3.2, 2.6, 0, 4.2, houseZ, PALETTE.roofGray));
+    body.push(box(1.2, 2.8, 1, 2.8, 3, houseZ, PALETTE.brick));
+    for (const x of [-1.6, 1.2]) windows.push(box(0.9, 1.3, 0.2, x, 1.5, 2.1, PALETTE.windowAmber));
+    return assemble(body, glass, windows, H);
+  }
   body.push(box(9, 4.6, 6.4, -2, 0, 11, PALETTE.brick));
   body.push(gable(9, 6.4, 2.8, -2, 4.6, 11, PALETTE.roofGray));
   body.push(box(1.4, 3, 1.2, 4.8, 3.2, 11, PALETTE.brick));

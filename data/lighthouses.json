@@ -28,20 +28,20 @@
     "name": "La Pointe Light",
     "zone": "zone.apostles",
     "at": {
-      "lat": 46.7305,
-      "lon": -90.8045
+      "lat": 46.7273,
+      "lon": -90.8147
     },
     "tower": {
-      "style": "skeleton",
-      "heightM": 11,
-      "finish": "white"
+      "style": "conical",
+      "heightM": 20,
+      "finish": "iron"
     },
-    "tier": "weak",
+    "tier": "medium",
     "characteristic": {
       "kind": "fixed",
       "color": "white"
     },
-    "lens": "unknown",
+    "lens": "4th-order",
     "keepers": 1,
     "reporting": "fast",
     "fogSignal": {
@@ -50,8 +50,8 @@
       "periodS": 15,
       "confidence": "unknown"
     },
-    "confidence": "unknown",
-    "notes": "R1 lists the 1858 Long Island light as active but with the lens and the site unknown; it may have been retired when the 1897 Chequamegon Point light was built. Placed on Long Island's harbor shore as a small fixed white light until the sources say more. Fog signal: a bell, one stroke every 15 s, assumed for the harbor approach."
+    "confidence": "approximate",
+    "notes": "Lit October 1897: the 'New La Pointe' cast-iron tower (~67 ft) beside the 1891 steam fog-signal building on Long Island's north shore, replacing the 1858 dwelling light. The keeper also tended Chequamegon Point at the island's west tip. Fixed white assumed; fog signal: a bell, one stroke every 15 s, assumed for the harbor approach."
   },
   {
     "id": "light.raspberry",
@@ -171,8 +171,8 @@
     "name": "Chequamegon Point Light",
     "zone": "zone.apostles",
     "at": {
-      "lat": 46.7273,
-      "lon": -90.8147
+      "lat": 46.7305,
+      "lon": -90.8045
     },
     "tower": {
       "style": "skeleton",
