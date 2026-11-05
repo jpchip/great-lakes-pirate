@@ -1,6 +1,6 @@
 # 06 — Fame, Wanted, Law Enforcement & Lighthouses
 
-Status: DRAFT v0.3 (decisions made; gap review applied)
+Status: DRAFT v0.6 (decisions made; gap review applied; Phase 5 scope proposed; piece A built)
 Parent: [00-master-plan.md](00-master-plan.md)
 Inputs: master plan decisions (separate Fame/Wanted, regional Wanted, execution only at the top tier, jail/bail/jailbreak, Fame fades, sparse patrols), [R1 §2.1–2.2](R1-western-superior-1900-research.md) (lights, the *Morrill*), [R1a](R1a-western-superior-gazetteer.md) (regions), [02](02-arcade-sailing.md) (dark running, shallows), [03](03-world-scale-chart-travel.md) (no chart escape), [04](04-water-weather-seasons.md) (visibility, moon, storms), [05](05-ports-economy-trading.md) (hot goods, grudges, Standing)
 Feeds: 07 (lethality, surrender), 08 (docks guards, perception), 11 (lighthouse raids), 12 (capture, jail, execution, newspapers), 13 (HUD indicators)
@@ -188,6 +188,7 @@ Each lighthouse (from [R1 §2.1](R1-western-superior-1900-research.md)) has:
 | **Fog signal** | Horn or bell in fog (audio nav aid; [04 §10](04-water-weather-seasons.md)) |
 
 - **Built (Phase 2 piece F, [14 §18](14-art-direction-asset-pipeline.md)):** `data/lighthouses.json` holds the seven Apostles lights with the tier, characteristic, keepers and reporting speed above, and `src/sim/lighthouses.ts` has the fixed and flashing lights, tier ranges (strong 6 km, medium 4.5 km, weak 3 km in the zone) and the lamp schedule. They are visual only until Phase 5 adds keepers and detection.
+- **Keepers watch (Phase 5 piece B):** all ten kept, lit stations in `lighthouses.json` (seven in the Apostles, the two Twin Ports pierheads, Two Harbors) are observers from their galleries, with the vigilance and dozing of §7.1's notes; the dark Minnesota Point tower has no keeper.
 - At **day**, a keeper is a normal observer with a high vantage point (long sight range in clear weather).
 - **Vigilance scales with regional Wanted:** at tier 3+ keepers watch more and signal faster.
 - **Devils Island in 1900** has a weak temporary light ([R1a snapshot](R1a-western-superior-gazetteer.md)), a historical blind spot.
@@ -212,6 +213,9 @@ One perception module serves keepers, guards, crews, the cutter lookout and mars
 
 - Each observer has a sight range (with or without a spyglass, from a vantage point) and accumulates a **detection meter**. Then come **spotted** (a vessel is there) and **identified** (profile match, which needs closer range, better light or longer observation).
 - The cutter or another hostile that has spotted you **locks chart travel** ([03 §5.4](03-world-scale-chart-travel.md)) until line of sight is broken (islands, fog, distance, night plus dark running).
+- **Built (Phase 5 piece B, 2026-11-04):** `src/sim/law/perception.ts` works the product as ranges in zone meters. The hull is made out to `ambient sight × tier × sails × silhouette × vantage × glass`, capped by fog and thinned by rain: 5 km by day, 300 m on a moonless night, about 2 km under a full moon, ×0.55 furled, ×1.2 for the T2, ×0.55–0.85 against a dark shore, ×1.6 in a light's glow, up to ×1.5 from a tower's gallery and ×1.6 with the cutter's glass. A lit lantern shows on its own out to 3 km once it's dark (less under a bright moon, and through fog only a little further than a hull), and lights her own deck (+30% on the hull at night). The meter fills to **spotted** in 4 s alongside at full alertness (about 30 s at the edge of sight), and on to **identified** only inside 40% of the hull range, over 6 s more; out of sight it falls back over about 40 s. A lantern seen alone is a light, not a schooner (identification `unknown`). Islands block the line of sight. `npm run bench:detection` prints the table across the moon's phases: past Raspberry light a dark T1 on a moonless night is seen from 430 m (never, 1 km off), lit under a full moon from 3.7 km.
+- **Observers** (`src/sim/law/observers.ts`, `src/gameplay/detection.ts`): every kept, lit light's keepers (vigilance 0.5 by day; at night 0.6–0.85 by the station's keepers, and a lone keeper dozes from 2 to 5 at 0.3 of that; ×1.35 at Wanted tier 3+), the crews of the zone's and arena's ships (0.35 at night, 0.55 by day, eye by class), and the *Morrill*'s lookout (0.9–1 with a glass). Raspberry's and Outer Island's flashing beams spot a ship at once when they sweep across her within 60% of their range. The smuggler's crew doesn't watch. Detection runs four times a second, about 0.02 ms a look.
+- **Witnesses for the law core:** `src/sim/law/witness.ts` is the seam with piece A: a `Witness` (kind, name, identification, a keeper's reporting speed, distance) and a `WitnessSource` that lists whoever has the ship in sight at spotted or better. Events `PlayerSpotted`, `PlayerIdentified` and `PlayerLostSight` carry them; the HUD's eye chip says "Watched by…", "Seen by…" or "Known to…" with the watcher's name.
 
 ### 7.2 On-foot detection
 Plan 08 details it: vision cones × light level (lamplight vs. shadow) × movement (crouch, walk, run) × noise events × snow tracks (winter). Recognition (personal identification) uses Fame, light and distance.
@@ -305,10 +309,146 @@ All resolved.
 | 2026-10-22 | **No disguise items**; recognition depends on Fame, light and distance. |
 | 2026-10-22 | Reaching a hideout **ends pursuit** (pursuers break off; the hideout may be spotted). |
 | 2026-10-22 | In the MVP, captures are held in Bayfield's lockup. |
+| 2026-11-04 | Sailing speed: raise both schooners about +35% now, with strong wind past 1.0, and tune in the playtest (§14.6). |
+| 2026-11-04 | Phase 5's crimes are the smuggling life: smuggler deals, contraband, hot goods offered to merchants and contract theft; piracy joins the same pipeline in Phase 6 (§14.6). |
+
+---
+
+## 14. Phase 5 Scope: Law, Fame & Wanted (2026-11-04)
+
+Phase 5 is the **Law, Fame & Wanted** build (version 0.5.0), with one goal from the [00 §7](00-master-plan.md) roadmap: **"heat has teeth."** Phase 4 built the honest front and the first of the hidden life behind it: the Stockton stash, the island smuggler, receivers who ask no questions, and contract cargo that can walk off. Every one of those raises an event that nothing listens to yet (`HotGoodsDetected`, `ContractStolen`). Phase 5 makes them cost something: a keeper on Raspberry Island sees your lantern alongside the smuggler at midnight, a report rows to Bayfield at dawn, the region goes Suspicious, and the next time the *Morrill* steams through the islands she pulls alongside and opens your hold.
+
+The scope comes from §11 above, the Phase 5 rows in plans 12 §11 (jail, bail, release summary, newspapers v1, death and the end screen), 13 §12 (Wanted indicator, report eye, tier-5 warning, jail screens, newspaper reader v1, end-of-run screen), 15 (Wanted and tier stingers, the cutter's whistle) and 16 §12 (the permadeath flow, `lastRun` and the end screen, the danger snapshot, the single-tab lock), plus what Phases 3 and 4 left for it (03 §20 piece F, 04 §5.4 storm flags, 05 §16.5 and §23.4) and Jared's doubts about sailing speed (05 §25.3).
+
+This section is the scope proposal. Like Phase 4's, its exit criteria (§14.3) become the phase's acceptance checklist once Jared approves them, and the playtest piece checks them.
+
+### 14.1 What Phases 3 and 4 change or put at risk
+
+| Finding | Source | Effect on Phase 5 |
+|---|---|---|
+| **There are almost no crimes to commit yet.** Piracy at sea is Phase 6 and theft on foot is Phase 7. Today the only crimes are smuggling (contraband or hot goods offered to a merchant, `HotGoodsDetected`) and stealing contract cargo (`ContractStolen`), and hot goods only exist through a dev command | 05 §22–23, 00 §7 | Phase 5 builds the law around **the smuggling life Phase 4 made**: dealing with the smuggler and carrying contraband become crimes a witness can see (decision 1, §14.6). Piracy plugs into the same pipeline in Phase 6. |
+| **The T1 can never outrun the *Morrill*.** The T1's `hullMaxSpeedKn` is 8 (T2: 9), `windStrengthFactor` is capped at 1.0, so 8 kn is the most she ever makes (about 8.6 with manual trim). The cutter steams at 12 kn in every wind. Plan 02 §10.1 and §11's acceptance both promise she's beatable on a broad reach in good wind | `data/ships.json`, 02 §3.5, 02 §10.1, §11 here | Sailing speed stops being a feel question and becomes a Phase 5 blocker. Piece G retunes it (decision 2), and it can start now. |
+| The *Morrill* already patrols the route graph, shows in arenas, and can hunt and "catch" you, but only behind `?cutter=hunt`. Caught ends the voyage with a "Boarded" notice and she lets you go | 03 §20 piece F, `src/sim/arena/encounter.ts` | Piece C swaps the dev flag for Wanted and real detection, and caught becomes an inspection or a capture (piece D). |
+| The lighthouses are built from `data/lighthouses.json` with tiers, characteristics, keepers and reporting speed, and `src/sim/lighthouses.ts` has the lamp schedule and the flash. They're visual only | §6.1, 14 §18 | Piece B gives the keepers eyes using the data that's already there. |
+| The Lantern key (L) is bound but does nothing, and the chandlery already sells lamp oil "for later" | `src/core/input.ts`, 05 §18.2 | Piece B wires the lantern: your own light, dark running, and lamp oil burned while it's lit. |
+| `ports.json` already gives each port a `wantedRegion`, but there's no `regions.json` and nothing for the zones' open water | `data/ports.json` | Piece A adds `regions.json` with the seven regions of §3.1 and maps zone areas and chart cells to them, so a crime at sea lands in the right region. |
+| Receivers take hot goods "with no law" and the smuggler's informant hint waits for Wanted | 05 §23.2, §23.4 | Piece E adds the informant risk: at tier 2+ a receiver may turn you in, and the smuggler's screen shows the risk. |
+| Nothing can kill the captain, so the permadeath notice, the end screen and the danger snapshot were left out | 05 §19.4, 12 §11 | Tier-5 capture means execution, so piece D builds death, the end screen and `lastRun`, and the danger snapshot (16 §4.3). |
+| Port storm flags were deferred here | 04 §5.4, 03 §28 | Small and on the same news rule as the forecast; folded into piece F with the papers. |
+| Marshals, posses on foot and the Bayfield lockup's jailbreak all need on-foot play | §5.3, §8.2, 08 §9 | Stubbed, as §11 already says: no marshals until Phase 7, jailbreak offered as "not yet" with the sentence instead. |
+
+### 14.2 What Phase 5 delivers
+
+Run whiskey out of the islands with your lantern doused on a moonless night and nobody's the wiser. Do it under a full moon in sight of Raspberry light, and the keeper's report lands in Bayfield at dawn; Chequamegon Bay goes Suspicious, a fine at the harbor master clears it, or you sail for Duluth until it cools. Push it, and the *Morrill* comes looking: she hails, fires a warning shot, and you either run for the shallows off Long Island on a broad reach, or heave to and lose the cargo and a few weeks in the Bayfield lockup. At the top tier the papers print WANTED, DEAD OR ALIVE, and capture means the rope.
+
+| Area | Deliverable | Plan |
+|---|---|---|
+| Law core | `crimes.json`, `wanted_tiers.json`, `fame_tiers.json`, `regions.json`, `law_actors.json`. The crime pipeline (crime, witness, identification, a report that travels, heat). Regional Wanted with tiers and decay. Fame with decay. The ship profile (no disguise). Standing hits for identified crimes | §2–4, §10 |
+| Detection at sea | One perception module: detectability from the ship, the lantern, daylight and the moon, fog and rain, silhouette and sails; observers with sight ranges and detection meters (keepers, ship crews, the cutter's lookout); spotted vs. identified | §7.1 |
+| Lighthouses watch | Keepers with watch schedules and vigilance by tier, their reports by `lighthouses.json`'s reporting speed | §6.1 |
+| Lantern and dark running | L toggles your lantern, lamp oil burns while it's lit, and dark running at night lowers detection (and risks collision with traffic, a warning only) | 02 §2, §7.1 |
+| The *Morrill* | Her abstract schedule weighted by Wanted, coaling at Duluth, her patrol in zones and arenas, inspections (never at tier 0), pursuit (hail, warning shot, disabling fire on the rigging), the shallows she can't follow, shelter in gales. The tier-5 chartered tug as a second hunter | §5.1 |
+| Port law | Bribes and fines at a harbor master's tab on the port screen, the docking check at tier 2+, posters, receivers who can inform | §3.3, §5.2 |
+| Capture | Surrender at sea, jail (cargo and cash confiscated, the sentence skips time, the ship impounded with a fee), bail from the stash by "send word", execution at tier 5 with the jailbreak stubbed | §8 |
+| Death and the run's end | The end screen with a front page and run summary, `lastRun`, deleting the run, the danger snapshot, the single-tab lock, the permadeath notice on character creation | 12 §11, 16 §4, §12 |
+| UI | Regional Wanted indicator, the report eye with its timer, the tier-5 warning (icon, full-screen front page, a confirm before entering the harbor), jail and release screens, the Fame tier in the ledger | 13 §12 |
+| Newspapers v1 | Templated headlines from events in the four papers, readable at the port, the WANTED column, cutter sightings, Respectable Captain Fame, port storm flags | §9, 12 §11, 04 §5.4 |
+| Sailing speed | A tuning pass so the schooners are quick enough to feel good and to beat the cutter on a broad reach in good wind | 02 §3, §10.1 |
+| Audio | Wanted tier stingers, the cutter's whistle and engine, the bow gun, the lockup | 15 |
+| Saves | Law, Fame, report and jail slices in save v7, a v6 migration (0.4.0 saves are v6) | 16 §12 |
+
+**Out of scope:** cannons, boarding, surrender of other ships, sinking and fences beyond the smuggler (Phase 6); on foot, the docks district, constables on foot, marshals and posses, the jailbreak scenario and lighthouse raids or dousing (Phase 7); false lights, wrecking and wreck investigations (Phase 9); harbor launches (§14.5); and §12's cut list as it stands (bounty hunters, keeper bribery, investigations, the impound mini-heist), with heat spread kept in (§14.5).
+
+### 14.3 Exit criteria (proposed)
+
+Phase 5 is done when these pass on the baseline laptop and Jared signs off the playtest. The first six are §11's acceptance; the last two come from plan 17's definition of done.
+
+| # | Criterion | How it's checked |
+|---|---|---|
+| 1 | A crime with no witnesses produces no Wanted | A pipeline unit test; dealing with the smuggler on a moonless night, dark, away from any light |
+| 2 | The same crime in view of a keeper produces a delayed report with the eye and its timer showing, and intercepting it (overtaking the keeper's boat before it reaches town) prevents the heat | A unit test on report ETAs; a playtest route at Raspberry light |
+| 3 | Fleeing to another region escapes petty heat, but not the heaviest crimes (spread) | A unit test with crimes of each size; Phase 5's heaviest crime is the stand-in until Phase 6 adds sinking |
+| 4 | Running dark on a moonless night past a lighthouse is noticeably safer than with a lantern under a full moon | A detection bench across the moon's phases, lantern on and off; by eye |
+| 5 | The cutter can't follow into shallows, and the T1 can beat her on a broad reach in good wind | The sailing bench after piece G; an arena chase with `?encounter=cutter` |
+| 6 | The tier-5 state is unmistakable before capture can happen | The tier-5 warning shows on the HUD, the chart and a full-screen front page, and the harbor asks first |
+| 7 | The cutter never inspects you at tier 0, and inspects at tier 1+ with contraband found and confiscated by the hidden-compartment odds | A unit test; a playtest route |
+| 8 | Captured below tier 5: cargo and cash taken, the sentence skips game days, the ship comes back for a fee, heat drops to tier 1. Bail from the stash gets you out early. Captured at tier 5: the end screen, and the run is gone | An e2e test through the dev hooks for each; a save inspection |
+| 9 | Closing the tab mid-chase doesn't escape it: the reload lands on the danger snapshot | An e2e test |
+| 10 | Bribes and fines clear heat as §3.3 says, and decay brings petty heat back to Clean over a few game weeks away from the region | A unit test; the ledger in play |
+| 11 | Newspapers print headlines from what happened (your crimes, your honest feats, cutter sightings) and Fame moves with them | A unit test on the templates; read in port |
+| 12 | A 0.4.0 save loads into 0.5.0 Clean everywhere at its saved place, and the save stays under the plan 16 budget | `tests/save-migrations.test.ts` with a v6 fixture; the S6 bench |
+| 13 | Detection and the law tick stay inside the frame and tick budgets with traffic in every zone (Phase 4's numbers) | `/bench/stream/` per zone; a sim bench |
+| 14 | Smuggling has real risk and the law feels fair: you can see why you were caught | Jared decides |
+| 15 | Plans 02, 06, 12, 13, 15 and 16 record what was built, CI is green, and 0.5.0 is tagged | The release PR |
+
+### 14.4 Work pieces
+
+Nine pieces, each sized to be one thread. Three can start at once (A, B and G). The playtest (I) closes the phase.
+
+| Stage | Pieces |
+|---|---|
+| 1, start now | A law core, B detection and the lantern, G sailing speed |
+| 2 | C the *Morrill* (after A, B, G), D capture, jail and death (after A), E port law and the Wanted HUD (after A) |
+| 3 | F newspapers and Fame (after A, E), H law audio (after C, D) |
+| 4 | I playtest |
+
+| # | Piece | Scope | Needs first | Needs Jared |
+|---|---|---|---|---|
+| A | Law core | `crimes.json` (heat, flags), `wanted_tiers.json`, `fame_tiers.json`, `regions.json` (the seven regions with zone areas and chart cells), `law_actors.json`. The `wanted`, `fame`, `profiles`, `reports` and `jail` slices of §10 in save v7 with a v6 migration. The pipeline of §2.1: `CrimeCommitted`, witnesses, identification by observation quality, reports with ETAs by witness kind (§2.4), `ReportFiled` adding heat × identification. Decay by tier and absence, spread at the top crimes (§3.4). `HotGoodsDetected` and `ContractStolen` become crimes, plus the decision 1 crimes. Identified crimes lower Standing. A dev panel to commit, witness and file crimes and set tiers | — | — |
+| B | Detection at sea and the lantern | The perception module of §7.1 as pure functions with a bench: detectability from ship tier, lantern, light level (sun and the moon's phase), weather visibility, silhouette and sails; observers accumulate a meter to spotted, then identified. Keepers as observers from `lighthouses.json` (watch hours, dozing before dawn, vigilance by tier); ship crews in traffic as observers; the cutter's lookout. L toggles your lantern with a light on the ship and the HUD icon (02 §2), burning lamp oil. Feeds A's witnesses through an interface so B can start now | — (A's witness interface) | Night feel |
+| C | The *Morrill* | Her schedule weighted by regional Wanted on the route graph (§5.1), coaling at Duluth, sheltering in gales. Encounters forced by Wanted and detection in place of `?cutter=hunt`. In zones and arenas: patrol, inspection (pull alongside at tier 1+, search the hold, confiscate contraband and hot goods; hidden compartments lower the odds), pursuit (hail, warning shot, disabling fire on rigging only, no sinking unless fired on), the shallows she won't enter by draft, breaking line of sight by islands and fog, the chart lock from real detection. Surrender hands off to D. The tier-5 chartered tug with deputies | A, B, G | Chase feel |
+| D | Capture, jail and the run's end | Surrender and capture at sea. The jail screen: confiscation, a sentence by heat in weeks skipped as game days, the impound fee, heat reset to tier 1, the release summary (12 §8). Bail from the stash by "send word" (a fee and a delay). The jailbreak offered as stubbed. Execution at tier 5. Death and the end screen with a front page, run summary and logbook export; `lastRun`; deleting the run (16 §3). The danger snapshot and the single-tab lock (16 §4). The permadeath notice on character creation | A | End screen look |
+| E | Port law and the Wanted HUD | A harbor master tab on the port screen: fines at tiers 1–2, bribes by heat (not at tier 5; the Saloon Keeper's perk lowers them). At tier 2+ docking means a check of the hold. WANTED posters on the port screen. Receivers may inform at tier 2+ and the smuggler shows the risk (05 §23.4). The HUD's regional Wanted indicator, the report eye with its timer, the tier-5 warning (HUD, chart, a confirm before the harbor). Fame in the ledger | A | Indicator look |
+| F | Newspapers v1 and Fame | The four papers' headlines templated from events, exaggerated by Fame, a few days late; the paper on the port screen with the WANTED column, cutter sightings and the weather outlook. Fame gains from headlines (and Respectable Captain feats), decay after a grace period, the extra ~10% heat. Port storm flags on the forecast rule (04 §5.4). The tier-5 full-screen front page | A, E | Paper look |
+| G | Sailing speed | Measure first: top speeds by point of sail and wind on the sailing bench, crossing times across each zone and on the chart, against the cutter's 12 kn and traffic's speeds. Then raise it (decision 2, decided): about +35% on `hullMaxSpeedKn` for the T1 and T2 and a `windStrengthFactor` above 1.0 in strong wind, so the T1 on a broad reach in good wind beats the cutter's 12 kn; the playtest tunes it. Re-check what depends on speed: chart voyage times, the encounter budget, arena sizes, docking. Plan 02 updated | — | Feel, sign-off on the numbers |
+| H | Law audio | Tier change stingers, the cutter's whistle, engine and bell, the warning shot and bow gun, the lockup door and the release, the paper boy's shout in port. Every file in `CREDITS.md` | C, D | Listen by ear |
+| I | Phase 5 playtest | The §14.3 scenarios, the benches, plans updated, tag 0.5.0 | All | Playtest, sign-off |
+
+### 14.5 Smaller calls assumed (Jared can override)
+
+- **No harbor launches in Phase 5.** §5.2 puts them in Duluth, Superior and Ashland; the cutter is the law at sea for now, and launches come with those docks districts in Phase 7.
+- **Heat spread stays in** (§3.4, against cut list item 4). It's small once the papers exist, and criterion 3 needs it.
+- **Marshals, constables on foot and the jailbreak are stubbed** until Phase 7. Port law is the harbor master's tab and the docking check.
+- **Running dark is not itself a crime** (the 1900 rules of the road did require lights, but a ticket for it would punish the stealth the game is built on). It only lowers what watchers see and raises the risk of collision in traffic, with a warning when a ship is close.
+- **The cutter only shoots rigging,** and never sinks you unless you fire on her, which you can't until Phase 6.
+- **Jail time is game days skipped,** so a three-week sentence passes while the world ticks (prices, traffic, decay), shown on the release screen.
+- **The hold search uses the existing contraband detection odds** (05 §23), raised by tier, so smuggling's numbers stay tuned in one place.
+
+### 14.6 Decisions for Jared
+
+1. **What crimes can you commit in Phase 5?** **Decided 2026-11-04: the smuggling life.** Plan 06 assumed piracy, theft and lighthouse raids to watch for, and none of them exist until Phases 6–7.
+   - **The smuggling life (recommended):** dealing with the smuggler, carrying contraband in view of the cutter, offering hot goods to a merchant and stealing contract cargo are the crimes. Keepers, crews and the cutter witness the first two at sea; merchants and the freight agent the others. Hot goods stay a dev command until Phase 6. Phase 5 is complete on its own and Phase 6's piracy drops into the same pipeline.
+   - **Also pull one piracy crime forward:** add a no-guns hold-up (run down a fish tug or a barge, demand her cargo, she gives it up under the threat). More crimes to see now, but it's a slice of Phase 6's surrender rules built early and rebuilt there.
+   - **Swap Phases 5 and 6:** piracy first, so the law arrives with real crimes. The cutter's chase and Wanted wait another phase.
+2. **How should the sailing speed pass go?** **Decided 2026-11-04: just raise it now** (about +35% on both schooners' `hullMaxSpeedKn`, strong wind past 1.0, tuned in the playtest). The T1 tops out at 8 kn and the cutter steams at 12.
+   - **Measure, then tune with sliders (recommended):** piece G benches what she does now, proposes faster numbers (around 11 kn for the T1 and 12–13 for the T2 on a broad reach in a strong breeze, the cutter a steady 10–11 with 12 only in a flat calm), and gives you dev sliders to try in play before anything's committed.
+   - **Just raise it now:** about +35% on `hullMaxSpeedKn` for both schooners and let strong wind push past 1.0, then tune in the playtest.
+   - **Slow the cutter instead:** leave the schooners as they are and drop the *Morrill* to about 8–9 kn so she's beatable. Doesn't touch your doubts about how sailing feels.
+
+### 14.7 Housekeeping found along the way
+
+- The 0.4.0 tag is on GitHub, on the sign-off merge (`ee05aae`), so nothing is left to push for it. Wait in port and at anchor (PR #73) is merged.
+- The master plan's §11 Next Steps still lists Phase 0 work (noted in 05 §16.7 too).
+- `encounter.ts`'s dev ships hard-code their speeds (the cutter's 12 kn among them) beside `data/ships.json`; piece G should read them from the data so a retune lands everywhere.
+- Plan 17 wants a tracking issue per phase with the acceptance checklist; §14.3 can become it once approved.
+
+### 14.8 Built: piece A, the law core (2026-11-04)
+
+- **Data:** `crimes.json` (§2.2's table with each crime's phase; the Phase 5 crimes are `crime.smuggler_deal`, `crime.contraband`, `crime.hot_goods` and `crime.contract_theft`, plus `traced`, `news`, Standing and Fame per crime), `wanted_tiers.json` (§3.2's tiers with decay per game hour, the identification factors, the grace period and spread rules), `fame_tiers.json`, `law_actors.json` (report delays by witness kind and keeper `reporting`, the cutter's coaling port and tiers, the tier-5 tug) and `regions.json` (the seven regions, each with lon/lat areas, an anchor, a seat port and its neighbors). Ashland moved to `region.ashland` in `ports.json`, as §3.1 decided. South Shore West has no port yet, so its reports have no seat.
+- **Regions at sea:** a point belongs to the first region whose area holds it, in file order, or else the region whose anchor is nearest, so open lake always has a region. The areas split Bayfield's shore (Chequamegon Bay) from Madeline Island (Apostle Islands) down the channel at 90.803° W. This one lookup serves zone poses, chart positions and the player's place (`src/sim/law/regions.ts`), so "chart cells" (§14.4) weren't needed.
+- **The pipeline** (`src/sim/law/law.ts`): `commitCrime` with no witnesses raises `CrimeCommitted` and nothing else. Each witness carries its own report with an ETA by kind (a slow keeper waits for dawn after 20:00, the cutter files at once), seeded by the run so a reload gives the same delays. A filed report adds heat × its identification factor less what earlier reports on the same crime added, so two witnesses never count a crime twice; "someone did it" only raises the region's `alert`. A report on a hull you've since replaced only describes "a schooner". The first report that names you (ship or person) costs Standing in the port (or the region's seat) and brings the crime's Fame. `interceptReport` stops one on its way.
+- **Over time** (the world tick): reports land, a newsworthy crime's news reaches the neighbors 12 game hours after it's filed at 30% (+5% per Fame tier), heat decays by tier, a quarter as fast while you're in the region and not at all for 12 game hours after heat lands, and a region that reached tier 4 won't decay below tier 3. Fame fades 2% a game day after three quiet days (1% for legends). Petty heat (up to tier 1) is Clean again after about two game days away.
+- **Phase 4's crimes:** a merchant who finds out a hot lot (`HotGoodsDetected`) is selling hot goods, a contraband lot is smuggling, both named to you and reported within the hour. `ContractStolen` is always traced through the freight agent and is Phase 5's crime that spreads (the company's agents up and down the lake hear of it), standing in for sinking until Phase 6. `SmugglerDealt` is one crime a night at her anchorage's region, seen by whoever the witness source returns. A shipyard purchase is a new hull: the heat tied to the old ship goes.
+- **The seam with piece B:** `src/sim/law/witness.ts` holds `Witness`, `WitnessKind`, `Identification` and `WitnessSource`. The game's law has `witnesses: WitnessSource`, which `main.ts` sets to piece B's detection, so a smuggler deal is seen by the keepers, crews and lookouts watching at that moment. Piece C commits `crime.contraband` through the same `commit` when her hold search finds it.
+- **Save v7** adds the top-level `wanted`, `fame`, `profiles` (the ship's hull number, class and name), `reports` (`inProgress` and the open crimes they're about) and `jail` (null; piece D fills it). A 0.4.0 save loads Clean everywhere where it was saved.
+- **Dev:** the overlay's Law folder shows heat and tier per region, Fame, the reports on their way and the last law event, and commits a crime with a chosen witness, files every report now, intercepts the next one and sets a region's tier. `__glpLaw` does the same from the console.
+- **Not in piece A:** personal recognition is worked out from Fame rather than stored; the per-region alert has no effect until pieces B and C read it; bribes and fines (piece E) and jail (piece D) will use `setHeat`, which also resets the tier-4 floor.
 
 ---
 
 ## Changelog
+- v0.6: Phase 5 piece A built (§14.8): crimes, tiers, regions and law actors data, the crime pipeline, save v7.
+- v0.5: Phase 5 scope proposal (§14): what Phases 3–4 change, deliverables, exit criteria, nine pieces, smaller calls and two decisions (what crimes exist, the sailing speed pass).
 - v0.4: Phase 2 piece F: lights built from `data/lighthouses.json` ([14 §18](14-art-direction-asset-pipeline.md)); visual only.
 - v0.3: Gap review: seven Wanted regions, Respectable Captain Fame, no disguise items, hideouts end pursuit, bail source from 12, MVP lockup at Bayfield, light characteristics and the Duluth life-saving station researched.
 - v0.2: Decisions: six tiers, heat spread, no inspections at tier 0, no ship disguise (only replacing the ship), one jailbreak before execution, copycat rivals; removed company guards and the bank freeze.

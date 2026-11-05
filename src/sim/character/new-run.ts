@@ -105,6 +105,7 @@ export function createNewRun(input: NewRunSetup): WorldState {
     background: setup.background,
     portrait: setup.portrait,
   };
+  state.profiles.ship.name = setup.shipName;
   state.player.purse = def.purseCents;
   state.player.cargo = def.cargo.map((c) => ({ good: c.good, qty: c.qty }));
   state.player.location = { mode: 'zone', zoneId: startingPort(setup.background).zoneId };

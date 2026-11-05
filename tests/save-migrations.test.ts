@@ -176,3 +176,29 @@ describe('v4 → v5: the economy joins the save (plan 05 §16, Phase 4 piece A)'
     expect(state.markets['port.ashland']?.['good.lumber']?.stock).toBeGreaterThan(0);
   });
 });
+
+describe('v6 → v7: the law joins the save (plan 06 §10, Phase 5 piece A)', () => {
+  const v6 = (): Fixture =>
+    JSON.parse(readFileSync(join(fixturesDir, 'v6.json'), 'utf8')) as Fixture;
+
+  it('loads a 0.4.0 run Clean everywhere at its saved place', () => {
+    const before = v6().state;
+    const state = parseWorldState(migrateSave(v6().state, 6));
+    expect(state.wanted).toEqual({});
+    expect(state.fame).toEqual({ value: 0 });
+    expect(state.reports).toEqual({ nextId: 1, inProgress: [], crimes: [] });
+    expect(state.jail).toBeNull();
+    expect(state.profiles.ship.hull).toBe(1);
+    const captain = (before['player'] as { captain: { shipName: string } }).captain;
+    expect(state.profiles.ship.name).toBe(captain.shipName);
+    expect(state.player.location).toEqual((before['player'] as { location: unknown }).location);
+    expect(state.environment).toEqual(before['environment']);
+  });
+
+  it('a v7 save keeps its heat and the report on its way', () => {
+    const fixture = JSON.parse(readFileSync(join(fixturesDir, 'v7.json'), 'utf8')) as Fixture;
+    const state = parseWorldState(migrateSave(fixture.state, 7));
+    expect(state.wanted['region.apostles']?.heat).toBe(20);
+    expect(state.reports.inProgress[0]?.witness.kind).toBe('keeper');
+  });
+});

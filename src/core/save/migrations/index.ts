@@ -13,7 +13,7 @@ import { Rng, type RngState } from '../../rng';
 export type SavePayload = Record<string, unknown>;
 export type Migration = (state: SavePayload) => SavePayload;
 
-export const CURRENT_SAVE_VERSION = 6;
+export const CURRENT_SAVE_VERSION = 7;
 
 /** Hours of weather a migrated save catches up on at load, like a new run's spin-up. */
 const WEATHER_SPIN_UP_HOURS = 48;
@@ -97,10 +97,40 @@ function addKnowledge(state: SavePayload): SavePayload {
   return { ...state, player: { ...player, stores: {} }, knowledge: { prices: {} } };
 }
 
+/**
+ * v6 → v7 (plan 06 §10, Phase 5 piece A): the law joins the save. A 0.4.0 run is Clean in
+ * every region and unknown, on her first hull as the law knows it, with no reports on
+ * their way and out of jail. Phase 4's crimes raised events nothing heard, so there's
+ * nothing to carry over.
+ */
+function addLaw(state: SavePayload): SavePayload {
+  const player = (state['player'] ?? {}) as SavePayload & {
+    captain?: { shipName?: string };
+    ship?: { classId?: string };
+  };
+  const env = (state['environment'] ?? {}) as { clock?: { gameSeconds?: number } };
+  return {
+    ...state,
+    wanted: {},
+    fame: { value: 0 },
+    profiles: {
+      ship: {
+        hull: 1,
+        classId: player.ship?.classId ?? 'ship.t1_schooner',
+        name: player.captain?.shipName ?? 'Schooner',
+        since: env.clock?.gameSeconds ?? 0,
+      },
+    },
+    reports: { nextId: 1, inProgress: [], crimes: [] },
+    jail: null,
+  };
+}
+
 export const migrations: Readonly<Record<number, Migration>> = {
   1: addWeather,
   2: addLocation,
   3: addVoyage,
   4: addEconomy,
   5: addKnowledge,
+  6: addLaw,
 };
