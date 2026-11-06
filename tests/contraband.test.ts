@@ -296,6 +296,56 @@ describe('offering a lot (piece H)', () => {
   });
 });
 
+describe('a trade-only port (Red Cliff; plan 05 §4.2, R1 §5)', () => {
+  const port = 'port.red_cliff';
+  const cargo = (): Hold => [
+    { good: 'good.untaxed_whiskey', qty: 6 },
+    hot('good.furs', 2, 'region.apostles'),
+  ];
+
+  it('takes no hot goods or contraband, and nothing comes of the offer', () => {
+    expect(portInfo(port)?.tradeOnly).toBe(true);
+    expect(portInfo('port.bayfield')?.tradeOnly).toBe(false);
+    for (let i = 0; i < 50; i++) {
+      const state = createWorldState(`trade-only-${i}`);
+      state.player.cargo = cargo();
+      state.player.purse = 0;
+      const memory: MerchantMemory = { refusals: {}, receivers: [] };
+      for (const index of [0, 1]) {
+        expect(
+          offerLot(defs, state.markets, state.player, memory, port, index, 0, `t${i}`),
+        ).toEqual({
+          ok: false,
+          reason: 'tradeOnly',
+        });
+      }
+      // Nothing sold, confiscated or remembered: no heat, no receiver, no refusal.
+      expect(state.player.cargo).toEqual(cargo());
+      expect(state.player.purse).toBe(0);
+      expect(memory).toEqual({ refusals: {}, receivers: [] });
+    }
+  });
+
+  it('shows the market and the ledger and no Offer button', () => {
+    const state = createWorldState('trade-only-screen');
+    state.player.cargo = cargo();
+    const snap = portSnapshot({
+      defs,
+      markets: state.markets,
+      knowledge: {},
+      trader: state.player,
+      capacity: 20,
+      load01: 0,
+      cargoSpeedLoss: 0.2,
+      port,
+      gameSeconds: 0,
+    });
+    expect(snap.tabs).toEqual(['market', 'ledger']);
+    expect(snap.hold.length).toBe(2);
+    for (const h of snap.hold) expect(h.offer).toBeUndefined();
+  });
+});
+
 describe('receivers: a merchant who has taken a lot keeps taking them (piece H)', () => {
   /** A Bayfield sale that goes through on the first try, and its run seed. */
   const firstSale = (cargo: () => Hold) => {

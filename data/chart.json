@@ -74,13 +74,6 @@
     "zone": "zone.apostles"
   },
   {
-    "id": "port.bad_river",
-    "kind": "port",
-    "name": "Bad River landing",
-    "at": [-90.655, 46.646],
-    "zone": "zone.apostles"
-  },
-  {
     "id": "light.duluth_breakwater",
     "kind": "light",
     "name": "Duluth South Breakwater (temporary)",

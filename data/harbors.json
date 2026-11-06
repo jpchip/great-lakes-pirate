@@ -922,5 +922,74 @@
       "maxStepM": 4.5,
       "seed": 1884
     }
+  },
+  {
+    "id": "harbor.red_cliff",
+    "name": "Red Cliff",
+    "setPiece": "setpiece.red_cliff",
+    "piers": [
+      {
+        "id": "pier.red_cliff_dock",
+        "name": "Dock",
+        "kind": "city",
+        "alongM": 0,
+        "inlandM": 20,
+        "lengthM": 45,
+        "widthM": 7,
+        "deckM": 1.5
+      }
+    ],
+    "buildings": [
+      {
+        "kind": "warehouse",
+        "name": "Warehouse",
+        "alongM": 32,
+        "inlandM": 24,
+        "widthM": 12,
+        "depthM": 20,
+        "heightM": 6
+      },
+      {
+        "kind": "store",
+        "name": "Trading store",
+        "alongM": -24,
+        "inlandM": 34,
+        "widthM": 10,
+        "depthM": 13,
+        "heightM": 6.5
+      },
+      {
+        "kind": "fishShed",
+        "alongM": 66,
+        "inlandM": 12,
+        "widthM": 8,
+        "depthM": 7,
+        "heightM": 3.5
+      },
+      {
+        "kind": "fishShed",
+        "alongM": 88,
+        "inlandM": 18,
+        "widthM": 8,
+        "depthM": 7,
+        "heightM": 3.5
+      },
+      {
+        "kind": "fishShed",
+        "alongM": -52,
+        "inlandM": 14,
+        "widthM": 7,
+        "depthM": 7,
+        "heightM": 3.2
+      }
+    ],
+    "town": {
+      "houses": 12,
+      "alongM": [-90, 120],
+      "inlandM": [45, 95],
+      "maxGroundM": 10,
+      "maxStepM": 4.5,
+      "seed": 1856
+    }
   }
 ]

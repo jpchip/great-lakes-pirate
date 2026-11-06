@@ -194,7 +194,6 @@ describe('placing lights on land', () => {
     expect(c).toMatchObject({ x: 100, z: -50 });
     expect(c.halfAlong).toBeGreaterThan(15);
   });
-
 });
 
 describe('the kit', () => {
@@ -245,11 +244,11 @@ describe('the lights on the Apostles zone', () => {
       expect(zone.terrain.contains(p.x, p.z), p.def.id).toBe(true);
       for (const [lx, lz] of stationFootprintProbes(p.def)) {
         const w = stationOffsetWorld(p.seaward, lx, lz);
-        const minH =
-          p.def.id === 'light.lapointe' || p.def.id === 'light.chequamegon' ? 0.15 : 1.5;
-        expect(zone.terrain.heightAt(p.x + w.x, p.z + w.z), `${p.def.id} @ ${lx},${lz}`).toBeGreaterThanOrEqual(
-          minH,
-        );
+        const minH = p.def.id === 'light.lapointe' || p.def.id === 'light.chequamegon' ? 0.15 : 1.5;
+        expect(
+          zone.terrain.heightAt(p.x + w.x, p.z + w.z),
+          `${p.def.id} @ ${lx},${lz}`,
+        ).toBeGreaterThanOrEqual(minH);
       }
     }
   });

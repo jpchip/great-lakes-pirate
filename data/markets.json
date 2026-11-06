@@ -62,5 +62,26 @@
       "good.rope_canvas"
     ],
     "absent": ["good.iron_ore", "good.brownstone", "good.copper", "good.grain"]
+  },
+  {
+    "id": "market.red_cliff",
+    "port": "port.red_cliff",
+    "size": "tiny",
+    "exports": [
+      "good.fresh_fish",
+      "good.salted_fish",
+      "good.maple_sugar",
+      "good.wild_rice",
+      "good.furs"
+    ],
+    "imports": ["good.flour", "good.dry_goods", "good.hardware", "good.kerosene"],
+    "absent": [
+      "good.iron_ore",
+      "good.brownstone",
+      "good.copper",
+      "good.grain",
+      "good.coal",
+      "good.whiskey"
+    ]
   }
 ]
