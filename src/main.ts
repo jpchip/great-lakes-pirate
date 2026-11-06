@@ -893,6 +893,8 @@ async function boot(): Promise<void> {
         state: ctx.state,
         events: ctx.events,
       });
+      const { createJumpPanel } = await import('./debug/jump-panel');
+      createJumpPanel({ gui: overlay.gui, save: saveControls });
       view = {
         render(alpha, seaTime, frameSeconds) {
           drawn.render(alpha, seaTime, frameSeconds);
