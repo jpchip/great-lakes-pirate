@@ -1855,7 +1855,7 @@ async function boot(): Promise<void> {
     if (ports.journalOpen) ports.closeJournal();
   });
   machine.register(chartTravel.mode);
-  /** Is the ship inside a harbor set piece, where the chart can't be opened? */
+  /** Is the ship inside a harbor set piece, where the chart opens only as a look? */
   const inHarbor = (): boolean =>
     !!setPieceAt(zoneData, zoneFrame(zone, zoneData), {
       x: sailing.state.x,
