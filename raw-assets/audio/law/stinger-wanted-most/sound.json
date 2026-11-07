@@ -1,0 +1,11 @@
+{
+  "id": "music.stinger.wanted-most",
+  "name": "stinger-wanted-most",
+  "description": "Wanted stinger, most wanted (tier 5): a deep bell tolls three times over a muffled roll",
+  "kind": "oneshot",
+  "bus": "music",
+  "bundles": [
+    "law-audio"
+  ],
+  "source": "source.flac"
+}

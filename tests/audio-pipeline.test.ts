@@ -11,6 +11,7 @@ import {
 import { WORLD_SOUND } from '../src/audio/world-audio';
 import { HARBOR_AUDIO_BUNDLE, HARBOR_SOUND } from '../src/audio/harbor-audio';
 import { PORT_AUDIO_BUNDLE, PORT_SOUND } from '../src/audio/port-audio';
+import { LAW_AUDIO_BUNDLE, LAW_SOUND, LAW_WHISTLE } from '../src/audio/law-audio';
 import {
   CHART_AUDIO_BUNDLE,
   CHART_MUSIC_BUNDLE,
@@ -196,6 +197,19 @@ describe('shipped sounds (plan 15 §3.2, §8)', () => {
     expect(bytes).toBeLessThanOrEqual(512 * 1024);
   });
 
+  it("has the law's sounds, and the whistles she hails with (Phase 5 piece H)", () => {
+    const law = manifest.bundles[LAW_AUDIO_BUNDLE] ?? [];
+    const { stinger, ...rest } = LAW_SOUND;
+    for (const id of [...Object.values(stinger), ...Object.values(rest)]) {
+      expect(law, id).toContain(id);
+    }
+    const world = manifest.bundles[WORLD_AUDIO_BUNDLE] ?? [];
+    for (const w of Object.values(LAW_WHISTLE)) expect(world, w.soundId).toContain(w.soundId);
+    // Small: they decode up front with the rest.
+    const bytes = law.reduce((s, id) => s + (manifest.assets[id]?.bytes ?? 0), 0);
+    expect(bytes).toBeLessThanOrEqual(512 * 1024);
+  });
+
   it('keeps the initial audio download within 5 MB, music streaming on top', () => {
     const size = (bundle: string): number =>
       (manifest.bundles[bundle] ?? []).reduce(
@@ -209,6 +223,7 @@ describe('shipped sounds (plan 15 §3.2, §8)', () => {
       CHART_AUDIO_BUNDLE,
       HARBOR_AUDIO_BUNDLE,
       PORT_AUDIO_BUNDLE,
+      LAW_AUDIO_BUNDLE,
     ];
     const streamed = [MUSIC_BUNDLE, CHART_MUSIC_BUNDLE];
     expect(size(SAILING_AUDIO_BUNDLE) + size(WORLD_AUDIO_BUNDLE)).toBeLessThanOrEqual(

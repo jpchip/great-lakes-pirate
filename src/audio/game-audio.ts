@@ -15,6 +15,9 @@ import {
 } from './chart-audio';
 import { CaptionFeed, type CaptionView } from './captions';
 import { HARBOR_AUDIO_BUNDLE, HarborWorks } from './harbor-audio';
+import { LAW_AUDIO_BUNDLE, LawSounds, type LawShipId, type LawShipView } from './law-audio';
+import { isLawShip } from '../gameplay/law-at-sea';
+import { TUG_ID } from '../gameplay/law-ships';
 import type { WorkSite } from './harbor-mix';
 import { PORT_AUDIO_BUNDLE, TradeCues } from './port-audio';
 import { AudioMixer, placeListener, unlockAudio, type AudioPoint, type AudioState } from './mixer';
@@ -33,7 +36,8 @@ import { fogMix, musicMood, type MusicMood } from './world-mix';
  * (Phase 3 piece J), open-water music, and on the chart its theme and the encounter
  * stingers, with the fade-to-fog sound under each loading screen (piece J, part 2);
  * since Phase 4 piece J, the harbors at work, the trade sounds at the port screen, and
- * captions for the fog signals and whistles.
+ * captions for the fog signals and whistles; since Phase 5 piece H, the law: Wanted
+ * stingers, the cutter's whistle, engine, bell and gun, and the lockup's door.
  */
 
 export const SAILING_AUDIO_BUNDLE = 'sailing-audio';
@@ -61,6 +65,7 @@ export interface GameAudio {
   chartCues: ChartCues;
   harbor: HarborWorks;
   trade: TradeCues;
+  law: LawSounds;
   captions: CaptionFeed;
   /** The captions showing now, with arrows from the listener's view (plan 15 §5). */
   captionsNow(): CaptionView[];
@@ -95,6 +100,8 @@ export interface GameAudioOptions {
   harbors?: readonly { x: number; z: number }[];
   /** Where the harbors are heard at work (Phase 4 piece J). */
   sites?: readonly WorkSite[];
+  /** The player's Wanted region now, for which tier falls get a stinger (piece H). */
+  region?: () => string | undefined;
   /** Show captions for directional cues (Settings → Sound); on by default. */
   captions?: boolean;
   /** Each lock-state change, e.g. for a "click to enable sound" hint. */
@@ -129,6 +136,7 @@ export async function createGameAudio(options: GameAudioOptions): Promise<GameAu
         CHART_AUDIO_BUNDLE,
         HARBOR_AUDIO_BUNDLE,
         PORT_AUDIO_BUNDLE,
+        LAW_AUDIO_BUNDLE,
       ],
       baseUrl,
     ),
@@ -145,6 +153,8 @@ export async function createGameAudio(options: GameAudioOptions): Promise<GameAu
   const harbor = new HarborWorks(mixer, bank);
   harbor.setSites(options.sites ?? []);
   const trade = new TradeCues(mixer, bank);
+  const law = new LawSounds(mixer, bank);
+  law.captions = captions;
   const records = new Map(SHIP_RECORDS.map((r) => [r.id, r]));
   const whistleShips: WhistleShip[] = [];
   const players: Partial<Record<Exclude<MusicMood, 'quiet'>, MusicPlayer>> = {};
@@ -160,6 +170,8 @@ export async function createGameAudio(options: GameAudioOptions): Promise<GameAu
       : undefined,
   );
   const chartCues = new ChartCues(mixer, bank, chartMusic);
+  law.chartStinger = (id, delay) => chartCues.stinger(id, delay);
+  law.duckChart = (seconds) => chartMusic.duck(seconds);
   const running = (): boolean => ctx.state === 'running';
   game.events.on('EncounterSpotted', (e) => {
     if (running()) chartCues.stinger(stingerFor(e));
@@ -173,6 +185,38 @@ export async function createGameAudio(options: GameAudioOptions): Promise<GameAu
   });
   game.events.on('StoresBought', ({ totalCents }) => {
     if (running()) trade.paid(totalCents);
+  });
+  game.events.on('HarborMasterPaid', ({ cents }) => {
+    if (running()) trade.paid(cents);
+  });
+
+  // The law (Phase 5 piece H).
+  const lawShipViews: LawShipView[] = [];
+  const lawShipId = (e: { id?: string }): LawShipId =>
+    e.id === TUG_ID ? 'law.chartered_tug' : 'law.morrill';
+  const lawShip = (by: string): LawShipView | undefined => lawShipViews.find((s) => s.id === by);
+  game.events.on('WantedTierChanged', ({ region, from, to }) => {
+    if (running()) law.tierChanged({ region, from, to });
+  });
+  game.events.on('Jailed', ({ execution }) => {
+    if (running()) law.jailed(execution);
+    else law.dropPending();
+  });
+  game.events.on('Released', () => {
+    if (running()) law.released();
+    else law.dropPending();
+  });
+  game.events.on('CutterHailed', (e) => {
+    const ship = lawShip(e.by);
+    if (ship && running()) law.hailed(ship, e);
+  });
+  game.events.on('CutterFired', (e) => {
+    const ship = lawShip(e.by);
+    if (ship && running()) law.fired(ship, e);
+  });
+  game.events.on('PursuitChanged', ({ pursued, by }) => {
+    const ship = lawShip(by);
+    if (pursued && ship && running()) law.pursuit(ship);
   });
 
   const isPlayer = (shipId: string | undefined): boolean => {
@@ -217,6 +261,7 @@ export async function createGameAudio(options: GameAudioOptions): Promise<GameAu
     chartCues,
     harbor,
     trade,
+    law,
     captions,
     captionsNow() {
       if (!lastPose || !active) return [];
@@ -236,6 +281,7 @@ export async function createGameAudio(options: GameAudioOptions): Promise<GameAu
       wasLoading = loading;
       // The chart's theme while the chart is up; the fog fade hands over to the zone.
       chartMusic.update(frameSeconds, mode === 'chart' && !loading && running());
+      law.flush(nowS, options.region?.(), game.state.jail != null);
       const player = game.world.with('playerControlled', 'transform', 'sailing').first;
       const sailingNow = mode === 'sailing' && player !== undefined;
       if (sailingNow !== active) {
@@ -243,6 +289,10 @@ export async function createGameAudio(options: GameAudioOptions): Promise<GameAu
         sailing.setActive(active);
         world.setActive(active);
         music.setActive(active);
+        if (!active) {
+          law.stop();
+          lawShipViews.length = 0;
+        }
       }
       if (!player || !sailingNow || ctx.state !== 'running') return;
 
@@ -342,8 +392,30 @@ export async function createGameAudio(options: GameAudioOptions): Promise<GameAu
         whistleShips,
       );
 
+      lawShipViews.length = 0;
+      for (const e of game.world.with('npc', 'transform')) {
+        if (!isLawShip(e)) continue;
+        lawShipViews.push({
+          id: lawShipId(e),
+          key: e.id ?? e.npc.classId,
+          x: e.transform.position.x,
+          z: e.transform.position.z,
+          speedKn: e.npc.speedKn,
+        });
+      }
+      law.update(
+        {
+          listener: pose.at,
+          nowS,
+          gameSeconds,
+          damping: fogMix(fogVisibilityM, state.windKn).damping,
+          ships: lawShipViews,
+        },
+        frameSeconds,
+      );
+
       mood = musicMood({ sunElevationDeg, fogVisibilityM, windKn: state.windKn, rain01, storm01 });
-      music.update(frameSeconds, mood, world.signalHeard || whistles.heard);
+      music.update(frameSeconds, mood, world.signalHeard || whistles.heard || law.ducking);
     },
     setListener(pose) {
       listener = pose;

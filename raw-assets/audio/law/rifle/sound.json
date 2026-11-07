@@ -1,0 +1,11 @@
+{
+  "id": "sfx.law.rifle",
+  "name": "rifle",
+  "description": "A deputy's rifle shot, with a short slap back off the water",
+  "kind": "oneshot",
+  "bus": "sfx",
+  "bundles": [
+    "law-audio"
+  ],
+  "source": "source.flac"
+}

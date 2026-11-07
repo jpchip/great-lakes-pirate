@@ -4,7 +4,8 @@
 // the lighthouse fog whistle and fog bell, the two open-water music v1 cues, and the NPC
 // ships' whistles and the schooner-barge's fog horn (Phase 3 piece J), and the chart's
 // traveling theme, the encounter stingers and the fade-to-fog sound (piece J, part 2),
-// and the harbors' mill saw and ore dump (Phase 4 piece J). The package steamer's chime
+// and the harbors' mill saw and ore dump (Phase 4 piece J), and the law's sounds (Phase 5
+// piece H: Wanted stingers, the cutter's engine, bell and gun, the lockup's door). The package steamer's chime
 // whistle is a recording since Phase 4 (raw-assets/audio/ships/whistle-chime), so it is
 // no longer rendered here.
 //
@@ -43,6 +44,21 @@ import {
 } from './lib/synth.ts';
 import { chartTheme, fogFade, stinger, STINGERS, type StingerName } from './lib/synth-chart.ts';
 import { millSaw, oreDump } from './lib/synth-harbor.ts';
+import {
+  bowGun,
+  cutterBell,
+  cutterEngine,
+  ENGINE,
+  lockupDoor,
+  lockupRelease,
+  newsboyCall,
+  riggingHit,
+  rifleShot,
+  shotSplash,
+  wantedStinger,
+  WANTED_STINGERS,
+  type WantedStingerName,
+} from './lib/synth-law.ts';
 
 const ROOT = resolve(fileURLToPath(import.meta.url), '..', '..', '..');
 const RAW = join(ROOT, 'raw-assets', 'audio');
@@ -52,12 +68,15 @@ const TODAY = '2026-10-30';
 const TODAY_J = '2026-10-31';
 const TODAY_J2 = '2026-11-01';
 const TODAY_P4J = '2026-11-01';
+const TODAY_P5H = '2026-11-07';
 /** Render only this category (e.g. `ships`), leaving the other sources untouched. */
 const ONLY = process.argv[2];
 
 function writeSound(
   category: string,
-  hints: Omit<SoundHints, 'source' | 'trimStartS' | 'loopCrossfadeS'>,
+  hints: Omit<SoundHints, 'source' | 'trimStartS' | 'loopCrossfadeS'> & {
+    loopCrossfadeS?: number;
+  },
   samples: Float32Array,
   how: string,
   date = TODAY,
@@ -359,6 +378,140 @@ function main(): void {
     oreDump(RATE),
     'Modal steel-plate clangs, low-passed and band-passed noise for the rush, dense short rock pings',
     TODAY_P4J,
+  );
+  renderLaw();
+}
+
+function renderLaw(): void {
+  const law = (
+    hints: Omit<SoundHints, 'source' | 'trimStartS' | 'loopCrossfadeS' | 'bundles'> & {
+      loopCrossfadeS?: number;
+    },
+    samples: Float32Array,
+    how: string,
+  ): void => writeSound('law', { ...hints, bundles: ['law-audio'] }, samples, how, TODAY_P5H);
+  const stingers: Record<WantedStingerName, string> = {
+    rise: 'Wanted stinger, word has reached the law (tiers 1-2): a drum stroke, a chord that sours',
+    hunted:
+      'Wanted stinger, hunted (tiers 3-4): the drum marches, a falling minor run, a held A minor',
+    most: 'Wanted stinger, most wanted (tier 5): a deep bell tolls three times over a muffled roll',
+    cool: 'Wanted stinger, a region has cooled off: a soft falling phrase that settles on G',
+  };
+  for (const name of WANTED_STINGERS) {
+    law(
+      {
+        id: `music.stinger.wanted-${name}`,
+        name: `stinger-wanted-${name}`,
+        description: stingers[name],
+        kind: 'oneshot',
+        bus: 'music',
+      },
+      wantedStinger(name, RATE),
+      'Original motif; synthesized concertina, guitar, fiddle drone, frame drum and bell, Freeverb-style reverb',
+    );
+  }
+  law(
+    {
+      id: 'sfx.law.engine',
+      name: 'cutter-engine',
+      description: `The revenue cutter's engine across the water: the screw's beat, the engine's thud, crosshead knocks, the blower (${ENGINE.revs} revolutions at ${ENGINE.rpm} rpm, looped)`,
+      kind: 'loop',
+      bus: 'sfx',
+      loopCrossfadeS: ENGINE.crossfadeS,
+    },
+    cutterEngine(RATE),
+    'Low-passed noise beating at the blade rate, low thuds, short damped metal knocks, a 118 Hz hum',
+  );
+  law(
+    {
+      id: 'sfx.law.bell',
+      name: 'cutter-bell',
+      description: "The revenue cutter's bell, one stroke",
+      kind: 'oneshot',
+      bus: 'sfx',
+    },
+    cutterBell(RATE),
+    "Additive ship's bell partials on a 690 Hz prime, with a clapper click",
+  );
+  law(
+    {
+      id: 'sfx.law.gun',
+      name: 'bow-gun',
+      description:
+        "The cutter's bow gun, one round: a crack, a falling boom, the report rolling back",
+      kind: 'oneshot',
+      bus: 'sfx',
+    },
+    bowGun(RATE),
+    'Band-passed noise crack, a pitch-dropping 48 Hz sine and low-passed noise body, delayed low-passed echoes',
+  );
+  law(
+    {
+      id: 'sfx.law.splash',
+      name: 'shot-splash',
+      description:
+        'A round landing in the water: a thump, the column thrown up, the water falling back',
+      kind: 'oneshot',
+      bus: 'sfx',
+    },
+    shotSplash(RATE),
+    'Low-passed thump, band-passed noise whoosh and fizz, a patter of short rising blips',
+  );
+  law(
+    {
+      id: 'sfx.law.rigging-hit',
+      name: 'rigging-hit',
+      description: 'A round through the rigging: wood splintering, a stay parting, canvas tearing',
+      kind: 'oneshot',
+      bus: 'sfx',
+    },
+    riggingHit(RATE),
+    'Dense band-passed noise crackle, a pitch-dropping harmonic twang, rough band-passed noise',
+  );
+  law(
+    {
+      id: 'sfx.law.rifle',
+      name: 'rifle',
+      description: "A deputy's rifle shot, with a short slap back off the water",
+      kind: 'oneshot',
+      bus: 'sfx',
+    },
+    rifleShot(RATE),
+    'Band-passed noise crack, low-passed noise body and tail, one band-passed echo',
+  );
+  law(
+    {
+      id: 'ui.jail.door',
+      name: 'lockup-door',
+      description:
+        "The lockup's cell door going shut: a creak, the iron door banging home, bolt and key",
+      kind: 'oneshot',
+      bus: 'ui',
+    },
+    lockupDoor(RATE),
+    'Stick-slip pulses through resonant band-passes for the hinge, modal iron clangs, thuds, a stone-room reverb',
+  );
+  law(
+    {
+      id: 'ui.jail.release',
+      name: 'lockup-release',
+      description: 'Let out of the lockup: the key turned, the bolt drawn, the door creaking open',
+      kind: 'oneshot',
+      bus: 'ui',
+    },
+    lockupRelease(RATE),
+    'Clicks and a clang for the lock, band-passed noise for the bolt, a long stick-slip creak, a stone-room reverb',
+  );
+  law(
+    {
+      id: 'voice.port.newsboy',
+      name: 'newsboy',
+      description: 'A paper boy crying the new edition down the street: "Pa-per! Pa-per!"',
+      kind: 'oneshot',
+      bus: 'voice',
+    },
+    newsboyCall(RATE),
+    "Formant synthesis: a band-limited pulse train through three moving resonances on a boy's pitch, a street slap-back",
   );
 }
 

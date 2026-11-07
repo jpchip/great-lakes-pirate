@@ -205,16 +205,18 @@ export function attachLawAtSea(deps: LawAtSeaDeps): LawAtSea {
         );
         break;
       case 'warningShot': {
-        ctx.events.emit('CutterFired', { by, kind: 'warning', hit: false });
         // Across the bow: a column of water a few lengths ahead of her.
         const pt = deps.player.transform;
+        let at: { x: number; z: number } | undefined;
         if (pt && t.entity.id !== TUG_ID) {
           const ahead = 70 + 30 * ctx.rng.next();
-          deps.splash?.(
-            pt.position.x + Math.sin(pt.heading) * ahead,
-            pt.position.z - Math.cos(pt.heading) * ahead,
-          );
+          at = {
+            x: pt.position.x + Math.sin(pt.heading) * ahead,
+            z: pt.position.z - Math.cos(pt.heading) * ahead,
+          };
         }
+        ctx.events.emit('CutterFired', { by, kind: 'warning', hit: false, ...(at ? { at } : {}) });
+        if (at) deps.splash?.(at.x, at.z);
         deps.notice(
           t.entity.id === TUG_ID
             ? 'A deputy fires a rifle over your bow. Heave to!'
@@ -223,19 +225,31 @@ export function attachLawAtSea(deps: LawAtSeaDeps): LawAtSea {
         break;
       }
       case 'fire': {
-        ctx.events.emit('CutterFired', { by, kind: 'rigging', hit: a.hit });
         // The tug has no gun, only her deputies' rifles: they can't shoot a mast away.
         if (t.entity.id === TUG_ID) {
+          ctx.events.emit('CutterFired', { by, kind: 'rigging', hit: a.hit });
           deps.notice("The deputies' rifles crack from the tug's deck.");
-        } else if (!a.hit) {
+          break;
+        }
+        const pt = deps.player.transform;
+        if (!a.hit) {
           // A miss throws up water close aboard.
-          const pt = deps.player.transform;
+          let at: { x: number; z: number } | undefined;
           if (pt) {
             const ang = ctx.rng.next() * Math.PI * 2;
             const off = 25 + 35 * ctx.rng.next();
-            deps.splash?.(pt.position.x + Math.cos(ang) * off, pt.position.z + Math.sin(ang) * off);
+            at = { x: pt.position.x + Math.cos(ang) * off, z: pt.position.z + Math.sin(ang) * off };
           }
+          ctx.events.emit('CutterFired', {
+            by,
+            kind: 'rigging',
+            hit: false,
+            ...(at ? { at } : {}),
+          });
+          if (at) deps.splash?.(at.x, at.z);
         } else {
+          const at = pt ? { x: pt.position.x, z: pt.position.z } : undefined;
+          ctx.events.emit('CutterFired', { by, kind: 'rigging', hit: true, ...(at ? { at } : {}) });
           damageRigging(hazards.state, a.riggingShare * hazards.cls.riggingHP);
           deps.notice('A shot tears through your rigging!');
         }

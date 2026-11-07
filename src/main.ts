@@ -773,6 +773,7 @@ async function boot(): Promise<void> {
     harbors: harborLayouts.flatMap((l) => l.piers.map((p) => p.root)),
     sites: harborSites(harborLayouts),
     captions: settings.value.ui.captions,
+    region: () => law.region(),
     onState: (s) => (document.body.dataset['audio'] = s),
   }).catch((err: unknown) => {
     console.warn('Audio unavailable; running silent', err);
@@ -798,6 +799,13 @@ async function boot(): Promise<void> {
     if (trade && d['tradeCue'] !== trade) d['tradeCue'] = trade;
     const sites = String(a.harbor.siteCount);
     if (d['harborSites'] !== sites) d['harborSites'] = sites;
+    // The law's sounds (piece H).
+    const wanted = a.law.lastStinger;
+    if (wanted && d['wantedStinger'] !== wanted) d['wantedStinger'] = wanted;
+    const lawCue = a.law.lastCue;
+    if (lawCue && d['lawCue'] !== lawCue) d['lawCue'] = lawCue;
+    const engines = String(a.law.levels.engines);
+    if (d['lawEngines'] !== engines) d['lawEngines'] = engines;
   };
 
   let changingZone = false;

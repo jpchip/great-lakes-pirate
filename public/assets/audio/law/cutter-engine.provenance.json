@@ -1,0 +1,19 @@
+{
+  "source": "procedural",
+  "tool": "tools/audio/synth.ts (tools/audio/lib/synth.ts)",
+  "author": "Great Lakes Pirate contributors",
+  "reference": "Low-passed noise beating at the blade rate, low thuds, short damped metal knocks, a 118 Hz hum",
+  "date": "2026-11-07",
+  "license": "CC BY 4.0",
+  "attribution": "Great Lakes Pirate contributors",
+  "modifications": [],
+  "description": "The revenue cutter's engine across the water: the screw's beat, the engine's thud, crosshead knocks, the blower (8 revolutions at 96 rpm, looped)",
+  "durationS": 5,
+  "pipeline": [
+    "decoded to mono 48000 Hz",
+    "loop seam crossfaded over 0.5 s",
+    "peak-normalized toward -1 dB (+3.5 dB)",
+    "Opus 56 kbps mono in Ogg (ffmpeg libopus)"
+  ],
+  "inputHash": "6bed029e8522bb26"
+}

@@ -1,6 +1,6 @@
 # 15 — Audio
 
-Status: DRAFT v0.6 (decisions made; Phase 1 sailing audio, Phase 2 weather and harbor audio, and Phase 3 ship whistles built)
+Status: DRAFT v0.9 (decisions made; Phase 1 sailing audio, Phase 2 weather and harbor audio, Phase 3 ship whistles and chart music, Phase 4 harbor work and trade sounds, and Phase 5 law audio built)
 Parent: [00-master-plan.md](00-master-plan.md)
 Inputs:
 - Master plan: AI-generated audio
@@ -346,9 +346,36 @@ All resolved.
 3. **Docks at night and saloon interiors** belong with going ashore (Phase 7, §11); ore docks working at night are the one night sound in Phase 4.
 4. **Stamp thunk** for an accepted contract (§4.6) waits on piece F's contracts.
 
+## 18. Phase 5 Piece H: Law Audio (2026-11-07)
+
+**Scope** (plan 06 §14.4 row H; §4.4, §6.1 "Stingers", §11 Phase 5 row): a stinger when a region's Wanted tier changes, the revenue cutter heard at close quarters (her whistle, engine and bell), the warning shot and the bow gun, the lockup's door and the release, and every file in `CREDITS.md`. The paper boy's shout in port waits on piece F's newspapers.
+
+| Part | Where | What it does |
+|---|---|---|
+| Wanted stingers | `src/audio/law-mix.ts` (`wantedStingerFor`, `stingerAllowed`), `law-audio.ts` | The tier changes that land in one frame earn at most one stinger. A rise anywhere is news (word reaching the law in another region is still word about you): the highest tier reached picks **rise** (tiers 1–2: a drum stroke and a concertina chord that sours into a diminished seventh), **hunted** (3–4: the drum marches in, a falling minor run, a held A minor over a low drone and a roll) or **most** (5: a deep bell tolls three times over a muffled roll). A fall plays **cool** (a soft phrase settling on G) only for the region you're in, so paying a fine or sailing it out is heard and other regions cool quietly. After one, an 8 s quiet spell that only a sharper stinger breaks. Music bus, critical priority; the chart theme and the open-water music duck under it. Nothing plays while you're in the lockup (the world ticks on through the sentence) or for the falls that come with being let out. |
+| Her whistle | `law-mix.ts` (`hailPattern`), `law-audio.ts` (`hailed`) | `CutterHailed` sounds her whistle (Phase 3's two-bell `whistle-cutter`; the tug's own small one) from her funnel, at the speed of sound: heave to for inspection is a long and a short blast, a pursuit hail five short and rapid ones (the 1895 lakes rules' alarm, "several short and rapid blasts"; how a cutter actually called a ship to heave to isn't in R1, so it's an assumption), and an arrest one long blast. Captioned with an arrow: "Revenue cutter Morrill: whistle, five short blasts (heave to!)". |
+| Her engine | `law-mix.ts` (`engineLevel`), `law-audio.ts` | A looped bed per law ship within 1.2 km, placed on her and following her each frame: louder and faster with way on her (the loop's rate follows her speed, 0.7–1.05), duller with distance and fog. The tug's smaller engine runs a third faster. It stops when you leave the helm or she goes out of earshot. |
+| Her bell | `law-mix.ts` (`shipsBells`, `bellPattern`, `bellDue`, `ALARM_STROKES`) | Within 1.6 km she strikes the ship's time on each game half hour (one to eight bells a watch, in pairs), about every 75 real seconds at sea; a clock that jumps (waiting, the chart, jail) doesn't ring. `PursuitChanged` to pursued rings it hard and fast, twelve strokes, as she sets off after you. |
+| Her gun | `law-mix.ts` (`shotTiming`, `shotLevel`), `law-audio.ts` (`fired`) | `CutterFired` now carries where the round fell (`at`: the column of water across the bow, close aboard on a miss, the player's ship on a hit). The report leaves her deck at the speed of sound and carries 8 km; the round flies at 520 m/s, so close in the water goes up before the bang reaches you, as it would. A miss is a splash where it fell, a hit tears the rigging (wood splintering, a stay parting, canvas ripping). The tug's deputies fire rifles: one shot over the bow, three at the ship. Captioned: "gun, a shot across your bow", "gun, firing on your rigging", "rifle shots". |
+| The lockup | `law-audio.ts` (`jailed`, `released`) | `Jailed` shuts the cell door (the hinge's creak, the iron door banging home in a stone room, the bolt and the key); for the gallows the tier-5 bell tolls after it. `Released` turns the key, draws the bolt and swings the door open on a long creak, then the chart's **clear** phrase plays you out. UI bus. |
+| The harbor master | `game-audio.ts` | `HarborMasterPaid` counts the coins like a trade (piece E's "piece H's coin"). |
+| Sounds | `tools/audio/lib/synth-law.ts`, `raw-assets/audio/law/` | 13 synthesized files, 500 KB, decoded up front (bundle `law-audio`), the paper boy's call among them. No free recording of a steam engine across water, a period gun or a cell door turned up, so all are **synthesized** like the mill saw: the engine is low-passed noise beating with each of the screw's four blades at 96 rpm, a low thud each revolution and three crossheads' knocks (a marine engine exhausts into its condenser, so no chuff), rendered as eight whole revolutions so the pipeline's crossfade loops it seamlessly; the bell is the chart's ship's-bell voice on a 690 Hz prime; the gun a band-passed crack, a 48 Hz boom falling in pitch and echoes off the shore; the hinge stick-slip pulses through the iron's resonances; the paper boy's "Pa-per! Pa-per!" is formant synthesis (a pulse train through three moving resonances on a boy's pitch, sung down a third), so it reads as a shout rather than words, as §2's no-dialogue rule wants. `npm run audio:synth -- law` renders them. |
+| Dev panel | `src/debug/audio-panel.ts` | Audio → Play: each Wanted stinger, the door, the gallows and the release, and with the cutter or tug in the zone each hail, a warning shot, a miss, a hit, the alarm and the ship's bells. Audio → Mix: law engines heard and the last law cue. |
+
+**Download:** the decoded bundles are now 2.2 MB of the 5 MB (plan 15 §8); the pipeline test holds the law bundle under 512 KB.
+
+**Checked:** the rules (which stinger, the quiet spell, the lockup's silence, the patterns, the bells and their clock, the engine and shot levels, the timings) and the playback (buses, placement, delays, captions) by unit tests (`tests/audio-law.test.ts`, 23), the synthesis by tests over the generators, and the bundle and credits by the pipeline tests. In the game with Playwright (`e2e/smoke.spec.ts`): raising the tiers to 1 plays **rise** and then to 3 **hunted**, a hunting cutter's arena has her engine heard and her whistle or bell; and taken at sea the door shuts, and serving the sentence opens it with the **clear** phrase after. A 74-second preview (`law-audio/preview-74s.mp3` in the project files) runs both rising stingers, the Morrill closing with her engine growing, her pursuit whistle, the alarm bell, a warning shot, a miss, a hit, four bells, the tug's rifles, Most Wanted, the door, the release and a region cooling. Levels are set by measurement and need a listen in the game.
+
+### Still to do
+
+1. **The paper boy's shout** in port waits on piece F's newspapers.
+2. **Music:** like the chart's, the stingers are synthesized placeholders (§16 item 1).
+3. **R1 checks:** how a revenue cutter signaled a ship to heave to in 1900, and whether the *Morrill* struck the ship's bell where a passing schooner could hear it.
+
 ---
 
 ## Changelog
+- v0.9: Phase 5 piece H built (§18): Wanted stingers, the cutter's whistle hails, engine, bell and bow gun, the deputies' rifles, the lockup's door and release.
 - v0.8: Phase 4 piece J built (§17): harbor work sounds at the ports, trade sounds, captions for fog signals and ship whistles, and a recorded chime whistle.
 - v0.7: Phase 3 piece J part 2 built (§16): the chart's traveling theme, six encounter stingers, the fade-to-fog sound and the Interface slider.
 - v0.6: Phase 3 piece J part 1 built (§15): the NPC ships' steam whistles and the schooner-barge's fog horn, fog signals from the 1895 Great Lakes rules, passing signals, and a whistle per class in `ships.json`.

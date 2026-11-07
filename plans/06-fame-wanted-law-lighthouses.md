@@ -481,9 +481,18 @@ Nine pieces, each sized to be one thread. Three can start at once (A, B and G). 
 - **Checks:** `tests/port-law.test.ts` (19 tests): fines, bribes and their refusals, the Saloon Keeper's discount, a crime cleared by a fine end to end (criterion 10), the search and inform factors by tier, posters, a receiver who informs, the search on docking with a sure-handed harbor master, paying from the purse, the smuggler informing, and the snapshots for the tab, the HUD and the ledger. Screenshots are in the project files (`port-law/`).
 - **For Jared:** the indicator look (13 §12's "Needs Jared"), and the numbers above, which the playtest tunes.
 
+### 14.12 Built: piece H, law audio (2026-11-07)
+
+- **Wanted stingers:** a region's tier rising plays a stinger by the highest tier reached (tiers 1–2 a chord that sours, 3–4 the drum marching in, 5 a tolling bell), wherever it rose; a fall plays a softer phrase only in the region you're in. One a frame, an 8 s quiet spell after, nothing while you're in the lockup.
+- **The *Morrill* at close quarters:** her whistle when she hails (long and short to heave to for inspection, five short in pursuit, one long for an arrest), her engine within 1.2 km following her speed, her bell striking the ship's time and ringing the alarm as a pursuit starts, her bow gun and the round falling where it fell (`CutterFired` now carries `at`), and the tug's deputies' rifles. The whistle hails and the shots are captioned with an arrow.
+- **The lockup:** the cell door shuts on `Jailed` (the bell tolls after it for the gallows) and opens on `Released`, with the chart's "clear" phrase after. The harbor master's fine or bribe counts its coins.
+- Twelve synthesized sounds, all in `CREDITS.md`; plan 15 §18 has the details. **For Jared:** a listen in the game, and the preview in the project files (`law-audio/`).
+- **Not yet:** the paper boy's shout in port, with piece F's papers.
+
 ---
 
 ## Changelog
+- v0.10: Phase 5 piece H built (§14.12): Wanted stingers, the cutter's whistle, engine, bell and gun, the lockup's door.
 - v0.9: Phase 5 piece E built (§14.11): the harbor master's fines and bribes, the search on docking at tier 2+, posters, informants, the Wanted HUD, the report eye and the tier-5 warning.
 - v0.8: Phase 5 piece C built (§14.10): the Morrill's sorties by Wanted, forced meetings by detection, inspection and pursuit, the shallows, the tier-5 tug, the hidden compartment.
 - v0.7: Phase 5 piece D built (§14.9): capture, jail, bail, the rope and the run's end.

@@ -1,0 +1,12 @@
+{
+  "id": "sfx.law.engine",
+  "name": "cutter-engine",
+  "description": "The revenue cutter's engine across the water: the screw's beat, the engine's thud, crosshead knocks, the blower (8 revolutions at 96 rpm, looped)",
+  "kind": "loop",
+  "bus": "sfx",
+  "loopCrossfadeS": 0.5,
+  "bundles": [
+    "law-audio"
+  ],
+  "source": "source.flac"
+}

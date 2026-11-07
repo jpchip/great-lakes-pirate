@@ -3,6 +3,8 @@ import type { GameAudio } from '../audio/game-audio';
 import { CHART_SOUND, type StingerId } from '../audio/chart-audio';
 import { BUS_IDS, type VolumeId } from '../audio/settings';
 import { WORK_KINDS } from '../audio/harbor-mix';
+import { LAW_SOUND } from '../audio/law-audio';
+import type { WantedStingerId } from '../audio/law-mix';
 
 /**
  * Audio in the dev overlay: bus volumes and mute (also on the settings screen), buttons
@@ -69,6 +71,31 @@ export function createAudioPanel(options: AudioPanelOptions): { update(): void }
   events.add({ play: () => audio.trade.paid(4000) }, 'play').name('Trade: large');
   events.add({ play: () => audio.trade.paid(20000) }, 'play').name('Trade: heap');
   events.add({ play: () => audio.trade.opened() }, 'play').name('Ledger: open');
+  // Phase 5 piece H: the law. The ship's sounds need the cutter or the tug in the zone.
+  for (const id of Object.keys(LAW_SOUND.stinger) as WantedStingerId[]) {
+    events.add({ play: () => audio.law.stinger(id) }, 'play').name(`Wanted: ${id}`);
+  }
+  events.add({ play: () => audio.law.jailed(false) }, 'play').name('Lockup: door');
+  events.add({ play: () => audio.law.jailed(true) }, 'play').name('Lockup: gallows');
+  events.add({ play: () => audio.law.released() }, 'play').name('Lockup: release');
+  for (const kind of ['inspect', 'pursue', 'arrest'] as const) {
+    events.add({ play: () => audio.law.hailNow(kind) }, 'play').name(`Cutter: hail (${kind})`);
+  }
+  for (const kind of ['warning', 'miss', 'hit'] as const) {
+    events.add({ play: () => audio.law.fireNow(kind) }, 'play').name(`Cutter: fire (${kind})`);
+  }
+  events
+    .add(
+      {
+        play: () => {
+          const ship = audio.law.nearestShip();
+          if (ship) audio.law.pursuit(ship);
+        },
+      },
+      'play',
+    )
+    .name('Cutter: alarm bell');
+  events.add({ play: () => audio.law.bellsNow() }, 'play').name("Cutter: ship's bells");
 
   const status = {
     context: '',
@@ -78,6 +105,7 @@ export function createAudioPanel(options: AudioPanelOptions): { update(): void }
     lastStinger: '',
     lastWhistle: '',
     lastHarbor: '',
+    lastLaw: '',
   };
   const readout = {
     voices: 0,
@@ -96,6 +124,7 @@ export function createAudioPanel(options: AudioPanelOptions): { update(): void }
     shipsSounding: 0,
     harborSitesAtWork: 0,
     harborSitesHeard: 0,
+    lawEngines: 0,
   };
   const mix = folder.addFolder('Mix').close();
   mix.add(status, 'context').disable().listen();
@@ -105,6 +134,7 @@ export function createAudioPanel(options: AudioPanelOptions): { update(): void }
   mix.add(status, 'lastStinger').disable().listen();
   mix.add(status, 'lastWhistle').disable().listen();
   mix.add(status, 'lastHarbor').disable().listen();
+  mix.add(status, 'lastLaw').disable().listen();
   for (const key of Object.keys(readout) as (keyof typeof readout)[]) {
     mix.add(readout, key).disable().listen();
   }
@@ -125,6 +155,8 @@ export function createAudioPanel(options: AudioPanelOptions): { update(): void }
       readout.harborSitesAtWork = audio.harbor.levels.sitesAtWork;
       readout.harborSitesHeard = audio.harbor.levels.sitesHeard;
       status.lastHarbor = audio.harbor.levels.last;
+      readout.lawEngines = audio.law.levels.engines;
+      status.lastLaw = [audio.law.lastStinger, audio.law.lastCue].filter(Boolean).join(' · ');
       status.mood = audio.mood;
       status.chartMusic = audio.chartMusic.playing
         ? `playing${audio.chartMusic.duckS > 0 ? ' (ducked)' : ''}`

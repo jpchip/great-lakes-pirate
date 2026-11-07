@@ -172,7 +172,17 @@ export interface GameEvents {
    */
   PursuitChanged: { pursued: boolean; by: string };
   CutterHailed: { by: string; intent: 'inspect' | 'pursue'; arrest: boolean };
-  CutterFired: { by: string; kind: 'warning' | 'rigging'; hit: boolean };
+  /**
+   * `at` is where the round fell, zone meters: the column of water across the bow or close
+   * aboard, or the player's ship on a hit (piece H places the splash or the torn rigging
+   * there). The tug's rifles leave it out.
+   */
+  CutterFired: {
+    by: string;
+    kind: 'warning' | 'rigging';
+    hit: boolean;
+    at?: { x: number; z: number };
+  };
   /**
    * A search of the hold. In port (piece E) the harbor master's men search on docking;
    * at sea (piece C) the cutter or the tug searches while alongside. `found` at sea names
