@@ -21,6 +21,7 @@ import {
   wantedSchema,
 } from './law/state';
 import { lanternStateSchema } from './law/lantern';
+import { freshStats, logbookSchema, statsSchema } from './run/record';
 
 /**
  * WorldState skeleton (plan 01 §3.1, plan 16 §5.2). Each slice is filled in by its
@@ -339,6 +340,18 @@ export function defaultCaptain(): Captain {
   return { name: 'Captain', shipName: 'Schooner', background: 'deckhand' };
 }
 
+/** A danger state the run was snapshotted in (plan 16 §4.2–4.3). */
+export const dangerSchema = z.object({
+  kind: z.literal('pursuit'),
+  /** Who's after you (`law.morrill`, `law.chartered_tug`). */
+  by: z.string(),
+  since: z.number(),
+  /** Where on the chart it began, and her heading, to meet the hunter there again. */
+  at: chartPointSchema.optional(),
+  heading: z.number().optional(),
+});
+export type DangerState = z.infer<typeof dangerSchema>;
+
 /** The Deckhand's start (plan 12 §2.2): $150 and a few CU of rope and canvas. */
 export const DECKHAND_PURSE_CENTS = 15_000;
 export const DECKHAND_CARGO = [{ good: 'good.rope_canvas', qty: 5 }] as const;
@@ -380,6 +393,17 @@ export const worldStateSchema = z.object({
   profiles: profilesSchema,
   reports: reportsSchema,
   jail: jailSchema,
+  /**
+   * The run's record for the end screen (plan 12 §10 `stats`; Phase 5 piece D) and the
+   * logbook it exports. Optional: absent ones start empty on load, so no version bump.
+   */
+  stats: statsSchema.optional(),
+  logbook: logbookSchema.optional(),
+  /**
+   * The danger a snapshot was taken in (plan 16 §4.3; piece D): set only in the `danger`
+   * slot's copy, so a reload from it puts the threat back on your tail.
+   */
+  danger: dangerSchema.optional(),
   environment: z.looseObject({
     clock: clockStateSchema,
     /** Saved so a reload continues the same random sequence (plan 16 §4.4). */
@@ -414,6 +438,8 @@ export function createWorldState(seed: string, startSeconds = 0): WorldState {
     hideouts: startingHideouts(defaultCaptain().background, clock.gameSeconds),
     knowledge: { prices: {}, rumors: [] },
     ...createLawState(defaultShipState().classId, defaultCaptain().shipName, clock.gameSeconds),
+    stats: freshStats(clock.gameSeconds),
+    logbook: [],
     environment: {
       clock,
       rng: Rng.fromSeed(seed).getState(),
@@ -436,5 +462,7 @@ export function parseWorldState(state: unknown): WorldState {
     parsed.environment.clock.gameSeconds,
   );
   parsed.player.ship ??= defaultShipState();
+  parsed.stats ??= freshStats(parsed.environment.clock.gameSeconds);
+  parsed.logbook ??= [];
   return parsed;
 }

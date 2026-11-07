@@ -1893,3 +1893,305 @@ body[data-mode='chart'] .chart-layer {
   align-items: flex-start;
   gap: 4px;
 }
+
+/* Phase 5 piece D: the jail screens, on logbook paper (plan 13 §12). */
+.jail-backdrop {
+  background: rgba(8, 10, 12, 0.78);
+}
+
+.jail-backdrop.gallows {
+  background: rgba(20, 6, 4, 0.86);
+}
+
+.menu.jail {
+  width: min(600px, calc(100vw - 32px));
+}
+
+.jail-lead {
+  margin: 4px 0 10px;
+  font-size: 15px;
+  line-height: 1.4;
+}
+
+.jail-heading {
+  margin: 12px 0 4px;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--signal-red);
+}
+
+.jail-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px;
+}
+
+@media (max-width: 520px) {
+  .jail-columns {
+    grid-template-columns: 1fr;
+  }
+}
+
+.jail-list {
+  margin: 0;
+  padding-left: 18px;
+  font-size: 14px;
+  line-height: 1.45;
+}
+
+.jail-facts {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 2px 10px;
+  margin: 0;
+  font-size: 14px;
+}
+
+.jail-facts dt {
+  opacity: 0.7;
+}
+
+.jail-facts dd {
+  margin: 0;
+}
+
+.jail-option {
+  margin-top: 8px;
+  padding-top: 6px;
+  border-top: 1px solid var(--paper-dark);
+}
+
+.jail-word {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.jail-note {
+  margin: 4px 0;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.jail-note.bad {
+  color: var(--signal-red);
+  font-weight: 600;
+}
+
+.jail-ship {
+  margin-top: 10px;
+  font-style: italic;
+}
+
+.menu-button:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+/* The end of the run: the front page in letterpress newsprint (plan 13 §2), the summary beside. */
+.end-screen {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 24px;
+  padding: 32px 16px;
+  overflow-y: auto;
+  pointer-events: auto;
+  font-family: var(--serif);
+  color: var(--ink);
+  background: radial-gradient(ellipse at center, #3a3128 0%, #14100c 100%);
+}
+
+.newsprint {
+  width: min(620px, 100%);
+  padding: 20px 26px 26px;
+  color: #1d1a16;
+  background: #ece6d6;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.55);
+  transform: rotate(-0.6deg);
+}
+
+.newsprint-masthead {
+  text-align: center;
+  border-bottom: 3px double #1d1a16;
+  padding-bottom: 6px;
+}
+
+.newsprint-ears {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.newsprint-paper {
+  margin: 4px 0 2px;
+  font:
+    700 clamp(22px, 4.4vw, 34px) / 1.05 'Old English Text MT',
+    'UnifrakturMaguntia',
+    var(--serif);
+  letter-spacing: 0.01em;
+}
+
+.newsprint-dateline {
+  border-top: 1px solid #1d1a16;
+  padding-top: 3px;
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.newsprint-headline {
+  margin: 14px 0 6px;
+  text-align: center;
+  font:
+    800 clamp(30px, 6.4vw, 52px) / 0.98 'Rockwell Extra Bold',
+    'Clarendon',
+    Georgia,
+    var(--serif);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.newsprint-deck {
+  margin: 0 0 12px;
+  padding-bottom: 8px;
+  text-align: center;
+  font: italic 600 16px / 1.25 var(--serif);
+  border-bottom: 1px solid #1d1a16;
+}
+
+.newsprint-columns {
+  column-count: 2;
+  column-gap: 22px;
+  column-rule: 1px solid rgba(29, 26, 22, 0.5);
+  font-size: 14px;
+  line-height: 1.45;
+  text-align: justify;
+  hyphens: auto;
+}
+
+.newsprint-columns p {
+  margin: 0 0 8px;
+}
+
+.newsprint-columns p:first-child::first-letter {
+  float: left;
+  font-size: 40px;
+  line-height: 0.85;
+  padding: 3px 4px 0 0;
+  font-weight: 700;
+}
+
+@media (max-width: 520px) {
+  .newsprint-columns {
+    column-count: 1;
+  }
+}
+
+.end-summary {
+  width: min(360px, 100%);
+  padding: 18px 22px;
+  background: var(--paper);
+  border: 1px solid var(--paper-dark);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
+}
+
+.end-summary h2 {
+  margin: 0 0 10px;
+  font-size: 19px;
+}
+
+.end-summary dl {
+  margin: 0;
+}
+
+.end-summary dl > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 0;
+  border-bottom: 1px dotted var(--paper-dark);
+  font-size: 14px;
+}
+
+.end-summary dt {
+  opacity: 0.75;
+}
+
+.end-summary dd {
+  margin: 0;
+  text-align: right;
+}
+
+.end-note {
+  margin: 12px 0 0;
+  font-size: 13px;
+  font-style: italic;
+}
+
+.end-buttons {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+/* A second tab: the game is open elsewhere (plan 16 §4.4). */
+.tab-locked {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  font-family: var(--serif);
+  color: var(--ink);
+  background: #1b2630;
+}
+
+.tab-locked .title-card {
+  max-width: 440px;
+}
+
+/* The permadeath notice on character creation (plan 12 §2.1 step 6). */
+.create-permadeath {
+  margin: 12px 0 0;
+  padding: 8px 10px;
+  border: 1px solid var(--signal-red);
+  border-radius: 2px;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.create-permadeath label {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin-top: 6px;
+  font-weight: 600;
+}
+
+.create-permadeath.bad {
+  background: rgba(179, 54, 43, 0.12);
+}
+
+.menu-footer .abandon,
+.abandon-confirm {
+  margin-right: auto;
+}
+
+.abandon-confirm {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+}

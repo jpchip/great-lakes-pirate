@@ -23,6 +23,7 @@ import type { ZoneTerrain } from '../sim/terrain/zone-terrain';
 import type { Sea } from '../sim/weather/waves';
 import type { Rumor, WorldState } from '../sim/world-state';
 import type { Witness } from '../sim/law/witness';
+import type { Chart } from '../core/coords';
 
 /** Events shared across layers. Each system plan adds its own (plan 01 §3.5). */
 export interface GameEvents {
@@ -149,6 +150,28 @@ export interface GameEvents {
   PlayerIdentified: { witness: Witness };
   PlayerLostSight: { witnessId: string };
   LanternChanged: { lit: boolean; reason: 'toggled' | 'outOfOil' };
+  /**
+   * Capture (plan 06 §8; the seam between Phase 5 pieces C and D). The cutter or the
+   * chartered tug took the player, who hove to (`surrender`) or was disabled and boarded;
+   * `region` is where it happened and `at` the chart position. Raised once, before the
+   * arena ends with `caught`; piece D jails or hangs the captain.
+   */
+  PlayerCaptured: {
+    by: 'law.morrill' | 'law.chartered_tug';
+    region: string;
+    how: 'surrender' | 'boarded';
+    at: Chart;
+  };
+  /** A hunt began or ended (piece C); piece D snapshots the run while it's on. */
+  PursuitChanged: { pursued: boolean; by: string };
+  /**
+   * Jail and the run's end (plan 06 §10, plan 12 §10; piece D): taken to the lockup (or
+   * the gallows), bail sent for, let out, and the run over.
+   */
+  Jailed: { region: string; port: string; tier: number; sentenceWeeks: number; execution: boolean };
+  BailSent: { hideout: string; cents: number };
+  Released: { how: 'served' | 'bail'; region: string; weeks: number };
+  RunEnded: { cause: 'executed' | 'abandoned' };
 }
 
 /** Everything a mode needs; built once at boot and handed to each mode. */

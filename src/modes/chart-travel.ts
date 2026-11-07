@@ -146,6 +146,11 @@ export interface ChartTravel {
   openLook(): void;
   /** Back to the helm from a look, or into the zone the ship is in on the chart. */
   back(): void;
+  /**
+   * Off the chart with no voyage (Phase 5 piece D): the law has the ship in tow, and the
+   * game puts her in a zone itself. The helm takes over; nothing is placed or saved here.
+   */
+  towed(): void;
   setSail(): boolean;
   heaveTo(): void;
   undo(): void;
@@ -449,6 +454,14 @@ export function createChartTravel(host: ChartTravelHost): ChartTravel {
         return;
       }
       arrive(zone);
+    },
+    towed() {
+      session.voyage = undefined;
+      session.pending = undefined;
+      session.waypoints = [];
+      departure = undefined;
+      chart.replot();
+      toHelm();
     },
     setSail() {
       if (trip !== 'sea' || session.voyage || session.pending || arriving || host.pursued()) {

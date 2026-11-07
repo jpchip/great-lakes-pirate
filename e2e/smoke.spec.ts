@@ -974,6 +974,10 @@ test('creates a captain from the main menu and starts docked at dawn', async ({ 
   await page.getByTestId('portrait-woman').click();
   await page.getByTestId('background-fisherman').click();
   await expect(page.getByTestId('background-detail')).toContainText('salted fish');
+  // The permadeath notice is confirmed once (plan 12 §2.1).
+  await page.getByTestId('create-start').click();
+  await expect(page.getByTestId('character-creation')).toBeVisible();
+  await page.getByTestId('create-permadeath-ok').check();
   await page.getByTestId('create-start').click();
 
   // Docked at Bayfield's fish dock at dawn: the port screen opens on the first tick.
