@@ -444,9 +444,22 @@ Nine pieces, each sized to be one thread. Three can start at once (A, B and G). 
 - **Dev:** the overlay's Law folder shows heat and tier per region, Fame, the reports on their way and the last law event, and commits a crime with a chosen witness, files every report now, intercepts the next one and sets a region's tier. `__glpLaw` does the same from the console.
 - **Not in piece A:** personal recognition is worked out from Fame rather than stored; the per-region alert has no effect until pieces B and C read it; bribes and fines (piece E) and jail (piece D) will use `setHeat`, which also resets the tier-4 floor.
 
+### 14.9 Built: piece D, capture, jail and the run's end (2026-11-07)
+
+- **The seam with piece C:** the cutter raises `PlayerCaptured { by, region, how: surrender | boarded, at }` once, before her arena ends with `caught`, and `PursuitChanged { pursued, by }` as a hunt starts and ends (`src/modes/context.ts`). Piece D takes over once the arena has gone: the captain is jailed (or bound for the rope), the voyage is over and the jail screen is up. `__glpCapture.capture(region)` raises it from the console until piece C lands.
+- **Data:** `data/jail.json` holds the lockup (Bayfield, `pier.bayfield_city`), 12 §8.1's sentences and bail by tier (low end at the tier's least heat, high end at the next tier's), execution from tier 5, release to tier 1, the impound fee ($15 + $5 a week, worked off at $3 a day when nobody can pay) and "send word" ($5 and 12–30 game hours).
+- **Jail** (`src/sim/law/jail.ts`, `src/gameplay/capture.ts`): cargo and cash on hand are confiscated, hideouts untouched. Serving the sentence runs the world ticks for its weeks (a game day each), pays the impound fee from the richest strongbox or adds the days to work it off, and brings the region's heat down to tier 1. The release screen says what changed while you were inside: the date, Bayfield prices that moved 10% or more, where the *Morrill* was last seen and regions that cooled. Then the ship is alongside Bayfield's city dock and the port screen opens.
+- **Bail** by sending word to a strongbox takes bail, the impound fee and the messenger's fee together, and you're out when the money comes (seeded by the run, so a reload doesn't change it). **Smaller call (Jared can override):** bail lets you out early but doesn't clear your name; only time served brings heat down to tier 1. The trusted-fence route waits for fences in Phase 6.
+- **The jailbreak** is a button that says it's not built yet, in the cell and as the tier-5 "ONE CHANCE". At tier 5 the gallows screen leads to the end of the run.
+- **The run's end** (`src/sim/run/run-end.ts`): a front page from the Bayfield weekly (the Duluth paper once you're Known), the run summary (weeks and seasons, money earned and left, peak Fame and Wanted, crimes, contracts, captures, "never killed a soul", how it ended) and the logbook as Markdown to download. Per 16 §3, `lastRun` is written and every run slot deleted in one transaction before the end screen shows, then a Hall of Captains record is added. The main menu shows the last run's front page until a new captain starts. **Abandon run** is on the pause menu, with a confirm.
+- **The record:** the optional `stats` and `logbook` slices (no version bump) are written from the bus (`src/gameplay/record.ts`): ports made, trades, contracts, the smuggler, word reaching the law, tier changes, capture and release. The logbook keeps its last 400 lines.
+- **Danger and the tab** (16 §4): see 16 §12.
+- **Permadeath notice** on character creation, ticked once and remembered (12 §2.1 step 6).
+
 ---
 
 ## Changelog
+- v0.7: Phase 5 piece D built (§14.9): capture, jail, bail, the rope and the run's end.
 - v0.6: Phase 5 piece A built (§14.8): crimes, tiers, regions and law actors data, the crime pipeline, save v7.
 - v0.5: Phase 5 scope proposal (§14): what Phases 3–4 change, deliverables, exit criteria, nine pieces, smaller calls and two decisions (what crimes exist, the sailing speed pass).
 - v0.4: Phase 2 piece F: lights built from `data/lighthouses.json` ([14 §18](14-art-direction-asset-pipeline.md)); visual only.

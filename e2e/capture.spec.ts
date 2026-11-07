@@ -80,7 +80,11 @@ test('captured below tier 5: cargo and cash taken, the sentence served, the ship
   await expect(page.getByTestId('jail-confiscated')).toContainText('in cash');
   const jailed = await page.evaluate(() => {
     const w = window as unknown as Hooks;
-    return { jail: w.__glpCapture.state(), purse: w.__glpEconomy.purse(), cargo: w.__glpEconomy.cargo() };
+    return {
+      jail: w.__glpCapture.state(),
+      purse: w.__glpEconomy.purse(),
+      cargo: w.__glpEconomy.cargo(),
+    };
   });
   expect(jailed.purse).toBe(0);
   expect(jailed.cargo).toEqual([]);
@@ -218,7 +222,9 @@ test('closing the tab mid-chase resumes from the danger snapshot', async ({ page
   await boot(page);
   // A hunt begins (piece C raises it; the chart lock's dev switch stands in here).
   await page.evaluate(() =>
-    (window as unknown as { __glpChart: { setPursued(on: boolean): void } }).__glpChart.setPursued(true),
+    (window as unknown as { __glpChart: { setPursued(on: boolean): void } }).__glpChart.setPursued(
+      true,
+    ),
   );
   await expect(body).toHaveAttribute('data-danger', 'on');
   await expect(body).toHaveAttribute('data-danger-saved', /.+/);
