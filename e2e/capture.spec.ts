@@ -197,9 +197,9 @@ test('captured at tier 5: the gallows, the end screen, and the run is gone', asy
   await expect(page.getByTestId('front-headline')).toContainText('HANGED');
   await page.getByTestId('end-menu').click();
   await expect(page.getByTestId('main-menu')).toBeVisible();
-  // A new captain clears it, and is warned first that there's one life.
+  // A new captain clears it.
   await page.getByTestId('menu-new-run').click();
-  await expect(page.getByTestId('create-permadeath')).toContainText('One life');
+  await expect(page.getByTestId('character-creation')).toBeVisible();
   expect(errors).toEqual([]);
 });
 

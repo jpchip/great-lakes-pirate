@@ -2317,28 +2317,6 @@ body[data-mode='chart'] .chart-layer {
   max-width: 440px;
 }
 
-/* The permadeath notice on character creation (plan 12 §2.1 step 6). */
-.create-permadeath {
-  margin: 12px 0 0;
-  padding: 8px 10px;
-  border: 1px solid var(--signal-red);
-  border-radius: 2px;
-  font-size: 13px;
-  line-height: 1.4;
-}
-
-.create-permadeath label {
-  display: flex;
-  gap: 8px;
-  align-items: center;
-  margin-top: 6px;
-  font-weight: 600;
-}
-
-.create-permadeath.bad {
-  background: rgba(179, 54, 43, 0.12);
-}
-
 .menu-footer .abandon,
 .abandon-confirm {
   margin-right: auto;

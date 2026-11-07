@@ -48,25 +48,6 @@ const CAPTAIN_NAMES = [
 ];
 const SHIP_NAMES = ['Lizzie Bell', 'Ida May', 'Northern Belle', 'Maggie Ross', 'Hope', 'Kittiwake'];
 
-/** The permadeath notice was confirmed once (plan 12 §2.1 step 6); later captains see it ticked. */
-const PERMADEATH_KEY = 'glp.permadeathConfirmed';
-
-function permadeathConfirmed(): boolean {
-  try {
-    return window.localStorage.getItem(PERMADEATH_KEY) === '1';
-  } catch {
-    return false;
-  }
-}
-
-function confirmPermadeath(): void {
-  try {
-    window.localStorage.setItem(PERMADEATH_KEY, '1');
-  } catch {
-    // Private mode: it's asked again next time.
-  }
-}
-
 const pick = <T,>(list: readonly T[]): T => list[Math.floor(Math.random() * list.length)] as T;
 
 function Title({
@@ -184,16 +165,13 @@ function Create({ back, start }: { back(): void; start(setup: NewRunSetup): void
   const [portrait, setPortrait] = useState(() => allPortraits()[0]?.id ?? '');
   const [seed, setSeed] = useState(() => randomSeed());
   const [tried, setTried] = useState(false);
-  const [oneLife, setOneLife] = useState(permadeathConfirmed);
   const checked = checkSetup({ name, shipName, background, portrait, seed });
   const bad = (field: string): boolean => tried && checked.problems.includes(field as never);
   const chosen = cards.find((c) => c.key === background);
   const submit = (e: Event): void => {
     e.preventDefault();
     setTried(true);
-    if (checked.problems.length > 0 || !oneLife) return;
-    confirmPermadeath();
-    start(checked.setup);
+    if (checked.problems.length === 0) start(checked.setup);
   };
   const text = (set: (v: string) => void) => (e: Event) =>
     set((e.currentTarget as HTMLInputElement).value);
@@ -318,23 +296,6 @@ function Create({ back, start }: { back(): void; start(setup: NewRunSetup): void
           </ul>
         </div>
       )}
-
-      <div
-        class={`create-permadeath${tried && !oneLife ? ' bad' : ''}`}
-        data-testid="create-permadeath"
-      >
-        <b>One life.</b> When the captain dies (lost at sea, or hanged at the end of the law's rope)
-        the run is over and its save is gone. Nothing carries over to the next captain.
-        <label>
-          <input
-            type="checkbox"
-            data-testid="create-permadeath-ok"
-            checked={oneLife}
-            onChange={(e) => setOneLife((e.currentTarget as HTMLInputElement).checked)}
-          />
-          I understand
-        </label>
-      </div>
 
       <footer class="menu-footer create-footer">
         <button type="button" class="menu-button" onClick={back}>
