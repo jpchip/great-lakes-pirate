@@ -354,9 +354,7 @@ function Contracts({ ledger }: { ledger: LedgerSnapshot }) {
                         c.status}
                     </span>
                   </td>
-                  <td class="num hud-num">
-                    {c.payCents > 0 ? formatCents(c.payCents) : '—'}
-                  </td>
+                  <td class="num hud-num">{c.payCents > 0 ? formatCents(c.payCents) : '—'}</td>
                 </tr>
               ))}
             </tbody>
