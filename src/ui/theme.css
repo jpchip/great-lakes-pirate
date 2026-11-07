@@ -1221,6 +1221,117 @@ body[data-mode='chart'] .chart-layer {
   padding-left: 18px;
 }
 
+.standing-group {
+  margin-bottom: 12px;
+}
+
+.standing-group h4 {
+  margin: 0 0 6px;
+  font: 12px var(--serif);
+  font-variant: small-caps;
+  letter-spacing: 0.06em;
+  color: var(--brass);
+}
+
+.standing-row {
+  display: grid;
+  grid-template-columns: minmax(6em, 1fr) minmax(80px, 2fr) auto auto;
+  grid-template-rows: auto auto;
+  gap: 2px 8px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.standing-name {
+  grid-column: 1;
+  grid-row: 1 / 3;
+  font-size: 14px;
+  line-height: 1.25;
+}
+
+.standing-tag {
+  margin-left: 6px;
+  vertical-align: middle;
+}
+
+.standing-bar {
+  position: relative;
+  grid-column: 2;
+  grid-row: 1;
+  height: 8px;
+  background: var(--paper-dark);
+  border: 1px solid var(--brass);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.standing-fill {
+  display: block;
+  height: 100%;
+  background: var(--lake-teal);
+  border-radius: 1px;
+}
+
+.standing-tick {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 1px;
+  margin-left: -1px;
+  background: var(--fog-gray);
+  pointer-events: none;
+}
+
+.standing-tick.passed {
+  background: var(--brass);
+}
+
+.standing-row.burned .standing-bar {
+  background: repeating-linear-gradient(
+    -45deg,
+    #e8c4c0,
+    #e8c4c0 3px,
+    var(--paper-dark) 3px,
+    var(--paper-dark) 6px
+  );
+  border-color: var(--signal-red);
+}
+
+.standing-burned-label {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 8px;
+  font-variant: small-caps;
+  letter-spacing: 0.08em;
+  color: var(--signal-red);
+}
+
+.standing-num {
+  grid-column: 3;
+  grid-row: 1;
+  min-width: 1.5em;
+  text-align: right;
+}
+
+.standing-word {
+  grid-column: 4;
+  grid-row: 1;
+  font-size: 12px;
+  font-style: italic;
+  color: #5a4a38;
+  white-space: nowrap;
+}
+
+.standing-detail {
+  grid-column: 2 / 5;
+  grid-row: 2;
+  font-size: 12px;
+  line-height: 1.3;
+}
+
 /* Rumors (Phase 4 piece K): the kind as a small caps tag, past talk in fog gray. */
 .ledger-list.rumors {
   list-style: none;

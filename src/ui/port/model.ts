@@ -306,7 +306,22 @@ export interface LedgerSnapshot {
   contracts: { id: string; text: string; done: boolean }[];
   rumors: RumorRow[];
   /** Ports first, then companies; a company you stole from is marked. */
-  standing: { id: string; name: string; value: number; burned: boolean }[];
+  standing: LedgerStandingRow[];
+  /** Milestone ticks for standing bars (when contracts are loaded). */
+  standingTicks: { port: { value: number; label: string }[]; company: { value: number; label: string }[] };
+}
+
+/** One port or company on the ledger Standing tab. */
+export interface LedgerStandingRow {
+  id: string;
+  name: string;
+  kind: 'port' | 'company';
+  value: number;
+  burned: boolean;
+  word: string;
+  perks: string[];
+  next?: string | undefined;
+  fence: boolean;
 }
 
 /** What the contract parts of the screens read. */
@@ -440,18 +455,130 @@ function ledgerContracts(
   return out;
 }
 
-function ledgerStanding(c: ContractSources): LedgerSnapshot['standing'] {
+export function standingWord(value: number, burned: boolean): string {
+  if (burned) return 'Burned';
+  if (value >= 90) return 'Friend of the house';
+  if (value >= 60) return 'Valued';
+  if (value >= 30) return 'Trusted';
+  if (value >= 10) return 'Known';
+  return 'Stranger';
+}
+
+/** Milestone ticks on the 0–100 standing bar. */
+export function standingBarTicks(
+  defs: ContractDefs,
+  kind: 'port' | 'company',
+): { value: number; label: string }[] {
+  const ticks = new Map<number, string>();
+  if (kind === 'port') {
+    ticks.set(defs.rules.depositHalfAt, 'Half deposits');
+    ticks.set(defs.rules.depositWaivedAt, 'No deposit asked');
+    for (const t of defs.templates) {
+      if ((t.tier ?? 'open') === 'open' && t.minStanding > 0) {
+        ticks.set(t.minStanding, 'Board contracts');
+      }
+    }
+  } else {
+    for (const t of defs.templates) {
+      if (t.tier === 'company' && t.minStanding > 0) {
+        ticks.set(t.minStanding, 'Better contracts');
+      }
+    }
+  }
+  return [...ticks.entries()]
+    .sort((a, b) => a[0] - b[0])
+    .map(([value, label]) => ({ value, label }));
+}
+
+function companyStandingPerks(defs: ContractDefs, value: number): string[] {
+  const bonus = Math.round(defs.rules.standingPayBonus * value);
+  return bonus > 0 ? [`+${bonus}% pay`] : [];
+}
+
+function minStandingThresholds(defs: ContractDefs, id: string): number[] {
+  const isPort = id.startsWith('port.');
+  const out = new Set<number>();
+  for (const t of defs.templates) {
+    if (t.minStanding <= 0) continue;
+    if (isPort) {
+      if ((t.tier ?? 'open') === 'open' && t.from.includes(id)) out.add(t.minStanding);
+    } else if (t.tier === 'company' && t.company === id) out.add(t.minStanding);
+  }
+  return [...out].sort((a, b) => a - b);
+}
+
+function standingNext(
+  defs: ContractDefs,
+  id: string,
+  value: number,
+  kind: 'port' | 'company',
+  burned: boolean,
+): string | undefined {
+  if (burned) return undefined;
+  const thresholds: { at: number; label: string }[] = [];
+  if (kind === 'port') {
+    const r = defs.rules;
+    thresholds.push({ at: r.depositHalfAt, label: 'half deposits' });
+    thresholds.push({ at: r.depositWaivedAt, label: 'no deposit asked' });
+    for (const at of minStandingThresholds(defs, id)) {
+      thresholds.push({ at, label: 'board contracts' });
+    }
+  } else {
+    for (const at of minStandingThresholds(defs, id)) {
+      thresholds.push({ at, label: 'better contracts' });
+    }
+    const maxBonus = Math.round(defs.rules.standingPayBonus * 100);
+    if (maxBonus > 0 && value < 100) {
+      thresholds.push({ at: 100, label: `+${maxBonus}% pay` });
+    }
+  }
+  thresholds.sort((a, b) => a.at - b.at);
+  const next = thresholds.find((t) => t.at > value);
+  return next ? `Next: ${next.label} at ${next.at}` : undefined;
+}
+
+function receiverStandingRows(receivers: readonly string[]): LedgerStandingRow[] {
+  return receivers.map((id) => ({
+    id,
+    name: portName(id),
+    kind: 'port' as const,
+    value: 0,
+    burned: false,
+    word: standingWord(0, false),
+    perks: [] as string[],
+    fence: true,
+  }));
+}
+
+function ledgerStanding(
+  c: ContractSources,
+  receivers: readonly string[] = [],
+): LedgerSnapshot['standing'] {
+  const fence = new Set(receivers);
   const ids = new Set([...Object.keys(c.standing), ...c.state.burned]);
+  for (const id of receivers) ids.add(id);
   return [...ids]
-    .map((id) => ({
-      id,
-      name: id.startsWith('port.') ? portName(id) : companyName(c.defs, id),
-      value: Math.round(standingOf(c.standing, id)),
-      burned: c.state.burned.includes(id),
-    }))
+    .map((id) => {
+      const kind = id.startsWith('port.') ? ('port' as const) : ('company' as const);
+      const burned = c.state.burned.includes(id);
+      const value = burned ? 0 : Math.round(standingOf(c.standing, id));
+      const perks =
+        kind === 'port' ? standingPerks(c.defs, value) : companyStandingPerks(c.defs, value);
+      return {
+        id,
+        name: kind === 'port' ? portName(id) : companyName(c.defs, id),
+        kind,
+        value,
+        burned,
+        word: standingWord(value, burned),
+        perks,
+        next: standingNext(c.defs, id, value, kind, burned),
+        fence: fence.has(id),
+      };
+    })
     .sort(
       (a, b) =>
-        Number(b.id.startsWith('port.')) - Number(a.id.startsWith('port.')) ||
+        Number(b.kind === 'port') - Number(a.kind === 'port') ||
         b.value - a.value ||
         a.name.localeCompare(b.name),
     );
@@ -546,7 +673,15 @@ export function ledgerSnapshot(
     })),
     contracts: contracts ? ledgerContracts(defs, contracts, gameSeconds) : [],
     rumors: rumors.map((r) => rumorRow(r, gameSeconds)),
-    standing: contracts ? ledgerStanding(contracts) : [],
+    standing: contracts
+      ? ledgerStanding(contracts, receivers)
+      : receiverStandingRows(receivers ?? []),
+    standingTicks: contracts
+      ? {
+          port: standingBarTicks(contracts.defs, 'port'),
+          company: standingBarTicks(contracts.defs, 'company'),
+        }
+      : { port: [], company: [] },
   };
 }
 

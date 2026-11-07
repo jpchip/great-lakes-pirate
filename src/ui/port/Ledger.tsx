@@ -1,7 +1,7 @@
 import type { ComponentChildren } from 'preact';
 import { useState } from 'preact/hooks';
 import { formatCents } from '../../sim/economy/knowledge';
-import type { LedgerPrice, LedgerSnapshot, RumorRow } from './model';
+import type { LedgerPrice, LedgerSnapshot, LedgerStandingRow, RumorRow } from './model';
 
 /**
  * The ledger (plan 05 §12; journal v1, plan 13 §5): the prices you've seen with their
@@ -48,6 +48,104 @@ function Heard({ p }: { p: LedgerPrice }) {
 
 function Empty({ text }: { text: string }) {
   return <p class="ledger-empty">{text}</p>;
+}
+
+function StandingBar({
+  row,
+  ticks,
+}: {
+  row: LedgerStandingRow;
+  ticks: { value: number; label: string }[];
+}) {
+  const value = row.burned ? 0 : row.value;
+  return (
+    <div
+      class={`standing-bar${row.burned ? ' burned' : ''}`}
+      role="meter"
+      aria-valuenow={value}
+      aria-valuemin={0}
+      aria-valuemax={100}
+      aria-label={`${row.name}, standing ${value}`}
+    >
+      {ticks.map((t) => (
+        <span
+          key={t.value}
+          class={`standing-tick${value >= t.value ? ' passed' : ''}`}
+          style={{ left: `${t.value}%` }}
+          title={`${t.label} at ${t.value}`}
+        />
+      ))}
+      {!row.burned && <span class="standing-fill" style={{ width: `${value}%` }} />}
+      {row.burned && <span class="standing-burned-label">Burned</span>}
+    </div>
+  );
+}
+
+function StandingRow({
+  row,
+  ticks,
+}: {
+  row: LedgerStandingRow;
+  ticks: { value: number; label: string }[];
+}) {
+  const detail =
+    row.burned && row.kind === 'company'
+      ? 'You stole their cargo'
+      : [row.perks.join(' · '), row.next].filter(Boolean).join(' · ');
+  return (
+    <div
+      class={`standing-row${row.burned ? ' burned' : ''}`}
+      data-testid="ledger-standing-row"
+      data-standing-id={row.id}
+    >
+      <span class="standing-name">
+        {row.name}
+        {row.fence && (
+          <span class="standing-tag port-mini" data-testid="ledger-receiver-tag">
+            fence
+          </span>
+        )}
+      </span>
+      <StandingBar row={row} ticks={ticks} />
+      <span class="standing-num hud-num">{row.value}</span>
+      <span class="standing-word">{row.word}</span>
+      {detail ? <small class="standing-detail port-dim">{detail}</small> : null}
+    </div>
+  );
+}
+
+function StandingGroup({
+  title,
+  rows,
+  ticks,
+}: {
+  title: string;
+  rows: LedgerStandingRow[];
+  ticks: { value: number; label: string }[];
+}) {
+  if (!rows.length) return null;
+  return (
+    <section class="standing-group">
+      <h4>{title}</h4>
+      {rows.map((row) => (
+        <StandingRow key={row.id} row={row} ticks={ticks} />
+      ))}
+    </section>
+  );
+}
+
+function Standing({ ledger }: { ledger: LedgerSnapshot }) {
+  const ports = ledger.standing.filter((s) => s.kind === 'port');
+  const companies = ledger.standing.filter((s) => s.kind === 'company');
+  if (!ports.length && !companies.length) {
+    return <Empty text="No standing with any port or company yet." />;
+  }
+  return (
+    <div class="standing" data-testid="ledger-standing">
+      <StandingGroup title="Ports" rows={ports} ticks={ledger.standingTicks.port} />
+      <StandingGroup title="Companies" rows={companies} ticks={ledger.standingTicks.company} />
+    </div>
+  );
 }
 
 /** What's aboard: each stack, what it cost, and where the contract cargo is bound. */
@@ -248,25 +346,7 @@ export function Ledger({ ledger, here }: { ledger: LedgerSnapshot; here?: string
         ) : (
           <Empty text="No rumors heard yet." />
         ))}
-      {tab === 'standing' && ledger.receivers.length > 0 && (
-        <ul class="ledger-list" data-testid="ledger-receivers">
-          {ledger.receivers.map((r) => (
-            <li key={r.id}>{r.text}</li>
-          ))}
-        </ul>
-      )}
-      {tab === 'standing' &&
-        (ledger.standing.length || ledger.receivers.length ? (
-          <ul class="ledger-list">
-            {ledger.standing.map((s) => (
-              <li key={s.id}>
-                {s.name}: {s.burned ? '0, for good (you stole their cargo)' : s.value}
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <Empty text="No standing with any port or company yet." />
-        ))}
+      {tab === 'standing' && <Standing ledger={ledger} />}
     </div>
   );
 }
