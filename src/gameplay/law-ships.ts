@@ -36,6 +36,8 @@ import { moonAt, sunAt } from '../sim/weather/celestial';
  */
 
 export const MORRILL_ID = 'ship.morrill';
+/** How far back a new run's Morrill starts her rounds, game seconds. */
+const MORRILL_WARMUP_S = 3 * 24 * 3600;
 export const TUG_ID = 'ship.chartered_tug';
 
 /** What the law's ships give the chart's encounter check. */
@@ -86,7 +88,9 @@ export function attachLawShips(
 
   const state = (): LawShipsState =>
     (ctx.state.lawShips ??= {
-      morrill: createMorrill(defs, lanes, clock.gameSeconds),
+      // A new run finds her somewhere on her rounds, not always lying at Duluth: she starts
+      // a few days back and the first tick sails her up to now.
+      morrill: createMorrill(defs, lanes, clock.gameSeconds - MORRILL_WARMUP_S),
       tug: null,
     });
 

@@ -104,8 +104,12 @@ describe('routes.json', () => {
     for (const node of graph.nodes.values()) {
       if (node.port) expect(ports, node.id).toContain(node.port);
     }
-    const patrols = graph.lanes.filter((l) => l.use === 'patrol');
-    expect(patrols.map((l) => l.fleet[0]?.classId)).toEqual(['ship.cutter_morrill']);
+    // The Morrill's beats are lanes with no fleet; her planner sails her (Phase 5 piece C).
+    const beats = graph.lanes.filter((l) => l.use === 'beat');
+    expect(beats.length).toBeGreaterThanOrEqual(5);
+    for (const b of beats) expect(b.fleet, b.id).toEqual([]);
+    const fleets = graph.lanes.flatMap((l) => l.fleet.map((e) => e.classId));
+    expect(fleets).not.toContain('ship.cutter_morrill');
   });
 });
 
@@ -349,12 +353,9 @@ describe('the Morrill', () => {
     expect(avoidChance({ ...enc, hunts: true }, 12, 6, 1)).toBeLessThan(1);
   });
 
-  it('patrols in the game traffic, hostile and a threat', () => {
+  it('is not in the timetabled traffic: her planner sails her (piece C)', () => {
     const c = createContacts(geo.projection, 'patrol', MAY + 10 * HOUR);
-    const cutter = c.find((s) => s.kind === 'cutter');
-    expect(cutter?.hostile).toBe(true);
-    expect(cutter?.threat).toBe(true);
-    expect(cutter?.prize).toBe(false);
+    expect(c.find((s) => s.kind === 'cutter')).toBeUndefined();
   });
 });
 

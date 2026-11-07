@@ -1200,7 +1200,9 @@ async function boot(): Promise<void> {
       const p = shipPose();
       if (arena || inArenaSpace) {
         const at = arena?.encounter.at;
-        return at ? regionAtChart(law.defs, toWorldChart(westernSuperiorChart(), at)) : law.region();
+        return at
+          ? regionAtChart(law.defs, toWorldChart(westernSuperiorChart(), at))
+          : law.region();
       }
       return regionAtZone(law.defs, zoneData.id, { x: p.x, z: p.z }) ?? law.region();
     },

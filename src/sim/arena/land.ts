@@ -73,10 +73,11 @@ export function sampleArenaLand(geo: ChartGeography, frame: ZoneFrame, halfM: nu
   const n = Math.ceil((halfM * 2) / LAND_CELL_M);
   // The lake ring and the islands inside it share one parity, so odd is water.
   const land = fillRings([geo.water, ...geo.islands], frame, halfM, n, (k) => k % 2 === 0);
-  // The shallow side of a depth contour includes the shore, so odd is shoal (or land).
+  // The rings bound the deep side (the shallow side runs out to the grid's edge), so even is
+  // shoal (or land).
   const contour = geo.depths.find((d) => d.fathoms >= SHOAL_FATHOMS);
   const shoal = contour
-    ? fillRings(contour.rings, frame, halfM, n, (k) => k % 2 === 1)
+    ? fillRings(contour.rings, frame, halfM, n, (k) => k % 2 === 0)
     : { cells: new Uint8Array(0), any: false };
   const cell = (x: number, z: number): number => {
     const i = Math.floor((x + halfM) / LAND_CELL_M);

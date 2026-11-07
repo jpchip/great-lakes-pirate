@@ -66,6 +66,36 @@
     "owners": ["company.revenue_service"]
   },
   {
+    "id": "fleet.beat_twin_ports",
+    "kind": "fleet",
+    "lane": "lane.beat_twin_ports",
+    "owners": ["company.revenue_service"]
+  },
+  {
+    "id": "fleet.beat_north_shore",
+    "kind": "fleet",
+    "lane": "lane.beat_north_shore",
+    "owners": ["company.revenue_service"]
+  },
+  {
+    "id": "fleet.beat_apostles",
+    "kind": "fleet",
+    "lane": "lane.beat_apostles",
+    "owners": ["company.revenue_service"]
+  },
+  {
+    "id": "fleet.beat_chequamegon",
+    "kind": "fleet",
+    "lane": "lane.beat_chequamegon",
+    "owners": ["company.revenue_service"]
+  },
+  {
+    "id": "fleet.beat_south_shore",
+    "kind": "fleet",
+    "lane": "lane.beat_south_shore",
+    "owners": ["company.revenue_service"]
+  },
+  {
     "id": "flow.duluth_ore_grain",
     "kind": "flow",
     "name": "Ore and grain down the lake from Duluth",

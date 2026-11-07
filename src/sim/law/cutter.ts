@@ -118,6 +118,8 @@ export interface CutterBrain {
   shots: number;
   /** The phase she was in when she lost sight, to take up again. */
   resume: CutterPhase;
+  /** The chart lock as last reported (`pursuit` actions say when it changes). */
+  locked: boolean;
 }
 
 export function createCutterBrain(start?: { hunting: boolean; intent: CutterIntent }): CutterBrain {
@@ -136,6 +138,7 @@ export function createCutterBrain(start?: { hunting: boolean; intent: CutterInte
     hails: 0,
     shots: 0,
     resume: 'closing',
+    locked: false,
   };
 }
 
@@ -186,7 +189,11 @@ export function cutterActive(b: CutterBrain): boolean {
 
 /** The chart is locked while she's after you and her lookout has you (plan 06 §7.1). */
 export function cutterLocks(b: CutterBrain, awareness: Awareness): boolean {
-  return cutterActive(b) && b.phase !== 'searching' && (awareness === 'spotted' || awareness === 'identified');
+  return (
+    cutterActive(b) &&
+    b.phase !== 'searching' &&
+    (awareness === 'spotted' || awareness === 'identified')
+  );
 }
 
 function seen(a: Awareness): boolean {
@@ -199,7 +206,12 @@ function go(b: CutterBrain, phase: CutterPhase): void {
 }
 
 /** What she'd make of the player on sighting: an inspection, a pursuit, or nothing. */
-export function intentFor(sense: Pick<CutterSense, 'tier' | 'inspectsFromTier' | 'pursuesFromTier' | 'identified' | 'awareness'>): CutterIntent | undefined {
+export function intentFor(
+  sense: Pick<
+    CutterSense,
+    'tier' | 'inspectsFromTier' | 'pursuesFromTier' | 'identified' | 'awareness'
+  >,
+): CutterIntent | undefined {
   if (sense.tier < sense.inspectsFromTier || !seen(sense.awareness)) return undefined;
   const known = sense.identified || sense.tier >= sense.pursuesFromTier + 1;
   return sense.tier >= sense.pursuesFromTier && known ? 'pursue' : 'inspect';
@@ -223,7 +235,6 @@ export function stepCutter(
   rules: CutterRules = CUTTER_RULES,
 ): CutterAction[] {
   const out: CutterAction[] = [];
-  const wasLocked = cutterLocks(b, sense.awareness);
   b.phaseS += dt;
   if (seen(sense.awareness)) b.lastSeen = { ...sense.player };
 
@@ -250,7 +261,10 @@ export function stepCutter(
   }
 
   const locked = cutterLocks(b, sense.awareness);
-  if (locked !== wasLocked) out.unshift({ type: 'pursuit', locked });
+  if (locked !== b.locked) {
+    b.locked = locked;
+    out.unshift({ type: 'pursuit', locked });
+  }
   return out;
 }
 
@@ -331,7 +345,7 @@ function stepActive(
   if (
     b.intent === 'pursue' &&
     sense.distanceM < rules.boardRangeM &&
-    (sense.rigging01 <= rules.disabledRigging01 || sense.playerKn < rules.heaveToKn * 2)
+    sense.rigging01 <= rules.disabledRigging01
   ) {
     go(b, 'captured');
     out.push({ type: 'capture', how: 'boarded' });
@@ -375,7 +389,12 @@ function stepActive(
   }
 }
 
-function giveUp(b: CutterBrain, rules: CutterRules, out: CutterAction[], why: 'lost' | 'shallows'): void {
+function giveUp(
+  b: CutterBrain,
+  rules: CutterRules,
+  out: CutterAction[],
+  why: 'lost' | 'shallows',
+): void {
   b.cooldownS = rules.cooldownS;
   b.hails = 0;
   b.shots = 0;

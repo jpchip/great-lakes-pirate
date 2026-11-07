@@ -7,7 +7,6 @@ import type { EconomyDefs } from '../sim/economy/defs';
 import {
   afterInspection,
   createCutterBrain,
-  cutterLocks,
   cutterOrders,
   intentFor,
   stepCutter,
@@ -163,7 +162,9 @@ export function attachLawAtSea(deps: LawAtSeaDeps): LawAtSea {
         });
       }
     }
-    const goods = found.map((f) => `${f.qty} CU of ${deps.economy.goods.get(f.good)?.name ?? f.good}`);
+    const goods = found.map(
+      (f) => `${f.qty} CU of ${deps.economy.goods.get(f.good)?.name ?? f.good}`,
+    );
     deps.notice(
       found.length > 0
         ? `The boarding officer found ${goods.join(' and ')}, and took it.`
@@ -194,7 +195,7 @@ export function attachLawAtSea(deps: LawAtSeaDeps): LawAtSea {
         ctx.events.emit('CutterFired', { by, kind: 'warning', hit: false });
         deps.notice(
           t.entity.id === TUG_ID
-            ? "A deputy fires a rifle over your bow. Heave to!"
+            ? 'A deputy fires a rifle over your bow. Heave to!'
             : `${name} fires a shot across your bow. Heave to, or she'll fire on you.`,
         );
         break;
@@ -279,9 +280,7 @@ export function attachLawAtSea(deps: LawAtSeaDeps): LawAtSea {
       const p = deps.player.transform?.position;
       if (!p || dt <= 0) return;
       const arena = deps.arena();
-      const ships: Entity[] = arena
-        ? arena.ships.map((s) => s.entity)
-        : [...deps.zoneShips()];
+      const ships: Entity[] = arena ? arena.ships.map((s) => s.entity) : [...deps.zoneShips()];
       const tier = tierNow();
       const seen = new Set<string>();
       for (const e of ships) {
@@ -360,7 +359,13 @@ export function attachLawAtSea(deps: LawAtSeaDeps): LawAtSea {
           s.z = tr.position.z;
           s.heading = tr.heading;
         }
-        if (land) steerShips(steered.map((t) => t.steer as SteeredShip), player, land, dt);
+        if (land)
+          steerShips(
+            steered.map((t) => t.steer as SteeredShip),
+            player,
+            land,
+            dt,
+          );
         for (const t of steered) {
           const s = t.steer as SteeredShip;
           const e = t.entity;
@@ -379,10 +384,7 @@ export function attachLawAtSea(deps: LawAtSeaDeps): LawAtSea {
       }
     },
     get locked() {
-      for (const t of tracked.values()) {
-        const w = detection.watchers.find((x) => x.observer.id === t.entity.id);
-        if (cutterLocks(t.brain, w?.awareness ?? 'unaware')) return true;
-      }
+      for (const t of tracked.values()) if (t.brain.locked) return true;
       return false;
     },
     get captured() {

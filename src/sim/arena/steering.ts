@@ -158,7 +158,10 @@ function orderedCourse(
       const lead = Math.min(range / Math.max(v, 0.1), 60);
       // Close aboard, run alongside rather than ramming.
       if (range < 90) return alongside(s, player, playerKn);
-      return { want: toward(player.x + player.vx * lead, player.z + player.vz * lead), chase: true };
+      return {
+        want: toward(player.x + player.vx * lead, player.z + player.vz * lead),
+        chase: true,
+      };
     }
     case 'alongside':
       return alongside(s, player, playerKn);
@@ -166,7 +169,11 @@ function orderedCourse(
       return { want: toward(orders.at.x, orders.at.z), kn: h.serviceKn * 0.6, chase: true };
     case 'standOff':
       // Head for her, slowly; the shoal check turns her off before she touches.
-      return { want: toward(player.x, player.z), kn: range < 400 ? 0 : h.serviceKn * 0.35, chase: true };
+      return {
+        want: toward(player.x, player.z),
+        kn: range < 400 ? 0 : h.serviceKn * 0.35,
+        chase: true,
+      };
   }
 }
 
@@ -176,11 +183,10 @@ function alongside(
   player: Traffic,
   playerKn: number,
 ): { want: number; kn: number; chase: boolean } {
-  const ph = Math.hypot(player.vx, player.vz) > 0.05 ? Math.atan2(player.vx, -player.vz) : s.heading;
+  const ph =
+    Math.hypot(player.vx, player.vz) > 0.05 ? Math.atan2(player.vx, -player.vz) : s.heading;
   // Which beam she's on: + is starboard of the player's heading.
-  const side = Math.sign(
-    Math.cos(ph) * (s.x - player.x) + Math.sin(ph) * (s.z - player.z) || 1,
-  );
+  const side = Math.sign(Math.cos(ph) * (s.x - player.x) + Math.sin(ph) * (s.z - player.z) || 1);
   const tx = player.x + Math.cos(ph) * 40 * side;
   const tz = player.z + Math.sin(ph) * 40 * side;
   const d = Math.hypot(tx - s.x, tz - s.z);
@@ -266,7 +272,11 @@ export function steerShips(
         state = 'stopped';
         slow = true;
       } else {
-        if (clear !== want) state = 'land';
+        if (clear !== want) {
+          state = 'land';
+          // A deep-draft ship feels her way round shoal water at half speed or less.
+          if (h.deepDraft) slow = true;
+        }
         want = clear;
       }
       h.desired = wrap(want);
@@ -281,7 +291,18 @@ export function steerShips(
       const tau = target > h.speedKn ? h.accelTau : h.decelTau;
       h.speedKn += (target - h.speedKn) * (1 - Math.exp(-dt / tau));
     }
-    const v = arenaSceneSpeed(h.speedKn);
+    let v = arenaSceneSpeed(h.speedKn);
+    // Her keel is the last word: a deep-draft ship stops short of shoal water dead ahead
+    // rather than run onto it, and turns off it from there.
+    if (h.deepDraft && land.isShoal && !land.allDeep && v > 0) {
+      const ahead = Math.max(60, v * 4);
+      const x = s.x + Math.sin(s.heading) * ahead;
+      const z = s.z - Math.cos(s.heading) * ahead;
+      if (land.isShoal(x, z) || land.isLand(x, z)) {
+        h.speedKn *= Math.exp(-dt / 2);
+        v = arenaSceneSpeed(h.speedKn);
+      }
+    }
     s.vx = Math.sin(s.heading) * v;
     s.vz = -Math.cos(s.heading) * v;
   }

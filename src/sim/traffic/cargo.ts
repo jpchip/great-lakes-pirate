@@ -216,6 +216,7 @@ export function currentManifest(
   c: Contact,
   gameSeconds: number,
 ): Manifest | undefined {
+  if (c.patrol) return patrolManifest(defs, c);
   const s = c.schedule;
   if (!s) return undefined;
   const k = Math.floor((gameSeconds + s.phaseS) / cycleS(s));
@@ -227,6 +228,33 @@ export function currentManifest(
   if (u < transit) return manifestFor(defs, economy, c, k, true);
   if (u < 2 * transit + s.dwellAwayS) return manifestFor(defs, economy, c, k, false);
   return manifestFor(defs, economy, c, k + 1, true);
+}
+
+/**
+ * The law's ships (Phase 5 piece C) carry nothing: the *Morrill*'s papers show her
+ * passage from and to the ends of the leg she's on, and her gun.
+ */
+function patrolManifest(defs: TrafficDefs, c: Contact): Manifest | undefined {
+  const leg = c.patrol?.leg;
+  const lane = leg && c.patrol?.lanes.get(leg.lane);
+  if (!leg || !lane || !c.classId) return undefined;
+  const ends = (m: number): string => (m <= 0.5 ? lane.from.id : lane.to.id);
+  const from = ends(leg.fromM);
+  const to = ends(leg.toM);
+  return {
+    shipId: c.id,
+    owner: defs.owners.get(lane.id)?.[0] ?? 'company.revenue_service',
+    from,
+    to,
+    fromPort: defs.portOf.get(from),
+    toPort: defs.portOf.get(to),
+    cargo: [],
+    valueCents: 0,
+    crew: CREW[c.classId] ?? 6,
+    armed: true,
+    cycle: 0,
+    outbound: leg.toM >= leg.fromM,
+  };
 }
 
 /** A ship arriving at or leaving an end of her lane. */
