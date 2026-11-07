@@ -308,7 +308,10 @@ export interface LedgerSnapshot {
   /** Ports first, then companies; a company you stole from is marked. */
   standing: LedgerStandingRow[];
   /** Milestone ticks for standing bars (when contracts are loaded). */
-  standingTicks: { port: { value: number; label: string }[]; company: { value: number; label: string }[] };
+  standingTicks: {
+    port: { value: number; label: string }[];
+    company: { value: number; label: string }[];
+  };
 }
 
 /** One port or company on the ledger Standing tab. */
