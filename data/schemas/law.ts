@@ -16,6 +16,8 @@ export const WITNESS_KINDS = [
   'townsfolk',
   'merchant',
   'freightAgent',
+  'harborMaster',
+  'informant',
 ] as const;
 
 /** How well a witness saw it (plan 06 §2.3). */
@@ -145,6 +147,42 @@ const delaySchema = z.object({
   atDawn: z.boolean().default(false),
 });
 
+/** A share by Wanted tier, as a list from tier 0 up (missing tiers are 0). */
+const byTierSchema = z.array(z.number().min(0));
+
+/**
+ * Port law (plan 06 §3.3, §5.2; Phase 5 piece E): the harbor master's fines and bribes,
+ * the hold search on docking, and receivers who inform. Money is cents.
+ */
+export const harborMasterSchema = z.object({
+  /** Tiers a fine clears outright (§3.3: tiers 1–2, legal-ish, no jail). */
+  fineTiers: z.array(z.number().int().min(1)),
+  fineCentsPerHeat: z.number().int().positive(),
+  /** Tiers a bribe takes down a tier (§3.3: not at tier 5). */
+  bribeTiers: z.array(z.number().int().min(1)),
+  bribeCentsPerHeat: z.number().int().positive(),
+  /** The Saloon Keeper knows how it's done: this share off both (plan 12 §2.2). */
+  saloonKeeperDiscount: z.number().min(0).max(1),
+  /**
+   * Docking at a port whose region is at this tier or above means a check of the hold
+   * (§3.2 tier 2). The chance a lot is found is the merchants' detection odds (plan 05
+   * §23) times `searchByTier[tier]`.
+   */
+  searchFromTier: z.number().int().min(1),
+  searchByTier: byTierSchema,
+  /**
+   * From this tier a receiver or the smuggler may turn you in (plan 05 §23.4): the chance
+   * a lot or a night's dealing is informed on, by tier.
+   */
+  informFromTier: z.number().int().min(1),
+  informByTier: byTierSchema,
+  /** Posters go up at this tier (§3.2 tier 2), and name a reward from `bountyFromTier`. */
+  posterFromTier: z.number().int().min(1),
+  bountyFromTier: z.number().int().min(1),
+  bountyCentsPerHeat: z.number().int().nonnegative(),
+});
+export type HarborMasterRules = z.infer<typeof harborMasterSchema>;
+
 /** A [min, max] pair, game hours (or days where it says). */
 const hoursRange = z
   .tuple([z.number().nonnegative(), z.number().nonnegative()])
@@ -209,6 +247,7 @@ export const lawActorsFileSchema = z.object({
       .array(z.object({ lane: idOf('lane'), regions: z.array(idOf('region')).min(1) }))
       .min(1),
   }),
+  harborMaster: harborMasterSchema,
   tug: z.object({
     id: idOf('law'),
     name: z.string().min(1),

@@ -9,6 +9,7 @@ import {
   type HudSnapshot,
   type LanternSnapshot,
 } from './model';
+import { ReportChip, WantedChip } from './Wanted';
 
 /**
  * Sailing HUD v1 (plan 13 §4.1, §12): the wind ring with speed and sail level bottom
@@ -305,6 +306,14 @@ export function Hud({
           {h.barometer && <Barometer baro={h.barometer} />}
           {h.lantern && <Lantern lantern={h.lantern} full={mode === 'full'} />}
           {h.eye && <Eye eye={h.eye} />}
+          {(h.wanted || h.report) && (
+            <div class="hud-law" data-testid="hud-law">
+              {h.wanted && (h.wanted.tier > 0 || mode === 'full') && (
+                <WantedChip wanted={h.wanted} />
+              )}
+              {h.report && <ReportChip report={h.report} />}
+            </div>
+          )}
           <Compass headingDeg={h.headingDeg} />
           <div class="hud-status">
             {h.hull01 !== undefined && <Bar label="Hull" value={h.hull01} testid="hud-hull" />}

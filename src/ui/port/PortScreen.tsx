@@ -3,6 +3,7 @@ import { formatCents } from '../../sim/economy/knowledge';
 import type { TradeSide } from '../../sim/economy/market';
 import type { LieUntil } from '../../sim/hideouts/lie-at-anchor';
 import { LieButtons } from '../stash/StashScreen';
+import { Harbor } from './Harbor';
 import { Help } from './Help';
 import { Ledger, RumorItem } from './Ledger';
 import { Fittings, Shipyard, ShipPanel } from './Shipyard';
@@ -50,6 +51,8 @@ export interface PortActions {
   fit(upgrade: string, place: 'shipyard' | 'chandlery'): string | undefined;
   unfit(upgrade: string, place: 'shipyard' | 'chandlery'): string | undefined;
   repair(place: 'shipyard' | 'chandlery'): string | undefined;
+  /** The harbor master (Phase 5 piece E): pay the fine or bribe on offer; what came of it. */
+  payHarbor?(kind: 'fine' | 'bribe'): string | undefined;
   /** Close the screen and stay alongside. */
   close(): void;
   /** Close the screen and cast off (F). */
@@ -67,6 +70,7 @@ const TAB_LABELS: Record<PortTab, string> = {
   saloon: 'Saloon',
   freight: 'Freight agent',
   shipyard: 'Shipyard',
+  harbor: 'Harbor master',
   ledger: 'Ledger',
 };
 
@@ -427,7 +431,9 @@ function Hold({
                   {h.offer.tooHot
                     ? 'Too hot for your receiver here'
                     : h.offer.receiver
-                      ? 'Your receiver here takes it'
+                      ? h.offer.informRisk
+                        ? `Your receiver here takes it, but the law's asking: ${h.offer.informRisk} he talks`
+                        : 'Your receiver here takes it'
                       : h.offer.turnedAway
                         ? 'Turned away here this week'
                         : `Offer it on the quiet: ${h.offer.risk}`}
@@ -725,6 +731,20 @@ export function PortScreen({
               </span>
             ) : null}
           </span>
+          {port.harbor?.poster && shown !== 'harbor' && (
+            <button
+              type="button"
+              class="port-poster-badge"
+              data-testid="port-poster-badge"
+              title="A WANTED poster is up on the harbor master's board"
+              onClick={() => {
+                setTab('harbor');
+                setMessage(undefined);
+              }}
+            >
+              {port.harbor.poster.headline}
+            </button>
+          )}
         </header>
         <nav class="menu-tabs">
           {port.tabs.map((id) => (
@@ -784,6 +804,9 @@ export function PortScreen({
               <Shipyard yard={port.shipyard} actions={actions} setMessage={setMessage} />
               <ShipPanel yard={port.shipyard} />
             </>
+          )}
+          {shown === 'harbor' && port.harbor && (
+            <Harbor harbor={port.harbor} actions={actions} setMessage={setMessage} />
           )}
           {shown === 'ledger' && <Ledger ledger={port.ledger} here={port.port} />}
         </div>

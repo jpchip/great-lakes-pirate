@@ -128,6 +128,8 @@ import { createNewRun, startingPort } from './sim/character/new-run';
 import { withSailingPerks } from './sim/character/perks';
 import { attachCaptain } from './gameplay/captain';
 import { attachLaw, devWitness } from './gameplay/law';
+import { attachPortLaw } from './gameplay/port-law';
+import { pierPort } from './sim/harbors';
 import { attachLawShips } from './gameplay/law-ships';
 import { attachLawAtSea, PURSUES_FROM_TIER } from './gameplay/law-at-sea';
 import { regionAtChart, regionAtZone } from './sim/law/regions';
@@ -149,6 +151,8 @@ const FADE_MS = 650;
 
 /** HUD numbers update at most this often (plan 13 §10). */
 const HUD_INTERVAL_S = 0.1;
+/** Seconds the tier-5 harbor's "F again to dock" stands (plan 06 §3.2). */
+const TOP_TIER_CONFIRM_S = 6;
 
 /** A pose for the page's data attributes, which the e2e tests read. */
 function poseText(p: Pose): string {
@@ -670,6 +674,8 @@ async function boot(): Promise<void> {
   }
   // The law (plan 06, Phase 5 piece A): Phase 4's crimes become heat in their regions.
   const law = attachLaw(ctx, trafficSeed);
+  // Port law (piece E): the harbor master, the search on docking, informants, the HUD's law.
+  const portLaw = attachPortLaw(ctx, law, economy);
   // The run's record for the end screen: its counters and the logbook (piece D).
   attachRecord(ctx, law.defs);
   if (import.meta.env.DEV || params.has('debug')) {
@@ -688,6 +694,9 @@ async function boot(): Promise<void> {
           witnesses: kind === 'none' ? [] : [devWitness(kind, identification)],
         }),
       fileAll: () => law.fileAll(),
+      harbor: (port: string) => portLaw.harbor(port),
+      pay: (port: string, kind: 'fine' | 'bribe') => portLaw.pay(port, kind),
+      dockCheck: (port: string) => portLaw.dockCheck(port),
       intercept: (reportId: string) => law.intercept(reportId),
       setTier: (region: string, tier: number) => law.setTier(region, tier),
       setHeat: (region: string, heat: number) => law.setHeat(region, heat),
@@ -1114,6 +1123,7 @@ async function boot(): Promise<void> {
   const ports = attachPorts({
     ctx,
     economy,
+    law: portLaw,
     contracts,
     hazards,
     rumors,
@@ -1166,7 +1176,14 @@ async function boot(): Promise<void> {
   const smuggler = attachSmuggler({
     ctx,
     economy,
-    show: (snapshot) => ui.setSmuggler(snapshot),
+    // The informant's risk on her screen, from the Wanted tier in her waters (piece E).
+    show: (snapshot) =>
+      ui.setSmuggler(
+        snapshot && {
+          ...snapshot,
+          informRisk: portLaw.informRisk(smuggler.def.anchorage.region),
+        },
+      ),
     // Saloon talk of where she lies puts her on the chart (piece K).
     heardOf: () => knowsRumor(ctx.state.knowledge.rumors, 'smuggler'),
     onOpen(open) {
@@ -1577,6 +1594,24 @@ async function boot(): Promise<void> {
     docks,
     berths: allBerths,
     timeWarp,
+  };
+  // A Most Wanted harbor asks first (plan 06 §3.2): the first F at its berth only warns.
+  let topTierAsked: { berthId: string; untilS: number } | undefined;
+  sailingOptions.dockGate = (berthId) => {
+    const pier = sailingOptions.berths.find((b) => b.id === berthId)?.dockId;
+    const port = pier ? pierPort(pier) : undefined;
+    if (!port || !portLaw.topTierAt(port)) return true;
+    if (topTierAsked?.berthId === berthId && hudSeconds <= topTierAsked.untilS) {
+      topTierAsked = undefined;
+      return true;
+    }
+    topTierAsked = { berthId, untilS: hudSeconds + TOP_TIER_CONFIRM_S };
+    notice = {
+      text: `Most Wanted here: capture means the rope. F again to dock at ${portInfo(port)?.name ?? 'the pier'}`,
+      untilS: hudSeconds + TOP_TIER_CONFIRM_S,
+    };
+    hudClock = HUD_INTERVAL_S;
+    return false;
   };
   // The cutter's captain runs inside the sailing tick, after the arena's helms.
   sailingOptions.law = { step: (dt) => lawAtSea.step(dt) };
@@ -2039,11 +2074,32 @@ async function boot(): Promise<void> {
   chartLayer.className = 'chart-layer';
   /** A hostile has the ship detected (piece G's arena sets this; dev hook for now). */
   let pursued = false;
+  /** The chart card's law lines (piece E): Wanted where the ship is, the report eye. */
+  const chartLawLines = (): { text: string; danger: boolean }[] => {
+    const out: { text: string; danger: boolean }[] = [];
+    const w = portLaw.wanted(law.region());
+    if (w && w.tier > 0) {
+      out.push({
+        text: w.top
+          ? `MOST WANTED in ${w.regionName}: capture means the rope`
+          : `${w.tierName} in ${w.regionName}`,
+        danger: w.top,
+      });
+    }
+    const r = portLaw.report();
+    if (r) {
+      out.push({
+        text: `Report on its way: ${r.by} to ${r.regionName}, ${r.etaText}${r.more ? ` (+${r.more})` : ''}`,
+        danger: false,
+      });
+    }
+    return out;
+  };
   const chartTravel = createChartTravel({
     ctx,
     machine,
     layer: chartLayer,
-    setHud: (snapshot) => ui.setChart(snapshot),
+    setHud: (snapshot) => ui.setChart(snapshot && { ...snapshot, law: chartLawLines() }),
     lookout: () => settings.value.chart.lookout,
     zone: () => ({ def: zoneData, frame: zoneFrame(zone, zoneData) }),
     shipPose,
@@ -2081,8 +2137,8 @@ async function boot(): Promise<void> {
     // The Morrill and the tug hunt by Wanted and her lookout's real detection (piece C).
     hunter: (c, at, visibilityM) =>
       lawShips.hunter(c, at, state.environment.clock.gameSeconds, visibilityM),
-    marks: () =>
-      smuggler.known()
+    marks: () => [
+      ...(smuggler.known()
         ? [
             {
               at: smuggler.def.anchorage.at,
@@ -2090,9 +2146,31 @@ async function boot(): Promise<void> {
               kind: 'smuggler' as const,
             },
           ]
-        : [],
+        : []),
+      // Where the law wants you (piece E), at each region's middle.
+      ...portLaw.marks().flatMap((m) => {
+        const at = law.defs.regionById.get(m.region)?.anchor;
+        return at
+          ? [
+              {
+                at,
+                label: m.label,
+                kind: m.tier >= 5 ? ('mostWanted' as const) : ('wanted' as const),
+              },
+            ]
+          : [];
+      }),
+    ],
   });
   travelRef.current = chartTravel;
+  // The law reads the ship's live place, not the last save's (decay, crimes, the HUD).
+  // In an arena the ship is in the arena's own space: the saved place stands.
+  law.locate = () =>
+    machine.mode === 'chart'
+      ? regionAtChart(law.defs, chartTravel.session.position)
+      : arena || inArenaSpace
+        ? undefined
+        : regionAtZone(law.defs, zoneData.id, shipPose());
   // Trouble ends a passage read through: the journal closes and a look at the chart goes
   // back to the helm, so the player sees what happened (only ever while sailing on).
   const lookUp = (): void => {
@@ -2358,6 +2436,8 @@ async function boot(): Promise<void> {
               dark: lantern.runningDark(),
             },
             eye: awarenessChip(detection.keenest),
+            wanted: portLaw.wanted(law.region()),
+            report: portLaw.report(),
             portName:
               ports.dockedPort && hazards.state.mooring === 'docked' && !ports.openPort
                 ? portInfo(ports.dockedPort)?.name

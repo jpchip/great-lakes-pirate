@@ -230,6 +230,11 @@ export interface HotGoodsDetectedEvent {
   outcome: 'refused' | 'confiscated';
   /** The lot's heat when offered (0 for contraband). */
   heat: number;
+  /**
+   * Your own receiver turned you in (Phase 5 piece E: at Wanted tier 2+ in the port's
+   * region): he took the lot and sent for the law, and he's your receiver no more.
+   */
+  informed?: boolean;
 }
 
 export type OfferResult =
@@ -253,6 +258,18 @@ export type OfferResult =
     }
   | { ok: false; reason: OfferRefusal };
 
+/** A receiver's roll on whether to turn you in, 0–1. Same lot, same week, same roll. */
+export function informerRoll(
+  runSeed: string,
+  port: string,
+  stack: CargoStack,
+  gameSeconds: number,
+): number {
+  return Rng.fromSeed(
+    `${runSeed}|inform|${port}|${stack.good}|${stack.hot?.since ?? 'contraband'}|${weekOf(gameSeconds)}`,
+  ).next();
+}
+
 /** The two rolls for an offer, 0–1: found out, then kept. Same lot, same week, same rolls. */
 export function offerRolls(
   runSeed: string,
@@ -272,9 +289,11 @@ export function offerRolls(
  * your receiver in the port. Refused: the lot stays aboard. Confiscated: it's gone. Either
  * detection marks the port as having turned you away for the week.
  *
- * At a port where you have a receiver there's no roll: the receiver takes the lot at
- * `receiverShare` of the price, or turns down one too hot to handle without a word to
- * anyone.
+ * At a port where you have a receiver there's no detection roll: the receiver takes the
+ * lot at `receiverShare` of the price, or turns down one too hot to handle without a word
+ * to anyone. Once the law is after you there (`informChance`, Phase 5 piece E), he may
+ * turn you in instead: the lot is taken, the port turns you away for the week, and he's
+ * your receiver no more.
  */
 export function offerLot(
   defs: EconomyDefs,
@@ -286,6 +305,8 @@ export function offerLot(
   gameSeconds: number,
   runSeed: string,
   rules = RULES,
+  /** The chance your receiver here turns you in (by the region's Wanted tier). */
+  informChance = 0,
 ): OfferResult {
   const { refusals, receivers } = memory;
   const stack = trader.cargo[stackIndex];
@@ -314,6 +335,29 @@ export function offerLot(
   };
   if (receivers.includes(port)) {
     if (tooHotForReceiver(stack, gameSeconds, rules)) return { ok: false, reason: 'tooHot' };
+    if (informChance > 0 && informerRoll(runSeed, port, stack, gameSeconds) < informChance) {
+      trader.cargo.splice(stackIndex, 1);
+      receivers.splice(receivers.indexOf(port), 1);
+      refusals[port] = weekOf(gameSeconds);
+      const heat = stack.hot ? heatNow(stack.hot, gameSeconds, rules) : 0;
+      return {
+        ok: true,
+        outcome: 'confiscated',
+        kind,
+        good,
+        qty,
+        event: {
+          port,
+          region: portInfo(port)?.wantedRegion,
+          good,
+          qty,
+          kind,
+          outcome: 'confiscated',
+          heat,
+          informed: true,
+        },
+      };
+    }
     return sale(rules.receiverShare, 'known');
   }
   if (refusals[port] === weekOf(gameSeconds)) return { ok: false, reason: 'turnedAway' };

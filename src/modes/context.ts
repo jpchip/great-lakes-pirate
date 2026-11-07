@@ -151,6 +151,18 @@ export interface GameEvents {
   PlayerLostSight: { witnessId: string };
   LanternChanged: { lit: boolean; reason: 'toggled' | 'outOfOil' };
   /**
+   * Port law (plan 06 §3.3, §5.2; Phase 5 piece E): a fine or a bribe paid to a harbor
+   * master, and his men's search of the hold on docking at tier 2+ (what they took).
+   */
+  HarborMasterPaid: {
+    port: string;
+    region: string;
+    kind: 'fine' | 'bribe';
+    cents: number;
+    heatFrom: number;
+    heatTo: number;
+  };
+  /**
    * The law at sea (plan 06 §5.1, §8.1; Phase 5 piece C). `PursuitChanged` is the chart
    * lock: a law ship is after the player and her lookout has her (true), or no longer
    * (false, whether she lost you, gave up, let you go or took you). The cutter hails, fires
@@ -161,11 +173,23 @@ export interface GameEvents {
   PursuitChanged: { pursued: boolean; by: string };
   CutterHailed: { by: string; intent: 'inspect' | 'pursue'; arrest: boolean };
   CutterFired: { by: string; kind: 'warning' | 'rigging'; hit: boolean };
-  HoldSearched: {
-    by: string;
-    region: string;
-    found: { good: string; qty: number; kind: 'hot' | 'contraband' }[];
-  };
+  /**
+   * A search of the hold. In port (piece E) the harbor master's men search on docking;
+   * at sea (piece C) the cutter or the tug searches while alongside. `found` at sea names
+   * the kind of goods; in port it doesn't.
+   */
+  HoldSearched:
+    | {
+        port: string;
+        region: string;
+        tier: number;
+        found: { good: string; qty: number }[];
+      }
+    | {
+        by: string;
+        region: string;
+        found: { good: string; qty: number; kind: 'hot' | 'contraband' }[];
+      };
   PlayerCaptured: {
     by: 'law.morrill' | 'law.chartered_tug';
     region: string;

@@ -23,6 +23,7 @@ import { cargoName, companyName, type AcceptRefusal } from '../sim/economy/contr
 import type { ShipHazards } from './hazards';
 import type { RumorControl } from './rumors';
 import type { GameShipyard } from './shipyard';
+import type { PortLaw } from './port-law';
 
 /**
  * Ports at the pier (plan 05 §7, Phase 4 piece B). Docking at a berth on one of a port's
@@ -59,6 +60,11 @@ export interface PortControlOptions {
   rumors?: RumorControl | undefined;
   /** The shipyard, chandlery fittings and repairs (piece G); without it those don't show. */
   shipyard?: GameShipyard | undefined;
+  /**
+   * Port law (Phase 5 piece E): the harbor master's tab, the search on docking at tier 2+,
+   * the poster, and Fame and Wanted in the ledger. Without it none of them show.
+   */
+  law?: PortLaw | undefined;
   /** The pier a berth belongs to, from the zone's berths. */
   berthPier(berthId: string): string | undefined;
   /** Show or hide the screens. */
@@ -188,6 +194,14 @@ export function attachPorts(opts: PortControlOptions): PortControl {
       },
     });
     snap.stashedCents = stashedCash(ctx.state.hideouts);
+    if (opts.law) {
+      snap.harbor = opts.law.harbor(port);
+      if (snap.harbor) snap.tabs.splice(snap.tabs.indexOf('ledger'), 0, 'harbor');
+      snap.ledger.law = opts.law.ledger();
+      const region = opts.law.regionOf(port);
+      const risk = region ? opts.law.informRisk(region) : undefined;
+      for (const h of snap.hold) if (h.offer?.receiver) h.offer.informRisk = risk;
+    }
     if (opts.wait) {
       snap.canWait = true;
       snap.waitRefusal = opts.wait.refusal();
@@ -232,7 +246,14 @@ export function attachPorts(opts: PortControlOptions): PortControl {
     if (shipId !== 'ship.player') return;
     const pier = opts.berthPier(berthId);
     dockedPort = pier ? pierPort(pier) : undefined;
-    if (dockedPort) open(dockedPort);
+    if (!dockedPort) return;
+    // The harbor master's men meet a wanted ship at the pier (piece E).
+    const searched = opts.law?.dockCheck(dockedPort) ?? [];
+    open(dockedPort);
+    if (searched.length) {
+      notices = [...searched, ...notices];
+      refresh();
+    }
   });
   const offCastOff = ctx.events.on('ShipCastOff', ({ shipId }) => {
     if (shipId === 'ship.player') dockedPort = undefined;
@@ -300,17 +321,17 @@ export function attachPorts(opts: PortControlOptions): PortControl {
     openJournal() {
       if (journalOpen || openPort) return;
       journalOpen = true;
-      opts.showJournal(
-        ledgerSnapshot(
-          economy.defs,
-          ctx.state.knowledge.prices,
-          now(),
-          contractSources(),
-          ctx.state.contraband?.receivers,
-          ctx.state.knowledge.rumors,
-          { cargo: ctx.state.player.cargo, capacity: economy.capacity },
-        ),
+      const ledger = ledgerSnapshot(
+        economy.defs,
+        ctx.state.knowledge.prices,
+        now(),
+        contractSources(),
+        ctx.state.contraband?.receivers,
+        ctx.state.knowledge.rumors,
+        { cargo: ctx.state.player.cargo, capacity: economy.capacity },
       );
+      if (opts.law) ledger.law = opts.law.ledger();
+      opts.showJournal(ledger);
       opts.onOpen(true);
     },
     closeJournal() {
@@ -390,6 +411,13 @@ export function attachPorts(opts: PortControlOptions): PortControl {
       },
       repair(place) {
         return yardWork((y, port) => y.repair(port, place));
+      },
+      payHarbor(kind) {
+        const port = openPort;
+        if (!port || !opts.law) return 'The harbor master is out.';
+        const r = opts.law.pay(port, kind);
+        refresh();
+        return r;
       },
       close,
       castOff() {

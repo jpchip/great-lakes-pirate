@@ -46,6 +46,7 @@ import {
 } from '../../sim/economy/contracts';
 import type { ShipState } from '../../sim/shipyard/shipyard';
 import { yardSnapshot, type YardSnapshot } from './shipyard-model';
+import type { HarborSnapshot, LedgerLawSnapshot } from './harbor-model';
 
 /**
  * What the port screen and the ledger show (plan 05 §12, plan 13 §5; Phase 4 piece B),
@@ -54,7 +55,8 @@ import { yardSnapshot, type YardSnapshot } from './shipyard-model';
  * these; buying and selling go back through the port's actions.
  */
 
-export type PortTab = 'market' | 'chandlery' | 'freight' | 'shipyard' | 'saloon' | 'ledger';
+export type PortTab =
+  'market' | 'chandlery' | 'freight' | 'shipyard' | 'saloon' | 'harbor' | 'ledger';
 
 /** The services with a tab, in order. Pieces F, G and K add the freight agent, shipyard and saloon. */
 const SERVICE_TABS: readonly [PortService, PortTab][] = [
@@ -142,6 +144,8 @@ export interface HoldRow {
         /** You have a receiver here: no risk, a discount, and the hottest marked goods refused. */
         receiver: boolean;
         tooHot: boolean;
+        /** With the law after you here, the risk your receiver turns you in (piece E). */
+        informRisk?: string | undefined;
       }
     | undefined;
 }
@@ -232,6 +236,8 @@ export interface PortSnapshot {
   shipyard: YardSnapshot | undefined;
   fittings: YardSnapshot | undefined;
   ledger: LedgerSnapshot;
+  /** The harbor master's tab (Phase 5 piece E): fines, bribes and the poster. */
+  harbor?: HarborSnapshot | undefined;
   /**
    * Waiting alongside (the footer's "Wait" choices): offered when the game can run the clock
    * on here; `waitRefusal` says why not just now (e.g. aground).
@@ -312,6 +318,8 @@ export interface LedgerSnapshot {
     port: { value: number; label: string }[];
     company: { value: number; label: string }[];
   };
+  /** Fame, Wanted by region and the reports on their way (Phase 5 piece E). */
+  law?: LedgerLawSnapshot | undefined;
 }
 
 /** One port or company on the ledger Standing tab. */

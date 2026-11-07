@@ -3,6 +3,7 @@ import { WORLD_TICK_GAME_SECONDS } from '../core/time';
 import { gameSmuggler } from '../sim/economy/smuggler';
 import { gameLaw, type LawDefs } from '../sim/law/defs';
 import {
+  tierIn,
   commitCrime,
   fileDue,
   interceptReport,
@@ -14,7 +15,9 @@ import {
   type LawEvent,
   type LawWorld,
 } from '../sim/law/law';
+import { informChance, informRoll } from '../sim/law/port-law';
 import { playerRegion, regionOfPort } from '../sim/law/regions';
+import { nightOf } from '../sim/economy/smuggler';
 import {
   NO_WITNESSES,
   type Identification,
@@ -33,7 +36,9 @@ import type { WorldState } from '../sim/world-state';
  *   the hour.
  * - `ContractStolen`: always traced; the freight agent's word goes up the line.
  * - `SmugglerDealt`: dealing with the island smuggler, seen by whoever piece B's
- *   observers say was watching (nobody, until piece B lands). One crime a night.
+ *   observers say was watching. One crime a night. At Wanted tier 2+ in her waters she
+ *   may inform on you herself (piece E), by the same odds as a receiver.
+ * - A receiver who turned you in (`HotGoodsDetected` with `informed`) is the witness.
  *
  * Piece C's cutter commits `crime.contraband` through `commit` when her hold search finds
  * it. The world tick files reports, spreads news and decays heat and Fame.
@@ -48,6 +53,12 @@ export interface GameLaw {
   fileAll(): LawEvent[];
   /** The player's region now. */
   region(): string | undefined;
+  /**
+   * Where the ship is right now, when the game can say (its live pose in the zone or on
+   * the chart). Without it the region comes from the saved location, which only moves at
+   * a save.
+   */
+  locate: (() => string | undefined) | undefined;
   setHeat(region: string, heat: number): LawEvent[];
   setTier(region: string, tier: number): LawEvent[];
   dispose(): void;
@@ -57,6 +68,24 @@ export interface GameLaw {
 function merchantAt(port: string): Witness {
   return { id: `merchant.${port}`, kind: 'merchant', name: 'a merchant', identification: 'person' };
 }
+
+/** Your receiver, who sent for the law instead (Phase 5 piece E). */
+function receiverAt(port: string): Witness {
+  return {
+    id: `receiver.${port}`,
+    kind: 'informant',
+    name: 'your receiver',
+    identification: 'person',
+  };
+}
+
+/** The smuggler, selling you to the revenue man (plan 05 §23.4; Phase 5 piece E). */
+export const SMUGGLER_INFORMANT: Witness = {
+  id: 'informant.smuggler',
+  kind: 'informant',
+  name: 'the smuggler',
+  identification: 'person',
+};
 
 /** The shipper's freight agent; contract theft is always traced (plan 06 §2.2). */
 function freightAgentOf(company: string): Witness {
@@ -118,7 +147,8 @@ export function attachLaw(
       for (const r of ctx.state.reports.inProgress) r.eta = Math.min(r.eta, now());
       return raise(fileDue(defs, world(), now()));
     },
-    region: () => playerRegion(defs, ctx.state),
+    locate: undefined,
+    region: () => law.locate?.() ?? playerRegion(defs, ctx.state),
     setHeat: (region, heat) => raise(setHeat(defs, ctx.state, region, heat)),
     setTier: (region, tier) => raise(setTier(defs, ctx.state, region, tier)),
     dispose: () => offs.forEach((off) => off()),
@@ -132,7 +162,7 @@ export function attachLaw(
         crime: e.kind === 'contraband' ? 'crime.contraband' : 'crime.hot_goods',
         region,
         port: e.port,
-        witnesses: [merchantAt(e.port)],
+        witnesses: [e.informed ? receiverAt(e.port) : merchantAt(e.port)],
       });
     }),
     ctx.events.on('ContractStolen', (e) => {
@@ -149,9 +179,16 @@ export function attachLaw(
       const t = now();
       if (t - lastDealAt < DEAL_WINDOW_S) return;
       lastDealAt = t;
-      const region = gameSmuggler().anchorage.region;
+      const anchorage = gameSmuggler().anchorage;
+      const region = anchorage.region;
       if (!defs.regionById.has(region)) return;
-      law.commit({ crime: 'crime.smuggler_deal', region, witnesses: law.witnesses.witnesses() });
+      const witnesses = [...law.witnesses.witnesses()];
+      // With the law after you in her waters, she may sell you to the revenue man.
+      const p = informChance(defs, tierIn(defs, ctx.state, region));
+      if (p > 0 && informRoll(seed, anchorage.id, nightOf(t), 'smuggler') < p) {
+        witnesses.push(SMUGGLER_INFORMANT);
+      }
+      law.commit({ crime: 'crime.smuggler_deal', region, witnesses });
     }),
     ctx.events.on('ShipPurchased', (e) => {
       raise(replaceShip(defs, ctx.state, e.classId, ctx.state.player.captain.shipName, now()));
