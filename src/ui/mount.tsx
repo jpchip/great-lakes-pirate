@@ -24,6 +24,10 @@ import type { StashSnapshot } from './stash/model';
 import type { StashActions } from '../gameplay/stash';
 import { FirstWeekPage, FirstWeekTracker } from './hud/FirstWeek';
 import type { FirstWeekSnapshot } from '../gameplay/captain';
+import { JailScreen } from './jail/JailScreen';
+import type { JailActions, JailSnapshot } from './jail/model';
+import { EndScreen } from './end/EndScreen';
+import type { LastRun } from '../sim/run/run-end';
 import './theme.css';
 
 /** Sail on or hold the ship, over the journal or a look at the chart. */
@@ -56,6 +60,12 @@ export interface GameUiOptions {
   stash?: StashActions | undefined;
   /** The game's sound volumes, when it has Web Audio. */
   audio?: AudioVolumes | undefined;
+  /** The jail screens' buttons (Phase 5 piece D). */
+  jail?: JailActions | undefined;
+  /** "Abandon run" on the pause menu, confirmed (plan 16 §3). */
+  onAbandon?: (() => void) | undefined;
+  /** From the end screen to the main menu. */
+  onEndMenu?: (() => void) | undefined;
 }
 
 export interface GameUi {
@@ -88,6 +98,10 @@ export interface GameUi {
   setLie(open: boolean, docked?: boolean): void;
   /** The First Week checklist (Phase 4 piece C); undefined for a run without one. */
   setFirstWeek(snapshot: FirstWeekSnapshot | undefined): void;
+  /** The jail, bail and release screens (piece D); undefined closes them. */
+  setJail(snapshot: JailSnapshot | undefined): void;
+  /** The run is over: the front page and summary over everything. */
+  setEnd(run: LastRun | undefined): void;
   /** Show a port screen tab (J in port turns to the ledger). */
   setPortTab(tab: PortTab): void;
   readonly menuOpen: boolean;
@@ -107,7 +121,12 @@ export function mountGameUi({
   smuggler: smugglerActions,
   stash: stashActions,
   setFirstWeekHidden = () => undefined,
+  jail: jailActions,
+  onAbandon,
+  onEndMenu = () => window.location.assign(window.location.pathname),
 }: GameUiOptions): GameUi {
+  const jail = signal<JailSnapshot | undefined>(undefined);
+  const ended = signal<LastRun | undefined>(undefined);
   const smuggler = signal<SmugglerSnapshot | undefined>(undefined);
   const stash = signal<StashSnapshot | undefined>(undefined);
   const lie = signal(false);
@@ -146,6 +165,11 @@ export function mountGameUi({
   // Esc closes the menu (plan 13 §6); opening is the sailing Pause action, in main.
   window.addEventListener('keydown', (e) => {
     if (e.code !== 'Escape') return;
+    // No Esc out of the lockup or the end of the run.
+    if (jail.value || ended.value) {
+      e.preventDefault();
+      return;
+    }
     if (menuOpen.value) {
       e.preventDefault();
       setMenu(false);
@@ -249,6 +273,8 @@ export function mountGameUi({
           !journal.value &&
           !smuggler.value &&
           !stash.value &&
+          !jail.value &&
+          !ended.value &&
           !lie.value && (
             <button
               type="button"
@@ -270,9 +296,20 @@ export function mountGameUi({
             close={() => setMenu(false)}
             reloadNote={reloadNote}
             audio={controls.audio}
+            onAbandon={
+              onAbandon &&
+              (() => {
+                setMenu(false);
+                onAbandon();
+              })
+            }
           />
         )}
+        {jail.value && jailActions && !menuOpen.value && (
+          <JailScreen jail={jail.value} actions={jailActions} />
+        )}
         <LoadingScreen screen={loading} />
+        {ended.value && <EndScreen run={ended.value} onMenu={onEndMenu} />}
       </>
     );
   }
@@ -340,6 +377,13 @@ export function mountGameUi({
     },
     setPortTab(tab) {
       portTab.value = tab;
+    },
+    setJail(snapshot) {
+      jail.value = snapshot;
+    },
+    setEnd(run) {
+      ended.value = run;
+      if (run) setMenu(false);
     },
     get menuOpen() {
       return menuOpen.value;

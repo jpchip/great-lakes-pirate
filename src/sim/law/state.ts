@@ -95,13 +95,49 @@ export const reportsSchema = z.object({
 });
 export type ReportsState = z.infer<typeof reportsSchema>;
 
-/** Jail (plan 06 §8; piece D fills it in). Null when free. */
+/**
+ * Jail (plan 06 §8, plan 12 §8.1; Phase 5 piece D). Null when free. Taken at sea, the
+ * captain is held in the lockup (`port`) for a sentence by the region's tier and heat;
+ * cargo and cash on hand were confiscated, the ship impounded. At tier 5 it's the rope:
+ * `execution`, with no sentence to serve. `word` is bail sent for from a strongbox.
+ */
 export const jailSchema = z
   .object({
+    /** Where you were taken, and the lockup you're held in. */
     region: z.string(),
     port: z.string(),
     since: z.number(),
+    /** When the sentence is up (game seconds); with bail on its way, when it comes. */
     releaseAt: z.number(),
+    /** Who took you and how (piece C's `PlayerCaptured`). */
+    by: z.string().default('law.morrill'),
+    how: z.enum(['surrender', 'boarded']).default('surrender'),
+    /** The region's tier and heat when you were taken. */
+    tier: z.number().int().min(0).default(0),
+    heat: z.number().nonnegative().default(0),
+    /** Weeks to serve (a game day each); 0 for the rope. */
+    sentenceWeeks: z.number().int().nonnegative().default(0),
+    bailCents: z.number().int().nonnegative().default(0),
+    /** What the harbor wants for the ship on release. */
+    impoundCents: z.number().int().nonnegative().default(0),
+    execution: z.boolean().default(false),
+    confiscated: z
+      .object({
+        cargo: z.array(z.object({ good: z.string(), qty: z.number().int().positive() })),
+        cashCents: z.number().int().nonnegative(),
+      })
+      .default({ cargo: [], cashCents: 0 }),
+    /** Bail sent for by messenger: from which hideout, what it cost and when it comes. */
+    word: z
+      .object({
+        hideout: z.string(),
+        sentAt: z.number(),
+        arrivesAt: z.number(),
+        paidCents: z.number().int().nonnegative(),
+      })
+      .optional(),
+    /** Days added to work off an impound fee nobody could pay. */
+    workOffDays: z.number().int().nonnegative().default(0),
   })
   .nullable();
 export type JailState = z.infer<typeof jailSchema>;

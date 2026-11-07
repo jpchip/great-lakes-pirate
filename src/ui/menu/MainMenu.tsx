@@ -6,6 +6,8 @@ import { SettingsMenu } from '../settings/SettingsMenu';
 import type { SettingsControls } from '../settings/controls';
 import { backgroundCards, randomSeed, type SavedRunSummary } from './model';
 import { Portrait } from './Portrait';
+import { EndScreen } from '../end/EndScreen';
+import type { LastRun } from '../../sim/run/run-end';
 
 /**
  * The main menu and character creation (plan 13 §5, plan 12 §2; Phase 4 piece C). The
@@ -21,13 +23,15 @@ export interface MainMenuProps {
   saved: SavedRunSummary | undefined;
   /** Why the saved run can't be continued, if it can't. */
   savedProblem: string | undefined;
+  /** The last run's end (only when there's no run to continue). */
+  lastRun?: LastRun | undefined;
   settings: SettingsControls;
   choose(choice: MenuChoice): void;
   /** Character creation opened or closed (the mode machine follows). */
   onCreating?(creating: boolean): void;
 }
 
-type Screen = 'title' | 'create' | 'settings' | 'replace';
+type Screen = 'title' | 'create' | 'settings' | 'replace' | 'lastRun';
 
 /** The renderer isn't up yet, so a preset change never waits for a reload here. */
 const NO_RELOAD_NOTE = signal(false);
@@ -49,11 +53,13 @@ const pick = <T,>(list: readonly T[]): T => list[Math.floor(Math.random() * list
 function Title({
   saved,
   savedProblem,
+  lastRun,
   go,
   resume,
 }: {
   saved: SavedRunSummary | undefined;
   savedProblem: string | undefined;
+  lastRun: LastRun | undefined;
   go(screen: Screen): void;
   resume(): void;
 }) {
@@ -72,6 +78,24 @@ function Title({
             <div class="title-saved-meta">
               {saved.background} · {saved.where} · {saved.when} · {saved.purse}
             </div>
+          </div>
+        </div>
+      )}
+      {!saved && lastRun && (
+        <div class="title-saved title-last" data-testid="last-run">
+          <div>
+            <div class="title-saved-name">
+              The late Captain {lastRun.captain} of the <i>{lastRun.shipName}</i>
+            </div>
+            <div class="title-saved-meta">{lastRun.epitaph}</div>
+            <button
+              type="button"
+              class="port-mini"
+              data-testid="menu-last-run"
+              onClick={() => go('lastRun')}
+            >
+              Read the front page
+            </button>
           </div>
         </div>
       )}
@@ -285,7 +309,14 @@ function Create({ back, start }: { back(): void; start(setup: NewRunSetup): void
   );
 }
 
-export function MainMenu({ saved, savedProblem, settings, choose, onCreating }: MainMenuProps) {
+export function MainMenu({
+  saved,
+  savedProblem,
+  lastRun,
+  settings,
+  choose,
+  onCreating,
+}: MainMenuProps) {
   const [screen, setScreenState] = useState<Screen>('title');
   // The screen as of the last change, read by the Esc listener, which is added once: a
   // listener re-added after each render would miss an Esc pressed before the effect ran.
@@ -313,11 +344,15 @@ export function MainMenu({ saved, savedProblem, settings, choose, onCreating }: 
           <Title
             saved={saved}
             savedProblem={savedProblem}
+            lastRun={lastRun}
             go={setScreen}
             resume={() => choose({ kind: 'continue' })}
           />
         )}
         {screen === 'replace' && saved && <Replace saved={saved} go={setScreen} />}
+        {screen === 'lastRun' && lastRun && (
+          <EndScreen run={lastRun} onMenu={() => setScreen('title')} menuLabel="Back (Esc)" />
+        )}
         {screen === 'create' && (
           <Create
             back={() => setScreen('title')}
