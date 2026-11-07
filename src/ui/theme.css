@@ -981,6 +981,10 @@ body[data-mode='chart'] .chart-layer {
 }
 
 .port-elsewhere.stale,
+.ledger-table tr.hot {
+  color: #7a4a12;
+}
+
 .ledger-table tr.stale,
 .ledger-seen.stale {
   color: var(--fog-gray);
@@ -1172,10 +1176,6 @@ body[data-mode='chart'] .chart-layer {
   border-color: var(--signal-red);
 }
 
-.ledger-done {
-  color: #6b5b48;
-}
-
 .port-footer {
   gap: 10px;
 }
@@ -1225,12 +1225,57 @@ body[data-mode='chart'] .chart-layer {
   margin-bottom: 12px;
 }
 
-.standing-group h4 {
+.standing-group h4,
+.ledger-section h4 {
   margin: 0 0 6px;
   font: 12px var(--serif);
   font-variant: small-caps;
   letter-spacing: 0.06em;
   color: var(--brass);
+}
+
+.ledger-section {
+  margin-bottom: 12px;
+}
+
+.ledger-contract-card {
+  grid-template-columns: 1fr auto;
+}
+
+.contract-outcome {
+  display: inline-block;
+  padding: 1px 6px;
+  font-size: 11px;
+  font-variant: small-caps;
+  letter-spacing: 0.04em;
+  border: 1px solid var(--paper-dark);
+  border-radius: 10px;
+  white-space: nowrap;
+}
+
+.contract-outcome.delivered {
+  color: var(--lake-teal);
+  border-color: var(--lake-teal);
+  background: rgba(42, 111, 122, 0.1);
+}
+
+.contract-outcome.late {
+  color: #7a4a12;
+  border-color: #c49a5c;
+  background: rgba(196, 154, 92, 0.12);
+}
+
+.contract-outcome.failed,
+.contract-outcome.stolen {
+  color: var(--signal-red);
+  border-color: var(--signal-red);
+  background: rgba(160, 58, 48, 0.1);
+}
+
+.contract-outcome.abandoned {
+  color: var(--fog-gray);
+  border-color: var(--fog-gray);
+  background: rgba(125, 118, 108, 0.12);
 }
 
 .standing-row {

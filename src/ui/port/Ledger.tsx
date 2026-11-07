@@ -1,7 +1,15 @@
 import type { ComponentChildren } from 'preact';
 import { useState } from 'preact/hooks';
 import { formatCents } from '../../sim/economy/knowledge';
-import type { LedgerPrice, LedgerSnapshot, LedgerStandingRow, RumorRow } from './model';
+import {
+  CONTRACT_OUTCOME_WORD,
+  type LedgerContractRow,
+  type LedgerPrice,
+  type LedgerSnapshot,
+  type LedgerStandingRow,
+  type OfferRow,
+  type RumorRow,
+} from './model';
 
 /**
  * The ledger (plan 05 §12; journal v1, plan 13 §5): the prices you've seen with their
@@ -251,6 +259,114 @@ function ByPort({ ledger, here }: { ledger: LedgerSnapshot; here: string | undef
   );
 }
 
+const KIND_LABEL: Record<OfferRow['kind'], string | undefined> = {
+  freight: undefined,
+  rush: 'Rush',
+  mail: 'Mail',
+  fragile: 'Fragile',
+};
+
+const ACTIVE_STATUS_WORD: Record<'active' | 'late' | 'failed', string> = {
+  active: '',
+  late: 'late: half pay',
+  failed: 'Failed: hand the cargo back at a freight agent',
+};
+
+function activeDetail(c: LedgerContractRow): string {
+  if (c.status === 'failed') return ACTIVE_STATUS_WORD.failed;
+  const bits = [c.company, c.dueShort].filter(Boolean);
+  const tail = c.status === 'late' ? ACTIVE_STATUS_WORD.late : '';
+  if (tail) bits.push(tail);
+  return bits.join(' · ');
+}
+
+function Contracts({ ledger }: { ledger: LedgerSnapshot }) {
+  const active = ledger.contracts.filter((c) => !c.done);
+  const past = ledger.contracts.filter((c) => c.done);
+  if (!active.length && !past.length) {
+    return <Empty text="No contracts yet. A port's freight agent has them." />;
+  }
+  return (
+    <div data-testid="ledger-contracts">
+      {active.length > 0 && (
+        <section class="ledger-section" data-testid="ledger-contracts-active">
+          <h4>In hand</h4>
+          <ul class="freight-list">
+            {active.map((c) => (
+              <li
+                key={c.id}
+                class={`freight-card ledger-contract-card${c.status === 'late' ? ' late' : ''}${c.status === 'failed' ? ' failed' : ''}`}
+                data-testid="ledger-contract-row"
+                data-contract-id={c.id}
+                title={c.status === 'failed' ? undefined : c.dueText}
+              >
+                <div class="freight-main">
+                  <span class="freight-route">
+                    {KIND_LABEL[c.kind] && <span class="port-kind">{KIND_LABEL[c.kind]} </span>}
+                    {c.qty} CU {c.cargo}{' '}
+                    <span class="port-dim">
+                      {c.fromName} → {c.toName}
+                    </span>
+                  </span>
+                  <small class="port-dim">{activeDetail(c)}</small>
+                </div>
+                <strong class="freight-pay hud-num">
+                  {c.status === 'failed' ? '—' : formatCents(c.payCents)}
+                </strong>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+      {past.length > 0 && (
+        <section class="ledger-section" data-testid="ledger-contracts-history">
+          <h4>Past contracts</h4>
+          <table class="ledger-table">
+            <thead>
+              <tr>
+                <th>Week</th>
+                <th>Cargo</th>
+                <th>Route</th>
+                <th>Company</th>
+                <th>Outcome</th>
+                <th class="num">Paid</th>
+              </tr>
+            </thead>
+            <tbody>
+              {past.map((c) => (
+                <tr
+                  key={c.id}
+                  class={c.status === 'stolen' ? 'hot' : ''}
+                  data-testid="ledger-contract-row"
+                  data-contract-id={c.id}
+                >
+                  <td>{c.week}</td>
+                  <td>
+                    {c.qty} CU {c.cargo}
+                  </td>
+                  <td>
+                    {c.fromName} → {c.toName}
+                  </td>
+                  <td>{c.company}</td>
+                  <td>
+                    <span class={`contract-outcome ${c.status}`}>
+                      {CONTRACT_OUTCOME_WORD[c.status as keyof typeof CONTRACT_OUTCOME_WORD] ??
+                        c.status}
+                    </span>
+                  </td>
+                  <td class="num hud-num">
+                    {c.payCents > 0 ? formatCents(c.payCents) : '—'}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </section>
+      )}
+    </div>
+  );
+}
+
 function ByGood({ ledger }: { ledger: LedgerSnapshot }) {
   const [good, setGood] = useState<string | undefined>(undefined);
   const chosen = ledger.goods.find((g) => g.id === good) ?? ledger.goods[0];
@@ -324,18 +440,7 @@ export function Ledger({ ledger, here }: { ledger: LedgerSnapshot; here?: string
       {tab === 'hold' && <Hold ledger={ledger} />}
       {tab === 'byPort' && <ByPort ledger={ledger} here={here} />}
       {tab === 'byGood' && <ByGood ledger={ledger} />}
-      {tab === 'contracts' &&
-        (ledger.contracts.length ? (
-          <ul class="ledger-list">
-            {ledger.contracts.map((c) => (
-              <li key={c.id} class={c.done ? 'ledger-done' : ''}>
-                {c.text}
-              </li>
-            ))}
-          </ul>
-        ) : (
-          <Empty text="No contracts yet. A port's freight agent has them." />
-        ))}
+      {tab === 'contracts' && <Contracts ledger={ledger} />}
       {tab === 'rumors' &&
         (ledger.rumors.length ? (
           <ul class="ledger-list rumors" data-testid="ledger-rumors">

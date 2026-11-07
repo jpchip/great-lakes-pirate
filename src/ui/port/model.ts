@@ -5,7 +5,6 @@ import { portInfo, type EconomyDefs } from '../../sim/economy/defs';
 import { holdFree, holdUsed, isClean, paidPerCu, type CargoStack } from '../../sim/economy/hold';
 import {
   ageText,
-  formatCents,
   bestKnownPurchase,
   bestKnownSale,
   STALE_WEEKS,
@@ -41,6 +40,7 @@ import {
   standingOf,
   type BoardOffer,
   type ContractDefs,
+  type ContractOutcome,
   type ContractsState,
   type Standing,
 } from '../../sim/economy/contracts';
@@ -303,7 +303,7 @@ export interface LedgerSnapshot {
   /** Ports where a merchant takes hot goods from you (piece H). */
   receivers: { id: string; text: string }[];
   /** Contracts in hand, then the last few finished (piece F). Piece K fills the rumors. */
-  contracts: { id: string; text: string; done: boolean }[];
+  contracts: LedgerContractRow[];
   rumors: RumorRow[];
   /** Ports first, then companies; a company you stole from is marked. */
   standing: LedgerStandingRow[];
@@ -312,6 +312,23 @@ export interface LedgerSnapshot {
 }
 
 /** One port or company on the ledger Standing tab. */
+/** One contract on the ledger Contracts tab. */
+export interface LedgerContractRow {
+  id: string;
+  done: boolean;
+  kind: OfferRow['kind'];
+  qty: number;
+  cargo: string;
+  fromName: string;
+  toName: string;
+  company: string;
+  payCents: number;
+  dueShort?: string | undefined;
+  dueText?: string | undefined;
+  status: 'active' | 'late' | 'failed' | ContractOutcome;
+  week?: string | undefined;
+}
+
 export interface LedgerStandingRow {
   id: string;
   name: string;
@@ -413,20 +430,13 @@ export function dueText(dueAt: number, gameSeconds: number): string {
   return `by ${clockLabel(dueAt)}, ${weekLabel(dueAt)} (${left})`;
 }
 
-const KIND_WORD: Record<OfferRow['kind'], string> = {
-  freight: '',
-  rush: 'Rush: ',
-  mail: 'Mail: ',
-  fragile: 'Fragile: ',
-};
-
-const OUTCOME_WORD = {
+export const CONTRACT_OUTCOME_WORD: Record<ContractOutcome, string> = {
   delivered: 'delivered',
   late: 'delivered late',
   failed: 'failed',
   abandoned: 'handed back',
   stolen: 'stolen',
-} as const;
+};
 
 function ledgerContracts(
   econ: EconomyDefs,
@@ -435,21 +445,36 @@ function ledgerContracts(
 ): LedgerSnapshot['contracts'] {
   const out: LedgerSnapshot['contracts'] = [];
   for (const k of c.state.active) {
-    const what = `${KIND_WORD[k.kind]}${k.qty} CU of ${cargoName(econ, c.defs, k.good).toLowerCase()}`;
-    const route = `${portName(k.from)} → ${portName(k.to)} for ${companyName(c.defs, k.company)}`;
-    const when =
-      k.status === 'failed'
-        ? 'failed: hand the cargo back at a freight agent'
-        : `${dueText(k.dueAt, gameSeconds)}, pays ${formatCents(k.payCents)}`;
-    out.push({ id: k.id, text: `${what}, ${route}, ${when}`, done: false });
+    const status: LedgerContractRow['status'] =
+      k.status === 'failed' ? 'failed' : gameSeconds > k.dueAt ? 'late' : 'active';
+    out.push({
+      id: k.id,
+      done: false,
+      kind: k.kind,
+      qty: k.qty,
+      cargo: cargoName(econ, c.defs, k.good).toLowerCase(),
+      fromName: portName(k.from),
+      toName: portName(k.to),
+      company: companyName(c.defs, k.company),
+      payCents: k.payCents,
+      dueShort: dueShort(k.dueAt, gameSeconds),
+      dueText: dueText(k.dueAt, gameSeconds),
+      status,
+    });
   }
   for (const h of c.state.history) {
-    const what = `${h.qty} CU of ${cargoName(econ, c.defs, h.good).toLowerCase()}`;
-    const paid = h.payCents > 0 ? `, ${formatCents(h.payCents)}` : '';
     out.push({
       id: `${h.id}:${h.outcome}`,
-      text: `${weekLabel(h.at)}: ${what}, ${portName(h.from)} → ${portName(h.to)} for ${companyName(c.defs, h.company)}, ${OUTCOME_WORD[h.outcome]}${paid}`,
       done: true,
+      kind: 'freight',
+      qty: h.qty,
+      cargo: cargoName(econ, c.defs, h.good).toLowerCase(),
+      fromName: portName(h.from),
+      toName: portName(h.to),
+      company: companyName(c.defs, h.company),
+      payCents: h.payCents,
+      status: h.outcome,
+      week: weekLabel(h.at),
     });
   }
   return out;
