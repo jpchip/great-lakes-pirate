@@ -4,6 +4,7 @@ import type { SettingsStore } from '../../core/settings';
 import { settingsControls } from '../settings/controls';
 import { MainMenu, type MenuChoice } from './MainMenu';
 import type { SavedRunSummary } from './model';
+import type { LastRun } from '../../sim/run/run-end';
 
 /**
  * Puts the main menu on the UI root before the game boots (Phase 4 piece C) and waits
@@ -17,6 +18,8 @@ export function showMainMenu(opts: {
   storage: Storage | undefined;
   saved: SavedRunSummary | undefined;
   savedProblem: string | undefined;
+  /** The last run's end, until a new run starts (plan 16 §2). */
+  lastRun?: LastRun | undefined;
   /** Character creation opened (true) or closed back to the title (false). */
   onCreating(creating: boolean): void;
   /** The fog card's words once a choice is made. */
@@ -56,6 +59,7 @@ export function showMainMenu(opts: {
       <MainMenu
         saved={opts.saved}
         savedProblem={opts.savedProblem}
+        lastRun={opts.lastRun}
         settings={controls}
         choose={choose}
         onCreating={opts.onCreating}

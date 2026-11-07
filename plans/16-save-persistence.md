@@ -236,6 +236,8 @@ S6 measured a worst case of **839 KB raw → 244 KB compressed** with packed hid
 
 ---
 
+**Built in Phase 5 piece D (2026-11-07):** the run's end writes `lastRun/summary` and deletes `current`, `backup` and `danger` in one transaction before the end screen, then adds a `hall` record; a new run clears `lastRun`. The danger snapshot is written when a hunt begins (the chart lock, an arena's pursuit or piece C's `PursuitChanged`), with the threat in the optional `danger` slice; regular autosaves wait while it stands, and when the hunt ends a normal save is written and the slot cleared. A reload from it puts the cutter back on your tail (a forced meeting on the chart, or her arena around you in a zone). The jail state is saved at once, so a reload comes back to the cell or the gallows. The single-tab lock holds a Web Lock (`glp-run`) for the page's life; a second tab shows "Already open in another tab", and a reload waits up to 1.5 s for the old page to let go. No save version bump: `stats`, `logbook` and `danger` are optional, and `jail` was always null before.
+
 ## 13. Cut List
 1. Dirty-slice tracking (full clone only, if S6 shows it's fast enough).
 2. Incognito detection (generic warning text only).
@@ -319,6 +321,7 @@ Per-cell grid updates dominate. Everything else (480 markets, 200 ships) costs u
 ---
 
 ## Changelog
+- v1.0: Phase 5 piece D: `lastRun` and the Hall record at the run's end, the danger snapshot, the single-tab lock (§12).
 - v0.9: Phase 4: save v6 and the optional slices of pieces C–K, and a new run's save size (§12).
 - v0.8: Phase 4 piece A: the economy slices in save v5 (§12).
 - v0.7: Phase 3 piece D: the `voyage` slice in save v4, saves on chart transitions (§12).

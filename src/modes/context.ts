@@ -1,4 +1,3 @@
-import type { Chart } from '../core/coords';
 import type { EventBus } from '../core/events';
 import type { InputMapper } from '../core/input';
 import type { Rng } from '../core/rng';
@@ -24,6 +23,7 @@ import type { ZoneTerrain } from '../sim/terrain/zone-terrain';
 import type { Sea } from '../sim/weather/waves';
 import type { Rumor, WorldState } from '../sim/world-state';
 import type { Witness } from '../sim/law/witness';
+import type { Chart } from '../core/coords';
 
 /** Events shared across layers. Each system plan adds its own (plan 01 §3.5). */
 export interface GameEvents {
@@ -172,6 +172,14 @@ export interface GameEvents {
     how: 'surrender' | 'boarded';
     at: Chart;
   };
+  /**
+   * Jail and the run's end (plan 06 §10, plan 12 §10; piece D): taken to the lockup (or
+   * the gallows), bail sent for, let out, and the run over.
+   */
+  Jailed: { region: string; port: string; tier: number; sentenceWeeks: number; execution: boolean };
+  BailSent: { hideout: string; cents: number };
+  Released: { how: 'served' | 'bail'; region: string; weeks: number };
+  RunEnded: { cause: 'executed' | 'abandoned' };
 }
 
 /** Everything a mode needs; built once at boot and handed to each mode. */

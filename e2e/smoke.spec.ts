@@ -525,7 +525,7 @@ test('meets a ship from the chart in an arena and sails on', async ({ page }) =>
   expect(Math.hypot(resumedAt.x - metAt.x, resumedAt.y - metAt.y)).toBeLessThan(2000);
 
   // Hunted here (Wanted tier 3: piece C), the cutter closes and won't be avoided. With
-  // her rigging shot away and the cutter alongside, she's boarded and the voyage ends.
+  // her rigging shot away and the cutter alongside, she's boarded and jailed.
   await page.evaluate(() => {
     const law = (window as unknown as { __glpLaw: { setTier(region: string, tier: number): void } })
       .__glpLaw;
@@ -552,9 +552,8 @@ test('meets a ship from the chart in an arena and sails on', async ({ page }) =>
     if (s) a.place(s.x, s.z + 10);
   });
   await expect(body).toHaveAttribute('data-arena-result', 'caught');
-  await expect(body).toHaveAttribute('data-mode', 'chart');
-  await expect(page.getByTestId('chart-notice')).toContainText('Taken by the Morrill');
-  await expect(page.getByTestId('chart-status')).not.toContainText('Under way');
+  // Piece D's lockup takes the captain once the arena has gone.
+  await expect(page.getByTestId('jail-screen')).toBeVisible();
   expect(errors).toEqual([]);
 });
 

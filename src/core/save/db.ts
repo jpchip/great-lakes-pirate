@@ -73,3 +73,30 @@ export async function deleteRun(db: GlpDatabase): Promise<void> {
   ]);
   await tx.done;
 }
+
+/**
+ * Ends the run (plan 16 §3): the end screen's summary goes to `lastRun` and every run slot
+ * is deleted, in one transaction, before anything is shown; then a Hall of Captains record
+ * is added. `summary` and `hall` are opaque here (core/ doesn't know sim/ types).
+ */
+export async function endRun(db: GlpDatabase, summary: unknown, hall: unknown): Promise<void> {
+  const tx = db.transaction(['run', 'lastRun'], 'readwrite');
+  const run = tx.objectStore('run');
+  await Promise.all([
+    tx.objectStore('lastRun').put(summary, 'summary'),
+    run.delete('current'),
+    run.delete('backup'),
+    run.delete('danger'),
+  ]);
+  await tx.done;
+  await db.add('hall', hall);
+}
+
+/** The ended run's summary, until a new run starts (plan 16 §2). */
+export function readLastRun(db: GlpDatabase): Promise<unknown> {
+  return db.get('lastRun', 'summary');
+}
+
+export async function clearLastRun(db: GlpDatabase): Promise<void> {
+  await db.delete('lastRun', 'summary');
+}

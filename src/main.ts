@@ -5,7 +5,16 @@ import { EventBus } from './core/events';
 import { DEFAULT_BINDINGS, InputMapper, type InputContext } from './core/input';
 import { createLoop } from './core/loop';
 import { Rng } from './core/rng';
-import { deleteRun, openSaveDb, type GlpDatabase } from './core/save/db';
+import {
+  clearDanger,
+  clearLastRun,
+  deleteRun,
+  endRun,
+  openSaveDb,
+  readLastRun,
+  type GlpDatabase,
+} from './core/save/db';
+import { acquireTabLock } from './core/tab-lock';
 import {
   SettingsStore,
   applyBindingOverrides,
@@ -126,6 +135,11 @@ import type { Identification, WitnessKind } from './sim/law/witness';
 import { attachLantern, DARK_WARNING_M } from './gameplay/lantern';
 import { attachDetection, awarenessChip } from './gameplay/detection';
 import type { PlacedLight } from './sim/lighthouses';
+import { attachRecord } from './gameplay/record';
+import { attachCapture } from './gameplay/capture';
+import { gameJail } from './sim/law/jail';
+import { buildLastRun, type LastRun, type RunEndCause } from './sim/run/run-end';
+import { showTabLocked } from './ui/menu/tab-locked';
 
 /** Periodic autosave while safe (plan 16 §4.1). */
 const AUTOSAVE_INTERVAL_MS = 2 * 60_000;
@@ -203,8 +217,10 @@ async function openRun(
       status: loaded.recovered ? 'recovered' : 'loaded',
     };
   }
-  // One run at a time (plan 16 §3): a new captain clears every slot of the old one.
+  // One run at a time (plan 16 §3): a new captain clears every slot of the old one, and
+  // the last run's end screen goes with it.
   if (loaded) await deleteRun(db);
+  await clearLastRun(db).catch(() => undefined);
   // `?seed=abc` starts a new run from that seed, so the same weather can be revisited.
   const seed = setup?.seed ?? params.get('seed') ?? crypto.randomUUID();
   const run = {
@@ -333,6 +349,16 @@ async function boot(): Promise<void> {
   // `?timewarp=60` runs the clock and weather 60× for the playtest (a game day a minute).
   const timeWarp = { factor: parseTimeWarp(params.get('timewarp')) };
 
+  // One tab at a time (plan 16 §4.4): a second tab says so and goes no further.
+  const uiRootEarly =
+    document.getElementById('ui') ?? document.body.appendChild(document.createElement('div'));
+  if (!(await acquireTabLock())) {
+    document.body.dataset['tabLock'] = 'blocked';
+    showTabLocked(uiRootEarly);
+    return;
+  }
+  document.body.dataset['tabLock'] = 'held';
+
   const machine = new ModeMachine();
   machine.onTransition((_, to) => (document.body.dataset['mode'] = to));
   machine
@@ -342,6 +368,10 @@ async function boot(): Promise<void> {
     .transition('boot');
 
   const [prepared, settings] = await Promise.all([prepareRun(), loadSettings()]);
+  // The last run's end screen stays on the menu until a new run starts (plan 16 §2).
+  const lastRun = prepared.db
+    ? ((await readLastRun(prepared.db).catch(() => undefined)) as LastRun | undefined)
+    : undefined;
   // The main menu (Phase 4 piece C) comes up before the game boots into a run, unless a
   // check asks to start somewhere (START_SWITCHES).
   let choice: MenuChoice | undefined = devNewRun(params);
@@ -354,6 +384,7 @@ async function boot(): Promise<void> {
       settings,
       storage: browserStorage(),
       saved: prepared.loaded ? savedRunSummary(prepared.loaded.state) : undefined,
+      lastRun: prepared.loaded ? undefined : lastRun,
       savedProblem:
         prepared.problem === 'error'
           ? "The saved run couldn't be read. It's kept, but this session won't be saved."
@@ -639,6 +670,8 @@ async function boot(): Promise<void> {
   }
   // The law (plan 06, Phase 5 piece A): Phase 4's crimes become heat in their regions.
   const law = attachLaw(ctx, trafficSeed);
+  // The run's record for the end screen: its counters and the logbook (piece D).
+  attachRecord(ctx, law.defs);
   if (import.meta.env.DEV || params.has('debug')) {
     // `__glpLaw.commit('crime.smuggler_deal', 'region.apostles', 'keeper', 'ship')` commits
     // a crime with one witness; `fileAll()` lands every report now.
@@ -770,12 +803,24 @@ async function boot(): Promise<void> {
     z: sailing.state.z,
     heading: sailing.state.heading,
   });
+  /**
+   * The run is over (piece D): its slots are deleted and nothing may save it again.
+   * In danger (plan 16 §4.2), regular saves wait: the danger snapshot stands for the run.
+   */
+  const run = { over: false, inDanger: false };
+  /** Readies the state for a save: the RNG, where the ship is, her damage. */
+  const prepareSave = (): void => {
+    state.environment.rng = ctx.rng.getState();
+    if (!changingZone && !travelRef.current?.record(state) && !inArenaSpace)
+      recordZonePose(state, zoneData.id, shipPose());
+    shipyard.sync();
+  };
   const saveControls: SaveControls = {
     status,
     lastSavedAt: undefined,
     lastError: undefined,
     async saveNow(): Promise<void> {
-      if (!saver) return;
+      if (!saver || run.over || run.inDanger) return;
       state.environment.rng = ctx.rng.getState();
       // Where the ship is, so Continue comes back here (Phase 3 piece A): on the chart with
       // the voyage (piece D), including while an arena entered from it is in play, or in the
@@ -953,6 +998,13 @@ async function boot(): Promise<void> {
   const captainRef: { current: ReturnType<typeof attachCaptain> | undefined } = {
     current: undefined,
   };
+  // Jail and the run's end (piece D); attached once the ports are up.
+  const captureRef: { current: ReturnType<typeof attachCapture> | undefined } = {
+    current: undefined,
+  };
+  const endRef: { current: ((cause: RunEndCause) => Promise<void>) | undefined } = {
+    current: undefined,
+  };
   const ui = mountGameUi({
     root: uiRoot,
     settings,
@@ -1005,6 +1057,14 @@ async function boot(): Promise<void> {
       setForecast: (lead) => travelRef.current?.setForecast(lead),
     },
     setFirstWeekHidden: (hidden) => captainRef.current?.setHidden(hidden),
+    jail: {
+      serve: () => captureRef.current?.actions.serve(),
+      sendWord: (hideout) => captureRef.current?.actions.sendWord(hideout),
+      jailbreak: () => captureRef.current?.actions.jailbreak(),
+      hang: () => captureRef.current?.actions.hang(),
+      leave: () => captureRef.current?.actions.leave(),
+    },
+    onAbandon: () => void endRef.current?.('abandoned'),
     onTakeToChart: () => {
       if (machine.mode === 'sailing' && !machine.overlayOpen) travelRef.current?.takeToChart();
     },
@@ -1368,6 +1428,130 @@ async function boot(): Promise<void> {
       stores: () => state.player.stores,
     };
     (window as unknown as { __glpPort: typeof hook }).__glpPort = hook;
+  }
+  // Capture, jail and the run's end (Phase 5 piece D). Piece C's cutter raises
+  // PlayerCaptured; once any arena has ended the captain is jailed (or bound for the rope),
+  // with the jail screen over the game.
+  const lockup = gameJail().lockup;
+  /** Back alongside the lockup's pier, out of the impound: docked, so the port screen opens. */
+  const backAboard = async (): Promise<void> => {
+    if (machine.mode === 'chart') travelRef.current?.towed();
+    const zoneId = portInfo(lockup.port)?.zone;
+    const dock = (): void => {
+      const berth =
+        freeBerths().find((b) => b.dockId === lockup.pier) ??
+        sailingOptions.berths.find((b) => b.dockId === lockup.pier);
+      if (!berth) return;
+      placeShip(berth.pose);
+      const h = hazards.state;
+      h.mooring = 'docking';
+      h.berthId = berth.id;
+      h.mooringS = Number.MAX_SAFE_INTEGER;
+      h.from = { ...berth.pose };
+    };
+    if (zoneId && zoneId !== zoneData.id) {
+      const def = zoneDef(zoneId);
+      await enterZone(zoneId, spawnPose(def), { kind: 'return' }, false, dock);
+    } else {
+      dock();
+      await saveControls.saveNow();
+    }
+  };
+  /**
+   * Ends the run (plan 16 §3, plan 12 §9): the summary and logbook go to `lastRun` and
+   * every run slot is deleted before the end screen shows. Nothing saves the run again.
+   */
+  const endTheRun = async (cause: RunEndCause): Promise<void> => {
+    if (run.over) return;
+    run.over = true;
+    const now = state.environment.clock.gameSeconds;
+    const last = buildLastRun(law.defs, state, cause, now, new Date());
+    ctx.events.emit('RunEnded', { cause });
+    if (prepared.db) {
+      try {
+        await endRun(prepared.db, last, {
+          captain: last.captain,
+          shipName: last.shipName,
+          portrait: last.portrait,
+          cause,
+          epitaph: last.epitaph,
+          headline: last.frontPage.headline,
+          summary: last.summary,
+          endedAtIso: last.endedAtIso,
+          runId: saver?.run.runId,
+        });
+      } catch (err) {
+        console.error('Could not end the run in the save', err);
+      }
+    }
+    machine.pushOverlay('ended');
+    input.context = 'menu';
+    if (cameraRig) cameraRig.suspended = true;
+    ui.setJail(undefined);
+    ui.setEnd(last);
+    document.body.dataset['run'] = 'ended';
+    document.body.dataset['runEnd'] = cause;
+  };
+  const capture = attachCapture({
+    ctx,
+    law,
+    economy,
+    seed: trafficSeed,
+    show: (snapshot) => {
+      ui.setJail(snapshot);
+      document.body.dataset['jail'] = snapshot?.kind ?? 'closed';
+    },
+    onOpen(open) {
+      if (open) {
+        machine.pushOverlay('jail');
+        input.context = 'menu';
+      } else {
+        machine.removeOverlay('jail');
+        input.context = machine.mode === 'chart' ? 'chart' : 'sailing';
+        input.endTick();
+      }
+      if (cameraRig) cameraRig.suspended = open;
+      hudClock = HUD_INTERVAL_S;
+    },
+    afterSkip: () => ctx.weather.tick(state.environment.clock.gameSeconds, shipPose(), ctx.sea),
+    cutterAt: () => lawShips.morrill.pos,
+    backAboard,
+    endRun: (cause) => endTheRun(cause),
+    save: () => saveControls.saveNow(),
+  });
+  captureRef.current = capture;
+  endRef.current = endTheRun;
+  /** Jails a capture once the arena it happened in has ended (piece C raises it inside). */
+  const takeCapture = (): void => {
+    if (machine.mode === 'chart') travelRef.current?.towed();
+    // Out of any screen the capture happened behind.
+    if (ports.openPort) ports.close();
+    if (ports.journalOpen) ports.closeJournal();
+    capture.takeNow();
+  };
+  if (import.meta.env.DEV || params.has('debug')) {
+    // `__glpCapture.capture('region.apostles')` is taken as the Morrill would take you.
+    const hook = {
+      capture(region?: string, how: 'surrender' | 'boarded' = 'surrender') {
+        const at = zoneToChart(shipPose(), zoneFrame(zone, zoneData));
+        ctx.events.emit('PlayerCaptured', {
+          by: 'law.morrill',
+          region: region ?? law.region() ?? lockup.region,
+          how,
+          at,
+        });
+      },
+      pending: () => capture.pending,
+      state: () => state.jail,
+      serve: () => capture.actions.serve(),
+      sendWord: (hideout = 'hideout.stockton') => capture.actions.sendWord(hideout),
+      hang: () => capture.actions.hang(),
+      leave: () => capture.actions.leave(),
+      abandon: () => endTheRun('abandoned'),
+      record: () => ({ stats: state.stats, logbook: state.logbook }),
+      danger: () => ({ inDanger: run.inDanger, danger: state.danger }),
+    };
+    (window as unknown as { __glpCapture: typeof hook }).__glpCapture = hook;
   }
   const draftM = shipRecord.draftEmptyM;
   // The harbors' piers (Phase 2 piece G); the greybox pier only without the zone.
@@ -1972,38 +2156,43 @@ async function boot(): Promise<void> {
        * The lookouts report the nearest contact of a kind, as if just sighted; `forced`
        * makes it a hostile closing that can't be avoided. For the arena checks.
        */
-      meet(kind: string, forced = false) {
-        const { session } = chartTravel;
-        // Nearest on the water; one lying in port only if none of that kind is out.
-        // Traffic, and the sky's squalls and fog banks (`storm`, `fog`).
-        const near = allContacts(session)
-          .filter((c) => c.kind === kind)
-          .sort(
-            (a, b) =>
-              Number(!!a.inPort) - Number(!!b.inPort) ||
-              distance(a.pos, session.position) - distance(b.pos, session.position),
-          )[0];
-        if (!near) return undefined;
-        session.pending = {
-          contact: near,
-          forced,
-          distanceM: distance(near.pos, session.position),
-          bearing: bearing(session.position, near.pos),
-          ...(near.hostile ? { hunts: forced } : {}),
-        };
-        ctx.events.emit('EncounterSpotted', {
-          contactId: near.id,
-          forced,
-          kind: near.kind,
-          hostile: near.hostile,
-        });
-        return near.id;
-      },
+      meet: (kind: string, forced = false) => meetContact(kind, forced),
     };
     (window as unknown as { __glpChart: typeof hook }).__glpChart = hook;
   }
+  /**
+   * The lookouts report the nearest contact of a kind, as if just sighted; `forced` makes
+   * it a hostile closing that can't be avoided. For the arena checks and the danger resume.
+   */
+  function meetContact(kind: string, forced = false): string | undefined {
+    const { session } = chartTravel;
+    // Nearest on the water; one lying in port only if none of that kind is out.
+    // Traffic, and the sky's squalls and fog banks (`storm`, `fog`).
+    const near = allContacts(session)
+      .filter((c) => c.kind === kind)
+      .sort(
+        (a, b) =>
+          Number(!!a.inPort) - Number(!!b.inPort) ||
+          distance(a.pos, session.position) - distance(b.pos, session.position),
+      )[0];
+    if (!near) return undefined;
+    session.pending = {
+      contact: near,
+      forced,
+      distanceM: distance(near.pos, session.position),
+      bearing: bearing(session.position, near.pos),
+      ...(near.hostile ? { hunts: forced } : {}),
+    };
+    ctx.events.emit('EncounterSpotted', {
+      contactId: near.id,
+      forced,
+      kind: near.kind,
+      hostile: near.hostile,
+    });
+    return near.id;
+  }
 
-  // Phase 0 has no danger states yet, so every moment is safe to save (plan 16 §4.2).
+  // Autosaves every couple of minutes and when the tab goes; saveNow skips them in danger.
   window.setInterval(saveNow, AUTOSAVE_INTERVAL_MS);
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'hidden') saveNow();
@@ -2016,12 +2205,62 @@ async function boot(): Promise<void> {
     const site = id ? state.hideouts?.[id]?.siteId : undefined;
     return site ? siteDef(site)?.shortName : undefined;
   };
+  /** Hunts piece C reports (PursuitChanged), by hunter. */
+  const pursuitOn = new Set<string>();
+  ctx.events.on('PursuitChanged', (e) => {
+    if (e.pursued) pursuitOn.add(e.by);
+    else pursuitOn.delete(e.by);
+  });
+  /**
+   * The danger snapshot (plan 16 §4.3): when a hunt begins, the run is written to the
+   * `danger` slot with the threat noted, and regular saves wait. A reload while it stands
+   * resumes from it with the hunter back on your tail. When the hunt ends the slot is
+   * cleared and a normal save follows.
+   */
+  const setDanger = (on: boolean): void => {
+    run.inDanger = on;
+    document.body.dataset['danger'] = on ? 'on' : 'off';
+    if (on) {
+      state.danger = {
+        kind: 'pursuit',
+        by: [...pursuitOn][0] ?? 'law.morrill',
+        since: state.environment.clock.gameSeconds,
+        ...(arena ? { at: { ...arena.encounter.at } } : {}),
+        heading: shipPose().heading,
+      };
+      if (!saver) return;
+      prepareSave();
+      saver
+        .save(state, 'danger')
+        .then(() => (document.body.dataset['dangerSaved'] = String(state.danger?.since ?? '')))
+        .catch((err: unknown) => console.error('Danger snapshot failed', err));
+      return;
+    }
+    delete state.danger;
+    if (!saver || run.over || !prepared.db) return;
+    const db = prepared.db;
+    prepareSave();
+    // After any snapshot still being written, so the clear can't land before it.
+    void saver
+      .save(state)
+      .then(() => clearDanger(db))
+      .then(() => delete document.body.dataset['dangerSaved'])
+      .catch((err: unknown) => console.error('Clearing the danger snapshot failed', err));
+  };
+
   const loop = createLoop({
     tick(dt) {
       // A key that just changed the mode (M off the chart) mustn't act again in the new one.
       const contextBefore = input.context;
       machine.update(dt);
       if (arena?.run.result) leaveArena(arena.run.result);
+      // Danger (plan 16 §4.2–4.3): a hunt on snapshots the run; its end clears it.
+      const hunted = (pursued || !!arena?.run.pursued || pursuitOn.size > 0) && !run.over;
+      if (hunted !== run.inDanger) setDanger(hunted);
+      // A capture is taken once the arena it happened in is gone (piece C raises it there).
+      if (capture.pending && !arena && !inArenaSpace && !changingZone && !run.over) {
+        takeCapture();
+      }
       // A key that just changed the mode (M off the chart) mustn't act again in the new one.
       // In an arena, M leaves it (the arena reads ToggleChart); it doesn't open the chart.
       // `arena` is already cleared by the time that press is seen here, so ask whether the
@@ -2058,8 +2297,7 @@ async function boot(): Promise<void> {
       if (sameContext && !arena && input.context === 'sailing' && input.pressed('Repair')) {
         showNotice(shipyard.useKit());
       }
-      // A hostile on the ship's track: put the book down.
-      const hunted = pursued || !!arena?.run.pursued || lawAtSea.locked;
+      // A hostile on the ship's track (or the Morrill after you): put the book down.
       if (hunted && ports.journalOpen && !machine.gameplayPaused) {
         ports.closeJournal();
       }
@@ -2166,6 +2404,27 @@ async function boot(): Promise<void> {
   }
   document.body.dataset['startPose'] = poseText(spawn);
   loop.start();
+
+  // A run saved in the lockup or awaiting the rope opens on the jail screen (piece D).
+  if (state.jail) capture.resume();
+  // Loaded from the danger snapshot (plan 16 §4.3): the hunter is back on your tail. On the
+  // chart she closes and can't be avoided; in a zone, the arena opens around you.
+  const danger = state.danger;
+  if (danger && !state.jail) {
+    document.body.dataset['dangerResumed'] = danger.by;
+    if (machine.mode === 'chart') {
+      meetContact(danger.by === 'law.chartered_tug' ? 'tug' : 'cutter', true);
+    } else {
+      await enterArena(
+        devEncounter(
+          'cutter',
+          danger.at ?? zoneToChart(shipPose(), zoneFrame(zone, zoneData)),
+          danger.heading ?? shipPose().heading,
+          true,
+        ),
+      );
+    }
+  }
 
   // `?encounter=freighter` (or barge, steamer, tug, cutter, derelict, squall, fogbank,
   // convoy) drops straight into an arena for checks (§20.3 criterion 5); `?at=47.05,-91.3`

@@ -15,7 +15,15 @@ export type ModeId =
   | 'gameOver';
 
 export type OverlayId =
-  'trade' | 'dialog' | 'inventory' | 'journal' | 'pause' | 'boarding' | 'loading';
+  | 'trade'
+  | 'dialog'
+  | 'inventory'
+  | 'journal'
+  | 'pause'
+  | 'boarding'
+  | 'loading'
+  | 'jail'
+  | 'ended';
 
 const IN_GAME: readonly ModeId[] = ['chart', 'sailing', 'onFoot', 'build', 'jail'];
 

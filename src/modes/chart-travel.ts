@@ -161,6 +161,11 @@ export interface ChartTravel {
   openLook(): void;
   /** Back to the helm from a look, or into the zone the ship is in on the chart. */
   back(): void;
+  /**
+   * Off the chart with no voyage (Phase 5 piece D): the law has the ship in tow, and the
+   * game puts her in a zone itself. The helm takes over; nothing is placed or saved here.
+   */
+  towed(): void;
   setSail(): boolean;
   heaveTo(): void;
   undo(): void;
@@ -469,6 +474,14 @@ export function createChartTravel(host: ChartTravelHost): ChartTravel {
       }
       arrive(zone);
     },
+    towed() {
+      session.voyage = undefined;
+      session.pending = undefined;
+      session.waypoints = [];
+      departure = undefined;
+      chart.replot();
+      toHelm();
+    },
     setSail() {
       if (trip !== 'sea' || session.voyage || session.pending || arriving || host.pursued()) {
         return false;
@@ -538,16 +551,11 @@ export function createChartTravel(host: ChartTravelHost): ChartTravel {
         session.heading = session.voyage.heading;
       }
       if (result === 'caught') {
-        // Taken (Phase 5 piece C): `PlayerCaptured` has gone out, and piece D's jail takes
-        // it from there. Until it does, the voyage is over and she lets you go.
+        // Taken (Phase 5 piece C): `PlayerCaptured` has gone out, the voyage is over, and
+        // piece D's jail takes the captain once the arena has gone.
         session.voyage = undefined;
         session.waypoints = [];
         chart.replot();
-        const name = allContacts(session).find((c) => c.id === contactId)?.name ?? 'The cutter';
-        notice = {
-          title: `Taken by the ${name.replace(/^Revenue cutter /, '')}`,
-          text: `${name} took you aboard. (The lockup comes with piece D; for now she lets you go.) Plot your next leg.`,
-        };
       }
       if (machine.mode !== 'chart') machine.transition('chart');
     },
