@@ -42,6 +42,11 @@ export const upgradeEffectsSchema = z.object({
   spyglassFovMul: z.number().positive().optional(),
   /** Range multiplier for looking a ship over. */
   lookRangeMul: z.number().positive().optional(),
+  /**
+   * Multiplier on the odds a revenue search finds contraband and hot goods (a hidden
+   * compartment; Phase 5 piece C, plan 06 §5.1).
+   */
+  searchMul: z.number().positive().optional(),
 });
 
 export const upgradeSchema = z.object({

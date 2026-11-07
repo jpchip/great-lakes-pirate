@@ -183,6 +183,11 @@ export const harborMasterSchema = z.object({
 });
 export type HarborMasterRules = z.infer<typeof harborMasterSchema>;
 
+/** A [min, max] pair, game hours (or days where it says). */
+const hoursRange = z
+  .tuple([z.number().nonnegative(), z.number().nonnegative()])
+  .refine(([a, b]) => b >= a, 'max below min');
+
 /** The law's actors (plan 06 §5) and its witnesses' report delays (§2.4). */
 export const lawActorsFileSchema = z.object({
   witnesses: z.record(
@@ -205,6 +210,42 @@ export const lawActorsFileSchema = z.object({
     inspectsFromTier: z.number().int().min(1),
     /** A region at this tier or above draws her strongly (§5.1). */
     drawnFromTier: z.number().int().min(1),
+    /** Her steaming speed on the chart, game knots (piece C). */
+    speedKn: z.number().positive(),
+    /** Route nodes she sails her beats from (piece C, §5.1). */
+    bases: z.array(idOf('node')).min(1),
+    /** The lane she shifts between bases on (one end each). */
+    transfer: idOf('lane'),
+    /** The coaling port's route node. */
+    coalingNode: idOf('node'),
+    /** Game hours of steaming between coalings, and how long coaling takes. */
+    coalEveryH: z.number().positive(),
+    coalingH: z.number().nonnegative(),
+    /** Game hours she lies at a beat's far station, and back at her base, [min, max]. */
+    stationH: hoursRange,
+    baseH: hoursRange,
+    /** Wind (knots) at which she runs for shelter, and the hours she lies there before looking again. */
+    galeKn: z.number().positive(),
+    shelterH: z.number().positive(),
+    /** Months (0 = January) she lies in winter quarters at the coaling port. */
+    winterMonths: z.array(z.number().int().min(0).max(11)),
+    /** A beat's weight is `baseWeight` plus `pull[tier]` for each region it covers (§5.1). */
+    baseWeight: z.number().nonnegative(),
+    pull: z.array(z.number().nonnegative()).min(1),
+    /**
+     * Away to Lake Michigan by the lower lakes (§5.1): a sortie down `lane` with this weight
+     * when no region is above `maxTier`, for `days` game days.
+     */
+    away: z.object({
+      lane: idOf('lane'),
+      weight: z.number().nonnegative(),
+      maxTier: z.number().int().min(0),
+      days: hoursRange,
+    }),
+    /** Her beats: the route lane, and the regions it covers. Each runs out from a base and back. */
+    beats: z
+      .array(z.object({ lane: idOf('lane'), regions: z.array(idOf('region')).min(1) }))
+      .min(1),
   }),
   harborMaster: harborMasterSchema,
   tug: z.object({
@@ -215,6 +256,9 @@ export const lawActorsFileSchema = z.object({
     fromTier: z.number().int().min(1),
     /** How long she hunts, game days. */
     days: z.number().positive(),
+    speedKn: z.number().positive(),
+    stationH: hoursRange,
+    baseH: hoursRange,
   }),
 });
 export type LawActorsFile = z.infer<typeof lawActorsFileSchema>;

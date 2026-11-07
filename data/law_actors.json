@@ -71,7 +71,52 @@
     "classId": "ship.cutter_morrill",
     "coalingPort": "port.duluth",
     "inspectsFromTier": 1,
-    "drawnFromTier": 3
+    "drawnFromTier": 3,
+    "speedKn": 10,
+    "bases": ["node.duluth", "node.bayfield"],
+    "transfer": "lane.morrill_patrol",
+    "coalingNode": "node.duluth",
+    "coalEveryH": 60,
+    "coalingH": 8,
+    "stationH": [2, 5],
+    "baseH": [3, 8],
+    "galeKn": 34,
+    "shelterH": 6,
+    "winterMonths": [0, 1, 2],
+    "baseWeight": 1,
+    "pull": [0, 0.6, 2, 6, 10, 16],
+    "away": {
+      "lane": "lane.duluth_ore",
+      "weight": 0.35,
+      "maxTier": 1,
+      "days": [1, 3]
+    },
+    "beats": [
+      {
+        "lane": "lane.beat_twin_ports",
+        "regions": ["region.duluth", "region.superior"]
+      },
+      {
+        "lane": "lane.beat_north_shore",
+        "regions": ["region.duluth", "region.north_shore"]
+      },
+      {
+        "lane": "lane.morrill_patrol",
+        "regions": ["region.south_shore_west", "region.apostles"]
+      },
+      {
+        "lane": "lane.beat_apostles",
+        "regions": ["region.apostles"]
+      },
+      {
+        "lane": "lane.beat_chequamegon",
+        "regions": ["region.chequamegon", "region.ashland"]
+      },
+      {
+        "lane": "lane.beat_south_shore",
+        "regions": ["region.south_shore_west", "region.chequamegon"]
+      }
+    ]
   },
   "harborMaster": {
     "fineTiers": [1, 2],
@@ -89,9 +134,12 @@
   },
   "tug": {
     "id": "law.chartered_tug",
-    "name": "The chartered tug",
+    "name": "The chartered tug Hattie",
     "classId": "ship.fish_tug",
     "fromTier": 5,
-    "days": 3
+    "days": 3,
+    "speedKn": 9,
+    "stationH": [1, 3],
+    "baseH": [1, 2]
   }
 }

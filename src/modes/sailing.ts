@@ -47,6 +47,11 @@ export interface SailingModeOptions {
    * tier-5 harbor's "F again to dock", Phase 5 piece E). Absent, every dock order stands.
    */
   dockGate?: ((berthId: string) => boolean) | undefined;
+  /**
+   * The law at close quarters (Phase 5 piece C): the cutter's captain, after the arena's
+   * helms and before the ships move, in a zone or an arena.
+   */
+  law?: { step(dt: number): void } | undefined;
 }
 
 export interface SailingArena {
@@ -200,6 +205,7 @@ export function createSailingMode(ctx: GameContext, options: SailingModeOptions)
         emitHazard(ctx.events, e.id, ev),
       );
       options.arena?.step(dt);
+      options.law?.step(dt);
       if (ctx.terrain) zoneEdgeSystem(ctx.world, ctx.terrain.bounds);
       const held = options.arena?.holdBounds();
       if (held) zoneEdgeSystem(ctx.world, held);

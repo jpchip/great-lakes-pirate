@@ -9,34 +9,22 @@ import { portraitImageUrl } from './portrait-assets';
 
 export function Portrait({ portrait: p, size = 96 }: { portrait: PortraitDef; size?: number }) {
   const src = portraitImageUrl(p.id);
-  const height = (size * 120) / 100;
+  const height = Math.round((size * 120) / 100);
   return (
-    <svg
+    <span
       class="portrait"
-      viewBox="0 0 100 120"
-      width={size}
-      height={height}
+      style={{ width: `${size}px`, height: `${height}px` }}
       role="img"
       aria-label={p.name}
     >
-      <defs>
-        <clipPath id={`oval-${p.id}`}>
-          <ellipse cx="50" cy="60" rx="46" ry="56" />
-        </clipPath>
-      </defs>
-      <ellipse cx="50" cy="60" rx="46" ry="56" fill="#d9c393" />
       {src ? (
-        <image
-          href={src}
-          x="0"
-          y="0"
-          width="100"
-          height="120"
-          preserveAspectRatio="xMidYMid slice"
-          clip-path={`url(#oval-${p.id})`}
-        />
-      ) : null}
-      <ellipse cx="50" cy="60" rx="46" ry="56" fill="none" stroke="#b8892e" stroke-width="2" />
-    </svg>
+        <img class="portrait-bust" src={src} alt="" decoding="async" draggable={false} />
+      ) : (
+        <span class="portrait-bust portrait-bust--empty" aria-hidden />
+      )}
+      <svg class="portrait-frame" viewBox="0 0 100 120" aria-hidden>
+        <ellipse cx="50" cy="60" rx="46" ry="56" fill="none" stroke="#b8892e" stroke-width="2" />
+      </svg>
+    </span>
   );
 }

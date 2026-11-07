@@ -37,7 +37,11 @@ export interface ArenaPlay {
   step(
     dt: number,
     player: Entity | undefined,
-    controls: { lookHeld: boolean; chartPressed: boolean },
+    controls: {
+      lookHeld: boolean;
+      chartPressed: boolean;
+      law?: { locked: boolean; captured: boolean } | undefined;
+    },
   ): void;
   /** Bounds the player is held inside, while pursued; undefined otherwise. */
   holdBounds(): TerrainBounds | undefined;
@@ -76,6 +80,8 @@ export function materializeArena(
       lengthM: record.lengthM * record.displayScale,
       helm: createHelm(record, ship.heading, ship.speedKn, hunting),
     };
+    // The law's ships draw too much for the shallows (plan 06 §5.1).
+    if (ship.hostile) steer.helm.deepDraft = record.id === 'ship.cutter_morrill';
     world.add(entity);
     ships.push({ entity, steer });
   }

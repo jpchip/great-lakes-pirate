@@ -217,7 +217,7 @@ function damageHull(h: HazardState, amount: number, events: HazardEvent[]): void
   }
 }
 
-function damageRigging(h: HazardState, amount: number): void {
+export function damageRigging(h: HazardState, amount: number): void {
   h.rigging = Math.max(0, h.rigging - amount);
 }
 

@@ -47,6 +47,41 @@ export interface SettingsMenuProps {
   audio?: AudioControls | undefined;
   /** Opened from the main menu, before a run: no game to pause or go back to. */
   fromMainMenu?: boolean;
+  /** Ends the run for good, after a confirm (plan 16 §3 "Abandon run"). */
+  onAbandon?: (() => void) | undefined;
+}
+
+/** Abandon the run: one press asks, a second ends it (plan 13 §6: confirm the irreversible). */
+function Abandon({ abandon }: { abandon(): void }) {
+  const [asking, setAsking] = useState(false);
+  if (!asking) {
+    return (
+      <button
+        type="button"
+        class="menu-button abandon"
+        data-testid="settings-abandon"
+        onClick={() => setAsking(true)}
+      >
+        Abandon run
+      </button>
+    );
+  }
+  return (
+    <span class="abandon-confirm">
+      <span>End this captain's run for good?</span>
+      <button type="button" class="menu-button" onClick={() => setAsking(false)}>
+        Keep sailing
+      </button>
+      <button
+        type="button"
+        class="menu-button danger"
+        data-testid="settings-abandon-confirm"
+        onClick={abandon}
+      >
+        Abandon
+      </button>
+    </span>
+  );
 }
 
 const ACTION_LABELS: Partial<Record<Action, string>> = {
@@ -367,6 +402,7 @@ export function SettingsMenu(props: SettingsMenuProps) {
         {tab === 'sound' && <Sound {...props} />}
         {tab === 'controls' && <Controls {...props} />}
         <footer class="menu-footer">
+          {props.onAbandon && <Abandon abandon={props.onAbandon} />}
           <button
             type="button"
             class="menu-button primary"

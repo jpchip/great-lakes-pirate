@@ -132,6 +132,38 @@ export function detectionChance(
   return Math.min(rules.maxChance, Math.max(0, p));
 }
 
+/**
+ * The chance a revenue search of the hold finds a lot (plan 06 §5.1, §14.5; Phase 5 piece
+ * C): the merchants' odds at the most alert market, raised 15% a Wanted tier past the
+ * first, and lowered by a hidden compartment (`searchMul`). A hot lot is as traceable as
+ * it is in a market; out of its region it carries less.
+ */
+export function searchChance(
+  defs: EconomyDefs,
+  stack: CargoStack,
+  tier: number,
+  region: string | undefined,
+  gameSeconds: number,
+  searchMul = 1,
+  rules = RULES,
+): number {
+  const kind = offerKind(defs, stack);
+  if (!kind) return 0;
+  const lot = lotFactor(stack.qty, rules);
+  let p: number;
+  if (kind === 'contraband') {
+    p = rules.contraband * lot;
+  } else {
+    const hot = stack.hot as HotMeta;
+    const marks = 0.4 + 0.6 * hot.traceability;
+    const here = region === hot.region;
+    const where = here ? 1 : rules.otherRegion + (1 - rules.otherRegion) * hot.traceability;
+    p = (rules.hotBase + rules.hotHeat * heatNow(hot, gameSeconds, rules) * marks) * where * lot;
+  }
+  const byTier = 1 + 0.15 * Math.max(0, tier - 1);
+  return Math.min(rules.maxChance, Math.max(0, p * byTier * searchMul));
+}
+
 /** Hot (stolen) or contraband (illegal to sell openly), or neither. Hot wins. */
 export function offerKind(defs: EconomyDefs, stack: CargoStack): OfferKind | undefined {
   if (stack.contract) return undefined;

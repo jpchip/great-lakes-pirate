@@ -22,6 +22,7 @@ import {
   weatherFactor,
   type Contact,
   type Encounter,
+  type EncounterCheck,
   type LookoutPref,
 } from '../sim/chart/traffic';
 import {
@@ -87,8 +88,13 @@ export interface ChartSession {
    * are reported. Undefined: no budget, every sighting the lookout setting passes.
    */
   budget?: number;
-  /** Hostiles hunt and force meetings (`?cutter=hunt`, dev only until Phase 5's Wanted). */
+  /** Every hostile hunts and forces meetings (the `?cutter=hunt` dev flag). */
   hostilesHunt?: boolean;
+  /**
+   * The law's ships decide by Wanted and detection whether they hunt (Phase 5 piece C);
+   * see `EncounterCheck.hunter`.
+   */
+  hunter?: EncounterCheck['hunter'];
   /** Game seconds still to lose standing off something steered clear of (S8 finding 4). */
   detourS?: number;
 }
@@ -319,6 +325,7 @@ export function createChartMode(
             forcedOnly: clock.gameSeconds < session.quietUntil,
             threatsOnly: session.budget !== undefined && session.budget <= 0,
             hostilesHunt: session.hostilesHunt ?? false,
+            ...(session.hunter ? { hunter: session.hunter } : {}),
             weather: sessionWeatherFactor(session),
           },
         );
