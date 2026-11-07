@@ -193,6 +193,12 @@ export interface ArenaInputs {
   lookHeld: boolean;
   /** M was pressed: back to the chart early, when nothing has you. */
   chartPressed: boolean;
+  /**
+   * The law's ships (Phase 5 piece C): her lookout has you and she's after you (the chart
+   * and the edge are locked), or she has taken you. When given, it replaces the hunters'
+   * plain range rules.
+   */
+  law?: { locked: boolean; captured: boolean } | undefined;
 }
 
 export function edgeDistanceM(p: { x: number; z: number }): number {
@@ -224,8 +230,8 @@ export function stepArenaRun(run: ArenaRun, inputs: ArenaInputs, dt: number): vo
   for (const s of inputs.ships) {
     if (s.hunting) hunterM = Math.min(hunterM, Math.hypot(s.x - player.x, s.z - player.z));
   }
-  run.pursued = hunterM < PURSUIT_RANGE_M;
-  if (hunterM < CAUGHT_RANGE_M) {
+  run.pursued = inputs.law ? inputs.law.locked : hunterM < PURSUIT_RANGE_M;
+  if (inputs.law ? inputs.law.captured : hunterM < CAUGHT_RANGE_M) {
     run.result = 'caught';
     return;
   }

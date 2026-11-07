@@ -128,6 +128,9 @@ import { createNewRun, startingPort } from './sim/character/new-run';
 import { withSailingPerks } from './sim/character/perks';
 import { attachCaptain } from './gameplay/captain';
 import { attachLaw, devWitness } from './gameplay/law';
+import { attachLawShips } from './gameplay/law-ships';
+import { attachLawAtSea, PURSUES_FROM_TIER } from './gameplay/law-at-sea';
+import { regionAtChart, regionAtZone } from './sim/law/regions';
 import type { Identification, WitnessKind } from './sim/law/witness';
 import { attachLantern, DARK_WARNING_M } from './gameplay/lantern';
 import { attachDetection, awarenessChip } from './gameplay/detection';
@@ -699,14 +702,17 @@ async function boot(): Promise<void> {
     };
     (window as unknown as { __glpLaw: typeof hook }).__glpLaw = hook;
   }
-  const traffic = attachTraffic(
-    ctx,
-    createContacts(
+  // The law's ships (Phase 5 piece C): the Morrill's sorties by Wanted, and at tier 5 the
+  // chartered tug. They're chart contacts with the traffic, sailed by their planner.
+  const lawShips = attachLawShips(ctx, westernSuperiorChart(), trafficSeed, law.defs);
+  const traffic = attachTraffic(ctx, [
+    ...createContacts(
       westernSuperiorChart().projection,
       `${trafficSeed}-traffic`,
       state.environment.clock.gameSeconds,
     ),
-  );
+    ...lawShips.contacts,
+  ]);
   const trafficZone = (z: LoadedZone | undefined): TrafficZone | undefined =>
     z
       ? {
@@ -1239,6 +1245,71 @@ async function boot(): Promise<void> {
   }
   ctx.events.on('ZoneEntered', () => detection.reset());
   ctx.events.on('ArenaEntered', () => detection.reset());
+
+  // The law at close quarters (Phase 5 piece C): the cutter's captain in a zone or arena.
+  const devHunt = params.get('cutter') === 'hunt';
+  const lawAtSea = attachLawAtSea({
+    ctx,
+    law,
+    detection,
+    player: playerShip,
+    hazards,
+    economy: economy.defs,
+    playerKn: () => speedKn(sailing.state),
+    region: () => {
+      const p = shipPose();
+      if (arena || inArenaSpace) {
+        const at = arena?.encounter.at;
+        return at
+          ? regionAtChart(law.defs, toWorldChart(westernSuperiorChart(), at))
+          : law.region();
+      }
+      return regionAtZone(law.defs, zoneData.id, { x: p.x, z: p.z }) ?? law.region();
+    },
+    chartAt: () => {
+      const at = arena?.encounter.at;
+      if (at) return toWorldChart(westernSuperiorChart(), at);
+      const p = shipPose();
+      return zoneToChart({ x: p.x, z: p.z }, zoneFrame(zone, zoneData));
+    },
+    arena: () =>
+      arena && {
+        ships: arena.ships,
+        land: arena.land,
+        hunting: arena.encounter.hunting,
+      },
+    zoneShips: () => [...traffic.shown.values()].map((s) => s.entity),
+    hold: (id) => traffic.hold(id),
+    zoneLand: () => {
+      const t = ctx.terrain;
+      if (!t) return undefined;
+      const draft = 2.9 + 0.6;
+      return {
+        halfM: Infinity,
+        allWater: false,
+        allDeep: false,
+        isLand: (x, z) => t.contains(x, z) && t.heightAt(x, z) > 0,
+        isShoal: (x, z) => t.contains(x, z) && t.depthAt(x, z) < draft,
+      };
+    },
+    searchMul: () => instruments.searchMul,
+    notice: (text) => showNotice(text),
+    splash: (x, z) => scene?.spray.burst(x, z),
+    ...(devHunt ? { devTier: () => PURSUES_FROM_TIER } : {}),
+  });
+  ctx.events.on('ZoneEntered', () => lawAtSea.reset());
+  ctx.events.on('ArenaEntered', () => lawAtSea.reset());
+  if (import.meta.env.DEV || params.has('debug')) {
+    // `__glpCutter.brains()` reads her captain; `ships()` her sortie and the tug's.
+    const hook = {
+      brains: () => lawAtSea.brains(),
+      locked: () => lawAtSea.locked,
+      ships: () => lawShips.debug(),
+      morrill: () => ({ ...lawShips.morrill.pos, inPort: lawShips.morrill.inPort }),
+      charter: (region: string) => lawShips.charter(region),
+    };
+    (window as unknown as { __glpCutter: typeof hook }).__glpCutter = hook;
+  }
   ctx.events.on('LanternChanged', (e) => {
     if (e.reason === 'outOfOil') showNotice('The lamps burned dry: out of lamp oil');
   });
@@ -1443,7 +1514,7 @@ async function boot(): Promise<void> {
       hudClock = HUD_INTERVAL_S;
     },
     afterSkip: () => ctx.weather.tick(state.environment.clock.gameSeconds, shipPose(), ctx.sea),
-    cutterAt: () => traffic.contacts.find((c) => c.kind === 'cutter')?.pos,
+    cutterAt: () => lawShips.morrill.pos,
     backAboard,
     endRun: (cause) => endTheRun(cause),
     save: () => saveControls.saveNow(),
@@ -1507,6 +1578,8 @@ async function boot(): Promise<void> {
     berths: allBerths,
     timeWarp,
   };
+  // The cutter's captain runs inside the sailing tick, after the arena's helms.
+  sailingOptions.law = { step: (dt) => lawAtSea.step(dt) };
   const sailingMode = createSailingMode(ctx, sailingOptions);
   machine.register({ id: 'mainMenu', enter: () => (input.context = 'menu') }).register(sailingMode);
   // A refused F or anchor order says why on the HUD for a few seconds.
@@ -1823,6 +1896,7 @@ async function boot(): Promise<void> {
           play.step(dt, playerShip, {
             lookHeld: input.isDown('Interact'),
             chartPressed: input.pressed('ToggleChart'),
+            law: { locked: lawAtSea.locked, captured: lawAtSea.captured },
           }),
         holdBounds: () => play.holdBounds(),
       };
@@ -1976,7 +2050,7 @@ async function boot(): Promise<void> {
     placeShip,
     enterZone: (id, pose, arrival, onLoaded) => enterZone(id, pose, arrival, false, onLoaded),
     save: () => saveControls.saveNow(),
-    pursued: () => pursued || !!arena?.run.pursued,
+    pursued: () => pursued || !!arena?.run.pursued || lawAtSea.locked,
     // A look at the chart from the helm can let the ship sail on in the zone behind it.
     sailOn: () => sailOnAllowed(),
     sailTick: (dt) => sailingMode.update?.(dt),
@@ -2004,6 +2078,9 @@ async function boot(): Promise<void> {
     seed: trafficSeed,
     contacts: traffic.contacts as Contact[],
     cutterHunts: params.get('cutter') === 'hunt',
+    // The Morrill and the tug hunt by Wanted and her lookout's real detection (piece C).
+    hunter: (c, at, visibilityM) =>
+      lawShips.hunter(c, at, state.environment.clock.gameSeconds, visibilityM),
     marks: () =>
       smuggler.known()
         ? [
@@ -2220,8 +2297,8 @@ async function boot(): Promise<void> {
       if (sameContext && !arena && input.context === 'sailing' && input.pressed('Repair')) {
         showNotice(shipyard.useKit());
       }
-      // A hostile on the ship's track: put the book down.
-      if ((pursued || !!arena?.run.pursued) && ports.journalOpen && !machine.gameplayPaused) {
+      // A hostile on the ship's track (or the Morrill after you): put the book down.
+      if (hunted && ports.journalOpen && !machine.gameplayPaused) {
         ports.closeJournal();
       }
       const inGame = input.context === 'sailing' || input.context === 'chart';
@@ -2336,7 +2413,7 @@ async function boot(): Promise<void> {
   if (danger && !state.jail) {
     document.body.dataset['dangerResumed'] = danger.by;
     if (machine.mode === 'chart') {
-      meetContact('cutter', true);
+      meetContact(danger.by === 'law.chartered_tug' ? 'tug' : 'cutter', true);
     } else {
       await enterArena(
         devEncounter(

@@ -90,7 +90,13 @@
     "role": "waypoint",
     "at": [-90.95, 47.04]
   },
-
+  {
+    "id": "node.north_shore_station",
+    "kind": "node",
+    "name": "Off Split Rock",
+    "role": "waypoint",
+    "at": [-91.3, 47.12]
+  },
   {
     "id": "lane.duluth_ore",
     "kind": "lane",
@@ -198,7 +204,7 @@
   {
     "id": "lane.package_line",
     "kind": "lane",
-    "name": "The Duluth–Bayfield–Ashland line",
+    "name": "The Duluth\u2013Bayfield\u2013Ashland line",
     "use": "trade",
     "from": "node.duluth",
     "to": "node.ashland",
@@ -287,7 +293,12 @@
     "to": "node.grounds_north_shore",
     "via": [[-91.75, 46.95]],
     "fleet": [
-      { "classId": "ship.fish_tug", "count": 1, "speedKn": 6, "names": ["Fish tug Signe"] }
+      {
+        "classId": "ship.fish_tug",
+        "count": 1,
+        "speedKn": 6,
+        "names": ["Fish tug Signe"]
+      }
     ],
     "dwellH": [10, 6],
     "season": [0, 0, 0, 0.5, 0.9, 0.6, 0.5, 0.6, 0.8, 1, 0.9, 0.2]
@@ -301,7 +312,12 @@
     "to": "node.grounds_cornucopia",
     "via": [[-91.1, 46.97]],
     "fleet": [
-      { "classId": "ship.fish_tug", "count": 1, "speedKn": 6, "names": ["Fish tug Ole Brekke"] }
+      {
+        "classId": "ship.fish_tug",
+        "count": 1,
+        "speedKn": 6,
+        "names": ["Fish tug Ole Brekke"]
+      }
     ],
     "dwellH": [4, 6],
     "season": [0, 0, 0, 0.5, 0.9, 0.6, 0.5, 0.6, 0.8, 1, 0.9, 0.2]
@@ -315,7 +331,12 @@
     "to": "node.la_pointe",
     "via": [],
     "fleet": [
-      { "classId": "ship.fish_tug", "count": 1, "speedKn": 7, "names": ["Supply tug Wren"] }
+      {
+        "classId": "ship.fish_tug",
+        "count": 1,
+        "speedKn": 7,
+        "names": ["Supply tug Wren"]
+      }
     ],
     "dwellH": [14, 6],
     "season": [0, 0, 0, 0.4, 0.9, 1, 1, 1, 1, 0.9, 0.5, 0]
@@ -323,8 +344,8 @@
   {
     "id": "lane.morrill_patrol",
     "kind": "lane",
-    "name": "The Morrill's beat",
-    "use": "patrol",
+    "name": "The Morrill's passage, Duluth to Bayfield",
+    "use": "beat",
     "from": "node.duluth",
     "to": "node.bayfield",
     "via": [
@@ -336,18 +357,92 @@
       [-90.74, 46.9],
       [-90.781, 46.84]
     ],
-    "fleet": [
-      {
-        "classId": "ship.cutter_morrill",
-        "count": 1,
-        "speedKn": 10,
-        "names": ["Revenue cutter Morrill"]
-      }
-    ],
+    "fleet": [],
     "dwellH": [12, 6],
     "season": [0, 0, 0, 0.6, 1, 1, 1, 1, 1, 1, 1, 0.5]
   },
-
+  {
+    "id": "lane.beat_twin_ports",
+    "kind": "lane",
+    "name": "The Morrill's beat off the Twin Ports",
+    "use": "beat",
+    "from": "node.duluth",
+    "to": "node.superior_entry",
+    "via": [
+      [-91.95, 46.8],
+      [-91.93, 46.75]
+    ],
+    "fleet": [],
+    "dwellH": [0, 0],
+    "season": [0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+  },
+  {
+    "id": "lane.beat_north_shore",
+    "kind": "lane",
+    "name": "The Morrill's beat up the North Shore",
+    "use": "beat",
+    "from": "node.duluth",
+    "to": "node.north_shore_station",
+    "via": [
+      [-91.88, 46.88],
+      [-91.6, 47.0]
+    ],
+    "fleet": [],
+    "dwellH": [0, 0],
+    "season": [0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+  },
+  {
+    "id": "lane.beat_apostles",
+    "kind": "lane",
+    "name": "The Morrill's beat through the islands",
+    "use": "beat",
+    "from": "node.bayfield",
+    "to": "node.grounds_apostles",
+    "via": [
+      [-90.781, 46.84],
+      [-90.73, 46.89],
+      [-90.66, 46.91],
+      [-90.7, 46.97]
+    ],
+    "fleet": [],
+    "dwellH": [0, 0],
+    "season": [0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+  },
+  {
+    "id": "lane.beat_chequamegon",
+    "kind": "lane",
+    "name": "The Morrill's beat down the bay",
+    "use": "beat",
+    "from": "node.bayfield",
+    "to": "node.ashland",
+    "via": [
+      [-90.82, 46.76],
+      [-90.84, 46.7]
+    ],
+    "fleet": [],
+    "dwellH": [0, 0],
+    "season": [0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+  },
+  {
+    "id": "lane.beat_south_shore",
+    "kind": "lane",
+    "name": "The Morrill's beat along the South Shore",
+    "use": "beat",
+    "from": "node.bayfield",
+    "to": "node.grounds_cornucopia",
+    "via": [
+      [-90.781, 46.84],
+      [-90.74, 46.9],
+      [-90.775, 46.955],
+      [-90.77, 47.0],
+      [-90.88, 47.04],
+      [-91.05, 47.02],
+      [-91.1, 46.97]
+    ],
+    "fleet": [],
+    "dwellH": [0, 0],
+    "season": [0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1]
+  },
   {
     "id": "poi.derelict_scow",
     "kind": "poi",

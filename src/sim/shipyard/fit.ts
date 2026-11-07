@@ -35,6 +35,8 @@ export interface Instruments {
   spyglassFovMul: number;
   /** Range multiplier for looking a ship over. */
   lookRangeMul: number;
+  /** Multiplier on a revenue search's odds of finding the goods (hidden compartments). */
+  searchMul: number;
 }
 
 /** The plain barometer and spyglass every ship has. */
@@ -42,6 +44,7 @@ export const BASE_INSTRUMENTS: Readonly<Instruments> = {
   forecastHours: 12,
   spyglassFovMul: 1,
   lookRangeMul: 1,
+  searchMul: 1,
 };
 
 export interface ShipFit {
@@ -103,6 +106,7 @@ export function fitShip(
       instruments.forecastHours = Math.max(instruments.forecastHours, e.forecastHours);
     instruments.spyglassFovMul *= e.spyglassFovMul ?? 1;
     instruments.lookRangeMul *= e.lookRangeMul ?? 1;
+    instruments.searchMul *= e.searchMul ?? 1;
   }
   const record: SailShipRecord = {
     ...base,

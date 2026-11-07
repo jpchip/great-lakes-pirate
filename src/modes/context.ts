@@ -151,19 +151,27 @@ export interface GameEvents {
   PlayerLostSight: { witnessId: string };
   LanternChanged: { lit: boolean; reason: 'toggled' | 'outOfOil' };
   /**
-   * Capture (plan 06 §8; the seam between Phase 5 pieces C and D). The cutter or the
-   * chartered tug took the player, who hove to (`surrender`) or was disabled and boarded;
-   * `region` is where it happened and `at` the chart position. Raised once, before the
-   * arena ends with `caught`; piece D jails or hangs the captain.
+   * The law at sea (plan 06 §5.1, §8.1; Phase 5 piece C). `PursuitChanged` is the chart
+   * lock: a law ship is after the player and her lookout has her (true), or no longer
+   * (false, whether she lost you, gave up, let you go or took you). The cutter hails, fires
+   * a warning shot or a round at the rigging, searches the hold, and takes the player:
+   * `PlayerCaptured` comes before the arena ends with 'caught', and piece D's jail takes
+   * it from there. `at` is the world chart frame (the save's).
    */
+  PursuitChanged: { pursued: boolean; by: string };
+  CutterHailed: { by: string; intent: 'inspect' | 'pursue'; arrest: boolean };
+  CutterFired: { by: string; kind: 'warning' | 'rigging'; hit: boolean };
+  HoldSearched: {
+    by: string;
+    region: string;
+    found: { good: string; qty: number; kind: 'hot' | 'contraband' }[];
+  };
   PlayerCaptured: {
     by: 'law.morrill' | 'law.chartered_tug';
     region: string;
     how: 'surrender' | 'boarded';
     at: Chart;
   };
-  /** A hunt began or ended (piece C); piece D snapshots the run while it's on. */
-  PursuitChanged: { pursued: boolean; by: string };
   /**
    * Jail and the run's end (plan 06 §10, plan 12 §10; piece D): taken to the lockup (or
    * the gallows), bail sent for, let out, and the run over.

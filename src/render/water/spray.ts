@@ -66,6 +66,11 @@ export interface Spray {
    * keeps its own plunge and emission state.
    */
   emit(key: object, ship: WakeShip & { pitch: number }, hull: WaterlineHull, dt: number): void;
+  /**
+   * A shot falling into the water (Phase 5 piece C): a column of white water thrown up at
+   * (x, z), scene meters, that falls back over a couple of seconds.
+   */
+  burst(x: number, z: number): void;
   /** Moves the puffs on by `dt` real seconds. */
   update(dt: number): void;
 }
@@ -173,6 +178,26 @@ export function createSpray(capacity: number, water: Water): Spray {
         ages[i] = 0;
         lives[i] = 0.8 + 0.6 * Math.random();
         sizes[i] = 0.9 + 0.9 * Math.random() + strength;
+      }
+    },
+    burst(x, z) {
+      // A share of the pool, so a column shows even on the lowest preset.
+      const count = Math.min(Math.floor(n * 0.25), 90);
+      for (let c = 0; c < count; c++) {
+        const i = next;
+        next = (next + 1) % n;
+        const a = Math.random() * Math.PI * 2;
+        const r = Math.random() * 2.5;
+        const out = 0.5 + Math.random() * 2;
+        positions[i * 3] = x + Math.cos(a) * r;
+        positions[i * 3 + 1] = 0.3;
+        positions[i * 3 + 2] = z + Math.sin(a) * r;
+        velocities[i * 3] = Math.cos(a) * out;
+        velocities[i * 3 + 1] = 9 + Math.random() * 9;
+        velocities[i * 3 + 2] = Math.sin(a) * out;
+        ages[i] = 0;
+        lives[i] = 1.8 + 1.2 * Math.random();
+        sizes[i] = 1.6 + 2.2 * Math.random();
       }
     },
     update(dt) {

@@ -5,6 +5,7 @@ import {
   type ChartProjection,
 } from '../../core/coords';
 import { bearing, distance } from './geography';
+import type { PatrolRef } from './patrol';
 import { createTraffic, placeTraffic, type LaneSchedule } from './routes';
 
 /**
@@ -39,6 +40,11 @@ export interface Contact {
   lane?: { points: Chart[]; leg: number; progressM: number; forward: boolean };
   /** Its timetable on the route graph; `placeTraffic` puts it where the clock says. */
   schedule?: LaneSchedule;
+  /**
+   * The law's ships (the *Morrill*, the tier-5 tug) sail legs their planner chooses by
+   * Wanted instead of a timetable (Phase 5 piece C); `placeTraffic` puts them too.
+   */
+  patrol?: PatrolRef;
   /** Lying in port or off the chart: not on the water to be seen. */
   inPort?: boolean;
   /** Making way along its lane (false lying at an end, or at anchor on the grounds). */
@@ -173,6 +179,13 @@ export interface EncounterCheck {
    * it defaults to the stand-in `weatherFactor`.
    */
   weather?: number;
+  /**
+   * The law's ships (Phase 5 piece C): whether a hostile hunts the player and how far her
+   * lookout sees the ship, from Wanted and real detection. Undefined for a contact it
+   * doesn't know, which falls back to `hostilesHunt` and the stand-in range.
+   * `hostilesHunt` true (the `?cutter=hunt` dev flag) still makes every hostile hunt.
+   */
+  hunter?: (c: Contact) => { hunts: boolean; seesAtM: number } | undefined;
 }
 
 export function checkEncounters(
@@ -184,7 +197,7 @@ export function checkEncounters(
   handled: ReadonlySet<string>,
   check: EncounterCheck = {},
 ): Encounter | undefined {
-  const hunt = check.hostilesHunt ?? true;
+  const forceHunt = check.hostilesHunt ?? !check.hunter;
   const weather = check.weather ?? weatherFactor(player, contacts);
   let best: Encounter | undefined;
   for (const c of contacts) {
@@ -193,7 +206,10 @@ export function checkEncounters(
     const seen = d <= playerSeesAtM(c, hour, weather);
     if (seen) c.lastSeen = { at: now, pos: { ...c.pos } };
     if (handled.has(c.id)) continue;
-    const forced = hunt && c.hostile && d <= hostileSeesAtM(hour, weather);
+    const verdict = c.hostile ? check.hunter?.(c) : undefined;
+    const hunt = forceHunt || (verdict?.hunts ?? false);
+    const seesAt = verdict && !forceHunt ? verdict.seesAtM : hostileSeesAtM(hour, weather);
+    const forced = hunt && c.hostile && d <= seesAt;
     const reportable = seen && reported(c, pref) && (!check.threatsOnly || c.threat);
     if (!forced && (check.forcedOnly || !reportable)) continue;
     // Weather is measured to its edge.

@@ -55,13 +55,18 @@ export const routeFeatureSchema = z.discriminatedUnion('kind', [
     id: idOf('lane'),
     kind: z.literal('lane'),
     name: z.string().min(1),
-    /** What the lane is for: trade (prizes), fishing (local traffic), or a patrol. */
-    use: z.enum(['trade', 'fishing', 'patrol']),
+    /**
+     * What the lane is for: trade (prizes), fishing (local traffic), a patrol, or one of the
+     * *Morrill*'s beats (Phase 5 piece C): water she steams, with no fleet of its own; her
+     * sorties choose among them by Wanted (`law_actors.json` `cutter.beats`).
+     */
+    use: z.enum(['trade', 'fishing', 'patrol', 'beat']),
     from: idOf('node'),
     to: idOf('node'),
     /** Waypoints between the two nodes. */
     via: z.array(lonLat),
-    fleet: z.array(fleetEntry).min(1),
+    /** Who sails it; empty only for a beat. */
+    fleet: z.array(fleetEntry),
     /** Hours a ship lies at `from` and at `to` between passages. */
     dwellH: z.tuple([z.number().nonnegative(), z.number().nonnegative()]),
     /** Share of the fleet sailing each month (0 laid up for the ice, 1 all out). */
@@ -81,7 +86,17 @@ export const routeFeatureSchema = z.discriminatedUnion('kind', [
   }),
 ]);
 
-export const routesFileSchema = z.array(routeFeatureSchema);
+export const routesFileSchema = z.array(routeFeatureSchema).superRefine((features, ctx) => {
+  for (const f of features) {
+    if (f.kind !== 'lane') continue;
+    if ((f.use === 'beat') !== (f.fleet.length === 0)) {
+      ctx.addIssue({
+        code: 'custom',
+        message: `${f.id}: a beat has no fleet, and every other lane has one`,
+      });
+    }
+  }
+});
 export type RouteFeature = z.infer<typeof routeFeatureSchema>;
 export type RouteNode = Extract<RouteFeature, { kind: 'node' }>;
 export type RouteLane = Extract<RouteFeature, { kind: 'lane' }>;

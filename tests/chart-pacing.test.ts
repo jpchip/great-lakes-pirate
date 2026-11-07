@@ -1,3 +1,4 @@
+import { attachLawShips } from '../src/gameplay/law-ships';
 import { describe, expect, it } from 'vitest';
 import { EventBus } from '../src/core/events';
 import { InputMapper } from '../src/core/input';
@@ -88,7 +89,11 @@ function sail(
       heading: 0,
       // Replaced by the sim's wind at the start (readSky below).
       wind: { from: 0, speedKn: 12 },
-      contacts: createContacts(geo.projection, `traffic-${k}`, state.environment.clock.gameSeconds),
+      // The traffic and, as in the game, the law's ships (the Morrill's sorties; piece C).
+      contacts: [
+        ...createContacts(geo.projection, `traffic-${k}`, state.environment.clock.gameSeconds),
+        ...attachLawShips(ctx, geo, `traffic-${k}`).contacts,
+      ],
       // The sim's weather, as in the game: its wind, and its squalls and fog banks met.
       sky: createChartSky(state.environment.weather),
       waypoints: route.via.map(([lat, lon]) => at(lat, lon)),
@@ -112,7 +117,8 @@ function sail(
       const enc = session.pending;
       if (enc) {
         count++;
-        if (!isWeatherContact(enc.contact)) traffic++;
+        // Trade and fishing traffic only: the law's ships aren't seasonal traffic.
+        if (!isWeatherContact(enc.contact) && !enc.contact.patrol) traffic++;
         if (mode.resolve('ignore').outcome === 'arena') mode.resumeFrom(enc.contact.id);
       }
     }

@@ -11,6 +11,7 @@ import { KNOT_MS, type Chart, type ChartProjection } from '../../core/coords';
 import { calendarDate } from '../../core/time';
 import { SHIP_RECORDS, serviceSpeedKn } from '../sailing/ships';
 import { bearing, distance, lerpChart } from './geography';
+import { placePatrol } from './patrol';
 import type { Contact, ContactKind } from './traffic';
 
 /**
@@ -313,6 +314,10 @@ export function createTraffic(
 /** Put every scheduled ship where its timetable has it at `gameSeconds`. */
 export function placeTraffic(contacts: readonly Contact[], gameSeconds: number): void {
   for (const c of contacts) {
+    if (c.patrol) {
+      placePatrol(c, gameSeconds);
+      continue;
+    }
     const s = c.schedule;
     if (!s) continue;
     const place = lanePlace(s, gameSeconds);

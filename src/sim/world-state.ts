@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { lawShipsSchema } from './law/patrol';
 import { RUMOR_KINDS } from '../../data/schemas/rumors';
 import { createClockState } from '../core/time';
 import { Rng } from '../core/rng';
@@ -393,6 +394,11 @@ export const worldStateSchema = z.object({
   profiles: profilesSchema,
   reports: reportsSchema,
   jail: jailSchema,
+  /**
+   * The law's ships (Phase 5 piece C): the *Morrill*'s leg and sorties, and the tier-5
+   * tug's. Absent in a save from before piece C: she starts lying at Duluth.
+   */
+  lawShips: lawShipsSchema.optional(),
   /**
    * The run's record for the end screen (plan 12 §10 `stats`; Phase 5 piece D) and the
    * logbook it exports. Optional: absent ones start empty on load, so no version bump.

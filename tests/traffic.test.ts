@@ -13,6 +13,7 @@ import type { GameContext, GameEvents } from '../src/modes/context';
 import { westernSuperiorChart } from '../src/sim/chart/chart-data';
 import { toWorldChart } from '../src/sim/chart/geography';
 import { lanePlace, westernSuperiorRoutes } from '../src/sim/chart/routes';
+import { patrolLanes } from '../src/sim/chart/patrol';
 import { createContacts, stepContacts, type Contact } from '../src/sim/chart/traffic';
 import { cargoCapacity, gameEconomy } from '../src/sim/economy/defs';
 import { EconomySim, marketViolations, passageTable, runTrader } from '../src/sim/economy/harness';
@@ -168,11 +169,31 @@ describe('manifests', () => {
   });
 
   it('give the cutter no cargo and an armed crew', () => {
-    const cutter = must(ships.find((c) => c.classId === 'ship.cutter_morrill'));
-    const m = must(manifestFor(defs, economy, cutter, 2, true));
+    const lanes = patrolLanes(geo.projection, graph.lanes, graph.nodes);
+    const lane = must(lanes.get('lane.beat_apostles'));
+    const cutter: Contact = {
+      id: 'ship.morrill',
+      kind: 'cutter',
+      name: 'Revenue cutter Morrill',
+      classId: 'ship.cutter_morrill',
+      pos: { x: 0, y: 0 },
+      heading: 0,
+      speedKn: 10,
+      conspicuity: 1,
+      hostile: true,
+      threat: true,
+      prize: false,
+      patrol: {
+        lanes,
+        speedKn: 10,
+        leg: { lane: lane.id, fromM: 0, toM: lane.lengthM, departAt: 0, lieS: 0, purpose: 'beat' },
+      },
+    };
+    const m = must(currentManifest(defs, economy, cutter, 100));
     expect(m.cargo).toEqual([]);
     expect(m.armed).toBe(true);
     expect(m.owner).toBe('company.revenue_service');
+    expect(m.fromPort).toBe('port.bayfield');
   });
 });
 

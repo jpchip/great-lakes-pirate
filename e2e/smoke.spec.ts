@@ -524,7 +524,19 @@ test('meets a ship from the chart in an arena and sails on', async ({ page }) =>
   );
   expect(Math.hypot(resumedAt.x - metAt.x, resumedAt.y - metAt.y)).toBeLessThan(2000);
 
-  // The cutter closes and won't be avoided; caught, the voyage ends.
+  // Hunted here (Wanted tier 3: piece C), the cutter closes and won't be avoided. With
+  // her rigging shot away and the cutter alongside, she's boarded and jailed.
+  await page.evaluate(() => {
+    const law = (window as unknown as { __glpLaw: { setTier(region: string, tier: number): void } })
+      .__glpLaw;
+    for (const r of [
+      'region.apostles',
+      'region.north_shore',
+      'region.duluth',
+      'region.south_shore_west',
+    ])
+      law.setTier(r, 3);
+  });
   await page.evaluate(() =>
     (window as unknown as { __glpChart: ChartHook }).__glpChart.meet('cutter', true),
   );
@@ -532,14 +544,16 @@ test('meets a ship from the chart in an arena and sails on', async ({ page }) =>
   await expect(body).toHaveAttribute('data-arena', 'cutter');
   await expect(page.getByTestId('chart-locked')).toBeVisible();
   await page.evaluate(() => {
+    (
+      window as unknown as { __glpShipyard: { damage(h: number, r: number): void } }
+    ).__glpShipyard.damage(1, 0.05);
     const a = (window as unknown as { __glpArena: ArenaHook }).__glpArena;
     const s = a.state()?.ships[0];
     if (s) a.place(s.x, s.z + 10);
   });
   await expect(body).toHaveAttribute('data-arena-result', 'caught');
-  await expect(body).toHaveAttribute('data-mode', 'chart');
-  await expect(page.getByTestId('chart-notice')).toContainText('Boarded');
-  await expect(page.getByTestId('chart-status')).not.toContainText('Under way');
+  // Piece D's lockup takes the captain once the arena has gone.
+  await expect(page.getByTestId('jail-screen')).toBeVisible();
   expect(errors).toEqual([]);
 });
 
