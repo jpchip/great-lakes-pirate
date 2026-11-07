@@ -84,6 +84,11 @@ export interface GameTraffic {
   /** The loaded zone, or undefined in an arena or on the chart. */
   setZone(zone: TrafficZone | undefined): void;
   /**
+   * Takes a shown ship off her timetable for the rest of this zone visit: the law's
+   * captain steers her now (Phase 5 piece C), and `step` leaves her where she is.
+   */
+  hold(id: string): Entity | undefined;
+  /**
    * Puts every ship where the clock has her and the zone's ships where they show. The
    * player's berth (if docked) keeps its pier side. Returns true when the pier sides the
    * traffic holds changed.
@@ -139,9 +144,12 @@ export function attachTraffic(
   let berthKey = '';
   let takenSides = new Set<string>();
 
+  /** Ships off their timetables in this zone (the law steers them). */
+  const held = new Set<string>();
   const clear = (): void => {
     for (const s of shown.values()) ctx.world.remove(s.entity);
     shown.clear();
+    held.clear();
     berths = new Map();
     berthKey = '';
     takenSides = new Set();
@@ -194,6 +202,9 @@ export function attachTraffic(
   const lyingNode = (c: Contact): string | undefined => {
     const s = c.schedule;
     const lane = c.lane;
+    const leg = c.patrol?.leg;
+    const pl = leg && c.patrol?.lanes.get(leg.lane);
+    if (pl && lane) return lane.leg === 0 && lane.progressM < 0.5 ? pl.from.id : pl.to.id;
     if (!s || !lane) return undefined;
     return lane.leg === 0 && lane.progressM === 0 ? s.homeNode : s.awayNode;
   };
@@ -205,8 +216,9 @@ export function attachTraffic(
     const seen = new Set<string>();
     // Ships in port at a harbor here, by harbor, in a stable order.
     const inPort = new Map<HarborLayout, { id: string; record: ShipRecord; contact: Contact }[]>();
+    for (const id of held) if (shown.has(id)) seen.add(id);
     for (const c of contacts) {
-      if (!c.schedule || !c.classId) continue;
+      if ((!c.schedule && !c.patrol) || !c.classId || held.has(c.id)) continue;
       const record = recordOf(c.classId);
       const consorts = (c.consorts ?? []).map((k, i) => ({
         id: `${c.id}.consort_${i + 1}`,
@@ -328,6 +340,12 @@ export function attachTraffic(
       zone = next;
     },
     step,
+    hold(id) {
+      const s = shown.get(id);
+      if (!s || s.berthed) return undefined;
+      held.add(id);
+      return s.entity;
+    },
     nearest(at, rangeM) {
       let best: NearShip | undefined;
       for (const e of ctx.world.entities) {

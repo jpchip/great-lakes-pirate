@@ -41,6 +41,11 @@ export interface SailingModeOptions {
    * Swappable: set while an arena runs, undefined in a zone.
    */
   arena?: SailingArena | undefined;
+  /**
+   * The law at close quarters (Phase 5 piece C): the cutter's captain, after the arena's
+   * helms and before the ships move, in a zone or an arena.
+   */
+  law?: { step(dt: number): void } | undefined;
 }
 
 export interface SailingArena {
@@ -186,6 +191,7 @@ export function createSailingMode(ctx: GameContext, options: SailingModeOptions)
         emitHazard(ctx.events, e.id, ev),
       );
       options.arena?.step(dt);
+      options.law?.step(dt);
       if (ctx.terrain) zoneEdgeSystem(ctx.world, ctx.terrain.bounds);
       const held = options.arena?.holdBounds();
       if (held) zoneEdgeSystem(ctx.world, held);

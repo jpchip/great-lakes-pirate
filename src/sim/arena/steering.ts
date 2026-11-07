@@ -40,6 +40,21 @@ export interface NpcHelm {
   turnRate: Curve;
   /** Runs the player down instead of holding a course. */
   hunting: boolean;
+  /**
+   * The law's orders (Phase 5 piece C), set each tick by her captain (`sim/law/cutter.ts`):
+   * when present they replace `hunting`. `intercept` runs the player down, `alongside`
+   * comes up on her beam and matches her speed, `search` makes for where she was last
+   * seen, `standOff` lies off the shallows she won't enter, `stop` heaves to.
+   */
+  orders?:
+    | { mode: 'course' }
+    | { mode: 'intercept' }
+    | { mode: 'alongside' }
+    | { mode: 'search'; at: { x: number; z: number } }
+    | { mode: 'standOff' }
+    | { mode: 'stop' };
+  /** Draws too much for the shallows: steers clear of shoal water as of land. */
+  deepDraft?: boolean;
   /** The heading it's steering for right now; read by tests and the dev overlay. */
   desired: number;
   /** Seconds left holding an avoiding course after the danger cleared. */
@@ -110,14 +125,68 @@ export function arenaSceneSpeed(kn: number): number {
 }
 
 function landAhead(land: ArenaLand, s: SteeredShip, heading: number): boolean {
-  if (land.allWater) return false;
+  const shoal = s.helm.deepDraft && land.isShoal && !land.allDeep ? land.isShoal : undefined;
+  if (land.allWater && !shoal) return false;
   const reach = Math.max(LAND_LOOKAHEAD_MIN_M, arenaSceneSpeed(s.helm.speedKn) * LAND_LOOKAHEAD_S);
   const fx = Math.sin(heading);
   const fz = -Math.cos(heading);
   for (const f of [0.25, 0.5, 0.75, 1]) {
-    if (land.isLand(s.x + fx * reach * f, s.z + fz * reach * f)) return true;
+    const x = s.x + fx * reach * f;
+    const z = s.z + fz * reach * f;
+    if (land.isLand(x, z) || shoal?.(x, z)) return true;
   }
   return false;
+}
+
+/** Her course for the law's orders, and the speed she wants, knots (undefined: service). */
+function orderedCourse(
+  s: SteeredShip,
+  player: Traffic,
+  orders: NonNullable<NpcHelm['orders']>,
+): { want: number; kn?: number; chase: boolean } | undefined {
+  const h = s.helm;
+  const range = Math.hypot(player.x - s.x, player.z - s.z);
+  const playerKn = Math.hypot(player.vx, player.vz) / Math.max(arenaSceneSpeed(1), 1e-6);
+  const toward = (x: number, z: number): number => Math.atan2(x - s.x, -(z - s.z));
+  switch (orders.mode) {
+    case 'course':
+      return undefined;
+    case 'stop':
+      return { want: s.heading, kn: 0, chase: true };
+    case 'intercept': {
+      const v = arenaSceneSpeed(h.serviceKn);
+      const lead = Math.min(range / Math.max(v, 0.1), 60);
+      // Close aboard, run alongside rather than ramming.
+      if (range < 90) return alongside(s, player, playerKn);
+      return { want: toward(player.x + player.vx * lead, player.z + player.vz * lead), chase: true };
+    }
+    case 'alongside':
+      return alongside(s, player, playerKn);
+    case 'search':
+      return { want: toward(orders.at.x, orders.at.z), kn: h.serviceKn * 0.6, chase: true };
+    case 'standOff':
+      // Head for her, slowly; the shoal check turns her off before she touches.
+      return { want: toward(player.x, player.z), kn: range < 400 ? 0 : h.serviceKn * 0.35, chase: true };
+  }
+}
+
+/** A station 40 m off the player's beam, on the side she's on, at the player's speed. */
+function alongside(
+  s: SteeredShip,
+  player: Traffic,
+  playerKn: number,
+): { want: number; kn: number; chase: boolean } {
+  const ph = Math.hypot(player.vx, player.vz) > 0.05 ? Math.atan2(player.vx, -player.vz) : s.heading;
+  // Which beam she's on: + is starboard of the player's heading.
+  const side = Math.sign(
+    Math.cos(ph) * (s.x - player.x) + Math.sin(ph) * (s.z - player.z) || 1,
+  );
+  const tx = player.x + Math.cos(ph) * 40 * side;
+  const tz = player.z + Math.sin(ph) * 40 * side;
+  const d = Math.hypot(tx - s.x, tz - s.z);
+  const want = d < 25 ? ph : Math.atan2(tx - s.x, -(tz - s.z));
+  const kn = d < 60 ? playerKn : Math.min(s.helm.serviceKn, playerKn + 1 + d / 40);
+  return { want, kn, chase: true };
 }
 
 /** The nearest clear heading to `want`, trying 20° steps either side; undefined if boxed in. */
@@ -152,7 +221,14 @@ export function steerShips(
       let want = h.course;
       let state: NpcHelm['state'] = 'course';
       let slow = false;
-      if (h.hunting && player) {
+      let orderedKn: number | undefined;
+      const ordered = player && h.orders ? orderedCourse(s, player, h.orders) : undefined;
+      const chasing = h.orders ? !!ordered?.chase : h.hunting;
+      if (ordered) {
+        want = ordered.want;
+        orderedKn = ordered.kn;
+        state = 'hunt';
+      } else if (h.hunting && player && !h.orders) {
         // Lead the player by the time it takes to close, capped so it doesn't overshoot.
         const v = arenaSceneSpeed(h.serviceKn);
         const range = Math.hypot(player.x - s.x, player.z - s.z);
@@ -164,7 +240,7 @@ export function steerShips(
       }
       // Give way: the most pressing close-quarters situation decides the turn.
       let worst: { t: number; other: Traffic } | undefined;
-      const others: Traffic[] = player && !h.hunting ? [player, ...ships] : [...ships];
+      const others: Traffic[] = player && !chasing ? [player, ...ships] : [...ships];
       for (const o of others) {
         if (o === s) continue;
         const cpa = closestApproach(s, o);
@@ -179,7 +255,7 @@ export function steerShips(
         want = toOther + GIVE_WAY_RAD;
         state = 'giveWay';
         h.steadyS = STEADY_S;
-      } else if (h.steadyS > 0 && !h.hunting) {
+      } else if (h.steadyS > 0 && !chasing) {
         // Hold the last avoiding heading a moment before coming back to the course.
         h.steadyS -= dt;
         want = h.desired;
@@ -200,7 +276,8 @@ export function steerShips(
       const rate = sampleCurve(h.turnRate, h.speedKn) * DEG;
       const d = angleDiff(s.heading, h.desired);
       s.heading = wrap(s.heading + Math.max(-rate * dt, Math.min(rate * dt, d)));
-      const target = state === 'stopped' ? 0 : slow ? h.serviceKn * 0.4 : h.serviceKn;
+      const cruise = orderedKn === undefined ? h.serviceKn : Math.min(orderedKn, h.serviceKn);
+      const target = state === 'stopped' ? 0 : slow ? cruise * 0.4 : cruise;
       const tau = target > h.speedKn ? h.accelTau : h.decelTau;
       h.speedKn += (target - h.speedKn) * (1 - Math.exp(-dt / tau));
     }

@@ -8,7 +8,10 @@
     "sources": ["shipyard"],
     "installHours": 12,
     "transferable": false,
-    "effects": { "hullHpMul": 1.25, "speedKn": -0.3 }
+    "effects": {
+      "hullHpMul": 1.25,
+      "speedKn": -0.3
+    }
   },
   {
     "id": "upgrade.improved_pumps",
@@ -19,7 +22,9 @@
     "sources": ["shipyard"],
     "installHours": 4,
     "transferable": false,
-    "effects": { "leakMul": 0.5 }
+    "effects": {
+      "leakMul": 0.5
+    }
   },
   {
     "id": "upgrade.quality_canvas",
@@ -30,7 +35,9 @@
     "sources": ["shipyard"],
     "installHours": 8,
     "transferable": false,
-    "effects": { "speedMul": 1.05 }
+    "effects": {
+      "speedMul": 1.05
+    }
   },
   {
     "id": "upgrade.storm_sails",
@@ -41,7 +48,9 @@
     "sources": ["shipyard"],
     "installHours": 6,
     "transferable": false,
-    "effects": { "safeWindKn": [0, 4, 4, 0] }
+    "effects": {
+      "safeWindKn": [0, 4, 4, 0]
+    }
   },
   {
     "id": "upgrade.improved_blocks",
@@ -52,7 +61,9 @@
     "sources": ["shipyard", "chandlery"],
     "installHours": 3,
     "transferable": false,
-    "effects": { "sailChangeMul": 0.6 }
+    "effects": {
+      "sailChangeMul": 0.6
+    }
   },
   {
     "id": "upgrade.expanded_hold",
@@ -63,7 +74,25 @@
     "sources": ["shipyard"],
     "installHours": 16,
     "transferable": false,
-    "effects": { "cargoMul": 1.25, "draftFullM": 0.2, "speedKn": -0.3 }
+    "effects": {
+      "cargoMul": 1.25,
+      "draftFullM": 0.2,
+      "speedKn": -0.3
+    }
+  },
+  {
+    "id": "upgrade.hidden_compartment",
+    "name": "Hidden compartment",
+    "category": "cargo",
+    "blurb": "A false bulkhead aft of the hold: a revenue search is about half as likely to find what's behind it, for a tenth of the hold.",
+    "priceCents": 6000,
+    "sources": ["shipyard"],
+    "installHours": 10,
+    "transferable": false,
+    "effects": {
+      "searchMul": 0.45,
+      "cargoMul": 0.9
+    }
   },
   {
     "id": "upgrade.aneroid_barometer",
@@ -74,7 +103,9 @@
     "sources": ["shipyard", "chandlery"],
     "installHours": 0,
     "transferable": true,
-    "effects": { "forecastHours": 24 }
+    "effects": {
+      "forecastHours": 24
+    }
   },
   {
     "id": "upgrade.sounding_machine",
@@ -85,7 +116,9 @@
     "sources": ["shipyard", "chandlery"],
     "installHours": 0,
     "transferable": true,
-    "effects": { "shallowWarnDrafts": 3 }
+    "effects": {
+      "shallowWarnDrafts": 3
+    }
   },
   {
     "id": "upgrade.marine_telescope",
@@ -96,7 +129,10 @@
     "sources": ["shipyard", "chandlery"],
     "installHours": 0,
     "transferable": true,
-    "effects": { "spyglassFovMul": 0.5, "lookRangeMul": 1.5 }
+    "effects": {
+      "spyglassFovMul": 0.5,
+      "lookRangeMul": 1.5
+    }
   },
   {
     "id": "upgrade.heavy_anchor",
@@ -107,6 +143,8 @@
     "sources": ["shipyard", "chandlery"],
     "installHours": 0,
     "transferable": true,
-    "effects": { "anchorHoldMul": 1.5 }
+    "effects": {
+      "anchorHoldMul": 1.5
+    }
   }
 ]

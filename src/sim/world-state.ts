@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { lawShipsSchema } from './law/patrol';
 import { RUMOR_KINDS } from '../../data/schemas/rumors';
 import { createClockState } from '../core/time';
 import { Rng } from '../core/rng';
@@ -380,6 +381,11 @@ export const worldStateSchema = z.object({
   profiles: profilesSchema,
   reports: reportsSchema,
   jail: jailSchema,
+  /**
+   * The law's ships (Phase 5 piece C): the *Morrill*'s leg and sorties, and the tier-5
+   * tug's. Absent in a save from before piece C: she starts lying at Duluth.
+   */
+  lawShips: lawShipsSchema.optional(),
   environment: z.looseObject({
     clock: clockStateSchema,
     /** Saved so a reload continues the same random sequence (plan 16 §4.4). */

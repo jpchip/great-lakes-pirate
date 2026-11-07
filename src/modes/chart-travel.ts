@@ -113,8 +113,19 @@ export interface ChartTravelHost {
    * with an aneroid (plan 04 §5.4, plan 10 §5.5; Phase 4 piece G). All leads without it.
    */
   forecastHours?: () => number;
-  /** The Morrill hunts and forces meetings (`?cutter=hunt`, dev only until Phase 5). */
+  /** Every hostile hunts and forces meetings, whatever the Wanted (`?cutter=hunt`, dev). */
   cutterHunts?: boolean;
+  /**
+   * The law's ships (Phase 5 piece C): whether one hunts the player at `player` (chart
+   * geography meters) and how far her lookout sees the ship through `visibilityM` of weather.
+   */
+  hunter?:
+    | ((
+        c: Contact,
+        player: Chart,
+        visibilityM: number,
+      ) => { hunts: boolean; seesAtM: number } | undefined)
+    | undefined;
   /**
    * Whether a look at the chart lets the ship sail on in the zone behind it, on the orders
    * she had at the helm (the player's setting; never in an arena). Held when absent.
@@ -217,6 +228,11 @@ export function createChartTravel(host: ChartTravelHost): ChartTravel {
     quietUntil: 0,
     hostilesHunt: host.cutterHunts ?? false,
   };
+  const hunter = host.hunter;
+  if (hunter) {
+    // Clear air when there's no sky: a day's lookout range, more than any ship is seen at.
+    session.hunter = (c) => hunter(c, session.position, session.sky?.visibilityM ?? 50_000);
+  }
 
   // The trade lanes every master knows (plan 03 §5.2); not the ships on them.
   const knownLanes = tradeLaneLines(geo.projection).lines;
@@ -519,14 +535,15 @@ export function createChartTravel(host: ChartTravelHost): ChartTravel {
         session.heading = session.voyage.heading;
       }
       if (result === 'caught') {
-        // Boarded and searched; with no Wanted until Phase 5 she lets you go, voyage over.
+        // Taken (Phase 5 piece C): `PlayerCaptured` has gone out, and piece D's jail takes
+        // it from there. Until it does, the voyage is over and she lets you go.
         session.voyage = undefined;
         session.waypoints = [];
         chart.replot();
         const name = allContacts(session).find((c) => c.id === contactId)?.name ?? 'The cutter';
         notice = {
-          title: 'Boarded',
-          text: `${name} put a boarding party aboard, searched the hold and let you go. Plot your next leg.`,
+          title: `Taken by the ${name.replace(/^Revenue cutter /, '')}`,
+          text: `${name} took you aboard. (The lockup comes with piece D; for now she lets you go.) Plot your next leg.`,
         };
       }
       if (machine.mode !== 'chart') machine.transition('chart');

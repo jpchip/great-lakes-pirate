@@ -1,3 +1,4 @@
+import type { Chart } from '../core/coords';
 import type { EventBus } from '../core/events';
 import type { InputMapper } from '../core/input';
 import type { Rng } from '../core/rng';
@@ -149,6 +150,28 @@ export interface GameEvents {
   PlayerIdentified: { witness: Witness };
   PlayerLostSight: { witnessId: string };
   LanternChanged: { lit: boolean; reason: 'toggled' | 'outOfOil' };
+  /**
+   * The law at sea (plan 06 §5.1, §8.1; Phase 5 piece C). `PursuitChanged` is the chart
+   * lock: a law ship is after the player and her lookout has her (true), or no longer
+   * (false, whether she lost you, gave up, let you go or took you). The cutter hails, fires
+   * a warning shot or a round at the rigging, searches the hold, and takes the player:
+   * `PlayerCaptured` comes before the arena ends with 'caught', and piece D's jail takes
+   * it from there. `at` is the world chart frame (the save's).
+   */
+  PursuitChanged: { pursued: boolean; by: string };
+  CutterHailed: { by: string; intent: 'inspect' | 'pursue'; arrest: boolean };
+  CutterFired: { by: string; kind: 'warning' | 'rigging'; hit: boolean };
+  HoldSearched: {
+    by: string;
+    region: string;
+    found: { good: string; qty: number; kind: 'hot' | 'contraband' }[];
+  };
+  PlayerCaptured: {
+    by: 'law.morrill' | 'law.chartered_tug';
+    region: string;
+    how: 'surrender' | 'boarded';
+    at: Chart;
+  };
 }
 
 /** Everything a mode needs; built once at boot and handed to each mode. */

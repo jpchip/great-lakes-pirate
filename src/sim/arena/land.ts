@@ -1,5 +1,5 @@
 import { DEFAULT_COMPRESSION, zoneToChart, type Chart, type ZoneFrame } from '../../core/coords';
-import { distance, isWater, type ChartGeography } from '../chart/geography';
+import { distance, isWater, type ChartGeography, type Ring } from '../chart/geography';
 
 /**
  * Land in and around an arena (plan 03 §6.3). An arena has no terrain tiles, but the
@@ -17,16 +17,30 @@ export interface ArenaLand {
   /** True when no cell is land, so lookups can be skipped. */
   readonly allWater: boolean;
   isLand(x: number, z: number): boolean;
+  /**
+   * Shoal water a deep-draft ship (the *Morrill*) won't enter (Phase 5 piece C): inside the
+   * chart's shallowest depth contour in an arena, under her draft in a zone.
+   */
+  isShoal?(x: number, z: number): boolean;
+  /** True when no cell is shoal, so the shoal lookups can be skipped. */
+  readonly allDeep?: boolean;
 }
 
-export function sampleArenaLand(geo: ChartGeography, frame: ZoneFrame, halfM: number): ArenaLand {
-  const n = Math.ceil((halfM * 2) / LAND_CELL_M);
+/** The depth contour, fathoms, inside which the *Morrill* won't go: the chart's shallowest. */
+export const SHOAL_FATHOMS = 3;
+
+/** Even-odd fill of `rings` on the arena grid: 1 where a cell's centre is inside an odd count. */
+function fillRings(
+  rings: readonly Ring[],
+  frame: ZoneFrame,
+  halfM: number,
+  n: number,
+  inside: (crossings: number) => boolean,
+): { cells: Uint8Array; any: boolean } {
   const cells = new Uint8Array(n * n);
   let any = false;
-  // Scanlines on the chart: every ring's crossings of the row, then even-odd along it. The
-  // lake ring and the islands inside it share one parity, so odd is water. One pass over
-  // the rings per row instead of a point-in-polygon test per cell.
-  const rings = [geo.water, ...geo.islands];
+  // Scanlines on the chart: every ring's crossings of the row, then parity along it. One
+  // pass over the rings per row instead of a point-in-polygon test per cell.
   const xs: number[] = [];
   for (let j = 0; j < n; j++) {
     const z = -halfM + (j + 0.5) * LAND_CELL_M;
@@ -46,22 +60,44 @@ export function sampleArenaLand(geo: ChartGeography, frame: ZoneFrame, halfM: nu
     for (let i = 0; i < n; i++) {
       const x = zoneToChart({ x: -halfM + (i + 0.5) * LAND_CELL_M, z }, frame).x;
       while (k < xs.length && (xs[k] as number) < x) k++;
-      if (k % 2 === 0) {
+      if (inside(k)) {
         cells[j * n + i] = 1;
         any = true;
       }
     }
   }
+  return { cells, any };
+}
+
+export function sampleArenaLand(geo: ChartGeography, frame: ZoneFrame, halfM: number): ArenaLand {
+  const n = Math.ceil((halfM * 2) / LAND_CELL_M);
+  // The lake ring and the islands inside it share one parity, so odd is water.
+  const land = fillRings([geo.water, ...geo.islands], frame, halfM, n, (k) => k % 2 === 0);
+  // The shallow side of a depth contour includes the shore, so odd is shoal (or land).
+  const contour = geo.depths.find((d) => d.fathoms >= SHOAL_FATHOMS);
+  const shoal = contour
+    ? fillRings(contour.rings, frame, halfM, n, (k) => k % 2 === 1)
+    : { cells: new Uint8Array(0), any: false };
+  const cell = (x: number, z: number): number => {
+    const i = Math.floor((x + halfM) / LAND_CELL_M);
+    const j = Math.floor((z + halfM) / LAND_CELL_M);
+    // Beyond the grid counts as open water: the arena's edge ends play before then.
+    if (i < 0 || j < 0 || i >= n || j >= n) return -1;
+    return j * n + i;
+  };
   return {
     halfM,
-    allWater: !any,
+    allWater: !land.any,
+    allDeep: !shoal.any,
     isLand(x, z) {
-      if (!any) return false;
-      const i = Math.floor((x + halfM) / LAND_CELL_M);
-      const j = Math.floor((z + halfM) / LAND_CELL_M);
-      // Beyond the grid counts as water: the arena's edge ends play before then.
-      if (i < 0 || j < 0 || i >= n || j >= n) return false;
-      return cells[j * n + i] === 1;
+      if (!land.any) return false;
+      const c = cell(x, z);
+      return c >= 0 && land.cells[c] === 1;
+    },
+    isShoal(x, z) {
+      if (!shoal.any) return false;
+      const c = cell(x, z);
+      return c >= 0 && shoal.cells[c] === 1 && land.cells[c] !== 1;
     },
   };
 }
