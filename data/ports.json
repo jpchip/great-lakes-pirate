@@ -28,6 +28,14 @@
     "services": ["market", "tavern"]
   },
   {
+    "id": "port.red_cliff",
+    "name": "Red Cliff",
+    "zone": "zone.apostles",
+    "wantedRegion": "region.apostles",
+    "tradeOnly": true,
+    "services": ["market"]
+  },
+  {
     "id": "port.duluth",
     "name": "Duluth",
     "zone": "zone.twin_ports",

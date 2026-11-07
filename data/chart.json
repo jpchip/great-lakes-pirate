@@ -74,13 +74,6 @@
     "zone": "zone.apostles"
   },
   {
-    "id": "port.bad_river",
-    "kind": "port",
-    "name": "Bad River landing",
-    "at": [-90.655, 46.646],
-    "zone": "zone.apostles"
-  },
-  {
     "id": "light.duluth_breakwater",
     "kind": "light",
     "name": "Duluth South Breakwater (temporary)",
@@ -140,14 +133,14 @@
     "id": "light.la_pointe",
     "kind": "light",
     "name": "La Pointe (Long Island)",
-    "at": [-90.788, 46.727],
+    "at": [-90.809, 46.728],
     "status": "lit"
   },
   {
     "id": "light.chequamegon_point",
     "kind": "light",
     "name": "Chequamegon Point",
-    "at": [-90.809, 46.728],
+    "at": [-90.788, 46.727],
     "status": "lit"
   },
   {

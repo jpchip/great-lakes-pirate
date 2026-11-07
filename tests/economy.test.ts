@@ -54,13 +54,14 @@ describe('goods and markets data (plan 05 §3, §4.2)', () => {
     }
   });
 
-  it('has markets for the seven Phase 4 ports, and no Red Cliff or Bad River', () => {
+  it('has markets for the seven Phase 4 ports and Red Cliff, and no Bad River', () => {
     expect([...defs.markets.keys()].sort()).toEqual(
       [
         'port.ashland',
         'port.bayfield',
         'port.duluth',
         'port.la_pointe',
+        'port.red_cliff',
         'port.superior',
         'port.two_harbors',
         'port.washburn',
@@ -316,7 +317,7 @@ describe('the economy in the game (piece A)', () => {
     const { state } = context();
     expect(state.player.purse).toBe(15_000);
     expect(state.player.cargo).toEqual([{ good: 'good.rope_canvas', qty: 5 }]);
-    expect(Object.keys(state.markets)).toHaveLength(7);
+    expect(Object.keys(state.markets)).toHaveLength(8);
   });
 
   it('raises TradeCompleted, sets the load, and ticks markets on WorldTick', () => {

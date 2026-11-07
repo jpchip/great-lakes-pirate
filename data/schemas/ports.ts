@@ -22,6 +22,11 @@ export const portSchema = z.object({
   zone: idOf('zone'),
   wantedRegion: idOf('region'),
   services: z.array(z.enum(PORT_SERVICES)),
+  /**
+   * A trade-only port (plan 05 §4.2, R1 §5): its merchant buys and sells honest goods and
+   * nothing else. No hot goods or contraband can be offered there, so no crime is possible.
+   */
+  tradeOnly: z.boolean().default(false),
 });
 
 export const portsFileSchema = z.array(portSchema);

@@ -704,7 +704,8 @@ test('hears the harbor at work, the coins at the market, and captions a fog sign
 }) => {
   const errors = collectErrors(page);
   const body = page.locator('body');
-  await page.goto('/?renderer=null&debug&harbor=bayfield');
+  // Override visibility so lighthouse fog signals stay quiet until the dev hook fires one.
+  await page.goto('/?renderer=null&debug&harbor=bayfield&fog=20000');
   await expect(body).toHaveAttribute('data-terrain', 'loaded');
   await page.keyboard.press('KeyW');
   await expect(body).toHaveAttribute('data-audio', 'running');

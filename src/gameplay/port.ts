@@ -94,6 +94,7 @@ const TRADE_REFUSALS: Record<TradeRefusal, string> = {
 const OFFER_REFUSALS: Record<OfferRefusal, string> = {
   badLot: 'Nobody needs persuading to buy that.',
   notTraded: "They don't deal in that here, honest or otherwise.",
+  tradeOnly: 'They trade fair here and that is all.',
   turnedAway: "They've turned you away once this week. Nobody here will look at it now.",
   tooHot:
     "Your receiver won't touch goods that fresh and that well marked. Let them cool, or take them to the smuggler.",

@@ -18,6 +18,8 @@ import {
   lightClearing,
   lightRangeM,
   placeLights,
+  stationFootprintProbes,
+  stationOffsetWorld,
   viewingSpot,
   type LightTerrain,
 } from '../src/sim/lighthouses';
@@ -67,6 +69,15 @@ describe('the 1900 lights (R1 §2.1)', () => {
     expect(byId('light.sand').characteristic).toEqual({ kind: 'fixed', color: 'white' });
     // Devils Island's 3rd-order lens doesn't arrive until 1901: a temporary fixed red.
     expect(byId('light.devils').characteristic).toEqual({ kind: 'fixed', color: 'red' });
+  });
+
+  it('distinguishes the two Long Island stations by tower style and height', () => {
+    const lapointe = byId('light.lapointe');
+    const chequamegon = byId('light.chequamegon');
+    expect(lapointe.tower).toEqual({ style: 'conical', heightM: 20, finish: 'iron' });
+    expect(lapointe.tier).toBe('medium');
+    expect(chequamegon.tower).toEqual({ style: 'skeleton', heightM: 13, finish: 'iron' });
+    expect(lapointe.tower.heightM).toBeGreaterThan(chequamegon.tower.heightM);
   });
 
   it('has the Twin Ports and Two Harbors lights of 1900 (Phase 3 piece I)', () => {
@@ -231,6 +242,14 @@ describe('the lights on the Apostles zone', () => {
     for (const p of placed) {
       expect(zone.terrain.heightAt(p.x, p.z), p.def.id).toBeGreaterThanOrEqual(1.5);
       expect(zone.terrain.contains(p.x, p.z), p.def.id).toBe(true);
+      for (const [lx, lz] of stationFootprintProbes(p.def)) {
+        const w = stationOffsetWorld(p.seaward, lx, lz);
+        const minH = p.def.id === 'light.lapointe' || p.def.id === 'light.chequamegon' ? 0.15 : 1.5;
+        expect(
+          zone.terrain.heightAt(p.x + w.x, p.z + w.z),
+          `${p.def.id} @ ${lx},${lz}`,
+        ).toBeGreaterThanOrEqual(minH);
+      }
     }
   });
 
