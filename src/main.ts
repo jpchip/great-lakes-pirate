@@ -1234,6 +1234,7 @@ async function boot(): Promise<void> {
     },
     searchMul: () => instruments.searchMul,
     notice: (text) => showNotice(text),
+    splash: (x, z) => scene?.spray.burst(x, z),
     ...(devHunt ? { devTier: () => PURSUES_FROM_TIER } : {}),
   });
   ctx.events.on('ZoneEntered', () => lawAtSea.reset());

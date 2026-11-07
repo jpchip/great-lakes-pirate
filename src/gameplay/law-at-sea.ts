@@ -42,6 +42,12 @@ import { TUG_ID } from './law-ships';
 /** Below this tier she's never after you (decided 2026-10-21); she pursues from here. */
 export const PURSUES_FROM_TIER = 2;
 
+/** The tug's deputies jump aboard a ship making less than this alongside, knots. */
+const TUG_BOARDS_UNDER_KN = 4;
+
+/** A ship forced on the chart keeps the player in sight this long while her meter fills. */
+const CHART_SIGHT_GRACE_S = 10;
+
 /** The water a law ship draws too much for, beyond her draft, meters. */
 const UNDER_KEEL_M = 0.6;
 
@@ -85,6 +91,8 @@ export interface LawAtSeaDeps {
   /** A hidden compartment's multiplier on the search (the shipyard's instruments). */
   searchMul(): number;
   notice(text: string): void;
+  /** A shot falling into the water at (x, z): the warning shot and the misses. */
+  splash?(x: number, z: number): void;
   /** At least this tier, whatever the region's (the `?cutter=hunt` dev flag). */
   devTier?(): number;
 }
@@ -92,6 +100,11 @@ export interface LawAtSeaDeps {
 interface Tracked {
   entity: Entity;
   brain: CutterBrain;
+  /**
+   * Seconds she still has the player in sight from the chart: forced on her there, she
+   * saw the ship before the arena's lookout had a meter to fill.
+   */
+  graceS: number;
   /** A zone ship steered here (off her timetable). */
   steer?: SteeredShip;
   locked: boolean;
@@ -191,20 +204,38 @@ export function attachLawAtSea(deps: LawAtSeaDeps): LawAtSea {
               : `${name} hails: "Heave to, in the name of the United States!"`,
         );
         break;
-      case 'warningShot':
+      case 'warningShot': {
         ctx.events.emit('CutterFired', { by, kind: 'warning', hit: false });
+        // Across the bow: a column of water a few lengths ahead of her.
+        const pt = deps.player.transform;
+        if (pt && t.entity.id !== TUG_ID) {
+          const ahead = 70 + 30 * ctx.rng.next();
+          deps.splash?.(
+            pt.position.x + Math.sin(pt.heading) * ahead,
+            pt.position.z - Math.cos(pt.heading) * ahead,
+          );
+        }
         deps.notice(
           t.entity.id === TUG_ID
             ? 'A deputy fires a rifle over your bow. Heave to!'
             : `${name} fires a shot across your bow. Heave to, or she'll fire on you.`,
         );
         break;
+      }
       case 'fire': {
         ctx.events.emit('CutterFired', { by, kind: 'rigging', hit: a.hit });
         // The tug has no gun, only her deputies' rifles: they can't shoot a mast away.
         if (t.entity.id === TUG_ID) {
           deps.notice("The deputies' rifles crack from the tug's deck.");
-        } else if (a.hit) {
+        } else if (!a.hit) {
+          // A miss throws up water close aboard.
+          const pt = deps.player.transform;
+          if (pt) {
+            const ang = ctx.rng.next() * Math.PI * 2;
+            const off = 25 + 35 * ctx.rng.next();
+            deps.splash?.(pt.position.x + Math.cos(ang) * off, pt.position.z + Math.sin(ang) * off);
+          }
+        } else {
           damageRigging(hazards.state, a.riggingShare * hazards.cls.riggingHP);
           deps.notice('A shot tears through your rigging!');
         }
@@ -288,7 +319,12 @@ export function attachLawAtSea(deps: LawAtSeaDeps): LawAtSea {
         seen.add(e.id);
         let t = tracked.get(e.id);
         const watcher = detection.watchers.find((w) => w.observer.id === e.id);
-        const awareness = watcher?.awareness ?? 'unaware';
+        const t0 = tracked.get(e.id);
+        const graced = !!t0 && t0.graceS > 0;
+        if (t0) t0.graceS = Math.max(0, t0.graceS - dt);
+        const looked = watcher?.awareness ?? 'unaware';
+        const awareness =
+          graced && (looked === 'unaware' || looked === 'watching') ? 'spotted' : looked;
         const identified = !!watcher?.meter.identified;
         if (!t) {
           const sense = {
@@ -303,6 +339,7 @@ export function attachLawAtSea(deps: LawAtSeaDeps): LawAtSea {
           t = {
             entity: e,
             brain: createCutterBrain(intent ? { hunting: true, intent } : undefined),
+            graceS: intent ? CHART_SIGHT_GRACE_S : 0,
             locked: false,
           };
           tracked.set(e.id, t);
@@ -322,6 +359,7 @@ export function attachLawAtSea(deps: LawAtSeaDeps): LawAtSea {
             playerKn: deps.playerKn(),
             playerShoal: playerShoal(p.x, p.z),
             rigging01,
+            ...(e.id === TUG_ID ? { boardsUnderKn: TUG_BOARDS_UNDER_KN } : {}),
           },
           dt,
           () => ctx.rng.next(),

@@ -160,6 +160,11 @@ export interface CutterSense {
   playerShoal: boolean;
   /** The player's rigging, 0–1 of the class's. */
   rigging01: number;
+  /**
+   * Below this speed alongside, her people can board whatever the rigging (the tier-5
+   * tug's deputies, who have no gun to shoot it away). Undefined: only a disabled ship.
+   */
+  boardsUnderKn?: number;
 }
 
 export type CutterAction =
@@ -345,7 +350,7 @@ function stepActive(
   if (
     b.intent === 'pursue' &&
     sense.distanceM < rules.boardRangeM &&
-    sense.rigging01 <= rules.disabledRigging01
+    (sense.rigging01 <= rules.disabledRigging01 || sense.playerKn < (sense.boardsUnderKn ?? 0))
   ) {
     go(b, 'captured');
     out.push({ type: 'capture', how: 'boarded' });
