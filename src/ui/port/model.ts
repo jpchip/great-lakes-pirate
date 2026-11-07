@@ -5,7 +5,6 @@ import { portInfo, type EconomyDefs } from '../../sim/economy/defs';
 import { holdFree, holdUsed, isClean, paidPerCu, type CargoStack } from '../../sim/economy/hold';
 import {
   ageText,
-  formatCents,
   bestKnownPurchase,
   bestKnownSale,
   STALE_WEEKS,
@@ -41,6 +40,7 @@ import {
   standingOf,
   type BoardOffer,
   type ContractDefs,
+  type ContractOutcome,
   type ContractsState,
   type Standing,
 } from '../../sim/economy/contracts';
@@ -303,10 +303,42 @@ export interface LedgerSnapshot {
   /** Ports where a merchant takes hot goods from you (piece H). */
   receivers: { id: string; text: string }[];
   /** Contracts in hand, then the last few finished (piece F). Piece K fills the rumors. */
-  contracts: { id: string; text: string; done: boolean }[];
+  contracts: LedgerContractRow[];
   rumors: RumorRow[];
   /** Ports first, then companies; a company you stole from is marked. */
-  standing: { id: string; name: string; value: number; burned: boolean }[];
+  standing: LedgerStandingRow[];
+  /** Milestone ticks for standing bars (when contracts are loaded). */
+  standingTicks: { port: { value: number; label: string }[]; company: { value: number; label: string }[] };
+}
+
+/** One port or company on the ledger Standing tab. */
+/** One contract on the ledger Contracts tab. */
+export interface LedgerContractRow {
+  id: string;
+  done: boolean;
+  kind: OfferRow['kind'];
+  qty: number;
+  cargo: string;
+  fromName: string;
+  toName: string;
+  company: string;
+  payCents: number;
+  dueShort?: string | undefined;
+  dueText?: string | undefined;
+  status: 'active' | 'late' | 'failed' | ContractOutcome;
+  week?: string | undefined;
+}
+
+export interface LedgerStandingRow {
+  id: string;
+  name: string;
+  kind: 'port' | 'company';
+  value: number;
+  burned: boolean;
+  word: string;
+  perks: string[];
+  next?: string | undefined;
+  fence: boolean;
 }
 
 /** What the contract parts of the screens read. */
@@ -398,20 +430,13 @@ export function dueText(dueAt: number, gameSeconds: number): string {
   return `by ${clockLabel(dueAt)}, ${weekLabel(dueAt)} (${left})`;
 }
 
-const KIND_WORD: Record<OfferRow['kind'], string> = {
-  freight: '',
-  rush: 'Rush: ',
-  mail: 'Mail: ',
-  fragile: 'Fragile: ',
-};
-
-const OUTCOME_WORD = {
+export const CONTRACT_OUTCOME_WORD: Record<ContractOutcome, string> = {
   delivered: 'delivered',
   late: 'delivered late',
   failed: 'failed',
   abandoned: 'handed back',
   stolen: 'stolen',
-} as const;
+};
 
 function ledgerContracts(
   econ: EconomyDefs,
@@ -420,38 +445,165 @@ function ledgerContracts(
 ): LedgerSnapshot['contracts'] {
   const out: LedgerSnapshot['contracts'] = [];
   for (const k of c.state.active) {
-    const what = `${KIND_WORD[k.kind]}${k.qty} CU of ${cargoName(econ, c.defs, k.good).toLowerCase()}`;
-    const route = `${portName(k.from)} → ${portName(k.to)} for ${companyName(c.defs, k.company)}`;
-    const when =
-      k.status === 'failed'
-        ? 'failed: hand the cargo back at a freight agent'
-        : `${dueText(k.dueAt, gameSeconds)}, pays ${formatCents(k.payCents)}`;
-    out.push({ id: k.id, text: `${what}, ${route}, ${when}`, done: false });
+    const status: LedgerContractRow['status'] =
+      k.status === 'failed' ? 'failed' : gameSeconds > k.dueAt ? 'late' : 'active';
+    out.push({
+      id: k.id,
+      done: false,
+      kind: k.kind,
+      qty: k.qty,
+      cargo: cargoName(econ, c.defs, k.good).toLowerCase(),
+      fromName: portName(k.from),
+      toName: portName(k.to),
+      company: companyName(c.defs, k.company),
+      payCents: k.payCents,
+      dueShort: dueShort(k.dueAt, gameSeconds),
+      dueText: dueText(k.dueAt, gameSeconds),
+      status,
+    });
   }
   for (const h of c.state.history) {
-    const what = `${h.qty} CU of ${cargoName(econ, c.defs, h.good).toLowerCase()}`;
-    const paid = h.payCents > 0 ? `, ${formatCents(h.payCents)}` : '';
     out.push({
       id: `${h.id}:${h.outcome}`,
-      text: `${weekLabel(h.at)}: ${what}, ${portName(h.from)} → ${portName(h.to)} for ${companyName(c.defs, h.company)}, ${OUTCOME_WORD[h.outcome]}${paid}`,
       done: true,
+      kind: 'freight',
+      qty: h.qty,
+      cargo: cargoName(econ, c.defs, h.good).toLowerCase(),
+      fromName: portName(h.from),
+      toName: portName(h.to),
+      company: companyName(c.defs, h.company),
+      payCents: h.payCents,
+      status: h.outcome,
+      week: weekLabel(h.at),
     });
   }
   return out;
 }
 
-function ledgerStanding(c: ContractSources): LedgerSnapshot['standing'] {
+export function standingWord(value: number, burned: boolean): string {
+  if (burned) return 'Burned';
+  if (value >= 90) return 'Friend of the house';
+  if (value >= 60) return 'Valued';
+  if (value >= 30) return 'Trusted';
+  if (value >= 10) return 'Known';
+  return 'Stranger';
+}
+
+/** Milestone ticks on the 0–100 standing bar. */
+export function standingBarTicks(
+  defs: ContractDefs,
+  kind: 'port' | 'company',
+): { value: number; label: string }[] {
+  const ticks = new Map<number, string>();
+  if (kind === 'port') {
+    ticks.set(defs.rules.depositHalfAt, 'Half deposits');
+    ticks.set(defs.rules.depositWaivedAt, 'No deposit asked');
+    for (const t of defs.templates) {
+      if ((t.tier ?? 'open') === 'open' && t.minStanding > 0) {
+        ticks.set(t.minStanding, 'Board contracts');
+      }
+    }
+  } else {
+    for (const t of defs.templates) {
+      if (t.tier === 'company' && t.minStanding > 0) {
+        ticks.set(t.minStanding, 'Better contracts');
+      }
+    }
+  }
+  return [...ticks.entries()]
+    .sort((a, b) => a[0] - b[0])
+    .map(([value, label]) => ({ value, label }));
+}
+
+function companyStandingPerks(defs: ContractDefs, value: number): string[] {
+  const bonus = Math.round(defs.rules.standingPayBonus * value);
+  return bonus > 0 ? [`+${bonus}% pay`] : [];
+}
+
+function minStandingThresholds(defs: ContractDefs, id: string): number[] {
+  const isPort = id.startsWith('port.');
+  const out = new Set<number>();
+  for (const t of defs.templates) {
+    if (t.minStanding <= 0) continue;
+    if (isPort) {
+      if ((t.tier ?? 'open') === 'open' && t.from.includes(id)) out.add(t.minStanding);
+    } else if (t.tier === 'company' && t.company === id) out.add(t.minStanding);
+  }
+  return [...out].sort((a, b) => a - b);
+}
+
+function standingNext(
+  defs: ContractDefs,
+  id: string,
+  value: number,
+  kind: 'port' | 'company',
+  burned: boolean,
+): string | undefined {
+  if (burned) return undefined;
+  const thresholds: { at: number; label: string }[] = [];
+  if (kind === 'port') {
+    const r = defs.rules;
+    thresholds.push({ at: r.depositHalfAt, label: 'half deposits' });
+    thresholds.push({ at: r.depositWaivedAt, label: 'no deposit asked' });
+    for (const at of minStandingThresholds(defs, id)) {
+      thresholds.push({ at, label: 'board contracts' });
+    }
+  } else {
+    for (const at of minStandingThresholds(defs, id)) {
+      thresholds.push({ at, label: 'better contracts' });
+    }
+    const maxBonus = Math.round(defs.rules.standingPayBonus * 100);
+    if (maxBonus > 0 && value < 100) {
+      thresholds.push({ at: 100, label: `+${maxBonus}% pay` });
+    }
+  }
+  thresholds.sort((a, b) => a.at - b.at);
+  const next = thresholds.find((t) => t.at > value);
+  return next ? `Next: ${next.label} at ${next.at}` : undefined;
+}
+
+function receiverStandingRows(receivers: readonly string[]): LedgerStandingRow[] {
+  return receivers.map((id) => ({
+    id,
+    name: portName(id),
+    kind: 'port' as const,
+    value: 0,
+    burned: false,
+    word: standingWord(0, false),
+    perks: [] as string[],
+    fence: true,
+  }));
+}
+
+function ledgerStanding(
+  c: ContractSources,
+  receivers: readonly string[] = [],
+): LedgerSnapshot['standing'] {
+  const fence = new Set(receivers);
   const ids = new Set([...Object.keys(c.standing), ...c.state.burned]);
+  for (const id of receivers) ids.add(id);
   return [...ids]
-    .map((id) => ({
-      id,
-      name: id.startsWith('port.') ? portName(id) : companyName(c.defs, id),
-      value: Math.round(standingOf(c.standing, id)),
-      burned: c.state.burned.includes(id),
-    }))
+    .map((id) => {
+      const kind = id.startsWith('port.') ? ('port' as const) : ('company' as const);
+      const burned = c.state.burned.includes(id);
+      const value = burned ? 0 : Math.round(standingOf(c.standing, id));
+      const perks =
+        kind === 'port' ? standingPerks(c.defs, value) : companyStandingPerks(c.defs, value);
+      return {
+        id,
+        name: kind === 'port' ? portName(id) : companyName(c.defs, id),
+        kind,
+        value,
+        burned,
+        word: standingWord(value, burned),
+        perks,
+        next: standingNext(c.defs, id, value, kind, burned),
+        fence: fence.has(id),
+      };
+    })
     .sort(
       (a, b) =>
-        Number(b.id.startsWith('port.')) - Number(a.id.startsWith('port.')) ||
+        Number(b.kind === 'port') - Number(a.kind === 'port') ||
         b.value - a.value ||
         a.name.localeCompare(b.name),
     );
@@ -546,7 +698,15 @@ export function ledgerSnapshot(
     })),
     contracts: contracts ? ledgerContracts(defs, contracts, gameSeconds) : [],
     rumors: rumors.map((r) => rumorRow(r, gameSeconds)),
-    standing: contracts ? ledgerStanding(contracts) : [],
+    standing: contracts
+      ? ledgerStanding(contracts, receivers)
+      : receiverStandingRows(receivers ?? []),
+    standingTicks: contracts
+      ? {
+          port: standingBarTicks(contracts.defs, 'port'),
+          company: standingBarTicks(contracts.defs, 'company'),
+        }
+      : { port: [], company: [] },
   };
 }
 

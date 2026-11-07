@@ -468,9 +468,8 @@ describe('receivers: a merchant who has taken a lot keeps taking them (piece H)'
     const copper = snap.hold.find((h) => h.good === 'good.copper');
     expect(whiskey?.offer).toMatchObject({ receiver: true, tooHot: false, turnedAway: false });
     expect(copper?.offer).toMatchObject({ receiver: true, tooHot: true });
-    expect(snap.ledger.receivers).toEqual([
-      { id: 'port.bayfield', text: 'Bayfield: a merchant who asks no questions' },
-    ]);
+    const bay = snap.ledger.standing.find((s) => s.id === 'port.bayfield');
+    expect(bay?.fence).toBe(true);
   });
 });
 

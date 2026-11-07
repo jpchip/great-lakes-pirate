@@ -30,7 +30,12 @@ import { createMarkets, quote, type MarketsState } from '../src/sim/economy/mark
 import { passageTable } from '../src/sim/economy/passages';
 import { sell } from '../src/sim/economy/trade';
 import { createWorldState, parseWorldState, worldStateSchema } from '../src/sim/world-state';
-import type { PortSnapshot } from '../src/ui/port/model';
+import {
+  ledgerSnapshot,
+  standingBarTicks,
+  standingWord,
+  type PortSnapshot,
+} from '../src/ui/port/model';
 
 /** Phase 4 piece F: freight contracts and Standing (plan 05 §5.2; §16.3 criterion 9). */
 
@@ -412,6 +417,11 @@ describe('contracts in the game', () => {
     const ledger = must(shown.at(-1)).ledger;
     expect(ledger.contracts[0]?.done).toBe(true);
     expect(ledger.standing.map((s) => s.id)).toContain('port.duluth');
+    const duluth = must(ledger.standing.find((s) => s.id === 'port.duluth'));
+    expect(duluth.kind).toBe('port');
+    expect(duluth.burned).toBe(false);
+    expect(duluth.word).toBe('Stranger');
+    expect(duluth.next).toMatch(/Next:/);
   });
 
   it('fails a contract on the world tick, and counts hard knocks on fragile cargo', () => {
@@ -449,6 +459,61 @@ describe('contracts in the game', () => {
     }
     expect(events).toContain('ContractStolen');
     expect(trades).toHaveLength(1);
+  });
+});
+
+describe('ledger standing rows', () => {
+  it('labels reputation bands and burned shippers', () => {
+    expect(standingWord(3, false)).toBe('Stranger');
+    expect(standingWord(12, false)).toBe('Known');
+    expect(standingWord(35, false)).toBe('Trusted');
+    expect(standingWord(65, false)).toBe('Valued');
+    expect(standingWord(95, false)).toBe('Friend of the house');
+    expect(standingWord(0, true)).toBe('Burned');
+  });
+
+  it('lists bar ticks for port deposits and company contract mins', () => {
+    const port = standingBarTicks(defs, 'port');
+    expect(port.map((t) => t.value)).toEqual(expect.arrayContaining([30, 60]));
+    const company = standingBarTicks(defs, 'company');
+    expect(company.some((t) => t.value >= 20)).toBe(true);
+  });
+
+  it('fills perks and next milestones from port Standing', () => {
+    const state = createContractsState();
+    const l = ledgerSnapshot(
+      econ,
+      {},
+      0,
+      {
+        defs,
+        state,
+        standing: { 'port.duluth': 35, 'port.ashland': 65 },
+      },
+      [],
+    );
+    const duluth = must(l.standing.find((s) => s.id === 'port.duluth'));
+    expect(duluth.perks).toContain('Half deposits');
+    expect(duluth.next).toMatch(/no deposit asked at 60/);
+    const ash = must(l.standing.find((s) => s.id === 'port.ashland'));
+    expect(ash.perks).toContain('No deposit asked');
+  });
+
+  it('marks a burned company on the ledger', () => {
+    const state = createContractsState();
+    state.burned.push('company.hollister_fish');
+    const l = ledgerSnapshot(
+      econ,
+      {},
+      0,
+      { defs, state, standing: { 'company.hollister_fish': 0 } },
+      [],
+    );
+    const h = must(l.standing.find((s) => s.id === 'company.hollister_fish'));
+    expect(h.kind).toBe('company');
+    expect(h.burned).toBe(true);
+    expect(h.word).toBe('Burned');
+    expect(h.next).toBeUndefined();
   });
 });
 
