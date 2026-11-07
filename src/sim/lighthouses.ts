@@ -4,6 +4,7 @@ import {
   type Characteristic,
   type LighthouseDef,
   type LightTier,
+  type TowerStyle,
 } from '../../data/schemas/lighthouses';
 import { ChartProjection, chartToZone, type ZoneFrame } from '../core/coords';
 import { pierHead } from './harbors';
@@ -109,6 +110,99 @@ const MIN_GROUND_M = 1.5;
 const projection = new ChartProjection();
 
 /**
+ * Kit-local xz offset to zone xz, matching the renderer's `rotation.y = -seaward` (sea
+ * toward -z in the kit).
+ */
+export function stationOffsetWorld(
+  seaward: number,
+  localX: number,
+  localZ: number,
+): { x: number; z: number } {
+  const θ = -seaward;
+  return {
+    x: localX * Math.cos(θ) + localZ * Math.sin(θ),
+    z: -localX * Math.sin(θ) + localZ * Math.cos(θ),
+  };
+}
+
+/** Dry-ground samples for the merged station mesh (kit space, +z landward). Keep in sync with kit.ts. */
+/** Dry-ground samples for a station mesh (kit space, +z landward). Keep in sync with kit.ts. */
+export function stationFootprintProbes(def: LighthouseDef): readonly [number, number][] {
+  return STATION_FOOTPRINT[def.tower.style](def);
+}
+
+const STATION_FOOTPRINT: Readonly<
+  Record<TowerStyle, (def: LighthouseDef) => readonly [number, number][]>
+> = {
+  conical: (def) =>
+    def.tower.finish === 'iron'
+      ? [
+          [0, 5],
+          [-2.5, 4.8],
+          [2.5, 4.8],
+        ]
+      : [
+          [0, 14],
+          [-5.5, 13],
+          [3, 13],
+        ],
+  dwelling: () => [
+    [0, 5],
+    [-4, 2],
+    [4, 2],
+  ],
+  skeleton: () => [[0, 7]],
+};
+
+function dryAt(terrain: LightTerrain, x: number, z: number): boolean {
+  return terrain.heightAt(x, z) >= MIN_GROUND_M;
+}
+
+/** Kit corners may sit on low shingle above the lake without meeting the tower-foot threshold. */
+const PROBE_MIN_GROUND_M = 0.1;
+
+function probeDry(terrain: LightTerrain, x: number, z: number): boolean {
+  return terrain.heightAt(x, z) >= PROBE_MIN_GROUND_M;
+}
+
+/** Slide the tower foot along shore until the kit footprint sits on dry ground. */
+function fitStationFootprint(
+  x: number,
+  z: number,
+  seaward: number,
+  def: LighthouseDef,
+  terrain: LightTerrain,
+): { x: number; z: number } {
+  const probes = stationFootprintProbes(def);
+  const land = stationOffsetWorld(seaward, 0, 1);
+  const len = Math.hypot(land.x, land.z) || 1;
+  const lx = land.x / len;
+  const lz = land.z / len;
+
+  let bestX = x;
+  let bestZ = z;
+  let bestDist = Infinity;
+  for (let shift = -40; shift <= 60; shift += 1) {
+    const fx = x + lx * shift;
+    const fz = z + lz * shift;
+    if (!dryAt(terrain, fx, fz)) continue;
+    let score = 0;
+    for (const [px, pz] of probes) {
+      const w = stationOffsetWorld(seaward, px, pz);
+      if (probeDry(terrain, fx + w.x, fz + w.z)) score++;
+    }
+    if (score !== probes.length) continue;
+    const dist = Math.abs(shift);
+    if (dist < bestDist) {
+      bestDist = dist;
+      bestX = fx;
+      bestZ = fz;
+    }
+  }
+  return { x: bestX, z: bestZ };
+}
+
+/**
  * Puts each light on the zone's land: its geographic point, moved to the nearest ground at
  * least 1.5 m above the lake if that point turns out to be water or a shingle beach (the
  * zone is compressed and clipped, so a light's real coordinates can land just offshore).
@@ -155,12 +249,16 @@ export function placeLights(
       }
     }
     terrain.shoreNormalAt(x, z, normal);
+    const seaward = Math.atan2(normal.x, -normal.z);
+    const fit = fitStationFootprint(x, z, seaward, def, terrain);
+    x = fit.x;
+    z = fit.z;
     out.push({
       def,
       x,
       z,
       groundM: Math.max(terrain.heightAt(x, z), 0),
-      seaward: Math.atan2(normal.x, -normal.z),
+      seaward,
     });
   }
   return out;

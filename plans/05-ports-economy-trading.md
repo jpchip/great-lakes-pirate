@@ -275,6 +275,7 @@ All resolved.
 | 2026-10-22 | **Harbor tug tows** can be hired in the four big harbors, mainly for T3 in calms. |
 | 2026-11-01 | Phase 4's one fence is **an island smuggler in the Apostles**: a boat at an island anchorage after dark that sells contraband and fences hot goods. Bayfield's back-room fence follows in Phase 7 (§16.6). |
 | 2026-11-01 | **Red Cliff and Bad River are left out of Phase 4.** Piece I builds La Pointe and Washburn only; the two landings come later, after a tribal sources pass (§16.6). |
+| 2026-11-04 | **Red Cliff is built as a market-only landing; Bad River stays out for now** (§26). Red Cliff has a dock, houses and a market and nothing else, and no crime can be done there. Bad River's chart marker is removed. |
 
 ---
 
@@ -389,7 +390,7 @@ Twelve pieces, each sized to be one thread. Three can start at once (A, I, and t
    - **An island smuggler in the Apostles (recommended):** a boat lying at an anchorage among the islands after dark (Oak Island's lee, say, or behind Sand Island). Sail out, meet her alongside, trade by lantern light. It needs no on-foot mode, puts the shady half of the game out in the islands where Jared felt it belongs, and gives the stash a neighbor. Plan 08's Bayfield back-room fence still comes in Phase 7 as the second.
    - **Bayfield's fish pier after dark:** dock there at night and the fence's menu opens. It's the plan 08 fence early, in town, and it moves on foot in Phase 7. Less of the islands.
    - **No fence until Phase 6:** Phase 4 has contraband from a smuggler only, and hot goods wait until there's theft. The smallest Phase 4, and criterion 7 shrinks.
-2. **Do Red Cliff and Bad River come in Phase 4?** **Decided 2026-11-01: left out of Phase 4 for now.** They come back in a later phase, with the tribal sources pass first. They're trade-only landings with seasonal goods (§4.2), and the master plan wants their portrayal checked against tribal sources ([00 §10](00-master-plan.md), R1 §5).
+2. **Do Red Cliff and Bad River come in Phase 4?** **Decided 2026-11-01: left out of Phase 4 for now.** They come back in a later phase, with the tribal sources pass first. **Revised 2026-11-04: Red Cliff is built now as a market-only landing (§26), and Bad River is still out.** Their portrayal stays subject to the pre-release review in [R1 §5](R1-western-superior-1900-research.md). They're trade-only landings with seasonal goods (§4.2), and the master plan wants their portrayal checked against tribal sources ([00 §10](00-master-plan.md), R1 §5).
    - **A sources pass first, then build (recommended):** piece I builds La Pointe and Washburn now. A small research thread reads the Red Cliff and Bad River tribal sources and R1 §5, and the two landings land in Phase 4 only if that pass gives enough to portray them well; otherwise they move to Phase 7 with going ashore.
    - **Build them now from R1 as it stands:** all four Apostles landings in Phase 4, and the review comes before Beta as planned.
    - **Leave them to Phase 7.**
@@ -491,7 +492,7 @@ The four Apostles harbors are 55k triangles together, well inside the 250k harbo
 - Jared's by-eye check that La Pointe and Washburn are recognizable from the water (§16.4, piece I).
 - Their markets: the §4.2 profiles in piece A's `markets.json`.
 - A Sanborn-map pass on Washburn's waterfront (R1 §6) when the docks districts come (Phase 7), and Washburn's 1900 population (R1 open item 4).
-- Red Cliff and Bad River, after the tribal sources pass (decision 2, §16.6).
+- Red Cliff, after the tribal sources pass (decision 2, §16.6): **built in §26**. Bad River is still to do.
 
 ## 18. Phase 4 Piece B: the Port Screen and Trade (2026-11-01)
 
@@ -817,8 +818,46 @@ His first look changed four things, all in the release PR: the "made here" and "
 
 ---
 
+## 26. Red Cliff: a trade-only landing (2026-11-04)
+
+**Goal** (decision 2, revised): add Red Cliff as a place you can sail up to and trade at, with a market and no other service, so the Apostles feel less empty and nothing sensitive comes with it. Bad River is dropped from this work, and its chart marker is removed.
+
+**Result:** the Apostles zone is rebaked with a Red Cliff footprint. Sail up the peninsula's east shore, in the channel between it and Basswood Island, lie alongside the dock and the port screen opens with a Market tab and the Ledger, and nothing else.
+
+### 26.1 What was built
+
+| Piece | Where | Notes |
+|---|---|---|
+| Footprint | `data/zones.json`, `public/world/apostles/` | `setpiece.red_cliff`: anchored on the baked east shore of the peninsula (bearing 90 degrees), 240 m along, 100 m inland, flattened to 2 m with a 40 m blend up the bluff. The shore there is a 10 to 30 m bluff, so the terrace is cut into it, as at Washburn. The anchor is on the baked shoreline, not the chart's port point (`data/chart.json`), which sits inland on the bluff. Rebaked with `geo:build` and `geo:canopy`: 50,691 samples flattened; one height tile (2-3) changed, as did the Madeline Island on-foot tiles, the SDF and the wind maps (same GDAL drift as §17.3) |
+| Harbor | `data/harbors.json` | `harbor.red_cliff`: one dock (51 m with its bite into the bank, 7 m wide, two berths in 6 to 7 m of water), a warehouse by the dock, a trading store, three fish sheds and 12 houses (all placed) on the terrace. 2.3k triangles |
+| Port | `data/ports.json` | `port.red_cliff`, services `["market"]`, in `region.apostles` with La Pointe. New field `tradeOnly`, default false, on the port schema |
+| Market | `data/markets.json` | `market.red_cliff`, size **tiny** (§26.3). Exports fish (fresh and salted), maple sugar, wild rice and furs; imports flour, dry goods, hardware and kerosene; absent are bulk goods, copper, coal and taxed whiskey. The seasons come from `goods.json`: maple sugar in spring, wild rice in fall, furs in winter and spring |
+| Trade-only rule | `src/sim/economy/contraband.ts`, `src/ui/port/model.ts`, `src/gameplay/port.ts` | `offerLot` refuses at a `tradeOnly` port with the reason `tradeOnly` before any roll, so nothing is sold, confiscated, remembered or reported, and no Wanted can follow. The port screen shows no Offer button there. Honest buying and selling work as anywhere |
+| Tests | `tests/contraband.test.ts` and the lists in the economy, port, contracts, harbors, geo and audio-harbor tests | Offers at Red Cliff always return `tradeOnly` and change nothing; the screen has the market and ledger tabs only; the T1 docks at both berths on the real terrain |
+
+### 26.2 Sources and choices
+
+- **What's on the shore** follows the Chequamegon History account of Red Cliff's early years (a hemlock-crib dock with a large warehouse beside it, fishermen working nearby, and frame family houses built from the band's mill lumber). It names a Catholic church and school, and a carpenter's shop in the old mill. They are left out: anything past a dock, a store, sheds and houses starts to portray the community, and the build has had no tribal review yet (R1 §5). Positions are laid out for the game, not from a map.
+- **No taxed whiskey at Red Cliff.** Selling liquor on a reservation was a federal offense in 1900, so the market lists it as absent rather than as an import.
+- **A quiet landing.** With no sawmill or yard on the shore, Red Cliff has nothing to hear in the harbor audio, like La Pointe.
+- **The pre-release review stands.** R1 §5 and plan 17 call for review by the Red Cliff Historic Preservation Office or an Ojibwe sensitivity reader before release. This build doesn't replace it.
+
+### 26.3 The market's size, and the balance
+
+The plan 05 §4.2 profile says "Small". At small, Red Cliff's three seasonal exports (maple sugar, wild rice and furs, all high-value goods bought for about 17% under base) gave the balance bots a short, rich loop to Bayfield, and five of the harness checks failed: the contracts bot reached a T2 in about 6.2 hours (target 8 to 12) and the deep-purse runs earned $175 to $203 an hour against a $150 ceiling. At **tiny** (20 CU deep and a 12% spread, like La Pointe) every check passes with the global market rules untouched. A landing of a few families trading what the season gives it is thin in stock, so tiny fits too. Fish alone, or two of the three seasonal goods, also passed at small; the plan keeps all three.
+
+### 26.4 Left out
+
+- **Traffic:** no node in `data/routes.json`, so no ship calls at the dock and no flow reaches the market.
+- **Freight, saloon and chandlery:** a freight agent, rumors from a saloon and a chandlery, and contracts offered to Red Cliff.
+- **Rumors:** price tips that name Red Cliff come for free, because they draw on every market. Nothing else mentions it.
+- **Bad River:** no port, market, harbor or chart marker (`port.bad_river` was removed from `chart.json`).
+- **The chart point:** `port.red_cliff` in `chart.json` is unchanged and sits inland of the dock.
+- **The browser check:** the e2e smoke suite couldn't run here (no Playwright browser). The unit suite and the production build pass. Jared's by-eye check of the landing from the water is still to do.
+
 ## Changelog
 
+- v0.10: Red Cliff built as a trade-only landing (§26): footprint, dock and houses, a tiny market, the `tradeOnly` rule; decision 2 revised, Bad River still out.
 - v0.9: Phase 4 signed off (§25.3): the playtest passed and 0.4.0 tagged.
 - v0.8: Phase 4 piece L (§25): the exit criteria checked in the container, a First Week e2e that found the rumor step never ticked (fixed), the economy tick with 100+ ships, new-run save sizes, draw calls with traffic in every harbor, and the 0.4.0 release.
 - v0.7: Phase 4 piece K built (§24): rumors from the live sim in the saloons, reliability and age, heard prices and hails in the ledger, La Pointe's saloon.

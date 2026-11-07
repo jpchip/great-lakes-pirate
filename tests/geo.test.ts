@@ -285,6 +285,7 @@ describe('hand-edit layer', () => {
       'setpiece.la_pointe',
       'setpiece.stockton',
       'setpiece.washburn',
+      'setpiece.red_cliff',
     ]);
     const ports = zoneConfigFromData('zone.twin_ports', read('zones.json'), read('islands.json'));
     expect(ports.islands).toEqual([]);
@@ -311,6 +312,7 @@ describe('baked Apostles zone', () => {
       'setpiece.la_pointe',
       'setpiece.stockton',
       'setpiece.washburn',
+      'setpiece.red_cliff',
     ]);
     for (const e of m.handEdits) expect(e.samples).toBeGreaterThan(500);
     const p = geoToChart({ lat: 46.9065, lon: -90.4435 });

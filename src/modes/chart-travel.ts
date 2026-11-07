@@ -143,7 +143,11 @@ export interface ChartTravel {
   readonly session: ChartSession;
   /** How the chart is open; undefined at the helm. */
   readonly trip: ChartTrip | undefined;
-  /** Refused M or "Take to the chart" at the helm: why, for the HUD. Undefined when it opened. */
+  /**
+   * M or "Take to the chart" at the helm: opens a look, or takes the ship onto the chart at
+   * the soft edge in open water. In a harbor, only a look (plot and weather, no setting
+   * sail). Refusal text for the HUD when pursued; undefined when it opened.
+   */
   fromHelm(where: { atEdge: boolean; inHarbor: boolean }): string | undefined;
   /**
    * True when the open lake lies clear ahead of the ship toward the zone's nearest edge
@@ -153,7 +157,7 @@ export interface ChartTravel {
   openToLake(bounds: { minX: number; maxX: number; minZ: number; maxZ: number }): boolean;
   /** Off the zone at the soft edge and onto the chart, for a voyage. */
   takeToChart(): void;
-  /** M in open water: a look at the chart, the world held. */
+  /** M in the zone or in a harbor: a look at the chart, the world held. */
   openLook(): void;
   /** Back to the helm from a look, or into the zone the ship is in on the chart. */
   back(): void;
@@ -420,8 +424,7 @@ export function createChartTravel(host: ChartTravelHost): ChartTravel {
     },
     fromHelm({ atEdge, inHarbor }) {
       if (host.pursued()) return 'Chart locked: you are being pursued';
-      if (inHarbor) return 'Not in the harbor: put out to open water first';
-      if (atEdge) travel.takeToChart();
+      if (atEdge && !inHarbor) travel.takeToChart();
       else travel.openLook();
       return undefined;
     },

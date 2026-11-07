@@ -56,6 +56,7 @@ describe('the harbor data', () => {
       'harbor.washburn',
       'harbor.la_pointe',
       'harbor.stockton',
+      'harbor.red_cliff',
     ]);
     expect(harborsIn('zone.twin_ports').map((h) => h.id)).toEqual([
       'harbor.duluth_canal',
@@ -241,7 +242,7 @@ describe('the harbors on the Apostles zone', () => {
   });
 
   it.skipIf(!baked)(
-    'docks at Bayfield, Ashland, Washburn, La Pointe and the Stockton landing (the piece G exit criterion)',
+    'docks at Bayfield, Ashland, Washburn, La Pointe, Red Cliff and the Stockton landing (the piece G exit criterion)',
     () => {
       dockAtEveryPier(zone.terrain, layouts);
     },
@@ -256,7 +257,13 @@ describe('the harbors on the Apostles zone', () => {
       // La Pointe is a village of a few dozen houses, the Stockton stash (piece E) a shack
       // and a shed; the towns are bigger.
       const least =
-        l.def.id === 'harbor.stockton' ? 400 : l.def.id === 'harbor.la_pointe' ? 4_000 : 10_000;
+        l.def.id === 'harbor.stockton'
+          ? 400
+          : l.def.id === 'harbor.red_cliff'
+            ? 1_500
+            : l.def.id === 'harbor.la_pointe'
+              ? 4_000
+              : 10_000;
       expect(
         buildHarbor(l, (x, z) => zone.terrain.heightAt(x, z)).triangles,
         l.def.id,

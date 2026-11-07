@@ -134,6 +134,21 @@
         "seawardM": 260,
         "groundM": 2.5,
         "blendM": 80
+      },
+      {
+        "id": "setpiece.red_cliff",
+        "name": "Red Cliff landing",
+        "port": "port.red_cliff",
+        "at": {
+          "lat": 46.8508,
+          "lon": -90.7882
+        },
+        "bearingDeg": 90,
+        "alongM": 240,
+        "inlandM": 100,
+        "seawardM": 120,
+        "groundM": 2,
+        "blendM": 40
       }
     ]
   },

@@ -52,10 +52,10 @@ describe('piers and their ports', () => {
     expect(pierPort('pier.test_bay')).toBeUndefined();
   });
 
-  it('lists a chandlery at every port but La Pointe', () => {
+  it('lists a chandlery at every port but La Pointe and Red Cliff', () => {
     for (const port of gameEconomy().markets.keys()) {
       const has = portInfo(port)?.services.includes('chandlery');
-      expect(has, port).toBe(port !== 'port.la_pointe');
+      expect(has, port).toBe(port !== 'port.la_pointe' && port !== 'port.red_cliff');
     }
   });
 });

@@ -198,7 +198,7 @@ export type Refusals = Record<string, number>;
 
 export type OfferOutcome = 'sold' | 'refused' | 'confiscated';
 
-export type OfferRefusal = 'badLot' | 'notTraded' | 'turnedAway' | 'tooHot';
+export type OfferRefusal = 'badLot' | 'notTraded' | 'tradeOnly' | 'turnedAway' | 'tooHot';
 
 /**
  * What the merchants remember of you: the ports that turned you away and the week, and
@@ -291,6 +291,9 @@ export function offerLot(
   const stack = trader.cargo[stackIndex];
   const kind = stack ? offerKind(defs, stack) : undefined;
   if (!stack || !kind) return { ok: false, reason: 'badLot' };
+  // A trade-only port (Red Cliff) takes no hot goods or contraband: nothing to detect, so
+  // no risk, no Wanted and no receiver (plan 05 §4.2, R1 §5).
+  if (portInfo(port)?.tradeOnly) return { ok: false, reason: 'tradeOnly' };
   const market = defs.markets.get(port);
   if (!market) return { ok: false, reason: 'notTraded' };
   if (kind === 'hot' && !market.goods.has(stack.good)) return { ok: false, reason: 'notTraded' };
