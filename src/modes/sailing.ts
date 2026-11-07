@@ -8,6 +8,7 @@ import { hazardSystem, onShipJibed } from '../gameplay/hazards';
 import { heelSystem, sailingSystem, zoneEdgeSystem, type WindSampler } from '../gameplay/sailing';
 import { IDLE_COMMAND, type SailingCommand } from '../sim/sailing/controller';
 import {
+  berthAt,
   IDLE_MOORING,
   type HazardEvent,
   type MooringBerth,
@@ -41,6 +42,11 @@ export interface SailingModeOptions {
    * Swappable: set while an arena runs, undefined in a zone.
    */
   arena?: SailingArena | undefined;
+  /**
+   * Asked before the player's F becomes a dock order at a berth: false holds it back (the
+   * tier-5 harbor's "F again to dock", Phase 5 piece E). Absent, every dock order stands.
+   */
+  dockGate?: ((berthId: string) => boolean) | undefined;
 }
 
 export interface SailingArena {
@@ -126,8 +132,16 @@ export function createSailingMode(ctx: GameContext, options: SailingModeOptions)
   const commandFor = (e: Entity): SailingCommand =>
     e.playerControlled ? playerCommand(ctx.input, helm) : IDLE_COMMAND;
   const mooring: MooringCommand = { ...IDLE_MOORING };
-  const mooringFor = (e: Entity): MooringCommand =>
-    e.playerControlled ? playerMooring(ctx.input, mooring) : IDLE_MOORING;
+  const mooringFor = (e: Entity): MooringCommand => {
+    if (!e.playerControlled) return IDLE_MOORING;
+    const cmd = playerMooring(ctx.input, mooring);
+    const gate = options.dockGate;
+    if (cmd.interact && gate && e.sailing && e.hazards?.state.mooring === 'free') {
+      const berth = berthAt(e.sailing.state, e.hazards.cls, hazardEnv);
+      if (berth && !gate(berth.id)) cmd.interact = false;
+    }
+    return cmd;
+  };
   const hazardEnv = {
     get terrain() {
       return ctx.terrain;

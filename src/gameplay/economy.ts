@@ -39,6 +39,11 @@ export interface GameEconomy {
    * `HotGoodsDetected`.
    */
   offer(port: string, stackIndex: number): OfferResult;
+  /**
+   * The chance your receiver at a port turns you in (Phase 5 piece E sets it from the
+   * port's Wanted tier); none by default.
+   */
+  informChance: (port: string) => number;
   /** Marks clean cargo hot, as if just stolen in `region` (the dev command until Phase 6). */
   makeHot(good: string, qty: number, region: string, heat?: number): number;
   /** Sets the ship's load from the hold; call after anything else changes the hold. */
@@ -78,8 +83,9 @@ export function attachEconomy(
   );
   syncLoad();
 
-  return {
+  const economy: GameEconomy = {
     defs,
+    informChance: () => 0,
     get capacity() {
       return capacity;
     },
@@ -120,6 +126,8 @@ export function attachEconomy(
         stackIndex,
         now(),
         runSeed(ctx),
+        undefined,
+        economy.informChance(port),
       );
       if (!r.ok) return r;
       syncLoad();
@@ -152,4 +160,5 @@ export function attachEconomy(
     syncLoad,
     dispose: offTick,
   };
+  return economy;
 }

@@ -54,7 +54,7 @@ export interface ChartFrame {
   hideouts?: readonly { id: string; name: string; pos: Chart }[];
 }
 
-export type ChartMarkKind = 'smuggler';
+export type ChartMarkKind = 'smuggler' | 'wanted' | 'mostWanted';
 
 export interface ChartMark {
   pos: Chart;
@@ -604,6 +604,10 @@ export class ChartView {
   private drawMarks(marks: readonly ChartMark[], daylight: number): void {
     const { ctx } = this;
     for (const m of marks) {
+      if (m.kind !== 'smuggler') {
+        this.drawWanted(m);
+        continue;
+      }
       const s = this.toScreen(m.pos);
       const night = 1 - daylight;
       if (night > 0) {
@@ -635,6 +639,49 @@ export class ChartView {
       ctx.textAlign = 'left';
       ctx.fillText(m.label, s.x + 9, s.y);
     }
+  }
+
+  /**
+   * A region the law wants you in (Phase 5 piece E): its name and tier in red pencil over
+   * the water, with a hatched ring; Most Wanted adds the noose, drawn large.
+   */
+  private drawWanted(m: ChartMark): void {
+    const { ctx } = this;
+    const s = this.toScreen(m.pos);
+    const top = m.kind === 'mostWanted';
+    ctx.strokeStyle = CHART_COLORS.signalRed;
+    ctx.fillStyle = CHART_COLORS.signalRed;
+    ctx.lineWidth = top ? 2 : 1.2;
+    ctx.setLineDash(top ? [] : [4, 3]);
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, top ? 26 : 18, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    if (top) {
+      // The noose: a crossbeam, the drop, the coils and the loop.
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.moveTo(s.x - 9, s.y - 16);
+      ctx.lineTo(s.x + 9, s.y - 16);
+      ctx.moveTo(s.x, s.y - 16);
+      ctx.lineTo(s.x, s.y - 6);
+      ctx.stroke();
+      ctx.lineWidth = 1;
+      for (const dy of [-6, -3.5, -1]) {
+        ctx.beginPath();
+        ctx.moveTo(s.x - 3, s.y + dy);
+        ctx.lineTo(s.x + 3, s.y + dy);
+        ctx.stroke();
+      }
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.ellipse(s.x, s.y + 7, 6, 6, 0, 0, Math.PI * 2);
+      ctx.stroke();
+    }
+    ctx.font = `${top ? '700 14px' : 'italic 600 12px'} ${FONT}`;
+    ctx.textBaseline = 'top';
+    ctx.textAlign = 'center';
+    haloText(ctx, m.label, s.x, s.y + (top ? 30 : 22));
   }
 
   private drawPorts(geo: ChartGeography): void {

@@ -1,18 +1,68 @@
 {
   "witnesses": {
     "keeper": {
-      "delay": { "minH": 1.5, "maxH": 4 },
+      "delay": {
+        "minH": 1.5,
+        "maxH": 4
+      },
       "byReporting": {
-        "fast": { "minH": 0.5, "maxH": 1.5 },
-        "medium": { "minH": 1.5, "maxH": 4 },
-        "slow": { "minH": 1, "maxH": 3, "atDawn": true }
+        "fast": {
+          "minH": 0.5,
+          "maxH": 1.5
+        },
+        "medium": {
+          "minH": 1.5,
+          "maxH": 4
+        },
+        "slow": {
+          "minH": 1,
+          "maxH": 3,
+          "atDawn": true
+        }
       }
     },
-    "crew": { "delay": { "minH": 6, "maxH": 36 } },
-    "cutter": { "delay": { "minH": 0, "maxH": 0 } },
-    "townsfolk": { "delay": { "minH": 0.5, "maxH": 1 } },
-    "merchant": { "delay": { "minH": 0.25, "maxH": 1 } },
-    "freightAgent": { "delay": { "minH": 4, "maxH": 12 } }
+    "crew": {
+      "delay": {
+        "minH": 6,
+        "maxH": 36
+      }
+    },
+    "cutter": {
+      "delay": {
+        "minH": 0,
+        "maxH": 0
+      }
+    },
+    "townsfolk": {
+      "delay": {
+        "minH": 0.5,
+        "maxH": 1
+      }
+    },
+    "merchant": {
+      "delay": {
+        "minH": 0.25,
+        "maxH": 1
+      }
+    },
+    "freightAgent": {
+      "delay": {
+        "minH": 4,
+        "maxH": 12
+      }
+    },
+    "harborMaster": {
+      "delay": {
+        "minH": 0,
+        "maxH": 0
+      }
+    },
+    "informant": {
+      "delay": {
+        "minH": 1,
+        "maxH": 4
+      }
+    }
   },
   "dawnHour": 6,
   "cutter": {
@@ -22,6 +72,20 @@
     "coalingPort": "port.duluth",
     "inspectsFromTier": 1,
     "drawnFromTier": 3
+  },
+  "harborMaster": {
+    "fineTiers": [1, 2],
+    "fineCentsPerHeat": 150,
+    "bribeTiers": [3, 4],
+    "bribeCentsPerHeat": 300,
+    "saloonKeeperDiscount": 0.25,
+    "searchFromTier": 2,
+    "searchByTier": [0, 0, 0.5, 0.75, 1, 1.25],
+    "informFromTier": 2,
+    "informByTier": [0, 0, 0.15, 0.3, 0.5, 0.75],
+    "posterFromTier": 2,
+    "bountyFromTier": 3,
+    "bountyCentsPerHeat": 200
   },
   "tug": {
     "id": "law.chartered_tug",

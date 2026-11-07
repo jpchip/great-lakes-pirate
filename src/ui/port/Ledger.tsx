@@ -1,3 +1,5 @@
+import { WantedIcon } from '../hud/Wanted';
+import type { LedgerLawSnapshot } from './harbor-model';
 import type { ComponentChildren } from 'preact';
 import { useState } from 'preact/hooks';
 import { formatCents } from '../../sim/economy/knowledge';
@@ -26,7 +28,7 @@ const TABS: [LedgerTab, string][] = [
   ['byGood', 'Prices by good'],
   ['contracts', 'Contracts'],
   ['rumors', 'Rumors'],
-  ['standing', 'Standing'],
+  ['standing', 'Standing & law'],
 ];
 
 /** One rumor: what was said, who said it and how far to trust it. */
@@ -354,9 +356,7 @@ function Contracts({ ledger }: { ledger: LedgerSnapshot }) {
                         c.status}
                     </span>
                   </td>
-                  <td class="num hud-num">
-                    {c.payCents > 0 ? formatCents(c.payCents) : '—'}
-                  </td>
+                  <td class="num hud-num">{c.payCents > 0 ? formatCents(c.payCents) : '—'}</td>
                 </tr>
               ))}
             </tbody>
@@ -419,6 +419,36 @@ function ByGood({ ledger }: { ledger: LedgerSnapshot }) {
   );
 }
 
+/** Fame and Wanted (plan 13 §12; Phase 5 piece E), at the top of the Standing page. */
+function LawPage({ law }: { law: LedgerLawSnapshot }) {
+  return (
+    <div class="ledger-law" data-testid="ledger-law">
+      <p data-testid="ledger-fame">
+        Fame: <strong>{law.fameTierName}</strong> <span class="port-dim hud-num">({law.fame})</span>
+      </p>
+      {law.wanted.length === 0 ? (
+        <p class="port-dim">The law has nothing against you anywhere on the lake.</p>
+      ) : (
+        <ul class="ledger-list" data-testid="ledger-wanted">
+          {law.wanted.map((w) => (
+            <li key={w.region} class={`ledger-wanted tier-${w.tier}`}>
+              <WantedIcon tier={w.tier} top={w.tier >= 5} /> {w.name}: {w.tierName}{' '}
+              <span class="port-dim hud-num">({w.heat})</span>
+            </li>
+          ))}
+        </ul>
+      )}
+      {law.reports.length > 0 && (
+        <ul class="ledger-list" data-testid="ledger-reports">
+          {law.reports.map((r) => (
+            <li key={r.id}>{r.text}</li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 export function Ledger({ ledger, here }: { ledger: LedgerSnapshot; here?: string | undefined }) {
   // At sea the hold is what you came to look at; in port it's already beside the market.
   const [tab, setTab] = useState<LedgerTab>(here ? 'byPort' : 'hold');
@@ -451,6 +481,7 @@ export function Ledger({ ledger, here }: { ledger: LedgerSnapshot; here?: string
         ) : (
           <Empty text="No rumors heard yet." />
         ))}
+      {tab === 'standing' && ledger.law && <LawPage law={ledger.law} />}
       {tab === 'standing' && <Standing ledger={ledger} />}
     </div>
   );

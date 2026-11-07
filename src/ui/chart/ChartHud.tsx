@@ -55,6 +55,11 @@ export function ChartHud({
             {c.etaText}
           </div>
         )}
+        {c.law?.map((l, i) => (
+          <div key={i} class={`chart-law${l.danger ? ' danger' : ''}`} data-testid="chart-law">
+            {l.text}
+          </div>
+        ))}
         {c.problem && (
           <div class="chart-problem" data-testid="chart-problem">
             {c.problem}

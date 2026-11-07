@@ -60,6 +60,12 @@ export function SmugglerScreen({
           </strong>{' '}
           left to buy with this week.
         </p>
+        {s.informRisk && (
+          <p class="menu-note smuggler-inform" data-testid="smuggler-inform">
+            The law is after you in these waters, and she knows it: {s.informRisk} she sells you to
+            the revenue man tonight.
+          </p>
+        )}
         {message && (
           <p class="port-message" role="status" data-testid="smuggler-message">
             {message}

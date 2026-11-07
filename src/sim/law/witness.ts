@@ -5,7 +5,15 @@
  */
 
 /** Who can witness a crime (plan 06 §2.4, §5.5). */
-export type WitnessKind = 'keeper' | 'crew' | 'cutter' | 'townsfolk' | 'merchant' | 'freightAgent';
+export type WitnessKind =
+  | 'keeper'
+  | 'crew'
+  | 'cutter'
+  | 'townsfolk'
+  | 'merchant'
+  | 'freightAgent'
+  | 'harborMaster'
+  | 'informant';
 
 /** Plan 06 §2.3: nobody, "a schooner", your ship's profile, or you. Factors 0.25/0.5/1/1. */
 export type Identification = 'unknown' | 'schooner' | 'ship' | 'person';

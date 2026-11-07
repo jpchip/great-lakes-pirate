@@ -2049,3 +2049,231 @@ body[data-mode='chart'] .chart-layer {
   align-items: flex-start;
   gap: 4px;
 }
+
+/*
+ * Port law and the Wanted HUD (Phase 5 piece E; plan 13 §4.1, §12). Each tier has its own
+ * mark (an empty ring, a shield with 1–4 pips, the noose), so the tier never rests on
+ * colour; the noose is the one mark drawn in red and heavy.
+ */
+.hud-law {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+}
+
+.hud-chip.hud-wanted,
+.hud-chip.hud-report {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.wanted-icon {
+  width: 16px;
+  height: 16px;
+  flex: none;
+}
+
+.wanted-ring,
+.wanted-shield {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.3;
+}
+
+.wanted-pips {
+  fill: currentColor;
+}
+
+.wanted-rope {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+}
+
+.wanted-rope.thin {
+  stroke-width: 1;
+}
+
+.hud-wanted.tier-1 {
+  border-style: dashed;
+}
+
+.hud-wanted.tier-2,
+.hud-wanted.tier-3 {
+  border: 2px solid var(--brass-light);
+}
+
+.hud-wanted.tier-4 {
+  border: 2px solid var(--signal-red);
+}
+
+.hud-wanted.top {
+  padding: 5px 10px;
+  font-size: 14px;
+  font-weight: 600;
+  border-width: 3px;
+  background: rgba(60, 10, 8, 0.85);
+}
+
+.hud-wanted.top .wanted-icon {
+  width: 22px;
+  height: 22px;
+}
+
+.hud-report-timer {
+  color: var(--brass-light);
+}
+
+.hud-report.vague {
+  border-style: dashed;
+}
+
+/* The harbor master's tab. */
+.port-harbor {
+  flex: 1;
+  display: flex;
+  gap: 24px;
+  align-items: flex-start;
+}
+
+.harbor-main {
+  flex: 1;
+  min-width: 0;
+}
+
+.harbor-standing {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 17px;
+}
+
+.harbor-standing .wanted-icon {
+  width: 30px;
+  height: 30px;
+  color: var(--ink);
+}
+
+.harbor-standing.tier-5 .wanted-icon,
+.ledger-wanted.tier-5 .wanted-icon {
+  color: var(--signal-red);
+}
+
+.harbor-heat {
+  width: 180px;
+}
+
+.harbor-heat .port-capacity-bar > div {
+  background: var(--signal-red);
+}
+
+.harbor-deal {
+  margin: 12px 0;
+}
+
+.harbor-notes {
+  margin: 8px 0 0;
+  padding-left: 18px;
+  font-size: 14px;
+}
+
+.ledger-law {
+  margin-bottom: 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--paper-dark);
+}
+
+.ledger-wanted {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.ledger-wanted .wanted-icon {
+  color: var(--ink);
+}
+
+/* A WANTED bill: cheap paper, heavy wood type, pinned to the board. */
+.wanted-poster {
+  flex: none;
+  width: 230px;
+  margin: 0;
+  padding: 14px 14px 10px;
+  color: #241a10;
+  text-align: center;
+  background: #f1e6c4;
+  border: 1px solid #b9a77a;
+  box-shadow: 2px 3px 0 rgba(43, 33, 24, 0.25);
+  transform: rotate(-1.5deg);
+}
+
+.poster-headline {
+  font-size: 30px;
+  font-weight: 800;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.wanted-poster.tier-5 .poster-headline {
+  color: var(--signal-red);
+  font-size: 24px;
+}
+
+.poster-subject {
+  margin-top: 10px;
+  font-size: 19px;
+  font-style: italic;
+}
+
+.poster-detail {
+  font-size: 13px;
+}
+
+.poster-charge {
+  margin-top: 8px;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.poster-reward {
+  margin-top: 8px;
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.poster-foot {
+  margin-top: 10px;
+  font-size: 10px;
+  opacity: 0.75;
+}
+
+.port-poster-badge {
+  margin-left: 12px;
+  padding: 2px 8px;
+  font: 700 12px var(--serif);
+  letter-spacing: 0.08em;
+  color: var(--paper);
+  background: var(--signal-red);
+  border: 0;
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+/* The chart card's law lines. */
+.chart-law {
+  margin-top: 4px;
+  font-size: 13px;
+}
+
+.chart-law.danger {
+  color: var(--signal-red);
+  font-weight: 600;
+}

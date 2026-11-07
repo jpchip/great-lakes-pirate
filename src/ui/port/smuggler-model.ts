@@ -56,6 +56,11 @@ export interface SmugglerSnapshot {
   usedCu: number;
   sells: SmugglerSale[];
   lots: SmugglerLot[];
+  /**
+   * With the law after you in her region (tier 2+), the risk she informs on a night's
+   * dealing, in a word (plan 05 §23.4; Phase 5 piece E).
+   */
+  informRisk?: string | undefined;
 }
 
 const FENCE_REFUSALS: Record<FenceRefusal, string> = {

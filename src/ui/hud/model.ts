@@ -8,6 +8,7 @@ import { CHART_EDGE_FACTOR, offersChart, type ZoneEdge } from '../../sim/terrain
 import type { ZoneTerrain } from '../../sim/terrain/zone-terrain';
 import { moonPhase } from '../../sim/weather/celestial';
 import type { BarometerReading, BarometerTrend } from '../../sim/weather/weather';
+import type { ReportSnapshot, WantedSnapshot } from '../port/harbor-model';
 
 /**
  * What the sailing HUD shows (plan 13 §4.1, plan 02 §9), sampled from the sim at most
@@ -68,6 +69,10 @@ export interface HudSnapshot {
   lantern?: LanternSnapshot | undefined;
   /** The watcher most aware of the ship (plan 06 §7.1): the HUD's eye. */
   eye?: EyeSnapshot | undefined;
+  /** The region's Wanted tier (plan 13 §4.1; Phase 5 piece E). */
+  wanted?: WantedSnapshot | undefined;
+  /** The soonest report on its way, with its timer (plan 06 §2.4). */
+  report?: ReportSnapshot | undefined;
 }
 
 export interface LanternSnapshot {
@@ -187,6 +192,8 @@ export interface HudSources {
   canWait?: boolean | undefined;
   lantern?: LanternSnapshot | undefined;
   eye?: EyeSnapshot | undefined;
+  wanted?: WantedSnapshot | undefined;
+  report?: ReportSnapshot | undefined;
 }
 
 /** Seconds a refusal chip stays up. */
@@ -284,6 +291,8 @@ export function sampleHud(src: HudSources): HudSnapshot | undefined {
     portName: src.portName,
     lantern: src.lantern,
     eye: src.eye,
+    wanted: src.wanted,
+    report: src.report,
     canWait:
       src.canWait ??
       (!!hz &&

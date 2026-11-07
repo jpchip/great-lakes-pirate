@@ -539,8 +539,8 @@ function rideAnchor(
   }
 }
 
-/** The berth whose (widened) zone holds the ship, nearest first. */
-function berthAt(s: SailingState, c: HazardClass, env: HazardEnv): MooringBerth | undefined {
+/** The berth whose (widened) zone holds the ship, nearest first: where F would dock. */
+export function berthAt(s: SailingState, c: HazardClass, env: HazardEnv): MooringBerth | undefined {
   let best: MooringBerth | undefined;
   let bestD = Number.POSITIVE_INFINITY;
   const reach = c.rules.dockReachM;

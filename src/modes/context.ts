@@ -149,6 +149,24 @@ export interface GameEvents {
   PlayerIdentified: { witness: Witness };
   PlayerLostSight: { witnessId: string };
   LanternChanged: { lit: boolean; reason: 'toggled' | 'outOfOil' };
+  /**
+   * Port law (plan 06 §3.3, §5.2; Phase 5 piece E): a fine or a bribe paid to a harbor
+   * master, and his men's search of the hold on docking at tier 2+ (what they took).
+   */
+  HarborMasterPaid: {
+    port: string;
+    region: string;
+    kind: 'fine' | 'bribe';
+    cents: number;
+    heatFrom: number;
+    heatTo: number;
+  };
+  HoldSearched: {
+    port: string;
+    region: string;
+    tier: number;
+    found: { good: string; qty: number }[];
+  };
 }
 
 /** Everything a mode needs; built once at boot and handed to each mode. */

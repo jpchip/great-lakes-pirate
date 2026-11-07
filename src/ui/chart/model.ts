@@ -78,6 +78,11 @@ export interface ChartHudSnapshot {
   locked: boolean;
   /** The weather, when the chart has the sim behind it (Phase 3 piece E). */
   weather: ChartWeatherHud | undefined;
+  /**
+   * The law's lines on the log card (Phase 5 piece E): Wanted where the ship is, the
+   * report on its way, and the tier-5 warning. Added by the game, not the chart session.
+   */
+  law?: { text: string; danger: boolean }[] | undefined;
 }
 
 /** The chart card's weather lines (plan 04 §5.4, §12). */
