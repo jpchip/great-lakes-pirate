@@ -414,7 +414,10 @@ function seasonalDrafts(defs: RumorsFile, world: RumorWorld, port: string, now: 
     const good = world.economy.goods.get(entry.good);
     if (!good?.seasons.includes(season)) continue;
     const decoys = defs.seasonal.filter(
-      (o) => o.port === entry.port && o.good !== entry.good && !world.economy.goods.get(o.good)?.seasons.includes(season),
+      (o) =>
+        o.port === entry.port &&
+        o.good !== entry.good &&
+        !world.economy.goods.get(o.good)?.seasons.includes(season),
     );
     out.push({
       kind: 'seasonal',

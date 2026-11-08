@@ -1,7 +1,7 @@
 import { performance } from 'node:perf_hooks';
 import { expect, it } from 'vitest';
 import { SECONDS_PER_GAME_DAY, WORLD_TICK_GAME_SECONDS } from '../../src/core/time';
-import { balanceHarnessEconomy, cargoCapacity, gameEconomy } from '../../src/sim/economy/defs';
+import { balanceHarnessEconomy, cargoCapacity } from '../../src/sim/economy/defs';
 import {
   EconomySim,
   holdForSeason,

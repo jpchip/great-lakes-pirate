@@ -185,7 +185,9 @@ describe('Red Cliff seasonal bargain (plan 05 §26.5)', () => {
       realMinutes: 360,
     });
     const profit = run.endNetWorth - run.startNetWorth;
-    expect(profit / (run.realMinutes / 60)).toBeLessThan(RED_CLIFF_PROFIT_CEILING_CENTS_PER_REAL_HOUR);
+    expect(profit / (run.realMinutes / 60)).toBeLessThan(
+      RED_CLIFF_PROFIT_CEILING_CENTS_PER_REAL_HOUR,
+    );
   });
 
   it('reaches a T2 no sooner than the Red Cliff floor from Bayfield on trade alone', () => {

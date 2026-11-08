@@ -137,9 +137,9 @@ describe('what the saloon can tell', () => {
       .filter((d) => d.kind === 'seasonal')
       .map((d) => d.subject);
     expect(fallSubs.some((s) => s.includes('wild_rice'))).toBe(true);
-    expect(rumorDrafts(world(), [], 'port.duluth', SPRING, rng('rc-du')).map((d) => d.kind)).not.toContain(
-      'seasonal',
-    );
+    expect(
+      rumorDrafts(world(), [], 'port.duluth', SPRING, rng('rc-du')).map((d) => d.kind),
+    ).not.toContain('seasonal');
   });
 
   it('tells each Red Cliff seasonal tip once per season, and a false tip names an out-of-season good', () => {
@@ -162,7 +162,9 @@ describe('what the saloon can tell', () => {
       subject: must(maple).subject,
     };
     const again = rumorDrafts(w, [told], 'port.bayfield', SPRING, rng('rc-once2'));
-    expect(again.some((d) => d.kind === 'seasonal' && d.subject.includes('maple_sugar'))).toBe(false);
+    expect(again.some((d) => d.kind === 'seasonal' && d.subject.includes('maple_sugar'))).toBe(
+      false,
+    );
     const lie = must(maple).render(false, rng('rc-lie'));
     expect(lie.subject).toContain('wild_rice');
   });
