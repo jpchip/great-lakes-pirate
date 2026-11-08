@@ -109,8 +109,10 @@ export function gameEconomy(): EconomyDefs {
 export function balanceHarnessEconomy(): EconomyDefs {
   const markets = marketsFileSchema.parse(marketsJson).map((m) => {
     if (m.id !== 'market.red_cliff') return m;
-    const { exportPrice: _p, exportStock: _s, ...rest } = m;
-    return { ...rest, size: 'tiny' as const };
+    const rest = { ...m, size: 'tiny' as const };
+    delete rest.exportPrice;
+    delete rest.exportStock;
+    return rest;
   });
   validateMarkets(markets);
   return compileEconomy(goodsFileSchema.parse(goodsJson), markets);
