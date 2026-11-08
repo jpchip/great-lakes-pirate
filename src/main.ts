@@ -29,7 +29,7 @@ import { RunSaver } from './core/save/run-saver';
 import { AssetLoader, EMPTY_MANIFEST } from './core/assets';
 import { createGameAudio, type GameAudio } from './audio/game-audio';
 import type { SignalStation } from './audio/world-audio';
-import { cloneTransform, createGameWorld } from './gameplay/ecs';
+import { cloneTransform, createGameWorld, type Entity } from './gameplay/ecs';
 import { createSchooner } from './gameplay/schooner';
 import { npcParade } from './gameplay/npc-ships';
 import { attachEconomy } from './gameplay/economy';
@@ -135,7 +135,9 @@ import { attachLawShips } from './gameplay/law-ships';
 import { attachTargets } from './gameplay/targets';
 import { attachCollisions } from './gameplay/collisions';
 import { fameTier } from './sim/law/defs';
-import { daylight01 } from './sim/law/perception';
+import { ambientSightM, daylight01 } from './sim/law/perception';
+import { aimSightM, barrelTilt, type AimWeapon } from './sim/combat/aim';
+import { attachAim } from './gameplay/aim';
 import { attachLawAtSea, isLawShip, PURSUES_FROM_TIER } from './gameplay/law-at-sea';
 import { attachCombat, PLAYER_ID } from './gameplay/combat';
 import { fitRefusal } from './sim/combat/armament';
@@ -159,6 +161,8 @@ const FADE_MS = 650;
 
 /** HUD numbers update at most this often (plan 13 §10). */
 const HUD_INTERVAL_S = 0.1;
+/** The aim HUD and target card refresh this often: the barrel's tilt has to read live. */
+const AIM_HUD_INTERVAL_S = 0.066;
 /** Seconds the tier-5 harbor's "F again to dock" stands (plan 06 §3.2). */
 const TOP_TIER_CONFIRM_S = 6;
 
@@ -1533,8 +1537,66 @@ async function boot(): Promise<void> {
     isLawShip,
     splash: (x, z) => scene?.spray.burst(x, z),
     notice: (text) => showNotice(text),
+    // The sea's roll throws the barrel off its sight (piece B); her steady heel is laid out.
+    barrelTilt: (mount) => {
+      const t = playerShip.transform;
+      return t
+        ? barrelTilt(mount, { roll: t.roll ?? 0, pitch: t.pitch ?? 0, heel: sailing.state.heel })
+        : 0;
+    },
   });
   if (scene) scene.shots.source = () => combat.shots();
+  // Aim mode (Phase 6 piece B): Tab, the arc and splash ring, 1/2/3, C and the left mouse.
+  const shipsOnWater = (): Entity[] =>
+    arena ? arena.ships.map((s) => s.entity) : [...traffic.shown.values()].map((s) => s.entity);
+  const aim = attachAim({
+    ctx,
+    player: playerShip,
+    combat,
+    sightM: () => {
+      const c = detection.conditions;
+      return c ? aimSightM({ ambientM: ambientSightM(c.sky), fogM: c.fogM }) : 2000;
+    },
+    refusal: () =>
+      machine.mode !== 'sailing'
+        ? 'Not at sea'
+        : hazards.state.mooring === 'docked'
+          ? 'Cast off before you work the guns'
+          : undefined,
+    heel: () => sailing.state.heel,
+    ships: shipsOnWater,
+    captains: () => targets.captains(),
+    nameOf: shipNameOf,
+    notice: (text) => showNotice(text),
+  });
+  // The fire button counts only when it went down on the sea, not on a HUD button.
+  let fireOnSea = false;
+  window.addEventListener(
+    'mousedown',
+    (e) => (fireOnSea = !!scene && e.target === renderer?.renderer.domElement),
+    { capture: true },
+  );
+  // Tab is the aim key at the helm: the browser mustn't move focus with it.
+  window.addEventListener('keydown', (e) => {
+    if (input.context !== 'sailing') return;
+    if ((input.bindings.sailing.AimMode ?? []).includes(e.code)) e.preventDefault();
+  });
+  if (scene) {
+    scene.aimSource = () =>
+      aim.active ? { preview: aim.preview(), ready: aim.hud()?.status === 'ready' } : undefined;
+    let lastHit = '';
+    ctx.events.on('WeaponFired', (e) => {
+      scene.combatFx.muzzle({ x: e.at.x, y: e.y ?? 3, z: e.at.z }, e.bearing, e.rounds);
+    });
+    ctx.events.on('ShipHit', (e) => {
+      if (e.weapon === 'dev' || e.weapon === 'boiler' || e.damage <= 0) return;
+      // One ball can take points off two pools: one burst of splinters for it.
+      const key = `${e.at.x.toFixed(2)},${e.at.z.toFixed(2)}`;
+      if (key === lastHit) return;
+      lastHit = key;
+      scene.combatFx.hit(e.at, e.location === 'rigging');
+    });
+  }
   ctx.events.on('ZoneEntered', () => combat.reset());
   ctx.events.on('ArenaEntered', () => combat.reset());
   if (import.meta.env.DEV || params.has('debug')) {
@@ -1579,6 +1641,56 @@ async function boot(): Promise<void> {
       fire: (bearingDeg: number, rangeM: number, ammo = 'ammo.round') =>
         combat.fire({ ammo, bearing: bearingDeg * DEG, rangeM }),
       fireAt: (shipId: string, ammo = 'ammo.round') => combat.fire({ ammo, target: shipId }),
+      /** Aim mode: `aim('swivel')` enters it, `aimAt(x, z)` lays on the water, `aimFire()`. */
+      aim: (weapon?: AimWeapon) => (weapon ? aim.select(weapon) : aim.enter()),
+      standDown: () => aim.exit(),
+      aimAt: (x: number, z: number) => aim.aimAt(x, z),
+      aimAtShip: (shipId: string) => {
+        const p = shipsOnWater().find((e) => e.id === shipId)?.transform?.position;
+        if (p) aim.aimAt(p.x, p.z);
+        return !!p;
+      },
+      aimFire: () => aim.fire(),
+      /** Smoke, splinters and canvas in the air now. */
+      fx: () => scene?.combatFx.live() ?? 0,
+      /** Puts a ship `rangeM` off on a bearing `relDeg` off the bow, lying across it. */
+      place: (shipId: string, relDeg: number, rangeM: number) => {
+        const t = playerShip.transform;
+        const met = arena?.ships.find((s) => s.entity.id === shipId);
+        const e = met?.entity ?? shipsOnWater().find((k) => k.id === shipId);
+        if (!t || !e?.transform) return false;
+        const b = t.heading + relDeg * DEG;
+        const x = t.position.x + Math.sin(b) * rangeM;
+        const z = t.position.z - Math.cos(b) * rangeM;
+        e.transform.position.x = x;
+        e.transform.position.z = z;
+        if (met) {
+          met.steer.x = x;
+          met.steer.z = z;
+        }
+        return true;
+      },
+      /** Where a ship is on the screen, CSS pixels (to put the cursor on her in a test). */
+      screenOf: (shipId: string) => {
+        const p = shipsOnWater().find((e) => e.id === shipId)?.transform?.position;
+        const cam = scene?.camera;
+        const el = renderer?.renderer.domElement;
+        if (!p || !cam || !el) return undefined;
+        const v = new Vector3(p.x, p.y + 2, p.z).project(cam);
+        const r = el.getBoundingClientRect();
+        return { x: r.left + ((v.x + 1) / 2) * r.width, y: r.top + ((1 - v.y) / 2) * r.height };
+      },
+      cycleAmmo: () => aim.cycleAmmo(),
+      aimState: () => ({
+        active: aim.active,
+        weapon: aim.weapon,
+        side: aim.side,
+        ammo: aim.ammo,
+        hud: aim.hud(),
+        card: aim.targetCard(),
+        preview: aim.preview(),
+        steeringLocked: aim.steeringLocked(),
+      }),
       damage: (shipId: string, pool: 'hull' | 'rigging' | 'crew' | 'engine', points: number) =>
         combat.damage(shipId, pool, points),
       explode: (shipId: string) => combat.explode(shipId),
@@ -1853,6 +1965,8 @@ async function boot(): Promise<void> {
     z ? harborLayouts.flatMap((l) => l.piers) : TEST_BAY.docks;
   const docks = zoneDocks(zone);
   let hudClock = HUD_INTERVAL_S;
+  let aimHudClock = 0;
+  let aimHudShown = false;
 
   /** Every berth in the zone; the ones on pier sides the traffic holds are withdrawn. */
   let allBerths: readonly MooringBerth[] = mooringBerths(docks, ctx.terrain);
@@ -1895,6 +2009,7 @@ async function boot(): Promise<void> {
   sailingOptions.targets = targets;
   sailingOptions.collisions = collisions;
   sailingOptions.combat = { step: (dt) => combat.step(dt) };
+  sailingOptions.helmHeld = () => aim.steeringLocked();
   const sailingMode = createSailingMode(ctx, sailingOptions);
   machine.register({ id: 'mainMenu', enter: () => (input.context = 'menu') }).register(sailingMode);
   // A refused F or anchor order says why on the HUD for a few seconds.
@@ -2674,6 +2789,11 @@ async function boot(): Promise<void> {
         const refused = stash.openLie();
         if (refused) showNotice(refused);
       }
+      if (sameContext && machine.mode === 'sailing' && !machine.gameplayPaused && !changingZone) {
+        aim.step(input, fireOnSea);
+      } else if (aim.active && (machine.mode !== 'sailing' || input.context !== 'sailing')) {
+        aim.exit();
+      }
       input.endTick();
     },
     frame(alpha, frameSeconds) {
@@ -2681,6 +2801,27 @@ async function boot(): Promise<void> {
       audio?.update(frameSeconds, machine.mode, machine.hasOverlay('loading'));
       if (audio) audioCuesToDataset(audio);
       ui.setSpyglass(cameraRig?.ship.spyglass ?? false);
+      if (cameraRig) {
+        cameraRig.ship.setAim(aim.camera());
+        cameraRig.setAimCursor(aim.active);
+        if (aim.active) aim.setCursor(cameraRig.cursorRay(), frameSeconds);
+      }
+      if (scene) {
+        const w = sailingOptions.wind(
+          playerShip.transform?.position.x ?? 0,
+          playerShip.transform?.position.z ?? 0,
+        );
+        // Powder smoke drifts downwind, a little slower than the wind itself.
+        const v = w.speedKn * 0.514 * 0.6;
+        scene.fxWind.x = Math.sin(w.fromRad + Math.PI) * v;
+        scene.fxWind.z = -Math.cos(w.fromRad + Math.PI) * v;
+      }
+      aimHudClock += frameSeconds;
+      if (aimHudClock >= AIM_HUD_INTERVAL_S || (!aim.active && aimHudShown)) {
+        aimHudClock = 0;
+        aimHudShown = aim.active;
+        ui.setAim(aim.hud(), aim.targetCard());
+      }
       hudClock += frameSeconds;
       hudSeconds += frameSeconds;
       if (notice && hudSeconds > notice.untilS) {

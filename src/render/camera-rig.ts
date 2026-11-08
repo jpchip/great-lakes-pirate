@@ -24,12 +24,15 @@ export class CameraRig {
   private wasDown = false;
   private toggled = false;
   private readonly look = new THREE.Vector3();
+  private readonly ray = { origin: { x: 0, y: 0, z: 0 }, dir: { x: 0, y: 0, z: -1 } };
+  private readonly element: HTMLElement;
   private readonly detach: () => void;
 
   constructor(
     private readonly camera: THREE.PerspectiveCamera,
     element: HTMLElement,
   ) {
+    this.element = element;
     let lastX = 0;
     let lastY = 0;
     const onDown = (e: PointerEvent): void => {
@@ -68,6 +71,31 @@ export class CameraRig {
       element.removeEventListener('wheel', onWheel);
       element.removeEventListener('contextmenu', onContextMenu);
     };
+  }
+
+  /**
+   * The cursor's ray from the camera as last drawn (zone axes, a unit direction): aim mode
+   * lays the gun where it meets the water (Phase 6 piece B).
+   */
+  cursorRay(): {
+    origin: { x: number; y: number; z: number };
+    dir: { x: number; y: number; z: number };
+  } {
+    this.look.set(this.cursor.x, this.cursor.y, 0.5).unproject(this.camera);
+    this.look.sub(this.camera.position).normalize();
+    const { origin, dir } = this.ray;
+    origin.x = this.camera.position.x;
+    origin.y = this.camera.position.y;
+    origin.z = this.camera.position.z;
+    dir.x = this.look.x;
+    dir.y = this.look.y;
+    dir.z = this.look.z;
+    return this.ray;
+  }
+
+  /** A gunsight cursor over the water while aiming. */
+  setAimCursor(on: boolean): void {
+    this.element.style.cursor = on ? 'crosshair' : '';
   }
 
   dispose(): void {

@@ -2820,3 +2820,208 @@ body[data-mode='chart'] .chart-layer {
   justify-content: center;
   margin-top: 12px;
 }
+
+/* Aim mode (plan 13 §4.1, 07 §3; Phase 6 piece B): bottom middle, above the wind ring's row. */
+.aim-hud {
+  position: absolute;
+  left: 50%;
+  bottom: 16px;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 380px;
+  padding: 8px 12px;
+  color: var(--hud-text);
+  background: var(--enamel);
+  border: 1px solid rgba(184, 137, 46, 0.6);
+  border-radius: 4px;
+  font-size: 13px;
+  pointer-events: none;
+}
+
+.aim-hud-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.aim-hud-title {
+  font-family: var(--serif);
+  font-size: 16px;
+  color: var(--brass-light);
+}
+
+.aim-hud-ammo {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.aim-hud-shot {
+  opacity: 0.45;
+}
+
+.aim-hud-shot.selected {
+  opacity: 1;
+  text-decoration: underline;
+  text-decoration-color: var(--brass);
+  text-underline-offset: 3px;
+}
+
+.aim-hud-status.ready {
+  border-color: var(--lake-teal);
+  color: #d5f2ee;
+}
+
+.aim-hud-range small {
+  opacity: 0.6;
+}
+
+.aim-hud-tilt {
+  margin-left: auto;
+}
+
+.aim-hud-tilt.falling {
+  color: var(--brass-light);
+}
+
+.aim-load {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  opacity: 0.75;
+}
+
+.aim-load.ready {
+  opacity: 1;
+}
+
+.aim-load-ring {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: conic-gradient(var(--brass-light) var(--load), rgba(241, 231, 204, 0.18) 0);
+}
+
+.aim-load.ready .aim-load-ring {
+  background: var(--lake-teal);
+  box-shadow: 0 0 0 1px var(--hud-text);
+}
+
+.aim-hud-keys {
+  display: flex;
+  gap: 12px;
+  font-size: 12px;
+  opacity: 0.8;
+}
+
+.aim-hud-keys .hud-key {
+  margin-left: 0;
+}
+
+.aim-hud-keys .on {
+  color: var(--brass-light);
+}
+
+.aim-hud-keys .off {
+  opacity: 0.4;
+  text-decoration: line-through;
+}
+
+/* The target card (plan 13 §4.5): the ship under the gun, on the right of the helm. */
+.target-card {
+  position: absolute;
+  right: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 230px;
+  padding: 10px 12px;
+  background: var(--paper);
+  color: var(--ink);
+  border: 2px solid var(--brass);
+  border-radius: 4px;
+  font-size: 13px;
+  line-height: 1.35;
+  pointer-events: none;
+}
+
+.target-card-title {
+  margin: 0;
+  font-family: var(--serif);
+  font-size: 17px;
+  font-style: italic;
+}
+
+.target-card-sub {
+  font-size: 12px;
+  opacity: 0.75;
+}
+
+.target-card-phase {
+  margin: 6px 0 4px;
+  font-weight: 600;
+}
+
+.target-card-phase.struck {
+  color: var(--lake-teal);
+}
+
+.target-card-flag {
+  display: inline-block;
+  width: 12px;
+  height: 9px;
+  margin-right: 6px;
+  background: #fbfaf5;
+  border: 1px solid var(--ink);
+}
+
+.target-card-why {
+  margin: 0 0 4px;
+  font-size: 12px;
+  font-style: italic;
+  opacity: 0.8;
+}
+
+.target-card-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 3px 0;
+}
+
+.target-card-track {
+  position: relative;
+  width: 130px;
+  height: 7px;
+  overflow: hidden;
+  background: var(--paper-dark);
+  border-radius: 1px;
+}
+
+.target-card-fill {
+  position: absolute;
+  inset: 0;
+  background: var(--ink);
+  transform-origin: left center;
+}
+
+.target-card-bar.danger .target-card-fill {
+  background: var(--signal-red);
+}
+
+.target-card-crew {
+  margin-top: 6px;
+}
+
+.target-card-dead {
+  color: var(--signal-red);
+  font-weight: 600;
+}
+
+.target-card-tow {
+  font-size: 12px;
+  opacity: 0.8;
+}

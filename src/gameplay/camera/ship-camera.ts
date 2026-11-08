@@ -84,6 +84,27 @@ export interface ShipPose {
   speed01: number;
 }
 
+/**
+ * Aim mode (plan 07 §3; Phase 6 piece B): the camera goes to the gun, at the rail on the
+ * chosen side or behind the bow swivel, and looks out along the gun's line at the water
+ * it commands, steadied against the roll; it holds there while the cursor lays the gun.
+ */
+export interface AimView {
+  /** Where to look, radians off the bow (+ to starboard). */
+  lookRel: number;
+  /** How far the eye stands behind the ship's middle along the look, meters (- is out). */
+  backM: number;
+  /** How far aft of her middle along the keel, meters (- is forward). */
+  aftM: number;
+  /** The eye's height over her waterline, meters. */
+  upM: number;
+  /** How far out on the water the view is centered, meters. */
+  leadM: number;
+}
+
+/** How fast the camera moves onto the aim view and turns with it, 1/s. */
+const AIM_RATE = 4;
+
 export interface ShipCameraOptions {
   autoRecenter: boolean;
   rollWithShip: boolean;
@@ -128,6 +149,13 @@ export class ShipCamera {
   tactical01 = 0;
 
   private spy = false;
+  private aimView: AimView | undefined;
+  /** The last aim view, held while the camera eases back to the chase view. */
+  private lastAim: AimView | undefined;
+  /** 0 in the chase view, 1 on the aim view. */
+  private aim01 = 0;
+  /** The aim view's look, radians from north, eased. */
+  private aimLook = 0;
   private spyYaw = 0;
   private spyPitch = 0;
   private boom: number;
@@ -149,11 +177,30 @@ export class ShipCamera {
     return this.spy;
   }
 
+  get aiming(): boolean {
+    return !!this.aimView;
+  }
+
+  /** 0 in the chase view, 1 fully on the aim view. */
+  get aimBlend(): number {
+    return this.aim01;
+  }
+
+  /** Move onto an aim view, follow a new one, or (undefined) go back to the chase view. */
+  setAim(view: AimView | undefined): void {
+    if (view && !this.aimView && this.aim01 <= 0) this.aimLook = this.yaw;
+    if (!view && this.aimView) this.idle = 0;
+    if (view) this.lastAim = view;
+    this.aimView = view;
+  }
+
   /** Mouse drag in pixels: swings the boom, or pans the spyglass. */
   orbit(dxPixels: number, dyPixels: number): void {
     if (dxPixels === 0 && dyPixels === 0) return;
     const p = this.params;
     const k = p.sensitivity * this.options.sensitivity;
+    // Aim mode holds the view; the cursor lays the gun instead.
+    if (this.aimView && !this.spy) return;
     if (this.spy) {
       // Pan slower the narrower the view, so the cursor tracks what's under it.
       const s = k * (p.spyglassFovDeg / p.fovDeg);
@@ -168,7 +215,7 @@ export class ShipCamera {
 
   /** Wheel notches: positive zooms out toward the tactical view. */
   zoom(notches: number): void {
-    if (notches === 0 || this.spy) return;
+    if (notches === 0 || this.spy || this.aimView) return;
     const p = this.params;
     this.zoomTo = clamp(this.zoomTo * p.zoomFactor ** notches, p.minDistance, p.maxDistance);
     this.idle = 0;
@@ -226,7 +273,16 @@ export class ShipCamera {
     if (this.pitch < floor) this.pitch += (floor - this.pitch) * (1 - Math.exp(-dt * 4));
 
     this.idle += dt;
-    if (this.options.autoRecenter && !this.spy && this.idle > p.recenterDelayS) {
+    const aim = this.aimView;
+    const ka = 1 - Math.exp(-dt * AIM_RATE);
+    this.aim01 += ((aim ? 1 : 0) - this.aim01) * ka;
+    if (!aim && this.aim01 < 1e-3) this.aim01 = 0;
+    if (aim) {
+      this.aimLook = wrapPi(this.aimLook + wrapPi(ship.heading + aim.lookRel - this.aimLook) * ka);
+      // The chase boom swings round behind the look, to come back from there.
+      this.yaw = this.aimLook;
+      this.idle = 0;
+    } else if (this.options.autoRecenter && !this.spy && this.idle > p.recenterDelayS) {
       const off = wrapPi(ship.heading - this.yaw);
       this.yaw = wrapPi(this.yaw + off * (1 - Math.exp(-dt * p.recenterRate)));
     }
@@ -263,9 +319,28 @@ export class ShipCamera {
     this.position.z = this.target.z + bz * this.boom;
     const floorY = surface(this.position.x, this.position.z) + p.clearance;
     if (this.position.y < floorY) this.position.y = floorY;
+    if (this.aim01 > 0 && this.lastAim) this.blendAim(ship, this.lastAim, surface);
 
     this.fovDeg = p.fovDeg - p.speedFovDropDeg * clamp(ship.speed01, 0, 1) * (1 - this.tactical01);
     this.roll = this.options.rollWithShip ? ship.roll : 0;
+  }
+
+  /** Moves the camera `aim01` of the way from the chase view onto the aim view. */
+  private blendAim(ship: ShipPose, aim: AimView, surface: SurfaceSampler): void {
+    const lx = Math.sin(this.aimLook);
+    const lz = -Math.cos(this.aimLook);
+    const k = this.aim01;
+    const fx = Math.sin(ship.heading);
+    const fz = -Math.cos(ship.heading);
+    const ex = ship.position.x - lx * aim.backM - fx * aim.aftM;
+    const ez = ship.position.z - lz * aim.backM - fz * aim.aftM;
+    const ey = Math.max(ship.position.y + aim.upM, surface(ex, ez) + this.params.clearance);
+    this.position.x += (ex - this.position.x) * k;
+    this.position.y += (ey - this.position.y) * k;
+    this.position.z += (ez - this.position.z) * k;
+    this.target.x += (ship.position.x + lx * aim.leadM - this.target.x) * k;
+    this.target.y += (0 - this.target.y) * k;
+    this.target.z += (ship.position.z + lz * aim.leadM - this.target.z) * k;
   }
 
   private minPitch(): number {

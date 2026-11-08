@@ -10,6 +10,8 @@ import { SettingsMenu } from './settings/SettingsMenu';
 import { settingsControls, type AudioVolumes } from './settings/controls';
 import { LoadingScreen } from './loading/LoadingScreen';
 import { ShipCardView } from './hud/ShipCardView';
+import { AimHud, TargetCardView } from './hud/AimHud';
+import type { AimHudSnapshot, TargetCardSnapshot } from '../gameplay/aim';
 import type { ShipCard } from './hud/ship-card';
 import { ChartHud, type ChartHudActions } from './chart/ChartHud';
 import type { ChartHudSnapshot } from './chart/model';
@@ -77,6 +79,8 @@ export interface GameUi {
   /** The chart HUD; undefined hides it. */
   setChart(snapshot: ChartHudSnapshot | undefined): void;
   setSpyglass(on: boolean): void;
+  /** Aim mode's HUD and the target card (Phase 6 piece B); undefined hides them. */
+  setAim(hud: AimHudSnapshot | undefined, card: TargetCardSnapshot | undefined): void;
   /** Captions for directional sounds (plan 15 §5), newest first. */
   setCaptions(captions: readonly CaptionView[]): void;
   /** The "look her over" / hail card (Phase 4 piece D); undefined hides it. */
@@ -152,6 +156,8 @@ export function mountGameUi({
   const hud = signal<HudSnapshot | undefined>(undefined);
   const chart = signal<ChartHudSnapshot | undefined>(undefined);
   const spyglass = signal(false);
+  const aimHud = signal<AimHudSnapshot | undefined>(undefined);
+  const targetCard = signal<TargetCardSnapshot | undefined>(undefined);
   const captions = signal<readonly CaptionView[]>([]);
   const shipCard = signal<ShipCard | undefined>(undefined);
   const menuOpen = signal(false);
@@ -242,6 +248,8 @@ export function mountGameUi({
         />
         {!menuOpen.value && !port.value && !journal.value && <Captions captions={captions} />}
         {!menuOpen.value && <ShipCardView card={shipCard} />}
+        {!menuOpen.value && <AimHud aim={aimHud} />}
+        {!menuOpen.value && <TargetCardView card={targetCard} />}
         {chartActions && <ChartHud chart={chart} actions={{ ...chartActions, toggleSailOn }} />}
         {port.value && portActions && !menuOpen.value && (
           <PortScreen
@@ -341,6 +349,10 @@ export function mountGameUi({
     },
     setChart(snapshot) {
       chart.value = snapshot;
+    },
+    setAim(hud, card) {
+      aimHud.value = hud;
+      targetCard.value = card;
     },
     setSpyglass(on) {
       spyglass.value = on;

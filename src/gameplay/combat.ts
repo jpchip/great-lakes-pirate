@@ -7,7 +7,7 @@ import { createHelm, steerShips, type SteeredShip, type Traffic } from '../sim/a
 import {
   chargesAvailable,
   inArc,
-  layRounds,
+  layRound,
   mountFor,
   muzzlesLocal,
   reachM,
@@ -66,6 +66,9 @@ import type { ShipHazards } from './hazards';
 
 export const PLAYER_ID = 'ship.player';
 
+/** Seconds between the guns of a crew's rippled broadside (plan 07 §3). */
+export const RIPPLE_S = 0.22;
+
 /** Why a gun didn't fire. */
 export type FireRefusal =
   | 'unarmed'
@@ -91,6 +94,8 @@ export interface FireOrder {
   bearing?: number;
   rangeM?: number;
   elevation?: number;
+  /** A crew ripples a broadside by default; false fires every gun at once. */
+  ripple?: boolean;
 }
 
 export interface CombatDeps {
@@ -112,6 +117,11 @@ export interface CombatDeps {
   /** A ball falling in the sea, scene meters (the spray's column). */
   splash?(x: number, z: number): void;
   notice?(text: string): void;
+  /**
+   * How the player's ship's motion throws a mount's barrel off its sight now, radians of
+   * elevation (piece B: the roll, so firing on the downroll is the skill). 0 if absent.
+   */
+  barrelTilt?(mount: Mount): number;
   defs?: CombatDefs;
 }
 
@@ -145,6 +155,17 @@ export interface GameCombat {
     elevation: number,
     mount?: Mount,
   ): FireResult;
+  /** Where a mount's (first) gun stands now, world meters; undefined off the water. */
+  muzzle(mount: Mount): { x: number; y: number; z: number } | undefined;
+  /** The player's way over the ground, m/s: every shot she fires carries it. */
+  playerVelocity(): { x: number; z: number };
+  /** Whether the player's guns are crewed (a T2 or bigger) and laid with the Ex-Navy's eye. */
+  crewed(): boolean;
+  gunnery(): boolean;
+  /** Guns of a rippled broadside still to go off (piece B). */
+  volleysPending(): number;
+  /** A ship's damage if she's been touched, without starting it. */
+  peek(id: string): ShipDamage | undefined;
   /** Seconds until each of the player's mounts is loaded again (0 is ready). */
   reloads(): Partial<Record<Mount, number>>;
   /** Charges ready to burn: loose ones and kegs in the hold. */
@@ -520,11 +541,16 @@ export function attachCombat(deps: CombatDeps): GameCombat {
     }
   };
 
-  /** Fires `guns` from `shooter`; the checks are done. */
+  /**
+   * Fires guns `from`… of the `guns` on one mount of `shooter`; the checks are done. Each
+   * is laid at the bearing and the sight's elevation plus her barrel's tilt this moment.
+   */
   const loose = (
     shooter: Entity,
     shooterId: string,
     guns: readonly MountedWeapon[],
+    from: number,
+    count: number,
     ammo: string,
     bearing: number,
     elevation: number,
@@ -533,35 +559,68 @@ export function attachCombat(deps: CombatDeps): GameCombat {
     const cls = classOf(shooter);
     const shape = cls && shapeOf(cls);
     const pose = poseOf(shooter);
-    const first = guns[0];
+    const first = guns[from];
     if (!shape || !pose || !first) return 0;
-    const rounds = layRounds(
-      defs,
-      guns,
-      shape,
-      pose,
-      shipVelocity(shooter),
-      bearing,
-      elevation,
-      ammo,
-      ctx.rng,
-      gunnerySkill,
-    );
-    for (const r of rounds) {
+    const muzzles = muzzlesLocal(shape, first.mount, guns.length);
+    const tilt = shooter === player ? (deps.barrelTilt?.(first.mount) ?? 0) : 0;
+    const vel = shipVelocity(shooter);
+    let fired = 0;
+    for (let i = from; i < Math.min(guns.length, from + count); i++) {
+      const g = guns[i];
+      if (!g) continue;
+      const r = layRound(
+        defs,
+        g,
+        muzzles[i] ?? muzzles[0] ?? { x: 0, y: 2, z: 0 },
+        pose,
+        vel,
+        bearing,
+        elevation + tilt,
+        ammo,
+        ctx.rng,
+        gunnerySkill,
+      );
       field.add({ shooter: shooterId, weapon: r.weapon, ammo: r.ammo, pos: r.pos, vel: r.vel });
+      fired++;
     }
-    const muzzle = toWorld(muzzlesLocal(shape, first.mount, 1)[0] ?? { x: 0, y: 2, z: 0 }, pose);
+    const muzzle = toWorld(muzzles[from] ?? muzzles[0] ?? { x: 0, y: 2, z: 0 }, pose);
     ctx.events.emit('WeaponFired', {
       by: shooterId,
       weapon: first.weapon,
       ammo,
       mount: first.mount,
-      rounds: rounds.length,
+      rounds: fired,
       warning: ammoDef(defs, ammo).warning,
       at: { x: muzzle.x, z: muzzle.z },
+      y: muzzle.y,
       bearing,
     });
-    return rounds.length;
+    return fired;
+  };
+
+  /** A crew's broadside goes off gun by gun (§3: a slight ripple), each on its own roll. */
+  interface Volley {
+    guns: readonly MountedWeapon[];
+    next: number;
+    ammo: string;
+    bearing: number;
+    elevation: number;
+    gunnery: boolean;
+    waitS: number;
+  }
+  const volleys: Volley[] = [];
+  const stepVolleys = (dt: number): void => {
+    for (let i = volleys.length - 1; i >= 0; i--) {
+      const v = volleys[i];
+      if (!v) continue;
+      v.waitS -= dt;
+      while (v.waitS <= 0 && v.next < v.guns.length) {
+        loose(player, PLAYER_ID, v.guns, v.next, 1, v.ammo, v.bearing, v.elevation, v.gunnery);
+        v.next++;
+        v.waitS += RIPPLE_S;
+      }
+      if (v.next >= v.guns.length) volleys.splice(i, 1);
+    }
   };
 
   const timers = (id: string): Partial<Record<Mount, number>> => {
@@ -585,6 +644,7 @@ export function attachCombat(deps: CombatDeps): GameCombat {
         for (const m of Object.keys(t) as Mount[]) t[m] = Math.max(0, (t[m] ?? 0) - dt);
       }
       steerHeld(dt);
+      stepVolleys(dt);
       for (const end of field.step(dt, targets(), seaLevel)) land(end);
       stepDamaged(dt);
     },
@@ -652,9 +712,32 @@ export function attachCombat(deps: CombatDeps): GameCombat {
       if (!spendCharges(defs, ctx.state.player.cargo, ammoState, charges)) {
         return { ok: false, reason: 'noPowder' };
       }
-      const rounds = loose(player, PLAYER_ID, guns, order.ammo, bearing, elevation, gunnery());
-      timers(PLAYER_ID)[mount] = reloadSeconds(w, crewed(), gunnery());
-      return { ok: true, mount, rounds, bearing, elevation };
+      const skill = gunnery();
+      const ripple = crewed() && guns.length > 1 && order.ripple !== false;
+      loose(
+        player,
+        PLAYER_ID,
+        guns,
+        0,
+        ripple ? 1 : guns.length,
+        order.ammo,
+        bearing,
+        elevation,
+        skill,
+      );
+      if (ripple) {
+        volleys.push({
+          guns,
+          next: 1,
+          ammo: order.ammo,
+          bearing,
+          elevation,
+          gunnery: skill,
+          waitS: RIPPLE_S,
+        });
+      }
+      timers(PLAYER_ID)[mount] = reloadSeconds(w, crewed(), skill);
+      return { ok: true, mount, rounds: guns.length, bearing, elevation };
     },
 
     fireFrom(shooter, weaponId, ammoId, bearing, elevation, mount = 'bow') {
@@ -669,6 +752,8 @@ export function attachCombat(deps: CombatDeps): GameCombat {
         shooter,
         id,
         [{ weapon: weaponId, mount }],
+        0,
+        1,
         ammoId,
         bearing,
         elevation,
@@ -676,6 +761,39 @@ export function attachCombat(deps: CombatDeps): GameCombat {
       );
       timers(id)[mount] = w.reloadCrewedS;
       return { ok: true, mount, rounds, bearing, elevation };
+    },
+
+    muzzle(mount) {
+      const shape = shapeOf(playerClass());
+      const pose = poseOf(player);
+      if (!shape || !pose) return undefined;
+      const guns = (ctx.state.player.ship?.weapons ?? []).filter((w) => w.mount === mount).length;
+      const local = muzzlesLocal(shape, mount, Math.max(1, guns));
+      // A broadside's guns spread along her side: lay from the middle of them.
+      const mid = local.reduce(
+        (a, p) => ({
+          x: a.x + p.x / local.length,
+          y: a.y + p.y / local.length,
+          z: a.z + p.z / local.length,
+        }),
+        { x: 0, y: 0, z: 0 },
+      );
+      return toWorld(mid, pose);
+    },
+
+    playerVelocity() {
+      return shipVelocity(player);
+    },
+
+    crewed,
+    gunnery,
+
+    volleysPending() {
+      return volleys.reduce((n, v) => n + v.guns.length - v.next, 0);
+    },
+
+    peek(id) {
+      return findShip(id)?.damage;
     },
 
     reloads() {
@@ -750,6 +868,7 @@ export function attachCombat(deps: CombatDeps): GameCombat {
 
     reset() {
       field.clear();
+      volleys.length = 0;
       held.clear();
       baseKn.clear();
       lastShooter.clear();
