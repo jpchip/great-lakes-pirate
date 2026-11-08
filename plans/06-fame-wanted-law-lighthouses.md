@@ -1,6 +1,6 @@
 # 06 — Fame, Wanted, Law Enforcement & Lighthouses
 
-Status: DRAFT v1.1 (decisions made; gap review applied; Phase 5 built, pieces A–H, and checked in the container for 0.5.0)
+Status: DRAFT v1.2 (decisions made; gap review applied; Phase 5 built, pieces A–H, and checked in the container for 0.5.0)
 Parent: [00-master-plan.md](00-master-plan.md)
 Inputs: master plan decisions (separate Fame/Wanted, regional Wanted, execution only at the top tier, jail/bail/jailbreak, Fame fades, sparse patrols), [R1 §2.1–2.2](R1-western-superior-1900-research.md) (lights, the *Morrill*), [R1a](R1a-western-superior-gazetteer.md) (regions), [02](02-arcade-sailing.md) (dark running, shallows), [03](03-world-scale-chart-travel.md) (no chart escape), [04](04-water-weather-seasons.md) (visibility, moon, storms), [05](05-ports-economy-trading.md) (hot goods, grudges, Standing)
 Feeds: 07 (lethality, surrender), 08 (docks guards, perception), 11 (lighthouse raids), 12 (capture, jail, execution, newspapers), 13 (HUD indicators)
@@ -525,7 +525,7 @@ Typecheck, lint, Prettier, 1,256 unit tests (one skipped) and 36 e2e tests pass 
 | 2 | A keeper's report with the eye and timer; intercepting it prevents the heat | `tests/law.test.ts` (the heat lands only with the report; `interceptReport` stops it). In the game, the same deal on the first night's full moon (`?day=0&hour=23`) with the lantern lit is seen by the **Michigan Island** keeper (by the lantern only, so "someone": the region's alert rises, no heat) and a passing fish tug's crew ("a schooner", which carries heat); the keeper's report is due about 9.5 game hours later, after dawn. **Two gaps:** Oak Island stands between the anchorage and Raspberry light, so Raspberry's keeper never sees the deal (§14.2's story assumed he would); and nothing in the game lets you overtake a report (no keeper's boat to catch), only the dev panel's Intercept | Jared: is Michigan Island's keeper enough, and does the interception wait for Phase 7's boats? |
 | 3 | Fleeing escapes petty heat, not the heaviest | `tests/law.test.ts` (contract theft spreads to the neighbors). Pass | — |
 | 4 | Running dark on a moonless night is noticeably safer | `npm run bench:detection`: the Raspberry keeper makes out a dark T1 at **430 m** on a new moon and a lit one at **3,723 m** under a full moon (8.7×), and never spots her dark on the new moon from 1 km. Under a full moon dark she's 2.9 km; overcast 0.8 km; fog caps everything at the fog's range. In the game at Oak Island, lit on the full moon three watchers spot her within 25 s, dark on the new moon none. Pass | By eye at night |
-| 5 | The cutter can't follow into shallows; the T1 beats her on a broad reach in good wind | `tests/morrill.test.ts` (stands off the shallows, holds fire, gives up after 50 s) and `tests/sailing.test.ts` (12.4 kn against her 12). **The arena chase** (`?encounter=cutter&cutter=hunt`, 20 kn from the north, T1 at Full on a broad reach away from her): by day the T1 makes 19.0 arena m/s to her 18.5, so she holds her own at about 380 m, then her rounds into the rigging slow the T1 from 50 s and the arena's edge (held while pursued) stops her at 90 s; she's alongside at 100. At night, overcast and running dark, her lookout loses the T1 within 10 s, she searches 60 s and gives up, and the T1 sails off the edge. **So by day in open water there's no outrunning her**: the margin is about 3%, she shoots the rigging inside 800 m, and the 1.5 km edge holds you (02 §10.2 warned of this for piece C). Darkness, fog, islands and shallows are the ways out | Jared, criterion 14: is that the chase you want, or should a clean run on a broad reach be able to win? |
+| 5 | The cutter can't follow into shallows; the T1 beats her on a broad reach in good wind | `tests/morrill.test.ts` (stands off the shallows, holds fire, gives up after 50 s) and `tests/sailing.test.ts` (12.4 kn against her 12). **The arena chase** (`?encounter=cutter&cutter=hunt`, 20 kn from the north, T1 at Full on a broad reach away from her): by day the T1 makes 19.0 arena m/s to her 18.5, so she holds her own at about 380 m, then her rounds into the rigging slow the T1 from 50 s and the arena's edge (held while pursued) stops her at 90 s; she's alongside at 100. At night, overcast and running dark, her lookout loses the T1 within 10 s, she searches 60 s and gives up, and the T1 sails off the edge. **So by day in open water there's no outrunning her**: the margin is about 3%, she shoots the rigging inside 800 m, and the 1.5 km edge holds you (02 §10.2 warned of this for piece C). Darkness, fog, islands and shallows are the ways out. **Changed after Jared's call (§14.14.3 item 3):** see §14.14.5 | The chase by hand, with manual trim |
 | 6 | The tier-5 state is unmistakable | `e2e/papers.spec.ts` (the full-screen WANTED: DEAD OR ALIVE page), `tests/port-law.test.ts` (the HUD chip's MOST WANTED, the harbor master's refusal, a Most Wanted harbor known). The chart's MOST WANTED mark and the confirm before docking have no test. Pass in part | The chart mark and the docking confirm by eye |
 | 7 | No inspection at tier 0; at tier 1+ contraband found by the odds | `tests/morrill.test.ts` (never bothers a clean captain; tier 1 inspects once hove to; the hidden compartment's 0.45). Pass | The route by hand |
 | 8 | Captured below and at tier 5 | `e2e/capture.spec.ts`: below tier 5 cargo and cash taken, the sentence served, the ship back at Bayfield; bail from the Stockton strongbox; tier 5 to the gallows and the end screen with the run gone. Pass | The look of the end screen (Jared) |
@@ -578,16 +578,31 @@ Start a **New run as a Poacher**: Bayfield, $100, and she already knows where th
 
 1. **Does bail clear heat?** Now only time served brings a region down to tier 1; bail gets you out early with your heat as it was (§14.9's smaller call). Recommended: keep it, so bail costs money and time served costs time, and bailing out at tier 3 sends you out still Hunted.
 2. **Does the end screen look right?** Screenshots in the project files (`capture-jail/4-end-screen.png`).
-3. **The daylight chase** (criterion 5 above). Recommended: let the arena's edge open while you're pursued and gaining on her, so a clean broad reach in a strong breeze can win by day, and keep her rigging fire as the cost of being caught inside 800 m.
+3. ~~**The daylight chase** (criterion 5 above).~~ **Decided 2026-11-08: open the edge while you're gaining** (§14.14.5).
 4. **Raspberry light and the anchorage** (criterion 2 above): leave the smuggler where she is (Michigan Island's keeper sees her instead), or move her anchorage to where Raspberry's keeper looks on.
 
 #### 14.14.4 Results
 
 Pending Jared's playtest.
 
+#### 14.14.5 The edge opens while you pull away (2026-11-08)
+
+Jared's call on decision 3: a clean broad reach should be able to outrun the cutter by day. While pursued, the arena's edge now lets you go once you've been opening the range on the nearest hunter for 4 s (faster than 0.2 arena m/s, so a sea's yaw doesn't count); she closes again and it holds again (`OPENING_HOLD_S` in `src/sim/arena/arena.ts`, `holdBounds` in `gameplay/arena.ts`). The HUD says "Pulling away: sail on for the chart" near the edge. Leaving ends the arena as `left`, the pursuit ends, and the papers' escape story follows an hour later as before. Unit tested in `tests/arena-game.test.ts`.
+
+The same chase again (20 kn, auto-trim, broad reach, the cutter dead astern):
+
+| Start | What happened |
+|---|---|
+| 950 m, outside her gun | The range opens at about 0.4 m/s (19.0 against 18.5 arena m/s); she hails but never gets in range, the edge opens and the T1 sails off it at 65 s. Escaped |
+| 600 m, inside her gun | The range opens a little for 20 s, then her rounds into the rigging from 40 s slow the T1 below her speed; at the edge she's closing and it holds. Caught at 100 s |
+| 520 m (a forced meeting's start) | As before: caught at 100 s |
+
+So by day the T1 on auto-trim outruns her only from outside 800 m; once she's firing, a 3% margin can't carry the rigging damage. Trimming by hand in the sweet spot (13.5 kn against her 12, 02 §10.2) should get away from closer in, and the playtest should try it. If that's still too hard, the forced meeting could start outside her gun (it starts at 520 m), or her fire could wait for a second warning: both are Jared's to call after playing it.
+
 ---
 
 ## Changelog
+- v1.2: The arena's edge opens while you pull away from the cutter (§14.14.5, Jared's decision).
 - v1.1: Phase 5 piece I (§14.14): the exit criteria checked in the container, the laptop route, and four decisions for Jared (bail and heat, the end screen, the daylight chase, Raspberry light and the anchorage).
 - v1.0: Phase 5 piece F built (§14.12): the four papers, headlines from events printed a few days late, Fame from the printing, the extra heat, Respectable Captain feats, the WANTED column, cutter sightings, the weather outlook, port storm signals and the tier-5 front page.
 - v0.10: Phase 5 piece H built (§14.13): Wanted stingers, the cutter's whistle, engine, bell and gun, the lockup's door.

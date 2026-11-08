@@ -7,6 +7,7 @@ import {
   SQUALL_RIDE_S,
   arenaStatus,
   createArenaRun,
+  OPENING_HOLD_S,
   layoutArena,
   stepArenaRun,
   type ArenaInputs,
@@ -382,6 +383,32 @@ describe('arena rules', () => {
     const c = createArenaRun(devEncounter('cutter', devAt, 0, true));
     stepArenaRun(c, inputs(0, 0, [{ ...hunter, z: 20 }]), 0.1);
     expect(c.result).toBe('caught');
+  });
+
+  it('lets a ship that keeps pulling away from the cutter off the edge', () => {
+    const r = createArenaRun(devEncounter('cutter', devAt, 0, true));
+    const law = { locked: true, captured: false };
+    const at = (playerZ: number, hunterZ: number): ArenaInputs => ({
+      ...inputs(0, playerZ, [{ id: 'dev.cutter', x: 0, z: hunterZ, hunting: true }]),
+      law,
+    });
+    // Neck and neck: the edge holds.
+    for (let t = 0; t < 10; t += 0.5) stepArenaRun(r, at(-1400 - t, -900 - t), 0.5);
+    expect(r.edgeOpen).toBe(false);
+    stepArenaRun(r, at(-ARENA_HALF_M - 2, -1000), 0.5);
+    expect(r.result).toBeUndefined();
+    // Pulling away for a few seconds: it opens, and sailing off it leaves the arena.
+    const g = createArenaRun(devEncounter('cutter', devAt, 0, true));
+    for (let t = 0; t <= OPENING_HOLD_S; t += 0.5) stepArenaRun(g, at(-1400 - t, -900 + t), 0.5);
+    expect(g.edgeOpen).toBe(true);
+    expect(arenaStatus(g, at(-1450, -890))).toContain('Pulling away: sail on for the chart');
+    stepArenaRun(g, at(-ARENA_HALF_M - 2, -880), 0.5);
+    expect(g.result).toBe('left');
+    // She closes again before you reach it: it holds once more.
+    const c = createArenaRun(devEncounter('cutter', devAt, 0, true));
+    for (let t = 0; t <= OPENING_HOLD_S; t += 0.5) stepArenaRun(c, at(-1400, -900 + t), 0.5);
+    stepArenaRun(c, at(-1400, -1000), 0.5);
+    expect(c.edgeOpen).toBe(false);
   });
 
   it('a squall is ridden out', () => {
