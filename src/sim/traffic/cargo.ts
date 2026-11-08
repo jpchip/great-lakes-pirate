@@ -86,6 +86,11 @@ const CREW: Readonly<Record<string, number>> = {
   'ship.cutter_morrill': 40,
 };
 
+/** Her crew, hands (piece C may move these numbers into ships.json). */
+export function crewFor(classId: string): number {
+  return CREW[classId] ?? 6;
+}
+
 export interface ManifestLine {
   good: string;
   qty: number;
@@ -199,7 +204,7 @@ export function manifestFor(
     toPort: defs.portOf.get(to),
     cargo,
     valueCents,
-    crew: CREW[c.classId] ?? 6,
+    crew: crewFor(c.classId),
     armed: c.classId === 'ship.cutter_morrill',
     cycle,
     outbound,
@@ -250,7 +255,7 @@ function patrolManifest(defs: TrafficDefs, c: Contact): Manifest | undefined {
     toPort: defs.portOf.get(to),
     cargo: [],
     valueCents: 0,
-    crew: CREW[c.classId] ?? 6,
+    crew: crewFor(c.classId),
     armed: true,
     cycle: 0,
     outbound: leg.toM >= leg.fromM,
