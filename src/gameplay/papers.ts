@@ -456,7 +456,7 @@ export function attachPapers(opts: PapersOptions): GamePapers {
     },
     signal: (port) => portStormSignal(ctx.state.environment.weather, geo, port, now()),
     signals() {
-      // The chart asks every frame; the signals change by the world tick at most.
+      // The signals change by the world tick at most.
       const tick = Math.floor(now() / 600);
       if (signalCache?.tick !== tick) {
         signalCache = { tick, ports: stormSignalPorts(ctx.state.environment.weather, geo, now()) };

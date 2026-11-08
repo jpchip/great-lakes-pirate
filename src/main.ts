@@ -2210,19 +2210,6 @@ async function boot(): Promise<void> {
             },
           ]
         : []),
-      // Ports flying the storm signal (piece F).
-      ...papers.signals().flatMap((id) => {
-        const port = westernSuperiorChart().ports.find((p) => p.id === id);
-        return port
-          ? [
-              {
-                at: westernSuperiorChart().projection.chartToGeo(port.pos),
-                label: 'Storm signal',
-                kind: 'storm' as const,
-              },
-            ]
-          : [];
-      }),
       // Where the law wants you (piece E), at each region's middle.
       ...portLaw.marks().flatMap((m) => {
         const at = law.defs.regionById.get(m.region)?.anchor;
