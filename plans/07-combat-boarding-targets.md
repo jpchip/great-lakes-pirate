@@ -264,7 +264,7 @@ Phase 6 is the **Piracy & Combat** build (version 0.6.0), with one goal from the
 
 The scope comes from §11 above, the Phase 6 rows in plans 10 §13 (weapons and weapon mods, the shady shipwright; the hidden compartment already shipped in 0.5.0), 13 (aim HUD, target info, boarding panel, looting, aftermath), 15 (combat sounds, the boiler explosion, the chase layer) and 05 §6.2 (fences), plus what Phases 3–5 left for it (03 §25's "close and look until Phase 6", 05 §16.5's dev command for hot goods, 06 §14.5's cutter that only shoots rigging, 06 §14.3 criterion 3's stand-in for sinking).
 
-This section is the scope proposal. Like Phases 4 and 5, its exit criteria (§14.3) become the phase's acceptance checklist once Jared approves them, and the playtest piece checks them.
+This section is the phase's scope, approved by Jared on 2026-11-08 with the calls in §14.6. Its exit criteria (§14.3) are the phase's acceptance checklist, and the playtest piece checks them.
 
 ### 14.1 What Phases 3–5 change or put at risk
 
@@ -339,7 +339,7 @@ Eight pieces, each sized to be one thread. Three can start at once (A, C and E).
 | B | Aiming and firing | Tab into aim mode with the camera on the chosen side or the bow; the dotted arc and splash ring, shortened by light and fog; 1/2/3 to cycle; LMB fires one swivel shot or a rippled broadside; the T1's rudder holds while aiming; heel and roll move the barrel so firing on the downroll is the skill; reload timers. Muzzle smoke, splashes, splinters and torn canvas. The aim HUD and the target card | A | Aim feel |
 | C | Targets and morale | Combat stats per class in `ships.json` (crew, armament, base morale, flee preference, loot hooks) for the fish tug, schooner-barge, package steamer and ore freighter. The morale meter (§5.1) with Fame, warning shots, damage, casualties, being outgunned, aground or becalmed, night and fog surprise, the cutter or a port near. The `Transit → Alert → Flee / Fight / Surrender` FSM in zones and arenas, built on the steering of `src/sim/arena/steering.ts`; a struck ship heaves to with a white flag. Tow lines: a barge behind her steamer, parted by a hit on the cable. Collisions that block and bounce for every hull. Pure sim first, so it unit-tests and can start before A's damage lands | — (A's damage interface) | — |
 | D | Boarding, looting and aftermath | F to grapple alongside under 2 kn. The T1 solo rule with its reason shown. The boarding panel (§6.2) with strength against defense, Intimidate, Fight, Withdraw, the odds and the death chance shown first; a lost Fight is repelled with damage, or death at bad odds (permadeath, through Phase 5's end screen). The looting screen on the port screen's market pattern: her manifest against your hold, valuables first, a quick grab, game time per step. Hot goods with the owning company's marks. The four aftermath choices with the weather check for the boat. `ShipSurrendered`, `BoardingAttempted/Succeeded/Repelled`, `ShipLooted`, `CrewSetAdrift`, `ShipScuttled`. Robbed and sunk ships recorded in the traffic slice so the timetable doesn't bring them back that week | A, C | Panel look |
-| E | Fences and the gun trade | Fences by decision 1, with weekly cash, preferences (Bayfield wants fish and furs, Duluth takes anything), rates by Fame, trust and heat, and the informant risk at tier 2+ on Phase 5's rules. The shady shipwright in the same place: the bow swivel, light cannon (T2 broadside), the rifle, weapon mods and hidden gun ports, Fame-gated as 10 §6 says; installs on 10's slot system. Powder and shot at the chandlery. Weapons move with you on a trade-in as 10 §3 says | — (A's `weapons.json` for prices; stubbed until it lands) | Prices |
+| E | Fences and the gun trade | Fences by decision 1 (the back room on the port screen at night; `smuggler.json` made to hold more than one boat for the Siskiwit Bay smuggler, §14.6.1), with weekly cash, preferences (Bayfield wants fish and furs, Duluth takes anything), rates by Fame, trust and heat, and the informant risk at tier 2+ on Phase 5's rules. The shady shipwright in the same place: the bow swivel, light cannon (T2 broadside), the rifle, weapon mods and hidden gun ports, Fame-gated as 10 §6 says; installs on 10's slot system. Powder and shot at the chandlery. Weapons move with you on a trade-in as 10 §3 says | — (A's `weapons.json` for prices; stubbed until it lands) | Prices |
 | F | The law and the world answer | The new crimes in `crimes.json` and their heat. The robbed crew as witnesses, their report delayed by the aftermath choice; gunfire as a loud event that alerts observers in range; passengers none yet. Sinking as the crime that spreads, retiring contract theft as the stand-in. The *Morrill* on A's ballistics; fired on, she goes to Most Wanted and round shot. Your ship sinking by decision 2. Wrecks: a world object, a chart mark and a ledger line. Company grudges and Standing for robbing their ships. Papers: piracy headlines and Fame | A, D | — |
 | G | Combat audio | Swivel, cannon and rifle, the round in flight, landing in water, wood or canvas, the boiler, the grapple and the boarding vignette, the crew's shouts when she strikes, and a chase layer for the music (plan 15 §11). Every file in `CREDITS.md` | B, D | Listen by ear |
 | H | Phase 6 playtest | The §14.3 scenarios, the benches, plans updated, tag 0.6.0 | All | Playtest, sign-off |
@@ -356,17 +356,21 @@ Eight pieces, each sized to be one thread. Three can start at once (A, C and E).
 
 ### 14.6 Decisions for Jared
 
-1. **Where do you sell stolen goods before the docks districts exist?** Plan 05 puts fences in saloon back rooms at night, which is Phase 7's on-foot district.
+1. **Where do you sell stolen goods before the docks districts exist?** **Decided 2026-11-08: a back-room tab on the port screen at night, and a second smuggler ship in Siskiwit Bay once that zone is built** (Jared). Plan 05 puts fences in saloon back rooms at night, which is Phase 7's on-foot district.
    - **A back-room tab on the port screen at night (recommended):** after dark, Bayfield's saloon has a back room with a fence and the shady shipwright, Duluth's opens at Known Fame. Phase 7 replaces the tab with the walkable room and keeps the same fence data.
    - **More smugglers at sea:** add a second smuggler boat near Duluth that fences like the *Whippoorwill*. No port-screen stand-in to throw away later, but fewer places to sell and no shipwright.
    - **Only the *Whippoorwill* until Phase 7:** raise her weekly cash. Least work; the money loop of piracy is thin.
-2. **What happens when your own ship sinks?** Today nothing does.
+2. **What happens when your own ship sinks?** **Decided 2026-11-08: a simple abandon ship.** Today nothing does.
    - **A simple abandon ship (recommended):** press F while foundering to take to the boat; the ship and cargo are lost, and you're landed at the nearest port by a passing vessel, which may know your face (an extra report). You keep your stash money and buy a new hull at the shipyard. The rowable rowboat comes with going ashore in Phase 7.
    - **The full rowboat now (02 §6.5):** row yourself to an island or town in the zone, at 2–3 kn, swamped in a sea. Closer to the plan, a good deal more work, and the shipless life has little to do until Phase 7.
    - **Sinking ends the run:** the end screen, as for the gallows. Harsh for a storm loss.
-3. **Do rival pirates come in Phase 6?** The roadmap row leaves them out; §8.1 has copycats appear from Known Fame.
+3. **Do rival pirates come in Phase 6?** **Decided 2026-11-08: later, with events.** The roadmap row leaves them out; §8.1 has copycats appear from Known Fame.
    - **Later, with events (recommended):** Phase 6 is the four target classes and the law. Rivals arrive with plan 12's event templates in Phase 9, when the papers are rich enough to inspire copycats.
    - **One copycat in Phase 6:** a single armed schooner that appears at Known, raids your lanes and fights back, worth Fame and a stash map. The first ship other than the cutter that shoots at you.
+
+### 14.6.1 The Siskiwit Bay smuggler (Jared, 2026-11-08)
+
+A second smuggler ship lies in Siskiwit Bay, built with the Siskiwit Bay zone (03 §4's `zone.siskiwit`, which isn't built yet; today the bay is passed through on the chart). She works like the *Whippoorwill* (05 §23): she lies to her anchor after dark, sells contraband, and fences hot goods out of her own week's cash and her own trust in you, from `data/smuggler.json` as a second entry. She gives the western end of the south shore a buyer, so a pirate working the Duluth lanes doesn't have to run to the Apostles to sell. Piece E makes the smuggler data hold more than one boat so she drops in when the zone does; if the zone lands in a later phase (with the Siskiwit camp hideout, Phase 8), she ships with it.
 
 ### 14.7 Housekeeping found along the way
 
@@ -377,6 +381,7 @@ Eight pieces, each sized to be one thread. Three can start at once (A, C and E).
 ---
 
 ## Changelog
+- v0.4.1: Jared's calls on §14.6 (back-room fences at night, simple abandon ship, rivals later) and the Siskiwit Bay smuggler (§14.6.1).
 - v0.4: §14 Phase 6 scope proposal: what Phases 3–5 changed, deliverables, exit criteria, eight work pieces, smaller calls and three decisions for Jared.
 - v0.3: Gap review: T3 has a single bow swivel (stern swivel removed).
 - v0.2: Decisions: steering freeze, boarding death chance, boiler explosions, passenger steamers targetable, copycat rivals (none at start, max 2–3); removed company guards and decoys.
