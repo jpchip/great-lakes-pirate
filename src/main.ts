@@ -138,6 +138,11 @@ import { fameTier } from './sim/law/defs';
 import { daylight01 } from './sim/law/perception';
 import { attachLawAtSea, isLawShip, PURSUES_FROM_TIER } from './gameplay/law-at-sea';
 import { attachCombat, PLAYER_ID } from './gameplay/combat';
+import { attachBoarding, type GameBoarding } from './gameplay/boarding';
+import { holdCu } from './sim/traffic/cargo';
+import { SHIP_RECORDS, serviceSpeedKn } from './sim/sailing/ships';
+import { advanceGameTime } from './core/time';
+import { knotsToMs } from './core/coords';
 import { fitRefusal } from './sim/combat/armament';
 import { addToHold } from './sim/economy/hold';
 import { regionAtChart, regionAtZone } from './sim/law/regions';
@@ -148,7 +153,7 @@ import type { PlacedLight } from './sim/lighthouses';
 import { attachRecord } from './gameplay/record';
 import { attachCapture } from './gameplay/capture';
 import { gameJail } from './sim/law/jail';
-import { buildLastRun, type LastRun, type RunEndCause } from './sim/run/run-end';
+import { buildLastRun, type LastRun, type RunEndCause, type RunEndDetail } from './sim/run/run-end';
 import { showTabLocked } from './ui/menu/tab-locked';
 
 /** Periodic autosave while safe (plan 16 §4.1). */
@@ -1032,9 +1037,13 @@ async function boot(): Promise<void> {
   const captureRef: { current: ReturnType<typeof attachCapture> | undefined } = {
     current: undefined,
   };
-  const endRef: { current: ((cause: RunEndCause) => Promise<void>) | undefined } = {
+  const endRef: {
+    current: ((cause: RunEndCause, detail?: RunEndDetail) => Promise<void>) | undefined;
+  } = {
     current: undefined,
   };
+  /** Boarding a prize (Phase 6 piece D); attached once the guns and the captains are. */
+  const boardingRef: { current: GameBoarding | undefined } = { current: undefined };
   /** Puts the tier-5 front page away (piece F); set once the papers are attached. */
   const frontPageRef: { current: (() => void) | undefined } = { current: undefined };
   const ui = mountGameUi({
@@ -1065,6 +1074,16 @@ async function boot(): Promise<void> {
         if (machine.mode !== 'sailing' || machine.overlayOpen) return;
         if (!portsRef.current?.openDocked()) stashRef.current?.openHere();
       },
+    },
+    boarding: {
+      intimidate: () => boardingRef.current?.actions.intimidate(),
+      fight: () => boardingRef.current?.actions.fight(),
+      withdraw: () => boardingRef.current?.actions.withdraw(),
+      take: (key, qty) => boardingRef.current?.actions.take(key, qty),
+      quickGrab: () => boardingRef.current?.actions.quickGrab(),
+      doneLooting: () => boardingRef.current?.actions.doneLooting(),
+      choose: (choice) => boardingRef.current?.actions.choose(choice),
+      close: () => boardingRef.current?.actions.close(),
     },
     smuggler: {
       buy: (good, qty) => smugglerRef.current?.actions.buy(good, qty),
@@ -1458,9 +1477,10 @@ async function boot(): Promise<void> {
   ctx.events.on('CrewCasualties', (e) => {
     targets.casualties(e.shipId, e.killed, e.wounded);
   });
+  // Every round, in the sea or in a ship: one in the water across her bow is a warning shot,
+  // and any within earshot puts her captain on the alert (piece C's `shotLanded`).
   ctx.events.on('ShotLanded', (e) => {
-    if (e.on === 'water') return;
-    targets.shotLanded({ x: e.at.x, z: e.at.z }, e.shipId);
+    targets.shotLanded({ x: e.at.x, z: e.at.z }, e.on === 'ship' ? e.shipId : undefined);
   });
   const collisions = attachCollisions({
     ctx,
@@ -1537,6 +1557,131 @@ async function boot(): Promise<void> {
   if (scene) scene.shots.source = () => combat.shots();
   ctx.events.on('ZoneEntered', () => combat.reset());
   ctx.events.on('ArenaEntered', () => combat.reset());
+  // Boarding, looting and the aftermath (Phase 6 piece D): F alongside a target under 2 kn.
+  // Its screens pause the game like the port screen's; looting runs the clock.
+  let contextBeforeBoarding: InputContext = 'sailing';
+  const boarding = attachBoarding({
+    ctx,
+    player: playerShip,
+    hazards,
+    economy,
+    targets,
+    combat,
+    ships: () =>
+      arena
+        ? arena.ships.map((s) => s.entity)
+        : [...traffic.shown.values()].filter((s) => !s.berthed).map((s) => s.entity),
+    nameOf: shipNameOf,
+    manifest: (id) => traffic.manifest(id),
+    holdCu: (id) => {
+      const c = traffic.contacts.find((k) => k.id === id);
+      return c ? holdCu(c) : undefined;
+    },
+    region: () => law.region() ?? 'region.chequamegon',
+    fameTier: () => fameTier(law.defs, ctx.state.fame.value),
+    dark01: () => {
+      const c = detection.conditions;
+      if (!c) return 0;
+      const night = 1 - daylight01(c.sky.sunElevationRad);
+      const fog = Math.min(1, Math.max(0, (2000 - c.fogM) / 1400));
+      return Math.max(night, fog);
+    },
+    windKn: (x, z) => sailingOptions.wind(x, z).speedKn,
+    voyageS: (e) => {
+      // Her run to the nearest harbor in the zone at her service speed; unknown at sea.
+      const p = e.transform?.position;
+      const r = SHIP_RECORDS.find((k) => k.id === e.npc?.classId);
+      if (arena || inArenaSpace || !p || !r || harborLayouts.length === 0) return undefined;
+      let best = Infinity;
+      for (const l of harborLayouts) {
+        const a = l.footprint.anchor;
+        best = Math.min(best, Math.hypot(a.x - p.x, a.z - p.z));
+      }
+      const kn = Math.max(2, serviceSpeedKn(r));
+      return (best * zoneFrame(zone, zoneData).compression) / knotsToMs(kn);
+    },
+    playerKn: () => speedKn(sailing.state),
+    passTime: (gameSeconds) => {
+      const clock = state.environment.clock;
+      const before = dayAndHour(clock.gameSeconds).day;
+      const n = advanceGameTime(clock, gameSeconds);
+      for (let i = 0; i < n; i++) ctx.events.emit('WorldTick', { gameSeconds: clock.gameSeconds });
+      const after = dayAndHour(clock.gameSeconds).day;
+      if (after !== before) ctx.events.emit('DayChanged', { day: after });
+      ctx.weather.tick(clock.gameSeconds, shipPose(), ctx.sea);
+    },
+    show: (snapshot) => {
+      ui.setBoarding(snapshot);
+      document.body.dataset['boarding'] = snapshot?.stage ?? 'closed';
+    },
+    onOpen(open) {
+      if (open) {
+        machine.pushOverlay('trade');
+        contextBeforeBoarding = input.context;
+        input.context = 'menu';
+      } else {
+        machine.removeOverlay('trade');
+        input.context = contextBeforeBoarding;
+        input.endTick();
+      }
+      if (cameraRig) cameraRig.suspended = open;
+      hudClock = HUD_INTERVAL_S;
+    },
+    notice: (text) => showNotice(text),
+    endRun: (ship) => void endRef.current?.('killed', { ship }),
+    syncLost: () => traffic.syncLost(),
+    ownerName: (id) => traffic.defs.factions.get(id)?.name,
+  });
+  boardingRef.current = boarding;
+  if (import.meta.env.DEV || params.has('debug')) {
+    // `__glpBoarding.near()` reads the target alongside; `board()` presses F; `odds(id)` the
+    // panel's numbers; `lay(id)` puts the ship alongside her, stopped; `ships()` the record.
+    const hook = {
+      near: () => {
+        const n = boarding.near();
+        return n && { id: n.entity.id, gapM: n.gapM, relKn: n.relKn };
+      },
+      board: () => boarding.board(),
+      odds: (id: string) => boarding.oddsAgainst(id),
+      actions: boarding.actions,
+      open: () => boarding.open,
+      lay: (id: string, side = 1) => {
+        const e = [...ctx.world.entities].find((k) => k.id === id);
+        const t = e?.transform;
+        const r = SHIP_RECORDS.find((k) => k.id === e?.npc?.classId);
+        if (!t || !r) return false;
+        // Abeam of her, rail to rail, heading her way.
+        const off = r.buoyancy.beam / 2 + 6;
+        placeShip({
+          x: t.position.x + Math.cos(t.heading) * off * side,
+          z: t.position.z + Math.sin(t.heading) * off * side,
+          heading: t.heading,
+        });
+        // Sails struck and stopped, as a captain lying alongside would be.
+        sailing.state.speed = 0;
+        sailing.state.sailLevel = sailing.state.sailSetting = 0;
+        if (e?.npc) e.npc.speedKn = 0;
+        const helm = e && targets.helmOf(e);
+        if (helm) helm.speedKn = 0;
+        return true;
+      },
+      /** Puts the ship `m` meters astern of her on her heading: her bow swivel bears. */
+      astern: (id: string, m = 150): number | undefined => {
+        const t = [...ctx.world.entities].find((k) => k.id === id)?.transform;
+        if (!t) return undefined;
+        placeShip({
+          x: t.position.x - Math.sin(t.heading) * m,
+          z: t.position.z + Math.cos(t.heading) * m,
+          heading: t.heading,
+        });
+        // Her heading, degrees: lay a shot across her bow from it.
+        return (t.heading * 180) / Math.PI;
+      },
+      record: () => state.traffic?.ships,
+      kn: () => ({ player: speedKn(sailing.state), near: boarding.near()?.entity.npc?.speedKn }),
+    };
+    (window as unknown as { __glpBoarding: typeof hook }).__glpBoarding = hook;
+  }
   if (import.meta.env.DEV || params.has('debug')) {
     // `__glpCombat.arm('weapon.swivel', 'bow')` mounts a gun, `powder(3)` stows kegs,
     // `fireAt('npc.fish_tug', 'ammo.round')` lays on a ship, `fire(90, 200, 'ammo.chain')`
@@ -1755,11 +1900,11 @@ async function boot(): Promise<void> {
    * Ends the run (plan 16 §3, plan 12 §9): the summary and logbook go to `lastRun` and
    * every run slot is deleted before the end screen shows. Nothing saves the run again.
    */
-  const endTheRun = async (cause: RunEndCause): Promise<void> => {
+  const endTheRun = async (cause: RunEndCause, detail?: RunEndDetail): Promise<void> => {
     if (run.over) return;
     run.over = true;
     const now = state.environment.clock.gameSeconds;
-    const last = buildLastRun(law.defs, state, cause, now, new Date());
+    const last = buildLastRun(law.defs, state, cause, now, new Date(), detail);
     ctx.events.emit('RunEnded', { cause });
     if (prepared.db) {
       try {
@@ -1931,6 +2076,8 @@ async function boot(): Promise<void> {
   };
   const trafficChips = (): string[] => {
     if (machine.mode !== 'sailing' || hazards.state.mooring !== 'free') return [];
+    const board = boardingRef.current?.chip();
+    if (board) return [board];
     const near = traffic.nearest(shipPose(), HAIL_RANGE_M);
     if (!near) return [];
     if (smuggler.isSmuggler(near.id)) {
@@ -1948,6 +2095,15 @@ async function boot(): Promise<void> {
   // In an arena F is "look her over", not a dock order, so its refusal says nothing. In a
   // zone, F with no berth in reach looks over the nearest ship instead.
   ctx.events.on('DockRefused', (e) => {
+    // Alongside a target, F grapples (Phase 6 piece D), in a zone or an arena.
+    if (e.reason === 'noBerth' || e.reason === 'anchored' || arena) {
+      const b = boardingRef.current?.board();
+      if (b?.opened) return;
+      if (b) {
+        showNotice(b.why);
+        return;
+      }
+    }
     if (arena) return;
     const near = e.reason === 'noBerth' ? traffic.nearest(shipPose(), lookRangeM()) : undefined;
     if (near && smuggler.isSmuggler(near.id)) {

@@ -25,6 +25,7 @@ import {
 } from '../sim/traffic/cargo';
 import { hail as hailNews, type HailNews } from '../sim/traffic/news';
 import type { TrafficState } from '../sim/world-state';
+import { afterRobbery } from '../sim/boarding/record';
 import { shipCard, type ShipCard } from '../ui/hud/ship-card';
 import { cloneTransform, type Entity } from './ecs';
 import { createNpcShipEntity } from './npc-ships';
@@ -105,6 +106,11 @@ export interface GameTraffic {
   hail(entityId: string): ShipCard;
   /** Moves the markets for every call since the last tick. */
   deliver(gameSeconds: number): void;
+  /**
+   * Reads the ships robbed, sunk or disabled from the traffic slice onto the timetable
+   * (Phase 6 piece D): call after recording one, or after a load.
+   */
+  syncLost(): void;
   dispose(): void;
 }
 
@@ -213,6 +219,7 @@ export function attachTraffic(
 
   const step = (playerBerthId: string | undefined): boolean => {
     const now = clock.gameSeconds;
+    syncLost();
     placeTraffic(contacts, now);
     if (!zone) return false;
     const seen = new Set<string>();
@@ -220,12 +227,11 @@ export function attachTraffic(
     const inPort = new Map<HarborLayout, { id: string; record: ShipRecord; contact: Contact }[]>();
     for (const id of held) if (shown.has(id)) seen.add(id);
     for (const c of contacts) {
-      if ((!c.schedule && !c.patrol) || !c.classId || held.has(c.id)) continue;
+      if ((!c.schedule && !c.patrol) || !c.classId || held.has(c.id) || c.lost) continue;
       const record = recordOf(c.classId);
-      const consorts = (c.consorts ?? []).map((k, i) => ({
-        id: `${c.id}.consort_${i + 1}`,
-        record: recordOf(k.classId),
-      }));
+      const consorts = (c.consorts ?? []).flatMap((k, i) =>
+        k.lost ? [] : [{ id: `${c.id}.consort_${i + 1}`, record: recordOf(k.classId) }],
+      );
       if (c.inPort) {
         const node = lyingNode(c);
         const port = node ? defs.portOf.get(node) : undefined;
@@ -301,10 +307,28 @@ export function attachTraffic(
     return changed;
   };
 
+  /** Her manifest now, short whatever was taken from her on this passage (piece D). */
   const manifest = (contactId: string): Manifest | undefined => {
     const c = byId.get(contactId);
-    return c ? currentManifest(defs, economy, c, clock.gameSeconds) : undefined;
+    const m = c ? currentManifest(defs, economy, c, clock.gameSeconds) : undefined;
+    return m && afterRobbery(m, traffic().ships, contactId, economy);
   };
+
+  /** Ships sunk or limping in come off the timetable (piece D): from the save, and now. */
+  const syncLost = (): void => {
+    const ships = traffic().ships;
+    for (const c of contacts) {
+      const r = ships[c.id];
+      c.lostAt = r?.lostAt;
+      c.lostUntil = r?.lostUntil;
+      (c.consorts ?? []).forEach((k, i) => {
+        const kr = ships[`${c.id}.consort_${i + 1}`];
+        k.lostAt = kr?.lostAt;
+        k.lostUntil = kr?.lostUntil;
+      });
+    }
+  };
+  syncLost();
 
   const cardFor = (entityId: string, news?: HailNews | 'dark' | 'told'): ShipCard => {
     const contact = byId.get(contactIdOf(entityId));
@@ -399,6 +423,7 @@ export function attachTraffic(
       return cardFor(entityId, news);
     },
     deliver,
+    syncLost,
     dispose() {
       offTick();
       clear();

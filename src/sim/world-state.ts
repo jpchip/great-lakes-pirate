@@ -143,6 +143,8 @@ const hotMetaSchema = z.object({
   heat: z.number().min(0).max(1),
   traceability: z.number().min(0).max(1),
   since: z.number(),
+  /** The owning company's marks on looted freight (Phase 6 piece D); absent otherwise. */
+  owner: z.string().optional(),
 });
 
 /** A stack in the hold, in whole CU (plan 05 §11 `player.cargo`). */
@@ -172,12 +174,40 @@ export const marketsSchema = z.record(
  * ship's place and manifest follow from the run's seed and the clock, so only what
  * differs from the timetable is kept: when each ship was last hailed (her news is told
  * once a passage), and how far the cargo deliveries have run against the markets.
- * Phase 6 adds ships robbed or sunk here. Absent in an early v5 save: it starts empty.
+ * Phase 6 adds ships robbed, sunk or disabled here (piece D; optional fields, no version
+ * bump). Absent in an early v5 save: it starts empty.
  */
 export const trafficStateSchema = z.object({
   /** Game seconds the deliveries have moved the markets up to. */
   deliveredTo: z.number(),
-  ships: z.record(z.string(), z.object({ hailedAt: z.number().optional() })),
+  ships: z.record(
+    z.string(),
+    z.object({
+      hailedAt: z.number().optional(),
+      /**
+       * Robbed (Phase 6 piece D): when, on which passage, what was taken and her cash. Her
+       * manifest for that passage is short what was taken, and her cash box stays empty
+       * a while.
+       */
+      robbed: z
+        .object({
+          at: z.number(),
+          cycle: z.number().int().optional(),
+          outbound: z.boolean().optional(),
+          taken: z.array(z.object({ good: z.string(), qty: z.number().int().positive() })),
+          cashCents: z.number().int().nonnegative(),
+        })
+        .optional(),
+      /**
+       * Off her timetable (Phase 6 piece D): sunk, scuttled, or disabled and limping in,
+       * from `lostAt` until `lostUntil`. She isn't on the water, in port or on the chart,
+       * and her calls don't move the markets.
+       */
+      lostAt: z.number().optional(),
+      lostUntil: z.number().optional(),
+      lostHow: z.enum(['sunk', 'scuttled', 'disabled']).optional(),
+    }),
+  ),
 });
 
 export type TrafficState = z.infer<typeof trafficStateSchema>;

@@ -1,0 +1,69 @@
+{
+  "alongside": { "gapM": 30, "relKn": 2 },
+  "crewByTier": { "1": 1, "2": 7, "3": 9 },
+  "arms": {
+    "smallArms": 1,
+    "swivel": 0.5,
+    "cannon": 0.1,
+    "crewArms": 0.5,
+    "armedCrewArms": 1,
+    "woundedShare": 0.4
+  },
+  "perkStrength": { "perk.quarterdeck_voice": 2 },
+  "fameStrength": 1.5,
+  "surpriseStrength": 2,
+  "darkAt": 0.5,
+  "morale": { "neutral": 50, "min": 0.3, "max": 1.6 },
+  "intimidate": {
+    "ratioWeight": 0.25,
+    "fameWeight": 0.06,
+    "moraleWeight": 0.005,
+    "min": 0.03,
+    "max": 0.95
+  },
+  "fight": { "bias": 0.6, "min": 0.05, "max": 0.97 },
+  "casualties": { "theirShare": [0.15, 0.4], "theirKilled": 0.35, "oursPerDefense": 0.15 },
+  "death": { "badOdds": 0.5, "perShortfall": 0.3, "max": 0.15 },
+  "repelled": { "hullShare": [0.08, 0.2], "floorShare": 0.1 },
+  "loot": {
+    "minutesPerCu": {
+      "high_value": 2,
+      "contraband": 3,
+      "manufactured": 4,
+      "provisions": 4,
+      "bulk": 8
+    },
+    "cashBoxMinutes": 5,
+    "quickGrab": ["high_value"],
+    "order": ["high_value", "contraband", "manufactured", "provisions", "bulk"],
+    "heat": 1
+  },
+  "aftermath": {
+    "defaultVoyageHours": 6,
+    "limpFactor": 3,
+    "rowHours": 12,
+    "adrift": {
+      "windKn": 20,
+      "windBase": 0.2,
+      "perKnOver": 0.03,
+      "coldMonths": [0, 1, 2, 3, 10, 11],
+      "cold": 0.25,
+      "dark": 0.05,
+      "max": 0.9,
+      "lostShare": [0.3, 0.8]
+    }
+  },
+  "fallbackCargo": {
+    "ship.fish_tug": [{ "good": "good.fresh_fish", "qty": 6 }],
+    "ship.schooner_barge": [{ "good": "good.lumber", "qty": 60 }],
+    "ship.package_steamer": [
+      { "good": "good.dry_goods", "qty": 30 },
+      { "good": "good.hardware", "qty": 20 },
+      { "good": "good.tobacco", "qty": 8 },
+      { "good": "good.furs", "qty": 4 }
+    ],
+    "ship.ore_freighter": [{ "good": "good.iron_ore", "qty": 400 }]
+  },
+  "lostDays": 1,
+  "robbedDays": 1
+}

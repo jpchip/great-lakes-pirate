@@ -33,7 +33,13 @@ export interface Contact {
   /** ships.json class it's drawn as in an arena. */
   classId?: string;
   /** Ships in its company (a consort in tow), materialized with it in an arena. */
-  consorts?: { classId: string; name: string }[];
+  consorts?: {
+    classId: string;
+    name: string;
+    lostAt?: number | undefined;
+    lostUntil?: number | undefined;
+    lost?: boolean;
+  }[];
   /** What the lookout calls a derelict ("a scow, dismasted and drifting"). */
   description?: string;
   /** Where it is on its lane: `{leg, progress}` (plan 01 §3.4). */
@@ -47,6 +53,13 @@ export interface Contact {
   patrol?: PatrolRef;
   /** Lying in port or off the chart: not on the water to be seen. */
   inPort?: boolean;
+  /**
+   * Sunk, scuttled or disabled (Phase 6 piece D): off her timetable from `lostAt` until
+   * `lostUntil`, game seconds. `placeTraffic` sets `lost` (and `inPort`) while she is.
+   */
+  lostAt?: number | undefined;
+  lostUntil?: number | undefined;
+  lost?: boolean;
   /** Making way along its lane (false lying at an end, or at anchor on the grounds). */
   underWay?: boolean;
   /** A storm cell's or fog bank's radius, meters: it is met at this edge. */

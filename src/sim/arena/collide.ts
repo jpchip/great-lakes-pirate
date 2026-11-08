@@ -140,3 +140,19 @@ export function collide(bodies: Body[], restitution = RESTITUTION): Contact2[] {
   }
   return out;
 }
+
+/**
+ * The water between two hulls, meters: the closest points of their keel lines less half
+ * of each beam (negative when they overlap). Boarding (Phase 6 piece D) grapples within a
+ * few meters of it.
+ */
+export function hullGapM(a: Body, b: Body): number {
+  const ka = keel(a);
+  const kb = keel(b);
+  const { s, t } = closestOnSegments(ka.px, ka.pz, ka.qx, ka.qz, kb.px, kb.pz, kb.qx, kb.qz);
+  const ax = ka.px + (ka.qx - ka.px) * s;
+  const az = ka.pz + (ka.qz - ka.pz) * s;
+  const bx = kb.px + (kb.qx - kb.px) * t;
+  const bz = kb.pz + (kb.qz - kb.pz) * t;
+  return Math.hypot(ax - bx, az - bz) - a.halfBeamM - b.halfBeamM;
+}
