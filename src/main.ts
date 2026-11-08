@@ -1607,11 +1607,16 @@ async function boot(): Promise<void> {
     nameOf: shipNameOf,
     notice: (text) => showNotice(text),
   });
-  // The fire button counts only when it went down on the sea, not on a HUD button.
+  // The fire button counts unless it went down on a control (a button, a field, the dev
+  // panel): the HUD layer covers the whole screen, so the click is rarely on the canvas.
   let fireOnSea = false;
   window.addEventListener(
     'mousedown',
-    (e) => (fireOnSea = !!scene && e.target === renderer?.renderer.domElement),
+    (e) => {
+      const target = e.target instanceof Element ? e.target : undefined;
+      fireOnSea =
+        !!scene && !target?.closest('button, a, input, select, textarea, label, .lil-gui');
+    },
     { capture: true },
   );
   // Tab is the aim key at the helm: the browser mustn't move focus with it.
