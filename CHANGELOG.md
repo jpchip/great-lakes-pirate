@@ -4,6 +4,10 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ## [Unreleased]
 
+### Added
+
+- **Targets and their will (Phase 6 piece C):** the fish tug, the schooner-barge, the package steamer and the ore freighter now have a crew, a cash box and a captain with a morale meter (plan 07 §5): Fame, the guns you carry, warning shots, hits and casualties wear it down; the cutter or a harbor near, other ships in view by day, being able to outrun you and a rare determined captain hold it up; being disabled, sinking, becalmed, adrift or caught alongside break it. Run down on, fired near or hearing gunfire, a captain goes on the alert and holds on, runs (a steamer for the nearest harbor off her quarter, a sailing ship off the wind, at her best speed) or strikes her colors and heaves to under a white flag. A barge rides a hawser astern of her steamer and goes where she goes, until a shot on the line parts it and she drifts. Hulls no longer pass through each other: ships block and bounce by their mass (no ramming damage). The package steamer's crew is 16 (it was 28). `__glpTargets` and `?guns=N` stand in for the guns until piece A lands ([plan 07 §14.8](plans/07-combat-boarding-targets.md)).
+
 ## [0.5.0] - 2026-11-08
 
 The **Law, Fame & Wanted** build (Phase 5): crimes have witnesses, word travels to the law, and the revenue cutter _Morrill_ comes looking. Run dark on a moonless night or be seen by a keeper; pay a fine, run for the shallows, or sit out your sentence in the Bayfield lockup; and at the top tier the papers print WANTED, DEAD OR ALIVE.

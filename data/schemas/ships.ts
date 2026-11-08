@@ -29,6 +29,28 @@ const buoyancySchema = z.object({
   damping: z.number().positive(),
 });
 
+/**
+ * A traffic class's crew and will (plan 07 §5, §8; Phase 6 piece C). `sim/targets/morale`
+ * reads it: the meter starts at `moraleBase` and the captain strikes, runs or holds on by
+ * it; `flee` is how readily she runs rather than holds her course (0 never, 1 at the first
+ * sign of a pirate). Companies never arm their ships (plan 05 §8.2): only the law is armed.
+ */
+export const combatSchema = z.object({
+  /** Hands aboard (plan 07 §8's ranges; the manifest card shows it). */
+  crew: z.number().int().positive(),
+  armed: z.boolean(),
+  /** A class the player can rob (the cutter isn't: she has her own captain). */
+  target: z.boolean(),
+  /** The morale meter's start, 0–100, before Fame, guns and the situation. */
+  moraleBase: z.number().min(0).max(100),
+  flee: z.number().min(0).max(1),
+  /** Her best speed running from a pirate, knots: a steamer's forced draught. */
+  flankKn: z.number().positive().optional(),
+  /** The cash box aboard, integer cents, low and high (piece D's looting reads it). */
+  cashCents: z.tuple([z.number().int().nonnegative(), z.number().int().nonnegative()]),
+});
+export type ShipCombat = z.infer<typeof combatSchema>;
+
 const shipBase = {
   id: idOf('ship'),
   name: z.string().min(1),
@@ -79,6 +101,8 @@ const shipBase = {
   priceCents: z.number().int().positive().optional(),
   /** Upgrade slots by category (plan 10 §4; player classes). */
   slots: z.record(z.enum(UPGRADE_CATEGORIES), z.number().int().nonnegative()).optional(),
+  /** Her crew and will under the guns (plan 07 §5, §8; Phase 6 piece C); traffic classes. */
+  combat: combatSchema.optional(),
 };
 
 export const sailShipSchema = z.object({
@@ -114,6 +138,14 @@ export const shipSchema = z
   .refine(
     (s) => (s.role === 'player') === (s.priceCents !== undefined && s.slots !== undefined),
     'Player classes, and only they, have a price and upgrade slots',
+  )
+  .refine(
+    (s) => (s.role === 'npc') === (s.combat !== undefined),
+    'Traffic classes, and only they, have combat stats',
+  )
+  .refine(
+    (s) => !s.combat || s.combat.cashCents[0] <= s.combat.cashCents[1],
+    'cashCents runs low to high',
   )
   .refine(
     (s) => !s.whistle || (s.whistle.kind === 'steam') === (s.propulsion === 'steam'),

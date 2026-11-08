@@ -66,6 +66,7 @@ export function materializeArena(
     const entity = createNpcShipEntity(record, pose.x, pose.z, pose.heading, ship.speedKn);
     entity.id = ship.id;
     const npc = entity.npc;
+    if (npc && ship.towedBy) npc.towedBy = ship.towedBy;
     if (npc && ship.derelict) {
       npc.derelict = true;
       npc.listRad = DERELICT_LIST;

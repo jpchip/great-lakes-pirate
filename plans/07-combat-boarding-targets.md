@@ -378,9 +378,31 @@ A second smuggler ship lies in Siskiwit Bay, built with the Siskiwit Bay zone (0
 - Plan 17 wants a tracking issue per phase with the acceptance checklist; §14.3 can become it once approved.
 - Plan 04 still calls snow and the aurora Phase 6 (§14.1); its next edit should say Phase 9.
 
+### 14.8 Piece C as built: targets and morale (2026-11-08)
+
+**Data.** Each traffic class in `ships.json` has a `combat` block: `crew`, `armed`, `target`, `moraleBase`, `flee` (0–1, how readily she runs), `flankKn` (a steamer's forced draught) and `cashCents` (her cash box, low and high, for piece D's looting). The manifest's crew and armed flag read it. The crews settle §8's ranges: tug 5, schooner-barge 7, package steamer **16** (the code had 28), ore freighter 22; the cutter has 40 and is the only armed class, and isn't a target.
+
+| Class | Base | Flee | Flee line | Flank | Behavior |
+|---|---|---|---|---|---|
+| Fish tug | 50 | 0.2 | 58 | 8.5 kn | Runs slowly at first, strikes to two or three warning shots from a T1 |
+| Schooner-barge | 50 | 0.4 | 66 | (towed) | Can't run on her own; adrift or stranded, strikes to two warning shots |
+| Package steamer | 70 | 0.9 | 86 | 12.5 kn | Runs at once (a T1's swivel won't stop her); strikes when disabled, or to a T2 at Known Fame after three or four shots |
+| Ore freighter | 80 | 0.8 | 82 | 11 kn | Holds on at full speed and is hard to stop with a T1 |
+
+**The meter** (`sim/targets/morale.ts`) is the base, plus the situation's named parts (−4 per Fame tier, −6 per gun she faces up to three, +20 the cutter within 2.5 km, +8 a harbor within 3 km, +4 per other ship in view by day up to two, +10 she can outrun you, +15 a determined captain (one in eight, seeded by her id), −25 disabled, −30 sinking at 30% hull, −10 becalmed, −15 nowhere to run, −15 adrift, −15 caught alongside by a ship she can't outrun), plus her shock (a warning shot −14 and each after it three quarters of the last, hits by share of each pool, casualties by share of her crew killed ×120 and wounded ×40, a night or fog surprise −12). Shock wears off at 0.2 a second once nobody has fired for 20 s. Every part has a label, so the target card (piece B) can say why she struck or didn't (§14.3 criterion 12).
+
+**The captain.** Transit until the player runs down on her inside 550 m (less at night or in fog), lies within 180 m for ten seconds, or fires on or near her (gunfire is heard 2 km off). On the alert: below 25 she strikes for good (heaves to, `npc.struck`, a white flag at the aftermost masthead, `MoraleBroken`); below her flee line she runs (steamers for a harbor off her quarter, sailing ships off the wind, at her best speed, slowed by a tow and by engine or rigging damage) until 1.8 km off (`ShipFled`); otherwise she holds on. Only an armed ship fights; a determined steamer's captain rams inside 400 m. Left alone a minute 1.5 km off, she stands down. In a zone a ship and her consort leave their timetable (`hold`) when her captain is alerted and are steered with the arena's helms, feeling for their own draft.
+
+**Tow lines** (`sim/targets/tow.ts`): the consort's hawser runs from the steamer's stern to her bow at the length they lie at when first seen; taut, it pulls her along and swings her to the pull; slack, she lies. It's drawn as a sagging line. A shot within 4 m of it parts it (`TowCut`): the barge's helm heaves to and she loses her way, and the steamer, free of the tow, gets her full speed back.
+
+**Collisions** (`sim/arena/collide.ts`, `gameplay/collisions.ts`): every hull is a capsule (keel line swept by half the beam) tested after the ships move; overlaps are pushed apart by mass (length × beam²) and the closing speed taken off with a quarter bounce. A ship on her timetable in a zone, and a docked player, can't be shoved. `ShipsCollided` reports a bump; there's no damage (cut list #2).
+
+**For pieces A, B and D.** Until piece A lands, the guns are the dev hook's: `__glpTargets.warn(id)`, `hit(id, pool, share)`, `casualties(id, killed, wounded)`, `cutTow(id)`, and `?guns=N` for the guns the captains see (default 1, a swivel). Piece A calls `targets.shotLanded(at, hitId?)` where each round falls (it parts a hawser, counts as a warning shot for the ship it fell across the bow of, and alerts every captain in earshot), `targets.hit(id, pool, share)` with the share of the pool carried away, and `targets.casualties(id, killed, wounded)`; the player's armament replaces `playerGuns`. A's NPC damage pools own the slowing; the captain reads the shares it's told for her best speed and the disabled and sinking parts. Piece B's target card reads `targets.captains()` (phase, morale, parts, why) and can draw aim on `towLines()`. Piece D's boarding confirms a surrender on `isStruck(id)` / `MoraleBroken`, and loots `combat.cashCents`.
+
 ---
 
 ## Changelog
+- v0.4.2: §14.8 piece C as built: combat stats, the morale meter and captain, tow lines, collisions, and the interface for pieces A, B and D.
 - v0.4.1: Jared's calls on §14.6 (back-room fences at night, simple abandon ship, rivals later) and the Siskiwit Bay smuggler (§14.6.1).
 - v0.4: §14 Phase 6 scope proposal: what Phases 3–5 changed, deliverables, exit criteria, eight work pieces, smaller calls and three decisions for Jared.
 - v0.3: Gap review: T3 has a single bow swivel (stern swivel removed).

@@ -36,6 +36,8 @@ export interface NpcShipModel {
   readonly lights: RunningLights;
   /** The set sails, when the class carries them: mirrored to leeward by `update`. */
   readonly sails: THREE.Object3D | undefined;
+  /** A white flag at the aftermost masthead, shown when she strikes her colors (Phase 6 C). */
+  readonly flag: THREE.Object3D;
   /** Triangles in the solid body, windows and sails (the plan 14 §8 budget). */
   readonly triangles: number;
   /**
@@ -334,6 +336,26 @@ export function createNpcShip(l: NpcShipLines, displayScale = 1): NpcShipModel {
   rigging.name = `${l.id}-rigging`;
   frame.add(rigging);
 
+  // The white flag she hoists when she strikes: off the aftermost masthead, flying aft.
+  const flagGeometry = new THREE.PlaneGeometry(2.6, 1.7, 2, 1);
+  flagGeometry.rotateY(Math.PI / 2);
+  const white = new THREE.Color(0xf4f2ec);
+  const n = flagGeometry.attributes['position']?.count ?? 0;
+  const rgb = new Float32Array(n * 3);
+  for (let i = 0; i < n; i++) rgb.set([white.r, white.g, white.b], i * 3);
+  flagGeometry.setAttribute('color', new THREE.BufferAttribute(rgb, 3));
+  const flag = new THREE.Mesh(
+    flagGeometry,
+    new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9, side: THREE.DoubleSide }),
+  );
+  flag.name = `${l.id}-white-flag`;
+  const aft =
+    [...mastHeads].sort((a, b) => b.z - a.z)[0] ??
+    stacks[0]?.top.clone().divideScalar(displayScale);
+  if (aft) flag.position.set(aft.x, aft.y - 0.95, aft.z + 1.35);
+  flag.visible = false;
+  frame.add(flag);
+
   const lights = createRunningLights(lamps, 1.4 / displayScale);
   frame.add(lights.points);
 
@@ -347,6 +369,7 @@ export function createNpcShip(l: NpcShipLines, displayScale = 1): NpcShipModel {
     stacks,
     lights,
     sails,
+    flag,
     triangles,
     update(sunElevationDeg, fogDensity, windFromStarboard) {
       const level = lampLevel(sunElevationDeg);

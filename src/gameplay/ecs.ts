@@ -62,6 +62,12 @@ export interface NpcShip {
   derelict?: true;
   /** A standing list to starboard, radians, on top of the swell's roll. */
   listRad?: number;
+  /** A consort on a towline: her steamer's entity id (Phase 6 piece C). */
+  towedBy?: string;
+  /** Her hawser has parted: she's adrift (Phase 6 piece C). */
+  towParted?: true;
+  /** She has struck her colors: hove to under a white flag (Phase 6 piece C). */
+  struck?: true;
 }
 
 export type GameWorld = World<Entity>;

@@ -229,6 +229,19 @@ export interface GameEvents {
   };
   NewspaperBought: { port: string; paper: string; cents: number };
   PaperCried: { port: string; paper: string; headline: string; aboutYou: boolean };
+  /**
+   * Targets and their will (plan 07 §5, §8.2; Phase 6 piece C). `TargetStateChanged` is
+   * every turn of a target's captain (`sim/targets/morale` phases) with the meter and why;
+   * `MoraleBroken` is her striking her colors (heaved to under a white flag: piece D's
+   * boarding confirms the surrender); `ShipFled` is a runner that got clear. `TowCut` is
+   * a hawser parted by a shot; `ShipsCollided` two hulls meeting (a shove, no damage).
+   * `shipId` is the entity id (a consort's ends `.consort_N`).
+   */
+  TargetStateChanged: { shipId: string; from: string; to: string; morale: number; why: string };
+  MoraleBroken: { shipId: string; classId: string; morale: number; why: string };
+  ShipFled: { shipId: string; classId: string };
+  TowCut: { leaderId: string; consortId: string };
+  ShipsCollided: { a: string; b: string; speedKn: number };
 }
 
 /** Everything a mode needs; built once at boot and handed to each mode. */

@@ -77,14 +77,15 @@ export function gameTraffic(): TrafficDefs {
   return cached;
 }
 
-/** A crew for each class, for the manifest (plan 05 §8.1: crew and armament). */
-const CREW: Readonly<Record<string, number>> = {
-  'ship.ore_freighter': 22,
-  'ship.package_steamer': 28,
-  'ship.schooner_barge': 7,
-  'ship.fish_tug': 5,
-  'ship.cutter_morrill': 40,
-};
+/** A class's crew for the manifest (plan 05 §8.1), from its combat stats (plan 07 §8). */
+function crewOf(classId: string | undefined): number {
+  return SHIP_RECORDS.find((r) => r.id === classId)?.combat?.crew ?? 6;
+}
+
+/** Whether a class carries guns: only the law does (plan 05 §8.2). */
+function armedClass(classId: string | undefined): boolean {
+  return SHIP_RECORDS.find((r) => r.id === classId)?.combat?.armed ?? false;
+}
 
 export interface ManifestLine {
   good: string;
@@ -199,8 +200,8 @@ export function manifestFor(
     toPort: defs.portOf.get(to),
     cargo,
     valueCents,
-    crew: CREW[c.classId] ?? 6,
-    armed: c.classId === 'ship.cutter_morrill',
+    crew: crewOf(c.classId),
+    armed: armedClass(c.classId),
     cycle,
     outbound,
   };
@@ -250,7 +251,7 @@ function patrolManifest(defs: TrafficDefs, c: Contact): Manifest | undefined {
     toPort: defs.portOf.get(to),
     cargo: [],
     valueCents: 0,
-    crew: CREW[c.classId] ?? 6,
+    crew: crewOf(c.classId),
     armed: true,
     cycle: 0,
     outbound: leg.toM >= leg.fromM,
