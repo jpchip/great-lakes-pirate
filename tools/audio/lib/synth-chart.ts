@@ -116,7 +116,7 @@ export function shipBell(rate: number, random: Random, primeHz = 620, seconds = 
 }
 
 /** A chord on the concertina: all its notes at once, held `seconds`. */
-function reedChord(
+export function reedChord(
   notes: readonly string[],
   seconds: number,
   rate: number,
@@ -128,7 +128,7 @@ function reedChord(
 }
 
 /** A guitar strum across a chord's tones (and its bass), `spreadS` between strings. */
-function strum(
+export function strum(
   dst: Float32Array,
   chordName: string,
   atS: number,
@@ -457,7 +457,7 @@ export function stinger(name: StingerName, rate: number): Float32Array {
 }
 
 /** Cuts trailing near-silence so a stinger doesn't carry dead air. */
-function trimTail(x: Float32Array, rate: number): Float32Array {
+export function trimTail(x: Float32Array, rate: number): Float32Array {
   let end = x.length;
   const floor = 1e-3 * peak(x);
   while (end > 0 && Math.abs(x[end - 1] as number) < floor) end--;

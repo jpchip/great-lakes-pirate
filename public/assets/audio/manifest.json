@@ -275,6 +275,71 @@
       "type": "audio",
       "url": "port/pen.ogg",
       "bytes": 9696
+    },
+    "sfx.law.gun": {
+      "type": "audio",
+      "url": "law/bow-gun.ogg",
+      "bytes": 19496
+    },
+    "sfx.law.bell": {
+      "type": "audio",
+      "url": "law/cutter-bell.ogg",
+      "bytes": 30098
+    },
+    "sfx.law.engine": {
+      "type": "audio",
+      "url": "law/cutter-engine.ogg",
+      "bytes": 31816
+    },
+    "ui.jail.door": {
+      "type": "audio",
+      "url": "law/lockup-door.ogg",
+      "bytes": 25927
+    },
+    "ui.jail.release": {
+      "type": "audio",
+      "url": "law/lockup-release.ogg",
+      "bytes": 32757
+    },
+    "sfx.law.rifle": {
+      "type": "audio",
+      "url": "law/rifle.ogg",
+      "bytes": 8629
+    },
+    "sfx.law.rigging-hit": {
+      "type": "audio",
+      "url": "law/rigging-hit.ogg",
+      "bytes": 14928
+    },
+    "sfx.law.splash": {
+      "type": "audio",
+      "url": "law/shot-splash.ogg",
+      "bytes": 16495
+    },
+    "music.stinger.wanted-cool": {
+      "type": "audio",
+      "url": "law/stinger-wanted-cool.ogg",
+      "bytes": 73141
+    },
+    "music.stinger.wanted-hunted": {
+      "type": "audio",
+      "url": "law/stinger-wanted-hunted.ogg",
+      "bytes": 69091
+    },
+    "music.stinger.wanted-most": {
+      "type": "audio",
+      "url": "law/stinger-wanted-most.ogg",
+      "bytes": 117316
+    },
+    "music.stinger.wanted-rise": {
+      "type": "audio",
+      "url": "law/stinger-wanted-rise.ogg",
+      "bytes": 51582
+    },
+    "voice.port.newsboy": {
+      "type": "audio",
+      "url": "law/newsboy.ogg",
+      "bytes": 22584
     }
   },
   "bundles": {
@@ -346,6 +411,21 @@
       "ui.ledger.close",
       "ui.ledger.open",
       "ui.ledger.pen"
+    ],
+    "law-audio": [
+      "sfx.law.gun",
+      "sfx.law.bell",
+      "sfx.law.engine",
+      "ui.jail.door",
+      "ui.jail.release",
+      "sfx.law.rifle",
+      "sfx.law.rigging-hit",
+      "sfx.law.splash",
+      "music.stinger.wanted-cool",
+      "music.stinger.wanted-hunted",
+      "music.stinger.wanted-most",
+      "music.stinger.wanted-rise",
+      "voice.port.newsboy"
     ]
   }
 }

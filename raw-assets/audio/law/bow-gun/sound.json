@@ -1,0 +1,11 @@
+{
+  "id": "sfx.law.gun",
+  "name": "bow-gun",
+  "description": "The cutter's bow gun, one round: a crack, a falling boom, the report rolling back",
+  "kind": "oneshot",
+  "bus": "sfx",
+  "bundles": [
+    "law-audio"
+  ],
+  "source": "source.flac"
+}

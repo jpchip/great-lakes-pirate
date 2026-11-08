@@ -1,0 +1,19 @@
+{
+  "source": "procedural",
+  "tool": "tools/audio/synth.ts (tools/audio/lib/synth.ts)",
+  "author": "Great Lakes Pirate contributors",
+  "reference": "Formant synthesis: a band-limited pulse train through three moving resonances on a boy's pitch, a street slap-back",
+  "date": "2026-11-07",
+  "license": "CC BY 4.0",
+  "attribution": "Great Lakes Pirate contributors",
+  "modifications": [],
+  "description": "A paper boy crying the new edition down the street: \"Pa-per! Pa-per!\"",
+  "durationS": 2.978,
+  "pipeline": [
+    "decoded to mono 48000 Hz",
+    "edge fades",
+    "peak-normalized toward -1 dB (-0.1 dB)",
+    "Opus 48 kbps mono in Ogg (ffmpeg libopus)"
+  ],
+  "inputHash": "2cde4397a083952e"
+}

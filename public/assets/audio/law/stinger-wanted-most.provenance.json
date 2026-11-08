@@ -1,0 +1,19 @@
+{
+  "source": "procedural",
+  "tool": "tools/audio/synth.ts (tools/audio/lib/synth.ts)",
+  "author": "Great Lakes Pirate contributors",
+  "reference": "Original motif; synthesized concertina, guitar, fiddle drone, frame drum and bell, Freeverb-style reverb",
+  "date": "2026-11-07",
+  "license": "CC BY 4.0",
+  "attribution": "Great Lakes Pirate contributors",
+  "modifications": [],
+  "description": "Wanted stinger, most wanted (tier 5): a deep bell tolls three times over a muffled roll",
+  "durationS": 7.267,
+  "pipeline": [
+    "decoded to mono 48000 Hz",
+    "edge fades",
+    "RMS-normalized toward -18 dB (-2.7 dB)",
+    "Opus 112 kbps mono in Ogg (ffmpeg libopus)"
+  ],
+  "inputHash": "1d392e522edbd5dd"
+}

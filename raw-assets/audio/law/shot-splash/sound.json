@@ -1,0 +1,11 @@
+{
+  "id": "sfx.law.splash",
+  "name": "shot-splash",
+  "description": "A round landing in the water: a thump, the column thrown up, the water falling back",
+  "kind": "oneshot",
+  "bus": "sfx",
+  "bundles": [
+    "law-audio"
+  ],
+  "source": "source.flac"
+}

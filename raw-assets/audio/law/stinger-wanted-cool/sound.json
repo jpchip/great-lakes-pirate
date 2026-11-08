@@ -1,0 +1,11 @@
+{
+  "id": "music.stinger.wanted-cool",
+  "name": "stinger-wanted-cool",
+  "description": "Wanted stinger, a region has cooled off: a soft falling phrase that settles on G",
+  "kind": "oneshot",
+  "bus": "music",
+  "bundles": [
+    "law-audio"
+  ],
+  "source": "source.flac"
+}

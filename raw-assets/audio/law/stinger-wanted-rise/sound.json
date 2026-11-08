@@ -1,0 +1,11 @@
+{
+  "id": "music.stinger.wanted-rise",
+  "name": "stinger-wanted-rise",
+  "description": "Wanted stinger, word has reached the law (tiers 1-2): a drum stroke, a chord that sours",
+  "kind": "oneshot",
+  "bus": "music",
+  "bundles": [
+    "law-audio"
+  ],
+  "source": "source.flac"
+}

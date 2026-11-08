@@ -173,8 +173,8 @@ test('keeps sailing with the journal or a look at the chart open, and P holds th
 });
 
 // Plan 15 §8: the sailing (14), world (19, with the ships' whistles), chart (7: the
-// stingers and the fade to fog), harbor (5) and port (7) sounds decode up front and audio
-// starts on the first key.
+// stingers and the fade to fog), harbor (5), port (7) and law (13) sounds decode up front
+// and audio starts on the first key.
 test('loads the sailing and world sounds and unlocks audio on the first key press', async ({
   page,
 }) => {
@@ -182,7 +182,7 @@ test('loads the sailing and world sounds and unlocks audio on the first key pres
   const body = page.locator('body');
   await page.goto('/?renderer=null&play');
   await expect(body).toHaveAttribute('data-mode', 'sailing');
-  await expect(body).toHaveAttribute('data-audio-bank', '52');
+  await expect(body).toHaveAttribute('data-audio-bank', '65');
   await page.keyboard.press('KeyW');
   await expect(body).toHaveAttribute('data-audio', 'running');
   expect(errors).toEqual([]);
@@ -601,6 +601,63 @@ test('plays the chart theme, the encounter stingers and the fade to fog', async 
     (window as unknown as { __glpChart: ChartHook }).__glpChart.meet('cutter', true),
   );
   await expect(body).toHaveAttribute('data-stinger', 'hunted');
+  expect(errors).toEqual([]);
+});
+
+// Phase 5 piece H: a Wanted stinger as a tier rises, and the Morrill's engine and whistle
+// at close quarters.
+test('plays the Wanted stingers and the cutter at close quarters', async ({ page }) => {
+  const errors = collectErrors(page);
+  const body = page.locator('body');
+  await page.goto('/?renderer=null&debug&play&encounter=cutter&cutter=hunt');
+  await expect(body).toHaveAttribute('data-arena', 'cutter');
+  await page.keyboard.press('KeyW');
+  await expect(body).toHaveAttribute('data-audio', 'running');
+  const setTiers = (tier: number): Promise<void> =>
+    page.evaluate((t) => {
+      const law = (
+        window as unknown as { __glpLaw: { setTier(region: string, tier: number): void } }
+      ).__glpLaw;
+      for (const r of [
+        'region.apostles',
+        'region.north_shore',
+        'region.duluth',
+        'region.south_shore_west',
+      ])
+        law.setTier(r, t);
+    }, tier);
+  await setTiers(1);
+  await expect(body).toHaveAttribute('data-wanted-stinger', 'rise');
+  // A sharper one cuts in on the quiet spell after it.
+  await setTiers(3);
+  await expect(body).toHaveAttribute('data-wanted-stinger', 'hunted');
+
+  await expect(body).toHaveAttribute('data-law-engines', '1');
+  await expect(body).toHaveAttribute('data-law-cue', /hail|alarm/);
+  expect(errors).toEqual([]);
+});
+
+// Piece H: taken at sea (piece D's hook stands in for the chase), the cell door shuts; the
+// sentence served, it opens again and the chart's "clear" phrase plays you out.
+test('shuts the lockup door and opens it again on release', async ({ page }) => {
+  const errors = collectErrors(page);
+  const body = page.locator('body');
+  await page.goto('/?renderer=null&debug&play');
+  await expect(body).toHaveAttribute('data-mode', 'sailing');
+  await page.waitForFunction(() => '__glpCapture' in window);
+  await page.keyboard.press('KeyW');
+  await expect(body).toHaveAttribute('data-audio', 'running');
+  await page.evaluate(() =>
+    (
+      window as unknown as { __glpCapture: { capture(region?: string): void } }
+    ).__glpCapture.capture('region.apostles'),
+  );
+  await expect(page.getByTestId('jail-screen')).toBeVisible();
+  await expect(body).toHaveAttribute('data-law-cue', 'door');
+  await page.getByTestId('jail-serve').click();
+  await expect(page.getByTestId('jail-screen')).toHaveAttribute('data-kind', 'released');
+  await expect(body).toHaveAttribute('data-law-cue', 'release');
+  await expect(body).toHaveAttribute('data-stinger', 'clear');
   expect(errors).toEqual([]);
 });
 

@@ -496,10 +496,19 @@ Nine pieces, each sized to be one thread. Three can start at once (A, B and G). 
 - **Checks:** `tests/newspapers.test.ts` (26 tests: timing and coverage, staleness, folding reports, lurid lines and inflated quantities, unnamed stories, Fame by paper and its absence, the extra heat once, the feats' cap and an honest captain reaching Rumored, Fame decay, the WANTED column, kept editions, weather words, the storm signal rule, and the game's wiring end to end), and `e2e/papers.spec.ts`. Screenshots in the project files (`papers/`).
 - **Not yet:** nicknames (plan 12 §6.3), shipping news and market prices in the paper, rival stories, and a storm flag on the harbors' masts in the 3D zones.
 
+### 14.13 Built: piece H, law audio (2026-11-07)
+
+- **Wanted stingers:** a region's tier rising plays a stinger by the highest tier reached (tiers 1–2 a chord that sours, 3–4 the drum marching in, 5 a tolling bell), wherever it rose; a fall plays a softer phrase only in the region you're in. One a frame, an 8 s quiet spell after, nothing while you're in the lockup.
+- **The *Morrill* at close quarters:** her whistle when she hails (long and short to heave to for inspection, five short in pursuit, one long for an arrest), her engine within 1.2 km following her speed, her bell striking the ship's time and ringing the alarm as a pursuit starts, her bow gun and the round falling where it fell (`CutterFired` now carries `at`), and the tug's deputies' rifles. The whistle hails and the shots are captioned with an arrow.
+- **The lockup:** the cell door shuts on `Jailed` (the bell tolls after it for the gallows) and opens on `Released`, with the chart's "clear" phrase after. The harbor master's fine or bribe counts its coins.
+- Twelve synthesized sounds, all in `CREDITS.md`; plan 15 §18 has the details. **For Jared:** a listen in the game, and the preview in the project files (`law-audio/`).
+- **Not yet:** the paper boy's shout in port, with piece F's papers.
+
 ---
 
 ## Changelog
 - v1.0: Phase 5 piece F built (§14.12): the four papers, headlines from events printed a few days late, Fame from the printing, the extra heat, Respectable Captain feats, the WANTED column, cutter sightings, the weather outlook, port storm signals and the tier-5 front page.
+- v0.10: Phase 5 piece H built (§14.13): Wanted stingers, the cutter's whistle, engine, bell and gun, the lockup's door.
 - v0.9: Phase 5 piece E built (§14.11): the harbor master's fines and bribes, the search on docking at tier 2+, posters, informants, the Wanted HUD, the report eye and the tier-5 warning.
 - v0.8: Phase 5 piece C built (§14.10): the Morrill's sorties by Wanted, forced meetings by detection, inspection and pursuit, the shallows, the tier-5 tug, the hidden compartment.
 - v0.7: Phase 5 piece D built (§14.9): capture, jail, bail, the rope and the run's end.

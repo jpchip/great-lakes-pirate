@@ -1,0 +1,11 @@
+{
+  "id": "music.stinger.wanted-hunted",
+  "name": "stinger-wanted-hunted",
+  "description": "Wanted stinger, hunted (tiers 3-4): the drum marches, a falling minor run, a held A minor",
+  "kind": "oneshot",
+  "bus": "music",
+  "bundles": [
+    "law-audio"
+  ],
+  "source": "source.flac"
+}

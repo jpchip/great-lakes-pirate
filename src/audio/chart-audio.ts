@@ -115,13 +115,13 @@ export class ChartCues {
     private readonly music: ChartMusic,
   ) {}
 
-  /** Plays a stinger over the theme, which dips under it. */
-  stinger(id: StingerId): void {
+  /** Plays a stinger over the theme, which dips under it, `delay` seconds from now. */
+  stinger(id: StingerId, delay = 0): void {
     const buffer = this.bank.get(CHART_SOUND.stinger[id]);
     if (!buffer) return;
     this.last = id;
-    this.music.duck(buffer.duration);
-    this.mixer.play({ buffer, bus: 'music', priority: PRIORITY.critical });
+    this.music.duck(delay + buffer.duration);
+    this.mixer.play({ buffer, bus: 'music', delay, priority: PRIORITY.critical });
   }
 
   /** The fade to fog, as a loading screen comes up. */

@@ -1,0 +1,19 @@
+{
+  "source": "procedural",
+  "tool": "tools/audio/synth.ts (tools/audio/lib/synth.ts)",
+  "author": "Great Lakes Pirate contributors",
+  "reference": "Original motif; synthesized concertina, guitar, fiddle drone, frame drum and bell, Freeverb-style reverb",
+  "date": "2026-11-07",
+  "license": "CC BY 4.0",
+  "attribution": "Great Lakes Pirate contributors",
+  "modifications": [],
+  "description": "Wanted stinger, hunted (tiers 3-4): the drum marches, a falling minor run, a held A minor",
+  "durationS": 4.371,
+  "pipeline": [
+    "decoded to mono 48000 Hz",
+    "edge fades",
+    "RMS-normalized toward -18 dB (-2.4 dB)",
+    "Opus 112 kbps mono in Ogg (ffmpeg libopus)"
+  ],
+  "inputHash": "4c1ccb6da9b9da70"
+}

@@ -1,0 +1,11 @@
+{
+  "id": "ui.jail.release",
+  "name": "lockup-release",
+  "description": "Let out of the lockup: the key turned, the bolt drawn, the door creaking open",
+  "kind": "oneshot",
+  "bus": "ui",
+  "bundles": [
+    "law-audio"
+  ],
+  "source": "source.flac"
+}

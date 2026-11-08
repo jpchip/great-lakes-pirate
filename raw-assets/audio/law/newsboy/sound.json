@@ -1,0 +1,11 @@
+{
+  "id": "voice.port.newsboy",
+  "name": "newsboy",
+  "description": "A paper boy crying the new edition down the street: \"Pa-per! Pa-per!\"",
+  "kind": "oneshot",
+  "bus": "voice",
+  "bundles": [
+    "law-audio"
+  ],
+  "source": "source.flac"
+}

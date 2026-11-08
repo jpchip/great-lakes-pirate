@@ -60,7 +60,7 @@ export function millSaw(rate: number, seed = 1880): Float32Array {
 }
 
 /** A heavy wooden thud: a low knock that dies fast, with a little splintery noise. */
-function thud(rate: number, random: Random, seconds: number, hz: number): Float32Array {
+export function thud(rate: number, random: Random, seconds: number, hz: number): Float32Array {
   const n = Math.round(seconds * rate);
   const white = Float32Array.from({ length: n }, () => random() * 2 - 1);
   const knock = bandpass(white, 400, 1, rate);
