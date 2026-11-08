@@ -1,6 +1,6 @@
 # 07 — Combat, Boarding & Targets
 
-Status: DRAFT v0.3 (decisions made; gap review applied)
+Status: DRAFT v0.4 (decisions made; gap review applied; Phase 6 scope proposed in §14)
 Parent: [00-master-plan.md](00-master-plan.md)
 Inputs: master plan decisions (weapons vary by ship and are upgradable; boarding is an intimidate/fight check driven by crew; solo players can only loot surrendered ships; violence is optional and adds heavy heat), [02](02-arcade-sailing.md) (ship model, tiers, damage pools, sinking/rowboat, NPC steam mode), [05](05-ports-economy-trading.md) (manifests, grudges), [06](06-fame-wanted-law-lighthouses.md) (heat, witnesses, the cutter)
 Feeds: 10 (weapon upgrades), 11 (wreck salvage), 12 (rival pirates, events), 13 (aim UI)
@@ -258,7 +258,126 @@ All resolved.
 
 ---
 
+## 14. Phase 6 Scope: Piracy & Combat (2026-11-08)
+
+Phase 6 is the **Piracy & Combat** build (version 0.6.0), with one goal from the [00 §7](00-master-plan.md) roadmap: **"at-sea crime."** Phase 4 put ships with manifests on every lane and let you look them over; Phase 5 built the law that hears about what you do to them. Today you can only watch the *Ada Bell* go by. Phase 6 lets you take her: a warning shot across her bow off Sand Island at dusk, her captain heaving to under your swivel, her furs and tobacco in your hold, flagged hot with the company's marks, and her crew rowing for Bayfield with your ship's description. Sell it to a fence before the papers print it.
+
+The scope comes from §11 above, the Phase 6 rows in plans 10 §13 (weapons and weapon mods, the shady shipwright; the hidden compartment already shipped in 0.5.0), 13 (aim HUD, target info, boarding panel, looting, aftermath), 15 (combat sounds, the boiler explosion, the chase layer) and 05 §6.2 (fences), plus what Phases 3–5 left for it (03 §25's "close and look until Phase 6", 05 §16.5's dev command for hot goods, 06 §14.5's cutter that only shoots rigging, 06 §14.3 criterion 3's stand-in for sinking).
+
+This section is the scope proposal. Like Phases 4 and 5, its exit criteria (§14.3) become the phase's acceptance checklist once Jared approves them, and the playtest piece checks them.
+
+### 14.1 What Phases 3–5 change or put at risk
+
+| Finding | Source | Effect on Phase 6 |
+|---|---|---|
+| **NPC hulls aren't solid.** The player can sail through any ship; collisions were left for combat | 03 §25.4, `src/sim/arena/steering.ts` | Getting alongside (§6.1) needs contact. Piece C adds block-and-bounce collisions (cut list #2 stays: no ramming damage model). |
+| **The cutter's fire is a dice roll, not a shot.** `law-at-sea.ts` rolls a hit and calls `damageRigging`; the splash is drawn where the roll says | `src/gameplay/law-at-sea.ts` | Piece F moves her bow gun onto piece A's ballistics, so her shots and yours obey the same rules, and she can fire round shot at your hull once you've fired on her (§9). |
+| **Foundering is a HUD word.** At hull 0 the player's ship shows "Foundering" and nothing else happens; abandon ship in the rowboat (02 §6.5) was never built | `src/sim/sailing/hazards.ts`, `src/modes/sailing.ts` | Once the cutter and armed targets can hole you, sinking must mean something. Decision 2 (§14.6). |
+| **Fences live in docks districts at night**, which are Phase 7. The only buyer of hot goods is the island smuggler's *Whippoorwill* | 05 §6.2, 08 | Phase 6 makes far more hot goods than she can take in a week. Decision 1 (§14.6). |
+| **The shady shipwright is a docks-district night job** too, and guns are never sold openly | 10 §6, §2.1 above | Same answer as the fences (decision 1): a night-only stand-in on the port screen until Phase 7. |
+| Traffic ships already carry a class, a crew count and a manifest with an owning company, and the arena draws up to five of them | `src/sim/traffic/cargo.ts`, `src/sim/arena/encounter.ts` | Targets need no new traffic system: piece C adds combat stats to the classes that sail today. The package steamer's crew is 28 in code and 12–18 here; piece C settles one number. |
+| **Hot goods come only from the smuggler or `__glpContraband.makeHot`** | 05 §16.5, CHANGELOG 0.5.0 | Looting (piece D) makes hot goods for real, marked with the owner company, and the dev command stays dev-only. |
+| The law pipeline takes any crime from `crimes.json` with witnesses, reports that travel and heat spread; contract theft stands in as the crime that spreads | 06 §14.8, `data/crimes.json` | Piracy, firing on a ship, sinking and killing slot into the same pipeline (piece F). Sinking becomes the crime that spreads. |
+| The detection module already scores observers (keepers, crews, the cutter's lookout) by light, moon, weather and silhouette | 06 §7.1, `src/gameplay/detection.ts` | Who witnessed a robbery uses it unchanged. Gunfire adds a loud event that wakes observers in range (piece F). |
+| Plan 04's "snow and the aurora are Phase 6" | 04 §8, §11 | A leftover numbering; they belong with winter (Phase 9). Not in this scope. |
+
+### 14.2 What Phase 6 delivers
+
+| Area | Deliverable | Plan |
+|---|---|---|
+| Combat core | `weapons.json`, `ammo.json`; kinematic projectiles tested against hull boxes and the water; hit locations (hull, rigging, deck); damage pools for NPC ships (hull, rigging, crew, engine for steamers); casualty accounting with `CrewCasualties` and the lethal flag; NPC ships that founder and sink; powder and shot as cargo, used per shot | §2, §4 |
+| Aiming and firing | Aim mode (Tab) with the arc preview, shortened at night and in fog; 1/2/3 cycles swivel, broadside and rifle; the T1 rudder freezes while aiming; firing on the downroll; muzzle smoke, splashes and splinters | §3 |
+| Targets and their will | Combat stats for the four target classes (fish tug, schooner-barge under tow, package steamer, ore freighter); the morale meter; `Transit → Alert → Flee / Fight / Surrender`; striking colors; steamers that outrun the T1 in a calm; tow lines that part to a rifle or swivel hit; collisions that block | §5, §8, §8.2 |
+| Boarding | F to grapple under 2 kn; the T1 boards only a ship that's already struck; the boarding panel (Intimidate, Fight, Withdraw) with the odds and the death chance shown before you commit | §6 |
+| Looting and aftermath | The transfer screen against your hold, valuables first, a quick grab, time passing while you work; goods flagged hot with the owner's marks; let them go, disable and leave, set them adrift and scuttle (with the weather check shown), or sink her with the crew aboard | §7.1, §7.2 |
+| Wrecks | A sunk or scuttled ship leaves a wreck site (a mast above water or a debris field, a chart mark and a lore line); salvage waits for plan 11 | §7.3 |
+| The law answers | `piracy`, `firing_on_a_ship`, `sinking`, `killing` and `firing_on_the_law` in `crimes.json`; the crew as witnesses reporting at their next port, delayed by what you did to them; gunfire heard; sinking spreads; the *Morrill* on real ballistics, shooting to sink only once fired on; company grudges and Standing | §4.3, §7.2, 06 |
+| Selling it | Fences and the shady shipwright by decision 1; Fame gates; the informant risk at high Wanted | 05 §6.2, 10 §5.4, §6 |
+| Weapons for sale | The bow swivel, light cannon for the T2's broadside, the rifle, weapon mods (one slot on the T1, two on the T2) and hidden gun ports, from the shady shipwright; powder and shot from the chandlery | 10 §5.4 |
+| Your ship sinking | By decision 2 | 02 §6.5 |
+| Newspapers | Piracy headlines from the new events (the ship's name, what was taken, the dead if any), Fame from them as in Phase 5 | 06 §9 |
+| UI | The aim HUD, the target card (her name, class, crew, morale, damage, colors), the boarding panel, the looting screen, the aftermath choice, the combat log with casualties | 13 |
+| Audio | Swivel, cannon and rifle fire, the round's flight and its landing (water, wood, canvas), the boiler explosion, the grapple, a chase layer for the music | 15 |
+| Saves | `weapons`, `ammo`, `wrecks` and the traffic slice's robbed and sunk ships in save v8, with a v7 migration | 16 |
+
+**Out of scope:** rival pirates (§8.1, decision 3); passenger steamers, payroll runs and the whaleback (more target classes after the four above); the T3; on foot, docks districts, the whiskey trick and the walkable fence's back room (Phase 7); salvage diving, wreck investigations and wrecking (Phases 9 and plan 11); incendiaries; and §12's cut list as it stands (steering and boiler hit locations, ramming damage, rival three-way contests, player injury), except that the **boiler explosion stays** (decided 2026-10-21) as a rare event at critical engine damage, without a hit location of its own.
+
+### 14.3 Exit criteria (proposed)
+
+Phase 6 is done when these pass on the baseline laptop and Jared signs off the playtest. The first five are §11's acceptance; the rest come from Phases 3–5 and plan 17's definition of done.
+
+| # | Criterion | How it's checked |
+|---|---|---|
+| 1 | A T1 player can force a fishing tug or a stranded schooner-barge to strike with warning shots and loot her **without killing anyone** | An e2e test through dev hooks; a playtest route off Sand Island |
+| 2 | A T2 player can take a package steamer by intimidation at medium Fame, and by fighting at the cost of casualties and heat | A unit test on the boarding odds by Fame; a playtest |
+| 3 | A steamer in a calm outruns the T1; in a fresh breeze on a reach, the T1 catches a wooden steamer | The sailing bench against `ships.json` speeds; an arena run |
+| 4 | Every death shows in the combat log and produces the expected heat if witnessed | A pipeline unit test per aftermath choice |
+| 5 | An engagement typically lasts 1–4 real minutes; frame and tick budgets hold with four ships firing | Timed playtest runs; `/bench/stream/` with a forced four-ship fight |
+| 6 | Looted goods are hot with the owner's marks, sell to a fence, and are refused or reported by an honest merchant as in Phase 5 | Unit tests; a playtest from robbery to sale |
+| 7 | Letting a crew go means a report at their next port; setting them adrift or disabling the ship delays it; sinking her with all hands leaves no report unless someone else saw | A unit test on report ETAs per choice |
+| 8 | Sinking spreads to the neighboring regions; firing on the *Morrill* puts the region at Most Wanted and she shoots to sink | Unit tests; an arena run with `?encounter=cutter` |
+| 9 | Your own ship sinking does what decision 2 says, and closing the tab while she founders lands you back in it (the danger snapshot) | An e2e test |
+| 10 | No surprise one-shot deaths: the death chance is shown before any Fight, and the cutter never sinks you unless you fired on her | Unit tests |
+| 11 | A 0.5.0 save loads into 0.6.0 unarmed with no ammo at its saved place, and the save stays under the plan 16 budget | `tests/save-migrations.test.ts` with a v7 fixture |
+| 12 | Piracy feels like a choice: a careful pirate can stay off the murder list, and you can see why a robbery went wrong | Jared decides |
+| 13 | Plans 02, 05, 07, 10, 13, 15 and 16 record what was built, CI is green, and 0.6.0 is tagged | The release PR |
+
+### 14.4 Work pieces
+
+Eight pieces, each sized to be one thread. Three can start at once (A, C and E). The playtest (H) closes the phase.
+
+| Stage | Pieces |
+|---|---|
+| 1, start now | A combat core, C targets and morale, E fences and the gun trade |
+| 2 | B aiming and firing (after A), D boarding, looting and aftermath (after A, C) |
+| 3 | F the law and the world answer (after A, D), G combat audio (after B, D) |
+| 4 | H playtest |
+
+| # | Piece | Scope | Needs first | Needs Jared |
+|---|---|---|---|---|
+| A | Combat core | `weapons.json` and `ammo.json` with schemas (§2: arc, range, reload solo and crewed, damage by ammo against each pool). Projectiles as kinematic arcs from a muzzle velocity and gravity, tested against the hull boxes of 02 §6.3 and the water; hit location from the impact point. NPC damage pools (hull, rigging, crew, engine) and their effects: leaks slow her and sink her at 0, rigging slows a sailing ship, engine damage stops a steamer, crew casualties with killed and wounded, and the rare boiler explosion. `WeaponFired`, `ShipHit`, `CrewCasualties`, `BoilerExploded`. Powder and shot in `goods.json`, used per shot. `player.ship.weapons[]` and ammo in save v8 with the v7 migration. A dev panel and `__glpCombat` to arm the ship, fire at a bearing and damage a target | — | — |
+| B | Aiming and firing | Tab into aim mode with the camera on the chosen side or the bow; the dotted arc and splash ring, shortened by light and fog; 1/2/3 to cycle; LMB fires one swivel shot or a rippled broadside; the T1's rudder holds while aiming; heel and roll move the barrel so firing on the downroll is the skill; reload timers. Muzzle smoke, splashes, splinters and torn canvas. The aim HUD and the target card | A | Aim feel |
+| C | Targets and morale | Combat stats per class in `ships.json` (crew, armament, base morale, flee preference, loot hooks) for the fish tug, schooner-barge, package steamer and ore freighter. The morale meter (§5.1) with Fame, warning shots, damage, casualties, being outgunned, aground or becalmed, night and fog surprise, the cutter or a port near. The `Transit → Alert → Flee / Fight / Surrender` FSM in zones and arenas, built on the steering of `src/sim/arena/steering.ts`; a struck ship heaves to with a white flag. Tow lines: a barge behind her steamer, parted by a hit on the cable. Collisions that block and bounce for every hull. Pure sim first, so it unit-tests and can start before A's damage lands | — (A's damage interface) | — |
+| D | Boarding, looting and aftermath | F to grapple alongside under 2 kn. The T1 solo rule with its reason shown. The boarding panel (§6.2) with strength against defense, Intimidate, Fight, Withdraw, the odds and the death chance shown first; a lost Fight is repelled with damage, or death at bad odds (permadeath, through Phase 5's end screen). The looting screen on the port screen's market pattern: her manifest against your hold, valuables first, a quick grab, game time per step. Hot goods with the owning company's marks. The four aftermath choices with the weather check for the boat. `ShipSurrendered`, `BoardingAttempted/Succeeded/Repelled`, `ShipLooted`, `CrewSetAdrift`, `ShipScuttled`. Robbed and sunk ships recorded in the traffic slice so the timetable doesn't bring them back that week | A, C | Panel look |
+| E | Fences and the gun trade | Fences by decision 1, with weekly cash, preferences (Bayfield wants fish and furs, Duluth takes anything), rates by Fame, trust and heat, and the informant risk at tier 2+ on Phase 5's rules. The shady shipwright in the same place: the bow swivel, light cannon (T2 broadside), the rifle, weapon mods and hidden gun ports, Fame-gated as 10 §6 says; installs on 10's slot system. Powder and shot at the chandlery. Weapons move with you on a trade-in as 10 §3 says | — (A's `weapons.json` for prices; stubbed until it lands) | Prices |
+| F | The law and the world answer | The new crimes in `crimes.json` and their heat. The robbed crew as witnesses, their report delayed by the aftermath choice; gunfire as a loud event that alerts observers in range; passengers none yet. Sinking as the crime that spreads, retiring contract theft as the stand-in. The *Morrill* on A's ballistics; fired on, she goes to Most Wanted and round shot. Your ship sinking by decision 2. Wrecks: a world object, a chart mark and a ledger line. Company grudges and Standing for robbing their ships. Papers: piracy headlines and Fame | A, D | — |
+| G | Combat audio | Swivel, cannon and rifle, the round in flight, landing in water, wood or canvas, the boiler, the grapple and the boarding vignette, the crew's shouts when she strikes, and a chase layer for the music (plan 15 §11). Every file in `CREDITS.md` | B, D | Listen by ear |
+| H | Phase 6 playtest | The §14.3 scenarios, the benches, plans updated, tag 0.6.0 | All | Playtest, sign-off |
+
+### 14.5 Smaller calls assumed (Jared can override)
+
+- **The crew is implied by the tier.** The T1 is you alone; the T2 carries six hands for the boarding check and the broadside's reload. Hiring and paying a crew waits for plan 12.
+- **The T1 isn't armed at the start.** A new run has small arms only; the bow swivel is the first purchase at the shady shipwright, with no Fame gate, and cannon need Known (Fame tier 2). Backgrounds whose perks said "from phase 6" (the Ex-Navy's accuracy) start working.
+- **Ammo is cargo** in the hold's capacity units, as §2.2 says; running dry is the limit.
+- **Every target class is unarmed** in Phase 6 (companies never arm their ships, 05 §8.2), so the only ship that shoots back is the *Morrill*. Fight in §5.2 means a steamer turning to ram, which collisions turn into a shove.
+- **Combat happens wherever ships are drawn**: in the coastal zones and in open-water arenas. The chart never resolves a fight abstractly; engaging on the chart drops you into an arena as today.
+- **No autosave mid-fight** (§10); the danger snapshot from Phase 5 covers closing the tab.
+- **Killing is counted, not shown.** The combat log names the dead by number and the ship; no bodies on deck.
+
+### 14.6 Decisions for Jared
+
+1. **Where do you sell stolen goods before the docks districts exist?** Plan 05 puts fences in saloon back rooms at night, which is Phase 7's on-foot district.
+   - **A back-room tab on the port screen at night (recommended):** after dark, Bayfield's saloon has a back room with a fence and the shady shipwright, Duluth's opens at Known Fame. Phase 7 replaces the tab with the walkable room and keeps the same fence data.
+   - **More smugglers at sea:** add a second smuggler boat near Duluth that fences like the *Whippoorwill*. No port-screen stand-in to throw away later, but fewer places to sell and no shipwright.
+   - **Only the *Whippoorwill* until Phase 7:** raise her weekly cash. Least work; the money loop of piracy is thin.
+2. **What happens when your own ship sinks?** Today nothing does.
+   - **A simple abandon ship (recommended):** press F while foundering to take to the boat; the ship and cargo are lost, and you're landed at the nearest port by a passing vessel, which may know your face (an extra report). You keep your stash money and buy a new hull at the shipyard. The rowable rowboat comes with going ashore in Phase 7.
+   - **The full rowboat now (02 §6.5):** row yourself to an island or town in the zone, at 2–3 kn, swamped in a sea. Closer to the plan, a good deal more work, and the shipless life has little to do until Phase 7.
+   - **Sinking ends the run:** the end screen, as for the gallows. Harsh for a storm loss.
+3. **Do rival pirates come in Phase 6?** The roadmap row leaves them out; §8.1 has copycats appear from Known Fame.
+   - **Later, with events (recommended):** Phase 6 is the four target classes and the law. Rivals arrive with plan 12's event templates in Phase 9, when the papers are rich enough to inspire copycats.
+   - **One copycat in Phase 6:** a single armed schooner that appears at Known, raids your lanes and fights back, worth Fame and a stash map. The first ship other than the cutter that shoots at you.
+
+### 14.7 Housekeeping found along the way
+
+- The 0.5.0 tag is still Jared's to push from the release merge (PR #88). Two Phase 5 calls are open in 06 §14.14.3: whether the end screen looks right, and where the smuggler anchors relative to Raspberry light.
+- Plan 17 wants a tracking issue per phase with the acceptance checklist; §14.3 can become it once approved.
+- Plan 04 still calls snow and the aurora Phase 6 (§14.1); its next edit should say Phase 9.
+
+---
+
 ## Changelog
+- v0.4: §14 Phase 6 scope proposal: what Phases 3–5 changed, deliverables, exit criteria, eight work pieces, smaller calls and three decisions for Jared.
 - v0.3: Gap review: T3 has a single bow swivel (stern swivel removed).
 - v0.2: Decisions: steering freeze, boarding death chance, boiler explosions, passenger steamers targetable, copycat rivals (none at start, max 2–3); removed company guards and decoys.
 - v0.1: Initial combat plan: weapons and ammo, tier loadouts, aim mode and solo handicap, ballistics, hit locations, damage pools, lethality accounting, morale/surrender/flee AI, the boarding check, looting with time pressure, aftermath choices, target roster, rival pirates, ramming and tow lines, death and injury rules, data/state, Phase 6 acceptance.
