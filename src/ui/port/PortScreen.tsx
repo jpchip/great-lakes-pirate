@@ -59,6 +59,8 @@ export interface PortActions {
    * (Phase 6 piece E): the refusal, or what came of it, in a line.
    */
   fence?(index: number, qty: number): string | undefined;
+  /** Mounts a gun from the shady shipwright's back room (Phase 6 piece E). */
+  buyGun?(gunId: string): string | undefined;
   /** The harbor master (Phase 5 piece E): pay the fine or bribe on offer; what came of it. */
   payHarbor?(kind: 'fine' | 'bribe'): string | undefined;
   /** The newsstand (Phase 5 piece F): buy a paper's latest edition; the refusal. */

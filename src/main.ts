@@ -1058,6 +1058,7 @@ async function boot(): Promise<void> {
       unfit: (upgrade, place) => portsRef.current?.actions.unfit(upgrade, place),
       repair: (place) => portsRef.current?.actions.repair(place),
       fence: (index, qty) => portsRef.current?.actions.fence?.(index, qty),
+      buyGun: (gunId) => portsRef.current?.actions.buyGun?.(gunId),
       // Piece E's harbor master tab offered Pay but nothing carried it to the game.
       payHarbor: (kind) => portsRef.current?.actions.payHarbor?.(kind),
       buyPaper: (paper) => portsRef.current?.actions.buyPaper?.(paper),

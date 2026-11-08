@@ -30,9 +30,7 @@ export const CATEGORY_NAMES: Record<UpgradeCategory, string> = {
   cargo: 'Cargo',
   instruments: 'Instruments',
   utility: 'Utility',
-  weapons: 'Guns',
   weaponMods: 'Gun work',
-  smallArms: 'Small arms',
 };
 
 /** A class's sailing numbers as fitted, for comparing hulls (plan 10 §12). */
@@ -119,7 +117,6 @@ const REFUSAL_TEXT: Partial<Record<string, string>> = {
   noMoney: "You haven't the money.",
   noSlot: 'No free slot',
   fitted: 'Fitted',
-  hull: 'Too small a hull',
   noGun: 'Needs a gun aboard',
 };
 

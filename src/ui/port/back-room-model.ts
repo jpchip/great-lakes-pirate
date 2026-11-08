@@ -36,6 +36,17 @@ export interface BackRoomLot {
   refusal: string | undefined;
 }
 
+/** A gun the shipwright sells: its price and why she can't have it now, if she can't. */
+export interface BackRoomGun {
+  id: string;
+  name: string;
+  blurb: string;
+  priceCents: number;
+  /** "Bow" or "Port and starboard": where it's mounted. */
+  where: string;
+  refusal: string | undefined;
+}
+
 export interface BackRoomSnapshot {
   fence: string;
   name: string;
@@ -48,7 +59,8 @@ export interface BackRoomSnapshot {
   lots: BackRoomLot[];
   /** With the law after you in the port's region, the risk he sells you out, in a word. */
   informRisk?: string | undefined;
-  /** The shady shipwright's guns, mods and rifle, if he works out of this room. */
+  /** The shady shipwright's guns and gun work, if he works out of this room. */
+  guns?: BackRoomGun[] | undefined;
   shipwright?: YardSnapshot | undefined;
 }
 

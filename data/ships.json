@@ -57,9 +57,7 @@
       "cargo": 1,
       "instruments": 2,
       "utility": 1,
-      "weapons": 1,
-      "weaponMods": 1,
-      "smallArms": 1
+      "weaponMods": 1
     }
   },
   {
@@ -120,9 +118,7 @@
       "cargo": 1,
       "instruments": 3,
       "utility": 2,
-      "weapons": 2,
-      "weaponMods": 2,
-      "smallArms": 1
+      "weaponMods": 2
     }
   },
   {

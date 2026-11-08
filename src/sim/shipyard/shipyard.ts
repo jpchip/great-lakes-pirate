@@ -4,7 +4,7 @@ import type { EconomyDefs } from '../economy/defs';
 import { holdUsed, isClean, reduceStack, type CargoStack, type Hold } from '../economy/hold';
 import { applyTrade, quote, type MarketsState } from '../economy/market';
 import { sailShipRecord, SHIP_RECORDS, T1_SCHOONER_ID } from '../sailing/ships';
-import { hasGun, hasSlot, slotsOf, upgradeDef } from './fit';
+import { hasSlot, slotsOf, upgradeDef } from './fit';
 import { fittingWeapons, type MountedWeapon } from '../combat/armament';
 import { gameCombat } from '../combat/defs';
 
@@ -83,7 +83,7 @@ export const PATCH_KIT = 'store.patch_kit';
 export const MEND_KIT = 'store.mend_kit';
 
 /** A price in a large port, with this port's spread (smaller ports charge more). */
-function atPort(defs: EconomyDefs, port: string, listCents: number): number {
+export function atPort(defs: EconomyDefs, port: string, listCents: number): number {
   const spread = defs.markets.get(port)?.spread ?? LIST_SPREAD;
   return Math.ceil((listCents * (1 + spread)) / (1 + LIST_SPREAD));
 }
@@ -138,9 +138,9 @@ export interface TradeInQuote {
   staying: string[];
 }
 
-/** Whether a hull can carry an upgrade at all (broadside guns need the T2). */
-export function hullTakes(record: SailShipRecord, upgrade: Upgrade): boolean {
-  return (record.tier ?? 0) >= (upgrade.minTier ?? 0);
+/** Whether she carries a gun on a broadside or the bow (not the hand): mods need one. */
+export function gunAboard(ship: { weapons: readonly MountedWeapon[] }): boolean {
+  return ship.weapons.some((w) => w.mount !== 'hand');
 }
 
 /**
@@ -150,16 +150,15 @@ export function hullTakes(record: SailShipRecord, upgrade: Upgrade): boolean {
  */
 export function movingUpgrades(ship: ShipState, to: SailShipRecord): string[] {
   const moving: string[] = [];
-  const order = [...ship.upgrades].sort(
-    (a, b) => Number(!!upgradeDef(a)?.needsGun) - Number(!!upgradeDef(b)?.needsGun),
-  );
-  for (const id of order) {
+  // The guns that fit the new hull decide whether a mod comes too.
+  const guns = gunAboard({ weapons: fittingWeapons(gameCombat(), to.id, ship.weapons) });
+  for (const id of ship.upgrades) {
     const u = upgradeDef(id);
-    if (!u?.transferable || !hullTakes(to, u) || !hasSlot(to, moving, u.category)) continue;
-    if (u.needsGun && !hasGun(moving)) continue;
+    if (!u?.transferable || !hasSlot(to, moving, u.category)) continue;
+    if (u.needsGun && !guns) continue;
     moving.push(id);
   }
-  return ship.upgrades.filter((id) => moving.includes(id));
+  return moving;
 }
 
 export function tradeInQuote(ship: ShipState, to: SailShipRecord): TradeInQuote {
@@ -275,8 +274,11 @@ export type ShipyardRefusal =
   | 'noKit'
   | 'kitCap'
   | 'fame'
+  | 'noGun'
   | 'hull'
-  | 'noGun';
+  | 'wrongMount'
+  | 'noRoom'
+  | 'unknownWeapon';
 
 /** What `ShipPurchased` carries (plan 10 §11). */
 export interface ShipPurchasedEvent {
@@ -376,9 +378,8 @@ export function fitRefusal(
   if (!upgrade.sources.includes(source)) return 'notHere';
   if (ship.upgrades.includes(upgrade.id)) return 'fitted';
   const record = sailShipRecord(ship.classId);
-  if (!hullTakes(record, upgrade)) return 'hull';
   if (fameTier < (upgrade.fameTier ?? 0)) return 'fame';
-  if (upgrade.needsGun && !hasGun(ship.upgrades)) return 'noGun';
+  if (upgrade.needsGun && !gunAboard(ship)) return 'noGun';
   if (!hasSlot(record, ship.upgrades, upgrade.category)) return 'noSlot';
   if (priceCents > owner.purse) return 'noMoney';
   return undefined;

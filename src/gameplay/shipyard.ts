@@ -86,8 +86,11 @@ const REFUSALS: Record<ShipyardRefusal, string> = {
   noKit: 'No kit in the lockers.',
   kitCap: 'That needs a yard now: kits only patch so far.',
   fame: "He doesn't know your name well enough to sell you that.",
-  hull: "She's too small to carry it.",
   noGun: 'There is no gun aboard to fit it to.',
+  hull: "She's too small to carry it.",
+  wrongMount: "That gun doesn't go there.",
+  noRoom: 'No room left for another of those.',
+  unknownWeapon: "He doesn't have that.",
 };
 
 export function attachShipyard(opts: ShipyardOptions): GameShipyard {

@@ -459,6 +459,13 @@ export function attachPorts(opts: PortControlOptions): PortControl {
           return 'The back room is shut.';
         return yardWork((y, port) => y.remove(port, upgrade, place));
       },
+      buyGun(gunId) {
+        const port = openPort;
+        if (!port || !opts.backRoom) return 'There is no shipwright here.';
+        const r = opts.backRoom.buyGun(port, gunId);
+        refresh();
+        return r;
+      },
       fence(index, qty) {
         const port = openPort;
         if (!port || !opts.backRoom) return 'There is no back room here.';

@@ -3,6 +3,7 @@ import type { BackRoomLot, BackRoomSnapshot } from './back-room-model';
 import { Help } from './Help';
 import type { PortActions } from './PortScreen';
 import { UpgradeTable } from './Shipyard';
+import type { BackRoomGun } from './back-room-model';
 
 /**
  * The back room after dark (plan 05 §6.2, §12 "Fence screen"; plan 10 §6; Phase 6 piece E).
@@ -23,6 +24,39 @@ function lotNote(l: BackRoomLot): string {
   if (l.refusal) return l.refusal;
   if (l.maxQty <= 0) return "He hasn't the cash left for it";
   return `${l.ratePct}% of its value${l.offLine ? ' (not his line)' : ''}`;
+}
+
+function GunRow({
+  gun,
+  actions,
+  setMessage,
+}: {
+  gun: BackRoomGun;
+  actions: PortActions;
+  setMessage(m: string | undefined): void;
+}) {
+  return (
+    <tr class="port-row" data-testid={`gun-row-${gun.id}`}>
+      <td>
+        {gun.name}
+        <Help text={gun.blurb} />
+      </td>
+      <td class="num hud-num">{formatCents(gun.priceCents)}</td>
+      <td class="port-dim">{gun.where}</td>
+      <td class="port-actions">
+        <button
+          type="button"
+          class="port-mini"
+          data-testid={`buy-gun-${gun.id}`}
+          disabled={!!gun.refusal}
+          title={gun.refusal ?? 'Mount it on her'}
+          onClick={() => setMessage(actions.buyGun?.(gun.id) ?? `${gun.name} mounted.`)}
+        >
+          {gun.refusal ? 'No' : 'Buy'}
+        </button>
+      </td>
+    </tr>
+  );
 }
 
 export function BackRoom({
@@ -97,17 +131,24 @@ export function BackRoom({
             The shipwright
             <Help text="Guns are never sold over a counter. He fits them tonight, and the hours pass while he works. Guns and gun work move to a new hull if she has the slots; the hidden ports stay with the old one." />
           </h3>
+          {room.guns && room.guns.length > 0 && (
+            <table class="port-table" data-testid="shipwright-guns">
+              <tbody>
+                {room.guns.map((g) => (
+                  <GunRow key={g.id} gun={g} actions={actions} setMessage={setMessage} />
+                ))}
+              </tbody>
+            </table>
+          )}
           <ul class="yard-slots">
-            {room.shipwright.slots
-              .filter((s) => ['weapons', 'weaponMods', 'smallArms'].includes(s.category))
-              .map((s) => (
-                <li key={s.category}>
-                  <span>{s.label}</span>
-                  <span class="hud-num">
-                    {s.used}/{s.total}
-                  </span>
-                </li>
-              ))}
+            {room.shipwright.slots.map((s) => (
+              <li key={s.category}>
+                <span>{s.label}</span>
+                <span class="hud-num">
+                  {s.used}/{s.total}
+                </span>
+              </li>
+            ))}
           </ul>
           <UpgradeTable
             rows={room.shipwright.upgrades}

@@ -2,7 +2,6 @@ import upgradesJson from '../../../data/upgrades.json';
 import type { SailShipRecord } from '../../../data/schemas/ships';
 import {
   upgradesFileSchema,
-  type Arms,
   type Upgrade,
   type UpgradeCategory,
 } from '../../../data/schemas/upgrades';
@@ -49,14 +48,11 @@ export const BASE_INSTRUMENTS: Readonly<Instruments> = {
 };
 
 /**
- * What she carries to fight with (plan 07 §2, plan 10 §5.4; Phase 6 piece E): the guns and
- * small arms fitted, and what the weapon mods do to them. Piece A's combat reads it; the
- * weapons themselves (range, reload, damage) are its `weapons.json`.
+ * The weapon mods' effect on her guns (plan 10 §5.4; Phase 6 piece E): the multipliers
+ * the mods fold in. The guns themselves are `player.ship.weapons` (piece A), and a mod
+ * only fits while a gun is aboard (`fitRefusal` in `shipyard.ts`).
  */
-export interface Armament {
-  /** Each gun or small arm aboard, by the upgrade that fitted it. */
-  arms: (Arms & { upgrade: string })[];
-  /** Multipliers from the weapon mods, 1 with none (or no gun to mod). */
+export interface GunMods {
   rangeMul: number;
   reloadMul: number;
   spreadMul: number;
@@ -64,44 +60,34 @@ export interface Armament {
   looksUnarmed: boolean;
 }
 
-export const NO_ARMAMENT: Readonly<Armament> = {
-  arms: [],
+export const NO_GUN_MODS: Readonly<GunMods> = {
   rangeMul: 1,
   reloadMul: 1,
   spreadMul: 1,
   looksUnarmed: false,
 };
 
-export interface ShipFit {
-  record: SailShipRecord;
-  rules: HazardRules;
-  instruments: Instruments;
-  armament: Armament;
-}
-
-/** Whether a gun (not the rifle) is among these upgrades: weapon mods need one. */
-export function hasGun(upgrades: readonly string[]): boolean {
-  return upgrades.some((id) => upgradeDef(id)?.category === 'weapons');
-}
-
-/** Her armament with these upgrades. Mods count only while a gun is aboard. */
-export function armamentOf(upgrades: readonly string[]): Armament {
-  const out: Armament = { ...NO_ARMAMENT, arms: [] };
-  const gun = hasGun(upgrades);
+export function gunModsOf(upgrades: readonly string[]): GunMods {
+  const out: GunMods = { ...NO_GUN_MODS };
   for (const id of upgrades) {
-    const u = upgradeDef(id);
-    if (!u) continue;
-    if (u.arms) out.arms.push({ ...u.arms, upgrade: u.id });
-    if (u.category !== 'weaponMods' || !gun) continue;
-    out.rangeMul *= u.effects.gunRangeMul ?? 1;
-    out.reloadMul *= u.effects.reloadMul ?? 1;
-    out.spreadMul *= u.effects.spreadMul ?? 1;
-    out.looksUnarmed ||= !!u.effects.looksUnarmed;
+    const e = upgradeDef(id)?.effects;
+    if (!e) continue;
+    out.rangeMul *= e.gunRangeMul ?? 1;
+    out.reloadMul *= e.reloadMul ?? 1;
+    out.spreadMul *= e.spreadMul ?? 1;
+    out.looksUnarmed ||= !!e.looksUnarmed;
   }
   return out;
 }
 
-/** Slots a class has in a category (plan 10 §4). */
+export interface ShipFit {
+  record: SailShipRecord;
+  rules: HazardRules;
+  instruments: Instruments;
+  gunMods: GunMods;
+}
+
+/** Slots in a category the class has (plan 10 §4). */
 export function slotsOf(record: SailShipRecord, category: UpgradeCategory): number {
   return record.slots?.[category] ?? 0;
 }
@@ -178,5 +164,5 @@ export function fitShip(
     ],
     shallowWarnDrafts,
   };
-  return { record, rules, instruments, armament: armamentOf(upgrades) };
+  return { record, rules, instruments, gunMods: gunModsOf(upgrades) };
 }

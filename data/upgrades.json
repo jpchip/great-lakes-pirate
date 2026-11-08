@@ -148,54 +148,6 @@
     }
   },
   {
-    "id": "upgrade.bow_swivel",
-    "name": "Bow swivel",
-    "category": "weapons",
-    "blurb": "A one-pounder on a pivot in the bows: chain for her rigging, grape for her deck, or a shot across her bow to make her think. The first gun a solo captain can work.",
-    "priceCents": 7500,
-    "sources": ["backRoom"],
-    "installHours": 4,
-    "transferable": true,
-    "effects": {},
-    "arms": {
-      "weapon": "weapon.swivel",
-      "mount": "bow"
-    }
-  },
-  {
-    "id": "upgrade.light_cannon",
-    "name": "Light cannon, a pair",
-    "category": "weapons",
-    "blurb": "Two old four-pounders, one each side behind the bulwarks: round shot to hole a hull. A broadside needs hands to work it, so only the larger schooner carries them.",
-    "priceCents": 24000,
-    "sources": ["backRoom"],
-    "installHours": 10,
-    "transferable": true,
-    "effects": {},
-    "arms": {
-      "weapon": "weapon.light_cannon",
-      "mount": "broadside",
-      "perSide": 1
-    },
-    "fameTier": 2,
-    "minTier": 2
-  },
-  {
-    "id": "upgrade.rifle",
-    "name": "Rifle",
-    "category": "smallArms",
-    "blurb": "A lever-action rifle and a box of cartridges: cut a tow line, put out a lamp, or pick off a man at the wheel. Precise, short-ranged and lethal.",
-    "priceCents": 3000,
-    "sources": ["backRoom"],
-    "installHours": 0,
-    "transferable": true,
-    "effects": {},
-    "arms": {
-      "weapon": "weapon.rifle",
-      "mount": "hand"
-    }
-  },
-  {
     "id": "upgrade.gun_sights",
     "name": "Gun sights",
     "category": "weaponMods",

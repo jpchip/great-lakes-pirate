@@ -38,14 +38,9 @@ import {
 import { informChance, informRoll } from '../src/sim/law/port-law';
 import { gameLaw } from '../src/sim/law/defs';
 import { T1_SCHOONER_ID, T2_SCHOONER_ID, sailShipRecord } from '../src/sim/sailing/ships';
-import { armamentOf, upgradeDefs } from '../src/sim/shipyard/fit';
-import {
-  buyHull,
-  defaultShipState,
-  fitRefusal,
-  installUpgrade,
-  movingUpgrades,
-} from '../src/sim/shipyard/shipyard';
+import { gunModsOf, upgradeDefs } from '../src/sim/shipyard/fit';
+import { buyGun, gameGuns, gunRefusal } from '../src/sim/shipyard/guns';
+import { defaultShipState, fitRefusal, movingUpgrades } from '../src/sim/shipyard/shipyard';
 import { createWorldState, parseWorldState } from '../src/sim/world-state';
 import type { PortSnapshot } from '../src/ui/port/model';
 
@@ -236,7 +231,6 @@ describe('the back room on the port screen (decision 1 of plan 07 §14.6)', () =
     expect(snap?.tabs).toContain('backRoom');
     expect(snap?.backRoom?.name).toBe(BAYFIELD.name);
     expect(snap?.backRoom?.wants).toMatch(/fish/);
-    expect(snap?.backRoom?.shipwright?.upgrades.map((u) => u.id)).toContain('upgrade.bow_swivel');
     // Only the shady shipwright's gear: nothing a shipyard sells.
     expect(snap?.backRoom?.shipwright?.upgrades.every((u) => u.category !== 'hull')).toBe(true);
   });
@@ -299,114 +293,117 @@ describe('the back room on the port screen (decision 1 of plan 07 §14.6)', () =
     expect(g.seen.filter((s) => s === 'CrimeCommitted').length).toBe(crimes);
   });
 
-  it('fits a bow swivel tonight, and refuses gear behind Fame or the wrong hull', () => {
-    const g = game(NIGHT);
+  it('mounts a bow swivel tonight, and refuses a gun the hull has no mount for', () => {
+    // Known, so the fame check passes and the hull's tier is what refuses the cannon pair.
+    const g = game(NIGHT, KNOWN_FAME);
     g.state.player.purse = 100_000;
     g.ports.open('port.bayfield');
-    const rows = g.shown.at(-1)?.backRoom?.shipwright?.upgrades ?? [];
-    expect(rows.find((u) => u.id === 'upgrade.light_cannon')?.refusal).toBe('Too small a hull');
-    expect(rows.find((u) => u.id === 'upgrade.gun_sights')?.refusal).toBe('Needs a gun aboard');
-    expect(rows.find((u) => u.id === 'upgrade.bored_barrels')?.refusal).toMatch(/Rumored/);
+    const guns = g.shown.at(-1)?.backRoom?.guns ?? [];
+    expect(guns.find((x) => x.id === 'gun.light_cannon_pair')?.refusal).toBe(
+      "She's too small to carry it.",
+    );
+    expect(guns.find((x) => x.id === 'gun.bow_swivel')?.refusal).toBeUndefined();
     const before = g.state.environment.clock.gameSeconds;
-    expect(g.ports.actions.fit('upgrade.bow_swivel', 'backRoom')).toBeUndefined();
-    expect(g.state.environment.clock.gameSeconds).toBe(before + 4 * 3600);
-    expect(g.shipyard.ship.upgrades).toContain('upgrade.bow_swivel');
-    expect(g.shipyard.fit.armament.arms).toEqual([
-      { weapon: 'weapon.swivel', mount: 'bow', upgrade: 'upgrade.bow_swivel' },
-    ]);
+    expect(g.ports.actions.buyGun?.('gun.bow_swivel')).toMatch(/Mounted/);
+    expect(g.state.player.ship?.weapons).toContainEqual({ weapon: 'weapon.swivel', mount: 'bow' });
+    // Mounted by the combat core's own rules: a second swivel has no bow to go in.
+    expect(g.ports.actions.buyGun?.('gun.bow_swivel')).toMatch(/No room/);
+    // The guns are the shipwright's: the yard's upgrade list has none.
+    expect(g.shown.at(-1)?.backRoom?.shipwright?.upgrades.map((u) => u.id)).not.toContain(
+      'upgrade.bow_swivel',
+    );
+    expect(g.state.environment.clock.gameSeconds).toBe(before);
+    // A gun is aboard now, so the sights fit in the back room (no message on success).
     expect(g.ports.actions.fit('upgrade.gun_sights', 'backRoom')).toBeUndefined();
-    expect(g.shipyard.fit.armament.spreadMul).toBeCloseTo(0.75);
-    // The shipwright isn't at the shipyard, and his room shuts by day.
-    expect(g.ports.actions.fit('upgrade.rifle', 'shipyard')).toBeTruthy();
-    g.state.environment.clock.gameSeconds = WEEK + NOON;
-    expect(g.ports.actions.fit('upgrade.rifle', 'backRoom')).toMatch(/shut/);
+    // By day the shipwright is shut, and his gun counter with him.
+    g.state.environment.clock.gameSeconds = NOON;
+    expect(g.ports.actions.buyGun?.('gun.bow_swivel')).toMatch(/shut/);
   });
 });
 
-describe('the shady shipwright (plan 10 §5.4, §6)', () => {
+describe('the shady shipwright (plan 10 §5.4, §6; plan 07 piece A)', () => {
   const owner = () => ({ purse: 1_000_000, cargo: [], stores: {} });
-  const swivel = upgradeDefs().get('upgrade.bow_swivel');
-  const cannon = upgradeDefs().get('upgrade.light_cannon');
+  const cannon = gameGuns().find((g) => g.id === 'gun.light_cannon_pair');
+  const swivel = gameGuns().find((g) => g.id === 'gun.bow_swivel');
 
-  it('sells every gun and mod only in the back room, with arms for piece A', () => {
+  it('sells the guns from guns.json, and the gun work from upgrades.json', () => {
     const shady = [...upgradeDefs().values()].filter((u) => u.sources.includes('backRoom'));
-    expect(shady.map((u) => u.id)).toEqual(
-      expect.arrayContaining([
-        'upgrade.bow_swivel',
-        'upgrade.light_cannon',
-        'upgrade.rifle',
-        'upgrade.gun_sights',
+    expect(shady.map((u) => u.id).sort()).toEqual(
+      [
         'upgrade.bored_barrels',
-        'upgrade.improved_carriages',
+        'upgrade.gun_sights',
         'upgrade.hidden_gun_ports',
-      ]),
+        'upgrade.improved_carriages',
+      ].sort(),
     );
-    for (const u of upgradeDefs().values()) {
-      if (['weapons', 'weaponMods', 'smallArms'].includes(u.category))
-        expect(u.sources, u.id).toEqual(['backRoom']);
-    }
-    expect(swivel?.fameTier ?? 0).toBe(0);
-    expect(cannon?.fameTier).toBe(2);
-    expect(cannon?.arms).toMatchObject({ mount: 'broadside', perSide: 1 });
-  });
-
-  it('gates cannon on Known and the T2, and mods on a gun aboard', () => {
-    const t1 = defaultShipState(T1_SCHOONER_ID);
-    const t2 = defaultShipState(T2_SCHOONER_ID);
-    if (!cannon || !swivel) throw new Error('no guns');
-    expect(fitRefusal(owner(), t1, cannon, 'backRoom', 1, 4)).toBe('hull');
-    expect(fitRefusal(owner(), t2, cannon, 'backRoom', 1, 1)).toBe('fame');
-    expect(fitRefusal(owner(), t2, cannon, 'backRoom', 1, 2)).toBeUndefined();
-    expect(fitRefusal(owner(), t1, swivel, 'shipyard', 1, 0)).toBe('notHere');
-    const o = owner();
-    expect(installUpgrade(defs, o, t1, 'port.bayfield', 'upgrade.bow_swivel', 'backRoom').ok).toBe(
-      true,
-    );
-    // The T1 has one gun mount: the swivel fills it.
-    const r = installUpgrade(defs, o, t2, 'port.bayfield', 'upgrade.bow_swivel', 'backRoom');
-    expect(r.ok).toBe(true);
     expect(
-      installUpgrade(defs, o, t2, 'port.bayfield', 'upgrade.light_cannon', 'backRoom', 0, 2).ok,
-    ).toBe(true);
-    expect(armamentOf(t2.upgrades).arms.map((a) => a.mount)).toEqual(['bow', 'broadside']);
+      gameGuns()
+        .map((g) => g.weapon)
+        .sort(),
+    ).toEqual(['weapon.light_cannon', 'weapon.swivel'].sort());
+    expect(cannon?.fameTier).toBe(2);
+    expect(cannon?.mounts).toEqual(['port', 'starboard']);
+    expect(swivel?.mounts).toEqual(['bow']);
   });
 
-  it('moves guns to a new hull that can carry them; the hidden ports stay behind', () => {
-    const t2 = defaultShipState(T2_SCHOONER_ID);
-    t2.upgrades = [
-      'upgrade.hidden_gun_ports',
-      'upgrade.bow_swivel',
-      'upgrade.light_cannon',
-      'upgrade.rifle',
-      'upgrade.gun_sights',
-    ];
-    // Down to the T1: the swivel, the rifle and the sights come across; the cannon can't.
-    expect(movingUpgrades(t2, sailShipRecord(T1_SCHOONER_ID))).toEqual([
-      'upgrade.bow_swivel',
-      'upgrade.rifle',
-      'upgrade.gun_sights',
-    ]);
-    // A mod with no gun to fit it to stays behind.
-    const modsOnly = { ...t2, upgrades: ['upgrade.gun_sights', 'upgrade.rifle'] };
-    expect(movingUpgrades(modsOnly, sailShipRecord(T1_SCHOONER_ID))).toEqual(['upgrade.rifle']);
-    // Up to the T2 from an armed T1: everything comes.
+  it('gates the cannon on Known and the T2, and the mods on a gun aboard', () => {
+    if (!cannon || !swivel) throw new Error('no guns');
     const t1 = defaultShipState(T1_SCHOONER_ID);
-    t1.upgrades = ['upgrade.bow_swivel', 'upgrade.rifle', 'upgrade.improved_carriages'];
-    const o = { purse: 1_000_000, cargo: [], stores: {} };
-    const state = createWorldState('trade-in');
-    const r = buyHull(defs, state.markets, o, t1, 'port.superior', T2_SCHOONER_ID, 0);
-    expect(r.ok).toBe(true);
-    expect(t1.upgrades).toEqual([
-      'upgrade.bow_swivel',
-      'upgrade.rifle',
-      'upgrade.improved_carriages',
-    ]);
+    const t2 = defaultShipState(T2_SCHOONER_ID);
+    expect(gunRefusal(defs, owner(), t1, cannon, 'port.bayfield', 4)).toBe('hull');
+    expect(gunRefusal(defs, owner(), t2, cannon, 'port.bayfield', 1)).toBe('fame');
+    expect(gunRefusal(defs, owner(), t2, cannon, 'port.bayfield', 2)).toBeUndefined();
+    const sights = upgradeDefs().get('upgrade.gun_sights');
+    if (!sights) throw new Error('no sights');
+    expect(fitRefusal(owner(), t1, sights, 'backRoom', 1, 0)).toBe('noGun');
+    expect(fitRefusal(owner(), t1, sights, 'shipyard', 1, 0)).toBe('notHere');
   });
 
-  it('counts mods only with a gun aboard', () => {
-    expect(armamentOf(['upgrade.improved_carriages']).reloadMul).toBe(1);
-    const a = armamentOf([
-      'upgrade.bow_swivel',
+  it('mounts a pair of cannon on the T2 and counts their room', () => {
+    const t2 = defaultShipState(T2_SCHOONER_ID);
+    const o = owner();
+    expect(buyGun(defs, o, t2, 'port.bayfield', 'gun.light_cannon_pair', 2).ok).toBe(true);
+    expect(t2.weapons.map((w) => w.mount).sort()).toEqual(['hand', 'port', 'starboard']);
+    // The T2's broadside holds two a side: a second pair has room, a third would not.
+    expect(buyGun(defs, o, t2, 'port.bayfield', 'gun.light_cannon_pair', 2).ok).toBe(true);
+    expect(buyGun(defs, o, t2, 'port.bayfield', 'gun.light_cannon_pair', 2)).toEqual({
+      ok: false,
+      reason: 'noRoom',
+    });
+  });
+
+  it('moves guns to a new hull that can carry them; the mods come only with a gun', () => {
+    const t2 = defaultShipState(T2_SCHOONER_ID);
+    t2.weapons = [
+      { weapon: 'weapon.swivel', mount: 'bow' },
+      { weapon: 'weapon.light_cannon', mount: 'port' },
+      { weapon: 'weapon.light_cannon', mount: 'starboard' },
+    ];
+    t2.upgrades = ['upgrade.hidden_gun_ports', 'upgrade.gun_sights'];
+    // Down to the T1: its one bow mount takes the swivel, so the gun sights go with it; the
+    // cannon stay ashore. Hidden gun ports never move: they stay with the old hull.
+    expect(movingUpgrades(t2, sailShipRecord(T1_SCHOONER_ID))).toEqual(['upgrade.gun_sights']);
+    expect(
+      movingUpgrades({ ...t2, upgrades: ['upgrade.gun_sights'] }, sailShipRecord(T1_SCHOONER_ID)),
+    ).toEqual(['upgrade.gun_sights']);
+    // The gun sights go with the swivel on the T1; the hidden ports don't.
+    const t1 = { ...t2, weapons: [{ weapon: 'weapon.swivel', mount: 'bow' as const }] };
+    expect(
+      movingUpgrades(
+        { ...t1, upgrades: ['upgrade.gun_sights', 'upgrade.hidden_gun_ports'] },
+        sailShipRecord(T1_SCHOONER_ID),
+      ),
+    ).toEqual(['upgrade.gun_sights']);
+    // Without a gun, a mod stays behind.
+    const bare = { ...t2, weapons: [] };
+    expect(
+      movingUpgrades({ ...bare, upgrades: ['upgrade.gun_sights'] }, sailShipRecord(T1_SCHOONER_ID)),
+    ).toEqual([]);
+  });
+
+  it('counts mods only as multipliers on the guns', () => {
+    expect(gunModsOf(['upgrade.improved_carriages']).reloadMul).toBeCloseTo(0.8);
+    const a = gunModsOf([
       'upgrade.improved_carriages',
       'upgrade.bored_barrels',
       'upgrade.hidden_gun_ports',

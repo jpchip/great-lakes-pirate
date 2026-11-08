@@ -15,9 +15,7 @@ export const UPGRADE_CATEGORIES = [
   'cargo',
   'instruments',
   'utility',
-  'weapons',
   'weaponMods',
-  'smallArms',
 ] as const;
 export type UpgradeCategory = (typeof UPGRADE_CATEGORIES)[number];
 
@@ -27,17 +25,6 @@ export type UpgradeCategory = (typeof UPGRADE_CATEGORIES)[number];
  */
 export const UPGRADE_SOURCES = ['shipyard', 'chandlery', 'backRoom'] as const;
 export type UpgradeSource = (typeof UPGRADE_SOURCES)[number];
-
-/**
- * A gun or small arm (plan 07 §2.1): which weapon it is in `weapons.json` (Phase 6 piece A
- * owns the ballistics), where it's mounted, and for broadside guns how many a side.
- */
-export const armsSchema = z.object({
-  weapon: idOf('weapon'),
-  mount: z.enum(['bow', 'broadside', 'hand']),
-  perSide: z.number().int().positive().optional(),
-});
-export type Arms = z.infer<typeof armsSchema>;
 
 /** What an upgrade does: each field is optional, and absent means no change. */
 export const upgradeEffectsSchema = z.object({
@@ -94,13 +81,9 @@ export const upgradeSchema = z.object({
   /** Moves to a new hull on a trade-in when she has the slot (plan 10 §3). */
   transferable: z.boolean(),
   effects: upgradeEffectsSchema,
-  /** A gun or the rifle: what piece A's combat fires (plan 07 §2). */
-  arms: armsSchema.optional(),
   /** The Fame tier the seller wants before he'll deal (plan 10 §6: illicit gear is gated). */
   fameTier: z.number().int().min(0).optional(),
-  /** The smallest hull tier that can carry it (broadside guns need the T2). */
-  minTier: z.number().int().min(1).optional(),
-  /** A weapon mod: it needs a gun aboard to fit. */
+  /** A gun work item: it needs a gun aboard to fit (guns are in `guns.json`). */
   needsGun: z.boolean().optional(),
 });
 

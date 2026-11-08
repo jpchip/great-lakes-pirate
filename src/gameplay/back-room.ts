@@ -14,9 +14,19 @@ import { formatCents } from '../sim/economy/knowledge';
 import { freshContrabandState } from '../sim/economy/smuggler';
 import { fameTier, fameTierName, gameLaw, type LawDefs } from '../sim/law/defs';
 import { backRoomSnapshot, type BackRoomSnapshot } from '../ui/port/back-room-model';
+import { buyGun, gameGuns, gunPriceCents, gunRefusal, type GunRefusal } from '../sim/shipyard/guns';
 import { yardSnapshot } from '../ui/port/shipyard-model';
 import type { GameEconomy } from './economy';
 import type { GameShipyard } from './shipyard';
+
+const GUN_REFUSALS: Record<GunRefusal, string> = {
+  fame: "He doesn't see captains nobody's heard of.",
+  hull: "She's too small to carry it.",
+  noMoney: "You haven't the money.",
+  wrongMount: "That gun doesn't go there.",
+  noRoom: 'No room left for another of those.',
+  unknownWeapon: "He doesn't have that.",
+};
 
 /**
  * A port's back room after dark (plan 05 §6.2, plan 10 §6; Phase 6 piece E, decision 1 of
@@ -38,6 +48,8 @@ export interface BackRoom {
   hint(port: string): string | undefined;
   /** Sells `qty` CU of a lot to the fence: the refusal, or what came of it, in a line. */
   sell(port: string, index: number, qty: number): string;
+  /** Mounts a gun from the shipwright: the refusal, or what came of it, in a line. */
+  buyGun(port: string, gunId: string): string;
   /** The captain's Fame tier now. */
   fameTier(): number;
 }
@@ -93,7 +105,23 @@ export function attachBackRoom(opts: BackRoomOptions): BackRoom {
       const snap = backRoomSnapshot(economy.defs, f, state, ctx.state.player, now(), tier());
       snap.informRisk = opts.informRisk?.(port);
       if (f.shipwright && opts.shipyard) {
-        opts.shipyard.sync();
+        const sy = opts.shipyard;
+        sy.sync();
+        snap.guns = gameGuns().map((g) => {
+          const why = gunRefusal(economy.defs, ctx.state.player, sy.ship, g, port, tier());
+          return {
+            id: g.id,
+            name: g.name,
+            blurb: g.blurb,
+            priceCents: gunPriceCents(economy.defs, port, g),
+            where: g.mounts.includes('bow')
+              ? 'In the bow'
+              : g.mounts.length > 1
+                ? 'Port and starboard'
+                : 'Amidships',
+            refusal: why ? GUN_REFUSALS[why] : undefined,
+          };
+        });
         snap.shipwright = yardSnapshot({
           defs: economy.defs,
           markets: ctx.state.markets,
@@ -116,6 +144,16 @@ export function attachBackRoom(opts: BackRoomOptions): BackRoom {
       // Nobody tells a captain nobody's heard of that the room is there.
       if (access !== 'day') return undefined;
       return `There's a back room here that opens after dark, if you've something to sell that you'd rather not show at the market.`;
+    },
+    buyGun(port, gunId) {
+      const sy = opts.shipyard;
+      if (!sy || !open(port)) return 'The shipwright is shut.';
+      sy.sync();
+      const r = buyGun(economy.defs, ctx.state.player, sy.ship, port, gunId, tier());
+      if (!r.ok) return GUN_REFUSALS[r.reason as GunRefusal] ?? "He won't do that.";
+      sy.refit();
+      ctx.events.emit('GunBought', r.event);
+      return `Mounted: she's armed. He takes ${formatCents(r.event.cents)} and says nothing.`;
     },
     sell(port, index, qty) {
       const f = at(port);
