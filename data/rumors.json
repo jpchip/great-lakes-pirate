@@ -76,8 +76,46 @@
       "reliability": 0.3,
       "label": "Legend",
       "templates": ["{line}"]
+    },
+    "seasonal": {
+      "weight": 2,
+      "reliability": 0.8,
+      "label": "Season",
+      "templates": ["{line}"]
     }
   },
+  "seasonal": [
+    {
+      "id": "rumor.red_cliff_maple",
+      "port": "port.red_cliff",
+      "good": "good.maple_sugar",
+      "regions": ["region.apostles", "region.chequamegon", "region.ashland"],
+      "lines": [
+        "The store at Red Cliff has maple sugar in from the spring camps, and it's going cheap. {price} the {unit}.",
+        "Maple sugar's come down from the camps to Red Cliff. Cheap for the season, {price} the {unit}, they say."
+      ]
+    },
+    {
+      "id": "rumor.red_cliff_rice",
+      "port": "port.red_cliff",
+      "good": "good.wild_rice",
+      "regions": ["region.apostles", "region.chequamegon", "region.ashland"],
+      "lines": [
+        "Wild rice is in at Red Cliff for the harvest, selling cheap. {price} the {unit}, by what I heard.",
+        "The fall rice harvest's landed at Red Cliff. {price} the {unit} if you sail up before it's gone."
+      ]
+    },
+    {
+      "id": "rumor.red_cliff_furs",
+      "port": "port.red_cliff",
+      "good": "good.furs",
+      "regions": ["region.apostles", "region.chequamegon", "region.ashland"],
+      "lines": [
+        "Trappers are bringing furs down to Red Cliff for the winter trade. {price} the {unit}, going cheap.",
+        "Red Cliff has furs in from the winter camps. {price} the {unit}, cheaper than Bayfield."
+      ]
+    }
+  ],
   "tellers": [
     {
       "minReliability": 0.8,

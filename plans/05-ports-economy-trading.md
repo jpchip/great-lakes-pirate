@@ -850,13 +850,22 @@ The plan 05 §4.2 profile says "Small". At small, Red Cliff's three seasonal exp
 
 - **Traffic:** no node in `data/routes.json`, so no ship calls at the dock and no flow reaches the market.
 - **Freight, saloon and chandlery:** a freight agent, rumors from a saloon and a chandlery, and contracts offered to Red Cliff.
-- **Rumors:** price tips that name Red Cliff come for free, because they draw on every market. Nothing else mentions it.
+- **Rumors:** ~~price tips that name Red Cliff come for free, because they draw on every market. Nothing else mentions it.~~ Built in §26.5: seasonal saloon talk in the Apostles, Chequamegon and Ashland regions.
 - **Bad River:** no port, market, harbor or chart marker (`port.bad_river` was removed from `chart.json`).
 - **The chart point:** `port.red_cliff` in `chart.json` is unchanged and sits inland of the dock.
 - **The browser check:** the e2e smoke suite couldn't run here (no Playwright browser). The unit suite and the production build pass. Jared's by-eye check of the landing from the water is still to do.
 
+### 26.5 Seasonal bargain and saloon talk (2026-11-08)
+
+**Goal:** make Red Cliff the legit "get rich quicker" find from plan 05 §4.2: maple sugar in spring, wild rice in fall and furs in winter at prices worth sailing for, with nearby saloons naming what's in season so players who listen get a head start.
+
+**Market:** `market.red_cliff` is **small** again with optional per-port overrides in `data/schemas/markets.ts`: `exportPrice` (0.72 after tuning) and `exportStock`. Exports price at role × exportPrice, so seasonal goods run about 40% under catalog base before spread; stock is still small-market depth so the price climbs as you fill a hold. The global balance harness (`balanceHarnessEconomy()`) strips these overrides so every other port stays on the $150/hour ceiling; Red Cliff has its own check ($300/hour cap, T2 no sooner than four real hours on trade alone) in `tests/economy-balance.test.ts` and constants in `src/sim/economy/harness.ts`.
+
+**Rumors:** a new `seasonal` kind in `data/rumors.json` and `src/sim/rumors/rumors.ts`. While a listed good is in season, saloons in `region.apostles`, `region.chequamegon` and `region.ashland` can tell one tip per good per calendar season (maple sugar, wild rice, furs at Red Cliff). A true tip carries a heard buy price for the ledger; a false tip points at another Red Cliff good that's out of season. R1 §5 pre-release review still applies.
+
 ## Changelog
 
+- v0.11: Red Cliff seasonal bargain and saloon rumors (§26.5): `exportPrice` on the market, small size, balance harness split, `seasonal` rumor kind.
 - v0.10: Red Cliff built as a trade-only landing (§26): footprint, dock and houses, a tiny market, the `tradeOnly` rule; decision 2 revised, Bad River still out.
 - v0.9: Phase 4 signed off (§25.3): the playtest passed and 0.4.0 tagged.
 - v0.8: Phase 4 piece L (§25): the exit criteria checked in the container, a First Week e2e that found the rumor step never ticked (fixed), the economy tick with 100+ ships, new-run save sizes, draw calls with traffic in every harbor, and the 0.4.0 release.

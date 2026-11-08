@@ -8,7 +8,7 @@ import { idOf } from './common';
  * `{port}`, `{to}`, `{when}`, `{price}`, `{wind}`, `{weather}`, `{where}`.
  */
 
-export const RUMOR_KINDS = ['shipment', 'price', 'weather', 'smuggler', 'legend'] as const;
+export const RUMOR_KINDS = ['shipment', 'price', 'weather', 'smuggler', 'legend', 'seasonal'] as const;
 export type RumorKind = (typeof RUMOR_KINDS)[number];
 
 const kindSchema = z.object({
@@ -27,6 +27,14 @@ const tellerBandSchema = z.object({
   /** What the ledger calls the reliability ("Reliable", "Doubtful"). */
   word: z.string().min(1),
   names: z.array(z.string().min(1)).min(1),
+});
+
+const seasonalSchema = z.object({
+  id: idOf('rumor'),
+  port: idOf('port'),
+  good: idOf('good'),
+  regions: z.array(idOf('region')).min(1),
+  lines: z.array(z.string().min(1)).min(1),
 });
 
 const legendSchema = z.object({
@@ -83,7 +91,10 @@ export const rumorsFileSchema = z.object({
     weather: kindSchema,
     smuggler: kindSchema,
     legend: kindSchema,
+    seasonal: kindSchema,
   }),
+  /** In-season trade at trade-only or seasonal ports (plan 05 §26.5). */
+  seasonal: z.array(seasonalSchema),
   /** Highest band first. */
   tellers: z.array(tellerBandSchema).min(1),
   legends: z.array(legendSchema),

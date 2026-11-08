@@ -1,7 +1,7 @@
 import { performance } from 'node:perf_hooks';
 import { expect, it } from 'vitest';
 import { SECONDS_PER_GAME_DAY, WORLD_TICK_GAME_SECONDS } from '../../src/core/time';
-import { cargoCapacity, gameEconomy } from '../../src/sim/economy/defs';
+import { balanceHarnessEconomy, cargoCapacity, gameEconomy } from '../../src/sim/economy/defs';
 import {
   EconomySim,
   holdForSeason,
@@ -23,7 +23,7 @@ import { gameTraffic, runTraffic } from '../../src/sim/traffic/cargo';
  * hold, a five-year soak, and the market tick's cost. Prints one JSON report.
  */
 
-const defs = gameEconomy();
+const defs = balanceHarnessEconomy();
 const legs = passageTable();
 const DAWN = 6 * 3600;
 const dollars = (cents: number): number => Math.round(cents) / 100;

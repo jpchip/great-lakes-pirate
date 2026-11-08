@@ -55,6 +55,11 @@ export { passageTable, type Passage, type PassageTable } from './passages';
 export const PROFIT_CEILING_CENTS_PER_REAL_HOUR = 15_000;
 export const PROFIT_CEILING_CENTS_PER_GAME_DAY = 15_000;
 
+/** Red Cliff's seasonal bargain is allowed past the global ceiling (plan 05 §26.5). */
+export const RED_CLIFF_PROFIT_CEILING_CENTS_PER_REAL_HOUR = 30_000;
+/** Worst-case bots know every price; players need the rumor or a lucky visit. */
+export const RED_CLIFF_T2_MIN_REAL_HOURS = 4;
+
 /** A headless economy: markets and a clock that ticks them like the game does. */
 /** The lake's traffic for a headless run (Phase 4 piece D): its ships move the markets. */
 export interface SimTraffic {

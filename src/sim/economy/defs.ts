@@ -64,11 +64,13 @@ export function compileEconomy(
       if (good.legal === 'contraband') continue;
       const role = roleOf(def, good.id);
       if (role === 'absent') continue;
+      const exportPrice = role === 'export' ? (def.exportPrice ?? 1) : 1;
+      const exportStock = role === 'export' ? (def.exportStock ?? 1) : 1;
       portGoods.set(good.id, {
         good,
         role,
-        basePriceCents: good.basePriceCents * rules.priceByRole[role],
-        targetStock: rules.depthCu[def.size] * rules.stockByRole[role],
+        basePriceCents: good.basePriceCents * rules.priceByRole[role] * exportPrice,
+        targetStock: rules.depthCu[def.size] * rules.stockByRole[role] * exportStock,
       });
     }
     markets.set(def.port, {
@@ -83,17 +85,35 @@ export function compileEconomy(
 
 let cached: EconomyDefs | undefined;
 
+function validateMarkets(markets: readonly MarketDef[]): void {
+  const ports = new Set(portsFileSchema.parse(portsJson).map((p) => p.id));
+  for (const m of markets) {
+    if (!ports.has(m.port)) throw new Error(`${m.id} is for unknown port ${m.port}`);
+  }
+}
+
 /** The game's economy from `data/goods.json` and `data/markets.json`. */
 export function gameEconomy(): EconomyDefs {
   if (!cached) {
     const markets = marketsFileSchema.parse(marketsJson);
-    const ports = new Set(portsFileSchema.parse(portsJson).map((p) => p.id));
-    for (const m of markets) {
-      if (!ports.has(m.port)) throw new Error(`${m.id} is for unknown port ${m.port}`);
-    }
+    validateMarkets(markets);
     cached = compileEconomy(goodsFileSchema.parse(goodsJson), markets);
   }
   return cached;
+}
+
+/**
+ * Red Cliff stripped to the §26.3 tiny profile so global balance checks don't drift when
+ * §26.5 makes it lucrative (plan 05 §26.5).
+ */
+export function balanceHarnessEconomy(): EconomyDefs {
+  const markets = marketsFileSchema.parse(marketsJson).map((m) => {
+    if (m.id !== 'market.red_cliff') return m;
+    const { exportPrice: _p, exportStock: _s, ...rest } = m;
+    return { ...rest, size: 'tiny' as const };
+  });
+  validateMarkets(markets);
+  return compileEconomy(goodsFileSchema.parse(goodsJson), markets);
 }
 
 let portList: ReadonlyMap<string, Port> | undefined;
