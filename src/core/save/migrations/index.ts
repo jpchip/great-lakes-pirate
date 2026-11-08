@@ -13,7 +13,7 @@ import { Rng, type RngState } from '../../rng';
 export type SavePayload = Record<string, unknown>;
 export type Migration = (state: SavePayload) => SavePayload;
 
-export const CURRENT_SAVE_VERSION = 7;
+export const CURRENT_SAVE_VERSION = 8;
 
 /** Hours of weather a migrated save catches up on at load, like a new run's spin-up. */
 const WEATHER_SPIN_UP_HOURS = 48;
@@ -126,6 +126,23 @@ function addLaw(state: SavePayload): SavePayload {
   };
 }
 
+/**
+ * v7 → v8 (plan 07 §10, Phase 6 piece A): guns and powder join the save. A 0.5.0 run
+ * carries small arms only (plan 07 §14.5), mounts no ship's guns and has no loose powder:
+ * any kegs of powder and shot she has stay in the hold as cargo. A run whose ship isn't
+ * in the save yet gets her whole on load.
+ */
+function addWeapons(state: SavePayload): SavePayload {
+  const player = (state['player'] ?? {}) as SavePayload & { ship?: SavePayload };
+  const ship = player.ship
+    ? { ...player.ship, weapons: [{ weapon: 'weapon.rifle', mount: 'hand' }] }
+    : undefined;
+  return {
+    ...state,
+    player: { ...player, ...(ship ? { ship } : {}), ammo: { charges: 0 } },
+  };
+}
+
 export const migrations: Readonly<Record<number, Migration>> = {
   1: addWeather,
   2: addLocation,
@@ -133,4 +150,5 @@ export const migrations: Readonly<Record<number, Migration>> = {
   4: addEconomy,
   5: addKnowledge,
   6: addLaw,
+  7: addWeapons,
 };

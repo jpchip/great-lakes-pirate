@@ -24,6 +24,8 @@ import type { Sea } from '../sim/weather/waves';
 import type { Rumor, WorldState } from '../sim/world-state';
 import type { Witness } from '../sim/law/witness';
 import type { Chart } from '../core/coords';
+import type { DamagePool } from '../../data/schemas/combat';
+import type { HitLocation } from '../sim/combat/hull';
 
 /** Events shared across layers. Each system plan adds its own (plan 01 §3.5). */
 export interface GameEvents {
@@ -242,6 +244,59 @@ export interface GameEvents {
   ShipFled: { shipId: string; classId: string };
   TowCut: { leaderId: string; consortId: string };
   ShipsCollided: { a: string; b: string; speedKn: number };
+  /**
+   * Combat (plan 07 §10; Phase 6 piece A). A gun or a broadside fired (`rounds` balls, from
+   * `at`, zone meters, laid on `bearing`, radians from north); each ball falling in the sea
+   * or striking a ship; the damage a hit did to one of her pools; the hands killed and
+   * wounded aboard her (every death is the law's, piece F); a steamer's boiler bursting;
+   * and an NPC ship going under after she foundered (`ShipFoundering` comes first).
+   * `by` is who fired: `ship.player` or the ship's entity id.
+   */
+  WeaponFired: {
+    by: string;
+    weapon: string;
+    ammo: string;
+    mount: string;
+    rounds: number;
+    warning: boolean;
+    at: { x: number; z: number };
+    bearing: number;
+  };
+  ShotLanded: {
+    by: string;
+    ammo: string;
+    on: 'water' | 'ship';
+    shipId?: string;
+    at: { x: number; y: number; z: number };
+  };
+  ShipHit: {
+    shipId: string;
+    by: string;
+    weapon: string;
+    ammo: string;
+    location: HitLocation;
+    pool: DamagePool;
+    damage: number;
+    at: { x: number; y: number; z: number };
+  };
+  CrewCasualties: {
+    shipId: string;
+    by: string;
+    killed: number;
+    wounded: number;
+    cause: 'shot' | 'boiler';
+    /** True when anyone died: the lethal flag for the law and the log (plan 07 §4.3). */
+    lethal: boolean;
+  };
+  BoilerExploded: { shipId: string; by: string; killed: number; at: { x: number; z: number } };
+  ShipSunk: {
+    shipId: string;
+    classId: string;
+    by: string;
+    /** Hands still aboard when she went (the rest had been killed). */
+    crewAboard: number;
+    at: { x: number; z: number };
+  };
 }
 
 /** Everything a mode needs; built once at boot and handed to each mode. */

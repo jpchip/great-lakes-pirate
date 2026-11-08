@@ -170,7 +170,8 @@ export function createNpcView(env: NpcViewEnv): NpcView {
       for (const [e, { model, wake, sources }] of drawn) {
         interpolateTransform(e, alpha, t);
         const object = model.group;
-        object.position.set(t.position.x, t.position.y, t.position.z);
+        // A foundering ship settles (Phase 6 piece A).
+        object.position.set(t.position.x, t.position.y - (e.npc?.sinkM ?? 0), t.position.z);
         // Heading is clockwise from north; three.js yaw is counter-clockwise.
         object.rotation.set(t.pitch ?? 0, -t.heading, (t.roll ?? 0) + (e.npc?.listRad ?? 0));
         const wind = env.windAt(t.position);

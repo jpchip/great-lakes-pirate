@@ -1,0 +1,46 @@
+{
+  "powder": { "good": "good.powder_shot", "chargesPerCu": 10 },
+  "ammo": [
+    {
+      "id": "ammo.round",
+      "name": "Round shot",
+      "killedShare": 0.6,
+      "strayKillChance": 0.05,
+      "nonLethal": false
+    },
+    {
+      "id": "ammo.chain",
+      "name": "Chain shot",
+      "spreadMul": 1.3,
+      "rangeMul": 0.85,
+      "killedShare": 0.3,
+      "strayKillChance": 0.01,
+      "nonLethal": true
+    },
+    {
+      "id": "ammo.grape",
+      "name": "Grape",
+      "spreadMul": 2.2,
+      "rangeMul": 0.65,
+      "killedShare": 0.45,
+      "strayKillChance": 0.1,
+      "nonLethal": false
+    },
+    {
+      "id": "ammo.warning",
+      "name": "Warning shot",
+      "as": "ammo.round",
+      "warning": true,
+      "killedShare": 0.6,
+      "strayKillChance": 0.05,
+      "nonLethal": true
+    },
+    {
+      "id": "ammo.ball",
+      "name": "Rifle ball",
+      "killedShare": 0.6,
+      "strayKillChance": 0,
+      "nonLethal": false
+    }
+  ]
+}

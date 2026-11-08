@@ -132,11 +132,14 @@ import { attachPortLaw } from './gameplay/port-law';
 import { attachPapers } from './gameplay/papers';
 import { pierPort } from './sim/harbors';
 import { attachLawShips } from './gameplay/law-ships';
-import { attachLawAtSea, PURSUES_FROM_TIER } from './gameplay/law-at-sea';
 import { attachTargets } from './gameplay/targets';
 import { attachCollisions } from './gameplay/collisions';
 import { fameTier } from './sim/law/defs';
 import { daylight01 } from './sim/law/perception';
+import { attachLawAtSea, isLawShip, PURSUES_FROM_TIER } from './gameplay/law-at-sea';
+import { attachCombat, PLAYER_ID } from './gameplay/combat';
+import { fitRefusal } from './sim/combat/armament';
+import { addToHold } from './sim/economy/hold';
 import { regionAtChart, regionAtZone } from './sim/law/regions';
 import type { Identification, WitnessKind } from './sim/law/witness';
 import { attachLantern, DARK_WARNING_M } from './gameplay/lantern';
@@ -872,6 +875,9 @@ async function boot(): Promise<void> {
   let view: SailingView | undefined;
   let renderer: GameRenderer | undefined;
   let scene: Awaited<ReturnType<typeof createTestScene>> | undefined;
+  /** The dev overlay's GUI, for folders whose systems are attached after it (combat). */
+  let devGui: import('three/examples/jsm/libs/lil-gui.module.min.js').GUI | undefined;
+  const lateDevPanels: { update(): void }[] = [];
   if (rendererKind !== 'null') {
     const assets = await loadAssets().catch((err: unknown) => {
       console.warn('Asset manifest unavailable; using placeholders', err);
@@ -968,6 +974,7 @@ async function boot(): Promise<void> {
       });
       const { createJumpPanel } = await import('./debug/jump-panel');
       createJumpPanel({ gui: overlay.gui, save: saveControls });
+      devGui = overlay.gui;
       view = {
         render(alpha, seaTime, frameSeconds) {
           drawn.render(alpha, seaTime, frameSeconds);
@@ -976,6 +983,7 @@ async function boot(): Promise<void> {
           audioPanel?.update();
           hazardsPanel.update();
           lawPanel.update();
+          for (const p of lateDevPanels) p.update();
         },
       };
     }
@@ -1433,6 +1441,27 @@ async function boot(): Promise<void> {
     nameOf: shipNameOf,
     notice: (text) => showNotice(text),
   });
+  // Piece A's guns tell the captains what they did: a ball that struck a ship, and the
+  // hands killed aboard her. The damage is already taken off her record when these arrive,
+  // so the captain reads each pool's share from it (plan 07 §5.1).
+  const shareOf = (shipId: string, pool: 'hull' | 'rigging' | 'engine', points: number): number => {
+    const e = [...ctx.world.entities].find((k) => k.id === shipId);
+    const d = e?.damage;
+    if (!d) return 0;
+    const max = pool === 'hull' ? d.hullMax : pool === 'rigging' ? d.riggingMax : d.engineMax;
+    return max > 0 ? points / max : 0;
+  };
+  ctx.events.on('ShipHit', (e) => {
+    if (e.pool === 'hull' || e.pool === 'rigging' || e.pool === 'engine')
+      targets.hit(e.shipId, e.pool, shareOf(e.shipId, e.pool, e.damage));
+  });
+  ctx.events.on('CrewCasualties', (e) => {
+    targets.casualties(e.shipId, e.killed, e.wounded);
+  });
+  ctx.events.on('ShotLanded', (e) => {
+    if (e.on === 'water') return;
+    targets.shotLanded({ x: e.at.x, z: e.at.z }, e.shipId);
+  });
   const collisions = attachCollisions({
     ctx,
     movable: (e) => !!arena || (!!e.id && traffic.isHeld(e.id)),
@@ -1482,6 +1511,98 @@ async function boot(): Promise<void> {
       charter: (region: string) => lawShips.charter(region),
     };
     (window as unknown as { __glpCutter: typeof hook }).__glpCutter = hook;
+  }
+  // The combat core (Phase 6 piece A): guns, shot in flight, and the damage it does.
+  const combat = attachCombat({
+    ctx,
+    player: playerShip,
+    hazards,
+    arena: () => arena && { ships: arena.ships, land: arena.land },
+    zoneShips: () => [...traffic.shown.values()].map((s) => s.entity),
+    hold: (id) => traffic.hold(id),
+    zoneLand: () => {
+      const t = ctx.terrain;
+      if (!t) return undefined;
+      return {
+        halfM: Infinity,
+        allWater: false,
+        allDeep: false,
+        isLand: (x, z) => t.contains(x, z) && t.heightAt(x, z) > 0,
+      };
+    },
+    isLawShip,
+    splash: (x, z) => scene?.spray.burst(x, z),
+    notice: (text) => showNotice(text),
+  });
+  if (scene) scene.shots.source = () => combat.shots();
+  ctx.events.on('ZoneEntered', () => combat.reset());
+  ctx.events.on('ArenaEntered', () => combat.reset());
+  if (import.meta.env.DEV || params.has('debug')) {
+    // `__glpCombat.arm('weapon.swivel', 'bow')` mounts a gun, `powder(3)` stows kegs,
+    // `fireAt('npc.fish_tug', 'ammo.round')` lays on a ship, `fire(90, 200, 'ammo.chain')`
+    // fires at a bearing (degrees) and range, `ships()` reads the damage.
+    const DEG = Math.PI / 180;
+    const hook = {
+      arm: (weapon: string, mount: 'bow' | 'port' | 'starboard' | 'hand') => {
+        const ship = state.player.ship;
+        if (!ship) return 'noShip';
+        const why = fitRefusal(combat.defs, ship.classId, ship.weapons, weapon, mount);
+        if (why) return why;
+        ship.weapons.push({ weapon, mount });
+        return 'ok';
+      },
+      /** Every gun her class carries: the swivel, and cannon on a T2's sides. */
+      armFully: () => {
+        const ship = state.player.ship;
+        if (!ship) return [];
+        const mounts = combat.defs.mounts[ship.classId];
+        ship.weapons = ship.weapons.filter((w) => w.mount === 'hand');
+        for (let i = 0; i < (mounts?.bow ?? 0); i++)
+          ship.weapons.push({ weapon: 'weapon.swivel', mount: 'bow' });
+        for (let i = 0; i < (mounts?.broadside ?? 0); i++) {
+          ship.weapons.push({ weapon: 'weapon.light_cannon', mount: 'port' });
+          ship.weapons.push({ weapon: 'weapon.light_cannon', mount: 'starboard' });
+        }
+        return ship.weapons;
+      },
+      disarm: () => {
+        const ship = state.player.ship;
+        if (ship) ship.weapons = ship.weapons.filter((w) => w.mount === 'hand');
+      },
+      weapons: () => state.player.ship?.weapons ?? [],
+      powder: (kegs: number) => {
+        addToHold(state.player.cargo, { good: combat.defs.powder.good, qty: kegs });
+        return combat.charges();
+      },
+      charges: () => combat.charges(),
+      reloads: () => combat.reloads(),
+      fire: (bearingDeg: number, rangeM: number, ammo = 'ammo.round') =>
+        combat.fire({ ammo, bearing: bearingDeg * DEG, rangeM }),
+      fireAt: (shipId: string, ammo = 'ammo.round') => combat.fire({ ammo, target: shipId }),
+      damage: (shipId: string, pool: 'hull' | 'rigging' | 'crew' | 'engine', points: number) =>
+        combat.damage(shipId, pool, points),
+      explode: (shipId: string) => combat.explode(shipId),
+      ships: () => combat.ships(),
+      shots: () => combat.shots().length,
+      player: () => PLAYER_ID,
+    };
+    (window as unknown as { __glpCombat: typeof hook }).__glpCombat = hook;
+  }
+  if (devGui) {
+    const { createCombatPanel } = await import('./debug/combat-panel');
+    lateDevPanels.push(
+      createCombatPanel({
+        gui: devGui,
+        combat,
+        state,
+        events: ctx.events,
+        player: playerShip,
+        ships: () =>
+          arena
+            ? arena.ships.map((s) => s.entity)
+            : [...traffic.shown.values()].map((s) => s.entity),
+      }),
+    );
   }
   ctx.events.on('LanternChanged', (e) => {
     if (e.reason === 'outOfOil') showNotice('The lamps burned dry: out of lamp oil');
@@ -1773,6 +1894,7 @@ async function boot(): Promise<void> {
   sailingOptions.law = { step: (dt) => lawAtSea.step(dt) };
   sailingOptions.targets = targets;
   sailingOptions.collisions = collisions;
+  sailingOptions.combat = { step: (dt) => combat.step(dt) };
   const sailingMode = createSailingMode(ctx, sailingOptions);
   machine.register({ id: 'mainMenu', enter: () => (input.context = 'menu') }).register(sailingMode);
   // A refused F or anchor order says why on the HUD for a few seconds.

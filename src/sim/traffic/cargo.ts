@@ -87,6 +87,11 @@ function armedClass(classId: string | undefined): boolean {
   return SHIP_RECORDS.find((r) => r.id === classId)?.combat?.armed ?? false;
 }
 
+/** Her crew, hands (from her class's combat stats, plan 07 §8; piece A reads it). */
+export function crewFor(classId: string): number {
+  return crewOf(classId);
+}
+
 export interface ManifestLine {
   good: string;
   qty: number;
