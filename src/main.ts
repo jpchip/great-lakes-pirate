@@ -2241,12 +2241,16 @@ async function boot(): Promise<void> {
   travelRef.current = chartTravel;
   // The law reads the ship's live place, not the last save's (decay, crimes, the HUD).
   // In an arena the ship is in the arena's own space: the saved place stands.
+  // In an arena the law reads where the encounter is on the chart, so a capture at sea is
+  // taken in the region the ship is really in, not the place the voyage was last saved.
   law.locate = () =>
     machine.mode === 'chart'
       ? regionAtChart(law.defs, chartTravel.session.position)
-      : arena || inArenaSpace
-        ? undefined
-        : regionAtZone(law.defs, zoneData.id, shipPose());
+      : arena
+        ? regionAtChart(law.defs, arena.encounter.at)
+        : inArenaSpace
+          ? undefined
+          : regionAtZone(law.defs, zoneData.id, shipPose());
   // Trouble ends a passage read through: the journal closes and a look at the chart goes
   // back to the helm, so the player sees what happened (only ever while sailing on).
   const lookUp = (): void => {
