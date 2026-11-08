@@ -221,7 +221,7 @@ export interface GameEvents {
   Jailed: { region: string; port: string; tier: number; sentenceWeeks: number; execution: boolean };
   BailSent: { hideout: string; cents: number };
   Released: { how: 'served' | 'bail'; region: string; weeks: number };
-  RunEnded: { cause: 'executed' | 'abandoned' };
+  RunEnded: { cause: 'executed' | 'abandoned' | 'killed' };
   /**
    * The papers (plan 12 §6; Phase 5 piece F): a paper's day's edition went to press (its
    * lead headline, and whether any of it is about you), you bought one at a port, and the
@@ -290,7 +290,8 @@ export interface GameEvents {
     by: string;
     killed: number;
     wounded: number;
-    cause: 'shot' | 'boiler';
+    /** Phase 6 piece D adds a boarding fight, the boat set adrift, and sunk with her. */
+    cause: 'shot' | 'boiler' | 'boarding' | 'adrift' | 'sunk';
     /** True when anyone died: the lethal flag for the law and the log (plan 07 §4.3). */
     lethal: boolean;
   };
@@ -302,6 +303,42 @@ export interface GameEvents {
     /** Hands still aboard when she went (the rest had been killed). */
     crewAboard: number;
     at: { x: number; z: number };
+  };
+  /**
+   * Boarding, looting and the aftermath (plan 07 §6, §7; Phase 6 piece D). `ShipSurrendered`
+   * is a surrender confirmed aboard (she had struck, was intimidated, or was fought for);
+   * `BoardingAttempted` an option tried with its odds; a fight won or lost; what was taken
+   * (`goods` hot with `owner`'s marks); and what was done with her and her crew, with
+   * when they can tell the law (`reportInS`, game seconds; undefined: nobody will).
+   */
+  ShipSurrendered: { shipId: string; classId: string; how: 'struck' | 'intimidated' | 'fought' };
+  BoardingAttempted: {
+    shipId: string;
+    option: 'intimidate' | 'fight';
+    chance: number;
+    deathChance: number;
+  };
+  BoardingSucceeded: { shipId: string; option: 'confirm' | 'intimidate' | 'fight' };
+  BoardingRepelled: { shipId: string; hullDamage: number; killed: boolean };
+  ShipLooted: {
+    shipId: string;
+    owner: string | undefined;
+    region: string;
+    goods: { good: string; qty: number }[];
+    cashCents: number;
+    valueCents: number;
+    minutes: number;
+    quick: boolean;
+  };
+  CrewSetAdrift: { shipId: string; crew: number; killed: number; deathChance: number };
+  ShipScuttled: { shipId: string; withCrew: boolean };
+  AftermathChosen: {
+    shipId: string;
+    owner: string | undefined;
+    choice: 'letGo' | 'disable' | 'adrift' | 'sinkWithCrew';
+    killed: number;
+    survivors: number;
+    reportInS: number | undefined;
   };
 }
 

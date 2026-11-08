@@ -1,5 +1,6 @@
 import type { z } from 'zod';
 import { backgroundsFileSchema, portraitsFileSchema } from './backgrounds';
+import { boardingRulesSchema } from './boarding';
 import { chartFileSchema } from './chart';
 import { climateFileSchema } from './climate';
 import { ammoFileSchema, weaponsFileSchema } from './combat';
@@ -36,6 +37,7 @@ import { zonesFileSchema } from './zones';
 export const dataFileSchemas: Readonly<Record<string, z.ZodType>> = {
   'ammo.json': ammoFileSchema,
   'backgrounds.json': backgroundsFileSchema,
+  'boarding.json': boardingRulesSchema,
   'chart.json': chartFileSchema,
   'chart-coast.json': chartFileSchema,
   'climate.json': climateFileSchema,

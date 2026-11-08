@@ -2877,3 +2877,85 @@ body[data-mode='chart'] .chart-layer {
     width: auto;
   }
 }
+
+/**
+ * Boarding a prize (Phase 6 piece D): the port screen's paper, the three choices as
+ * cards with their odds, and the danger in signal red.
+ */
+.menu.boarding {
+  width: min(960px, calc(100vw - 32px));
+}
+
+.board-sides {
+  display: flex;
+  gap: 18px;
+  margin-bottom: 12px;
+}
+
+.board-sides > table {
+  flex: 1;
+}
+
+.board-options {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.board-option {
+  display: flex;
+  flex: 1 1 200px;
+  flex-direction: column;
+  gap: 4px;
+  padding: 10px 12px;
+  font: 14px var(--serif);
+  color: var(--ink);
+  text-align: left;
+  background: var(--paper-dark);
+  border: 1px solid var(--brass);
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.board-option:hover:not(:disabled) {
+  background: rgba(184, 137, 46, 0.32);
+}
+
+.board-option:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.board-option strong {
+  font-size: 16px;
+}
+
+.board-option > .hud-num {
+  font-size: 22px;
+}
+
+.board-option.danger {
+  border-color: var(--signal-red);
+}
+
+.board-death {
+  color: var(--signal-red);
+}
+
+.board-report {
+  font-style: italic;
+  color: var(--lake-teal);
+}
+
+.board-footer {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 12px;
+}
+
+@media (max-width: 640px) {
+  .board-sides {
+    flex-direction: column;
+  }
+}
