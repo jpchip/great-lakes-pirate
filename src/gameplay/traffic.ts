@@ -88,6 +88,8 @@ export interface GameTraffic {
    * captain steers her now (Phase 5 piece C), and `step` leaves her where she is.
    */
   hold(id: string): Entity | undefined;
+  /** Whether a ship is off her timetable (held): something steers her, and she can be shoved. */
+  isHeld(id: string): boolean;
   /**
    * Puts every ship where the clock has her and the zone's ships where they show. The
    * player's berth (if docked) keeps its pier side. Returns true when the pier sides the
@@ -259,6 +261,8 @@ export function attachTraffic(
         back += len / 2;
         if (!deepEnough(kx, kz, k.record)) continue;
         show(k.id, c, k.record, { x: kx, z: kz, heading }, speed, false);
+        const kn = shown.get(k.id)?.entity.npc;
+        if (kn) kn.towedBy = c.id;
         seen.add(k.id);
       }
     }
@@ -345,6 +349,9 @@ export function attachTraffic(
       if (!s || s.berthed) return undefined;
       held.add(id);
       return s.entity;
+    },
+    isHeld(id) {
+      return held.has(id);
     },
     nearest(at, rangeM) {
       let best: NearShip | undefined;

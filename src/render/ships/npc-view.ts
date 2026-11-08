@@ -50,7 +50,13 @@ interface Drawn {
   model: NpcShipModel;
   wake: ShipWake;
   sources: SmokeSource[];
+  /** A consort's hawser to her steamer's stern (Phase 6 piece C). */
+  hawser?: THREE.Line;
 }
+
+/** Points along a drawn hawser, and how far it sags into the water at its middle. */
+const HAWSER_POINTS = 16;
+const HAWSER_SAG_M = 2.5;
 
 export function createNpcView(env: NpcViewEnv): NpcView {
   const { scene, water, lighting, outlines } = env;
@@ -65,6 +71,50 @@ export function createNpcView(env: NpcViewEnv): NpcView {
   const stackTop = new THREE.Vector3();
   const tint = new THREE.Color();
   const still = { x: 0, z: 0 };
+
+  const bowAt = new THREE.Vector3();
+  const sternAt = new THREE.Vector3();
+  const lt: Transform = { position: { x: 0, y: 0, z: 0 }, heading: 0 };
+  const ct: Transform = { position: { x: 0, y: 0, z: 0 }, heading: 0 };
+  const halfOf = (e: Entity): number => {
+    const r = SHIP_RECORDS.find((k) => k.id === e.npc?.classId);
+    return r ? (r.lengthM * r.displayScale) / 2 : 20;
+  };
+  /** The consort's hawser, from her steamer's stern to her bow, sagging to the water. */
+  const drawHawser = (e: Entity, line: THREE.Line): void => {
+    const leader = e.npc?.towParted
+      ? undefined
+      : [...drawn.keys()].find((k) => k.id === e.npc?.towedBy);
+    line.visible = !!leader;
+    if (!leader) return;
+    interpolateTransform(leader, lastAlpha, lt);
+    interpolateTransform(e, lastAlpha, ct);
+    const lh = halfOf(leader) * 0.97;
+    const ch = halfOf(e) * 0.97;
+    sternAt.set(
+      lt.position.x - Math.sin(lt.heading) * lh,
+      lt.position.y + 1.6,
+      lt.position.z + Math.cos(lt.heading) * lh,
+    );
+    bowAt.set(
+      ct.position.x + Math.sin(ct.heading) * ch,
+      ct.position.y + 2.2,
+      ct.position.z - Math.cos(ct.heading) * ch,
+    );
+    const attr = line.geometry.getAttribute('position') as THREE.BufferAttribute;
+    for (let i = 0; i < HAWSER_POINTS; i++) {
+      const u = i / (HAWSER_POINTS - 1);
+      const sag = Math.sin(Math.PI * u) * HAWSER_SAG_M;
+      attr.setXYZ(
+        i,
+        sternAt.x + (bowAt.x - sternAt.x) * u,
+        sternAt.y + (bowAt.y - sternAt.y) * u - sag,
+        sternAt.z + (bowAt.z - sternAt.z) * u,
+      );
+    }
+    attr.needsUpdate = true;
+  };
+  let lastAlpha = 1;
 
   return {
     models,
@@ -83,19 +133,40 @@ export function createNpcView(env: NpcViewEnv): NpcView {
       const derelict = e.npc?.derelict === true;
       if (derelict && model.sails) model.sails.visible = false;
       const sources = derelict ? [] : model.stacks.map(() => ({ owed: 0 }));
-      drawn.set(e, { model, wake, sources });
+      let hawser: THREE.Line | undefined;
+      if (e.npc?.towedBy) {
+        const geometry = new THREE.BufferGeometry();
+        geometry.setAttribute(
+          'position',
+          new THREE.BufferAttribute(new Float32Array(HAWSER_POINTS * 3), 3),
+        );
+        hawser = new THREE.Line(geometry, new THREE.LineBasicMaterial({ color: 0x3b3328 }));
+        hawser.name = 'hawser';
+        hawser.frustumCulled = false;
+        scene.add(hawser);
+      }
+      drawn.set(e, { model, wake, sources, ...(hawser ? { hawser } : {}) });
       models.set(e, model);
     },
     remove(e) {
       const d = drawn.get(e);
       if (!d) return;
       scene.remove(d.model.group, d.wake.mesh);
+      if (d.hawser) {
+        scene.remove(d.hawser);
+        d.hawser.geometry.dispose();
+        (d.hawser.material as THREE.Material).dispose();
+      }
       d.model.dispose();
       d.wake.dispose();
       drawn.delete(e);
       models.delete(e);
     },
     update(alpha, now, frameSeconds, sunElevationDeg, fogDensity) {
+      lastAlpha = alpha;
+      for (const [e, d] of drawn) {
+        if (d.hawser) drawHawser(e, d.hawser);
+      }
       for (const [e, { model, wake, sources }] of drawn) {
         interpolateTransform(e, alpha, t);
         const object = model.group;
@@ -108,6 +179,7 @@ export function createNpcView(env: NpcViewEnv): NpcView {
         // shows no lights: it's lit as at noon.
         const sun = e.npc?.derelict ? 90 : sunElevationDeg;
         model.update(sun, fogDensity, Math.sin(wind.fromRad - t.heading) > 0);
+        model.setStruck(e.npc?.struck === true);
         const v = e.velocity ?? still;
         ship.x = t.position.x;
         ship.z = t.position.z;

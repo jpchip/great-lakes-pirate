@@ -1368,3 +1368,35 @@ test('fires the bow swivel at a tug in an arena and hulls her', async ({ page })
   expect(after.find((s) => s.id === id)?.foundering).toBe(true);
   expect(errors).toEqual([]);
 });
+
+// Phase 6 piece C: a target's captain. Shots across a fish tug's bow make her strike her
+// colors and heave to; a shot on the convoy's hawser casts her barge adrift.
+test('makes a fish tug strike to warning shots and parts a hawser', async ({ page }) => {
+  const errors = collectErrors(page);
+  const body = page.locator('body');
+  type Hook = {
+    captains(): { id: string; phase: string }[];
+    warn(id?: string): { warned?: string };
+    cutTow(id?: string): boolean;
+  };
+  const captains = (): Promise<{ id: string; phase: string }[]> =>
+    page.evaluate(() => (window as unknown as { __glpTargets: Hook }).__glpTargets.captains());
+  await page.goto('/?renderer=null&debug&encounter=tug');
+  await expect(body).toHaveAttribute('data-arena', 'ship');
+  await expect.poll(async () => (await captains()).length).toBe(1);
+  for (let i = 0; i < 6; i++) {
+    if ((await captains())[0]?.phase === 'struck') break;
+    await page.evaluate(() => (window as unknown as { __glpTargets: Hook }).__glpTargets.warn());
+    await page.waitForTimeout(250);
+  }
+  await expect.poll(async () => (await captains())[0]?.phase).toBe('struck');
+
+  await page.goto('/?renderer=null&debug&encounter=convoy');
+  await expect(body).toHaveAttribute('data-arena-ships', '3');
+  await expect.poll(async () => (await captains()).length).toBe(3);
+  const cut = await page.evaluate(() =>
+    (window as unknown as { __glpTargets: Hook }).__glpTargets.cutTow(),
+  );
+  expect(cut).toBe(true);
+  expect(errors).toEqual([]);
+});

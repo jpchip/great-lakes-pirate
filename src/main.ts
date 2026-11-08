@@ -132,6 +132,10 @@ import { attachPortLaw } from './gameplay/port-law';
 import { attachPapers } from './gameplay/papers';
 import { pierPort } from './sim/harbors';
 import { attachLawShips } from './gameplay/law-ships';
+import { attachTargets } from './gameplay/targets';
+import { attachCollisions } from './gameplay/collisions';
+import { fameTier } from './sim/law/defs';
+import { daylight01 } from './sim/law/perception';
 import { attachLawAtSea, isLawShip, PURSUES_FROM_TIER } from './gameplay/law-at-sea';
 import { attachCombat, PLAYER_ID } from './gameplay/combat';
 import { fitRefusal } from './sim/combat/armament';
@@ -1389,6 +1393,114 @@ async function boot(): Promise<void> {
   });
   ctx.events.on('ZoneEntered', () => lawAtSea.reset());
   ctx.events.on('ArenaEntered', () => lawAtSea.reset());
+
+  // Targets at close quarters (Phase 6 piece C): every robbable ship's captain and his
+  // nerve, in a zone or an arena; her towline; then hulls that don't pass through each other.
+  // `?guns=N` sets the guns the captains see you carry until piece A arms the ship.
+  const devGuns = Number(params.get('guns') ?? NaN);
+  const zoneLandFor = (draftM: number) => {
+    const t = ctx.terrain;
+    if (!t) return undefined;
+    const draft = draftM + 0.6;
+    return {
+      halfM: Infinity,
+      allWater: false,
+      allDeep: false,
+      isLand: (x: number, z: number) => t.contains(x, z) && t.heightAt(x, z) > 0,
+      isShoal: (x: number, z: number) => t.contains(x, z) && t.depthAt(x, z) < draft,
+    };
+  };
+  const shipNameOf = (id: string): string => {
+    const met = arena?.encounter.ships.find((s) => s.id === id);
+    if (met) return met.name;
+    const base = id.replace(/\.consort_\d+$/, '');
+    const c = traffic.contacts.find((k) => k.id === base);
+    if (!c) return 'The ship';
+    return base === id ? c.name : (c.consorts?.[0]?.name ?? `${c.name}'s consort`);
+  };
+  const targets = attachTargets({
+    ctx,
+    player: playerShip,
+    playerKn: () => speedKn(sailing.state),
+    arena: () => arena && { ships: arena.ships, land: arena.land },
+    // A ship lying alongside a pier isn't anyone's prize at sea.
+    zoneShips: () => [...traffic.shown.values()].filter((s) => !s.berthed).map((s) => s.entity),
+    hold: (id) => traffic.hold(id),
+    zoneLand: zoneLandFor,
+    windAt: (x, z) => sailingOptions.wind(x, z),
+    dark01: () => {
+      const c = detection.conditions;
+      if (!c) return 0;
+      const night = 1 - daylight01(c.sky.sunElevationRad);
+      const fog = Math.min(1, Math.max(0, (2000 - c.fogM) / 1400));
+      return Math.max(night, fog);
+    },
+    fameTier: () => fameTier(law.defs, ctx.state.fame.value),
+    playerGuns: () => (Number.isFinite(devGuns) ? devGuns : 1),
+    refuges: () => (arena || inArenaSpace ? [] : harborLayouts.map((l) => l.footprint.anchor)),
+    nameOf: shipNameOf,
+    notice: (text) => showNotice(text),
+  });
+  // Piece A's guns tell the captains what they did: a ball that struck a ship, and the
+  // hands killed aboard her. The damage is already taken off her record when these arrive,
+  // so the captain reads each pool's share from it (plan 07 §5.1).
+  const shareOf = (shipId: string, pool: 'hull' | 'rigging' | 'engine', points: number): number => {
+    const e = [...ctx.world.entities].find((k) => k.id === shipId);
+    const d = e?.damage;
+    if (!d) return 0;
+    const max = pool === 'hull' ? d.hullMax : pool === 'rigging' ? d.riggingMax : d.engineMax;
+    return max > 0 ? points / max : 0;
+  };
+  ctx.events.on('ShipHit', (e) => {
+    if (e.pool === 'hull' || e.pool === 'rigging' || e.pool === 'engine')
+      targets.hit(e.shipId, e.pool, shareOf(e.shipId, e.pool, e.damage));
+  });
+  ctx.events.on('CrewCasualties', (e) => {
+    targets.casualties(e.shipId, e.killed, e.wounded);
+  });
+  ctx.events.on('ShotLanded', (e) => {
+    if (e.on === 'water') return;
+    targets.shotLanded({ x: e.at.x, z: e.at.z }, e.shipId);
+  });
+  const collisions = attachCollisions({
+    ctx,
+    movable: (e) => !!arena || (!!e.id && traffic.isHeld(e.id)),
+    helmOf: (e) => arena?.ships.find((s) => s.entity === e)?.steer.helm ?? targets.helmOf(e),
+  });
+  ctx.events.on('ZoneEntered', () => targets.reset());
+  ctx.events.on('ArenaEntered', () => targets.reset());
+  if (import.meta.env.DEV || params.has('debug')) {
+    // `__glpTargets.captains()` reads every target's captain and his meter; `warn(id)` drops
+    // a shot across her bow, `hit`/`casualties` stand in for piece A's guns until they land.
+    const ahead = (id: string, m: number): { x: number; z: number } | undefined => {
+      const e = (
+        arena ? arena.ships.map((s) => s.entity) : [...traffic.shown.values()].map((s) => s.entity)
+      ).find((k) => k.id === id);
+      const t = e?.transform;
+      return t
+        ? { x: t.position.x + Math.sin(t.heading) * m, z: t.position.z - Math.cos(t.heading) * m }
+        : undefined;
+    };
+    const hook = {
+      captains: () => targets.captains(),
+      towLines: () => targets.towLines(),
+      warn: (id?: string) => {
+        const target = id ?? targets.captains()[0]?.id;
+        const at = target ? ahead(target, 80) : undefined;
+        return at ? targets.shotLanded(at) : {};
+      },
+      shot: (x: number, z: number, hitId?: string) => targets.shotLanded({ x, z }, hitId),
+      hit: (id: string, pool: 'hull' | 'rigging' | 'engine', share: number) =>
+        targets.hit(id, pool, share),
+      casualties: (id: string, killed: number, wounded = 0) =>
+        targets.casualties(id, killed, wounded),
+      cutTow: (consortId?: string) => {
+        const id = consortId ?? targets.towLines()[0]?.consortId;
+        return id ? targets.cutTow(id) : false;
+      },
+    };
+    (window as unknown as { __glpTargets: typeof hook }).__glpTargets = hook;
+  }
   if (import.meta.env.DEV || params.has('debug')) {
     // `__glpCutter.brains()` reads her captain; `ships()` her sortie and the tug's.
     const hook = {
@@ -1780,6 +1892,8 @@ async function boot(): Promise<void> {
   };
   // The cutter's captain runs inside the sailing tick, after the arena's helms.
   sailingOptions.law = { step: (dt) => lawAtSea.step(dt) };
+  sailingOptions.targets = targets;
+  sailingOptions.collisions = collisions;
   sailingOptions.combat = { step: (dt) => combat.step(dt) };
   const sailingMode = createSailingMode(ctx, sailingOptions);
   machine.register({ id: 'mainMenu', enter: () => (input.context = 'menu') }).register(sailingMode);

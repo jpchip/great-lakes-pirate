@@ -23,6 +23,10 @@ const GIVE_WAY_RAD = 65 * DEG;
 /** Look for land this many seconds ahead, and never less than this many meters. */
 const LAND_LOOKAHEAD_S = 40;
 const LAND_LOOKAHEAD_MIN_M = 220;
+/** A runner makes for a refuge this far either side of dead away from the player. */
+const FLEE_REFUGE_RAD = 100 * DEG;
+/** A sailing runner bears off dead away by up to this much to run off the wind. */
+const FLEE_OFF_RAD = 70 * DEG;
 /** Hold an avoiding turn this long after the danger clears, so helms don't flutter. */
 const STEADY_S = 6;
 
@@ -52,7 +56,17 @@ export interface NpcHelm {
     | { mode: 'alongside' }
     | { mode: 'search'; at: { x: number; z: number } }
     | { mode: 'standOff' }
-    | { mode: 'stop' };
+    | { mode: 'stop' }
+    /**
+     * A target running from the player (Phase 6 piece C): away from her, for a refuge if
+     * there's one off her quarter, a sailing ship as near downwind as the run allows
+     * (`downwindRad`, where the wind blows to), at `kn` (her best).
+     */
+    | { mode: 'flee'; kn: number; refuge?: { x: number; z: number }; downwindRad?: number }
+    /** A determined steamer's captain trying to ram the player: straight at her. */
+    | { mode: 'ram'; kn: number };
+  /** Her best speed, knots, when an order asks for more than her service speed (fleeing). */
+  flankKn?: number;
   /** Draws too much for the shallows: steers clear of shoal water as of land. */
   deepDraft?: boolean;
   /** The heading it's steering for right now; read by tests and the dev overlay. */
@@ -167,6 +181,29 @@ function orderedCourse(
       return alongside(s, player, playerKn);
     case 'search':
       return { want: toward(orders.at.x, orders.at.z), kn: h.serviceKn * 0.6, chase: true };
+    case 'flee': {
+      const away = Math.atan2(s.x - player.x, -(s.z - player.z));
+      let want = away;
+      const refuge = orders.refuge;
+      if (refuge) {
+        const to = toward(refuge.x, refuge.z);
+        if (Math.abs(angleDiff(away, to)) < FLEE_REFUGE_RAD) want = to;
+      } else if (orders.downwindRad !== undefined) {
+        // Off the wind as far as the run allows: a schooner runs best with it on her quarter.
+        const d = angleDiff(away, orders.downwindRad);
+        want = away + Math.max(-FLEE_OFF_RAD, Math.min(FLEE_OFF_RAD, d));
+      }
+      return { want, kn: orders.kn, chase: true };
+    }
+    case 'ram': {
+      const v = arenaSceneSpeed(Math.max(h.serviceKn, 1));
+      const lead = Math.min(range / Math.max(v, 0.1), 30);
+      return {
+        want: toward(player.x + player.vx * lead, player.z + player.vz * lead),
+        kn: orders.kn,
+        chase: true,
+      };
+    }
     case 'standOff':
       // Head for her, slowly; the shoal check turns her off before she touches.
       return {
@@ -286,7 +323,8 @@ export function steerShips(
       const rate = sampleCurve(h.turnRate, h.speedKn) * DEG;
       const d = angleDiff(s.heading, h.desired);
       s.heading = wrap(s.heading + Math.max(-rate * dt, Math.min(rate * dt, d)));
-      const cruise = orderedKn === undefined ? h.serviceKn : Math.min(orderedKn, h.serviceKn);
+      const top = Math.max(h.serviceKn, h.flankKn ?? 0);
+      const cruise = orderedKn === undefined ? h.serviceKn : Math.min(orderedKn, top);
       const target = state === 'stopped' ? 0 : slow ? cruise * 0.4 : cruise;
       const tau = target > h.speedKn ? h.accelTau : h.decelTau;
       h.speedKn += (target - h.speedKn) * (1 - Math.exp(-dt / tau));
