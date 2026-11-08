@@ -210,8 +210,8 @@ export interface Release {
 }
 
 /**
- * Lets the captain out (plan 06 §8.2). Time served brings the region's heat down to the
- * release tier (tier 1), and no lower than it already was; bail leaves it be.
+ * Lets the captain out (plan 06 §8.2). Time served or bail brings the region's heat down
+ * to the release tier (tier 1), and no lower than it already was (Jared, 2026-11-08).
  */
 export function release(defs: LawDefs, jail: JailFile, state: WorldState, now: number): Release {
   const jailed = state.jail;
@@ -219,11 +219,9 @@ export function release(defs: LawDefs, jail: JailFile, state: WorldState, now: n
   if (jailed.execution) throw new Error('No release from the rope');
   const how = jailed.word ? 'bail' : 'served';
   const heatBefore = state.wanted[jailed.region]?.heat ?? 0;
-  let events: LawEvent[] = [];
-  if (how === 'served') {
-    const cap = tierDef(defs, jail.releaseTier).minHeat;
-    if (heatBefore > cap) events = setHeat(defs, state, jailed.region, cap);
-  }
+  // Serving the sentence or paying bail both bring the region down to the release tier.
+  const cap = tierDef(defs, jail.releaseTier).minHeat;
+  const events: LawEvent[] = heatBefore > cap ? setHeat(defs, state, jailed.region, cap) : [];
   state.jail = null;
   return {
     how,
