@@ -3,6 +3,7 @@ import { portInfo } from '../sim/economy/defs';
 import { recordPrices } from '../sim/economy/knowledge';
 import type { TradeSide } from '../sim/economy/market';
 import type { TradeRefusal } from '../sim/economy/trade';
+import { SECONDS_PER_GAME_DAY } from '../core/time';
 import { pierPort } from '../sim/harbors';
 import { stashedCash } from '../sim/hideouts/stash';
 import type { LieUntil } from '../sim/hideouts/lie-at-anchor';
@@ -24,6 +25,8 @@ import type { ShipHazards } from './hazards';
 import type { RumorControl } from './rumors';
 import type { GameShipyard } from './shipyard';
 import type { PortLaw } from './port-law';
+import type { GamePapers } from './papers';
+import { papersSnapshot } from '../ui/port/papers-model';
 
 /**
  * Ports at the pier (plan 05 §7, Phase 4 piece B). Docking at a berth on one of a port's
@@ -65,6 +68,11 @@ export interface PortControlOptions {
    * the poster, and Fame and Wanted in the ledger. Without it none of them show.
    */
   law?: PortLaw | undefined;
+  /**
+   * The papers (Phase 5 piece F): the newsstand tab, the storm signal in the header and the
+   * paper boy's shout on arriving. Without it none of them show.
+   */
+  papers?: GamePapers | undefined;
   /** The pier a berth belongs to, from the zone's berths. */
   berthPier(berthId: string): string | undefined;
   /** Show or hide the screens. */
@@ -202,6 +210,20 @@ export function attachPorts(opts: PortControlOptions): PortControl {
       const risk = region ? opts.law.informRisk(region) : undefined;
       for (const h of snap.hold) if (h.offer?.receiver) h.offer.informRisk = risk;
     }
+    if (opts.papers) {
+      const stand = opts.papers.stand(port);
+      if (stand.papers.length > 0) {
+        snap.papers = papersSnapshot(
+          opts.papers.defs,
+          stand,
+          player.purse,
+          Math.floor(now() / SECONDS_PER_GAME_DAY),
+        );
+        const before = snap.tabs.indexOf(snap.harbor ? 'harbor' : 'ledger');
+        snap.tabs.splice(before, 0, 'papers');
+      }
+      snap.stormSignal = opts.papers.signal(port);
+    }
     if (opts.wait) {
       snap.canWait = true;
       snap.waitRefusal = opts.wait.refusal();
@@ -231,6 +253,8 @@ export function attachPorts(opts: PortControlOptions): PortControl {
     if (economy.defs.markets.has(port)) note(port);
     if (opts.contracts) notices = [...notices, ...arrivalNotices(port)];
     ctx.events.emit('PortVisited', { port });
+    // The paper boy on the pier cries the edition you haven't read (piece H's shout).
+    if (!wasOpen) opts.papers?.cry(port);
     refresh();
     if (!wasOpen) opts.onOpen(true);
   };
@@ -416,6 +440,13 @@ export function attachPorts(opts: PortControlOptions): PortControl {
         const port = openPort;
         if (!port || !opts.law) return 'The harbor master is out.';
         const r = opts.law.pay(port, kind);
+        refresh();
+        return r;
+      },
+      buyPaper(paper) {
+        const port = openPort;
+        if (!port || !opts.papers) return 'The paper boy has gone.';
+        const r = opts.papers.buy(port, paper);
         refresh();
         return r;
       },

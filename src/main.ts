@@ -129,6 +129,7 @@ import { withSailingPerks } from './sim/character/perks';
 import { attachCaptain } from './gameplay/captain';
 import { attachLaw, devWitness } from './gameplay/law';
 import { attachPortLaw } from './gameplay/port-law';
+import { attachPapers } from './gameplay/papers';
 import { pierPort } from './sim/harbors';
 import { attachLawShips } from './gameplay/law-ships';
 import { attachLawAtSea, PURSUES_FROM_TIER } from './gameplay/law-at-sea';
@@ -1014,6 +1015,8 @@ async function boot(): Promise<void> {
   const endRef: { current: ((cause: RunEndCause) => Promise<void>) | undefined } = {
     current: undefined,
   };
+  /** Puts the tier-5 front page away (piece F); set once the papers are attached. */
+  const frontPageRef: { current: (() => void) | undefined } = { current: undefined };
   const ui = mountGameUi({
     root: uiRoot,
     settings,
@@ -1031,6 +1034,9 @@ async function boot(): Promise<void> {
       fit: (upgrade, place) => portsRef.current?.actions.fit(upgrade, place),
       unfit: (upgrade, place) => portsRef.current?.actions.unfit(upgrade, place),
       repair: (place) => portsRef.current?.actions.repair(place),
+      // Piece E's harbor master tab offered Pay but nothing carried it to the game.
+      payHarbor: (kind) => portsRef.current?.actions.payHarbor?.(kind),
+      buyPaper: (paper) => portsRef.current?.actions.buyPaper?.(paper),
       close: () => portsRef.current?.close(),
       castOff: () => portsRef.current?.actions.castOff(),
       wait: (until) => portsRef.current?.actions.wait?.(until),
@@ -1074,6 +1080,7 @@ async function boot(): Promise<void> {
       leave: () => captureRef.current?.actions.leave(),
     },
     onAbandon: () => void endRef.current?.('abandoned'),
+    onFrontPageClosed: () => frontPageRef.current?.(),
     onTakeToChart: () => {
       if (machine.mode === 'sailing' && !machine.overlayOpen) travelRef.current?.takeToChart();
     },
@@ -1120,10 +1127,58 @@ async function boot(): Promise<void> {
     traffic,
     smugglerAnchorage: () => smugglerAnchorage(),
   });
+  // The papers (Phase 5 piece F): headlines from the bus's news, Fame from the printing, the
+  // newsstand in port, storm signals, and the tier-5 front page once per region.
+  let contextBeforeFrontPage: InputContext = 'sailing';
+  let frontPageUp = false;
+  const showFrontPage = (): void => {
+    if (frontPageUp || captureRef.current?.open || captureRef.current?.pending || ctx.state.jail)
+      return;
+    const page = papers.takeFrontPage();
+    if (!page) return;
+    frontPageUp = true;
+    machine.pushOverlay('dialog');
+    contextBeforeFrontPage = input.context;
+    input.context = 'menu';
+    if (cameraRig) cameraRig.suspended = true;
+    ui.setFrontPage(page);
+    document.body.dataset['frontPage'] = page.region;
+  };
+  frontPageRef.current = () => {
+    if (!frontPageUp) return;
+    frontPageUp = false;
+    machine.removeOverlay('dialog');
+    input.context = contextBeforeFrontPage;
+    input.endTick();
+    if (cameraRig) cameraRig.suspended = machine.overlayOpen;
+    document.body.dataset['frontPage'] = 'closed';
+  };
+  const papers = attachPapers({
+    ctx,
+    law,
+    seed: trafficSeed,
+    goodName: (good) => economy.defs.goods.get(good)?.name ?? good,
+    lawShips,
+    // A region gone Most Wanted: its paper's front page fills the screen.
+    onFrontPage: () => queueMicrotask(showFrontPage),
+  });
+  // One held back behind the lockup shows on release.
+  ctx.events.on('Released', () => queueMicrotask(showFrontPage));
+  if (import.meta.env.DEV || params.has('debug')) {
+    // `__glpPapers.press()` prints today's editions now (`press(1)` tomorrow's); `.state()` shows the stories.
+    const hook = {
+      press: (daysAhead = 0) => papers.pressNow(daysAhead),
+      state: () => papers.state,
+      signals: () => papers.signals(),
+      stand: (port: string) => papers.stand(port),
+    };
+    (window as unknown as { __glpPapers: typeof hook }).__glpPapers = hook;
+  }
   const ports = attachPorts({
     ctx,
     economy,
     law: portLaw,
+    papers,
     contracts,
     hazards,
     rumors,
@@ -2147,6 +2202,19 @@ async function boot(): Promise<void> {
             },
           ]
         : []),
+      // Ports flying the storm signal (piece F).
+      ...papers.signals().flatMap((id) => {
+        const port = westernSuperiorChart().ports.find((p) => p.id === id);
+        return port
+          ? [
+              {
+                at: westernSuperiorChart().projection.chartToGeo(port.pos),
+                label: 'Storm signal',
+                kind: 'storm' as const,
+              },
+            ]
+          : [];
+      }),
       // Where the law wants you (piece E), at each region's middle.
       ...portLaw.marks().flatMap((m) => {
         const at = law.defs.regionById.get(m.region)?.anchor;

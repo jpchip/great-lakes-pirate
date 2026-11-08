@@ -137,6 +137,9 @@ export interface ContractCompletedEvent {
   qty: number;
   payCents: number;
   late: boolean;
+  /** When it was taken and due (the papers' record runs, Phase 5 piece F). */
+  acceptedAt?: number;
+  dueAt?: number;
 }
 export interface ContractFailedEvent {
   contractId: string;
@@ -593,6 +596,8 @@ export function arriveAt(
       qty: aboard,
       payCents,
       late,
+      acceptedAt: c.acceptedAt,
+      dueAt: c.dueAt,
     });
   }
   state.active = keep;

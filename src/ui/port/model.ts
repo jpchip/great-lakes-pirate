@@ -47,6 +47,7 @@ import {
 import type { ShipState } from '../../sim/shipyard/shipyard';
 import { yardSnapshot, type YardSnapshot } from './shipyard-model';
 import type { HarborSnapshot, LedgerLawSnapshot } from './harbor-model';
+import type { PapersSnapshot } from './papers-model';
 
 /**
  * What the port screen and the ledger show (plan 05 §12, plan 13 §5; Phase 4 piece B),
@@ -56,7 +57,7 @@ import type { HarborSnapshot, LedgerLawSnapshot } from './harbor-model';
  */
 
 export type PortTab =
-  'market' | 'chandlery' | 'freight' | 'shipyard' | 'saloon' | 'harbor' | 'ledger';
+  'market' | 'chandlery' | 'freight' | 'shipyard' | 'saloon' | 'papers' | 'harbor' | 'ledger';
 
 /** The services with a tab, in order. Pieces F, G and K add the freight agent, shipyard and saloon. */
 const SERVICE_TABS: readonly [PortService, PortTab][] = [
@@ -238,6 +239,10 @@ export interface PortSnapshot {
   ledger: LedgerSnapshot;
   /** The harbor master's tab (Phase 5 piece E): fines, bribes and the poster. */
   harbor?: HarborSnapshot | undefined;
+  /** The newsstand (Phase 5 piece F): the papers sold here. */
+  papers?: PapersSnapshot | undefined;
+  /** The port is flying the storm signal (plan 04 §5.4): the flag by day, the light at night. */
+  stormSignal?: 'flag' | 'light' | undefined;
   /**
    * Waiting alongside (the footer's "Wait" choices): offered when the game can run the clock
    * on here; `waitRefusal` says why not just now (e.g. aground).

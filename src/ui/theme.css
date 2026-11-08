@@ -2588,3 +2588,235 @@ body[data-mode='chart'] .chart-layer {
   gap: 6px;
   font-size: 13px;
 }
+
+/* The newsstand (Phase 5 piece F): the papers down the side, the front page beside. */
+.papers {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  flex-wrap: wrap;
+}
+
+.papers-stand {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  width: 200px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.papers-pick {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  padding: 6px 8px;
+  text-align: left;
+  font: 14px var(--serif);
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--paper-dark);
+  cursor: pointer;
+}
+
+.papers-pick.active {
+  border-color: var(--ink);
+  box-shadow: inset 3px 0 0 var(--ink);
+}
+
+.papers-name {
+  font-weight: 700;
+}
+
+.newsprint.paper-page {
+  flex: 1 1 520px;
+  width: auto;
+  max-width: 760px;
+  transform: none;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+}
+
+.paper-headline {
+  font-size: clamp(24px, 3.6vw, 40px);
+}
+
+.paper-lead {
+  column-count: 1;
+}
+
+.paper-buy {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-style: italic;
+}
+
+.paper-empty,
+.paper-dim {
+  font-style: italic;
+  opacity: 0.7;
+}
+
+.paper-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0 18px;
+  margin-top: 8px;
+  border-top: 3px double #1d1a16;
+  padding-top: 8px;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+@media (max-width: 720px) {
+  .paper-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.paper-col + .paper-col {
+  border-left: 1px solid rgba(29, 26, 22, 0.5);
+  padding-left: 14px;
+}
+
+.paper-col h4 {
+  margin: 4px 0 6px;
+  text-align: center;
+  font:
+    800 14px / 1.1 'Rockwell Extra Bold',
+    'Clarendon',
+    Georgia,
+    var(--serif);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  border-bottom: 1px solid #1d1a16;
+  padding-bottom: 3px;
+}
+
+.paper-col p {
+  margin: 0 0 6px;
+  text-align: justify;
+}
+
+.paper-brief h5,
+.paper-notice h5 {
+  margin: 6px 0 2px;
+  font: 700 13px / 1.15 var(--serif);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.paper-notice {
+  margin-bottom: 8px;
+  padding: 6px;
+  text-align: center;
+  border: 1px solid #1d1a16;
+}
+
+.paper-notice p {
+  text-align: center;
+}
+
+.paper-notice.tier-5 {
+  border-width: 3px;
+  border-style: double;
+}
+
+.paper-notice-subject {
+  font-weight: 700;
+}
+
+.paper-notice-reward {
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.paper-signals {
+  font-weight: 700;
+  color: #7a1d14;
+}
+
+.paper-ad {
+  margin-top: 10px !important;
+  padding: 6px;
+  font-size: 12px;
+  font-style: italic;
+  text-align: center !important;
+  border: 1px dashed rgba(29, 26, 22, 0.6);
+}
+
+/* The storm signal in the port screen's header: the red flag with its black square. */
+.port-storm-signal {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: 12px;
+  font: 700 12px var(--serif);
+  letter-spacing: 0.06em;
+  color: var(--signal-red);
+}
+
+.storm-signal-mark {
+  position: relative;
+  display: inline-block;
+  width: 16px;
+  height: 11px;
+  background: var(--signal-red);
+}
+
+.storm-signal-mark::after {
+  content: '';
+  position: absolute;
+  left: 5px;
+  top: 3px;
+  width: 6px;
+  height: 5px;
+  background: #1d1a16;
+}
+
+.storm-signal-mark.light {
+  width: 11px;
+  border-radius: 50%;
+  box-shadow: 0 0 8px 2px rgba(255, 70, 50, 0.8);
+}
+
+.storm-signal-mark.light::after {
+  display: none;
+}
+
+/* The tier-5 warning's front page (plan 13 §12). */
+.most-wanted-screen {
+  z-index: 45;
+  align-items: center;
+}
+
+.newsprint.most-wanted {
+  width: min(680px, 100%);
+}
+
+.most-wanted-headline {
+  font-size: clamp(36px, 8vw, 64px);
+  color: #1d1a16;
+}
+
+.most-wanted-reward {
+  margin: 0 0 10px;
+  text-align: center;
+  font:
+    800 22px / 1 'Rockwell Extra Bold',
+    'Clarendon',
+    Georgia,
+    var(--serif);
+  letter-spacing: 0.1em;
+}
+
+.most-wanted-foot {
+  display: flex;
+  justify-content: center;
+  margin-top: 12px;
+}

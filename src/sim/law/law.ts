@@ -465,6 +465,25 @@ export function replaceShip(
   return events;
 }
 
+/**
+ * Heat from outside the pipeline: the papers' extra share when they print a crime
+ * (plan 06 §4.1, piece F). Fresh heat, so the region's grace period starts again.
+ */
+export function addHeat(
+  defs: LawDefs,
+  law: LawState,
+  region: string,
+  heat: number,
+  now: number,
+): LawEvent[] {
+  const events: LawEvent[] = [];
+  if (heat <= 0 || !defs.regionById.has(region)) return events;
+  moveHeat(defs, law, region, heat, 0, events);
+  const w = regionWanted(law, region);
+  w.lastCrimeAt = Math.max(w.lastCrimeAt ?? now, now);
+  return events;
+}
+
 /** Sets a region's heat outright (the dev panel; piece D's reset to tier 1 after jail). */
 export function setHeat(defs: LawDefs, law: LawState, region: string, heat: number): LawEvent[] {
   const events: LawEvent[] = [];

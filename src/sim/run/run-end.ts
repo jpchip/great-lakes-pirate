@@ -69,7 +69,7 @@ export function dateText(gameSeconds: number): string {
   return `${MONTHS[d.getUTCMonth()]} ${d.getUTCDate()}, ${d.getUTCFullYear()}`;
 }
 
-function dateline(gameSeconds: number): string {
+export function dateline(gameSeconds: number): string {
   const d = calendarDate(dayAndHour(gameSeconds).day * SECONDS_PER_GAME_DAY);
   return `${WEEKDAYS[d.getUTCDay()]}, ${dateText(gameSeconds)}`;
 }

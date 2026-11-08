@@ -54,7 +54,7 @@ export interface ChartFrame {
   hideouts?: readonly { id: string; name: string; pos: Chart }[];
 }
 
-export type ChartMarkKind = 'smuggler' | 'wanted' | 'mostWanted';
+export type ChartMarkKind = 'smuggler' | 'wanted' | 'mostWanted' | 'storm';
 
 export interface ChartMark {
   pos: Chart;
@@ -604,6 +604,10 @@ export class ChartView {
   private drawMarks(marks: readonly ChartMark[], daylight: number): void {
     const { ctx } = this;
     for (const m of marks) {
+      if (m.kind === 'storm') {
+        this.drawStormSignal(m, daylight);
+        continue;
+      }
       if (m.kind !== 'smuggler') {
         this.drawWanted(m);
         continue;
@@ -638,6 +642,44 @@ export class ChartView {
       ctx.textBaseline = 'middle';
       ctx.textAlign = 'left';
       ctx.fillText(m.label, s.x + 9, s.y);
+    }
+  }
+
+  /**
+   * A port flying the storm signal (plan 04 §5.4; Phase 5 piece F): a staff beside the port
+   * with the red flag and its black square by day, a red light at night.
+   */
+  private drawStormSignal(m: ChartMark, daylight: number): void {
+    const { ctx } = this;
+    const s = this.toScreen(m.pos);
+    const x = s.x + 7;
+    const top = s.y - 22;
+    ctx.strokeStyle = CHART_COLORS.ink;
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.moveTo(x, s.y - 3);
+    ctx.lineTo(x, top);
+    ctx.stroke();
+    if (daylight > 0.3) {
+      ctx.fillStyle = CHART_COLORS.signalRed;
+      ctx.fillRect(x, top, 13, 9);
+      ctx.fillStyle = CHART_COLORS.ink;
+      ctx.fillRect(x + 4.5, top + 2.5, 4, 4);
+    } else {
+      const glow = ctx.createRadialGradient(x, top + 2, 0, x, top + 2, 9);
+      glow.addColorStop(0, 'rgba(255, 70, 50, 0.95)');
+      glow.addColorStop(1, 'rgba(255, 70, 50, 0)');
+      ctx.fillStyle = glow;
+      ctx.beginPath();
+      ctx.arc(x, top + 2, 9, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    if (m.label) {
+      ctx.font = `italic 600 11px ${FONT}`;
+      ctx.textBaseline = 'middle';
+      ctx.textAlign = 'left';
+      ctx.fillStyle = CHART_COLORS.signalRed;
+      haloText(ctx, m.label, x + 16, top + 4);
     }
   }
 

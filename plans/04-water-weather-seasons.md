@@ -676,7 +676,7 @@ Before and after (left old, right new, the same frame on Medium): `/mnt/project-
 
 ### Not covered yet
 1. **Fog banks you can see coming, rain, cloud layers and thunderstorms** are piece E. Visibility already drops inside a bank and in rain, so piece E draws what the sim already has.
-2. **Port storm flags** (§5.4) are Phase 5.
+2. **Port storm flags** (§5.4) are Phase 5. **Built 2026-11-08 (Phase 5 piece F, [06 §14.12](06-fame-wanted-law-lighthouses.md)):** up while the barometer at the port is falling fast, two hours after, and in a gale; shown on the port screen, in the papers and on the chart.
 3. **Fast falls can be extreme:** two lows closing in can drop the barometer more than 10 hPa in 3 game hours, more than Superior's worst storms. It reads as a clear warning, but if it looks odd, cap the tendency or merge close lows (§20, item 5).
 4. **Year-to-year variation** (§4.2) isn't wired. The **chart's weather** is (Phase 3, [03 §28](03-world-scale-chart-travel.md)).
 5. **Lake temperature is one number** for the whole zone; Chequamegon Bay warms weeks before the open lake.
