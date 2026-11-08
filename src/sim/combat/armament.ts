@@ -197,22 +197,69 @@ export function layRounds(
   const first = guns[0];
   if (!first) return [];
   const muzzles = muzzlesLocal(shape, first.mount, guns.length);
-  return guns.map((g, i) => {
-    const w = weaponDef(defs, g.weapon);
-    const a = ammoDef(defs, ammoId);
-    const sigma =
-      w.spreadDeg * DEG * a.spreadMul * (gunnery && w.kind !== 'small_arms' ? GUNNERY_SPREAD : 1);
-    const b = bearing + gaussian(rng) * sigma;
-    // The barrel's elevation is held closer than its train; a ship's roll (piece B) adds to it.
-    const e = elevation + gaussian(rng) * sigma * ELEVATION_SCATTER;
-    const v = launchVelocity(w.muzzleMs, b, e);
-    return {
-      weapon: g.weapon,
-      ammo: ammoId,
-      pos: toWorld(muzzles[i] ?? muzzles[0] ?? { x: 0, y: 2, z: 0 }, pose),
-      vel: { x: v.x + shipVel.x, y: v.y, z: v.z + shipVel.z },
-    };
-  });
+  return guns.map((g, i) =>
+    layRound(
+      defs,
+      g,
+      muzzles[i] ?? muzzles[0] ?? { x: 0, y: 2, z: 0 },
+      pose,
+      shipVel,
+      bearing,
+      elevation,
+      ammoId,
+      rng,
+      gunnery,
+    ),
+  );
+}
+
+/**
+ * One gun of a mount goes off from its place on deck (a rippled broadside fires them one
+ * by one, each laid by the ship's motion at that moment; Phase 6 piece B).
+ */
+export function layRound(
+  defs: CombatDefs,
+  g: MountedWeapon,
+  muzzleLocal: Vec3,
+  pose: HullPose,
+  shipVel: { x: number; z: number },
+  bearing: number,
+  elevation: number,
+  ammoId: string,
+  rng: Random,
+  gunnery: boolean,
+): Round {
+  const w = weaponDef(defs, g.weapon);
+  const a = ammoDef(defs, ammoId);
+  const sigma =
+    w.spreadDeg * DEG * a.spreadMul * (gunnery && w.kind !== 'small_arms' ? GUNNERY_SPREAD : 1);
+  const b = bearing + gaussian(rng) * sigma;
+  // The barrel's elevation is held closer than its train; the ship's roll is already in
+  // `elevation` (the combat core adds the barrel's tilt as each gun goes off).
+  const e = elevation + gaussian(rng) * sigma * ELEVATION_SCATTER;
+  const v = launchVelocity(w.muzzleMs, b, e);
+  return {
+    weapon: g.weapon,
+    ammo: ammoId,
+    pos: toWorld(muzzleLocal, pose),
+    vel: { x: v.x + shipVel.x, y: v.y, z: v.z + shipVel.z },
+  };
+}
+
+/** The spread a gun throws with an ammo, radians (one standard deviation, in bearing). */
+export function spreadRad(
+  defs: CombatDefs,
+  weaponId: string,
+  ammoId: string,
+  gunnery: boolean,
+): number {
+  const w = weaponDef(defs, weaponId);
+  return (
+    w.spreadDeg *
+    DEG *
+    ammoDef(defs, ammoId).spreadMul *
+    (gunnery && w.kind !== 'small_arms' ? GUNNERY_SPREAD : 1)
+  );
 }
 
 /** The reach of a gun with an ammo, meters (grape scatters early). */

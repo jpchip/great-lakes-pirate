@@ -102,6 +102,12 @@ const ACTION_LABELS: Partial<Record<Action, string>> = {
   Journal: 'Journal',
   LieAtAnchor: 'Lie at anchor',
   Repair: 'Use a repair kit',
+  AimMode: 'Aim the guns',
+  Fire: 'Fire (aiming)',
+  AimSwivel: 'Bow swivel',
+  AimBroadside: 'Broadside',
+  AimRifle: 'Rifle',
+  CycleAmmo: 'Change shot',
 };
 
 const HUD_LABELS: Record<HudDensity, string> = {

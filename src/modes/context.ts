@@ -266,6 +266,8 @@ export interface GameEvents {
     rounds: number;
     warning: boolean;
     at: { x: number; z: number };
+    /** The muzzle's height, meters (the smoke's start). */
+    y?: number;
     bearing: number;
   };
   ShotLanded: {

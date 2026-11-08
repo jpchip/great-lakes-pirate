@@ -32,6 +32,10 @@ export type Action =
   | 'Spyglass'
   | 'AimMode'
   | 'Fire'
+  | 'AimSwivel'
+  | 'AimBroadside'
+  | 'AimRifle'
+  | 'CycleAmmo'
   | 'ToggleChart'
   | 'Hail'
   | 'Port'
@@ -70,9 +74,14 @@ export const DEFAULT_BINDINGS: Bindings = {
     LieAtAnchor: ['KeyZ'],
     // Phase 4 piece G: use a patch or mend kit from the lockers at sea.
     Repair: ['KeyK'],
-    // Reserved for combat (plan 07).
+    // Combat (plan 07 §3; Phase 6 piece B): Tab in and out of aim mode, 1/2/3 the swivel,
+    // the broadside and the rifle, C the shot, left mouse fires while aiming.
     AimMode: ['Tab'],
     Fire: ['Mouse0'],
+    AimSwivel: ['Digit1'],
+    AimBroadside: ['Digit2'],
+    AimRifle: ['Digit3'],
+    CycleAmmo: ['KeyC'],
   },
   onFoot: {
     Pause: ['Escape'],
@@ -176,7 +185,7 @@ export class InputMapper {
 
 /**
  * The actions the settings screen lets the player rebind (plan 13 §9), per context, in
- * the order it lists them. Combat stays reserved until plan 07.
+ * the order it lists them.
  */
 export const REBINDABLE: Partial<Record<InputContext, readonly Action[]>> = {
   sailing: [
@@ -197,6 +206,12 @@ export const REBINDABLE: Partial<Record<InputContext, readonly Action[]>> = {
     'Journal',
     'LieAtAnchor',
     'Repair',
+    'AimMode',
+    'Fire',
+    'AimSwivel',
+    'AimBroadside',
+    'AimRifle',
+    'CycleAmmo',
   ],
 };
 

@@ -53,6 +53,9 @@ import { createWater, WATER_FAR_RADIUS_M, type Water } from './water/water';
 import { bakeShore } from './water/shore';
 import { createSpray, type Spray } from './water/spray';
 import { createShotView, type ShotView } from './shots';
+import { createAimView, type AimPreviewView } from './aim-view';
+import { createCombatFx, type CombatFx } from './combat-fx';
+import type { ArcPreview } from '../sim/combat/aim';
 import { createWindCues, type WindCues } from './water/wind-cues';
 
 const HORIZON = new THREE.Color(0xb7c6cf);
@@ -67,6 +70,12 @@ export interface TestScene {
   readonly spray: Spray;
   /** Round shot in the air (Phase 6 piece A); `shots.source` is set by the combat core. */
   readonly shots: ShotView;
+  /** The aim preview (Phase 6 piece B): `aimSource` gives what to draw each frame. */
+  readonly aim: AimPreviewView;
+  aimSource: (() => { preview: ArcPreview | undefined; ready: boolean } | undefined) | undefined;
+  /** Smoke, flash, splinters and canvas; `fxWind` carries the smoke (m/s, zone axes). */
+  readonly combatFx: CombatFx;
+  readonly fxWind: { x: number; z: number };
   /** Every ship's bow wave and wake ribbons. */
   readonly wakes: ReadonlyMap<Entity, ShipWake>;
   /** NPC ships drawn (Phase 3 piece H), once the first one has appeared and loaded. */
@@ -187,6 +196,10 @@ export async function createTestScene(
   renderer.onPresetChange((preset) => spray.setCapacity(preset.sprayParticles));
   const shots = createShotView();
   scene.add(shots.mesh);
+  const aimView = createAimView();
+  scene.add(aimView.group);
+  const combatFx = createCombatFx();
+  scene.add(combatFx.points);
 
   const environment = createEnvironmentView(scene, sky, hemi, sun, water, weather);
   environment.update(clock.gameSeconds, { x: 0, z: 0 });
@@ -424,7 +437,18 @@ export async function createTestScene(
   };
   // Real seconds for the wake and spray; they hold still while frameSeconds is 0.
   let now = 0;
+  const fxWind = { x: 0, z: 0 };
+  let aimSource: TestScene['aimSource'];
   return {
+    aim: aimView,
+    get aimSource() {
+      return aimSource;
+    },
+    set aimSource(source) {
+      aimSource = source;
+    },
+    combatFx,
+    fxWind,
     scene,
     camera,
     water,
@@ -503,7 +527,10 @@ export async function createTestScene(
       npcs?.update(alpha, now, frameSeconds, environment.sunElevationDeg, fog()?.density ?? 0);
       spray.update(frameSeconds);
       shots.update();
+      combatFx.update(frameSeconds, fxWind);
       cameraRig.update(pose, surface, frameSeconds);
+      const aimNow = aimSource?.();
+      aimView.update(aimNow?.preview, aimNow?.ready ?? false, camera.position);
       sky.position.copy(camera.position);
       atmosphere.update(frameSeconds, clock.gameSeconds, camera.position, focus);
       environment.update(clock.gameSeconds, focus);

@@ -63,6 +63,11 @@ export interface SailingModeOptions {
    * the law and before the ships move.
    */
   combat?: { step(dt: number): void } | undefined;
+  /**
+   * True while the player's rudder holds where it is: the T1's captain at the gun can't
+   * be at the wheel too (plan 07 §3; Phase 6 piece B).
+   */
+  helmHeld?: (() => boolean) | undefined;
 }
 
 export interface SailingArena {
@@ -145,8 +150,12 @@ export function createSailingMode(ctx: GameContext, options: SailingModeOptions)
   let lastDt = 0;
   const scale = { rate: R_SAILING, compression: DEFAULT_COMPRESSION };
   const helm: SailingCommand = { ...IDLE_COMMAND };
-  const commandFor = (e: Entity): SailingCommand =>
-    e.playerControlled ? playerCommand(ctx.input, helm) : IDLE_COMMAND;
+  const commandFor = (e: Entity): SailingCommand => {
+    if (!e.playerControlled) return IDLE_COMMAND;
+    const cmd = playerCommand(ctx.input, helm);
+    if (e.sailing && options.helmHeld?.()) cmd.steer = e.sailing.state.rudder;
+    return cmd;
+  };
   const mooring: MooringCommand = { ...IDLE_MOORING };
   const mooringFor = (e: Entity): MooringCommand => {
     if (!e.playerControlled) return IDLE_MOORING;

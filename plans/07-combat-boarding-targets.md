@@ -448,9 +448,22 @@ A second smuggler ship lies in Siskiwit Bay, built with the Siskiwit Bay zone (0
 
 **Calls made here.** Abandoning your own ship when she founders (decision 2) stays with piece F, as §14.4 has it: a repelled boarding never takes your hull below 10%, and every target is unarmed (§14.5), so nothing in this piece sinks you. The T2's wounded hands are only told. Witnesses while looting are counted, not yet acted on (piece F). `__glpBoarding` (`near`, `board`, `odds`, `lay`, `astern`, `record`) drives it from the console; `e2e/boarding.spec.ts` runs criterion 1 with real warning shots from the swivel.
 
+### 14.11 Piece B as built: aiming and firing (2026-11-08)
+
+- **Aim mode** (`gameplay/aim.ts`, `sim/combat/aim.ts`). Tab toggles it at sea (not alongside a pier). 1/2/3 take up the swivel, the broadside and the rifle; 2 again swaps sides, and a broadside first opens on the side of the nearest ship. C cycles the gun's shot. Tab comes back to the gun last picked. The cursor's ray meets the water at the aim point; the bearing is held to the mount's arc and the range to the reach (the shot goes to the edge, and the HUD says why). The left mouse fires only when it went down on the canvas, not on a HUD button. New bindings `AimSwivel`, `AimBroadside`, `AimRifle`, `CycleAmmo` (Digit1–3, C), all rebindable with `AimMode` and `Fire`.
+- **The camera** (`ShipCamera.setAim`). A broadside is aimed from the gun's rail, 6 m up and a little abaft the guns, looking out along the beam; the swivel from 24 m up amidships, above the headsails, which block a deck-level view forward; the rifle from 16 m. The swivel and rifle views turn toward an aim off to one side (edge-pan with a dead zone); the broadside's holds the beam. The view eases in and out and ignores drag and the wheel while aiming. It's steadied against the roll, so the cue for the roll is the ring, not the horizon.
+- **The arc preview** (`render/aim-view.ts`): dots along the flight and a ring of the gun's one-sigma spread at the fall (never less than about a degree across), drawn over everything, cream when ready and red when not. The sight for the fall of shot is 35% of the perception module's hull sight in this light, and 60% of the fog's: past any gun by day, about 100 m on a moonless night, 500 m under a moon. The target card shows only ships within 1.7× that.
+- **Firing on the roll.** The combat core takes `barrelTilt(mount)`: a broadside's elevation moves with her roll less her steady heel (the gunner lays out the heel), the swivel's with her pitch, the rifle's barely. It's added as each gun goes off, so the preview, the dev hook's shots and the aimed shot all obey it. 3° of tilt moves a swivel shot at 120 m by more than 15 m.
+- **The ripple.** A crewed ship (the T2) fires a broadside gun by gun, 0.22 s apart, each laid by the roll at that moment; powder for all of them comes out at the order, and the reload starts with the first. `FireOrder.ripple: false` fires them together. `WeaponFired` is raised per gun and now carries the muzzle's height.
+- **Effects** (`render/combat-fx.ts`): one point-sprite pool for muzzle flash, smoke that billows out 10–35 m and drifts downwind, splinters off a hull or deck hit and canvas off a rig hit. Splashes are the spray's column, as before.
+- **HUD** (`ui/hud/AimHud.tsx`): the aim HUD (gun, shots with the loaded one marked, status, range of reach, the barrel's tilt and whether it's falling, powder, a load ring per mount, "Steering locked" on the T1, the keys), and the target card (name, class, range, the captain's phase and nerve with his latest reason, hull, rig and engine, crew with killed and wounded, colors struck, hawser).
+- **Dev.** `__glpCombat.aim(weapon?)`, `standDown()`, `aimAt(x, z)`, `aimAtShip(id)`, `aimFire()`, `cycleAmmo()`, `aimState()`, `place(id, relDeg, m)` and `screenOf(id)`.
+- **For Jared: aim feel.** The camera places, the edge-pan rate, the smoke's density and the tilt rule (full roll on a broadside) are first guesses to tune by hand.
+
 ---
 
 ## Changelog
+- v0.4.5: §14.11 piece B as built: aim mode, the arc preview, firing on the roll, the rippled broadside, smoke and splinters, the aim HUD and the target card.
 - v0.4.4: §14.10 piece E built (fences, the shady shipwright, powder and shot, more than one smuggler).
 - v0.4.2: §14.8 piece A as built: guns and shot data, ballistics, hull boxes, damage pools, sinking and the boiler, save v8.
 - v0.4.3: §14.9 piece C as built: combat stats, the morale meter and captain, tow lines, collisions, and the interface for pieces A, B and D.
