@@ -9,6 +9,7 @@ import {
   cycleS,
   cycleStartS,
   hash01,
+  isLostAt,
   monthAt,
   sailsInCycle,
   westernSuperiorRoutes,
@@ -366,7 +367,11 @@ export function runTraffic(
   const calls: { c: Contact; call: TrafficCall }[] = [];
   for (const c of contacts) {
     if (!c.schedule) continue;
-    for (const call of callsBetween(c.schedule, c.id, t0, t1)) calls.push({ c, call });
+    for (const call of callsBetween(c.schedule, c.id, t0, t1)) {
+      // A ship on the bottom, or limping in, makes no calls (Phase 6 piece D).
+      if (isLostAt(c, call.at)) continue;
+      calls.push({ c, call });
+    }
   }
   calls.sort((a, b) => a.call.at - b.call.at);
   const out: CargoDelivered[] = [];

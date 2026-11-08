@@ -13,7 +13,14 @@ import { freshStats, type LogEntry } from './record';
  * gone, and again from the main menu until a new run starts.
  */
 
-export type RunEndCause = 'executed' | 'abandoned';
+/** `killed`: shot down in a boarding fight lost at bad odds (Phase 6 piece D). */
+export type RunEndCause = 'executed' | 'abandoned' | 'killed';
+
+/** What a death needs for the papers: the ship she died boarding. */
+export interface RunEndDetail {
+  /** The ship whose crew repelled the boarding. */
+  ship?: string;
+}
 
 export interface FrontPage {
   paper: string;
@@ -102,7 +109,13 @@ const PAPERS = {
   duluth: { paper: 'The Duluth Daily Lantern', town: 'Duluth' },
 } as const;
 
-function frontPage(defs: LawDefs, state: WorldState, cause: RunEndCause, now: number): FrontPage {
+function frontPage(
+  defs: LawDefs,
+  state: WorldState,
+  cause: RunEndCause,
+  now: number,
+  detail: RunEndDetail = {},
+): FrontPage {
   const c = state.player.captain;
   const name = c.name.toUpperCase();
   const ship = c.shipName;
@@ -127,6 +140,23 @@ function frontPage(defs: LawDefs, state: WorldState, cause: RunEndCause, now: nu
       ],
     };
   }
+  if (cause === 'killed') {
+    const prize = detail.ship ?? 'a lake steamer';
+    return {
+      paper,
+      town,
+      dateline: dateline(now),
+      headline: `PIRATE ${name} SHOT DEAD`,
+      deck: `Crew of the ${prize} Beat Off a Boarding; the Schooner ${ship} Found Adrift`,
+      body: [
+        `Captain ${c.name}, master of the schooner ${ship}, was killed on the open lake attempting to board the ${prize}, whose crew met the attack with pistols and handspikes and drove it off.`,
+        `The ${ship} was found drifting with her sails loose and her captain dead on the deck. The ${prize}'s master said his people only did what any crew would.`,
+        famous
+          ? 'The waterfront knew the name well. Some will say the lake is safer for it.'
+          : 'Few on the waterfront knew the name. The lake keeps its own accounts.',
+      ],
+    };
+  }
   return {
     paper,
     town,
@@ -139,6 +169,12 @@ function frontPage(defs: LawDefs, state: WorldState, cause: RunEndCause, now: nu
     ],
   };
 }
+
+const ENDINGS: Readonly<Record<RunEndCause, string>> = {
+  executed: 'Hanged',
+  abandoned: 'Gave up the lake',
+  killed: 'Killed boarding a prize',
+};
 
 function statsFor(state: WorldState, now: number) {
   return state.stats ?? freshStats(now);
@@ -178,7 +214,7 @@ function summary(defs: LawDefs, state: WorldState, cause: RunEndCause, now: numb
     { label: 'Contracts delivered', value: String(s.contracts) },
     { label: 'Taken by the law', value: `${s.captures} time${s.captures === 1 ? '' : 's'}` },
     { label: 'Lives taken', value: 'Never killed a soul' },
-    { label: 'How it ended', value: cause === 'executed' ? 'Hanged' : 'Gave up the lake' },
+    { label: 'How it ended', value: ENDINGS[cause] },
   ];
 }
 
@@ -209,9 +245,10 @@ export function buildLastRun(
   cause: RunEndCause,
   now: number,
   realNow: Date,
+  detail: RunEndDetail = {},
 ): LastRun {
   const c = state.player.captain;
-  const page = frontPage(defs, state, cause, now);
+  const page = frontPage(defs, state, cause, now, detail);
   const ending = `${page.headline} (${page.paper}, ${page.dateline})`;
   return {
     version: 1,
@@ -227,6 +264,8 @@ export function buildLastRun(
     epitaph:
       cause === 'executed'
         ? `Hanged at Bayfield, ${dateText(now)}`
-        : `Went ashore for good, ${dateText(now)}`,
+        : cause === 'killed'
+          ? `Killed boarding the ${detail.ship ?? 'a prize'}, ${dateText(now)}`
+          : `Went ashore for good, ${dateText(now)}`,
   };
 }

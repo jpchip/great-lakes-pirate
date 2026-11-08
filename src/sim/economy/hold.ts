@@ -17,6 +17,11 @@ export interface HotMeta {
   traceability: number;
   /** Game seconds of the theft. */
   since: number;
+  /**
+   * The company whose marks are on it (a looted ship's owner, plan 07 §7.1; Phase 6 piece
+   * D): traceable to them, and their grudge.
+   */
+  owner?: string | undefined;
 }
 
 export interface CargoStack {

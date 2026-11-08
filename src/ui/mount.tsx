@@ -19,6 +19,8 @@ import { Journal } from './port/Ledger';
 import type { LedgerSnapshot, PortSnapshot, PortTab } from './port/model';
 import { SmugglerScreen, type SmugglerActions } from './port/SmugglerScreen';
 import type { SmugglerSnapshot } from './port/smuggler-model';
+import { BoardingScreen } from './boarding/BoardingScreen';
+import type { BoardingActions, BoardingSnapshot } from './boarding/model';
 import { LieDialog, StashScreen } from './stash/StashScreen';
 import type { StashSnapshot } from './stash/model';
 import type { StashActions } from '../gameplay/stash';
@@ -58,6 +60,8 @@ export interface GameUiOptions {
   port?: (PortActions & { closeJournal(): void; openDocked(): void }) | undefined;
   /** Alongside the island smuggler (Phase 4 piece H). */
   smuggler?: SmugglerActions | undefined;
+  /** Boarding a prize (Phase 6 piece D). */
+  boarding?: BoardingActions | undefined;
   /** The stash screen's buttons and the lie-at-anchor choice (Phase 4 piece E). */
   stash?: StashActions | undefined;
   /** The game's sound volumes, when it has Web Audio. */
@@ -96,6 +100,8 @@ export interface GameUi {
   setJournalSailing(on: boolean | undefined): void;
   /** The island smuggler's screen; undefined closes it. */
   setSmuggler(snapshot: SmugglerSnapshot | undefined): void;
+  /** The boarding panel, the looting screen and the aftermath; undefined closes them. */
+  setBoarding(snapshot: BoardingSnapshot | undefined): void;
   /** The stash screen; undefined closes it (Phase 4 piece E). */
   setStash(snapshot: StashSnapshot | undefined): void;
   /** The lie-at-anchor choice: true opens it, false closes it; `docked` titles it alongside. */
@@ -125,6 +131,7 @@ export function mountGameUi({
   onWait,
   port: portActions,
   smuggler: smugglerActions,
+  boarding: boardingActions,
   stash: stashActions,
   setFirstWeekHidden = () => undefined,
   jail: jailActions,
@@ -141,6 +148,7 @@ export function mountGameUi({
   const jail = signal<JailSnapshot | undefined>(undefined);
   const ended = signal<LastRun | undefined>(undefined);
   const smuggler = signal<SmugglerSnapshot | undefined>(undefined);
+  const boarding = signal<BoardingSnapshot | undefined>(undefined);
   const stash = signal<StashSnapshot | undefined>(undefined);
   const lie = signal(false);
   const lieDocked = signal(false);
@@ -189,6 +197,9 @@ export function mountGameUi({
     } else if (menuOpen.value) {
       e.preventDefault();
       setMenu(false);
+    } else if (boarding.value) {
+      e.preventDefault();
+      boardingActions?.close();
     } else if (smuggler.value) {
       e.preventDefault();
       smugglerActions?.close();
@@ -251,6 +262,9 @@ export function mountGameUi({
             setTab={(t) => (portTab.value = t)}
           />
         )}
+        {boarding.value && boardingActions && !menuOpen.value && (
+          <BoardingScreen boarding={boarding.value} actions={boardingActions} />
+        )}
         {smuggler.value && smugglerActions && !menuOpen.value && (
           <SmugglerScreen smuggler={smuggler.value} actions={smugglerActions} />
         )}
@@ -279,6 +293,7 @@ export function mountGameUi({
           !port.value &&
           !journal.value &&
           !smuggler.value &&
+          !boarding.value &&
           !stash.value &&
           !lie.value &&
           !chart.value && (
@@ -288,6 +303,7 @@ export function mountGameUi({
           !port.value &&
           !journal.value &&
           !smuggler.value &&
+          !boarding.value &&
           !stash.value &&
           !jail.value &&
           !ended.value &&
@@ -390,6 +406,9 @@ export function mountGameUi({
     },
     setSmuggler(snapshot) {
       smuggler.value = snapshot;
+    },
+    setBoarding(snapshot) {
+      boarding.value = snapshot;
     },
     setFirstWeek(snapshot) {
       firstWeek.value = snapshot;

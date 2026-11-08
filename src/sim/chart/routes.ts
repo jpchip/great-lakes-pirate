@@ -334,7 +334,24 @@ export function placeTraffic(contacts: readonly Contact[], gameSeconds: number):
       progressM: place.progressM,
       forward: place.forward,
     };
+    // Sunk or limping in (Phase 6 piece D): off the water, out of port, off the chart.
+    c.lost = isLostAt(c, gameSeconds);
+    if (c.lost) {
+      c.inPort = true;
+      c.underWay = false;
+    }
+    for (const k of c.consorts ?? []) k.lost = c.lost || isLostAt(k, gameSeconds);
   }
+}
+
+/** Whether a ship (or a consort) is off her timetable at `gameSeconds` (Phase 6 piece D). */
+export function isLostAt(
+  c: { lostAt?: number | undefined; lostUntil?: number | undefined },
+  gameSeconds: number,
+): boolean {
+  return (
+    c.lostUntil !== undefined && gameSeconds < c.lostUntil && gameSeconds >= (c.lostAt ?? -Infinity)
+  );
 }
 
 /**
