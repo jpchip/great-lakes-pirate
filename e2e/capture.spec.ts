@@ -151,7 +151,7 @@ test('bail sent for from the Stockton strongbox lets the captain out early', asy
   const sentence = await page.evaluate(() => (window as unknown as Hooks).__glpCapture.state());
   await page.getByTestId('jail-word-hideout.stockton').click();
   await expect(page.getByTestId('jail-screen')).toHaveAttribute('data-kind', 'released');
-  await expect(page.getByTestId('jail-lead')).toContainText('still wants you');
+  await expect(page.getByTestId('jail-lead')).toContainText('has you down as');
   const after = await page.evaluate(() => {
     const w = window as unknown as Hooks;
     return {
@@ -160,9 +160,9 @@ test('bail sent for from the Stockton strongbox lets the captain out early', asy
       cash: w.__glpStash.hideouts()['hideout.stockton']?.storage.cash ?? 0,
     };
   });
-  // Out in a day or so, well before the sentence, with the heat as it was (less a day's decay).
+  // Out in a day or so, well before the sentence, and the region down to tier 1 (Jared, 2026-11-08).
   expect(after.clock).toBeLessThan(sentence?.releaseAt ?? 0);
-  expect(after.heat).toBeGreaterThan(250);
+  expect(after.heat).toBeLessThan(60);
   expect(after.cash).toBeLessThan(900_000);
   expect(errors).toEqual([]);
 });

@@ -1,6 +1,6 @@
 # 12 — Sandbox Goals, Events, Character Creation & Failure
 
-Status: DRAFT v0.3 (decisions made; gap review applied)
+Status: DRAFT v0.7 (decisions made; gap review applied; Phase 5 built as 0.5.0)
 Parent: [00-master-plan.md](00-master-plan.md)
 Inputs:
 - Master plan: custom pirate inspired by Seavey; name, appearance and background with perks; open sandbox; the legit path supported; permadeath always on; nothing carries over; jail, bail and jailbreak; execution only at the top tier
@@ -246,7 +246,7 @@ Sinking with a failed survival check · drowning · combat (boarding at bad odds
 
 ## 11. Phasing
 - **Phase 4:** character creation (name, appearance presets, background), starting scenario, First Week checklist (trade parts). Starting hideouts attach in Phase 8, when hideouts exist. **Built 2026-11-02 (Phase 4 piece C, [05 §19](05-ports-economy-trading.md)):** `data/backgrounds.json` and eight portrait presets; a new run opens docked at the background's starting pier at sunrise on May 7, 1900; the Deckhand's and Fisherman's perks wired (the Saloon Keeper's rumors by piece K), the rest stored for their phases; the First Week's five steps in the journal and on a HUD tracker. The run seed is on the creation screen; the permadeath notice waits for Phase 5.
-- **Phase 5:** jail, bail, the release summary; newspapers v1 (headlines, WANTED); death and end screen plus run summary. **Built 2026-11-07 (Phase 5 piece D, [06 §14.9](06-fame-wanted-law-lighthouses.md)):** `data/jail.json`, the cell, gallows and release screens, bail by sending word, the jailbreak stubbed, the end screen's front page, summary and logbook export, `stats` and the logbook. No permadeath notice: Jared dropped it. **Newspapers v1 built 2026-11-08 (piece F, [06 §14.12](06-fame-wanted-law-lighthouses.md)):** `data/newspapers.json`, the four papers' daily editions with templated headlines exaggerated by Fame, the WANTED column, cutter sightings, the weather outlook and storm signals, sold at the port screen; nicknames, shipping news and prices wait.
+- **Phase 5:** jail, bail, the release summary; newspapers v1 (headlines, WANTED); death and end screen plus run summary. **Built 2026-11-07 (Phase 5 piece D, [06 §14.9](06-fame-wanted-law-lighthouses.md)):** `data/jail.json`, the cell, gallows and release screens, bail by sending word, the jailbreak stubbed, the end screen's front page, summary and logbook export, `stats` and the logbook. No permadeath notice: Jared dropped it. **Newspapers v1 built 2026-11-08 (piece F, [06 §14.12](06-fame-wanted-law-lighthouses.md)):** `data/newspapers.json`, the four papers' daily editions with templated headlines exaggerated by Fame, the WANTED column, cutter sightings, the weather outlook and storm signals, sold at the port screen; nicknames, shipping news and prices wait. **Checked in the Phase 5 playtest (2026-11-08, [06 §14.14](06-fame-wanted-law-lighthouses.md)):** capture below tier 5, bail from the Stockton strongbox and the gallows to the end screen pass end to end in `e2e/capture.spec.ts`; a month of crime with a full logbook saves in 8.8 KB. Bail also clears heat to tier 1 from 2026-11-08 (Jared's decision); the end screen's look is still open.
 - **Phase 8:** the event system with the first ~10 events, letters, Ambitions.
 - **Phase 9:** the full event catalog, the Hollister feud, copycat rivals, nickname generation, poker, the Mataafa event, voluntary endings, Hall of Captains.
 
@@ -279,6 +279,8 @@ All resolved.
 ---
 
 ## Changelog
+- v0.7: Bail brings the region down to tier 1, as time served does (Jared, 2026-11-08).
+- v0.6: Phase 5 playtest (§11): jail, bail and the end screen checked; bail and heat and the end screen's look left for Jared.
 - v0.5: Phase 5 piece D built (§11): jail, bail, release and the end screen. The permadeath notice was dropped at Jared's request.
 - v0.4: Phase 4 piece C built (§11): character creation, backgrounds, the new run and the First Week.
 - v0.3: Gap review: pre-built starting hideouts, MVP starting sites, Bayfield lockup, batch time skip for sentences.

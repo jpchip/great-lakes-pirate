@@ -283,7 +283,9 @@ export function attachLawAtSea(deps: LawAtSeaDeps): LawAtSea {
         deps.notice(
           a.why === 'shallows'
             ? `${name} won't risk her keel in the shallows: she stands off and gives it up.`
-            : `${name} has lost you.`,
+            : a.why === 'outrun'
+              ? `${name} is falling astern: she gives up the chase.`
+              : `${name} has lost you.`,
         );
         break;
     }

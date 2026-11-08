@@ -218,7 +218,7 @@ export function attachCapture(opts: CaptureOptions): CaptureControl {
       title: r.how === 'bail' ? 'Out on bail' : 'Time served',
       lead:
         r.how === 'bail'
-          ? `Word came back with the money after ${weeks(served)} in ${lockupName()}. ${regionName(r.region)} still wants you as it did.`
+          ? `Word came back with the money after ${weeks(served)} in ${lockupName()}. ${regionName(r.region)} has you down as ${tierDef(defs, wantedTier(defs, r.heatAfter)).name} now.`
           : `${weeks(served)} in ${lockupName()}${r.workOffDays > 0 ? `, ${weeks(r.workOffDays)} of it working off the ship's fee on the coal dock` : ''}. ${regionName(r.region)} has you down as ${tierDef(defs, wantedTier(defs, r.heatAfter)).name} now.`,
       inside: insideNews(before),
       ship:

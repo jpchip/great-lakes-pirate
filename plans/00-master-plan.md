@@ -258,7 +258,7 @@ Each of these gets its own plan doc. Summaries capture decisions plus remaining 
 | 2 | **Superior Slice** | The Apostle Islands feel real | Real coastline for the Apostles and Chequamegon Bay, Bayfield + Ashland, lighthouses, day/night, weather v1 |
 | 3 | **Hybrid Travel** | Big-world feel | Chart travel mode, open-water encounters, Duluth/Superior/Two Harbors zones |
 | 4 | **Trade & Economy** | The day loop works | Markets, cargo, gold, ship upgrades v1, save/load, the Stockton stash and the island smuggler. **Built as 0.4.0** ([05 §16–25](05-ports-economy-trading.md)) |
-| 5 | **Law, Fame & Wanted** | Heat has teeth | Cutters, lighthouse detection, Fame/Wanted meters, jail |
+| 5 | **Law, Fame & Wanted** | Heat has teeth | Cutters, lighthouse detection, Fame/Wanted meters, jail, port law, newspapers v1, the sailing speed pass. **Built as 0.5.0** ([06 §14](06-fame-wanted-law-lighthouses.md)) |
 | 6 | **Piracy & Combat** | At-sea crime | Freighter AI, cannons, boarding/surrender, sinking, fences |
 | 7 | **On Foot: Docks & Islands** | The night loop + island exploration | On-foot mode, one docks district (**Bayfield**, with the lockup for jail and jailbreaks), stealth AI, theft, one fully walkable island |
 | 8 | **Hideouts** | Base loop | Grid building, crafting, storage, two MVP hideouts (seven sites by Beta) |
@@ -420,6 +420,7 @@ All planned documents are drafted and their open questions answered. Next:
 ---
 
 ## Changelog
+- v0.8: Phase 5's roadmap row gains port law, newspapers v1 and the speed pass (06 §14) and is marked built as 0.5.0.
 - v0.7: Phase 4's roadmap row gains the Stockton stash and the island smuggler (05 §16) and is marked built as 0.4.0.
 - v0.6: Applied the 2026-10-22 Phase 0 gap review: §4 TBDs replaced with decisions from the system plans, Booth fictionalized, audio and asset sourcing aligned to 15 and 14, Phase 0 row matches 01, MVP definition tightened, C = 8 and R = 24 decided, plan index statuses refreshed, §10 and §11 rewritten, superseded decisions marked.
 - v0.5: All plans 01–17 drafted with decisions recorded (see the Decisions Log); next steps updated to Phase 0.

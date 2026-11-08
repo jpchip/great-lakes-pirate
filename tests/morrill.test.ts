@@ -1,4 +1,8 @@
 import { describe, expect, it } from 'vitest';
+import { EventBus } from '../src/core/events';
+import { attachLawShips } from '../src/gameplay/law-ships';
+import type { GameContext, GameEvents } from '../src/modes/context';
+import { createWorldState } from '../src/sim/world-state';
 import type { Chart } from '../src/core/coords';
 import { SECONDS_PER_GAME_DAY } from '../src/core/time';
 import { sampleArenaLand, OPEN_LAKE, type ArenaLand } from '../src/sim/arena/land';
@@ -219,6 +223,43 @@ describe("the Morrill's sorties (§5.1)", () => {
     expect(c.underWay).toBe(false);
   });
 
+  it('is sent out of the lockup port, not left lying at the pier (Jared, playtest)', () => {
+    const state = createWorldState('away', 0);
+    const NOW = 60 * HOUR;
+    state.environment.clock.gameSeconds = NOW;
+    const events = new EventBus<GameEvents>();
+    const ctx = { state, events } as unknown as GameContext;
+    // Lying at Bayfield with hours of her stay to go, as she'd be coming out of the lockup.
+    const lane = [...lanes.values()].find((l) => l.from.id === 'node.bayfield');
+    if (!lane) throw new Error('no lane out of Bayfield');
+    state.lawShips = {
+      morrill: {
+        leg: {
+          lane: lane.id,
+          fromM: lane.lengthM,
+          toM: 0,
+          departAt: NOW - 3 * HOUR,
+          lieS: 20 * HOUR,
+          purpose: 'beat',
+        },
+        sortie: 3,
+        coaledAt: NOW - HOUR,
+      },
+      tug: null,
+    };
+    const ships = attachLawShips(ctx, geo, 'away', defs);
+    placePatrol(ships.morrill, NOW);
+    expect(ships.morrill.inPort).toBe(true);
+    ships.awayFromPort('port.bayfield');
+    placePatrol(ships.morrill, NOW);
+    expect(ships.morrill.inPort).toBe(false);
+    // Another port's cutter is left alone.
+    const again = attachLawShips(ctx, geo, 'away', defs);
+    again.awayFromPort('port.duluth');
+    ships.dispose();
+    again.dispose();
+  });
+
   it('charters the tug in a tier-5 region, on the beats that cover it', () => {
     const w = world({ 'region.chequamegon': 5 });
     const t = charterTug(w, 'region.chequamegon', 0);
@@ -393,6 +434,20 @@ describe('her captain at close quarters (criterion 7, §5.1, §8.1)', () => {
     expect(cutterOrders(b)).toEqual({ mode: 'search', at: { x: 100, z: 200 } });
     const gone = run(b, { tier: 2, awareness: 'unaware' }, CUTTER_RULES.searchS);
     expect(gone).toContainEqual({ type: 'gaveUp', why: 'lost' });
+  });
+
+  it('gives up the chase once you hold well ahead of her', () => {
+    const b = createCutterBrain({ hunting: true, intent: 'pursue' });
+    b.phase = 'firing';
+    const far = CUTTER_RULES.breakOffRangeM + 100;
+    const gaining = run(b, { tier: 2, distanceM: far }, CUTTER_RULES.breakOffS - 1);
+    expect(types(gaining)).not.toContain('gaveUp');
+    // She closes again before it's out: the count starts over.
+    run(b, { tier: 2, distanceM: 600 }, 1);
+    expect(b.awayS).toBe(0);
+    const away = run(b, { tier: 2, distanceM: far }, CUTTER_RULES.breakOffS + 1);
+    expect(away).toContainEqual({ type: 'gaveUp', why: 'outrun' });
+    expect(b.phase).toBe('released');
   });
 
   it('hits more often close aboard than at the end of her range', () => {
