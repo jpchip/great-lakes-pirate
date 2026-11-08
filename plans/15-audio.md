@@ -1,6 +1,6 @@
 # 15 — Audio
 
-Status: DRAFT v0.9 (decisions made; Phase 1 sailing audio, Phase 2 weather and harbor audio, Phase 3 ship whistles and chart music, Phase 4 harbor work and trade sounds, and Phase 5 law audio built)
+Status: DRAFT v1.0 (decisions made; Phase 1 sailing audio, Phase 2 weather and harbor audio, Phase 3 ship whistles and chart music, Phase 4 harbor work and trade sounds, and Phase 5 law audio built and checked)
 Parent: [00-master-plan.md](00-master-plan.md)
 Inputs:
 - Master plan: AI-generated audio
@@ -368,13 +368,14 @@ All resolved.
 
 ### Still to do
 
-1. **The paper boy's shout** in port waits on piece F's newspapers.
+1. ~~**The paper boy's shout** in port waits on piece F's newspapers.~~ **Done:** piece F raises `PaperCried` as a port screen opens with an edition unbought, and his call plays on the voice bus (louder for a story about you). The Phase 5 playtest added an e2e test that hears it at Bayfield ([06 §14.14](06-fame-wanted-law-lighthouses.md)); a listen on the laptop is in the route.
 2. **Music:** like the chart's, the stingers are synthesized placeholders (§16 item 1).
 3. **R1 checks:** how a revenue cutter signaled a ship to heave to in 1900, and whether the *Morrill* struck the ship's bell where a passing schooner could hear it.
 
 ---
 
 ## Changelog
+- v1.0: The paper boy's call wired to piece F's papers and checked in the Phase 5 playtest (§18).
 - v0.9: Phase 5 piece H built (§18): Wanted stingers, the cutter's whistle hails, engine, bell and bow gun, the deputies' rifles, the lockup's door and release.
 - v0.8: Phase 4 piece J built (§17): harbor work sounds at the ports, trade sounds, captions for fog signals and ship whistles, and a recorded chime whistle.
 - v0.7: Phase 3 piece J part 2 built (§16): the chart's traveling theme, six encounter stingers, the fade-to-fog sound and the Interface slider.

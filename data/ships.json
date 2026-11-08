@@ -267,7 +267,7 @@
     "propulsion": "steam",
     "lengthM": 44,
     "displayScale": 1,
-    "engineSpeedKn": 12,
+    "engineSpeedKn": 9.5,
     "accelTau": 12,
     "decelTau": 20,
     "turnRateCurve": [

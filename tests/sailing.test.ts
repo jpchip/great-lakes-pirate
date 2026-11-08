@@ -418,15 +418,17 @@ describe('speed against the cutter (plan 02 §10.1; Phase 5 piece G)', () => {
     expect(broadReach(20)).toBeGreaterThan(10.8);
   });
 
-  it('outruns the cutter on a broad reach in good wind, even on auto-trim', () => {
-    expect(broadReach(20)).toBeGreaterThan(cutterKn);
-    expect(broadReach(18, t1(), true)).toBeGreaterThan(cutterKn);
-    expect(broadReach(18, t2())).toBeGreaterThan(cutterKn);
+  it('outruns the cutter on a broad reach in a working breeze, even on auto-trim', () => {
+    // She makes 9.5 kn since the playtest (Jared: the chase felt overwhelming).
+    expect(cutterKn).toBe(9.5);
+    expect(broadReach(18)).toBeGreaterThan(cutterKn);
+    expect(broadReach(14, t1(), true)).toBeGreaterThan(cutterKn);
+    expect(broadReach(14, t2())).toBeGreaterThan(cutterKn);
   });
 
-  it('leaves the cutter faster in a working breeze and off the wind', () => {
-    expect(broadReach(14, t1(), true)).toBeLessThan(cutterKn);
-    expect(steady(90, 18)).toBeLessThan(cutterKn);
-    expect(steady(180, 22)).toBeLessThan(cutterKn);
+  it('leaves the cutter faster in light air, and running dead before a light wind', () => {
+    expect(broadReach(6, t1(), true)).toBeLessThan(cutterKn);
+    expect(steady(90, 6)).toBeLessThan(cutterKn);
+    expect(steady(180, 8)).toBeLessThan(cutterKn);
   });
 });

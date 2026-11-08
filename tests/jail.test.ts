@@ -130,7 +130,7 @@ describe('jail (plan 12 §8.1)', () => {
     expect(s.jail?.releaseAt).toBe(sentenceEnd + days * SECONDS_PER_GAME_DAY);
   });
 
-  it('sends word for bail from the strongbox: out early, heat left as it was', () => {
+  it('sends word for bail from the strongbox: out early, and the region down to tier 1', () => {
     const s = run(tierDef(defs, 4).minHeat);
     const j = imprison(defs, jail, s, capture, NOON);
     const cost = wordCost(jail, j);
@@ -150,10 +150,11 @@ describe('jail (plan 12 §8.1)', () => {
     // No fee to settle or work off: bail paid it.
     expect(settleImpound(jail, s)).toBeUndefined();
     expect(s.jail?.workOffDays).toBe(0);
-    const heat = s.wanted[APOSTLES]?.heat;
+    const heat = s.wanted[APOSTLES]?.heat ?? 0;
+    expect(heat).toBeGreaterThan(tierDef(defs, 1).minHeat);
     const r = release(defs, jail, s, word.arrivesAt);
     expect(r.how).toBe('bail');
-    expect(s.wanted[APOSTLES]?.heat).toBe(heat);
+    expect(s.wanted[APOSTLES]?.heat).toBe(tierDef(defs, 1).minHeat);
   });
 
   it('the messenger takes as long after a reload', () => {

@@ -72,6 +72,9 @@ export interface CutterRules {
   standOffS: number;
   /** After giving up or letting you go she doesn't come back for this long. */
   cooldownS: number;
+  /** A pursued ship that holds this far ahead of her for `breakOffS` is away: she gives up. */
+  breakOffRangeM: number;
+  breakOffS: number;
 }
 
 export const CUTTER_RULES: CutterRules = {
@@ -82,7 +85,7 @@ export const CUTTER_RULES: CutterRules = {
   hailGraceS: 20,
   warnGraceS: 12,
   gunRangeM: 800,
-  fireEveryS: 6,
+  fireEveryS: 9,
   hitNear: 0.7,
   hitFar: 0.2,
   riggingPerHit: 0.14,
@@ -94,6 +97,8 @@ export const CUTTER_RULES: CutterRules = {
   searchS: 45,
   standOffS: 50,
   cooldownS: 90,
+  breakOffRangeM: 1400,
+  breakOffS: 10,
 };
 
 export interface CutterBrain {
@@ -118,6 +123,8 @@ export interface CutterBrain {
   shots: number;
   /** The phase she was in when she lost sight, to take up again. */
   resume: CutterPhase;
+  /** Seconds the player has held beyond her break-off range. */
+  awayS: number;
   /** The chart lock as last reported (`pursuit` actions say when it changes). */
   locked: boolean;
 }
@@ -138,6 +145,7 @@ export function createCutterBrain(start?: { hunting: boolean; intent: CutterInte
     hails: 0,
     shots: 0,
     resume: 'closing',
+    awayS: 0,
     locked: false,
   };
 }
@@ -175,7 +183,7 @@ export type CutterAction =
   | { type: 'inspect' }
   | { type: 'release' }
   | { type: 'capture'; how: 'surrender' | 'boarded' }
-  | { type: 'gaveUp'; why: 'lost' | 'shallows' };
+  | { type: 'gaveUp'; why: 'lost' | 'shallows' | 'outrun' };
 
 /** Phases in which she's after the player (not patrolling, done, or let go). */
 const ACTIVE: ReadonlySet<CutterPhase> = new Set([
@@ -297,6 +305,16 @@ function stepActive(
     }
   }
 
+  // Outrun: a ship that holds well ahead of her, out of gun range, is away.
+  if (b.phase !== 'inspecting' && b.phase !== 'captured') {
+    b.awayS = sense.distanceM > rules.breakOffRangeM ? b.awayS + dt : 0;
+    if (b.awayS >= rules.breakOffS) {
+      b.awayS = 0;
+      giveUp(b, rules, out, 'outrun');
+      return;
+    }
+  }
+
   // Into the shallows she won't follow: stand off, hold fire, and give it up in time.
   if (sense.playerShoal && b.phase !== 'inspecting') {
     if (b.phase !== 'standingOff') {
@@ -398,7 +416,7 @@ function giveUp(
   b: CutterBrain,
   rules: CutterRules,
   out: CutterAction[],
-  why: 'lost' | 'shallows',
+  why: 'lost' | 'shallows' | 'outrun',
 ): void {
   b.cooldownS = rules.cooldownS;
   b.hails = 0;

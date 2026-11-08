@@ -32,6 +32,13 @@ export const LOOK_RANGE_M = 160;
 export const LOOK_HOLD_S = 1.5;
 /** Riding out a squall takes this long, real seconds. */
 export const SQUALL_RIDE_S = 40;
+/**
+ * While pursued, the edge lets you go once you've been opening the range on every hunter
+ * for this long (Jared, 2026-11-08: a clean broad reach can outrun the cutter by day).
+ */
+export const OPENING_HOLD_S = 4;
+/** Opening slower than this (arena m/s) isn't gaining: a sea's yaw, not a lead. */
+const OPENING_MIN_MS = 0.2;
 /** The player starts this far from what they met (closer when forced). */
 const START_RANGE_M = 650;
 const FORCED_RANGE_M = 520;
@@ -170,6 +177,12 @@ export interface ArenaRun {
   resolved: boolean;
   /** A hunting hostile has you: the chart is locked and the edge holds. */
   pursued: boolean;
+  /** Pursued, but you've been pulling away: the edge lets you go. */
+  edgeOpen: boolean;
+  /** Seconds you've been opening the range on the nearest hunter. */
+  openingS: number;
+  /** The nearest hunter's range last tick (Infinity with none). */
+  hunterM: number;
   result: ArenaResult | undefined;
 }
 
@@ -180,6 +193,9 @@ export function createArenaRun(encounter: ArenaEncounter): ArenaRun {
     lookS: 0,
     resolved: false,
     pursued: false,
+    edgeOpen: false,
+    openingS: 0,
+    hunterM: Infinity,
     result: undefined,
   };
 }
@@ -220,7 +236,8 @@ export function nearestShip(
 /**
  * One tick of the arena's rules, after the ships have moved. Sets `result` when the
  * arena is over. While pursued, the edge holds the player like a zone's (the sailing
- * mode clamps to `ARENA_BOUNDS`), so there's no leaving until the cutter is shaken off.
+ * mode clamps to `ARENA_BOUNDS`), so there's no leaving until the cutter is shaken off,
+ * or until you've been pulling away from her for `OPENING_HOLD_S`: then it lets you go.
  */
 export function stepArenaRun(run: ArenaRun, inputs: ArenaInputs, dt: number): void {
   if (run.result) return;
@@ -235,6 +252,14 @@ export function stepArenaRun(run: ArenaRun, inputs: ArenaInputs, dt: number): vo
     run.result = 'caught';
     return;
   }
+  const opening =
+    Number.isFinite(hunterM) &&
+    Number.isFinite(run.hunterM) &&
+    dt > 0 &&
+    (hunterM - run.hunterM) / dt >= OPENING_MIN_MS;
+  run.openingS = opening ? run.openingS + dt : 0;
+  run.hunterM = hunterM;
+  run.edgeOpen = run.pursued && run.openingS >= OPENING_HOLD_S;
 
   if (!run.resolved) {
     const kind = run.encounter.kind;
@@ -252,7 +277,10 @@ export function stepArenaRun(run: ArenaRun, inputs: ArenaInputs, dt: number): vo
     }
   }
 
-  if (run.pursued) return;
+  if (run.pursued) {
+    if (run.edgeOpen && edgeDistanceM(player) < 0) run.result = 'left';
+    return;
+  }
   if (edgeDistanceM(player) < 0 || inputs.chartPressed) {
     run.result = run.resolved ? 'resolved' : 'left';
   }
@@ -275,8 +303,8 @@ export function arenaStatus(
     }
   }
   if (run.resolved) out.push(kind === 'squall' ? 'Squall passed' : 'Looked her over');
-  if (!run.pursued && edgeDistanceM(inputs.player) < ARENA_EDGE_WARN_M) {
-    out.push('Sail on for the chart');
+  if ((!run.pursued || run.edgeOpen) && edgeDistanceM(inputs.player) < ARENA_EDGE_WARN_M) {
+    out.push(run.pursued ? 'Pulling away: sail on for the chart' : 'Sail on for the chart');
   }
   return out;
 }

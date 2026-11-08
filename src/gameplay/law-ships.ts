@@ -2,7 +2,14 @@ import type { GameContext } from '../modes/context';
 import { METERS_PER_NAUTICAL_MILE, type Chart } from '../core/coords';
 import { toWorldChart, type ChartGeography } from '../sim/chart/geography';
 import { chartWindAt } from '../sim/chart/chart-weather';
-import { patrolLanes, pointAlong, type PatrolLanes, type PatrolRef } from '../sim/chart/patrol';
+import {
+  legArriveAt,
+  nodeAt,
+  patrolLanes,
+  pointAlong,
+  type PatrolLanes,
+  type PatrolRef,
+} from '../sim/chart/patrol';
 import { westernSuperiorRoutes } from '../sim/chart/routes';
 import type { Contact } from '../sim/chart/traffic';
 import { DAY_SPOT_NM } from '../sim/chart/traffic';
@@ -63,6 +70,11 @@ export interface LawShips {
   debug(): { state: LawShipsState; weights: { lane: string; weight: number }[] };
   /** Charters the tug in a region now (the dev panel). */
   charter(region: string): boolean;
+  /**
+   * Sends the *Morrill* off from a port she's lying at or making for, a few hours out on her
+   * next sortie: the captain who comes out of the lockup doesn't find her at the pier.
+   */
+  awayFromPort(portId: string, hours?: number): void;
   dispose(): void;
 }
 
@@ -178,6 +190,21 @@ export function attachLawShips(
     return true;
   };
 
+  const awayFromPort = (portId: string, hours = 5): void => {
+    const s = state();
+    const m = s.morrill;
+    const l = lanes.get(m.leg.lane);
+    const end = l ? nodeAt(l, m.leg.toM) : undefined;
+    if (!end || graph.nodes.get(end.id)?.port !== portId) return;
+    const now = clock.gameSeconds;
+    // Cast off now (or the moment she arrives), then plan the sortie she'd have made and
+    // shift it a few hours on, so she's at sea and not on the dock.
+    m.leg.lieS = Math.min(m.leg.lieS, Math.max(0, now - legArriveAt(m.leg, cutter.speedKn)));
+    tick(now);
+    if (m.leg.departAt <= now) m.leg.departAt -= hours * 3600;
+    tick(now);
+  };
+
   const offs = [
     ctx.events.on('WorldTick', ({ gameSeconds }) => tick(gameSeconds)),
     // Tier 5 charters a tug with armed deputies in that region for a few game days (§5.1).
@@ -247,6 +274,7 @@ export function attachLawShips(
       return { state: s, weights: here ? sortieWeights(world, here) : [] };
     },
     charter,
+    awayFromPort,
     dispose() {
       offs.forEach((off) => off());
     },

@@ -1,6 +1,6 @@
 # 16 — Save & Persistence
 
-Status: DRAFT v0.4 (decisions made; S6 measured)
+Status: DRAFT v1.1 (decisions made; S6 measured; save v7 shipped in 0.5.0)
 Parent: [00-master-plan.md](00-master-plan.md)
 Inputs:
 - [01 §4.7](01-tech-architecture.md): single slot per run, IndexedDB, compressed JSON, autosave triggers, delete on death, migrations, spike S6
@@ -229,7 +229,7 @@ S6 measured a worst case of **839 KB raw → 244 KB compressed** with packed hid
 | 0 | IndexedDB wrapper, envelope plus checksum, save worker, `saveVersion: 1`, round-trip test, S6 benchmark |
 | 1 | Settings store (graphics presets, key rebinding). Built 2026-10-25: `src/core/settings.ts`, the `settings` store's `v1` key, every field parsed on its own with a default; the localStorage fallback also carries over the Phase 0 `glp.quality` pick |
 | 3–4 | Autosave triggers, Continue, backup rotation, economy and voyage slices, first migrations and fixtures. Phase 3 piece A (2026-10-31): `player.location` with the ship's pose, save v3 (v2 migrates to the Apostles spawn), Continue back to the saved pose, and saves on leaving and entering a zone ([03 §21](03-world-scale-chart-travel.md)). Phase 3 piece D: the `voyage` slice (the plotted points and progress) in save v4 (v3 migrates with no voyage), the chart position in `player.location`, and autosaves on taking to the chart, setting sail and arriving ([03 §24](03-world-scale-chart-travel.md)). Phase 4 piece A: save v5 adds `player.captain`, `player.purse`, `player.cargo` and `markets` (v4 migrates to a default Deckhand where it was saved, and markets fill at their seasonal targets on load) ([05 §16.8](05-ports-economy-trading.md)). Piece B: save v6 adds `knowledge.prices` and the ship's `stores` (v5 migrates knowing no prices and with empty lockers). Pieces C–K add optional slices, filled with their defaults on load, so they need no version: `firstWeek`, `traffic` (only what differs from the timetable), `contracts` and Standing, `contraband`, `hideouts` (the Stockton stash), `player.ship` (class, condition and upgrades) and `knowledge.rumors`. A new run's save is about 2 KB compressed ([05 §25](05-ports-economy-trading.md)) |
-| 5 | Permadeath deletion flow, `lastRun` and the end screen, the danger snapshot, the single-tab lock. Piece A (2026-11-04): save v7 adds `wanted`, `fame`, `profiles`, `reports` and `jail` (v6 migrates Clean everywhere, unknown, out of jail) ([06 §14.8](06-fame-wanted-law-lighthouses.md)) |
+| 5 | Permadeath deletion flow, `lastRun` and the end screen, the danger snapshot, the single-tab lock. Piece A (2026-11-04): save v7 adds `wanted`, `fame`, `profiles`, `reports` and `jail` (v6 migrates Clean everywhere, unknown, out of jail) ([06 §14.8](06-fame-wanted-law-lighthouses.md)). Optional slices, no version bump: `lawShips` (piece C), `stats`, `logbook` and `danger` (piece D), `newspapers` (piece F). Playtest (2026-11-08, [06 §14.14](06-fame-wanted-law-lighthouses.md)): the v6 fixture loads Clean where it was saved; a new run is under 10 KB for every background and a game month of crime (heat in all seven regions, reports on their way, the papers' kept editions, a 400-line logbook) 8.8 KB compressed |
 | 8 | Hideout slices (largest), dirty-slice optimization if needed |
 | 9 | Hall of Captains store, logbook export, all remaining slices |
 | 11 | Hardening: corruption fuzzing, browser matrix, storage-persistence UX, player export/import |
@@ -321,6 +321,7 @@ Per-cell grid updates dominate. Everything else (480 markets, 200 ships) costs u
 ---
 
 ## Changelog
+- v1.1: Phase 5 playtest: save v7's optional slices listed and a month of crime's save size (§12).
 - v1.0: Phase 5 piece D: `lastRun` and the Hall record at the run's end, the danger snapshot, the single-tab lock (§12).
 - v0.9: Phase 4: save v6 and the optional slices of pieces C–K, and a new run's save size (§12).
 - v0.8: Phase 4 piece A: the economy slices in save v5 (§12).

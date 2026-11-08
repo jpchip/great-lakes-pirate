@@ -77,3 +77,19 @@ test('reads the papers in port, and Most Wanted fills the screen', async ({ page
   await expect(screen).toBeVisible();
   expect(errors).toEqual([]);
 });
+
+// Phase 5 piece I: the paper boy cries the edition as the port screen opens, once an edition
+// (piece F's PaperCried, piece H's call), heard through the game's mixer.
+test('hears the paper boy cry the edition as the port screen opens', async ({ page }) => {
+  const errors = collectErrors(page);
+  const body = page.locator('body');
+  await page.goto('/?renderer=null&debug&harbor=bayfield');
+  await expect(body).toHaveAttribute('data-terrain', 'loaded');
+  await page.waitForFunction(() => '__glpPort' in window);
+  await page.keyboard.press('KeyW');
+  await expect(body).toHaveAttribute('data-audio', 'running');
+  await page.evaluate(() => (window as unknown as Hooks).__glpPort.dock('bayfield_city'));
+  await expect(page.getByTestId('port-screen')).toBeVisible({ timeout: 15_000 });
+  await expect(body).toHaveAttribute('data-law-cue', 'newsboy');
+  expect(errors).toEqual([]);
+});

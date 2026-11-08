@@ -153,7 +153,7 @@ export function materializeArena(
       stepArenaRun(run, { ...inputs(player), ...controls }, dt);
     },
     holdBounds() {
-      return run.pursued ? ARENA_BOUNDS : undefined;
+      return run.pursued && !run.edgeOpen ? ARENA_BOUNDS : undefined;
     },
     inputs,
   };
