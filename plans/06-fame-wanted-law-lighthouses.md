@@ -581,6 +581,14 @@ Start a **New run as a Poacher**: Bayfield, $100, and she already knows where th
 3. ~~**The daylight chase** (criterion 5 above).~~ **Decided 2026-11-08: open the edge while you're gaining** (§14.14.5).
 4. **Raspberry light and the anchorage** (criterion 2 above): leave the smuggler where she is (Michigan Island's keeper sees her instead), or move her anchorage to where Raspberry's keeper looks on.
 
+#### 14.14.6 Fairer chase (2026-11-08, after Jared's playtest)
+
+Jared found the encounter "overwhelming and not fun", and no way out in a zone like the Apostles. Three changes:
+
+- **A slower, slower-firing cutter.** The *Morrill*'s engine speed is 9.5 kn (was 12; the alternative §14.6 decision 2 listed), and she fires a round every 9 s (was 6). The T1 now beats her on a broad reach from about 14 kn of wind on hand trim and 18 on auto-trim; she's faster in light air. Her sortie speed on the chart (`law_actors.json`, 10 kn) is unchanged. Tests: `tests/sailing.test.ts`.
+- **She gives up a chase you're winning.** A pursued ship that holds more than 1,400 m ahead of her for 10 s is away: she gives it up, with her usual cooldown (`breakOffRangeM`, `breakOffS`; `gaveUp` with `why: 'outrun'`). It works in zones as well as arenas, so a zone chase in the Apostles ends by opening the range, by islands and shoals as before, or in the dark. In the arena at 20 kn the T1 now escapes in about 80 s from a forced meeting; at 12 kn on a broad reach it's still close and she catches you after her rounds slow you.
+- **She's off somewhere else when you come out of the lockup.** After bail or time served, if the *Morrill* is lying at Bayfield or heading in, she's cast off and put a few hours out on her next sortie (`LawShips.awayFromPort`). Tested in `tests/morrill.test.ts`.
+
 #### 14.14.4 Results
 
 Pending Jared's playtest.
@@ -602,6 +610,7 @@ So by day the T1 on auto-trim outruns her only from outside 800 m; once she's fi
 ---
 
 ## Changelog
+- v1.4: A slower cutter, a chase she gives up, and her sent away from the lockup port (§14.14.6, Jared's playtest).
 - v1.3: Bail clears heat to tier 1, as time served does (Jared's decision, §14.14.3 item 1).
 - v1.2: The arena's edge opens while you pull away from the cutter (§14.14.5, Jared's decision).
 - v1.1: Phase 5 piece I (§14.14): the exit criteria checked in the container, the laptop route, and four decisions for Jared (bail and heat, the end screen, the daylight chase, Raspberry light and the anchorage).

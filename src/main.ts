@@ -1172,6 +1172,8 @@ async function boot(): Promise<void> {
   });
   // One held back behind the lockup shows on release.
   ctx.events.on('Released', () => queueMicrotask(showFrontPage));
+  // Out of the lockup, you don't find the *Morrill* alongside: she's off on a sortie.
+  ctx.events.on('Released', () => lawShips.awayFromPort(gameJail().lockup.port));
   if (import.meta.env.DEV || params.has('debug')) {
     // `__glpPapers.press()` prints today's editions now (`press(1)` tomorrow's); `.state()` shows the stories.
     const hook = {
