@@ -2,7 +2,9 @@ import { useEffect, useState } from 'preact/hooks';
 import { formatCents } from '../../sim/economy/knowledge';
 import type { TradeSide } from '../../sim/economy/market';
 import type { LieUntil } from '../../sim/hideouts/lie-at-anchor';
+import type { FitSource } from '../../sim/shipyard/shipyard';
 import { LieButtons } from '../stash/StashScreen';
+import { BackRoom } from './BackRoom';
 import { Harbor } from './Harbor';
 import { Help } from './Help';
 import { Ledger, RumorItem } from './Ledger';
@@ -49,9 +51,14 @@ export interface PortActions {
   stealContract(contractId: string): string | undefined;
   /** The shipyard and the chandlery's fittings (piece G). */
   buyHull(classId: string): string | undefined;
-  fit(upgrade: string, place: 'shipyard' | 'chandlery'): string | undefined;
-  unfit(upgrade: string, place: 'shipyard' | 'chandlery'): string | undefined;
+  fit(upgrade: string, place: FitSource): string | undefined;
+  unfit(upgrade: string, place: FitSource): string | undefined;
   repair(place: 'shipyard' | 'chandlery'): string | undefined;
+  /**
+   * Sells `qty` CU of a lot (by its index in the hold) to the fence in the back room
+   * (Phase 6 piece E): the refusal, or what came of it, in a line.
+   */
+  fence?(index: number, qty: number): string | undefined;
   /** The harbor master (Phase 5 piece E): pay the fine or bribe on offer; what came of it. */
   payHarbor?(kind: 'fine' | 'bribe'): string | undefined;
   /** The newsstand (Phase 5 piece F): buy a paper's latest edition; the refusal. */
@@ -71,6 +78,7 @@ const TAB_LABELS: Record<PortTab, string> = {
   market: 'Market',
   chandlery: 'Chandlery',
   saloon: 'Saloon',
+  backRoom: 'Back room',
   papers: 'Papers',
   freight: 'Freight agent',
   shipyard: 'Shipyard',
@@ -324,7 +332,7 @@ function Market({
                     class="port-mini"
                     data-testid={`buy-${r.good}`}
                     disabled={r.maxBuy <= 0}
-                    title="Buy (shift-click: all you can, ctrl-click: one)"
+                    title={r.restricted ?? 'Buy (shift-click: all you can, ctrl-click: one)'}
                     onClick={(e) => quick(r, 'buy', e)}
                   >
                     Buy
@@ -603,6 +611,67 @@ function Freight({
   );
 }
 
+/** What the chandler sells by the keg into the hold: ammunition (Phase 6 piece E). */
+const CHANDLERY_CARGO = ['good.powder_shot'];
+
+/**
+ * Powder and shot at the chandlery (plan 05 §7; Phase 6 piece E): the same lot the market
+ * sells, at its price, bought here by the keg (a CU) into the hold. Guns use it per shot.
+ */
+function ChandleryCargo({
+  port,
+  actions,
+  setMessage,
+}: {
+  port: PortSnapshot;
+  actions: PortActions;
+  setMessage(m: string | undefined): void;
+}) {
+  const rows = port.market.filter((r) => CHANDLERY_CARGO.includes(r.good));
+  if (rows.length === 0) return null;
+  return (
+    <table class="port-table" data-testid="chandlery-cargo">
+      <thead>
+        <tr>
+          <th>
+            Ammunition
+            <Help text="Powder and shot go in the hold, a keg to the CU, and the guns use them a shot at a time. Nobody sells powder to a captain with a WANTED poster up." />
+          </th>
+          <th class="num">A CU</th>
+          <th class="num">Aboard</th>
+          <th />
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map((r) => (
+          <tr key={r.good} class="port-row" title={r.restricted}>
+            <td>{r.name}</td>
+            <td class="num hud-num">{formatCents(r.buyCents)}</td>
+            <td class="num hud-num">{r.held}</td>
+            <td class="port-actions">
+              <button
+                type="button"
+                class="port-mini"
+                data-testid={`chandlery-buy-${r.good}`}
+                disabled={r.maxBuy <= 0}
+                title={r.restricted ?? 'Buy a keg (shift-click: all you can)'}
+                onClick={(e) =>
+                  setMessage(
+                    actions.buy(r.good, e.shiftKey ? r.maxBuy : 1) ??
+                      `${e.shiftKey ? r.maxBuy : 1} CU of ${r.name.toLowerCase()} stowed.`,
+                  )
+                }
+              >
+                Buy
+              </button>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
 function Chandlery({
   port,
   actions,
@@ -692,6 +761,11 @@ function Saloon({
             : "The bar's talked out for today."}
         </span>
       </p>
+      {port.backRoomHint && (
+        <p class="menu-note" data-testid="back-room-hint">
+          {port.backRoomHint}
+        </p>
+      )}
       {s.heard.length === 0 ? (
         <p class="port-dim">Nobody's said anything worth writing down yet.</p>
       ) : (
@@ -799,6 +873,7 @@ export function PortScreen({
             <>
               <div class="port-chandlery-col">
                 <Chandlery port={port} actions={actions} setMessage={setMessage} />
+                <ChandleryCargo port={port} actions={actions} setMessage={setMessage} />
                 {port.fittings && (
                   <Fittings yard={port.fittings} actions={actions} setMessage={setMessage} />
                 )}
@@ -807,6 +882,9 @@ export function PortScreen({
             </>
           )}
           {shown === 'saloon' && <Saloon port={port} actions={actions} setMessage={setMessage} />}
+          {shown === 'backRoom' && port.backRoom && (
+            <BackRoom room={port.backRoom} actions={actions} setMessage={setMessage} />
+          )}
           {shown === 'freight' && (
             <>
               <Freight port={port} actions={actions} setMessage={setMessage} />

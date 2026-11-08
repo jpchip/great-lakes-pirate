@@ -51,7 +51,16 @@
     "modelId": "ship.schooner",
     "LODs": [],
     "priceCents": 50000,
-    "slots": { "hull": 1, "rigging": 1, "cargo": 1, "instruments": 2, "utility": 1 }
+    "slots": {
+      "hull": 1,
+      "rigging": 1,
+      "cargo": 1,
+      "instruments": 2,
+      "utility": 1,
+      "weapons": 1,
+      "weaponMods": 1,
+      "smallArms": 1
+    }
   },
   {
     "id": "ship.t2_schooner",
@@ -105,7 +114,16 @@
     "modelId": "ship.t2_schooner",
     "LODs": [],
     "priceCents": 160000,
-    "slots": { "hull": 2, "rigging": 2, "cargo": 1, "instruments": 3, "utility": 2 }
+    "slots": {
+      "hull": 2,
+      "rigging": 2,
+      "cargo": 1,
+      "instruments": 3,
+      "utility": 2,
+      "weapons": 2,
+      "weaponMods": 2,
+      "smallArms": 1
+    }
   },
   {
     "id": "ship.ore_freighter",

@@ -75,7 +75,9 @@ describe('shipyards and hulls', () => {
   it('has about ten upgrades, every one with a source and an effect', () => {
     const all = [...upgradeDefs().values()];
     expect(all.length).toBeGreaterThanOrEqual(10);
-    for (const u of all) expect(Object.keys(u.effects).length, u.id).toBeGreaterThan(0);
+    // A gun or the rifle does its work through `arms` (piece A's combat), not `effects`.
+    for (const u of all)
+      expect(Object.keys(u.effects).length + (u.arms ? 1 : 0), u.id).toBeGreaterThan(0);
   });
 });
 

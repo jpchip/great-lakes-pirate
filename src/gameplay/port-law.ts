@@ -58,6 +58,11 @@ export interface PortLaw {
   informRisk(region: string): string | undefined;
   /** The port lies in a Most Wanted region: docking there asks first. */
   topTierAt(port: string): boolean;
+  /**
+   * Why they won't sell you a restricted good (black powder) here: with a WANTED poster up
+   * in the port's region (tier 2+; plan 06, Phase 6 piece E). Undefined when they will.
+   */
+  restricted(port: string, good: string): string | undefined;
   wanted(region: string | undefined): WantedSnapshot | undefined;
   report(): ReportSnapshot | undefined;
   ledger(): LedgerLawSnapshot;
@@ -81,6 +86,9 @@ function harborMasterAt(port: string): Witness {
     identification: 'person',
   };
 }
+
+/** Restricted goods (black powder) aren't sold to you from this Wanted tier (the poster's). */
+export const RESTRICTED_FROM_TIER = 2;
 
 const lotKey = (s: CargoStack): string => `${s.good}|${s.hot?.since ?? 'contraband'}`;
 
@@ -184,6 +192,12 @@ export function attachPortLaw(ctx: GameContext, law: GameLaw, economy: GameEcono
     informRisk(region) {
       const p = informChance(defs, tierAt(region));
       return p > 0 ? riskWord(p) : undefined;
+    },
+    restricted(port, good) {
+      if (economy.defs.goods.get(good)?.legal !== 'restricted') return undefined;
+      const region = regionOf(port);
+      if (!region || tierAt(region) < RESTRICTED_FROM_TIER) return undefined;
+      return "Not with your face on the harbor master's board. Nobody here will sell you powder.";
     },
     topTierAt(port) {
       const region = regionOf(port);

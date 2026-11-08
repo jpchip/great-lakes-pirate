@@ -378,9 +378,29 @@ A second smuggler ship lies in Siskiwit Bay, built with the Siskiwit Bay zone (0
 - Plan 17 wants a tracking issue per phase with the acceptance checklist; §14.3 can become it once approved.
 - Plan 04 still calls snow and the aurora Phase 6 (§14.1); its next edit should say Phase 9.
 
+### 14.8 Piece E built: fences and the gun trade (2026-11-08)
+
+**Result:** dock at Bayfield after dark with stolen furs aboard and the port screen has a **Back room** tab. Nils Okerlund buys the furs at 40% of value out of his $250 for the week, no questions asked; the shipwright beside him fits a bow swivel for $76 while four game hours pass. Screenshots are in the project files (`back-room/`).
+
+| Part | Where | What |
+|---|---|---|
+| Fences | `data/fences.json`, `data/schemas/fences.ts`, `src/sim/economy/fence.ts` | Two fences by decision 1. Bayfield (Unknown and up, $250 a week, wants fresh fish, salt fish and furs, other goods at 75% of his rate) and Duluth (Known, $800 a week, takes anything). Rate = 40% + 3% a Fame tier + up to 10–12% trust + up to 12% as heat cools, capped at 70% (05 §6.2). Open while the sun is 6° below the horizon; cash comes back each night (a game day is a week). Clean goods and contract cargo refused |
+| Informants | `src/gameplay/law.ts`, `data/crimes.json` | `FenceDealt` rolls Phase 5's receiver odds by the port region's tier (none below 2), once a night's business per fence; a hit commits `crime.fence_deal` (20 heat) with the fence as the informant witness. Nobody else sees a deal made indoors |
+| The back room | `src/gameplay/back-room.ts`, `src/ui/port/BackRoom.tsx`, `back-room-model.ts` | A port-screen tab after the saloon, only when open to you; by day the saloon tab says a back room opens after dark (silent at Duluth to a captain who isn't Known). Phase 7's walkable room keeps the same fence data |
+| Shady shipwright | `data/upgrades.json`, `data/schemas/upgrades.ts`, `src/sim/shipyard/*` | Seven items with the new source `backRoom`: bow swivel $75, light cannon (a pair, one a side; Known, T2+) $240, rifle $30, gun sights $35, bored-out barrels $45 (Rumored), improved carriages $55 (Rumored), hidden gun ports $110 (Known, stays with the hull). New categories and slots: Guns (T1 1, T2 2), Gun work (1, 2), Small arms (1, 1). Mods need a gun aboard. `fitRefusal` adds `fame`, `hull` and `noGun`; the trade-in moves guns the new hull can carry, and mods only with a gun |
+| Armament for piece A | `src/sim/shipyard/fit.ts` | `fit.armament`: each gun's `weapon` id (`weapon.swivel`, `weapon.light_cannon`, `weapon.rifle`), mount and guns a side, and the mods' range, reload and spread multipliers and `looksUnarmed`. Piece A's `weapons.json` supplies the ballistics for those ids; the prices here stand until Jared sets them |
+| Powder and shot | `src/ui/port/PortScreen.tsx`, `src/gameplay/port-law.ts` | The chandlery sells `good.powder_shot` into the hold at the market's price. It is a restricted good: from Wanted tier 2 in the port's region neither the chandler nor the market will sell it to you |
+| More smugglers | `data/smuggler.json`, `src/sim/economy/smuggler.ts`, `src/gameplay/smuggler.ts` | The file holds a list; the island smuggler stays first. The _Gannet_ (a fish tug, $400 a week, untaxed whiskey, known to the Lumberjack) lies off the old logging dock in Siskiwit Bay in `region.south_shore_west`. She stays out of the world until `zone.siskiwit` is in `zones.json`, then appears with no more code. `attachSmugglers` drives every boat as one control; each has her own cash, stock, trust and known anchorage |
+| Save | `src/sim/world-state.ts` | `contraband.boats`, `contraband.knownBoats` and `contraband.fences`, optional and filled as used, so a 0.5.0 save loads with no version bump; guns live in `player.ship.upgrades` like any fitting |
+
+**Checks:** `tests/back-room.test.ts` (19 tests): the fences' gates, rates, cash and refusals; the tab by night and day, at Duluth by Fame; a sale raising `FenceDealt`; the informant at tier 4 and not below 2; the shipwright's gates, slots, armament and trade-ins; powder refused at tier 2; two smugglers with their own state through a save. The full suite, lint and typecheck pass.
+
+**For Jared:** the prices above (§14.4's "Prices"), and whether the T2 should carry two pairs of cannon (2 a side, 07 §2.3) instead of one. The _Gannet_'s anchorage (46.874° N, 91.13° W) needs a depth check when the Siskiwit zone is baked.
+
 ---
 
 ## Changelog
+- v0.4.2: §14.8 piece E built (fences, the shady shipwright, powder and shot, more than one smuggler).
 - v0.4.1: Jared's calls on §14.6 (back-room fences at night, simple abandon ship, rivals later) and the Siskiwit Bay smuggler (§14.6.1).
 - v0.4: §14 Phase 6 scope proposal: what Phases 3–5 changed, deliverables, exit criteria, eight work pieces, smaller calls and three decisions for Jared.
 - v0.3: Gap review: T3 has a single bow swivel (stern swivel removed).

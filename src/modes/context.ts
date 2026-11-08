@@ -15,6 +15,7 @@ import type {
 } from '../sim/economy/contracts';
 import type { LieUntil } from '../sim/hideouts/lie-at-anchor';
 import type { SmugglerDealtEvent } from '../sim/economy/smuggler';
+import type { FenceDealtEvent } from '../sim/economy/fence';
 import type { LawEventOf } from '../sim/law/law';
 import type { ShipPurchasedEvent, ShipRepairedEvent, UpgradeEvent } from '../sim/shipyard/shipyard';
 import type { GameWorld } from '../gameplay/ecs';
@@ -97,6 +98,8 @@ export interface GameEvents {
   ContrabandSold: { port: string; good: string; qty: number; totalCents: number };
   SmugglerDealt: SmugglerDealtEvent;
   SmugglerLearned: { anchorage: string; source: string };
+  /** A lot sold to a port fence in his back room (Phase 6 piece E). */
+  FenceDealt: FenceDealtEvent;
   /**
    * Freight contracts (plan 05 §5.2, §11; Phase 4 piece F): taken at a freight agent,
    * delivered at the destination, failed (expired or handed back), or stolen by selling

@@ -68,6 +68,8 @@ export interface ShipyardOptions {
   onHullChanged(classId: string): void;
   /** Her instruments changed: the camera's spyglass, the chart's forecast. */
   onInstruments?(instruments: Instruments): void;
+  /** The captain's Fame tier, for the shady shipwright's gated gear (Phase 6 piece E). */
+  fameTier?(): number;
 }
 
 const REFUSALS: Record<ShipyardRefusal, string> = {
@@ -83,6 +85,9 @@ const REFUSALS: Record<ShipyardRefusal, string> = {
   sound: 'She needs no repair.',
   noKit: 'No kit in the lockers.',
   kitCap: 'That needs a yard now: kits only patch so far.',
+  fame: "He doesn't know your name well enough to sell you that.",
+  hull: "She's too small to carry it.",
+  noGun: 'There is no gun aboard to fit it to.',
 };
 
 export function attachShipyard(opts: ShipyardOptions): GameShipyard {
@@ -163,7 +168,16 @@ export function attachShipyard(opts: ShipyardOptions): GameShipyard {
     },
     install(port, upgrade, source) {
       sync();
-      const r = installUpgrade(economy.defs, player, ship(), port, upgrade, source);
+      const r = installUpgrade(
+        economy.defs,
+        player,
+        ship(),
+        port,
+        upgrade,
+        source,
+        0,
+        opts.fameTier?.() ?? 0,
+      );
       if (!r.ok) return REFUSALS[r.reason];
       refit();
       skip(r.event.hours);

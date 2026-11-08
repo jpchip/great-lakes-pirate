@@ -1,6 +1,7 @@
 import smugglerJson from '../../../data/smuggler.json';
 import { smugglersFileSchema, type Smuggler } from '../../../data/schemas/smuggler';
 import { SECONDS_PER_GAME_DAY } from '../../core/time';
+import { findZoneDef } from '../terrain/zones';
 import { sunAt } from '../weather/celestial';
 import { heatNow, offerKind, type Refusals } from './contraband';
 import type { EconomyDefs } from './defs';
@@ -15,6 +16,10 @@ import type { Trader } from './trade';
  * up and as a lot's heat cools. She pays out of a week's cash and has a week's stock, and
  * a game day is a calendar week, so both come back each night. She won't take clean goods
  * (take those to a merchant), contract cargo (piece F's), or what she sells herself.
+ *
+ * Phase 6 piece E makes `smuggler.json` hold more than one boat (plan 07 §14.6.1): the
+ * island smuggler is the first, and the Siskiwit Bay boat lies in a zone that isn't built
+ * yet, so she stays out of the world until it is (`smugglerInWorld`).
  */
 
 /** Her saved state (the `contraband` slice's `smuggler`). */
@@ -38,14 +43,51 @@ export interface ContrabandState {
   receivers: string[];
   /** Where she lies is known (a background, a dev command); rumors (piece K) add their own. */
   known: boolean;
+  /** Every other boat's state by smuggler id (Phase 6 piece E); filled as they're met. */
+  boats?: Record<string, SmugglerState> | undefined;
+  /** The other boats whose anchorage you know. */
+  knownBoats?: string[] | undefined;
+  /** The port fences' cash and trust, by fence id (Phase 6 piece E, `fence.ts`). */
+  fences?: Record<string, { night: number; cashCents: number; dealtCents: number }> | undefined;
 }
 
-let cached: Smuggler | undefined;
+let cachedAll: readonly Smuggler[] | undefined;
 
-/** The smuggler from `data/smuggler.json`. */
+/** Every smuggler's boat from `data/smuggler.json`; the island smuggler is the first. */
+export function gameSmugglers(): readonly Smuggler[] {
+  cachedAll ??= smugglersFileSchema.parse(smugglerJson);
+  return cachedAll;
+}
+
+/** The island smuggler, the first in `data/smuggler.json`. */
 export function gameSmuggler(): Smuggler {
-  cached ??= smugglersFileSchema.parse(smugglerJson)[0] as Smuggler;
-  return cached;
+  return gameSmugglers()[0] as Smuggler;
+}
+
+/** A smuggler by id. */
+export function smugglerById(id: string): Smuggler | undefined {
+  return gameSmugglers().find((s) => s.id === id);
+}
+
+/** Whether her anchorage's zone is built, so she can be met (and talked of, and charted). */
+export function smugglerInWorld(sm: Smuggler): boolean {
+  return !!findZoneDef(sm.anchorage.zone);
+}
+
+/** The smugglers who can be met now: those whose zone is built. */
+export function smugglersInWorld(): readonly Smuggler[] {
+  return gameSmugglers().filter(smugglerInWorld);
+}
+
+/** Her saved state: the island smuggler's own slot, or her boat's entry, made on first use. */
+export function smugglerStateOf(
+  contraband: ContrabandState,
+  sm: Smuggler,
+  gameSeconds: number,
+): SmugglerState {
+  if (sm.id === gameSmuggler().id) return contraband.smuggler;
+  const boats = (contraband.boats ??= {});
+  return (boats[sm.id] ??= freshSmugglerState(gameSeconds, sm));
 }
 
 /** Her anchorage for the rumors (piece K): its id, its name and how a rumor puts it. */
@@ -242,5 +284,20 @@ export function knowsAnchorage(
   heardOf = false,
   sm: Smuggler = gameSmuggler(),
 ): boolean {
-  return heardOf || !!contraband?.known || sm.knownBy.includes(background);
+  const learned =
+    sm.id === gameSmuggler().id ? !!contraband?.known : !!contraband?.knownBoats?.includes(sm.id);
+  return heardOf || learned || sm.knownBy.includes(background);
+}
+
+/** Marks where she lies as known; false if it already was. */
+export function learnAnchorage(contraband: ContrabandState, sm: Smuggler): boolean {
+  if (sm.id === gameSmuggler().id) {
+    if (contraband.known) return false;
+    contraband.known = true;
+    return true;
+  }
+  const known = (contraband.knownBoats ??= []);
+  if (known.includes(sm.id)) return false;
+  known.push(sm.id);
+  return true;
 }

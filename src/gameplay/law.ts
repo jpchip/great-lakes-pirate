@@ -1,6 +1,6 @@
 import type { GameContext, GameEvents } from '../modes/context';
 import { WORLD_TICK_GAME_SECONDS } from '../core/time';
-import { gameSmuggler } from '../sim/economy/smuggler';
+import { gameSmuggler, smugglerById } from '../sim/economy/smuggler';
 import { gameLaw, type LawDefs } from '../sim/law/defs';
 import {
   tierIn,
@@ -87,6 +87,16 @@ export const SMUGGLER_INFORMANT: Witness = {
   identification: 'person',
 };
 
+/** A port fence, selling you to the law (plan 05 §6.2; Phase 6 piece E). */
+function fenceInformant(fence: string): Witness {
+  return {
+    id: `informant.${fence}`,
+    kind: 'informant',
+    name: 'the fence',
+    identification: 'person',
+  };
+}
+
 /** The shipper's freight agent; contract theft is always traced (plan 06 §2.2). */
 function freightAgentOf(company: string): Witness {
   return {
@@ -133,6 +143,7 @@ export function attachLaw(
     return events;
   };
   let lastDealAt = -Infinity;
+  const lastFenceAt = new Map<string, number>();
 
   const law: GameLaw = {
     defs,
@@ -175,11 +186,11 @@ export function attachLaw(
         witnesses: [freightAgentOf(e.company)],
       });
     }),
-    ctx.events.on('SmugglerDealt', () => {
+    ctx.events.on('SmugglerDealt', (e) => {
       const t = now();
       if (t - lastDealAt < DEAL_WINDOW_S) return;
       lastDealAt = t;
-      const anchorage = gameSmuggler().anchorage;
+      const anchorage = (smugglerById(e.smuggler) ?? gameSmuggler()).anchorage;
       const region = anchorage.region;
       if (!defs.regionById.has(region)) return;
       const witnesses = [...law.witnesses.witnesses()];
@@ -189,6 +200,24 @@ export function attachLaw(
         witnesses.push(SMUGGLER_INFORMANT);
       }
       law.commit({ crime: 'crime.smuggler_deal', region, witnesses });
+    }),
+    // A fence's back room (Phase 6 piece E): nobody sees a deal made indoors after dark, but
+    // with the law after you in the port's region he may sell you out, once a night's
+    // business, on the receivers' odds (Phase 5 piece E).
+    ctx.events.on('FenceDealt', (e) => {
+      const t = now();
+      if (t - (lastFenceAt.get(e.fence) ?? -Infinity) < DEAL_WINDOW_S) return;
+      lastFenceAt.set(e.fence, t);
+      const region = regionOfPort(e.port);
+      if (!region || !defs.regionById.has(region)) return;
+      const p = informChance(defs, tierIn(defs, ctx.state, region));
+      if (p <= 0 || informRoll(seed, e.fence, nightOf(t), 'fence') >= p) return;
+      law.commit({
+        crime: 'crime.fence_deal',
+        region,
+        port: e.port,
+        witnesses: [fenceInformant(e.fence)],
+      });
     }),
     ctx.events.on('ShipPurchased', (e) => {
       raise(replaceShip(defs, ctx.state, e.classId, ctx.state.player.captain.shipName, now()));

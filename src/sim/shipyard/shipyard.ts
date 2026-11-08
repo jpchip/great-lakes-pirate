@@ -1,10 +1,10 @@
 import type { SailShipRecord } from '../../../data/schemas/ships';
-import type { Upgrade, UpgradeCategory } from '../../../data/schemas/upgrades';
+import type { Upgrade, UpgradeCategory, UpgradeSource } from '../../../data/schemas/upgrades';
 import type { EconomyDefs } from '../economy/defs';
 import { holdUsed, isClean, reduceStack, type CargoStack, type Hold } from '../economy/hold';
 import { applyTrade, quote, type MarketsState } from '../economy/market';
 import { sailShipRecord, SHIP_RECORDS, T1_SCHOONER_ID } from '../sailing/ships';
-import { hasSlot, slotsOf, upgradeDef } from './fit';
+import { hasGun, hasSlot, slotsOf, upgradeDef } from './fit';
 
 /**
  * The shipyard (plan 10 §3, §6, §8; Phase 4 piece G): buying a hull and trading the old
@@ -123,14 +123,28 @@ export interface TradeInQuote {
   staying: string[];
 }
 
-/** Which upgrades move to a new hull: transferable ones, while she has the slots. */
+/** Whether a hull can carry an upgrade at all (broadside guns need the T2). */
+export function hullTakes(record: SailShipRecord, upgrade: Upgrade): boolean {
+  return (record.tier ?? 0) >= (upgrade.minTier ?? 0);
+}
+
+/**
+ * Which upgrades move to a new hull: transferable ones the class can carry, while she has
+ * the slots (plan 10 §3: weapons if the class allows). Guns go across before their mods,
+ * so a mod moves only with a gun to fit it to.
+ */
 export function movingUpgrades(ship: ShipState, to: SailShipRecord): string[] {
   const moving: string[] = [];
-  for (const id of ship.upgrades) {
+  const order = [...ship.upgrades].sort(
+    (a, b) => Number(!!upgradeDef(a)?.needsGun) - Number(!!upgradeDef(b)?.needsGun),
+  );
+  for (const id of order) {
     const u = upgradeDef(id);
-    if (u?.transferable && hasSlot(to, moving, u.category)) moving.push(id);
+    if (!u?.transferable || !hullTakes(to, u) || !hasSlot(to, moving, u.category)) continue;
+    if (u.needsGun && !hasGun(moving)) continue;
+    moving.push(id);
   }
-  return moving;
+  return ship.upgrades.filter((id) => moving.includes(id));
 }
 
 export function tradeInQuote(ship: ShipState, to: SailShipRecord): TradeInQuote {
@@ -244,7 +258,10 @@ export type ShipyardRefusal =
   | 'notFitted'
   | 'sound'
   | 'noKit'
-  | 'kitCap';
+  | 'kitCap'
+  | 'fame'
+  | 'hull'
+  | 'noGun';
 
 /** What `ShipPurchased` carries (plan 10 §11). */
 export interface ShipPurchasedEvent {
@@ -316,7 +333,8 @@ export function buyHull(
   };
 }
 
-export type FitSource = 'shipyard' | 'chandlery';
+/** Where the work is done: the shipyard, the chandlery, or the shady shipwright's back room. */
+export type FitSource = UpgradeSource;
 
 /** What `UpgradeInstalled` and `UpgradeRemoved` carry (plan 10 §11). */
 export interface UpgradeEvent {
@@ -335,10 +353,16 @@ export function fitRefusal(
   upgrade: Upgrade,
   source: FitSource,
   priceCents: number,
+  /** The captain's Fame tier, for gear the seller gates on it (plan 10 §6). */
+  fameTier = 0,
 ): ShipyardRefusal | undefined {
   if (!upgrade.sources.includes(source)) return 'notHere';
   if (ship.upgrades.includes(upgrade.id)) return 'fitted';
-  if (!hasSlot(sailShipRecord(ship.classId), ship.upgrades, upgrade.category)) return 'noSlot';
+  const record = sailShipRecord(ship.classId);
+  if (!hullTakes(record, upgrade)) return 'hull';
+  if (fameTier < (upgrade.fameTier ?? 0)) return 'fame';
+  if (upgrade.needsGun && !hasGun(ship.upgrades)) return 'noGun';
+  if (!hasSlot(record, ship.upgrades, upgrade.category)) return 'noSlot';
   if (priceCents > owner.purse) return 'noMoney';
   return undefined;
 }
@@ -352,11 +376,12 @@ export function installUpgrade(
   upgradeId: string,
   source: FitSource,
   discount = 0,
+  fameTier = 0,
 ): ShipyardResult<UpgradeEvent> {
   const u = upgradeDef(upgradeId);
   if (!u) return { ok: false, reason: 'unknown' };
   const price = upgradePriceCents(defs, port, u, discount);
-  const refusal = fitRefusal(owner, ship, u, source, price);
+  const refusal = fitRefusal(owner, ship, u, source, price, fameTier);
   if (refusal) return { ok: false, reason: refusal };
   owner.purse -= price;
   ship.upgrades.push(u.id);
@@ -366,7 +391,7 @@ export function installUpgrade(
       port,
       upgrade: u.id,
       cents: price,
-      hours: source === 'shipyard' ? u.installHours : 0,
+      hours: source === 'chandlery' ? 0 : u.installHours,
     },
   };
 }
@@ -392,7 +417,7 @@ export function removeUpgrade(
       port,
       upgrade: u.id,
       cents: refund,
-      hours: source === 'shipyard' ? Math.ceil(u.installHours / 2) : 0,
+      hours: source === 'chandlery' ? 0 : Math.ceil(u.installHours / 2),
     },
   };
 }

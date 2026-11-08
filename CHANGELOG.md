@@ -4,6 +4,10 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ## [Unreleased]
 
+### Added
+
+- **Fences and the gun trade (Phase 6 piece E):** after dark, Bayfield's port screen has a **Back room** tab (Duluth's opens once you're Known). The fence there buys hot goods and contraband with no detection risk at 40–70% of their value, more with Fame, his trust in you and cooler goods, out of a week's cash: the Bayfield fence wants fish and furs and takes anything else for less; the Duluth fence takes anything and has three times the cash. At Wanted tier 2+ he may sell you out once a night's business. The shady shipwright in the same room sells the bow swivel, a pair of light cannon (Known, the T2 only), the rifle, gun sights, bored-out barrels, improved carriages and hidden gun ports, on new Guns, Gun work and Small arms slots; they move to a new hull that can carry them. The chandlery sells powder and shot by the keg, and nobody sells you powder with a WANTED poster up. `smuggler.json` now holds more than one boat: the Siskiwit Bay smuggler _Gannet_ is in the data and comes into the world with her zone ([plan 07 §14.8](plans/07-combat-boarding-targets.md)).
+
 ## [0.5.0] - 2026-11-08
 
 The **Law, Fame & Wanted** build (Phase 5): crimes have witnesses, word travels to the law, and the revenue cutter _Morrill_ comes looking. Run dark on a moonless night or be seen by a keeper; pay a fine, run for the shallows, or sit out your sentence in the Bayfield lockup; and at the top tier the papers print WANTED, DEAD OR ALIVE.

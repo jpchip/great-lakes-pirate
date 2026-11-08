@@ -4,6 +4,7 @@ import { chartFileSchema } from './chart';
 import { climateFileSchema } from './climate';
 import { contractsFileSchema } from './contracts';
 import { factionsFileSchema } from './factions';
+import { fencesFileSchema } from './fences';
 import { flowsFileSchema } from './flows';
 import { goodsFileSchema } from './goods';
 import { harborsFileSchema } from './harbors';
@@ -56,6 +57,7 @@ export const dataFileSchemas: Readonly<Record<string, z.ZodType>> = {
   'ships.json': shipsFileSchema,
   'sites.json': sitesFileSchema,
   'smuggler.json': smugglersFileSchema,
+  'fences.json': fencesFileSchema,
   'stores.json': storesFileSchema,
   'upgrades.json': upgradesFileSchema,
   'wanted_tiers.json': wantedTiersFileSchema,
