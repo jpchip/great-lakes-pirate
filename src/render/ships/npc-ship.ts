@@ -36,8 +36,11 @@ export interface NpcShipModel {
   readonly lights: RunningLights;
   /** The set sails, when the class carries them: mirrored to leeward by `update`. */
   readonly sails: THREE.Object3D | undefined;
-  /** A white flag at the aftermost masthead, shown when she strikes her colors (Phase 6 C). */
-  readonly flag: THREE.Object3D;
+  /**
+   * Hoists or hauls down the white flag at the aftermost masthead (she's struck her
+   * colors, Phase 6 C). It's only in the scene while it flies, so it costs no draw call.
+   */
+  setStruck(struck: boolean): void;
   /** Triangles in the solid body, windows and sails (the plan 14 §8 budget). */
   readonly triangles: number;
   /**
@@ -353,8 +356,7 @@ export function createNpcShip(l: NpcShipLines, displayScale = 1): NpcShipModel {
     [...mastHeads].sort((a, b) => b.z - a.z)[0] ??
     stacks[0]?.top.clone().divideScalar(displayScale);
   if (aft) flag.position.set(aft.x, aft.y - 0.95, aft.z + 1.35);
-  flag.visible = false;
-  frame.add(flag);
+  flag.userData['noOutline'] = true;
 
   const lights = createRunningLights(lamps, 1.4 / displayScale);
   frame.add(lights.points);
@@ -369,7 +371,10 @@ export function createNpcShip(l: NpcShipLines, displayScale = 1): NpcShipModel {
     stacks,
     lights,
     sails,
-    flag,
+    setStruck(struck) {
+      if (struck && !flag.parent) frame.add(flag);
+      else if (!struck && flag.parent) frame.remove(flag);
+    },
     triangles,
     update(sunElevationDeg, fogDensity, windFromStarboard) {
       const level = lampLevel(sunElevationDeg);
@@ -383,6 +388,9 @@ export function createNpcShip(l: NpcShipLines, displayScale = 1): NpcShipModel {
       if (sails && windFromStarboard !== undefined) sails.scale.x = windFromStarboard ? -1 : 1;
     },
     dispose() {
+      if (flag.parent) frame.remove(flag);
+      flag.geometry.dispose();
+      flag.material.dispose();
       group.traverse((node) => {
         const mesh = node as THREE.Mesh;
         if (!mesh.geometry || node === lights.points) return;

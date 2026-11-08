@@ -178,7 +178,7 @@ export function createNpcView(env: NpcViewEnv): NpcView {
         // shows no lights: it's lit as at noon.
         const sun = e.npc?.derelict ? 90 : sunElevationDeg;
         model.update(sun, fogDensity, Math.sin(wind.fromRad - t.heading) > 0);
-        model.flag.visible = e.npc?.struck === true;
+        model.setStruck(e.npc?.struck === true);
         const v = e.velocity ?? still;
         ship.x = t.position.x;
         ship.z = t.position.z;
