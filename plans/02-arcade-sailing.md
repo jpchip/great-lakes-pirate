@@ -1,6 +1,6 @@
 # 02 — Arcade Sailing & Ship Handling
 
-Status: DRAFT v1.0 (decisions made; gap review applied; S2 buoyancy notes; Phase 1 built and playtested; 0.1.0; Phase 5 speed pass)
+Status: DRAFT v1.1 (decisions made; gap review applied; S2 buoyancy notes; Phase 1 built and playtested; 0.1.0; Phase 5 speed pass, checked in the 0.5.0 playtest)
 Parent: [00-master-plan.md](00-master-plan.md)
 Inputs:
 - [01 tech/architecture](01-tech-architecture.md): minimal physics, 30–60 Hz tick, budgets, shared wave function
@@ -296,6 +296,8 @@ Unit tested (`tests/sailing.test.ts`): the T1 beats the cutter on a broad reach 
 - **Arena (for piece C):** the arena is 3 km across and holds you at its edge while pursued. Opening the cutter from 520 m to the 900 m pursuit range at 12.4 vs 12 kn takes about 10 minutes, at 13.5 kn about 3, but the edge is 1–2 minutes away at those speeds. So the speed is now there, but the arena can't yet let you win a chase on it: piece C needs to let the range open past the edge (or recenter or grow the arena while pursued).
 - **Docking:** the < 2 kn rule is unchanged. Running down from cruising speed with the sails coming in takes about 50% more water (about 85 m instead of 56 at 14 kn of wind), so harbor approaches want sail off sooner. Worth a feel check.
 
+**The arena chase, checked in the Phase 5 playtest (2026-11-08, [06 §14.14](06-fame-wanted-law-lighthouses.md)):** with piece C's cutter in the game, `?encounter=cutter&cutter=hunt` in 20 kn from the north, the T1 at Full on a broad reach away from her. By day she makes 19.0 arena m/s to the cutter's 18.5, so the range holds at about 380 m for 50 s; then her rounds into the rigging slow the T1, the arena's edge holds her at 90 s, and the cutter is alongside at 100. At night, overcast and dark, the lookout loses her within 10 s and the cutter gives up after a minute's search. The speed pass did what it set out to (the T1 is faster on a broad reach), but the edge piece C left in place and the cutter's rigging fire mean no daylight escape in open water. Whether a clean broad reach should win by day is Jared's call (06 §14.14.3).
+
 ---
 
 ## 11. Wind Interface (contract with plan 04)
@@ -445,6 +447,7 @@ All resolved. Follow-ups for other plans: passage prices and shipless earning (0
 ---
 
 ## Changelog
+- v1.1: The Phase 5 playtest's arena chase against the cutter after the speed pass (§10.2).
 - v1.0: Phase 5 speed pass (§10.2): T1 10.8 kn and T2 12.2 kn hull speed, wind strength up to 1.25 from 20 kn, measured speeds against the cutter, and what depends on speed.
 - v0.9: Helm swap done: the S7 greybox and S8 arena use the plan 02 controller (§14).
 - v0.8: Phase 1 playtest passed (§14): results, bench numbers, helm swap moved to Phase 2.

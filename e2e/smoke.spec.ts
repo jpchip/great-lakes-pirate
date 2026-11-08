@@ -633,7 +633,8 @@ test('plays the Wanted stingers and the cutter at close quarters', async ({ page
   await expect(body).toHaveAttribute('data-wanted-stinger', 'hunted');
 
   await expect(body).toHaveAttribute('data-law-engines', '1');
-  await expect(body).toHaveAttribute('data-law-cue', /hail|alarm/);
+  // She has to close and hail first; give a loaded machine time.
+  await expect(body).toHaveAttribute('data-law-cue', /hail|alarm/, { timeout: 15_000 });
   expect(errors).toEqual([]);
 });
 

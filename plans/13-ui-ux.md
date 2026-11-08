@@ -1,6 +1,6 @@
 # 13 — UI / UX
 
-Status: DRAFT v0.3 (decisions made)
+Status: DRAFT v0.8 (decisions made; Phases 1, 3, 4 and 5 UI built)
 Parent: [00-master-plan.md](00-master-plan.md)
 Inputs: [01](01-tech-architecture.md) (Preact DOM overlay, input action map, budgets), the HUD and screen needs of every system plan (02–12), master plan (mouse and keyboard only, stylized art, period flavor, sepia/newsprint UI idea)
 Feeds: 14 (UI art assets, fonts), 15 (UI sounds), 17 (usability testing)
@@ -253,6 +253,8 @@ UI and settings preferences are stored **outside the run save** (a separate Inde
 
 **Phase 4 pieces E–K as built (2026-11-01 to 11-03).** The port screen gained a tab per service the port has: Freight (the agent's board, one line per contract with its pay, deposit, due time and Standing), Saloon (a round, and what's said with its teller and how far to trust it), and Shipyard at Superior, Duluth and Ashland (the T1 and T2 side by side with the trade-in, and the upgrades by slot). The chandlery gained repairs and instrument fittings. Moored at Stockton, the Stockton Stash screen moves cargo and cash both ways and offers lying at anchor until dawn, dusk or a shift of wind. The island smuggler's screen trades by lantern light. Hot and contraband lots carry an `ember` diamond in the hold and can be offered on the quiet. The ledger's pages are prices by port and by good, Contracts, Rumors and Standing (with your receivers), and the journal and the chart can stay open while the ship sails on (Settings → Camera & sailing) ([05 §20–24](05-ports-economy-trading.md)).
 
+**Phase 5 as built (2026-11-04 to 11-08, [06 §14.8–14.14](06-fame-wanted-law-lighthouses.md)).** The HUD's top right carries the regional Wanted chip (an empty ring for Clean, a shield with one to four pips, the noose for Most Wanted, which turns the chip heavy and red and says capture means the rope; shown from tier 1 on Minimal, always on Full) and under it the report eye with who's carrying word, where to and a game-time timer. The detection eye says "Watched by…", "Seen by…" or "Known to…" with the watcher's name, and the lantern chip "Lantern lit" or "Running dark". The chart marks each region at tier 1+ in red pencil and Most Wanted with a noose, and its card has the law lines. The port screen gained the Harbor tab (the region's tier and heat bar, the fine or bribe, reports still on their way, posters and informant risk, a WANTED badge in the header) and the Papers tab (pick a paper, its masthead and lead, buy it for 2¢ to read the front page in newsprint with the WANTED column, the cutter sightings and the weather). The ledger's Standing page is Standing & law. Full-screen: the cell, the release summary and the gallows, the tier-5 WANTED: DEAD OR ALIVE front page, and the end of the run's front page, summary and logbook export, with the last run on the main menu. Docking in a Most Wanted region asks for F twice. All checked by unit and e2e tests in the playtest; the indicator's and the end screen's looks are Jared's.
+
 ## 13. Cut List
 1. 3D preview in character creation (use 2D portraits).
 2. Player-written journal notes.
@@ -279,6 +281,7 @@ All resolved.
 ---
 
 ## Changelog
+- v0.8: Phase 5: the Wanted chip and report eye, the detection eye and lantern chip, the chart's law marks, the Harbor and Papers tabs, jail and release, the tier-5 front page and the end of the run (§12).
 - v0.7: Phase 4 pieces E–K: freight, saloon, shipyard, stash and smuggler screens, the ledger's pages, and sailing on with the journal open (§12).
 - v0.6: Phase 4 piece C: main menu, character creation and the First Week tracker built (§12).
 - v0.5: Phase 3 piece D: chart HUD, encounter card, lookout setting and chart locked banner built (§12).

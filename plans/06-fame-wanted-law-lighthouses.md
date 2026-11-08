@@ -1,6 +1,6 @@
 # 06 — Fame, Wanted, Law Enforcement & Lighthouses
 
-Status: DRAFT v0.7 (decisions made; gap review applied; Phase 5 scope proposed; pieces A and E built)
+Status: DRAFT v1.1 (decisions made; gap review applied; Phase 5 built, pieces A–H, and checked in the container for 0.5.0)
 Parent: [00-master-plan.md](00-master-plan.md)
 Inputs: master plan decisions (separate Fame/Wanted, regional Wanted, execution only at the top tier, jail/bail/jailbreak, Fame fades, sparse patrols), [R1 §2.1–2.2](R1-western-superior-1900-research.md) (lights, the *Morrill*), [R1a](R1a-western-superior-gazetteer.md) (regions), [02](02-arcade-sailing.md) (dark running, shallows), [03](03-world-scale-chart-travel.md) (no chart escape), [04](04-water-weather-seasons.md) (visibility, moon, storms), [05](05-ports-economy-trading.md) (hot goods, grudges, Standing)
 Feeds: 07 (lethality, surrender), 08 (docks guards, perception), 11 (lighthouse raids), 12 (capture, jail, execution, newspapers), 13 (HUD indicators)
@@ -502,11 +502,93 @@ Nine pieces, each sized to be one thread. Three can start at once (A, B and G). 
 - **The *Morrill* at close quarters:** her whistle when she hails (long and short to heave to for inspection, five short in pursuit, one long for an arrest), her engine within 1.2 km following her speed, her bell striking the ship's time and ringing the alarm as a pursuit starts, her bow gun and the round falling where it fell (`CutterFired` now carries `at`), and the tug's deputies' rifles. The whistle hails and the shots are captioned with an arrow.
 - **The lockup:** the cell door shuts on `Jailed` (the bell tolls after it for the gallows) and opens on `Released`, with the chart's "clear" phrase after. The harbor master's fine or bribe counts its coins.
 - Twelve synthesized sounds, all in `CREDITS.md`; plan 15 §18 has the details. **For Jared:** a listen in the game, and the preview in the project files (`law-audio/`).
-- **Not yet:** the paper boy's shout in port, with piece F's papers.
+- **Not yet:** ~~the paper boy's shout in port, with piece F's papers~~ (done with piece F; heard in an e2e test since piece I).
+
+### 14.14 Piece I: playtest and release (2026-11-08)
+
+**Goal** (§14.4, piece I): check the §14.3 exit criteria with pieces A–H merged, run the benches, write the laptop route, bring the plans up to date, and tag 0.5.0. Like Phase 4's ([05 §25](05-ports-economy-trading.md)), the phase is done when the criteria pass on the baseline laptop and Jared signs off the playtest; this section holds what the cloud container could check and what's left for the laptop.
+
+**Added for the playtest:**
+
+- An e2e test that the paper boy is heard: a port screen opening in Bayfield with an edition unbought plays his call (`e2e/papers.spec.ts`). It was only a unit test on `PaperCried` before.
+- `bench:detection` also times the law's world tick: every region carrying heat and a crime in each every game hour with three witnesses on their way, for a game month of ticks.
+- `tests/save-size.test.ts` checks a run a game month into a life of crime: heat in all seven regions, reports on their way, the four papers' kept editions and a full 400-line logbook.
+- The e2e test for the *Morrill*'s whistle waits up to 15 s for her hail (it timed out at 5 s on a loaded machine; she has to close first).
+
+#### 14.14.1 Checked in the cloud container
+
+Typecheck, lint, Prettier, 1,256 unit tests (one skipped) and 36 e2e tests pass on main with pieces A–H merged. Two e2e tests timed out once with the unit suite and a browser bench running beside them (the journal's sail-on distance and the cutter's hail) and passed three times out of three on their own; CI retries once. Headless Chromium renders on SwiftShader, so frame times here say nothing about the laptop.
+
+| # | Criterion | Result here | Still needs |
+|---|---|---|---|
+| 1 | No witnesses, no Wanted | `tests/law.test.ts`. In the game: a deal with the smuggler at Oak Island's lee on the new moon (`?day=2&hour=23`), lantern doused, leaves no crime and no report. Pass | The route by hand |
+| 2 | A keeper's report with the eye and timer; intercepting it prevents the heat | `tests/law.test.ts` (the heat lands only with the report; `interceptReport` stops it). In the game, the same deal on the first night's full moon (`?day=0&hour=23`) with the lantern lit is seen by the **Michigan Island** keeper (by the lantern only, so "someone": the region's alert rises, no heat) and a passing fish tug's crew ("a schooner", which carries heat); the keeper's report is due about 9.5 game hours later, after dawn. **Two gaps:** Oak Island stands between the anchorage and Raspberry light, so Raspberry's keeper never sees the deal (§14.2's story assumed he would); and nothing in the game lets you overtake a report (no keeper's boat to catch), only the dev panel's Intercept | Jared: is Michigan Island's keeper enough, and does the interception wait for Phase 7's boats? |
+| 3 | Fleeing escapes petty heat, not the heaviest | `tests/law.test.ts` (contract theft spreads to the neighbors). Pass | — |
+| 4 | Running dark on a moonless night is noticeably safer | `npm run bench:detection`: the Raspberry keeper makes out a dark T1 at **430 m** on a new moon and a lit one at **3,723 m** under a full moon (8.7×), and never spots her dark on the new moon from 1 km. Under a full moon dark she's 2.9 km; overcast 0.8 km; fog caps everything at the fog's range. In the game at Oak Island, lit on the full moon three watchers spot her within 25 s, dark on the new moon none. Pass | By eye at night |
+| 5 | The cutter can't follow into shallows; the T1 beats her on a broad reach in good wind | `tests/morrill.test.ts` (stands off the shallows, holds fire, gives up after 50 s) and `tests/sailing.test.ts` (12.4 kn against her 12). **The arena chase** (`?encounter=cutter&cutter=hunt`, 20 kn from the north, T1 at Full on a broad reach away from her): by day the T1 makes 19.0 arena m/s to her 18.5, so she holds her own at about 380 m, then her rounds into the rigging slow the T1 from 50 s and the arena's edge (held while pursued) stops her at 90 s; she's alongside at 100. At night, overcast and running dark, her lookout loses the T1 within 10 s, she searches 60 s and gives up, and the T1 sails off the edge. **So by day in open water there's no outrunning her**: the margin is about 3%, she shoots the rigging inside 800 m, and the 1.5 km edge holds you (02 §10.2 warned of this for piece C). Darkness, fog, islands and shallows are the ways out | Jared, criterion 14: is that the chase you want, or should a clean run on a broad reach be able to win? |
+| 6 | The tier-5 state is unmistakable | `e2e/papers.spec.ts` (the full-screen WANTED: DEAD OR ALIVE page), `tests/port-law.test.ts` (the HUD chip's MOST WANTED, the harbor master's refusal, a Most Wanted harbor known). The chart's MOST WANTED mark and the confirm before docking have no test. Pass in part | The chart mark and the docking confirm by eye |
+| 7 | No inspection at tier 0; at tier 1+ contraband found by the odds | `tests/morrill.test.ts` (never bothers a clean captain; tier 1 inspects once hove to; the hidden compartment's 0.45). Pass | The route by hand |
+| 8 | Captured below and at tier 5 | `e2e/capture.spec.ts`: below tier 5 cargo and cash taken, the sentence served, the ship back at Bayfield; bail from the Stockton strongbox; tier 5 to the gallows and the end screen with the run gone. Pass | The look of the end screen (Jared) |
+| 9 | Closing the tab mid-chase doesn't escape it | `e2e/capture.spec.ts` (the reload lands in the danger snapshot's arena). Pass | — |
+| 10 | Bribes and fines; decay | `tests/port-law.test.ts` (a crime cleared by a fine end to end), `tests/law.test.ts` (petty heat Clean in about two game days away), and the fine paid from the tab in `e2e/papers.spec.ts`. Pass | The ledger in play |
+| 11 | Papers print what happened; Fame moves | `tests/newspapers.test.ts` (26), `e2e/papers.spec.ts`, and now the paper boy's call heard in port. Pass | Read in port |
+| 12 | A 0.4.0 save loads Clean; the save fits | `tests/save-migrations.test.ts` takes the v6 fixture to v7 Clean everywhere where it was saved. A new run's save is under 10 KB for every background, and a month of crime **8.8 KB** compressed, against the 250 KB budget. Pass | — |
+| 13 | Detection and the law tick inside the budgets with traffic in every zone | One look at 12 watchers with line of sight: **0.017 ms**, four looks a second. The law tick over a game month: **0.03 ms** a tick on average (2 ms worst, the first ticks warming up), against the economy's 1 ms. Draw calls on Medium with traffic and the lights' watchers (`?play&debug&harbor=<port>&day=20`, 1280 × 720, the table below): **48–79**, under 150. `bench:stream` in all three zones: main-thread streaming p99 0.2–1.4 ms, at most 23 terrain draw calls (below). Pass here | `?bench=water` and `/bench/stream/` on the laptop for frame times |
+| 14 | The law feels fair | — | Jared |
+| 15 | Plans updated, CI green, 0.5.0 tagged | Plans 02, 06, 12, 13, 15 and 16 record what was built; version 0.5.0, the changelog and the README are in the release PR | CI on the PR; the tag on the merge |
+
+Draw calls with traffic, Medium (watchers are the keepers and crews looking at her at that moment):
+
+| Harbor | 10:00 | 22:00 | Watchers (day / night) |
+|---|---|---|---|
+| Bayfield | 58 | 76 | 13 / 15 |
+| Ashland | 48 | 55 | 14 / 12 |
+| Washburn | 68 | 74 | 14 / 14 |
+| La Pointe | 67 | 79 | 12 / 13 |
+| Red Cliff | 56 | 65 | 13 / 13 |
+| Duluth | 70 | 63 | 7 / 4 |
+| Superior | 51 | 59 | 4 / 7 |
+| Two Harbors | 51 | 60 | 2 / 4 |
+
+Zone streaming (`npm run bench:stream`, Medium, 8× Full sail, headless; main-thread streaming per frame and the most terrain draw calls):
+
+| Zone | Load | Streaming per frame p99 / max | Tiles built (slowest) | Terrain draw calls |
+|---|---|---|---|---|
+| Apostles | 0.33 s | 1.4 / 8.9 ms | 104 (92 ms in the worker) | 23 |
+| Twin Ports | 0.12 s | 0.2 / 7.3 ms | 31 (29 ms) | 16 |
+| Two Harbors | 0.11 s | 0.2 / 7.8 ms | 17 (18 ms) | 7 |
+
+Phase 2's laptop run had streaming at p99 0.3 ms and max 1.2 ms; the cloud numbers ran beside other browser checks and only show nothing grew.
+
+#### 14.14.2 For Jared on the laptop
+
+Start a **New run as a Poacher**: Bayfield, $100, and she already knows where the smuggler lies. The first night (May 7) is a full moon and the third (May 21) a new moon. `?debug` gives the overlay's Law folder (set a region's tier, file every report now) to skip waiting; each step says where it's worth using.
+
+1. **Smuggling by moonlight.** Sail out to Oak Island's lee after dark on the first night with the lantern lit (L), come alongside the *Whippoorwill* and buy whiskey. Watch the HUD's eye: the Michigan Island keeper and any passing tug should spot you within half a minute, and the report eye shows who's carrying word, where to, and when. Then sail past Raspberry Island light to see its keeper's eye on you. On the new moon do it again with the lantern doused: nobody should notice (criteria 1, 2, 4).
+2. **A fine.** Sail into Bayfield and offer the whiskey to a merchant from the hold. If he finds it out, it's smuggling named to you, reported within the hour, and Chequamegon Bay goes Rumored or Suspicious. Open the Harbor tab, read what the fine does, and pay it: the region should be Clean, and the ledger's Standing & law page should agree (criterion 10). Or leave it and watch it fade over a couple of game days away.
+3. **The cutter's inspection.** With whiskey aboard and Wanted 1 in your region (by hand, or the Law folder), take to the chart until the *Morrill* finds you, or use `?encounter=cutter&cutter=hunt`. She closes and hails (long and short on her whistle); heave to with the sails down and let her search. Found whiskey is taken and filed at once (criterion 7). Try the hidden compartment ($60 at a shipyard) for the odds.
+4. **The chase into the shallows.** Run from her instead. She fires a warning shot after 20 s, then rounds into your rigging inside 800 m. Head for shoal water (the chart's 3-fathom line: off Long Island and Chequamegon Point, or among the islands in a zone). She should stop short, hold her fire, and give it up after 50 s. Try it by day on a broad reach in 20 kn, then at night dark (criterion 5; the by-day result above is the thing to judge).
+5. **Jail and bail.** Leave money in the Stockton strongbox first. At tier 2+ with contraband, heave to under her guns or let her shoot your rigging away: the cell at Bayfield, cargo and cash gone, the sentence in weeks. Send word for bail and see you're out early **with your heat as it was**; another time serve the sentence and read the release screen (heat down to tier 1, what moved while you were inside) (criterion 8).
+6. **The tier-5 warning.** Set Chequamegon Bay to tier 5 in the Law folder: the Bayfield paper's WANTED: DEAD OR ALIVE page fills the screen, the HUD chip turns to the noose, the chart marks the region MOST WANTED, the harbor master won't deal, and docking at Bayfield asks for F twice (criterion 6). Let the cutter take you: the gallows, then the end screen and the main menu's last run.
+7. **The paper boy.** Dock at any port with a paper you haven't bought this edition and listen as the port screen opens: he cries it, a little louder when the story's about you. Buy the paper (2¢) and read your own headline (criterion 11).
+8. **Frame times** (criterion 13): `?bench=water` on Medium and Low at `?harbor=bayfield` and `?harbor=washburn` by day and at 22:00, and `/bench/stream/` in each zone. Phase 3's budget is a p95 frame of at most 16.7 ms on Medium and never below 30 fps on Low.
+9. **Criterion 14:** does smuggling carry real risk, and when you're caught can you see why?
+
+#### 14.14.3 Open decisions for Jared
+
+1. **Does bail clear heat?** Now only time served brings a region down to tier 1; bail gets you out early with your heat as it was (§14.9's smaller call). Recommended: keep it, so bail costs money and time served costs time, and bailing out at tier 3 sends you out still Hunted.
+2. **Does the end screen look right?** Screenshots in the project files (`capture-jail/4-end-screen.png`).
+3. **The daylight chase** (criterion 5 above). Recommended: let the arena's edge open while you're pursued and gaining on her, so a clean broad reach in a strong breeze can win by day, and keep her rigging fire as the cost of being caught inside 800 m.
+4. **Raspberry light and the anchorage** (criterion 2 above): leave the smuggler where she is (Michigan Island's keeper sees her instead), or move her anchorage to where Raspberry's keeper looks on.
+
+#### 14.14.4 Results
+
+Pending Jared's playtest.
 
 ---
 
 ## Changelog
+- v1.1: Phase 5 piece I (§14.14): the exit criteria checked in the container, the laptop route, and four decisions for Jared (bail and heat, the end screen, the daylight chase, Raspberry light and the anchorage).
 - v1.0: Phase 5 piece F built (§14.12): the four papers, headlines from events printed a few days late, Fame from the printing, the extra heat, Respectable Captain feats, the WANTED column, cutter sightings, the weather outlook, port storm signals and the tier-5 front page.
 - v0.10: Phase 5 piece H built (§14.13): Wanted stingers, the cutter's whistle, engine, bell and gun, the lockup's door.
 - v0.9: Phase 5 piece E built (§14.11): the harbor master's fines and bribes, the search on docking at tier 2+, posters, informants, the Wanted HUD, the report eye and the tier-5 warning.

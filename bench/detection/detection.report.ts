@@ -1,5 +1,10 @@
 import { performance } from 'node:perf_hooks';
 import { expect, it } from 'vitest';
+import { WORLD_TICK_GAME_SECONDS } from '../../src/core/time';
+import { gameLaw } from '../../src/sim/law/defs';
+import { commitCrime, tickLaw, type LawWorld } from '../../src/sim/law/law';
+import { createLawState } from '../../src/sim/law/state';
+import type { Witness } from '../../src/sim/law/witness';
 import { LIGHTHOUSES, type PlacedLight } from '../../src/sim/lighthouses';
 import { keeperObservers, shipObserver, type Observer } from '../../src/sim/law/observers';
 import {
@@ -142,4 +147,45 @@ it('detection bench', () => {
   const perLookMs = (performance.now() - t0) / N;
   console.log(`one look at 12 watchers: ${perLookMs.toFixed(4)} ms (4 looks a second)`);
   expect(perLookMs).toBeLessThan(0.5);
+
+  // The law's world tick (§14.3 criterion 13): every region carrying heat, a crime in each
+  // every game hour with three witnesses on their way, for a game month of ticks.
+  const law = gameLaw();
+  const lw: LawWorld = {
+    law: createLawState('ship.t1_schooner', 'Wren', 0),
+    standing: {},
+    seed: 'bench',
+  };
+  const witnesses: Witness[] = [
+    { id: 'light.raspberry', kind: 'keeper', name: 'k', identification: 'ship', reporting: 'slow' },
+    { id: 'ship.x', kind: 'crew', name: 'c', identification: 'schooner' },
+    { id: 'm', kind: 'merchant', name: 'm', identification: 'person' },
+  ];
+  const crimes = [
+    'crime.smuggler_deal',
+    'crime.contraband',
+    'crime.hot_goods',
+    'crime.contract_theft',
+  ];
+  const ticks = (30 * 24 * 3600) / WORLD_TICK_GAME_SECONDS;
+  const hours = WORLD_TICK_GAME_SECONDS / 3600;
+  let worst = 0;
+  const l0 = performance.now();
+  for (let i = 1; i <= ticks; i++) {
+    const now = i * WORLD_TICK_GAME_SECONDS;
+    if (i % Math.round(1 / hours) === 0) {
+      for (const [k, r] of law.regions.entries()) {
+        const crime = crimes[(i + k) % crimes.length] ?? 'crime.contraband';
+        commitCrime(law, lw, { crime, region: r.id, witnesses }, now);
+      }
+    }
+    const a = performance.now();
+    tickLaw(law, lw, now, hours, 'region.apostles');
+    worst = Math.max(worst, performance.now() - a);
+  }
+  const perTickMs = (performance.now() - l0) / ticks;
+  console.log(
+    `law tick over a game month (${ticks} ticks, ${law.regions.length} regions, a crime in each an hour): ${perTickMs.toFixed(4)} ms mean, ${worst.toFixed(3)} ms worst`,
+  );
+  expect(perTickMs).toBeLessThan(1);
 });
