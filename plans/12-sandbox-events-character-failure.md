@@ -131,7 +131,7 @@ There's no win condition, but a run can end on your terms:
 | **Market** | Mill fire, herring run, grain glut, coal shortage | [05 §4.1](05-ports-economy-trading.md) |
 | **Rival** | A copycat strikes your lane · a rival proposes a parley (§7) | From 07 |
 | **Historical flavor** | Newspaper national news (1900 election, etc.) · the **Mataafa Storm, Nov 27–28, 1905** for long runs | [04 §5.3](04-water-weather-seasons.md) |
-| **Trade-only communities** | Seasonal notices: wild rice in at Bad River, maple sugar at Red Cliff | Trading only ([R1 §5](R1-western-superior-1900-research.md)) |
+| **Trade-only communities** | Seasonal notices: wild rice in at Bad River, maple sugar at Red Cliff | Trading only ([R1 §5](R1-western-superior-1900-research.md)). **Red Cliff:** in-season saloon rumors in the Apostles/Chequamegon/Ashland regions ([05 §26.5](05-ports-economy-trading.md)); Bad River still out. |
 
 ### 5.3 Poker night (Seavey: "won the *Nellie Johnson* in a poker game")
 - A short, abstract card game in saloons (e.g., simplified five-card draw against 2–3 NPCs) with stakes: money, cargo, a **freight contract**, a cache map, or an IOU.

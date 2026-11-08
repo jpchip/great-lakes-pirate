@@ -51,6 +51,11 @@ const rng = (seed: string) => {
   return () => r.next();
 };
 
+function must<T>(v: T | undefined): T {
+  if (v === undefined) throw new Error('expected value');
+  return v;
+}
+
 /** Tells `n` rumors in a row at one port, as a captain buying rounds would. */
 function tellMany(port: string, n: number, seed: string, bonus = 0): Rumor[] {
   const w = world();
@@ -120,6 +125,48 @@ describe('what the saloon can tell', () => {
     }
   });
 
+  it('names Red Cliff seasonal goods in nearby saloons while they are in season', () => {
+    const SPRING = 0;
+    const FALL = 18 * SECONDS_PER_GAME_DAY;
+    const springSubs = rumorDrafts(world(), [], 'port.bayfield', SPRING, rng('rc-sp'))
+      .filter((d) => d.kind === 'seasonal')
+      .map((d) => d.subject);
+    expect(springSubs.some((s) => s.includes('maple_sugar'))).toBe(true);
+    expect(springSubs.some((s) => s.includes('wild_rice'))).toBe(false);
+    const fallSubs = rumorDrafts(world(), [], 'port.bayfield', FALL, rng('rc-fa'))
+      .filter((d) => d.kind === 'seasonal')
+      .map((d) => d.subject);
+    expect(fallSubs.some((s) => s.includes('wild_rice'))).toBe(true);
+    expect(rumorDrafts(world(), [], 'port.duluth', SPRING, rng('rc-du')).map((d) => d.kind)).not.toContain(
+      'seasonal',
+    );
+  });
+
+  it('tells each Red Cliff seasonal tip once per season, and a false tip names an out-of-season good', () => {
+    const SPRING = 0;
+    const w = world();
+    const drafts = rumorDrafts(w, [], 'port.bayfield', SPRING, rng('rc-once'));
+    const maple = drafts.find((d) => d.kind === 'seasonal' && d.subject.includes('maple_sugar'));
+    expect(maple).toBeDefined();
+    const told: Rumor = {
+      id: 'rumor.test',
+      kind: 'seasonal',
+      source: 'saloon',
+      port: 'port.bayfield',
+      heardAt: SPRING,
+      text: 'x',
+      teller: 'a hand',
+      reliability: 0.8,
+      truth: true,
+      draft: must(maple).subject,
+      subject: must(maple).subject,
+    };
+    const again = rumorDrafts(w, [told], 'port.bayfield', SPRING, rng('rc-once2'));
+    expect(again.some((d) => d.kind === 'seasonal' && d.subject.includes('maple_sugar'))).toBe(false);
+    const lie = must(maple).render(false, rng('rc-lie'));
+    expect(lie.subject).toContain('wild_rice');
+  });
+
   it('talks of the smuggler only in the Apostles and Chequamegon saloons', () => {
     const kinds = (port: string) => rumorDrafts(world(), [], port, T0, rng('s')).map((d) => d.kind);
     expect(kinds('port.bayfield')).toContain('smuggler');
@@ -131,7 +178,7 @@ describe('what the saloon can tell', () => {
   it('tells every kind over a season, and every true tip names what the sim holds', () => {
     const heard = tellMany('port.bayfield', 60, 'season');
     const kinds = new Set(heard.map((r) => r.kind));
-    for (const k of ['shipment', 'price', 'weather', 'smuggler', 'legend'] as const) {
+    for (const k of ['shipment', 'price', 'weather', 'smuggler', 'legend', 'seasonal'] as const) {
       expect(kinds, k).toContain(k);
     }
     for (const r of heard) {

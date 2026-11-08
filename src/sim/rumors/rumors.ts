@@ -1,10 +1,16 @@
 import rumorsJson from '../../../data/rumors.json';
 import { rumorsFileSchema, type RumorKind, type RumorsFile } from '../../../data/schemas/rumors';
-import { dayAndHour, SECONDS_PER_GAME_DAY } from '../../core/time';
+import {
+  CALENDAR_DAYS_PER_GAME_DAY,
+  CALENDAR_START_MS,
+  calendarDate,
+  dayAndHour,
+  SECONDS_PER_GAME_DAY,
+} from '../../core/time';
 import type { ChartGeography } from '../chart/geography';
 import { forecastAt } from '../chart/chart-weather';
 import type { Contact } from '../chart/traffic';
-import { portInfo, type EconomyDefs } from '../economy/defs';
+import { portInfo, seasonAt, type EconomyDefs } from '../economy/defs';
 import type { PriceKnowledge } from '../economy/knowledge';
 import { unitPrices, type MarketsState } from '../economy/market';
 import type { TrafficDefs } from '../traffic/cargo';
@@ -373,6 +379,78 @@ function legendDrafts(defs: RumorsFile, port: string): Draft[] {
     }));
 }
 
+function seasonCalendarKey(gameSeconds: number): string {
+  const d = calendarDate(gameSeconds);
+  return `${d.getUTCFullYear()}-${seasonAt(gameSeconds)}`;
+}
+
+function gameSecondsAtUtc(year: number, month: number, day = 1): number {
+  const ms = Date.UTC(year, month, day) - CALENDAR_START_MS;
+  return (ms / (CALENDAR_DAYS_PER_GAME_DAY * 86_400_000)) * SECONDS_PER_GAME_DAY;
+}
+
+/** First instant of the next season on the calendar (plan 04 §3.3). */
+function seasonEndSeconds(gameSeconds: number): number {
+  const d = calendarDate(gameSeconds);
+  const y = d.getUTCFullYear();
+  const season = seasonAt(gameSeconds);
+  const month = d.getUTCMonth();
+  if (season === 'spring') return gameSecondsAtUtc(y, 5);
+  if (season === 'summer') return gameSecondsAtUtc(y, 8);
+  if (season === 'fall') return gameSecondsAtUtc(y, 11);
+  // Winter: December–March; spring begins in April.
+  return gameSecondsAtUtc(month <= 2 ? y : y + 1, 3);
+}
+
+function seasonalDrafts(defs: RumorsFile, world: RumorWorld, port: string, now: number): Draft[] {
+  const region = portInfo(port)?.wantedRegion;
+  if (!region) return [];
+  const season = seasonAt(now);
+  const key = seasonCalendarKey(now);
+  const expiresAt = seasonEndSeconds(now);
+  const out: Draft[] = [];
+  for (const entry of defs.seasonal) {
+    if (!entry.regions.includes(region)) continue;
+    const good = world.economy.goods.get(entry.good);
+    if (!good?.seasons.includes(season)) continue;
+    const decoys = defs.seasonal.filter(
+      (o) => o.port === entry.port && o.good !== entry.good && !world.economy.goods.get(o.good)?.seasons.includes(season),
+    );
+    out.push({
+      kind: 'seasonal',
+      subject: `${entry.port}:${entry.good}:${key}`,
+      render(truth, rand) {
+        const tell = truth ? entry : pick(rand, decoys.length ? decoys : [entry]);
+        const tellGood = tell.good;
+        const p = unitPrices(world.economy, world.markets, tell.port, tellGood, now);
+        const buy = p?.buyCents ?? (tellGood === entry.good ? 1 : 999_999);
+        const sell = p?.sellCents ?? buy;
+        const seenAt = Math.max(0, now - rand() * SECONDS_PER_GAME_DAY);
+        const line = pick(rand, tell.lines);
+        const text = fill(pick(rand, defs.kinds.seasonal.templates), {
+          line: fill(line, {
+            good: goodName(world.economy, tellGood),
+            port: portName(tell.port),
+            unit: goodUnit(world.economy, tellGood),
+            price: talkPrice(buy),
+            deal: pick(rand, defs.priceTalk.cheap),
+          }),
+        });
+        return {
+          text,
+          expiresAt,
+          subject: `${tell.port}:${tellGood}:${key}`,
+          price:
+            truth && p
+              ? { port: tell.port, good: tellGood, buyCents: buy, sellCents: sell, seenAt }
+              : undefined,
+        };
+      },
+    });
+  }
+  return out;
+}
+
 /** True when the captain has heard this kind of talk and it was true (the smuggler's spot). */
 export function knowsRumor(rumors: readonly Rumor[], kind: RumorKind, subject?: string): boolean {
   return rumors.some(
@@ -398,6 +476,8 @@ function heard(rumors: readonly Rumor[], d: Draft, now: number): boolean {
         );
       case 'legend':
         return r.draft === d.subject;
+      case 'seasonal':
+        return r.draft === d.subject;
     }
   });
 }
@@ -417,6 +497,7 @@ export function rumorDrafts(
     ...weatherDraft(defs, world, port, now),
     ...smugglerDraft(defs, world, port),
     ...legendDrafts(defs, port),
+    ...seasonalDrafts(defs, world, port, now),
   ].filter((d) => !heard(rumors, d, now));
 }
 

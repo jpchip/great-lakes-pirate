@@ -17,6 +17,10 @@ export const marketSchema = z.object({
   imports: z.array(idOf('good')),
   /** Goods the port doesn't trade at all. */
   absent: z.array(idOf('good')).default([]),
+  /** Multiplier on export role base price for this port only (plan 05 §26.5). */
+  exportPrice: z.number().positive().optional(),
+  /** Multiplier on export role target stock for this port only. */
+  exportStock: z.number().positive().optional(),
 });
 
 export const marketsFileSchema = z.array(marketSchema).refine(

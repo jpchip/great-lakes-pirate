@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { SECONDS_PER_GAME_DAY } from '../src/core/time';
-import { cargoCapacity, gameEconomy } from '../src/sim/economy/defs';
+import { balanceHarnessEconomy, cargoCapacity, gameEconomy } from '../src/sim/economy/defs';
 import {
   cycleInPort,
   dumpHold,
@@ -10,6 +10,8 @@ import {
   passageTable,
   PROFIT_CEILING_CENTS_PER_GAME_DAY,
   PROFIT_CEILING_CENTS_PER_REAL_HOUR,
+  RED_CLIFF_PROFIT_CEILING_CENTS_PER_REAL_HOUR,
+  RED_CLIFF_T2_MIN_REAL_HOURS,
   runTrader,
 } from '../src/sim/economy/harness';
 import { buy, sell, type Trader } from '../src/sim/economy/trade';
@@ -21,7 +23,7 @@ import { gameContracts } from '../src/sim/economy/contracts';
  * `npm run bench:economy`.
  */
 
-const defs = gameEconomy();
+const defs = balanceHarnessEconomy();
 const legs = passageTable();
 const T1 = cargoCapacity();
 const DAWN = 6 * 3600;
@@ -169,6 +171,34 @@ describe('the loop hunter (criterion 4)', () => {
     }
     // Every port and good for 40 game days: ~4 s alone, over vitest's 5 s on a busy runner.
   }, 20_000);
+});
+
+describe('Red Cliff seasonal bargain (plan 05 §26.5)', () => {
+  const rich = gameEconomy();
+  const T2_NET_WORTH = 160_000 - 25_000;
+
+  it('stays under the Red Cliff profit ceiling with a deep purse', () => {
+    const run = runTrader(new EconomySim(rich, DAWN), legs, {
+      start: 'port.bayfield',
+      purse: 1_000_000,
+      capacity: T1,
+      realMinutes: 360,
+    });
+    const profit = run.endNetWorth - run.startNetWorth;
+    expect(profit / (run.realMinutes / 60)).toBeLessThan(RED_CLIFF_PROFIT_CEILING_CENTS_PER_REAL_HOUR);
+  });
+
+  it('reaches a T2 no sooner than the Red Cliff floor from Bayfield on trade alone', () => {
+    const run = runTrader(new EconomySim(rich, DAWN), legs, {
+      start: 'port.bayfield',
+      purse: 15_000,
+      cargo: [{ good: 'good.rope_canvas', qty: 5 }],
+      capacity: T1,
+      realMinutes: 13 * 60,
+    });
+    const t2 = must(run.timeline.find((t) => t.netWorth >= T2_NET_WORTH));
+    expect(t2.realMinutes / 60).toBeGreaterThanOrEqual(RED_CLIFF_T2_MIN_REAL_HOURS);
+  }, 30_000);
 });
 
 describe('the economy soak (criterion 4, short)', () => {
