@@ -1,4 +1,5 @@
 import { formatCents } from '../../sim/economy/knowledge';
+import type { FitSource } from '../../sim/shipyard/shipyard';
 import { Help } from './Help';
 import type { PortActions } from './PortScreen';
 import {
@@ -76,7 +77,8 @@ function RepairLine({
   setMessage(m: string | undefined): void;
 }) {
   const what = yard.place === 'shipyard' ? 'Repair hull and rig' : 'Mend rigging';
-  if (!yard.repair) return null;
+  if (!yard.repair || yard.place === 'backRoom') return null;
+  const place = yard.place;
   const time = hoursText(yard.repair.hours);
   return (
     <div class="yard-repair">
@@ -89,7 +91,7 @@ function RepairLine({
         class="port-mini"
         data-testid={`repair-${yard.place}`}
         disabled={!yard.repair.affordable}
-        onClick={() => setMessage(actions.repair(yard.place) ?? 'Repaired.')}
+        onClick={() => setMessage(actions.repair(place) ?? 'Repaired.')}
       >
         Repair
       </button>
@@ -97,19 +99,19 @@ function RepairLine({
   );
 }
 
-function UpgradeTable({
+export function UpgradeTable({
   rows,
   place,
   actions,
   setMessage,
 }: {
   rows: UpgradeRow[];
-  place: 'shipyard' | 'chandlery';
+  place: FitSource;
   actions: PortActions;
   setMessage(m: string | undefined): void;
 }) {
   let category = '';
-  const timed = place === 'shipyard';
+  const timed = place !== 'chandlery';
   return (
     <table class="port-table" data-testid={`upgrades-${place}`}>
       <tbody>

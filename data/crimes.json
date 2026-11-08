@@ -8,6 +8,14 @@
     "notes": "Seen alongside the island smuggler, buying from her or fencing to her (plan 06 §14.6 decision 1). Plan 06 §2.2 has no row for it; it's heated like smuggling."
   },
   {
+    "id": "crime.fence_deal",
+    "name": "Dealing with a fence",
+    "heat": 20,
+    "phase": 6,
+    "standing": 3,
+    "notes": "Selling stolen goods or contraband in a port fence's back room (plan 05 §6.2; Phase 6 piece E). Nobody sees it indoors; it reaches the law only when the fence informs, at Wanted tier 2+ on Phase 5's receiver odds."
+  },
+  {
     "id": "crime.contraband",
     "name": "Smuggling",
     "heat": 20,
@@ -40,7 +48,13 @@
     "phase": 7,
     "notes": "Caught sneaking on the docks at night."
   },
-  { "id": "crime.petty_theft", "name": "Petty theft", "heat": 10, "phase": 7, "standing": 3 },
+  {
+    "id": "crime.petty_theft",
+    "name": "Petty theft",
+    "heat": 10,
+    "phase": 7,
+    "standing": 3
+  },
   {
     "id": "crime.burglary",
     "name": "Burglary",
@@ -49,7 +63,14 @@
     "standing": 8,
     "notes": "A warehouse, or cargo from a moored ship."
   },
-  { "id": "crime.assault", "name": "Assault", "heat": 30, "phase": 7, "standing": 8, "fame": 2 },
+  {
+    "id": "crime.assault",
+    "name": "Assault",
+    "heat": 30,
+    "phase": 7,
+    "standing": 8,
+    "fame": 2
+  },
   {
     "id": "crime.piracy",
     "name": "Piracy",
@@ -59,7 +80,13 @@
     "fame": 10,
     "notes": "Forcing a surrender and looting at sea."
   },
-  { "id": "crime.light_doused", "name": "Dousing a lighthouse", "heat": 40, "phase": 7, "fame": 5 },
+  {
+    "id": "crime.light_doused",
+    "name": "Dousing a lighthouse",
+    "heat": 40,
+    "phase": 7,
+    "fame": 5
+  },
   {
     "id": "crime.sinking",
     "name": "Sinking a ship",
@@ -87,5 +114,12 @@
     "standing": 20,
     "fame": 40
   },
-  { "id": "crime.jailbreak", "name": "Jailbreak", "heat": 60, "phase": 7, "news": true, "fame": 15 }
+  {
+    "id": "crime.jailbreak",
+    "name": "Jailbreak",
+    "heat": 60,
+    "phase": 7,
+    "news": true,
+    "fame": 15
+  }
 ]

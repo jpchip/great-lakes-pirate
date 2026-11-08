@@ -34,11 +34,13 @@ import { createSchooner } from './gameplay/schooner';
 import { npcParade } from './gameplay/npc-ships';
 import { attachEconomy } from './gameplay/economy';
 import { attachPorts, type PortControl } from './gameplay/port';
+import { attachBackRoom } from './gameplay/back-room';
+import { fameTier, gameLaw } from './sim/law/defs';
 import { attachRumors } from './gameplay/rumors';
 import { knowsRumor } from './sim/rumors/rumors';
 import { smugglerAnchorage } from './sim/economy/smuggler';
 import { attachContracts, contractsOf } from './gameplay/contracts';
-import { attachSmuggler, type SmugglerControl } from './gameplay/smuggler';
+import { attachSmugglers, type SmugglerControl } from './gameplay/smuggler';
 import { attachStash, type StashControl } from './gameplay/stash';
 import { siteDef } from './sim/hideouts/stash';
 import { LIE_REFUSALS, type LieUntil } from './sim/hideouts/lie-at-anchor';
@@ -134,7 +136,6 @@ import { pierPort } from './sim/harbors';
 import { attachLawShips } from './gameplay/law-ships';
 import { attachTargets } from './gameplay/targets';
 import { attachCollisions } from './gameplay/collisions';
-import { fameTier } from './sim/law/defs';
 import { daylight01 } from './sim/law/perception';
 import { attachLawAtSea, isLawShip, PURSUES_FROM_TIER } from './gameplay/law-at-sea';
 import { attachCombat, PLAYER_ID } from './gameplay/combat';
@@ -631,6 +632,8 @@ async function boot(): Promise<void> {
       instruments = next;
       applyInstruments();
     },
+    // The shady shipwright's guns are gated on Fame (Phase 6 piece E).
+    fameTier: () => fameTier(gameLaw(), state.fame.value),
   });
   if (import.meta.env.DEV || params.has('debug')) {
     const hook = {
@@ -1063,6 +1066,8 @@ async function boot(): Promise<void> {
       fit: (upgrade, place) => portsRef.current?.actions.fit(upgrade, place),
       unfit: (upgrade, place) => portsRef.current?.actions.unfit(upgrade, place),
       repair: (place) => portsRef.current?.actions.repair(place),
+      fence: (index, qty) => portsRef.current?.actions.fence?.(index, qty),
+      buyGun: (gunId) => portsRef.current?.actions.buyGun?.(gunId),
       // Piece E's harbor master tab offered Pay but nothing carried it to the game.
       payHarbor: (kind) => portsRef.current?.actions.payHarbor?.(kind),
       buyPaper: (paper) => portsRef.current?.actions.buyPaper?.(paper),
@@ -1215,11 +1220,22 @@ async function boot(): Promise<void> {
     };
     (window as unknown as { __glpPapers: typeof hook }).__glpPapers = hook;
   }
+  // The back room after dark (Phase 6 piece E): the fence and the shady shipwright.
+  const backRoom = attachBackRoom({
+    ctx,
+    economy,
+    shipyard,
+    informRisk: (port) => {
+      const region = portLaw.regionOf(port);
+      return region ? portLaw.informRisk(region) : undefined;
+    },
+  });
   const ports = attachPorts({
     ctx,
     economy,
     law: portLaw,
     papers,
+    backRoom,
     contracts,
     hazards,
     rumors,
@@ -1269,15 +1285,17 @@ async function boot(): Promise<void> {
   // The island smuggler (Phase 4 piece H): her boat after dark in Oak Island's lee, and her
   // screen, which pauses the game like the port screen.
   let contextBeforeSmuggler: InputContext = 'sailing';
-  const smuggler = attachSmuggler({
+  // Phase 6 piece E: every boat in `smuggler.json` whose zone is built (the Siskiwit Bay
+  // smuggler comes with her zone).
+  const smuggler = attachSmugglers({
     ctx,
     economy,
     // The informant's risk on her screen, from the Wanted tier in her waters (piece E).
-    show: (snapshot) =>
+    show: (snapshot, def) =>
       ui.setSmuggler(
         snapshot && {
           ...snapshot,
-          informRisk: portLaw.informRisk(smuggler.def.anchorage.region),
+          informRisk: portLaw.informRisk(def.anchorage.region),
         },
       ),
     // Saloon talk of where she lies puts her on the chart (piece K).
@@ -2574,15 +2592,11 @@ async function boot(): Promise<void> {
     hunter: (c, at, visibilityM) =>
       lawShips.hunter(c, at, state.environment.clock.gameSeconds, visibilityM),
     marks: () => [
-      ...(smuggler.known()
-        ? [
-            {
-              at: smuggler.def.anchorage.at,
-              label: `${smuggler.def.anchorage.name} (after dark)`,
-              kind: 'smuggler' as const,
-            },
-          ]
-        : []),
+      ...smuggler.marks().map((m) => ({
+        at: m.at,
+        label: `${m.def.anchorage.name} (after dark)`,
+        kind: 'smuggler' as const,
+      })),
       // Where the law wants you (piece E), at each region's middle.
       ...portLaw.marks().flatMap((m) => {
         const at = law.defs.regionById.get(m.region)?.anchor;

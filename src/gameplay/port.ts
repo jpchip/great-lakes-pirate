@@ -26,6 +26,7 @@ import type { RumorControl } from './rumors';
 import type { GameShipyard } from './shipyard';
 import type { PortLaw } from './port-law';
 import type { GamePapers } from './papers';
+import type { BackRoom } from './back-room';
 import { papersSnapshot } from '../ui/port/papers-model';
 
 /**
@@ -73,6 +74,11 @@ export interface PortControlOptions {
    * paper boy's shout on arriving. Without it none of them show.
    */
   papers?: GamePapers | undefined;
+  /**
+   * The back room after dark (Phase 6 piece E): the fence and the shady shipwright, on a
+   * tab of their own, and a hint in the saloon by day. Without it neither shows.
+   */
+  backRoom?: BackRoom | undefined;
   /** The pier a berth belongs to, from the zone's berths. */
   berthPier(berthId: string): string | undefined;
   /** Show or hide the screens. */
@@ -209,6 +215,10 @@ export function attachPorts(opts: PortControlOptions): PortControl {
       const region = opts.law.regionOf(port);
       const risk = region ? opts.law.informRisk(region) : undefined;
       for (const h of snap.hold) if (h.offer?.receiver) h.offer.informRisk = risk;
+      for (const r of snap.market) {
+        r.restricted = opts.law.restricted(port, r.good);
+        if (r.restricted) r.maxBuy = 0;
+      }
     }
     if (opts.papers) {
       const stand = opts.papers.stand(port);
@@ -223,6 +233,16 @@ export function attachPorts(opts: PortControlOptions): PortControl {
         snap.tabs.splice(before, 0, 'papers');
       }
       snap.stormSignal = opts.papers.signal(port);
+    }
+    if (opts.backRoom) {
+      snap.backRoom = opts.backRoom.snapshot(port);
+      if (snap.backRoom) {
+        const saloon = snap.tabs.indexOf('saloon');
+        const at = saloon >= 0 ? saloon + 1 : snap.tabs.indexOf('ledger');
+        snap.tabs.splice(at, 0, 'backRoom');
+      } else {
+        snap.backRoomHint = opts.backRoom.hint(port);
+      }
     }
     if (opts.wait) {
       snap.canWait = true;
@@ -306,6 +326,8 @@ export function attachPorts(opts: PortControlOptions): PortControl {
   const trade = (side: TradeSide, good: string, qty: number): string | undefined => {
     const port = openPort;
     if (!port) return 'The market is closed.';
+    const restricted = side === 'buy' ? opts.law?.restricted(port, good) : undefined;
+    if (restricted) return restricted;
     const r = side === 'buy' ? economy.buy(port, good, qty) : economy.sell(port, good, qty);
     if (!r.ok) return TRADE_REFUSALS[r.reason];
     note(port);
@@ -428,10 +450,28 @@ export function attachPorts(opts: PortControlOptions): PortControl {
         return yardWork((y, port) => y.buyHull(port, classId));
       },
       fit(upgrade, place) {
+        if (place === 'backRoom' && !(openPort && opts.backRoom?.isOpen(openPort)))
+          return 'The back room is shut.';
         return yardWork((y, port) => y.install(port, upgrade, place));
       },
       unfit(upgrade, place) {
+        if (place === 'backRoom' && !(openPort && opts.backRoom?.isOpen(openPort)))
+          return 'The back room is shut.';
         return yardWork((y, port) => y.remove(port, upgrade, place));
+      },
+      buyGun(gunId) {
+        const port = openPort;
+        if (!port || !opts.backRoom) return 'There is no shipwright here.';
+        const r = opts.backRoom.buyGun(port, gunId);
+        refresh();
+        return r;
+      },
+      fence(index, qty) {
+        const port = openPort;
+        if (!port || !opts.backRoom) return 'There is no back room here.';
+        const r = opts.backRoom.sell(port, index, qty);
+        refresh();
+        return r;
       },
       repair(place) {
         return yardWork((y, port) => y.repair(port, place));

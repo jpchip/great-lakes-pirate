@@ -1,0 +1,43 @@
+[
+  {
+    "id": "fence.bayfield",
+    "port": "port.bayfield",
+    "name": "Nils Okerlund",
+    "where": "the back room of the Bayfield saloon",
+    "blurb": "A fish buyer by day. By night he buys what the boats bring in that they didn't catch, and asks only where it'll be missed.",
+    "fameTier": 0,
+    "darkSunDeg": -6,
+    "weeklyCashCents": 25000,
+    "prefers": ["good.fresh_fish", "good.salted_fish", "good.furs"],
+    "offLine": 0.75,
+    "rate": {
+      "min": 0.4,
+      "perFameTier": 0.03,
+      "trust": 0.12,
+      "cool": 0.12,
+      "max": 0.7,
+      "trustAtCents": 150000
+    },
+    "shipwright": true
+  },
+  {
+    "id": "fence.duluth",
+    "port": "port.duluth",
+    "name": "Mr. Carrow",
+    "where": "the back room of a Superior Street saloon",
+    "blurb": "A quiet man with a warehouse key and a buyer in Chicago for anything that comes through the canal. He doesn't see captains nobody's heard of.",
+    "fameTier": 2,
+    "darkSunDeg": -6,
+    "weeklyCashCents": 80000,
+    "offLine": 1,
+    "rate": {
+      "min": 0.42,
+      "perFameTier": 0.03,
+      "trust": 0.1,
+      "cool": 0.12,
+      "max": 0.7,
+      "trustAtCents": 400000
+    },
+    "shipwright": true
+  }
+]

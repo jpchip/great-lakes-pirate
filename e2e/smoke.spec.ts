@@ -1298,6 +1298,8 @@ test('files a witnessed crime as heat and keeps it through a reload', async ({ p
 // Phase 6 piece A: the combat core. Mount the bow swivel, stow powder, and lay it on the
 // fish tug in an arena: the shot flies, lands, and her damage shows; a hulled tug founders.
 test('fires the bow swivel at a tug in an arena and hulls her', async ({ page }) => {
+  // Four six-second reloads and the waits around them: longer than the default 30 s on a busy runner.
+  test.setTimeout(90_000);
   interface CombatHook {
     arm(weapon: string, mount: string): string;
     powder(kegs: number): number;

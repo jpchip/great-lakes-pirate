@@ -30,6 +30,7 @@ export const CATEGORY_NAMES: Record<UpgradeCategory, string> = {
   cargo: 'Cargo',
   instruments: 'Instruments',
   utility: 'Utility',
+  weaponMods: 'Gun work',
 };
 
 /** A class's sailing numbers as fitted, for comparing hulls (plan 10 §12). */
@@ -106,12 +107,17 @@ export interface YardSources {
   port: string;
   place: FitSource;
   gameSeconds: number;
+  /** The captain's Fame tier, for the shady shipwright's gated gear (Phase 6 piece E). */
+  fameTier?: number | undefined;
+  /** The Fame tiers' names, to say what a gated item needs ("Known"). */
+  fameName?: ((tier: number) => string) | undefined;
 }
 
 const REFUSAL_TEXT: Partial<Record<string, string>> = {
   noMoney: "You haven't the money.",
   noSlot: 'No free slot',
   fitted: 'Fitted',
+  noGun: 'Needs a gun aboard',
 };
 
 function statsOf(classId: string, upgrades: readonly string[]): HullStats {
@@ -136,9 +142,9 @@ export function yardSnapshot(src: YardSources): YardSnapshot {
     total: slotsOf(record, category),
   })).filter((s) => s.total > 0);
 
-  const q = repairQuote(defs, port, ship, place);
+  const q = place === 'backRoom' ? undefined : repairQuote(defs, port, ship, place);
   const repair =
-    q.totalCents > 0
+    q && q.totalCents > 0
       ? { totalCents: q.totalCents, hours: q.hours, affordable: q.totalCents <= owner.purse }
       : undefined;
 
@@ -180,18 +186,23 @@ export function yardSnapshot(src: YardSources): YardSnapshot {
     .map((u) => {
       const price = upgradePriceCents(defs, port, u);
       const fitted = ship.upgrades.includes(u.id);
-      const why = fitted ? undefined : fitRefusal(owner, ship, u, place, price);
+      const why = fitted ? undefined : fitRefusal(owner, ship, u, place, price, src.fameTier);
       return {
         id: u.id,
         name: u.name,
         category: u.category,
         blurb: u.blurb,
         priceCents: price,
-        hours: place === 'shipyard' ? u.installHours : 0,
+        hours: place === 'chandlery' ? 0 : u.installHours,
         fitted,
         transferable: u.transferable,
         refundCents: Math.floor(u.priceCents * REMOVAL_REFUND),
-        refusal: why ? (REFUSAL_TEXT[why] ?? why) : undefined,
+        refusal:
+          why === 'fame'
+            ? `Needs ${src.fameName?.(u.fameTier ?? 0) ?? `Fame tier ${u.fameTier ?? 0}`} Fame`
+            : why
+              ? (REFUSAL_TEXT[why] ?? why)
+              : undefined,
       };
     });
 

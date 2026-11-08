@@ -31,5 +31,38 @@
       "trustAtCents": 200000
     },
     "knownBy": ["saloon_keeper", "poacher"]
+  },
+  {
+    "id": "smuggler.siskiwit",
+    "boatName": "Gannet",
+    "classId": "ship.fish_tug",
+    "blurb": "A pound-net tug that sets no nets, riding to her anchor off the old logging dock with a shaded lantern in the wheelhouse.",
+    "anchorage": {
+      "id": "anchorage.siskiwit_camp",
+      "name": "off the Siskiwit camp dock",
+      "where": "off the old logging dock in Siskiwit Bay",
+      "zone": "zone.siskiwit",
+      "region": "region.south_shore_west",
+      "at": {
+        "lat": 46.874,
+        "lon": -91.13
+      },
+      "headingDeg": 300
+    },
+    "darkSunDeg": -6,
+    "sells": [
+      {
+        "good": "good.untaxed_whiskey",
+        "cu": 8
+      }
+    ],
+    "weeklyCashCents": 40000,
+    "rate": {
+      "min": 0.4,
+      "trust": 0.15,
+      "cool": 0.15,
+      "trustAtCents": 250000
+    },
+    "knownBy": ["lumberjack"]
   }
 ]

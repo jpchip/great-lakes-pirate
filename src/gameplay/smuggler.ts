@@ -8,8 +8,11 @@ import {
   freshContrabandState,
   gameSmuggler,
   knowsAnchorage,
+  learnAnchorage,
   restock,
   smugglerAbout,
+  smugglersInWorld,
+  smugglerStateOf,
   type ContrabandState,
   type SmugglerRefusal,
   type SmugglerResult,
@@ -31,8 +34,13 @@ import { createNpcShipEntity } from './npc-ships';
  * a rumor (piece K) or the dev command; it puts her anchorage on the chart.
  */
 
-/** Her entity's id in the world. */
+/** The island smuggler's entity id in the world. */
 export const SMUGGLER_ENTITY_ID = 'npc.smuggler';
+
+/** A boat's entity id: the island smuggler's is `npc.smuggler`, the others' their own. */
+export function smugglerEntityId(sm: Smuggler): string {
+  return sm.id === gameSmuggler().id ? SMUGGLER_ENTITY_ID : `npc.${sm.id}`;
+}
 /** Alongside: hull centers this close, meters (her length and ours, with a fender's width). */
 export const ALONGSIDE_M = 70;
 /** And slow: at most this many knots through the water. */
@@ -97,6 +105,8 @@ export function attachSmuggler(opts: SmugglerControlOptions): SmugglerControl {
   const defs: EconomyDefs = economy.defs;
   const now = (): number => ctx.state.environment.clock.gameSeconds;
   const contraband = (): ContrabandState => (ctx.state.contraband ??= freshContrabandState(now()));
+  const mine = () => smugglerStateOf(contraband(), def, now());
+  const entityId = smugglerEntityId(def);
   const record = SHIP_RECORDS.find((r) => r.id === def.classId);
   if (!record) throw new Error(`No ship class ${def.classId}`);
 
@@ -112,7 +122,7 @@ export function attachSmuggler(opts: SmugglerControlOptions): SmugglerControl {
     if (entity || !anchorage) return;
     const heading = (def.anchorage.headingDeg * Math.PI) / 180;
     entity = createNpcShipEntity(record, anchorage.x, anchorage.z, heading, 0);
-    entity.id = SMUGGLER_ENTITY_ID;
+    entity.id = entityId;
     if (entity.transform) entity.previousTransform = cloneTransform(entity.transform);
     ctx.world.add(entity);
   };
@@ -121,9 +131,9 @@ export function attachSmuggler(opts: SmugglerControlOptions): SmugglerControl {
 
   const refresh = (): void => {
     if (!open) return;
-    const c = contraband();
-    restock(c.smuggler, now(), def);
-    opts.show(smugglerSnapshot(defs, def, c.smuggler, ctx.state.player, economy.capacity, now()));
+    const state = mine();
+    restock(state, now(), def);
+    opts.show(smugglerSnapshot(defs, def, state, ctx.state.player, economy.capacity, now()));
   };
   const settle = (r: SmugglerResult): string | undefined => {
     if (!r.ok) return REFUSALS[r.reason];
@@ -170,7 +180,7 @@ export function attachSmuggler(opts: SmugglerControlOptions): SmugglerControl {
         if (sunUp || distance(player) > SLIP_AWAY_M) hide();
       }
     },
-    isSmuggler: (id) => id === SMUGGLER_ENTITY_ID,
+    isSmuggler: (id) => id === entityId,
     comeAlongside(player, speedKn) {
       if (!entity) return 'She has gone.';
       if (distance(player) > ALONGSIDE_M || speedKn > ALONGSIDE_KN) {
@@ -201,29 +211,16 @@ export function attachSmuggler(opts: SmugglerControlOptions): SmugglerControl {
         def,
       ),
     learn(source) {
-      const c = contraband();
-      if (c.known) return;
-      c.known = true;
+      if (!learnAnchorage(contraband(), def)) return;
       ctx.events.emit('SmugglerLearned', { anchorage: def.anchorage.id, source });
     },
     actions: {
       buy: (good, qty) =>
         settle(
-          buyFromSmuggler(
-            defs,
-            contraband().smuggler,
-            ctx.state.player,
-            economy.capacity,
-            good,
-            qty,
-            now(),
-            def,
-          ),
+          buyFromSmuggler(defs, mine(), ctx.state.player, economy.capacity, good, qty, now(), def),
         ),
       fence: (index, qty) =>
-        settle(
-          fenceToSmuggler(defs, contraband().smuggler, ctx.state.player, index, qty, now(), def),
-        ),
+        settle(fenceToSmuggler(defs, mine(), ctx.state.player, index, qty, now(), def)),
       close,
     },
     dispose() {
@@ -232,4 +229,84 @@ export function attachSmuggler(opts: SmugglerControlOptions): SmugglerControl {
     },
   };
   return control;
+}
+
+/** Every smuggler's boat together (Phase 6 piece E): what the game drives, one or many. */
+export interface SmugglersControl extends SmugglerControl {
+  /** Each boat's own control, in `smuggler.json` order. */
+  readonly all: readonly SmugglerControl[];
+  /** The anchorages you know of, for the chart. */
+  marks(): { def: Smuggler; at: { lat: number; lon: number } }[];
+}
+
+/**
+ * Attaches a control for every smuggler whose zone is built (`smugglersInWorld`) and drives
+ * them as one: the zone and the clock go to all of them, and the rest goes to the boat in
+ * the loaded zone (the open one while her screen is up, the nearest one in hail for F and
+ * the HUD chip). With one boat in the world it behaves as she does.
+ */
+export function attachSmugglers(
+  opts: Omit<SmugglerControlOptions, 'def' | 'show'> & {
+    show(snapshot: SmugglerSnapshot | undefined, def: Smuggler): void;
+    defs?: readonly Smuggler[];
+  },
+): SmugglersControl {
+  const list = opts.defs ?? smugglersInWorld();
+  // The saloons' talk (piece K) is of the island smuggler's anchorage only.
+  const island = gameSmuggler().id;
+  const all = (list.length ? list : [gameSmuggler()]).map((def) => {
+    const { heardOf, ...rest } = opts;
+    return attachSmuggler({
+      ...rest,
+      ...(def.id === island && heardOf ? { heardOf } : {}),
+      def,
+      show: (snap) => opts.show(snap, def),
+    });
+  });
+  const first = all[0] as SmugglerControl;
+  const active = (): SmugglerControl =>
+    all.find((c) => c.open) ?? all.find((c) => c.anchorage) ?? first;
+  const nearest = (player: { x: number; z: number }): SmugglerControl => {
+    let best = active();
+    let bestD = Infinity;
+    for (const c of all) {
+      if (!c.present || !c.anchorage) continue;
+      const d = Math.hypot(player.x - c.anchorage.x, player.z - c.anchorage.z);
+      if (d < bestD) {
+        bestD = d;
+        best = c;
+      }
+    }
+    return all.find((c) => c.open) ?? best;
+  };
+  return {
+    all,
+    get def() {
+      return active().def;
+    },
+    get present() {
+      return all.some((c) => c.present);
+    },
+    get open() {
+      return all.some((c) => c.open);
+    },
+    get anchorage() {
+      return active().anchorage;
+    },
+    setZone: (zone) => all.forEach((c) => c.setZone(zone)),
+    step: (player) => all.forEach((c) => c.step(player)),
+    isSmuggler: (id) => all.some((c) => c.isSmuggler(id)),
+    comeAlongside: (player, speedKn) => nearest(player).comeAlongside(player, speedKn),
+    chip: (player, speedKn) => nearest(player).chip(player, speedKn),
+    close: () => all.forEach((c) => c.close()),
+    known: () => active().known(),
+    learn: (source) => active().learn(source),
+    marks: () => all.filter((c) => c.known()).map((c) => ({ def: c.def, at: c.def.anchorage.at })),
+    actions: {
+      buy: (good, qty) => active().actions.buy(good, qty),
+      fence: (index, qty) => active().actions.fence(index, qty),
+      close: () => all.forEach((c) => c.close()),
+    },
+    dispose: () => all.forEach((c) => c.dispose()),
+  };
 }

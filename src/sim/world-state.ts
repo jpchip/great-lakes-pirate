@@ -265,20 +265,42 @@ export const knowledgeSchema = z.object({
 /**
  * Contraband's saved state (plan 05 §6; Phase 4 piece H): the island smuggler's cash and
  * stock for the night and her trust in you, the ports whose merchants turned you away and
- * the week they did, the ports where you have a receiver, and whether you know where she lies. Optional and filled on load, so
+ * the week they did, the ports where you have a receiver, and whether you know where she lies;
+ * Phase 6 piece E adds the other smugglers' boats and the port fences. Optional and filled on load, so
  * a v6 save from before piece H needs no migration.
  */
+const smugglerStateSchema = z.object({
+  night: z.number().int(),
+  cashCents: z.number().int().nonnegative(),
+  stock: z.record(z.string(), z.number().int().nonnegative()),
+  dealtCents: z.number().int().nonnegative(),
+});
+
 export const contrabandStateSchema = z.object({
-  smuggler: z.object({
-    night: z.number().int(),
-    cashCents: z.number().int().nonnegative(),
-    stock: z.record(z.string(), z.number().int().nonnegative()),
-    dealtCents: z.number().int().nonnegative(),
-  }),
+  /** The island smuggler, the first boat in `smuggler.json`. */
+  smuggler: smugglerStateSchema,
   refusals: z.record(z.string(), z.number().int()),
   /** Ports with a merchant who has taken a lot from you: your receiver there. */
   receivers: z.array(z.string()).default([]),
+  /** Where the island smuggler lies is known. */
   known: z.boolean(),
+  /**
+   * Phase 6 piece E: every other smuggler's boat by id (the Siskiwit Bay boat, plan 07
+   * §14.6.1), and which of them you know of. Absent before 0.6.0, filled on load.
+   */
+  boats: z.record(z.string(), smugglerStateSchema).optional(),
+  knownBoats: z.array(z.string()).optional(),
+  /** The port fences (Phase 6 piece E): each one's cash tonight and his trust, by fence id. */
+  fences: z
+    .record(
+      z.string(),
+      z.object({
+        night: z.number().int(),
+        cashCents: z.number().int().nonnegative(),
+        dealtCents: z.number().int().nonnegative(),
+      }),
+    )
+    .optional(),
 });
 
 /**
