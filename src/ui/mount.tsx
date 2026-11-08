@@ -28,6 +28,8 @@ import { JailScreen } from './jail/JailScreen';
 import type { JailActions, JailSnapshot } from './jail/model';
 import { EndScreen } from './end/EndScreen';
 import type { LastRun } from '../sim/run/run-end';
+import { MostWantedPage } from './news/MostWantedPage';
+import type { MostWantedPage as FrontPageModel } from '../sim/news/papers';
 import './theme.css';
 
 /** Sail on or hold the ship, over the journal or a look at the chart. */
@@ -66,6 +68,8 @@ export interface GameUiOptions {
   onAbandon?: (() => void) | undefined;
   /** From the end screen to the main menu. */
   onEndMenu?: (() => void) | undefined;
+  /** The tier-5 front page was put down (piece F). */
+  onFrontPageClosed?: (() => void) | undefined;
 }
 
 export interface GameUi {
@@ -102,6 +106,8 @@ export interface GameUi {
   setJail(snapshot: JailSnapshot | undefined): void;
   /** The run is over: the front page and summary over everything. */
   setEnd(run: LastRun | undefined): void;
+  /** The tier-5 full-screen front page (Phase 5 piece F); undefined puts it away. */
+  setFrontPage(page: FrontPageModel | undefined): void;
   /** Show a port screen tab (J in port turns to the ledger). */
   setPortTab(tab: PortTab): void;
   readonly menuOpen: boolean;
@@ -124,7 +130,14 @@ export function mountGameUi({
   jail: jailActions,
   onAbandon,
   onEndMenu = () => window.location.assign(window.location.pathname),
+  onFrontPageClosed = () => undefined,
 }: GameUiOptions): GameUi {
+  const frontPage = signal<FrontPageModel | undefined>(undefined);
+  const closeFrontPage = (): void => {
+    if (!frontPage.value) return;
+    frontPage.value = undefined;
+    onFrontPageClosed();
+  };
   const jail = signal<JailSnapshot | undefined>(undefined);
   const ended = signal<LastRun | undefined>(undefined);
   const smuggler = signal<SmugglerSnapshot | undefined>(undefined);
@@ -170,7 +183,10 @@ export function mountGameUi({
       e.preventDefault();
       return;
     }
-    if (menuOpen.value) {
+    if (frontPage.value) {
+      e.preventDefault();
+      closeFrontPage();
+    } else if (menuOpen.value) {
       e.preventDefault();
       setMenu(false);
     } else if (smuggler.value) {
@@ -189,7 +205,7 @@ export function mountGameUi({
   });
   // In port, F casts off and J turns to the ledger; J closes the journal (plan 13 §6).
   window.addEventListener('keydown', (e) => {
-    if (menuOpen.value || e.repeat) return;
+    if (menuOpen.value || frontPage.value || e.repeat) return;
     const keys = bindings.value.sailing;
     const is = (action: Action): boolean => (keys[action] ?? []).includes(e.code);
     if (smuggler.value && is('Interact')) {
@@ -308,6 +324,9 @@ export function mountGameUi({
         {jail.value && jailActions && !menuOpen.value && (
           <JailScreen jail={jail.value} actions={jailActions} />
         )}
+        {frontPage.value && !ended.value && (
+          <MostWantedPage page={frontPage.value} close={closeFrontPage} />
+        )}
         <LoadingScreen screen={loading} />
         {ended.value && <EndScreen run={ended.value} onMenu={onEndMenu} />}
       </>
@@ -377,6 +396,9 @@ export function mountGameUi({
     },
     setPortTab(tab) {
       portTab.value = tab;
+    },
+    setFrontPage(page) {
+      frontPage.value = page;
     },
     setJail(snapshot) {
       jail.value = snapshot;

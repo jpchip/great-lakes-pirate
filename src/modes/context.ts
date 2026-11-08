@@ -204,6 +204,21 @@ export interface GameEvents {
   BailSent: { hideout: string; cents: number };
   Released: { how: 'served' | 'bail'; region: string; weeks: number };
   RunEnded: { cause: 'executed' | 'abandoned' };
+  /**
+   * The papers (plan 12 §6; Phase 5 piece F): a paper's day's edition went to press (its
+   * lead headline, and whether any of it is about you), you bought one at a port, and the
+   * paper boy on the pier crying the latest edition you haven't read as the port screen
+   * opens (piece H's shout).
+   */
+  NewspaperPrinted: {
+    paper: string;
+    name: string;
+    day: number;
+    headline: string;
+    aboutYou: boolean;
+  };
+  NewspaperBought: { port: string; paper: string; cents: number };
+  PaperCried: { port: string; paper: string; headline: string; aboutYou: boolean };
 }
 
 /** Everything a mode needs; built once at boot and handed to each mode. */
