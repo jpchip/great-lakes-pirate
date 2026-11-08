@@ -8,7 +8,14 @@ import { idOf } from './common';
  * `{port}`, `{to}`, `{when}`, `{price}`, `{wind}`, `{weather}`, `{where}`.
  */
 
-export const RUMOR_KINDS = ['shipment', 'price', 'weather', 'smuggler', 'legend', 'seasonal'] as const;
+export const RUMOR_KINDS = [
+  'shipment',
+  'price',
+  'weather',
+  'smuggler',
+  'legend',
+  'seasonal',
+] as const;
 export type RumorKind = (typeof RUMOR_KINDS)[number];
 
 const kindSchema = z.object({
