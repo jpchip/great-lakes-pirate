@@ -524,8 +524,11 @@ test('meets a ship from the chart in an arena and sails on', async ({ page }) =>
   );
   expect(Math.hypot(resumedAt.x - metAt.x, resumedAt.y - metAt.y)).toBeLessThan(2000);
 
-  // Hunted here (Wanted tier 3: piece C), the cutter closes and won't be avoided. With
-  // her rigging shot away and the cutter alongside, she's boarded and jailed.
+  // Hunted here (piece C), the cutter closes and won't be avoided. With her rigging shot
+  // away and the cutter alongside, she's boarded and jailed. Notorious (tier 4) rather than
+  // the bottom of Hunted: tier 3 has no decay floor, so the first world tick on the chart
+  // can drop it to tier 2, where an unidentified ship is only inspected, and the boarding
+  // never comes. Tier 4's floor holds her at Hunted or above, and she's known on sight.
   await page.evaluate(() => {
     const law = (window as unknown as { __glpLaw: { setTier(region: string, tier: number): void } })
       .__glpLaw;
@@ -535,7 +538,7 @@ test('meets a ship from the chart in an arena and sails on', async ({ page }) =>
       'region.duluth',
       'region.south_shore_west',
     ])
-      law.setTier(r, 3);
+      law.setTier(r, 4);
   });
   await page.evaluate(() =>
     (window as unknown as { __glpChart: ChartHook }).__glpChart.meet('cutter', true),

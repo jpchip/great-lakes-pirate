@@ -6,6 +6,7 @@ import { LieButtons } from '../stash/StashScreen';
 import { Harbor } from './Harbor';
 import { Help } from './Help';
 import { Ledger, RumorItem } from './Ledger';
+import { Papers } from './Papers';
 import { Fittings, Shipyard, ShipPanel } from './Shipyard';
 import {
   CATEGORY_LABELS,
@@ -53,6 +54,8 @@ export interface PortActions {
   repair(place: 'shipyard' | 'chandlery'): string | undefined;
   /** The harbor master (Phase 5 piece E): pay the fine or bribe on offer; what came of it. */
   payHarbor?(kind: 'fine' | 'bribe'): string | undefined;
+  /** The newsstand (Phase 5 piece F): buy a paper's latest edition; the refusal. */
+  buyPaper?(paper: string): string | undefined;
   /** Close the screen and stay alongside. */
   close(): void;
   /** Close the screen and cast off (F). */
@@ -68,6 +71,7 @@ const TAB_LABELS: Record<PortTab, string> = {
   market: 'Market',
   chandlery: 'Chandlery',
   saloon: 'Saloon',
+  papers: 'Papers',
   freight: 'Freight agent',
   shipyard: 'Shipyard',
   harbor: 'Harbor master',
@@ -731,6 +735,16 @@ export function PortScreen({
               </span>
             ) : null}
           </span>
+          {port.stormSignal && (
+            <span
+              class="port-storm-signal"
+              data-testid="port-storm-signal"
+              title="A big low is coming: the barometer is falling fast here"
+            >
+              <span class={`storm-signal-mark ${port.stormSignal}`} aria-hidden="true" />
+              {port.stormSignal === 'flag' ? 'Storm flag flying' : 'Storm light shown'}
+            </span>
+          )}
           {port.harbor?.poster && shown !== 'harbor' && (
             <button
               type="button"
@@ -804,6 +818,9 @@ export function PortScreen({
               <Shipyard yard={port.shipyard} actions={actions} setMessage={setMessage} />
               <ShipPanel yard={port.shipyard} />
             </>
+          )}
+          {shown === 'papers' && port.papers && (
+            <Papers papers={port.papers} actions={actions} setMessage={setMessage} />
           )}
           {shown === 'harbor' && port.harbor && (
             <Harbor harbor={port.harbor} actions={actions} setMessage={setMessage} />

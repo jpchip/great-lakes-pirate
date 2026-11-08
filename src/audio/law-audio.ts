@@ -49,6 +49,7 @@ export const LAW_SOUND = {
   rifle: 'sfx.law.rifle',
   door: 'ui.jail.door',
   release: 'ui.jail.release',
+  newsboy: 'voice.port.newsboy',
 } as const;
 
 /** Her whistle (Phase 3's, in the world bundle) and the tug's. */
@@ -334,6 +335,22 @@ export class LawSounds {
     if (!f) return;
     this.ring(ship, ALARM_STROKES, f, 1.15);
     this.lastCue = 'alarm';
+  }
+
+  /**
+   * The paper boy on the pier crying the edition as a port screen opens (piece F's
+   * PaperCried). A story about you calls a little louder.
+   */
+  newsboy(aboutYou: boolean): void {
+    const buffer = this.bank.get(LAW_SOUND.newsboy);
+    if (!buffer) return;
+    this.mixer.play({
+      buffer,
+      bus: 'voice',
+      gain: aboutYou ? 0.9 : 0.7,
+      priority: PRIORITY.sfx,
+    });
+    this.lastCue = 'newsboy';
   }
 
   // -- Every frame ------------------------------------------------------------------------

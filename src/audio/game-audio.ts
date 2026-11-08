@@ -186,6 +186,9 @@ export async function createGameAudio(options: GameAudioOptions): Promise<GameAu
   game.events.on('StoresBought', ({ totalCents }) => {
     if (running()) trade.paid(totalCents);
   });
+  game.events.on('PaperCried', ({ aboutYou }) => {
+    if (running()) law.newsboy(aboutYou);
+  });
   game.events.on('HarborMasterPaid', ({ cents }) => {
     if (running()) trade.paid(cents);
   });

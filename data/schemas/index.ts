@@ -18,6 +18,7 @@ import {
 import { jailFileSchema } from './jail';
 import { lighthousesFileSchema } from './lighthouses';
 import { marketsFileSchema } from './markets';
+import { newspapersFileSchema } from './newspapers';
 import { portsFileSchema } from './ports';
 import { routesFileSchema } from './routes';
 import { rumorsFileSchema } from './rumors';
@@ -46,6 +47,7 @@ export const dataFileSchemas: Readonly<Record<string, z.ZodType>> = {
   'law_actors.json': lawActorsFileSchema,
   'lighthouses.json': lighthousesFileSchema,
   'markets.json': marketsFileSchema,
+  'newspapers.json': newspapersFileSchema,
   'portraits.json': portraitsFileSchema,
   'ports.json': portsFileSchema,
   'regions.json': regionsFileSchema,

@@ -62,6 +62,7 @@ function fakeBank(seconds = 3): Map<string, AudioBuffer> {
     LAW_SOUND.rifle,
     LAW_SOUND.door,
     LAW_SOUND.release,
+    LAW_SOUND.newsboy,
     LAW_WHISTLE['law.morrill'].soundId,
     LAW_WHISTLE['law.chartered_tug'].soundId,
   ];
@@ -149,6 +150,16 @@ describe('Wanted stingers (Phase 5 piece H)', () => {
     law.released();
     law.flush(40, 'a');
     expect(shots.map((s) => s.bus)).toEqual(['music', 'ui']);
+  });
+
+  it('cries the paper on the voice bus, a little louder when it is about you', () => {
+    const { mixer, shots } = fakeMixer();
+    const law = new LawSounds(mixer, fakeBank());
+    law.newsboy(false);
+    law.newsboy(true);
+    expect(shots.map((s) => s.bus)).toEqual(['voice', 'voice']);
+    expect(must(shots[1]?.gain)).toBeGreaterThan(must(shots[0]?.gain));
+    expect(law.lastCue).toBe('newsboy');
   });
 
   it('shuts the door, and tolls the bell for the gallows', () => {

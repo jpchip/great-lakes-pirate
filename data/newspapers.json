@@ -1,0 +1,431 @@
+{
+  "pressHour": 6,
+  "delayHours": { "home": 6, "away": 20 },
+  "staleDays": 4,
+  "keepEditions": 2,
+  "briefs": 3,
+  "exaggeration": {
+    "famePerTier": 0.25,
+    "quantityPerTier": 0.5,
+    "luridFromFameTier": 2,
+    "extraHeat": 0.1,
+    "epithets": ["", "the smuggler", "the notorious", "the infamous", "the legendary"]
+  },
+  "feats": {
+    "fameCap": 340,
+    "recordShare": 0.5,
+    "iceOutMonths": [2, 3],
+    "galeKn": 28
+  },
+  "units": {
+    "good.untaxed_whiskey": "cases",
+    "good.whiskey": "cases",
+    "good.tobacco": "bales",
+    "good.furs": "bales",
+    "good.lumber": "thousand feet",
+    "good.iron_ore": "tons",
+    "good.coal": "tons",
+    "good.brownstone": "tons"
+  },
+  "papers": [
+    {
+      "id": "paper.duluth_lantern",
+      "name": "The Duluth Daily Lantern",
+      "town": "Duluth",
+      "state": "Minn.",
+      "region": "region.duluth",
+      "covers": ["region.duluth", "region.superior", "region.north_shore"],
+      "coversAllFromFameTier": 2,
+      "sold": [
+        "port.duluth",
+        "port.superior",
+        "port.two_harbors",
+        "port.ashland",
+        "port.bayfield",
+        "port.washburn"
+      ],
+      "fameFactor": 1,
+      "priceCents": 2,
+      "character": "Big-city yellow journalism; the biggest Fame multiplier.",
+      "local": [
+        {
+          "headline": "ORE TONNAGE BREAKS ALL RECORDS",
+          "deck": "Zenith City Docks Load More Iron in a Week Than Any Port on Earth",
+          "body": "The ore docks at Duluth have shipped more iron this week than in any week of their history, and the mine owners on the Mesabi say the best is yet to come. Every berth was full on Tuesday and a dozen steamers lay at anchor off the canal waiting their turn."
+        },
+        {
+          "headline": "McKINLEY MEN CONFIDENT",
+          "deck": "Republicans of St. Louis County Say Prosperity Will Carry the State in November",
+          "body": "At a rousing meeting in the Lyceum on Saturday evening the friends of the President declared that the full dinner pail would carry Minnesota again. The Bryan men, meeting across the street, said nothing of the kind."
+        },
+        {
+          "headline": "NEW ELEVATOR TO RISE ON RICE'S POINT",
+          "deck": "Two Million Bushels Under One Roof; Work Begins in the Spring",
+          "body": "The Consolidated company has let the contract for a grain elevator on Rice's Point to hold two million bushels. With it, say the board of trade, Duluth will pass Chicago for wheat before the century is out."
+        }
+      ],
+      "ads": [
+        "DR. MORSE'S INDIAN ROOT PILLS cure all ills of the liver. At every druggist.",
+        "THE SPALDING HOUSE: steam heat, electric light, fifty rooms facing the lake. $2 a day.",
+        "WANTED: deckhands and firemen for the Anchor Line steamers. Apply at the canal office."
+      ]
+    },
+    {
+      "id": "paper.superior_courier",
+      "name": "The Superior Courier-Ledger",
+      "town": "Superior",
+      "state": "Wis.",
+      "region": "region.superior",
+      "covers": ["region.superior", "region.duluth", "region.south_shore_west"],
+      "sold": ["port.superior", "port.duluth", "port.two_harbors"],
+      "fameFactor": 0.8,
+      "priceCents": 2,
+      "character": "Rival to Duluth; loves to blame Minnesota.",
+      "local": [
+        {
+          "headline": "SUPERIOR'S HARBOR THE FINER, SAYS ENGINEER",
+          "deck": "Government Man Finds More Water at the Entry Than at the Duluth Canal",
+          "body": "An engineer of the War Department, sounding both harbors for the river and harbor bill, reports more water at the Superior entry than at the much-boasted canal across the bay. Our friends in Minnesota are invited to read his figures."
+        },
+        {
+          "headline": "WHALEBACK YARD BUSY",
+          "deck": "Two New Steel Barges on the Ways at West Superior",
+          "body": "The shipyard at West Superior has two of Captain McDougall's steel barges on the ways and will launch the first before the month is out. Three hundred men are at work."
+        },
+        {
+          "headline": "MINNESOTA TAKES THE CREDIT AGAIN",
+          "deck": "Duluth Paper Claims Wisconsin Grain as Its Own",
+          "body": "The Duluth papers have once more reported the grain shipped from Superior's elevators as Duluth's own. This paper will go on printing the true figures, whatever is said across the bay."
+        }
+      ],
+      "ads": [
+        "BADGER STATE BREWING CO. Lager on draught at every respectable house in the city.",
+        "LOTS FOR SALE in West Superior: the coming city of the Northwest. Easy terms.",
+        "Tower Avenue Hardware: stoves, lamps and ship chandlery at Duluth prices less ten per cent."
+      ]
+    },
+    {
+      "id": "paper.ashland_gazette",
+      "name": "The Ashland Ore & Lumber Gazette",
+      "town": "Ashland",
+      "state": "Wis.",
+      "region": "region.ashland",
+      "covers": ["region.ashland", "region.chequamegon", "region.apostles"],
+      "sold": ["port.ashland", "port.washburn", "port.bayfield"],
+      "fameFactor": 0.6,
+      "priceCents": 2,
+      "character": "Business and shipping.",
+      "local": [
+        {
+          "headline": "ORE DOCK LOADS RECORD SHIPMENT",
+          "deck": "Gogebic Iron Goes Out by the Shipload; Steamers Wait in the Bay",
+          "body": "The Soo Line dock loaded seven steamers in one day this week, a figure never seen at Ashland before. The mines of the Gogebic range report more men at work than at any time since the panic."
+        },
+        {
+          "headline": "SAWMILLS RUN NIGHT AND DAY",
+          "deck": "Lumber Piles Grow Along the Shore; Prices Hold Firm",
+          "body": "Every mill on the bay front is running a night shift, and the lumber yards stretch half a mile along the shore. Buyers from Chicago say they will take all the pine Ashland can cut."
+        },
+        {
+          "headline": "BROWNSTONE IN DEMAND",
+          "deck": "Chicago Builders Order From the Bay Quarries",
+          "body": "The quarries about the bay have orders enough for the season from builders in Chicago and Milwaukee. The stone goes south by schooner as fast as it can be cut."
+        }
+      ],
+      "ads": [
+        "HOTEL CHEQUAMEGON: the finest resort hotel on the Great Lakes. Rates on application.",
+        "ASHLAND IRON & STEEL: castings, boiler work and ship repairs. Second Street.",
+        "Notice to mariners: the Ashland breakwater light is now shown from sunset."
+      ]
+    },
+    {
+      "id": "paper.bayfield_weekly",
+      "name": "The Bayfield Fishermen's Weekly",
+      "town": "Bayfield",
+      "state": "Wis.",
+      "region": "region.chequamegon",
+      "covers": [
+        "region.chequamegon",
+        "region.apostles",
+        "region.ashland",
+        "region.south_shore_west"
+      ],
+      "sold": ["port.bayfield", "port.la_pointe", "port.red_cliff", "port.washburn"],
+      "fameFactor": 0.5,
+      "priceCents": 2,
+      "character": "Local gossip, fish and the weather.",
+      "local": [
+        {
+          "headline": "HERRING RUNS HEAVY OFF SAND ISLAND",
+          "deck": "Tugs Come In Down to Their Rails; Packers Short of Barrels",
+          "body": "The herring have come in thick off Sand Island and the north end of Madeline, and every tug in the fleet came in loaded this week. The packing houses are short of barrels and the cooper has taken on two hands."
+        },
+        {
+          "headline": "BROWNSTONE QUARRY HIRES FIFTY",
+          "deck": "Basswood Island Works Busy Again",
+          "body": "The quarry on Basswood Island has taken on fifty men for the season and expects to ship stone to Chicago until the ice. Board is found on the island."
+        },
+        {
+          "headline": "STRAWBERRY SOCIAL A SUCCESS",
+          "deck": "Ladies of the Methodist Church Raise Twelve Dollars",
+          "body": "The strawberry social at the Methodist church on Thursday evening was well attended, and the ladies raised twelve dollars toward the new bell. Several of the fishing captains were present, by special request of their wives."
+        }
+      ],
+      "ads": [
+        "BOUTIN & MAHAN: fresh and salt fish, nets and twine. City dock.",
+        "Island View Hotel: clean beds, good meals, 50 cents. Near the dock.",
+        "LOST: a gill net, 40 boxes, off Oak Island. Reward for its return. Inquire at this office."
+      ]
+    }
+  ],
+  "stories": {
+    "crime": {
+      "crime.smuggler_deal": {
+        "fame": 8,
+        "weight": 3,
+        "plain": [
+          {
+            "headline": "SMUGGLING IN THE ISLANDS",
+            "deck": "{WHO} Seen Trading With the Island Smuggler by Night",
+            "body": "{who} was seen alongside the smuggler's boat in the islands after dark, and the matter has been reported to the authorities in {region}. The revenue men say they have their eye on the islands."
+          }
+        ],
+        "lurid": [
+          {
+            "headline": "{WHO} AT IT AGAIN!",
+            "deck": "Midnight Rendezvous With the Whiskey Smugglers; Revenue Men Helpless",
+            "body": "Once more {epithet} {who} has been seen consorting with the island smugglers under cover of darkness. Honest men in {region} ask how long the government means to let it go on."
+          }
+        ],
+        "unnamed": [
+          {
+            "headline": "LIGHTS IN THE ISLANDS",
+            "deck": "A Schooner Seen Alongside the Smuggler's Boat",
+            "body": "{who} was seen alongside a boat known to the revenue men in the islands after dark. Who she was, nobody could say."
+          }
+        ]
+      },
+      "crime.contraband": {
+        "fame": 8,
+        "weight": 3,
+        "plain": [
+          {
+            "headline": "UNTAXED WHISKEY FOUND",
+            "deck": "{WHO} Caught With Smuggled Liquor at {port}",
+            "body": "A merchant at {port} found the goods offered by {who} were smuggled, and sent for the revenue man. The matter is before the authorities in {region}."
+          }
+        ],
+        "lurid": [
+          {
+            "headline": "RUM RUNNER {WHO}!",
+            "deck": "Barrels of Smuggled Spirits Offered Brazenly at {port}",
+            "body": "{epithet} {who} had the gall to offer smuggled whiskey to an honest merchant at {port}, in broad daylight. The revenue service is said to be furious."
+          }
+        ]
+      },
+      "crime.hot_goods": {
+        "fame": 8,
+        "weight": 3,
+        "plain": [
+          {
+            "headline": "STOLEN GOODS OFFERED",
+            "deck": "{WHO} Tried to Sell Marked Cargo at {port}",
+            "body": "A merchant at {port} knew the marks on goods offered him by {who} as stolen, and told the constable. The owners have been informed."
+          }
+        ],
+        "lurid": [
+          {
+            "headline": "FENCING PIRATE'S LOOT!",
+            "deck": "{WHO} Hawks Stolen Cargo on the {port} Waterfront",
+            "body": "{epithet} {who} walked into a store at {port} with stolen goods and asked a fair price for them. The merchant knew the marks. Where will it end?"
+          }
+        ]
+      },
+      "crime.contract_theft": {
+        "fame": 14,
+        "weight": 5,
+        "plain": [
+          {
+            "headline": "CARGO STOLEN BY ITS CARRIER",
+            "deck": "{WHO} Sold a Shipper's Goods and Kept the Money",
+            "body": "Freight entrusted to {who} at {port} never reached its consignee: the cargo was sold off on the way. The shipper's agents up and down the lake have been warned."
+          }
+        ],
+        "lurid": [
+          {
+            "headline": "BRAZEN THEFT ON THE LAKE",
+            "deck": "{WHO} Robs the Shippers Who Trusted the Vessel",
+            "body": "{epithet} {who} took a cargo in good faith at {port}, as the shippers believed, and sold every barrel of it. No shipper on the lake will trust that vessel again, and the law in {region} is looking."
+          }
+        ]
+      }
+    },
+    "seizure": {
+      "fame": 6,
+      "weight": 4,
+      "plain": [
+        {
+          "headline": "REVENUE MEN SEIZE CARGO",
+          "deck": "{goods} Taken From {WHO}",
+          "body": "Officers of the revenue service searched {who} in {region} and seized {goods}. The vessel was allowed to proceed."
+        }
+      ],
+      "lurid": [
+        {
+          "headline": "{goods} SEIZED!",
+          "deck": "{WHO} Caught Red-Handed by the Revenue Men",
+          "body": "The revenue officers who boarded {epithet} {who} in {region} found {goods} hidden in the hold, by their own count. More, they suspect, went over the side."
+        }
+      ]
+    },
+    "wanted": {
+      "fame": 12,
+      "weight": 6,
+      "plain": [
+        {
+          "headline": "THE LAW HUNTS {WHO}",
+          "deck": "Authorities in {region} Want the Vessel Stopped",
+          "body": "The authorities in {region} have put out word that {who} is to be stopped and searched wherever found. The revenue cutter has been told."
+        }
+      ],
+      "lurid": [
+        {
+          "headline": "{WHO} HUNTED!",
+          "deck": "{region} Up in Arms; {reward}",
+          "body": "{epithet} {who} is wanted by every officer in {region}, and the revenue cutter has steam up to find the vessel. The waterfront talks of nothing else."
+        }
+      ]
+    },
+    "mostWanted": {
+      "fame": 25,
+      "weight": 10,
+      "plain": [
+        {
+          "headline": "WANTED: DEAD OR ALIVE",
+          "deck": "{WHO}; {reward}",
+          "body": "The authorities in {region} have declared {who} an outlaw. Any officer may take the captain, dead or alive, and capture means the rope. Citizens with knowledge of the vessel are asked to come forward."
+        }
+      ]
+    },
+    "captured": {
+      "fame": 8,
+      "weight": 7,
+      "plain": [
+        {
+          "headline": "TAKEN BY THE MORRILL",
+          "deck": "{WHO} Brought Into {port} Under Guard",
+          "body": "The revenue cutter Morrill took {who} on the lake in {region}. The captain is held at {port}, and the vessel impounded."
+        }
+      ],
+      "lurid": [
+        {
+          "headline": "{WHO} IN IRONS!",
+          "deck": "The Cutter Gets Its Prey at Last; Crowds at the Dock",
+          "body": "After a chase the waterfront will talk of for years, the revenue cutter Morrill brought {epithet} {who} into {port} in irons. A crowd gathered at the dock to see the captain marched to the lockup."
+        }
+      ]
+    },
+    "released": {
+      "fame": 2,
+      "weight": 1,
+      "plain": [
+        {
+          "headline": "OUT OF THE LOCKUP",
+          "deck": "{WHO} Free Again at {port}",
+          "body": "{who} walked out of the {port} lockup this week, and the vessel has been released from impound."
+        }
+      ]
+    },
+    "escape": {
+      "fame": 22,
+      "weight": 8,
+      "plain": [
+        {
+          "headline": "CUTTER OUTRUN",
+          "deck": "{WHO} Gets Clear of the Morrill in {region}",
+          "body": "The revenue cutter Morrill gave chase to {who} in {region}, but lost the vessel. The cutter's officers decline to say how."
+        }
+      ],
+      "lurid": [
+        {
+          "headline": "{WHO} LAUGHS AT THE LAW!",
+          "deck": "The Morrill Left Wallowing as the Pirate Shows a Clean Pair of Heels",
+          "body": "With every gun on the revenue cutter Morrill trained on the vessel, {epithet} {who} put up the helm and was gone. Old hands on the {town} waterfront say there's no schooner on the lake could do it, and yet it was done."
+        }
+      ],
+      "unnamed": [
+        {
+          "headline": "CUTTER GIVES UP THE CHASE",
+          "deck": "A Schooner Outruns the Morrill in {region}",
+          "body": "The revenue cutter Morrill gave chase to {who} in {region} and lost her. Her name is not known."
+        }
+      ]
+    },
+    "fined": {
+      "fame": 1,
+      "weight": 1,
+      "plain": [
+        {
+          "headline": "FINED AT {PORT}",
+          "deck": "{WHO} Settles With the Harbor Master",
+          "body": "{who} paid a fine to the harbor master at {port} this week for breaches of the harbor rules in {region}."
+        }
+      ]
+    },
+    "recordRun": {
+      "fame": 8,
+      "weight": 2,
+      "feat": true,
+      "plain": [
+        {
+          "headline": "A SMART PASSAGE",
+          "deck": "{WHO} Delivers in Record Time",
+          "body": "{who} brought a cargo into {port} in better time than the shippers had any right to expect. It is the kind of seamanship that keeps the lake trade honest."
+        }
+      ],
+      "lurid": [
+        {
+          "headline": "FASTEST SCHOONER ON THE LAKE?",
+          "deck": "{WHO} Shatters the Record Into {port}",
+          "body": "Old masters on the {town} waterfront shook their heads at the time {epithet} {who} made into {port}. The shippers are said to be lining up."
+        }
+      ]
+    },
+    "firstBoat": {
+      "fame": 14,
+      "weight": 4,
+      "feat": true,
+      "plain": [
+        {
+          "headline": "FIRST BOAT IN!",
+          "deck": "{WHO} Opens the Season at {port}",
+          "body": "The first vessel of the season to make {port} after the ice was {who}. The whole town turned out to the dock to see her in, and the captain was given the customary silk hat."
+        }
+      ]
+    },
+    "galeRun": {
+      "fame": 6,
+      "weight": 2,
+      "feat": true,
+      "plain": [
+        {
+          "headline": "IN THROUGH THE GALE",
+          "deck": "{WHO} Makes {port} With the Storm Signal Flying",
+          "body": "With the storm signal up and the sea breaking white across the entrance, {who} came into {port} under shortened sail and made fast without a scratch. Watchers on the dock gave a cheer."
+        }
+      ]
+    }
+  },
+  "cutter": {
+    "beat": "The revenue cutter Morrill was last reported in {region}, steaming for {to}.",
+    "lie": "The revenue cutter Morrill was last reported lying off {where}, in {region}.",
+    "return": "The revenue cutter Morrill was last reported in {region}, returning to {to}.",
+    "transfer": "The revenue cutter Morrill was last reported in {region}, bound for {to}.",
+    "coal": "The revenue cutter Morrill is coaling at Duluth.",
+    "shelter": "The revenue cutter Morrill has run for shelter at {to} from the weather.",
+    "away": "The revenue cutter Morrill has gone down to the lower lakes.",
+    "winter": "The revenue cutter Morrill lies in winter quarters at Duluth.",
+    "port": "The revenue cutter Morrill lies at {where}."
+  },
+  "tug": "The tug Hattie, chartered by the authorities with deputies aboard, is out after the outlaw in {region}."
+}

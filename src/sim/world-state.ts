@@ -23,6 +23,7 @@ import {
 } from './law/state';
 import { lanternStateSchema } from './law/lantern';
 import { freshStats, logbookSchema, statsSchema } from './run/record';
+import { newsSchema } from './news/state';
 
 /**
  * WorldState skeleton (plan 01 §3.1, plan 16 §5.2). Each slice is filled in by its
@@ -405,6 +406,11 @@ export const worldStateSchema = z.object({
    */
   stats: statsSchema.optional(),
   logbook: logbookSchema.optional(),
+  /**
+   * The papers (plan 12 §10 `newspapers`; Phase 5 piece F): stories waiting to be printed
+   * and each paper's last editions. Optional: absent, a run starts with no news.
+   */
+  newspapers: newsSchema.optional(),
   /**
    * The danger a snapshot was taken in (plan 16 §4.3; piece D): set only in the `danger`
    * slot's copy, so a reload from it puts the threat back on your tail.
