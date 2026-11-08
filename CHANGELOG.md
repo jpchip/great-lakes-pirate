@@ -4,6 +4,10 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ## [Unreleased]
 
+### Added
+
+- **The combat core (Phase 6 piece A):** guns and the shot they throw. The bow swivel, light cannon and rifle are in `data/weapons.json` with their arcs, reach, reload, scatter and damage; round, chain, grape, warning shot and rifle ball in `data/ammo.json`. Every ball flies a real arc and strikes the first ship or water in its way: low on the hull holes her, the hull leaks and slows her, aloft tears her rigging, the deck kills and wounds her crew, and a steamer's engine spaces can stop her or, at the end, burst her boiler. A ship holed to nothing founders for half a minute and goes under. Powder and shot is burned from the hold a keg at a time. The Ex-Navy's Gunnery now works. There's no aim mode yet (piece B): the dev overlay's Combat folder and `__glpCombat` mount guns and fire them. Saves move to v8; a 0.5.0 run loads with small arms only ([plan 07 §14.8](plans/07-combat-boarding-targets.md)).
+
 ## [0.5.0] - 2026-11-08
 
 The **Law, Fame & Wanted** build (Phase 5): crimes have witnesses, word travels to the law, and the revenue cutter _Morrill_ comes looking. Run dark on a moonless night or be seen by a keeper; pay a fine, run for the shallows, or sit out your sentence in the Bayfield lockup; and at the top tier the papers print WANTED, DEAD OR ALIVE.

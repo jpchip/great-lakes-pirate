@@ -2,6 +2,7 @@ import { World } from 'miniplex';
 import type { Buoyancy } from './buoyancy';
 import type { ShipHazards } from './hazards';
 import type { SailingShip } from './sailing';
+import type { ShipDamage } from '../sim/combat/damage';
 
 /**
  * Materialized entities in the active zone (plan 01 §3.4), managed with miniplex.
@@ -50,6 +51,8 @@ export interface Entity {
   playerControlled?: true;
   /** The ship's running lights (plan 06 §7.1, Phase 5 piece B): lit or dark running. */
   lantern?: { lit: boolean };
+  /** An NPC ship's damage pools once she's been fired on (Phase 6 piece A; gameplay/combat). */
+  damage?: ShipDamage;
 }
 
 /** An NPC ship: holding a course in a zone; steered by gameplay/arena in an arena. */
@@ -62,6 +65,8 @@ export interface NpcShip {
   derelict?: true;
   /** A standing list to starboard, radians, on top of the swell's roll. */
   listRad?: number;
+  /** How far below her waterline she has settled, meters (foundering; Phase 6 piece A). */
+  sinkM?: number;
 }
 
 export type GameWorld = World<Entity>;

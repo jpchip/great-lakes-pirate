@@ -1294,3 +1294,77 @@ test('files a witnessed crime as heat and keeps it through a reload', async ({ p
   expect(after.wanted['region.apostles']?.heat).toBeGreaterThan(19);
   expect(errors).toEqual([]);
 });
+
+// Phase 6 piece A: the combat core. Mount the bow swivel, stow powder, and lay it on the
+// fish tug in an arena: the shot flies, lands, and her damage shows; a hulled tug founders.
+test('fires the bow swivel at a tug in an arena and hulls her', async ({ page }) => {
+  interface CombatHook {
+    arm(weapon: string, mount: string): string;
+    powder(kegs: number): number;
+    fireAt(shipId: string, ammo?: string): { ok: boolean; reason?: string };
+    damage(shipId: string, pool: string, points: number): unknown;
+    ships(): { id: string; hull: number; foundering: boolean; sunk: boolean }[];
+    shots(): number;
+  }
+  interface ArenaState {
+    ships: { id: string; x: number; z: number; heading: number }[];
+  }
+  const errors = collectErrors(page);
+  const body = page.locator('body');
+  await page.goto('/?renderer=null&debug&encounter=tug');
+  await expect(body).toHaveAttribute('data-arena', 'ship');
+  await page.waitForFunction(() => '__glpCombat' in window);
+  const tugId = await page.evaluate(() => {
+    const w = window as unknown as {
+      __glpCombat: CombatHook;
+      __glpArena: { state(): ArenaState; place(x: number, z: number, h?: number): void };
+    };
+    if (w.__glpCombat.arm('weapon.swivel', 'bow') !== 'ok') return undefined;
+    w.__glpCombat.powder(1);
+    const tug = w.__glpArena.state().ships[0];
+    if (!tug) return undefined;
+    // 150 m off her beam, bows on to her.
+    const side = tug.heading + Math.PI / 2;
+    w.__glpArena.place(
+      tug.x + Math.sin(side) * 150,
+      tug.z - Math.cos(side) * 150,
+      ((side + Math.PI) * 180) / Math.PI,
+    );
+    return tug.id;
+  });
+  expect(tugId).toBeTruthy();
+  const id = tugId as string;
+  const fire = () =>
+    page.evaluate(
+      (shipId) =>
+        (window as unknown as { __glpCombat: CombatHook }).__glpCombat.fireAt(shipId, 'ammo.round'),
+      id,
+    );
+  expect((await fire()).ok).toBe(true);
+  await page.waitForFunction(
+    () => (window as unknown as { __glpCombat: CombatHook }).__glpCombat.shots() === 0,
+  );
+  // The swivel takes six seconds alone; a few rounds and she's been hit.
+  for (let i = 0; i < 4; i++) {
+    await page.waitForTimeout(6200);
+    await fire();
+  }
+  await page.waitForFunction(
+    () => (window as unknown as { __glpCombat: CombatHook }).__glpCombat.shots() === 0,
+  );
+  const hurt = await page.evaluate(() =>
+    (window as unknown as { __glpCombat: CombatHook }).__glpCombat.ships(),
+  );
+  expect(hurt.find((s) => s.id === id)?.hull ?? 80).toBeLessThan(80);
+  // Holed below her waterline, she founders.
+  await page.evaluate(
+    (shipId) =>
+      (window as unknown as { __glpCombat: CombatHook }).__glpCombat.damage(shipId, 'hull', 500),
+    id,
+  );
+  const after = await page.evaluate(() =>
+    (window as unknown as { __glpCombat: CombatHook }).__glpCombat.ships(),
+  );
+  expect(after.find((s) => s.id === id)?.foundering).toBe(true);
+  expect(errors).toEqual([]);
+});

@@ -52,6 +52,7 @@ import {
 import { createWater, WATER_FAR_RADIUS_M, type Water } from './water/water';
 import { bakeShore } from './water/shore';
 import { createSpray, type Spray } from './water/spray';
+import { createShotView, type ShotView } from './shots';
 import { createWindCues, type WindCues } from './water/wind-cues';
 
 const HORIZON = new THREE.Color(0xb7c6cf);
@@ -64,6 +65,8 @@ export interface TestScene {
   /** Wind streaks and cat's-paws on the water. */
   readonly windCues: WindCues;
   readonly spray: Spray;
+  /** Round shot in the air (Phase 6 piece A); `shots.source` is set by the combat core. */
+  readonly shots: ShotView;
   /** Every ship's bow wave and wake ribbons. */
   readonly wakes: ReadonlyMap<Entity, ShipWake>;
   /** NPC ships drawn (Phase 3 piece H), once the first one has appeared and loaded. */
@@ -182,6 +185,8 @@ export async function createTestScene(
   const spray = createSpray(renderer.preset.sprayParticles, water);
   scene.add(spray.points);
   renderer.onPresetChange((preset) => spray.setCapacity(preset.sprayParticles));
+  const shots = createShotView();
+  scene.add(shots.mesh);
 
   const environment = createEnvironmentView(scene, sky, hemi, sun, water, weather);
   environment.update(clock.gameSeconds, { x: 0, z: 0 });
@@ -425,6 +430,7 @@ export async function createTestScene(
     water,
     windCues,
     spray,
+    shots,
     wakes,
     get npcs() {
       return npcs;
@@ -496,6 +502,7 @@ export async function createTestScene(
       // NPC ships: posed on the swell, their wakes, smoke into the wind, lights from dusk.
       npcs?.update(alpha, now, frameSeconds, environment.sunElevationDeg, fog()?.density ?? 0);
       spray.update(frameSeconds);
+      shots.update();
       cameraRig.update(pose, surface, frameSeconds);
       sky.position.copy(camera.position);
       atmosphere.update(frameSeconds, clock.gameSeconds, camera.position, focus);

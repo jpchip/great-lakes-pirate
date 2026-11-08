@@ -52,6 +52,11 @@ export interface SailingModeOptions {
    * helms and before the ships move, in a zone or an arena.
    */
   law?: { step(dt: number): void } | undefined;
+  /**
+   * The combat core (Phase 6 piece A): shot in the air, hits and the damage they do, after
+   * the law and before the ships move.
+   */
+  combat?: { step(dt: number): void } | undefined;
 }
 
 export interface SailingArena {
@@ -206,6 +211,7 @@ export function createSailingMode(ctx: GameContext, options: SailingModeOptions)
       );
       options.arena?.step(dt);
       options.law?.step(dt);
+      options.combat?.step(dt);
       if (ctx.terrain) zoneEdgeSystem(ctx.world, ctx.terrain.bounds);
       const held = options.arena?.holdBounds();
       if (held) zoneEdgeSystem(ctx.world, held);

@@ -202,3 +202,33 @@ describe('v6 → v7: the law joins the save (plan 06 §10, Phase 5 piece A)', ()
     expect(state.reports.inProgress[0]?.witness.kind).toBe('keeper');
   });
 });
+
+describe('v7 → v8: guns and powder join the save (plan 07 §10, Phase 6 piece A)', () => {
+  const read = (v: number): Fixture =>
+    JSON.parse(readFileSync(join(fixturesDir, `v${v}.json`), 'utf8')) as Fixture;
+
+  it('loads a 0.5.0 run with small arms only and no loose powder, at its saved place', () => {
+    const before = read(7).state;
+    const state = parseWorldState(migrateSave(read(7).state, 7));
+    expect(state.player.ship?.weapons).toEqual([{ weapon: 'weapon.rifle', mount: 'hand' }]);
+    expect(state.player.ammo).toEqual({ charges: 0 });
+    expect(state.player.cargo).toEqual((before['player'] as { cargo: unknown }).cargo);
+    expect(state.player.location).toEqual((before['player'] as { location: unknown }).location);
+    expect(state.wanted['region.apostles']?.heat).toBe(20);
+  });
+
+  it('gives a 0.5.0 ship already in the save her small arms', () => {
+    const v7 = read(7).state;
+    const player = v7['player'] as Record<string, unknown>;
+    player['ship'] = { classId: 'ship.t2_schooner', hull01: 0.5, rigging01: 1, upgrades: [] };
+    const state = parseWorldState(migrateSave(v7, 7));
+    expect(state.player.ship).toMatchObject({ classId: 'ship.t2_schooner', hull01: 0.5 });
+    expect(state.player.ship?.weapons).toHaveLength(1);
+  });
+
+  it('a v8 save keeps her swivel and the powder she opened', () => {
+    const state = parseWorldState(migrateSave(read(8).state, 8));
+    expect(state.player.ship?.weapons.map((w) => w.weapon)).toContain('weapon.swivel');
+    expect(state.player.ammo.charges).toBe(7);
+  });
+});

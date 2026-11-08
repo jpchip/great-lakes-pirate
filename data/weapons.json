@@ -1,0 +1,62 @@
+{
+  "weapons": [
+    {
+      "id": "weapon.swivel",
+      "name": "Bow swivel",
+      "kind": "swivel",
+      "arcDeg": 120,
+      "rangeM": 320,
+      "muzzleMs": 60,
+      "reloadSoloS": 6,
+      "reloadCrewedS": 4,
+      "spreadDeg": 1.4,
+      "charges": 1,
+      "ammo": ["ammo.round", "ammo.chain", "ammo.grape", "ammo.warning"],
+      "damage": {
+        "ammo.round": { "hull": 14, "rigging": 5, "crew": 0.4, "engine": 9 },
+        "ammo.chain": { "hull": 3, "rigging": 18, "crew": 0.15, "engine": 2 },
+        "ammo.grape": { "hull": 2, "rigging": 4, "crew": 2.5, "engine": 1 }
+      },
+      "priceCents": 12000
+    },
+    {
+      "id": "weapon.light_cannon",
+      "name": "Light cannon",
+      "kind": "broadside",
+      "arcDeg": 30,
+      "rangeM": 520,
+      "muzzleMs": 76,
+      "reloadSoloS": 18,
+      "reloadCrewedS": 12,
+      "spreadDeg": 1.1,
+      "charges": 2,
+      "ammo": ["ammo.round", "ammo.chain", "ammo.warning"],
+      "damage": {
+        "ammo.round": { "hull": 30, "rigging": 9, "crew": 0.6, "engine": 20 },
+        "ammo.chain": { "hull": 6, "rigging": 34, "crew": 0.2, "engine": 4 }
+      },
+      "priceCents": 30000
+    },
+    {
+      "id": "weapon.rifle",
+      "name": "Rifle",
+      "kind": "small_arms",
+      "arcDeg": 360,
+      "rangeM": 260,
+      "muzzleMs": 140,
+      "reloadSoloS": 2.5,
+      "reloadCrewedS": 2.5,
+      "spreadDeg": 0.35,
+      "charges": 0,
+      "ammo": ["ammo.ball"],
+      "damage": {
+        "ammo.ball": { "hull": 0.2, "rigging": 0.3, "crew": 1, "engine": 0.2 }
+      },
+      "priceCents": 2500
+    }
+  ],
+  "mounts": {
+    "ship.t1_schooner": { "bow": 1, "broadside": 0, "hand": 1 },
+    "ship.t2_schooner": { "bow": 1, "broadside": 2, "hand": 1 }
+  }
+}
