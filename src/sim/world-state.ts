@@ -24,6 +24,7 @@ import {
 import { lanternStateSchema } from './law/lantern';
 import { freshStats, logbookSchema, statsSchema } from './run/record';
 import { newsSchema } from './news/state';
+import { MOUNTS } from '../../data/schemas/combat';
 
 /**
  * WorldState skeleton (plan 01 §3.1, plan 16 §5.2). Each slice is filled in by its
@@ -357,7 +358,15 @@ export const shipStateSchema = z.object({
   hull01: z.number().min(0).max(1),
   rigging01: z.number().min(0).max(1),
   upgrades: z.array(z.string()),
+  /**
+   * Her guns in their mounts (plan 07 §10 `player.ship.weapons[]`; save v8, Phase 6 piece
+   * A): a bow swivel, broadside cannon, small arms. A 0.5.0 run carries small arms only.
+   */
+  weapons: z.array(z.object({ weapon: z.string(), mount: z.enum(MOUNTS) })),
 });
+
+/** Loose powder charges out of opened kegs (plan 07 §10 `player.ammo`; save v8). */
+export const ammoStateSchema = z.object({ charges: z.number().int().nonnegative() });
 
 /** A Phase 4 captain before character creation: the Deckhand of plan 12 §2.2. */
 export function defaultCaptain(): Captain {
@@ -395,6 +404,11 @@ export const worldStateSchema = z.object({
     ship: shipStateSchema.optional(),
     /** The running lights and the oil in the lamps (Phase 5 piece B); absent until first lit. */
     lantern: lanternStateSchema.optional(),
+    /**
+     * Charges out of opened kegs of powder and shot (Phase 6 piece A, save v8); the kegs
+     * themselves are cargo.
+     */
+    ammo: ammoStateSchema,
   }),
   voyage: voyageSchema.nullable(),
   markets: marketsSchema,
@@ -463,6 +477,7 @@ export function createWorldState(seed: string, startSeconds = 0): WorldState {
       stores: {},
       standing: {},
       ship: defaultShipState(),
+      ammo: { charges: 0 },
     },
     voyage: null,
     markets: createMarkets(gameEconomy(), clock.gameSeconds),

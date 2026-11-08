@@ -33,6 +33,8 @@ export interface ArenaShip {
   hostile?: boolean;
   /** A wreck: no way on, no lamps, no smoke, listing. */
   derelict?: boolean;
+  /** A consort: the id of the ship she rides astern of on a towline (Phase 6 piece C). */
+  towedBy?: string;
 }
 
 export interface ArenaEncounter {
@@ -110,6 +112,7 @@ function withConsorts(c: Contact, at?: { x: number; z: number }): ArenaShip[] {
       heading: c.heading,
       speedKn: c.underWay === false ? 0 : c.speedKn,
       offset: { x: (at?.x ?? 0) + back.x, z: (at?.z ?? 0) + back.z },
+      towedBy: c.id,
     });
   });
   return out;
@@ -246,6 +249,7 @@ export function devEncounter(
           heading: crossing,
           speedKn: CONVOY_KN,
           offset: astern(crossing, CONSORT_ASTERN_M),
+          towedBy: 'dev.convoy.freighter',
         },
         {
           id: 'dev.convoy.tug',

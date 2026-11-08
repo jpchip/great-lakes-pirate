@@ -347,6 +347,7 @@ describe('in the game', () => {
       hull01: 1,
       rigging01: 0.5,
       upgrades: ['upgrade.marine_telescope'],
+      weapons: [{ weapon: 'weapon.rifle', mount: 'hand' }],
     });
   });
 

@@ -52,6 +52,17 @@ export interface SailingModeOptions {
    * helms and before the ships move, in a zone or an arena.
    */
   law?: { step(dt: number): void } | undefined;
+  /**
+   * Targets' captains (Phase 6 piece C), after the law's and before the ships move; then
+   * hull collisions once they have.
+   */
+  targets?: { step(dt: number): void } | undefined;
+  collisions?: { step(dt: number): void } | undefined;
+  /**
+   * The combat core (Phase 6 piece A): shot in the air, hits and the damage they do, after
+   * the law and before the ships move.
+   */
+  combat?: { step(dt: number): void } | undefined;
 }
 
 export interface SailingArena {
@@ -206,10 +217,13 @@ export function createSailingMode(ctx: GameContext, options: SailingModeOptions)
       );
       options.arena?.step(dt);
       options.law?.step(dt);
+      options.targets?.step(dt);
+      options.combat?.step(dt);
       if (ctx.terrain) zoneEdgeSystem(ctx.world, ctx.terrain.bounds);
       const held = options.arena?.holdBounds();
       if (held) zoneEdgeSystem(ctx.world, held);
       velocitySystem(ctx.world, dt);
+      options.collisions?.step(dt);
       bobSystem(ctx.world, elapsed);
       buoyancySystem(ctx.world, ctx.sea, dt);
       heelSystem(ctx.world);

@@ -2,6 +2,7 @@ import type { z } from 'zod';
 import { backgroundsFileSchema, portraitsFileSchema } from './backgrounds';
 import { chartFileSchema } from './chart';
 import { climateFileSchema } from './climate';
+import { ammoFileSchema, weaponsFileSchema } from './combat';
 import { contractsFileSchema } from './contracts';
 import { factionsFileSchema } from './factions';
 import { fencesFileSchema } from './fences';
@@ -32,6 +33,7 @@ import { zonesFileSchema } from './zones';
 
 /** Every data/*.json file and the schema that validates it. */
 export const dataFileSchemas: Readonly<Record<string, z.ZodType>> = {
+  'ammo.json': ammoFileSchema,
   'backgrounds.json': backgroundsFileSchema,
   'chart.json': chartFileSchema,
   'chart-coast.json': chartFileSchema,
@@ -61,5 +63,6 @@ export const dataFileSchemas: Readonly<Record<string, z.ZodType>> = {
   'stores.json': storesFileSchema,
   'upgrades.json': upgradesFileSchema,
   'wanted_tiers.json': wantedTiersFileSchema,
+  'weapons.json': weaponsFileSchema,
   'zones.json': zonesFileSchema,
 };

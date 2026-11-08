@@ -5,6 +5,8 @@ import { holdUsed, isClean, reduceStack, type CargoStack, type Hold } from '../e
 import { applyTrade, quote, type MarketsState } from '../economy/market';
 import { sailShipRecord, SHIP_RECORDS, T1_SCHOONER_ID } from '../sailing/ships';
 import { hasGun, hasSlot, slotsOf, upgradeDef } from './fit';
+import { fittingWeapons, type MountedWeapon } from '../combat/armament';
+import { gameCombat } from '../combat/defs';
 
 /**
  * The shipyard (plan 10 §3, §6, §8; Phase 4 piece G): buying a hull and trading the old
@@ -24,10 +26,23 @@ export interface ShipState {
   rigging01: number;
   /** Fitted upgrade ids, in the order they went in. */
   upgrades: string[];
+  /** Her guns in their mounts (plan 07 §10; Phase 6 piece A). */
+  weapons: MountedWeapon[];
 }
 
+/** What every captain carries aboard (plan 07 §14.5): small arms, and no ship's guns. */
+export const STARTING_WEAPONS: readonly MountedWeapon[] = [
+  { weapon: 'weapon.rifle', mount: 'hand' },
+];
+
 export function defaultShipState(classId: string = T1_SCHOONER_ID): ShipState {
-  return { classId, hull01: 1, rigging01: 1, upgrades: [] };
+  return {
+    classId,
+    hull01: 1,
+    rigging01: 1,
+    upgrades: [],
+    weapons: STARTING_WEAPONS.map((w) => ({ ...w })),
+  };
 }
 
 /** Who pays: the player (`player.purse`, `player.cargo`, `player.stores`). */
@@ -318,6 +333,8 @@ export function buyHull(
   ship.hull01 = 1;
   ship.rigging01 = 1;
   ship.upgrades = [...q.tradeIn.moving];
+  // Guns move with her where the new hull has a place for them (piece E prices it).
+  ship.weapons = fittingWeapons(gameCombat(), classId, ship.weapons);
   return {
     ok: true,
     event: {
