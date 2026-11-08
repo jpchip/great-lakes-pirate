@@ -47,13 +47,47 @@ export const BASE_INSTRUMENTS: Readonly<Instruments> = {
   searchMul: 1,
 };
 
+/**
+ * The weapon mods' effect on her guns (plan 10 §5.4; Phase 6 piece E): the multipliers
+ * the mods fold in. The guns themselves are `player.ship.weapons` (piece A), and a mod
+ * only fits while a gun is aboard (`fitRefusal` in `shipyard.ts`).
+ */
+export interface GunMods {
+  rangeMul: number;
+  reloadMul: number;
+  spreadMul: number;
+  /** Hidden gun ports: targets see an unarmed ship until she fires. */
+  looksUnarmed: boolean;
+}
+
+export const NO_GUN_MODS: Readonly<GunMods> = {
+  rangeMul: 1,
+  reloadMul: 1,
+  spreadMul: 1,
+  looksUnarmed: false,
+};
+
+export function gunModsOf(upgrades: readonly string[]): GunMods {
+  const out: GunMods = { ...NO_GUN_MODS };
+  for (const id of upgrades) {
+    const e = upgradeDef(id)?.effects;
+    if (!e) continue;
+    out.rangeMul *= e.gunRangeMul ?? 1;
+    out.reloadMul *= e.reloadMul ?? 1;
+    out.spreadMul *= e.spreadMul ?? 1;
+    out.looksUnarmed ||= !!e.looksUnarmed;
+  }
+  return out;
+}
+
 export interface ShipFit {
   record: SailShipRecord;
   rules: HazardRules;
   instruments: Instruments;
+  gunMods: GunMods;
 }
 
-/** Slots a class has in a category (plan 10 §4). */
+/** Slots in a category the class has (plan 10 §4). */
 export function slotsOf(record: SailShipRecord, category: UpgradeCategory): number {
   return record.slots?.[category] ?? 0;
 }
@@ -130,5 +164,5 @@ export function fitShip(
     ],
     shallowWarnDrafts,
   };
-  return { record, rules, instruments };
+  return { record, rules, instruments, gunMods: gunModsOf(upgrades) };
 }

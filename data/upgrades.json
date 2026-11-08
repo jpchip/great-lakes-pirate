@@ -146,5 +146,64 @@
     "effects": {
       "anchorHoldMul": 1.5
     }
+  },
+  {
+    "id": "upgrade.gun_sights",
+    "name": "Gun sights",
+    "category": "weaponMods",
+    "blurb": "Notched sights filed true on the guns: shots fall a quarter closer to where you aimed.",
+    "priceCents": 3500,
+    "sources": ["backRoom"],
+    "installHours": 2,
+    "transferable": true,
+    "effects": {
+      "spreadMul": 0.75
+    },
+    "needsGun": true
+  },
+  {
+    "id": "upgrade.bored_barrels",
+    "name": "Bored-out barrels",
+    "category": "weaponMods",
+    "blurb": "The bores reamed out for a heavier charge: the guns reach a fifth further.",
+    "priceCents": 4500,
+    "sources": ["backRoom"],
+    "installHours": 4,
+    "transferable": true,
+    "effects": {
+      "gunRangeMul": 1.2
+    },
+    "needsGun": true,
+    "fameTier": 1
+  },
+  {
+    "id": "upgrade.improved_carriages",
+    "name": "Improved carriages",
+    "category": "weaponMods",
+    "blurb": "Iron-trucked carriages and better tackle: the guns reload a fifth faster.",
+    "priceCents": 5500,
+    "sources": ["backRoom"],
+    "installHours": 6,
+    "transferable": true,
+    "effects": {
+      "reloadMul": 0.8
+    },
+    "needsGun": true,
+    "fameTier": 1
+  },
+  {
+    "id": "upgrade.hidden_gun_ports",
+    "name": "Hidden gun ports",
+    "category": "weaponMods",
+    "blurb": "Hinged bulwark panels and a tarpaulin over the swivel: a ship you come up on sees an honest trader until the guns run out. The law's description of her doesn't change.",
+    "priceCents": 11000,
+    "sources": ["backRoom"],
+    "installHours": 12,
+    "transferable": false,
+    "effects": {
+      "looksUnarmed": true
+    },
+    "needsGun": true,
+    "fameTier": 2
   }
 ]

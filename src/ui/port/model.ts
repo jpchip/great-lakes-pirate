@@ -45,6 +45,7 @@ import {
   type Standing,
 } from '../../sim/economy/contracts';
 import type { ShipState } from '../../sim/shipyard/shipyard';
+import type { BackRoomSnapshot } from './back-room-model';
 import { yardSnapshot, type YardSnapshot } from './shipyard-model';
 import type { HarborSnapshot, LedgerLawSnapshot } from './harbor-model';
 import type { PapersSnapshot } from './papers-model';
@@ -57,7 +58,15 @@ import type { PapersSnapshot } from './papers-model';
  */
 
 export type PortTab =
-  'market' | 'chandlery' | 'freight' | 'shipyard' | 'saloon' | 'papers' | 'harbor' | 'ledger';
+  | 'market'
+  | 'chandlery'
+  | 'freight'
+  | 'shipyard'
+  | 'saloon'
+  | 'backRoom'
+  | 'papers'
+  | 'harbor'
+  | 'ledger';
 
 /** The services with a tab, in order. Pieces F, G and K add the freight agent, shipyard and saloon. */
 const SERVICE_TABS: readonly [PortService, PortTab][] = [
@@ -112,6 +121,11 @@ export interface MarketRow {
   /** The best price you know of to sell it elsewhere, and the cheapest to buy it. */
   bestSale: ElsewhereSnapshot | undefined;
   bestPurchase: ElsewhereSnapshot | undefined;
+  /**
+   * A restricted good (black powder, plan 06) they won't sell you with the law after you
+   * here (Phase 6 piece E); `maxBuy` is 0 while it is.
+   */
+  restricted?: string | undefined;
 }
 
 export interface HoldRow {
@@ -241,6 +255,10 @@ export interface PortSnapshot {
   harbor?: HarborSnapshot | undefined;
   /** The newsstand (Phase 5 piece F): the papers sold here. */
   papers?: PapersSnapshot | undefined;
+  /** The back room after dark (Phase 6 piece E): the fence and the shady shipwright. */
+  backRoom?: BackRoomSnapshot | undefined;
+  /** A line for the saloon when the back room is shut till dark. */
+  backRoomHint?: string | undefined;
   /** The port is flying the storm signal (plan 04 §5.4): the flag by day, the light at night. */
   stormSignal?: 'flag' | 'light' | undefined;
   /**

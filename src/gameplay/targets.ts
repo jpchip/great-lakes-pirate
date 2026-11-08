@@ -130,6 +130,14 @@ export interface Targets {
     b: { x: number; z: number };
   }[];
   isStruck(id: string): boolean;
+  /**
+   * Boarding (piece D): her crew gave in to you aboard (intimidated, or fought for), so
+   * she strikes now; or, robbed and let go, she makes for port and never strikes again.
+   */
+  strike(id: string, why: string): boolean;
+  release(id: string): boolean;
+  /** Her captain's meter now, 0–100; undefined for a ship that isn't a target. */
+  moraleOf(id: string): number | undefined;
   /** The helm a zone ship off her timetable sails under here (collisions slow it). */
   helmOf(e: Entity): NpcHelm | undefined;
   /** For the target card, the dev hook and tests. */
@@ -568,6 +576,40 @@ export function attachTargets(deps: TargetsDeps): Targets {
     },
     isStruck(id) {
       return tracked.get(id)?.captain.phase === 'struck';
+    },
+    strike(id, why) {
+      const t = tracked.get(id);
+      if (!t) return false;
+      const c = t.captain;
+      if (c.phase === 'struck') return true;
+      const from = c.phase;
+      c.phase = 'struck';
+      c.why = why;
+      holdGroup(t);
+      act(t, from, 'struck', c.morale, why);
+      command(t);
+      return true;
+    },
+    release(id) {
+      const t = tracked.get(id);
+      if (!t) return false;
+      const c = t.captain;
+      const from = c.phase;
+      c.phase = 'fled';
+      c.why = 'let go';
+      if (t.entity.npc) delete t.entity.npc.struck;
+      ctx.events.emit('TargetStateChanged', {
+        shipId: id,
+        from,
+        to: 'fled',
+        morale: c.morale,
+        why: c.why,
+      });
+      command(t);
+      return true;
+    },
+    moraleOf(id) {
+      return tracked.get(id)?.captain.morale;
     },
     captains() {
       return [...tracked.values()].map((t) => {

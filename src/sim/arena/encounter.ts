@@ -104,6 +104,8 @@ function shipFrom(c: Contact, offset?: { x: number; z: number }): ArenaShip {
 function withConsorts(c: Contact, at?: { x: number; z: number }): ArenaShip[] {
   const out = [shipFrom(c, at)];
   (c.consorts ?? []).forEach((consort, i) => {
+    // A consort sunk or taken in (Phase 6 piece D) isn't astern of her any more.
+    if (consort.lost) return;
     const back = astern(c.heading, CONSORT_ASTERN_M * (i + 1));
     out.push({
       id: `${c.id}.consort_${i + 1}`,

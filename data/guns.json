@@ -1,0 +1,22 @@
+[
+  {
+    "id": "gun.bow_swivel",
+    "name": "Bow swivel",
+    "weapon": "weapon.swivel",
+    "mounts": ["bow"],
+    "priceCents": 7500,
+    "fameTier": 0,
+    "minTier": 1,
+    "blurb": "A one-pounder on a pivot in the bows: chain for her rigging, grape for her deck, or a shot across her bow to make her think. The first gun a solo captain can work."
+  },
+  {
+    "id": "gun.light_cannon_pair",
+    "name": "Light cannon, a pair",
+    "weapon": "weapon.light_cannon",
+    "mounts": ["port", "starboard"],
+    "priceCents": 24000,
+    "fameTier": 2,
+    "minTier": 2,
+    "blurb": "Two old four-pounders, one each side behind the bulwarks: round shot to hole a hull. A broadside needs hands to work it, so only the larger schooner carries them."
+  }
+]
