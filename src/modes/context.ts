@@ -313,6 +313,8 @@ export interface GameEvents {
    * (`goods` hot with `owner`'s marks); and what was done with her and her crew, with
    * when they can tell the law (`reportInS`, game seconds; undefined: nobody will).
    */
+  /** F alongside: the grapple thrown and her hull brought alongside (Phase 6 piece G's cue). */
+  ShipGrappled: { shipId: string; struck: boolean };
   ShipSurrendered: { shipId: string; classId: string; how: 'struck' | 'intimidated' | 'fought' };
   BoardingAttempted: {
     shipId: string;

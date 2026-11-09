@@ -96,6 +96,35 @@ export function createAudioPanel(options: AudioPanelOptions): { update(): void }
     )
     .name('Cutter: alarm bell');
   events.add({ play: () => audio.law.bellsNow() }, 'play').name("Cutter: ship's bells");
+  // Phase 6 piece G: combat.
+  for (const [kind, m, name] of [
+    ['swivel', 0, 'Swivel (own)'],
+    ['broadside', 0, 'Cannon (own)'],
+    ['small_arms', 0, 'Rifle (own)'],
+    ['broadside', 1500, 'Cannon at 1.5 km'],
+    ['small_arms', 300, 'Rifle at 300 m'],
+  ] as const) {
+    events.add({ play: () => audio.combat.gunNow(kind, m) }, 'play').name(`Combat: ${name}`);
+  }
+  events.add({ play: () => audio.combat.flybyNow() }, 'play').name('Combat: round going by');
+  events.add({ play: () => audio.combat.flybyNow(true) }, 'play').name('Combat: rifle ball zip');
+  for (const kind of ['water', 'wood', 'canvas'] as const) {
+    events.add({ play: () => audio.combat.impactNow(kind) }, 'play').name(`Combat: hit ${kind}`);
+  }
+  events.add({ play: () => audio.combat.boilerNow() }, 'play').name('Combat: boiler');
+  events.add({ play: () => audio.combat.grappled() }, 'play').name('Combat: grapple');
+  events.add({ play: () => audio.combat.intimidated(true) }, 'play').name('Boarding: intimidated');
+  events.add({ play: () => audio.combat.intimidated(false) }, 'play').name('Boarding: defiant');
+  events.add({ play: () => audio.combat.fight(true) }, 'play').name('Boarding: fight won');
+  events.add({ play: () => audio.combat.fight(false) }, 'play').name('Boarding: fight lost');
+  events.add({ play: () => audio.combat.struckNow() }, 'play').name('Combat: she strikes');
+  const chase = { level: 'game' };
+  events
+    .add(chase, 'level', ['game', '0', '1', '2'])
+    .name('Chase layer')
+    .onChange((v: string) =>
+      audio.combat.forceChase(v === 'game' ? undefined : (Number(v) as 0 | 1 | 2)),
+    );
 
   const status = {
     context: '',
@@ -106,6 +135,7 @@ export function createAudioPanel(options: AudioPanelOptions): { update(): void }
     lastWhistle: '',
     lastHarbor: '',
     lastLaw: '',
+    lastCombat: '',
   };
   const readout = {
     voices: 0,
@@ -125,6 +155,8 @@ export function createAudioPanel(options: AudioPanelOptions): { update(): void }
     harborSitesAtWork: 0,
     harborSitesHeard: 0,
     lawEngines: 0,
+    chase: 0,
+    flybys: 0,
   };
   const mix = folder.addFolder('Mix').close();
   mix.add(status, 'context').disable().listen();
@@ -135,6 +167,7 @@ export function createAudioPanel(options: AudioPanelOptions): { update(): void }
   mix.add(status, 'lastWhistle').disable().listen();
   mix.add(status, 'lastHarbor').disable().listen();
   mix.add(status, 'lastLaw').disable().listen();
+  mix.add(status, 'lastCombat').disable().listen();
   for (const key of Object.keys(readout) as (keyof typeof readout)[]) {
     mix.add(readout, key).disable().listen();
   }
@@ -156,6 +189,9 @@ export function createAudioPanel(options: AudioPanelOptions): { update(): void }
       readout.harborSitesHeard = audio.harbor.levels.sitesHeard;
       status.lastHarbor = audio.harbor.levels.last;
       readout.lawEngines = audio.law.levels.engines;
+      readout.chase = audio.combat.chase;
+      readout.flybys = audio.combat.flybys;
+      status.lastCombat = audio.combat.lastCue;
       status.lastLaw = [audio.law.lastStinger, audio.law.lastCue].filter(Boolean).join(' · ');
       status.mood = audio.mood;
       status.chartMusic = audio.chartMusic.playing

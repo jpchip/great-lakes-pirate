@@ -1,0 +1,11 @@
+{
+  "id": "voice.combat.cheer",
+  "name": "crew-cheer",
+  "description": "Your crew's cheer: three ragged huzzahs",
+  "kind": "oneshot",
+  "bus": "voice",
+  "bundles": [
+    "combat-audio"
+  ],
+  "source": "source.flac"
+}

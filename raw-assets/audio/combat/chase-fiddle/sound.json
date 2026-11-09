@@ -1,0 +1,12 @@
+{
+  "id": "music.chase.fiddle",
+  "name": "chase-fiddle",
+  "description": "\"Hard Alee\", the chase layer (16 bars in D dorian at 138, 27.83 s, looped with the other stem): a reel-like fiddle tune and concertina stabs on the off-beats",
+  "kind": "loop",
+  "bus": "music",
+  "loopCrossfadeS": 0,
+  "bundles": [
+    "combat-music"
+  ],
+  "source": "source.flac"
+}

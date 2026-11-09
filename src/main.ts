@@ -826,6 +826,11 @@ async function boot(): Promise<void> {
     if (lawCue && d['lawCue'] !== lawCue) d['lawCue'] = lawCue;
     const engines = String(a.law.levels.engines);
     if (d['lawEngines'] !== engines) d['lawEngines'] = engines;
+    // Combat (piece G).
+    const combatCue = a.combat.lastCue;
+    if (combatCue && d['combatCue'] !== combatCue) d['combatCue'] = combatCue;
+    const chase = String(a.combat.chase);
+    if (d['chase'] !== chase) d['chase'] = chase;
   };
 
   let changingZone = false;
@@ -1643,6 +1648,8 @@ async function boot(): Promise<void> {
   }
   ctx.events.on('ZoneEntered', () => combat.reset());
   ctx.events.on('ArenaEntered', () => combat.reset());
+  // Combat audio (piece G) hears the shots in the air and how the captains stand.
+  audio?.setCombatSource({ shots: () => combat.shots(), captains: () => targets.captains() });
   // Boarding, looting and the aftermath (Phase 6 piece D): F alongside a target under 2 kn.
   // Its screens pause the game like the port screen's; looting runs the clock.
   let contextBeforeBoarding: InputContext = 'sailing';

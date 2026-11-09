@@ -1,0 +1,11 @@
+{
+  "id": "voice.combat.defiant",
+  "name": "crew-defiant",
+  "description": "Her crew won't strike: a rough shout together, twice, and handspikes rapped on the rail",
+  "kind": "oneshot",
+  "bus": "voice",
+  "bundles": [
+    "combat-audio"
+  ],
+  "source": "source.flac"
+}

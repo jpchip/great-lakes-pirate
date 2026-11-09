@@ -1,0 +1,12 @@
+{
+  "id": "music.chase.drums",
+  "name": "chase-drums",
+  "description": "\"Hard Alee\", the chase layer (16 bars in D dorian at 138, 27.83 s, looped with the other stem): the frame drum and a low drum on a reel rhythm, low strings pulsing on the root",
+  "kind": "loop",
+  "bus": "music",
+  "loopCrossfadeS": 0,
+  "bundles": [
+    "combat-music"
+  ],
+  "source": "source.flac"
+}

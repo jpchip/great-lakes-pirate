@@ -460,9 +460,14 @@ A second smuggler ship lies in Siskiwit Bay, built with the Siskiwit Bay zone (0
 - **Dev.** `__glpCombat.aim(weapon?)`, `standDown()`, `aimAt(x, z)`, `aimAtShip(id)`, `aimFire()`, `cycleAmmo()`, `aimState()`, `place(id, relDeg, m)` and `screenOf(id)`.
 - **For Jared: aim feel.** The camera places, the edge-pan rate, the smoke's density and the tilt rule (full roll on a broadside) are first guesses to tune by hand.
 
+### 14.12 Piece G as built: combat audio (2026-11-09)
+
+Plan 15 §19 has the whole of it. The guns are heard near from your own deck and far across the water, the round in flight goes by with its pitch dropping, and where it lands is a splash, wood or canvas; the boiler bursts, the grapple goes over (`ShipGrappled`, a new event raised as F opens a boarding), the boarding panel has its vignette (defiance, the melee, your crew's cheer), and a ship that strikes has her crew calling out and a stinger. The chase layer of the music comes in as targets are alerted and goes to full with gunfire or a ship running close, and settles once she strikes. The law's own guns stay with piece H's sounds; piece F should keep only one of `CutterFired` and `WeaponFired` sounding when it puts the *Morrill* on the ballistics. For Jared: the levels and the chase's thresholds want a listen in the game.
+
 ---
 
 ## Changelog
+- v0.4.6: §14.12 piece G as built: combat audio (plan 15 §19).
 - v0.4.5: §14.11 piece B as built: aim mode, the arc preview, firing on the roll, the rippled broadside, smoke and splinters, the aim HUD and the target card.
 - v0.4.4: §14.10 piece E built (fences, the shady shipwright, powder and shot, more than one smuggler).
 - v0.4.2: §14.8 piece A as built: guns and shot data, ballistics, hull boxes, damage pools, sinking and the boiler, save v8.

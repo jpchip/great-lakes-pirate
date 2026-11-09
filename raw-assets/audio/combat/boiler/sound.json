@@ -1,0 +1,11 @@
+{
+  "id": "sfx.combat.boiler",
+  "name": "boiler",
+  "description": "A steamer's boiler bursting: a huge blast, steam roaring out, iron ringing, wreckage falling into the lake",
+  "kind": "oneshot",
+  "bus": "sfx",
+  "bundles": [
+    "combat-audio"
+  ],
+  "source": "source.flac"
+}

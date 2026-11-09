@@ -466,7 +466,7 @@ export function lockupRelease(rate: number, seed = 1902): Float32Array {
 // The paper boy
 
 /** One syllable of a call: pitch glide (Hz), formants at its start and end (Hz), seconds. */
-interface Syllable {
+export interface Syllable {
   atS: number;
   seconds: number;
   f0: readonly [number, number];
@@ -515,7 +515,8 @@ export function newsboyCall(rate: number, seed = 1899): Float32Array {
   return trimTail(reverb(out, rate, 0.15, 0.6), rate);
 }
 
-function syllable(s: Syllable, rate: number, random: Random): Float32Array {
+/** One formant-synthesized syllable (a shout, not words); the combat crowds use it too. */
+export function syllable(s: Syllable, rate: number, random: Random): Float32Array {
   const closure = s.burst ? 0.05 : 0;
   const n = Math.round((closure + s.seconds) * rate);
   const out = new Float32Array(n);

@@ -1,0 +1,11 @@
+{
+  "id": "sfx.combat.cannon",
+  "name": "cannon",
+  "description": "The light cannon fired from her own deck: a deep bang, the carriage running back and brought up by its breeching",
+  "kind": "oneshot",
+  "bus": "sfx",
+  "bundles": [
+    "combat-audio"
+  ],
+  "source": "source.flac"
+}

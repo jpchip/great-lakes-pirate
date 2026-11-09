@@ -1,0 +1,11 @@
+{
+  "id": "voice.combat.strike",
+  "name": "crew-strike",
+  "description": "Her crew calling out to hold fire as she strikes, and her bell rung fast",
+  "kind": "oneshot",
+  "bus": "voice",
+  "bundles": [
+    "combat-audio"
+  ],
+  "source": "source.flac"
+}
