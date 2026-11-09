@@ -1616,6 +1616,12 @@ async function boot(): Promise<void> {
       const target = e.target instanceof Element ? e.target : undefined;
       fireOnSea =
         !!scene && !target?.closest('button, a, input, select, textarea, label, .lil-gui');
+      // PROBE (temporary): remove once the click problem is found.
+      console.info('[fire-probe] mousedown', {
+        button: e.button,
+        target: target?.tagName,
+        fireOnSea,
+      });
     },
     { capture: true },
   );
@@ -2963,6 +2969,20 @@ async function boot(): Promise<void> {
       } else if (sameContext && input.context === 'sailing' && input.pressed('LieAtAnchor')) {
         const refused = stash.openLie();
         if (refused) showNotice(refused);
+      }
+      // PROBE (temporary): remove once the click problem is found.
+      if (input.isDown('Fire') || input.pressed('Fire')) {
+        console.info('[fire-probe] tick', {
+          pressed: input.pressed('Fire'),
+          isDown: input.isDown('Fire'),
+          sameContext,
+          mode: machine.mode,
+          paused: machine.gameplayPaused,
+          changingZone,
+          fireOnSea,
+          aimActive: aim.active,
+          context: input.context,
+        });
       }
       if (sameContext && machine.mode === 'sailing' && !machine.gameplayPaused && !changingZone) {
         aim.step(input, fireOnSea);
