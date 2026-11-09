@@ -2988,18 +2988,9 @@ async function boot(): Promise<void> {
       }
       // PROBE (temporary): remove once the click problem is found.
       if (performance.now() - probeDownAt < 800 || input.isDown('Fire') || input.pressed('Fire')) {
-        console.info('[fire-probe] tick', {
-          pressed: input.pressed('Fire'),
-          isDown: input.isDown('Fire'),
-          sameContext,
-          mode: machine.mode,
-          paused: machine.gameplayPaused,
-          changingZone,
-          fireOnSea,
-          aimActive: aim.active,
-          context: input.context,
-          held: [...(input as unknown as { held: Set<string> }).held],
-        });
+        console.info(
+          `[fire-probe] tick pressed=${input.pressed('Fire')} isDown=${input.isDown('Fire')} ctx=${input.context} fireBind=${JSON.stringify(input.bindings[input.context]?.Fire)} held=${JSON.stringify([...(input as unknown as { held: Set<string> }).held])} sameCtx=${sameContext} mode=${machine.mode} paused=${machine.gameplayPaused} zone=${changingZone} fireOnSea=${fireOnSea}`,
+        );
       }
       if (sameContext && machine.mode === 'sailing' && !machine.gameplayPaused && !changingZone) {
         aim.step(input, fireOnSea);
