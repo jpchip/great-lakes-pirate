@@ -258,6 +258,124 @@
             "body": "{epithet} {who} took a cargo in good faith at {port}, as the shippers believed, and sold every barrel of it. No shipper on the lake will trust that vessel again, and the law in {region} is looking."
           }
         ]
+      },
+      "crime.firing_on_ship": {
+        "fame": 4,
+        "weight": 3,
+        "plain": [
+          {
+            "headline": "FIRED ON OFF {REGION}",
+            "deck": "{WHO} Put a Shot Across the Bows of {Victim}",
+            "body": "The master of {victim}, of {owner}, reports that {who} fired on his vessel in {region} without warning or cause. The matter has been laid before the authorities."
+          }
+        ],
+        "lurid": [
+          {
+            "headline": "GUNFIRE ON THE LAKE!",
+            "deck": "{WHO} Opens Fire on {Victim}",
+            "body": "Peaceable shipping is no longer safe in {region}. {Epithet} {who} fired upon {victim} in open water, and her crew made port shaken. How long will the government sit on its hands?"
+          }
+        ],
+        "unnamed": [
+          {
+            "headline": "SHOTS FIRED IN {REGION}",
+            "deck": "{Victim} Fired Upon by a Stranger",
+            "body": "The crew of {victim} report a gun fired across their bows in {region} by {who}. They could not make out the vessel."
+          }
+        ]
+      },
+      "crime.piracy": {
+        "fame": 18,
+        "weight": 8,
+        "plain": [
+          {
+            "headline": "PIRACY IN {REGION}",
+            "deck": "{Victim} Stopped and Robbed by {WHO}",
+            "body": "{Victim}, of {owner}, was brought to under the guns of {who} in {region} and robbed of {taken}. Her crew gave the authorities a full description when they made port. Dead: {dead}."
+          }
+        ],
+        "lurid": [
+          {
+            "headline": "PIRATES ON LAKE SUPERIOR!",
+            "deck": "{WHO} Plunders {Victim}; {Owner} Demands Action",
+            "body": "In a deed not seen on these waters in living memory, {epithet} {who} ran down {victim} in {region}, held her crew at the muzzle of a gun and carried off {taken}. {Dead} died in the affair. {Owner} has offered every assistance to the law."
+          }
+        ],
+        "unnamed": [
+          {
+            "headline": "ROBBERY ON THE OPEN LAKE",
+            "deck": "{Victim} Plundered by {WHO}",
+            "body": "The crew of {victim}, of {owner}, report being stopped in {region} by {who} and robbed of {taken}. Of the robbers' vessel they could tell little."
+          }
+        ]
+      },
+      "crime.sinking": {
+        "fame": 24,
+        "weight": 10,
+        "plain": [
+          {
+            "headline": "{VICTIM} SENT TO THE BOTTOM",
+            "deck": "Sunk in {Region}; {WHO} Named",
+            "body": "{Victim}, of {owner}, went to the bottom in {region}, and {who} is named as the cause of it. Dead: {dead}. Shipping men all round the lake are in an uproar, and the underwriters are said to be offering a reward."
+          }
+        ],
+        "lurid": [
+          {
+            "headline": "SCUTTLED!",
+            "deck": "{WHO} Sinks {Victim} in Cold Blood",
+            "body": "{epithet} {who} has sent {victim} to the bottom of {region}. {Dead} lost. {Owner} is beside itself, and every master on the lake now sails with one eye over his shoulder."
+          }
+        ],
+        "unnamed": [
+          {
+            "headline": "VESSEL LOST IN {REGION}",
+            "deck": "Foul Play Feared in the Loss of {Victim}",
+            "body": "{Victim}, of {owner}, has gone down in {region}. Survivors speak of {who} alongside her before she sank. Dead: {dead}."
+          }
+        ]
+      },
+      "crime.killing": {
+        "fame": 30,
+        "weight": 12,
+        "plain": [
+          {
+            "headline": "MURDER ON THE LAKE",
+            "deck": "{Dead} Killed Aboard {Victim}; {WHO} Wanted",
+            "body": "{Dead} of the crew of {victim}, of {owner}, lost their lives at the hands of {who} in {region}. The authorities have sworn out a warrant, and the families are in mourning."
+          }
+        ],
+        "lurid": [
+          {
+            "headline": "BLOODY WORK IN {REGION}!",
+            "deck": "{WHO} Leaves {Dead} Dead Aboard {Victim}",
+            "body": "The lake runs red. {Epithet} {who} has murdered {dead} of the crew of {victim} in {region}. Ministers preached on it Sunday, and a public meeting demands the government do its duty."
+          }
+        ],
+        "unnamed": [
+          {
+            "headline": "DEATH IN {REGION}",
+            "deck": "{Dead} Lost From {Victim}",
+            "body": "{Dead} of the crew of {victim} met their deaths in {region} at the hands of {who}. Who the killers were is not known."
+          }
+        ]
+      },
+      "crime.attack_law": {
+        "fame": 40,
+        "weight": 14,
+        "plain": [
+          {
+            "headline": "REVENUE CUTTER FIRED ON",
+            "deck": "{WHO} Turns a Gun on the Morrill in {Region}",
+            "body": "The revenue cutter Morrill was fired upon in {region} by {who}. Her commander has orders to take the vessel by any means, and the government has declared the captain an outlaw."
+          }
+        ],
+        "lurid": [
+          {
+            "headline": "WAR ON THE GOVERNMENT!",
+            "deck": "{WHO} Fires on the Morrill; Outlaw Declared",
+            "body": "{epithet} {who} has fired on a vessel of the United States in {region}. There is no word for it but rebellion. The Morrill's guns are run out, and the captain will hang."
+          }
+        ]
       }
     },
     "seizure": {

@@ -30,6 +30,7 @@ import { freshNews, type Edition, type NewsState } from '../sim/news/state';
 import { portStormSignal, stormSignalPorts, type StormSignal } from '../sim/news/storm-signal';
 import { chartWindAt } from '../sim/chart/chart-weather';
 import { compassPoint } from '../ui/chart/text';
+import { SHIP_RECORDS } from '../sim/sailing/ships';
 import type { GameLaw } from './law';
 import { emitLaw, lawWorld } from './law';
 
@@ -87,6 +88,8 @@ export interface PapersOptions {
   onFrontPage?: ((page: MostWantedPage) => void) | undefined;
   defs?: NewsDefs | undefined;
   geo?: ChartGeography | undefined;
+  /** A company's name for the piracy headlines (Phase 6 piece F). */
+  ownerName?: ((company: string) => string | undefined) | undefined;
 }
 
 const POINT_WORDS: Record<string, string> = { N: 'north', E: 'east', S: 'south', W: 'west' };
@@ -253,6 +256,8 @@ export function attachPapers(opts: PapersOptions): GamePapers {
         });
         return;
       }
+      const d = e.details;
+      const cls = d?.victimClass && SHIP_RECORDS.find((r) => r.id === d.victimClass)?.name;
       add({
         kind: 'crime',
         key: `crime:${e.crimeId}`,
@@ -262,6 +267,12 @@ export function attachPapers(opts: PapersOptions): GamePapers {
         ident: e.heatAdded > 0 ? e.identification : 'unknown',
         crime: e.crime,
         heat: e.heatAdded,
+        // A crime at sea (Phase 6 piece F): her name, her owners, what was taken, the dead.
+        ...(d?.victim ? { victim: cls ? `the ${cls.toLowerCase()} ${d.victim}` : d.victim } : {}),
+        ...(d?.owner ? { owner: opts.ownerName?.(d.owner) ?? d.owner } : {}),
+        ...(d?.goods ? { goods: d.goods } : {}),
+        ...(d?.killed ? { killed: d.killed } : {}),
+        ...(d?.cashCents ? { cashCents: d.cashCents } : {}),
       });
     }),
     ev.on('HoldSearched', (e) => {

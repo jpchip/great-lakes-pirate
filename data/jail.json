@@ -15,5 +15,13 @@
   "executionFromTier": 5,
   "releaseTier": 1,
   "impound": { "baseCents": 1500, "perWeekCents": 500, "workOffCentsPerDay": 300 },
-  "sendWord": { "feeCents": 500, "delayHours": [12, 30] }
+  "sendWord": { "feeCents": 500, "delayHours": [12, 30] },
+  "abandon": {
+    "rescueHours": [6, 18],
+    "hullClass": "ship.t1_schooner",
+    "wornShare": 0.4,
+    "wornHull01": 0.6,
+    "wornRigging01": 0.65,
+    "workCentsPerDay": 2500
+  }
 }

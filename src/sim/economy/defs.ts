@@ -126,6 +126,12 @@ export function portInfo(portId: string): Port | undefined {
   return portList.get(portId);
 }
 
+/** Every port in `data/ports.json`. */
+export function allPorts(): Port[] {
+  portList ??= new Map(portsFileSchema.parse(portsJson).map((p) => [p.id, p]));
+  return [...portList.values()];
+}
+
 let capacities: ReadonlyMap<string, number> | undefined;
 
 /** The player's hold size by ship class, CU (plan 05 §3). */

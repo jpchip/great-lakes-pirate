@@ -150,6 +150,8 @@ export interface GameEvents {
   HeatSpread: Omit<LawEventOf<'HeatSpread'>, 'type'>;
   FameChanged: Omit<LawEventOf<'FameChanged'>, 'type'>;
   ProfileChanged: Omit<LawEventOf<'ProfileChanged'>, 'type'>;
+  /** A company's grudge moved (Phase 6 piece F): one of its ships was robbed, fired on or sunk. */
+  GrudgeChanged: Omit<LawEventOf<'GrudgeChanged'>, 'type'>;
   /**
    * Detection at sea (plan 06 §7.1, Phase 5 piece B): a watcher spotted the player's ship,
    * matched her profile, or lost her again; the lantern lit, doused, or burned out of oil.
@@ -190,6 +192,12 @@ export interface GameEvents {
     kind: 'warning' | 'rigging';
     hit: boolean;
     at?: { x: number; z: number };
+    /**
+     * Phase 6 piece F: her bow gun fires real rounds (piece A's `WeaponFired` and
+     * `ShotLanded` follow), so `hit` is false and the strike is a `ShipHit`. Chain at the
+     * rigging, or round shot at the hull once you've fired on her.
+     */
+    aim?: 'rigging' | 'hull';
   };
   /**
    * A search of the hold. In port (piece E) the harbor master's men search on docking;
@@ -222,6 +230,16 @@ export interface GameEvents {
   BailSent: { hideout: string; cents: number };
   Released: { how: 'served' | 'bail'; region: string; weeks: number };
   RunEnded: { cause: 'executed' | 'abandoned' | 'killed' };
+  /**
+   * Abandon ship (Phase 6 piece F, plan 07 §14.6 decision 2): your ship foundered and you
+   * took to the boat. She went down with her cargo and her guns.
+   */
+  ShipAbandoned: {
+    classId: string;
+    region: string;
+    cargo: { good: string; qty: number }[];
+    guns: string[];
+  };
   /**
    * The papers (plan 12 §6; Phase 5 piece F): a paper's day's edition went to press (its
    * lead headline, and whether any of it is about you), you bought one at a port, and the

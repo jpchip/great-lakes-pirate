@@ -27,6 +27,11 @@ export const storySchema = z.object({
   crime: z.string().optional(),
   goods: z.array(z.object({ good: z.string(), qty: z.number().positive() })).optional(),
   tier: z.number().int().optional(),
+  /** A crime at sea (Phase 6 piece F): "the fish tug Ada Bell", her owners, the dead, cash taken. */
+  victim: z.string().optional(),
+  owner: z.string().optional(),
+  killed: z.number().int().nonnegative().optional(),
+  cashCents: z.number().int().nonnegative().optional(),
   /** Heat the law added for it: the first printing adds the papers' share on top. */
   heat: z.number().nonnegative().default(0),
   printedIn: z.array(z.string()).default([]),

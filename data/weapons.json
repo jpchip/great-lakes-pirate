@@ -53,6 +53,24 @@
         "ammo.ball": { "hull": 0.2, "rigging": 0.3, "crew": 1, "engine": 0.2 }
       },
       "priceCents": 2500
+    },
+    {
+      "id": "weapon.cutter_gun",
+      "name": "The Morrill's bow gun",
+      "kind": "swivel",
+      "arcDeg": 270,
+      "rangeM": 800,
+      "muzzleMs": 96,
+      "reloadSoloS": 14,
+      "reloadCrewedS": 9,
+      "spreadDeg": 0.7,
+      "charges": 0,
+      "ammo": ["ammo.round", "ammo.chain", "ammo.warning"],
+      "damage": {
+        "ammo.round": { "hull": 34, "rigging": 10, "crew": 0.6, "engine": 22 },
+        "ammo.chain": { "hull": 4, "rigging": 24, "crew": 0.2, "engine": 3 }
+      },
+      "priceCents": 90000
     }
   ],
   "mounts": {
