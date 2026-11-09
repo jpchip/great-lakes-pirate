@@ -1,3 +1,4 @@
+import { wrecksSchema } from './wrecks';
 import { z } from 'zod';
 import { lawShipsSchema } from './law/patrol';
 import { RUMOR_KINDS } from '../../data/schemas/rumors';
@@ -405,8 +406,9 @@ export function defaultCaptain(): Captain {
 
 /** A danger state the run was snapshotted in (plan 16 §4.2–4.3). */
 export const dangerSchema = z.object({
-  kind: z.literal('pursuit'),
-  /** Who's after you (`law.morrill`, `law.chartered_tug`). */
+  /** A hunt, or your ship foundering under you (Phase 6 piece F: she's still going down). */
+  kind: z.enum(['pursuit', 'foundering']),
+  /** Who's after you (`law.morrill`, `law.chartered_tug`), or `sea` while she founders. */
   by: z.string(),
   since: z.number(),
   /** Where on the chart it began, and her heading, to meet the hunter there again. */
@@ -430,6 +432,11 @@ export const worldStateSchema = z.object({
     stores: storesSchema,
     /** Standing with ports and companies (piece F); absent before it, filled on load. */
     standing: standingSchema.optional(),
+    /**
+     * Company grudges (plan 05 §8.2; Phase 6 piece F), by company id: their ships robbed,
+     * fired on or sunk. Optional: absent, nobody bears you one.
+     */
+    grudges: z.record(z.string(), z.number().nonnegative()).optional(),
     /** Her class, condition and upgrades (piece G); filled on load when absent. */
     ship: shipStateSchema.optional(),
     /** The running lights and the oil in the lamps (Phase 5 piece B); absent until first lit. */
@@ -477,6 +484,11 @@ export const worldStateSchema = z.object({
    * and each paper's last editions. Optional: absent, a run starts with no news.
    */
   newspapers: newsSchema.optional(),
+  /**
+   * Wreck sites (plan 07 §7.3; Phase 6 piece F): ships gone to the bottom, yours among
+   * them. Optional: absent, the lake has none yet.
+   */
+  wrecks: wrecksSchema.optional(),
   /**
    * The danger a snapshot was taken in (plan 16 §4.3; piece D): set only in the `danger`
    * slot's copy, so a reload from it puts the threat back on your tail.

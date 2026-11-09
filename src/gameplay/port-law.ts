@@ -1,4 +1,5 @@
 import type { GameContext } from '../modes/context';
+import { gameContracts } from '../sim/economy/contracts';
 import { detectionChance, offerKind, riskWord } from '../sim/economy/contraband';
 import { portInfo } from '../sim/economy/defs';
 import type { CargoStack } from '../sim/economy/hold';
@@ -205,7 +206,13 @@ export function attachPortLaw(ctx: GameContext, law: GameLaw, economy: GameEcono
     },
     wanted: (region) => wantedSnapshot(defs, ctx.state, region),
     report: () => reportSnapshot(defs, ctx.state, now()),
-    ledger: () => ledgerLawSnapshot(defs, ctx.state, now()),
+    ledger: () =>
+      ledgerLawSnapshot(defs, ctx.state, now(), {
+        grudges: ctx.state.player.grudges,
+        companyName: (id) => gameContracts().companies.get(id)?.name,
+        refuseFrom: defs.actors.companies.refuseContractsFrom,
+        wrecks: ctx.state.wrecks?.list,
+      }),
     marks() {
       const out: { region: string; label: string; tier: number }[] = [];
       for (const region of Object.keys(ctx.state.wanted)) {

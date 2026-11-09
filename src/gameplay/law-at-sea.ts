@@ -10,6 +10,7 @@ import {
   cutterOrders,
   intentFor,
   stepCutter,
+  turnHostile,
   CUTTER_RULES,
   type CutterAction,
   type CutterBrain,
@@ -20,6 +21,9 @@ import { CUTTER_CLASS_ID } from '../sim/law/observers';
 import type { Witness } from '../sim/law/witness';
 import { damageRigging } from '../sim/sailing/hazards';
 import { SHIP_RECORDS, serviceSpeedKn } from '../sim/sailing/ships';
+import { elevationFor, leadSolution } from '../sim/combat/ballistics';
+import { hullShape } from '../sim/combat/hull';
+import type { GameCombat } from './combat';
 import type { Detection } from './detection';
 import type { Entity } from './ecs';
 import type { ShipHazards } from './hazards';
@@ -50,6 +54,9 @@ const CHART_SIGHT_GRACE_S = 10;
 
 /** The water a law ship draws too much for, beyond her draft, meters. */
 const UNDER_KEEL_M = 0.6;
+
+/** The Morrill's bow gun (`weapons.json`): piece A's ballistics fire her rounds. */
+export const CUTTER_GUN = 'weapon.cutter_gun';
 
 /** Law ships the player can meet: by entity id or class. */
 export function isLawShip(e: Entity): boolean {
@@ -95,6 +102,11 @@ export interface LawAtSeaDeps {
   splash?(x: number, z: number): void;
   /** At least this tier, whatever the region's (the `?cutter=hunt` dev flag). */
   devTier?(): number;
+  /**
+   * The combat core (Phase 6 piece F): the Morrill's rounds fly on its ballistics. Without
+   * it, her fire is Phase 5's dice roll.
+   */
+  combat?(): GameCombat | undefined;
 }
 
 interface Tracked {
@@ -121,6 +133,13 @@ export interface LawAtSea {
   brains(): { id: string; phase: string; intent: CutterIntent; hails: number; shots: number }[];
   /** A new zone or arena: other ships, other captains. */
   reset(): void;
+  /**
+   * The player fired on a law ship (Phase 6 piece F): she shoots to sink from now on.
+   * Returns false when no such law ship is on the water.
+   */
+  firedOn(entityId: string): boolean;
+  /** Has the player fired on this law ship (by entity id)? Her rounds may sink you then. */
+  hostile(entityId: string): boolean;
 }
 
 export function attachLawAtSea(deps: LawAtSeaDeps): LawAtSea {
@@ -140,6 +159,67 @@ export function attachLawAtSea(deps: LawAtSeaDeps): LawAtSea {
     if (arena) return !!arena.land.isShoal?.(x, z);
     const t = ctx.terrain;
     return !!t && t.contains(x, z) && t.depthAt(x, z) < cutterDraft + UNDER_KEEL_M;
+  };
+
+  /**
+   * Lays her bow gun and fires (Phase 6 piece F): across the bow, at the rigging with chain,
+   * or at the hull with round shot. False when it couldn't (no combat, no solution, loading).
+   */
+  const playerShape = () => {
+    const r = SHIP_RECORDS.find((k) => k.id === (ctx.state.player.ship?.classId ?? ''));
+    return r ? hullShape(r) : undefined;
+  };
+  const layGun = (
+    e: Entity,
+    aim: 'warning' | 'rigging' | 'hull',
+  ): { x: number; z: number } | false => {
+    const combat = deps.combat?.();
+    const w = combat?.defs.weapons.get(CUTTER_GUN);
+    const t = e.transform;
+    const pt = deps.player.transform;
+    if (!combat || !w || !t || !pt) return false;
+    const muzzle = { x: t.position.x, y: 3, z: t.position.z };
+    let bearing: number;
+    let elevation: number | undefined;
+    let ammo: string;
+    let at: { x: number; z: number };
+    if (aim === 'warning') {
+      const ahead = 70 + 30 * ctx.rng.next();
+      at = {
+        x: pt.position.x + Math.sin(pt.heading) * ahead,
+        z: pt.position.z - Math.cos(pt.heading) * ahead,
+      };
+      bearing = Math.atan2(at.x - muzzle.x, -(at.z - muzzle.z));
+      const range = Math.hypot(at.x - muzzle.x, at.z - muzzle.z);
+      if (range > w.rangeM) return false;
+      elevation = elevationFor(range, w.muzzleMs, muzzle.y);
+      ammo = 'ammo.warning';
+    } else {
+      const v = combat.playerVelocity();
+      const sol = leadSolution(
+        muzzle,
+        { x: e.velocity?.x ?? 0, z: e.velocity?.z ?? 0 },
+        { x: pt.position.x, z: pt.position.z, vx: v.x, vz: v.z },
+        w.muzzleMs,
+      );
+      if (!sol) return false;
+      const range = Math.hypot(pt.position.x - muzzle.x, pt.position.z - muzzle.z);
+      if (range > w.rangeM) return false;
+      const shape = playerShape();
+      const lift =
+        aim === 'rigging'
+          ? shape
+            ? (shape.freeboardM + shape.deckM + shape.topM) / 2
+            : 9
+          : (shape?.freeboardM ?? 1.5) * 0.6;
+      bearing = sol.bearing;
+      elevation = sol.elevation + Math.atan2(lift, Math.max(range, 1));
+      ammo = aim === 'rigging' ? 'ammo.chain' : 'ammo.round';
+      at = { x: pt.position.x, z: pt.position.z };
+    }
+    if (elevation === undefined) return false;
+    const r = combat.fireFrom(e, CUTTER_GUN, ammo, bearing, elevation, 'bow');
+    return r.ok ? at : false;
   };
 
   const witnessOf = (e: Entity): Witness => ({
@@ -205,6 +285,13 @@ export function attachLawAtSea(deps: LawAtSeaDeps): LawAtSea {
         );
         break;
       case 'warningShot': {
+        // Her bow gun on piece A's ballistics: the round falls where it falls.
+        const laid = t.entity.id === TUG_ID ? false : layGun(t.entity, 'warning');
+        if (laid) {
+          ctx.events.emit('CutterFired', { by, kind: 'warning', hit: false, at: laid });
+          deps.notice(`${name} fires a shot across your bow. Heave to, or she'll fire on you.`);
+          break;
+        }
         // Across the bow: a column of water a few lengths ahead of her.
         const pt = deps.player.transform;
         let at: { x: number; z: number } | undefined;
@@ -231,6 +318,17 @@ export function attachLawAtSea(deps: LawAtSeaDeps): LawAtSea {
           deps.notice("The deputies' rifles crack from the tug's deck.");
           break;
         }
+        // Her bow gun on piece A's ballistics: chain at the rigging, or round shot at your
+        // hull once you've fired on her. Whether it strikes is the shot's own business.
+        const laid = layGun(t.entity, a.aim);
+        if (laid) {
+          ctx.events.emit('CutterFired', { by, kind: 'rigging', hit: false, aim: a.aim });
+          if (a.aim === 'hull' && t.brain.shots <= 1) {
+            deps.notice(`${name} runs out her gun and fires on your hull to sink you!`);
+          }
+          break;
+        }
+        if (a.aim === 'hull') break;
         const pt = deps.player.transform;
         if (!a.hit) {
           // A miss throws up water close aboard.
@@ -452,6 +550,27 @@ export function attachLawAtSea(deps: LawAtSeaDeps): LawAtSea {
         hails: t.brain.hails,
         shots: t.brain.shots,
       }));
+    },
+    firedOn(entityId) {
+      let t = tracked.get(entityId);
+      if (!t) {
+        const arena = deps.arena();
+        const ships: Entity[] = arena ? arena.ships.map((s) => s.entity) : [...deps.zoneShips()];
+        const e = ships.find((x) => x.id === entityId && isLawShip(x));
+        if (!e) return false;
+        t = {
+          entity: e,
+          brain: createCutterBrain({ hunting: true, intent: 'pursue' }),
+          graceS: CHART_SIGHT_GRACE_S,
+          locked: false,
+        };
+        tracked.set(entityId, t);
+      }
+      turnHostile(t.brain);
+      return true;
+    },
+    hostile(entityId) {
+      return !!tracked.get(entityId)?.brain.hostile;
     },
     reset() {
       for (const t of tracked.values()) {

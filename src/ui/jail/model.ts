@@ -57,6 +57,10 @@ export interface ReleaseSnapshot {
   inside: string[];
   /** How the ship came back. */
   ship: string;
+  /** Over the list: "While you were inside..." unless given (abandon ship tells its own). */
+  heading?: string;
+  /** The button: "Back aboard" unless given. */
+  leaveLabel?: string;
 }
 
 export type JailSnapshot = CellSnapshot | GallowsSnapshot | ReleaseSnapshot;

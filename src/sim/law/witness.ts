@@ -32,6 +32,11 @@ export interface Witness {
   /** A keeper's reporting speed; other kinds leave it out. */
   reporting?: Reporting;
   distanceM?: number;
+  /**
+   * When the report lands, game seconds, overriding the kind's delay (Phase 6 piece F: a
+   * robbed crew reports when their ship makes port).
+   */
+  reportAt?: number;
 }
 
 /** Who sees the player right now, at spotted or better. */

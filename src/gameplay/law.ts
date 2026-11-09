@@ -4,7 +4,9 @@ import { gameSmuggler, smugglerById } from '../sim/economy/smuggler';
 import { gameLaw, type LawDefs } from '../sim/law/defs';
 import {
   tierIn,
+  addWitness,
   commitCrime,
+  releasePending,
   fileDue,
   interceptReport,
   replaceShip,
@@ -48,6 +50,13 @@ export interface GameLaw {
   /** Who's watching at sea (piece B wires its observers in here). */
   witnesses: WitnessSource;
   commit(input: CrimeInput): LawEvent[];
+  /** Another witness for a crime still open (Phase 6 piece F). */
+  addWitness(crimeId: string, witness: Witness): LawEvent[];
+  /**
+   * The crime's pending witness (the robbed crew) reports at `at`, game seconds, or never
+   * (undefined: they went down with her). Phase 6 piece F.
+   */
+  releasePending(crimeId: string, at: number | undefined): LawEvent[];
   intercept(reportId: string): LawEvent | undefined;
   /** Lands every report on its way now (the dev panel). */
   fileAll(): LawEvent[];
@@ -117,10 +126,12 @@ const DEAL_WINDOW_S = 6 * 3600;
 
 export function lawWorld(state: WorldState, seed: string): LawWorld {
   state.player.standing ??= {};
+  state.player.grudges ??= {};
   return {
     law: state,
     standing: state.player.standing,
     seed,
+    grudges: state.player.grudges,
   };
 }
 
@@ -149,6 +160,8 @@ export function attachLaw(
     defs,
     witnesses: NO_WITNESSES,
     commit: (input) => raise(commitCrime(defs, world(), input, now())),
+    addWitness: (crimeId, w) => raise(addWitness(defs, world(), crimeId, w, now())),
+    releasePending: (crimeId, at) => raise(releasePending(defs, world(), crimeId, at, now())),
     intercept(reportId) {
       const e = interceptReport(world(), reportId);
       if (e) emitLaw(ctx, e);

@@ -10,6 +10,7 @@ import {
   sight,
   stepMeter,
   SPOTTED,
+  WATCHING,
   type Awareness,
   type Backdrop,
   type Conditions,
@@ -81,6 +82,12 @@ export interface Detection extends WitnessSource {
   readonly keenest: Watcher | undefined;
   /** The player's detectability now (for the debug readout), with the conditions it used. */
   readonly conditions: Conditions | undefined;
+  /**
+   * Gunfire at `at` (Phase 6 piece F): everyone looking within `rangeM` turns toward it.
+   * Those who can see her spot her at once (the flash and the smoke); the rest are on
+   * the watch. Returns how many heard it.
+   */
+  hear(at: { x: number; z: number }, rangeM: number): number;
 }
 
 function tierOf(classId: string | undefined): number {
@@ -252,6 +259,25 @@ export function attachDetection(deps: DetectionDeps): Detection {
     },
     get conditions() {
       return conditions;
+    },
+    hear(at, rangeM) {
+      let n = 0;
+      for (const w of watchers) {
+        const d = Math.hypot(w.observer.x - at.x, w.observer.z - at.z);
+        if (d > rangeM) continue;
+        n++;
+        const m = w.meter;
+        if (w.sight.by !== 'none') {
+          if (m.value < SPOTTED) {
+            m.value = SPOTTED;
+            m.byLanternOnly = w.sight.by === 'lantern';
+          }
+        } else {
+          m.value = Math.max(m.value, WATCHING);
+        }
+        w.awareness = awarenessOf(m);
+      }
+      return n;
     },
   };
 }

@@ -29,6 +29,10 @@ interface Hooks {
     board(): { opened: boolean; why?: string } | undefined;
     record(): Record<string, { robbed?: { taken: { good: string; qty: number }[] } }>;
   };
+  __glpSeaLaw: {
+    crimes(): { crime: string; pending?: { id: string } }[];
+    reports(): { crimeId: string; witness: { id: string }; eta: number }[];
+  };
   __glpEconomy: {
     purse(): number;
     cargo(): { good: string; qty: number; hot?: { region: string } }[];
@@ -124,6 +128,15 @@ test('a T1 forces a tug to strike with warning shots and loots her without killi
   // Nobody killed: warning shots fall clear and she gave in.
   expect(after.damage?.killed ?? 0).toBe(0);
   await expect.poll(() => phaseOf(page, TUG)).toBe('fled');
+
+  // Piece F (criterion 7): her crew, let go, sets off to tell of it at her next port.
+  const law = await page.evaluate(() => {
+    const w = window as unknown as Hooks;
+    return { crimes: w.__glpSeaLaw.crimes(), reports: w.__glpSeaLaw.reports() };
+  });
+  expect(law.crimes.map((c) => c.crime)).toContain('crime.piracy');
+  expect(law.crimes.some((c) => c.pending)).toBe(false);
+  expect(law.reports.some((r) => r.witness.id === `crew.${TUG}`)).toBe(true);
 
   // Stripped: she can't be boarded again this passage.
   const again = await page.evaluate((id) => {

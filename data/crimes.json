@@ -39,7 +39,7 @@
     "traced": true,
     "news": true,
     "fame": 5,
-    "notes": "Always traced to you. The company's agents up and down the lake hear of it, so it's Phase 5's crime that spreads (criterion 3). The Standing hit is the contracts' own (plan 05 §5.2)."
+    "notes": "Always traced to you. The company's agents up and down the lake hear of it, so its news spreads (Phase 5's stand-in for the crime that spreads; Phase 6 makes sinking that crime). The Standing hit is the contracts' own (plan 05 §5.2)."
   },
   {
     "id": "crime.trespass",
@@ -78,7 +78,18 @@
     "phase": 6,
     "standing": 10,
     "fame": 10,
-    "notes": "Forcing a surrender and looting at sea."
+    "notes": "Forcing a surrender and looting at sea (Phase 6 piece F). Her crew reports it at their next port, later if set adrift or disabled; ships in sight while you loot are witnesses.",
+    "grudge": 20
+  },
+  {
+    "id": "crime.firing_on_ship",
+    "name": "Firing on a ship",
+    "heat": 25,
+    "phase": 6,
+    "standing": 5,
+    "fame": 3,
+    "grudge": 10,
+    "notes": "Any shot fired on or across a merchant ship, a warning shot included: once a ship, an encounter. Gunfire is heard well beyond sight."
   },
   {
     "id": "crime.light_doused",
@@ -94,7 +105,9 @@
     "phase": 6,
     "news": true,
     "standing": 15,
-    "fame": 20
+    "fame": 20,
+    "grudge": 30,
+    "notes": "Sinking or scuttling a ship. The crime that spreads (plan 06 §3.4): its news reaches the neighboring regions."
   },
   {
     "id": "crime.killing",
@@ -103,16 +116,19 @@
     "phase": 6,
     "news": true,
     "standing": 25,
-    "fame": 30
+    "fame": 30,
+    "grudge": 25,
+    "notes": "Any death aboard a ship you fired on, boarded or sank: one crime an encounter, however many die (the papers count them)."
   },
   {
     "id": "crime.attack_law",
-    "name": "Attacking the law",
+    "name": "Firing on the law",
     "heat": 200,
     "phase": 6,
     "news": true,
     "standing": 20,
-    "fame": 40
+    "fame": 40,
+    "notes": "Firing on the revenue cutter or the chartered tug. Puts the region at Most Wanted at once, and the Morrill shoots to sink (plan 07 §14.6)."
   },
   {
     "id": "crime.jailbreak",

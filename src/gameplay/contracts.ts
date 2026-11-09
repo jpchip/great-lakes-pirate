@@ -20,6 +20,7 @@ import {
 } from '../sim/economy/contracts';
 import { passageTable, type PassageTable } from '../sim/economy/passages';
 import type { GameContext } from '../modes/context';
+import { gameLaw } from '../sim/law/defs';
 import type { WorldState } from '../sim/world-state';
 import type { GameEconomy } from './economy';
 
@@ -74,7 +75,14 @@ export function attachContracts(
       state: contracts,
       standing: captain.standing,
       gameSeconds: now(),
+      shunned: shunned(),
     };
+  };
+  /** Companies whose grudge keeps their agents from dealing with you (Phase 6 piece F). */
+  const shunned = (): Set<string> => {
+    const from = gameLaw().actors.companies.refuseContractsFrom;
+    const g = ctx.state.player.grudges ?? {};
+    return new Set(Object.keys(g).filter((id) => (g[id] ?? 0) >= from));
   };
   const failed = (events: ReturnType<typeof expireContracts>): void => {
     for (const e of events) ctx.events.emit('ContractFailed', e);

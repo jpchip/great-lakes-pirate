@@ -13,7 +13,8 @@ import type { Awareness } from './perception';
  *   she arrests (another heave-to is a surrender).
  * - **Pursuit at tier 2+** of a ship she knows (identified; at tier 3+ spotted is enough),
  *   or of one that runs from an inspection: hail, a warning shot, then disabling fire on
- *   the rigging only. She never sinks you: Phase 5 gives you no gun to fire on her with.
+ *   the rigging only. She never sinks you unless you fire on her (Phase 6 piece F): then
+ *   she shoots round shot at your hull.
  * - **Surrender** is heaving to under her guns; a ship whose rigging is shot away and
  *   that she comes alongside is **boarded**. Either is `capture` (piece D takes over).
  * - **The shallows.** She draws too much to follow into shoal water: she stands off,
@@ -127,6 +128,11 @@ export interface CutterBrain {
   awayS: number;
   /** The chart lock as last reported (`pursuit` actions say when it changes). */
   locked: boolean;
+  /**
+   * You fired on her (Phase 6 piece F): no more hails, and round shot at your hull to sink
+   * you. She stays so for as long as she's on the same water as you.
+   */
+  hostile: boolean;
 }
 
 export function createCutterBrain(start?: { hunting: boolean; intent: CutterIntent }): CutterBrain {
@@ -147,7 +153,18 @@ export function createCutterBrain(start?: { hunting: boolean; intent: CutterInte
     resume: 'closing',
     awayS: 0,
     locked: false,
+    hostile: false,
   };
+}
+
+/** You fired on her: she opens fire to sink you as soon as she has you in sight. */
+export function turnHostile(b: CutterBrain): void {
+  b.hostile = true;
+  b.intent = 'pursue';
+  b.cooldownS = 0;
+  if (b.phase === 'captured') return;
+  b.reloadS = Math.min(b.reloadS, 2);
+  go(b, 'firing');
 }
 
 /** What she knows this tick. */
@@ -179,7 +196,14 @@ export type CutterAction =
   | { type: 'pursuit'; locked: boolean }
   | { type: 'hail'; intent: CutterIntent; arrest: boolean }
   | { type: 'warningShot' }
-  | { type: 'fire'; hit: boolean; riggingShare: number }
+  | {
+      type: 'fire';
+      /** A dice roll for a ship without a gun's ballistics (the tug's rifles). */
+      hit: boolean;
+      riggingShare: number;
+      /** Chain at the rigging to disable, or round shot at the hull once fired on. */
+      aim: 'rigging' | 'hull';
+    }
   | { type: 'inspect' }
   | { type: 'release' }
   | { type: 'capture'; how: 'surrender' | 'boarded' }
@@ -252,13 +276,17 @@ export function stepCutter(
   if (seen(sense.awareness)) b.lastSeen = { ...sense.player };
 
   // A clean captain sails unbothered: below the inspection tier she has no business with you.
-  if (sense.tier < sense.inspectsFromTier && b.phase !== 'captured') {
+  if (sense.tier < sense.inspectsFromTier && b.phase !== 'captured' && !b.hostile) {
     if (cutterActive(b)) go(b, 'released');
   }
 
   switch (b.phase) {
     case 'patrol':
     case 'released': {
+      if (b.hostile && seen(sense.awareness)) {
+        go(b, 'firing');
+        break;
+      }
       b.cooldownS = Math.max(0, b.cooldownS - dt);
       if (b.cooldownS > 0) break;
       const intent = intentFor(sense);
@@ -375,6 +403,11 @@ function stepActive(
     return;
   }
 
+  // Fired on, she has nothing more to say: she opens fire as soon as she's in range.
+  if (b.hostile && (b.phase === 'closing' || b.phase === 'hailed' || b.phase === 'warned')) {
+    go(b, 'firing');
+  }
+
   switch (b.phase) {
     case 'closing':
       if (sense.distanceM <= rules.hailRangeM) {
@@ -404,7 +437,12 @@ function stepActive(
         b.reloadS = rules.fireEveryS;
         b.shots++;
         const hit = rand() < hitChance(rules, sense.distanceM);
-        out.push({ type: 'fire', hit, riggingShare: hit ? rules.riggingPerHit : 0 });
+        out.push({
+          type: 'fire',
+          hit,
+          riggingShare: hit ? rules.riggingPerHit : 0,
+          aim: b.hostile ? 'hull' : 'rigging',
+        });
       }
       break;
     default:

@@ -54,7 +54,7 @@ export interface ChartFrame {
   hideouts?: readonly { id: string; name: string; pos: Chart }[];
 }
 
-export type ChartMarkKind = 'smuggler' | 'wanted' | 'mostWanted';
+export type ChartMarkKind = 'smuggler' | 'wanted' | 'mostWanted' | 'wreck';
 
 export interface ChartMark {
   pos: Chart;
@@ -604,6 +604,10 @@ export class ChartView {
   private drawMarks(marks: readonly ChartMark[], daylight: number): void {
     const { ctx } = this;
     for (const m of marks) {
+      if (m.kind === 'wreck') {
+        this.drawWreck(m);
+        continue;
+      }
       if (m.kind !== 'smuggler') {
         this.drawWanted(m);
         continue;
@@ -639,6 +643,32 @@ export class ChartView {
       ctx.textAlign = 'left';
       ctx.fillText(m.label, s.x + 9, s.y);
     }
+  }
+
+  /**
+   * A wreck (Phase 6 piece F), in the chart's own sign for one: a hull line struck through
+   * by three masts, in ink, with her name in small italic.
+   */
+  private drawWreck(m: ChartMark): void {
+    const { ctx } = this;
+    const s = this.toScreen(m.pos);
+    ctx.save();
+    ctx.strokeStyle = CHART_COLORS.ink;
+    ctx.lineWidth = 1.2;
+    ctx.beginPath();
+    ctx.moveTo(s.x - 7, s.y);
+    ctx.lineTo(s.x + 7, s.y);
+    for (const dx of [-4, 0, 4]) {
+      ctx.moveTo(s.x + dx, s.y - 3.5);
+      ctx.lineTo(s.x + dx, s.y + 3.5);
+    }
+    ctx.stroke();
+    ctx.font = `italic 10px ${FONT}`;
+    ctx.textBaseline = 'top';
+    ctx.textAlign = 'center';
+    ctx.fillStyle = CHART_COLORS.ink;
+    haloText(ctx, m.label, s.x, s.y + 6);
+    ctx.restore();
   }
 
   /**

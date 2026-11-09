@@ -59,6 +59,20 @@ const witnessRefSchema = z.object({
   name: z.string(),
 });
 
+/**
+ * What the papers and the ledger tell of a crime at sea (Phase 6 piece F): the ship it was
+ * done to, her owners, what was taken and the dead.
+ */
+export const crimeDetailsSchema = z.object({
+  victim: z.string().optional(),
+  victimClass: z.string().optional(),
+  owner: z.string().optional(),
+  killed: z.number().int().nonnegative().optional(),
+  goods: z.array(z.object({ good: z.string(), qty: z.number().positive() })).optional(),
+  cashCents: z.number().int().nonnegative().optional(),
+});
+export type CrimeDetails = z.infer<typeof crimeDetailsSchema>;
+
 /** A crime the law hasn't finished with: a report on its way, or its news. */
 export const openCrimeSchema = z.object({
   id: z.string(),
@@ -74,6 +88,21 @@ export const openCrimeSchema = z.object({
   named: z.boolean(),
   /** When its news spreads to the neighbors (§3.4); absent once it has, or if none. */
   newsAt: z.number().optional(),
+  /** The company it was done to (their ship): Standing and grudge when it's named to you. */
+  company: z.string().optional(),
+  details: crimeDetailsSchema.optional(),
+  /**
+   * A witness yet to set off (Phase 6 piece F): the robbed crew, who report only once you
+   * let them go (or never, if they went down with her). The crime stays open for them.
+   */
+  pending: z
+    .object({
+      id: z.string(),
+      kind: z.enum(WITNESS_KINDS),
+      name: z.string(),
+      identification: z.enum(IDENTIFICATIONS),
+    })
+    .optional(),
 });
 export type OpenCrime = z.infer<typeof openCrimeSchema>;
 

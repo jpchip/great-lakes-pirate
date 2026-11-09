@@ -20,7 +20,7 @@ export function JailScreen({ jail, actions }: { jail: JailSnapshot; actions: Jai
           <p class="jail-lead" data-testid="jail-lead">
             {jail.lead}
           </p>
-          <h3 class="jail-heading">While you were inside...</h3>
+          <h3 class="jail-heading">{jail.heading ?? 'While you were inside...'}</h3>
           <ul class="jail-list" data-testid="jail-inside">
             {jail.inside.map((l) => (
               <li key={l}>{l}</li>
@@ -34,7 +34,7 @@ export function JailScreen({ jail, actions }: { jail: JailSnapshot; actions: Jai
               data-testid="jail-leave"
               onClick={actions.leave}
             >
-              Back aboard
+              {jail.leaveLabel ?? 'Back aboard'}
             </button>
           </footer>
         </div>

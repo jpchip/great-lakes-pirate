@@ -58,11 +58,12 @@ const record = (id: string) => {
 const always = (v: number): Random => ({ next: () => v });
 
 describe('guns and shot data (plan 07 §2)', () => {
-  it('has the swivel, the light cannon and the rifle, each in reach of its muzzle', () => {
+  it("has the swivel, the light cannon, the rifle and the cutter's gun, each in reach of its muzzle", () => {
     expect([...defs.weapons.keys()]).toEqual([
       'weapon.swivel',
       'weapon.light_cannon',
       'weapon.rifle',
+      'weapon.cutter_gun',
     ]);
     for (const w of defs.weapons.values()) {
       expect(rangeFor(w.muzzleMs, 45 * DEG, 2)).toBeGreaterThanOrEqual(w.rangeM);

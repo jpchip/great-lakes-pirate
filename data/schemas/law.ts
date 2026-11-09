@@ -39,6 +39,11 @@ export const crimeSchema = z.object({
   standing: z.number().int().nonnegative().default(0),
   /** Fame gained when it's identified to you (§4.1). Piece F's headlines add more. */
   fame: z.number().int().nonnegative().default(0),
+  /**
+   * Grudge a company holds when it's named to you and it was one of theirs (plan 05 §8.2;
+   * Phase 6 piece F): their ship robbed, fired on or sunk, their hands killed.
+   */
+  grudge: z.number().int().nonnegative().default(0),
   notes: z.string().optional(),
 });
 
@@ -248,6 +253,29 @@ export const lawActorsFileSchema = z.object({
       .min(1),
   }),
   harborMaster: harborMasterSchema,
+  /**
+   * Crimes at sea (plan 07 §7.2; Phase 6 piece F): how far gunfire carries, how long an
+   * encounter lies quiet before the victim's crew sets off with their report, how close a
+   * ship in sight must be to read your ship's profile, and the Fame at which a crew that
+   * had you alongside knows your face.
+   */
+  sea: z.object({
+    earshotM: z.number().positive(),
+    quietH: z.number().positive(),
+    identifyM: z.number().positive(),
+    crewKnowsFromFameTier: z.number().int().min(0),
+  }),
+  /**
+   * Company grudges (plan 05 §8.2): 0 to `grudgeMax` per company, losing `decayPerDay` a
+   * game day; from `refuseContractsFrom` its agents post you nothing. A grudge also takes
+   * `standingPerGrudge` Standing with the company per point.
+   */
+  companies: z.object({
+    grudgeMax: z.number().positive(),
+    decayPerDay: z.number().nonnegative(),
+    refuseContractsFrom: z.number().positive(),
+    standingPerGrudge: z.number().nonnegative(),
+  }),
   tug: z.object({
     id: idOf('law'),
     name: z.string().min(1),
