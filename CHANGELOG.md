@@ -26,7 +26,7 @@ The **Piracy & Combat** build (Phase 6): arm your schooner in a back room after 
 
 ### Known limitations
 
-- A package steamer fleeing at her forced draught (12.5 kn) holds level with a T1 on auto-trim even in a fresh breeze; only trimming by hand (13.5 kn) catches her. The T1 overhauls the steel ore boat either way. How catchable the wooden steamer should be is a call for Jared (plan 07 §14.14).
+- A package steamer fleeing at her forced draught (now 11.5 kn, a T1 makes 12.4 on auto-trim in 20 kn) is caught by a T1 on a broad reach in a fresh breeze, on auto-trim by about 8% and handily trimmed by hand (13.5 kn). The T1 overhauls the steel ore boat either way. How catchable the wooden steamer should be is a call for Jared (plan 07 §14.14).
 - Firing on the _Morrill_ makes the region Most Wanted, and the full-screen WANTED page opens in the middle of the fight.
 - Every target is unarmed: only the _Morrill_ shoots back. Rival pirates, passenger steamers, the whaleback and the T3 come later.
 - Fences and the shady shipwright are a port-screen tab until Phase 7's walkable back rooms; the Siskiwit Bay smuggler waits for her zone.

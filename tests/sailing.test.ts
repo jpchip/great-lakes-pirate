@@ -457,8 +457,8 @@ describe('against a steamer (plan 07 §14.3 criterion 3; Phase 6 piece H)', () =
 
   it('in a fresh breeze on a reach, the T1 overhauls the wooden package steamer', () => {
     // Beaufort 5 is 17–21 kn. At her service speed she's caught on auto-trim; fleeing at her
-    // forced draught (`combat.flankKn`, 12.5 kn) only with the sheets trimmed by hand, at the
-    // top of it: plan 07 §14.14 has the call.
+    // forced draught (`combat.flankKn`, 11.5 kn since the Phase 6 playtest) with the sheets
+    // trimmed by hand, and on auto-trim too at the top of the breeze: plan 07 §14.14.
     const steamer = SHIP_RECORDS.find((r) => r.id === 'ship.package_steamer');
     const flank = steamer?.combat?.flankKn ?? 0;
     expect(broadReach(20)).toBeGreaterThan(classServiceSpeedKn('ship.package_steamer') * 1.1);

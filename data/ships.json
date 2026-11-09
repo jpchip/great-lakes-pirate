@@ -259,7 +259,7 @@
       "target": true,
       "moraleBase": 70,
       "flee": 0.9,
-      "flankKn": 12.5,
+      "flankKn": 11.5,
       "cashCents": [5000, 25000]
     },
     "modelId": "ship.package_steamer",

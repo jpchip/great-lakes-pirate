@@ -1196,7 +1196,15 @@ async function boot(): Promise<void> {
   let contextBeforeFrontPage: InputContext = 'sailing';
   let frontPageUp = false;
   const showFrontPage = (): void => {
-    if (frontPageUp || captureRef.current?.open || captureRef.current?.pending || ctx.state.jail)
+    // In a fight the page waits for the arena to end (Phase 6 playtest: it used to cover the
+    // fight that fired it); `ArenaExited` below shows it then.
+    if (
+      frontPageUp ||
+      arena ||
+      captureRef.current?.open ||
+      captureRef.current?.pending ||
+      ctx.state.jail
+    )
       return;
     const page = papers.takeFrontPage();
     if (!page) return;
@@ -1229,6 +1237,8 @@ async function boot(): Promise<void> {
   });
   // One held back behind the lockup shows on release.
   ctx.events.on('Released', () => queueMicrotask(showFrontPage));
+  // A front page held back for a fight shows once the arena is left.
+  ctx.events.on('ArenaExited', () => queueMicrotask(showFrontPage));
   // Out of the lockup, you don't find the *Morrill* alongside: she's off on a sortie.
   ctx.events.on('Released', () => lawShips.awayFromPort(gameJail().lockup.port));
   if (import.meta.env.DEV || params.has('debug')) {

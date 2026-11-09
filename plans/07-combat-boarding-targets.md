@@ -415,7 +415,7 @@ A second smuggler ship lies in Siskiwit Bay, built with the Siskiwit Bay zone (0
 |---|---|---|---|---|---|
 | Fish tug | 50 | 0.2 | 58 | 8.5 kn | Runs slowly at first, strikes to two or three warning shots from a T1 |
 | Schooner-barge | 50 | 0.4 | 66 | (towed) | Can't run on her own; adrift or stranded, strikes to two warning shots |
-| Package steamer | 70 | 0.9 | 86 | 12.5 kn | Runs at once (a T1's swivel won't stop her); strikes when disabled, or to a T2 at Known Fame after three or four shots |
+| Package steamer | 70 | 0.9 | 86 | 11.5 kn | Runs at once (a T1's swivel won't stop her); strikes when disabled, or to a T2 at Known Fame after three or four shots |
 | Ore freighter | 80 | 0.8 | 82 | 11 kn | Holds on at full speed and is hard to stop with a T1 |
 
 **The meter** (`sim/targets/morale.ts`) is the base, plus the situation's named parts (−4 per Fame tier, −6 per gun she faces up to three, +20 the cutter within 2.5 km, +8 a harbor within 3 km, +4 per other ship in view by day up to two, +10 she can outrun you, +15 a determined captain (one in eight, seeded by her id), −25 disabled, −30 sinking at 30% hull, −10 becalmed, −15 nowhere to run, −15 adrift, −15 caught alongside by a ship she can't outrun), plus her shock (a warning shot −14 and each after it three quarters of the last, hits by share of each pool, casualties by share of her crew killed ×120 and wounded ×40, a night or fog surprise −12). Shock wears off at 0.2 a second once nobody has fired for 20 s. Every part has a label, so the target card (piece B) can say why she struck or didn't (§14.3 criterion 12).
@@ -530,9 +530,9 @@ Start a **New run as a Poacher**: Bayfield, $100, enough for the bow swivel ($75
 
 #### 14.14.3 Open decisions for Jared
 
-1. **How catchable should the wooden steamer be?** (criterion 3). She runs at 12.5 kn forced; a T1 makes 12.4 on auto-trim in 20 kn and 13.5 trimmed by hand. Recommended: her forced draught 11.5 kn (her service speed stays 11), so a T1 on a broad reach in a fresh breeze overhauls her on auto-trim too, by about 8%, and handily trimmed by hand; in moderate wind she still gets away. Or keep 12.5, so she's a T2's prey and a T1 needs the sheets in the sweet spot.
-2. **Combat audio levels and the chase thresholds** (piece G): a listen in the game (step 7).
-3. **The WANTED page in the middle of a fight** (criterion 8). Firing on the _Morrill_ opens the full-screen front page at once. Recommended: hold it until the fight is over (the arena ends or she loses you), and show the HUD's noose and a notice meanwhile.
+1. **How catchable should the wooden steamer be?** **Decided 2026-11-09 by Jared: 11.5 kn forced draught (the recommendation), applied in `ships.json`.** (criterion 3). She ran at 12.5 kn forced; a T1 makes 12.4 on auto-trim in 20 kn and 13.5 trimmed by hand. Recommended: her forced draught 11.5 kn (her service speed stays 11), so a T1 on a broad reach in a fresh breeze overhauls her on auto-trim too, by about 8%, and handily trimmed by hand; in moderate wind she still gets away. Or keep 12.5, so she's a T2's prey and a T1 needs the sheets in the sweet spot.
+2. **Combat audio levels and the chase thresholds** (piece G): a listen in the game (step 7). Jared's answer to the five: take the recommendations.
+3. **The WANTED page in the middle of a fight** (criterion 8). **Decided 2026-11-09 by Jared: hold it until the arena ends (the recommendation), applied in `main.ts`.** Firing on the _Morrill_ opens the full-screen front page at once. Recommended: hold it until the fight is over (the arena ends or she loses you), and show the HUD's noose and a notice meanwhile.
 4. **Company grudges, the rescue hours and the worn hull's price** (piece F): 10/20/25/30 a crime, fading 2 a day, contracts refused from 50; 6–18 hours in the boat; 40% of a new T1. Recommended: keep them until a run says otherwise.
 5. **The white flag:** bigger and self-lit now; is it enough at range?
 
