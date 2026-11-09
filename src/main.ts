@@ -1610,6 +1610,8 @@ async function boot(): Promise<void> {
   // The fire button counts unless it went down on a control (a button, a field, the dev
   // panel): the HUD layer covers the whole screen, so the click is rarely on the canvas.
   let fireOnSea = false;
+  // PROBE (temporary): when the last mouse press began.
+  let probeDownAt = -1e9;
   window.addEventListener(
     'mousedown',
     (e) => {
@@ -1617,6 +1619,7 @@ async function boot(): Promise<void> {
       fireOnSea =
         !!scene && !target?.closest('button, a, input, select, textarea, label, .lil-gui');
       // PROBE (temporary): remove once the click problem is found.
+      probeDownAt = performance.now();
       console.info('[fire-probe] mousedown', {
         button: e.button,
         target: target?.tagName,
@@ -2971,7 +2974,7 @@ async function boot(): Promise<void> {
         if (refused) showNotice(refused);
       }
       // PROBE (temporary): remove once the click problem is found.
-      if (input.isDown('Fire') || input.pressed('Fire')) {
+      if (performance.now() - probeDownAt < 800 || input.isDown('Fire') || input.pressed('Fire')) {
         console.info('[fire-probe] tick', {
           pressed: input.pressed('Fire'),
           isDown: input.isDown('Fire'),
@@ -2982,6 +2985,7 @@ async function boot(): Promise<void> {
           fireOnSea,
           aimActive: aim.active,
           context: input.context,
+          held: [...(input as unknown as { held: Set<string> }).held],
         });
       }
       if (sameContext && machine.mode === 'sailing' && !machine.gameplayPaused && !changingZone) {
