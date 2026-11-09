@@ -1,0 +1,10 @@
+{
+  "source": "procedural",
+  "tool": "tools/audio/synth.ts (tools/audio/lib/synth.ts)",
+  "author": "Great Lakes Pirate contributors",
+  "reference": "A pitch-dropping 32 Hz sine and low-passed noise body, wavering band-passed steam noise, struck-plate clangs, splashes, low-passed echoes",
+  "date": "2026-11-09",
+  "license": "CC BY 4.0",
+  "attribution": "Great Lakes Pirate contributors",
+  "modifications": []
+}

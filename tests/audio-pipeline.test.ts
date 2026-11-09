@@ -13,6 +13,13 @@ import { HARBOR_AUDIO_BUNDLE, HARBOR_SOUND } from '../src/audio/harbor-audio';
 import { PORT_AUDIO_BUNDLE, PORT_SOUND } from '../src/audio/port-audio';
 import { LAW_AUDIO_BUNDLE, LAW_SOUND, LAW_WHISTLE } from '../src/audio/law-audio';
 import {
+  CHASE_STEMS,
+  COMBAT_AUDIO_BUNDLE,
+  COMBAT_MUSIC_BUNDLE,
+  COMBAT_SOUND,
+} from '../src/audio/combat-audio';
+import { GUN_SOUNDS } from '../src/audio/combat-mix';
+import {
   CHART_AUDIO_BUNDLE,
   CHART_MUSIC_BUNDLE,
   CHART_MUSIC_CUE,
@@ -210,6 +217,24 @@ describe('shipped sounds (plan 15 §3.2, §8)', () => {
     expect(bytes).toBeLessThanOrEqual(512 * 1024);
   });
 
+  it('has the combat sounds and the chase stems (Phase 6 piece G)', () => {
+    const combat = manifest.bundles[COMBAT_AUDIO_BUNDLE] ?? [];
+    for (const id of Object.values(COMBAT_SOUND)) expect(combat, id).toContain(id);
+    // The far reports are the law's gun and rifle, decoded with the law's bundle.
+    const law = manifest.bundles[LAW_AUDIO_BUNDLE] ?? [];
+    for (const g of Object.values(GUN_SOUNDS)) {
+      expect(combat, g.near).toContain(g.near);
+      expect(law, g.far).toContain(g.far);
+    }
+    const stems = manifest.bundles[COMBAT_MUSIC_BUNDLE] ?? [];
+    for (const id of Object.values(CHASE_STEMS)) expect(stems, id).toContain(id);
+    const bytes = (ids: readonly string[]): number =>
+      ids.reduce((s, id) => s + (manifest.assets[id]?.bytes ?? 0), 0);
+    expect(bytes(combat)).toBeLessThanOrEqual(512 * 1024);
+    // The stems decode up front so they loop together sample for sample; kept in check.
+    expect(bytes(stems)).toBeLessThanOrEqual(1.25 * 1024 * 1024);
+  });
+
   it('keeps the initial audio download within 5 MB, music streaming on top', () => {
     const size = (bundle: string): number =>
       (manifest.bundles[bundle] ?? []).reduce(
@@ -224,6 +249,8 @@ describe('shipped sounds (plan 15 §3.2, §8)', () => {
       HARBOR_AUDIO_BUNDLE,
       PORT_AUDIO_BUNDLE,
       LAW_AUDIO_BUNDLE,
+      COMBAT_AUDIO_BUNDLE,
+      COMBAT_MUSIC_BUNDLE,
     ];
     const streamed = [MUSIC_BUNDLE, CHART_MUSIC_BUNDLE];
     expect(size(SAILING_AUDIO_BUNDLE) + size(WORLD_AUDIO_BUNDLE)).toBeLessThanOrEqual(

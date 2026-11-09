@@ -340,6 +340,91 @@
       "type": "audio",
       "url": "law/newsboy.ogg",
       "bytes": 22584
+    },
+    "sfx.combat.splash-ball": {
+      "type": "audio",
+      "url": "combat/ball-splash.ogg",
+      "bytes": 4586
+    },
+    "sfx.combat.zip": {
+      "type": "audio",
+      "url": "combat/ball-zip.ogg",
+      "bytes": 3327
+    },
+    "sfx.combat.boarding-fight": {
+      "type": "audio",
+      "url": "combat/boarding-fight.ogg",
+      "bytes": 46228
+    },
+    "sfx.combat.boiler": {
+      "type": "audio",
+      "url": "combat/boiler.ogg",
+      "bytes": 42592
+    },
+    "sfx.combat.cannon": {
+      "type": "audio",
+      "url": "combat/cannon.ogg",
+      "bytes": 16307
+    },
+    "music.chase.drums": {
+      "type": "audio",
+      "url": "combat/chase-drums.ogg",
+      "bytes": 591268
+    },
+    "music.chase.fiddle": {
+      "type": "audio",
+      "url": "combat/chase-fiddle.ogg",
+      "bytes": 490242
+    },
+    "voice.combat.cheer": {
+      "type": "audio",
+      "url": "combat/crew-cheer.ogg",
+      "bytes": 16454
+    },
+    "voice.combat.defiant": {
+      "type": "audio",
+      "url": "combat/crew-defiant.ogg",
+      "bytes": 15304
+    },
+    "voice.combat.strike": {
+      "type": "audio",
+      "url": "combat/crew-strike.ogg",
+      "bytes": 26385
+    },
+    "sfx.combat.grapple": {
+      "type": "audio",
+      "url": "combat/grapple.ogg",
+      "bytes": 37219
+    },
+    "sfx.combat.hit-canvas": {
+      "type": "audio",
+      "url": "combat/hit-canvas.ogg",
+      "bytes": 16155
+    },
+    "sfx.combat.hit-wood": {
+      "type": "audio",
+      "url": "combat/hit-wood.ogg",
+      "bytes": 16892
+    },
+    "sfx.combat.rifle": {
+      "type": "audio",
+      "url": "combat/rifle.ogg",
+      "bytes": 10185
+    },
+    "sfx.combat.flyby": {
+      "type": "audio",
+      "url": "combat/shot-flyby.ogg",
+      "bytes": 13442
+    },
+    "music.stinger.struck": {
+      "type": "audio",
+      "url": "combat/stinger-struck.ogg",
+      "bytes": 74698
+    },
+    "sfx.combat.swivel": {
+      "type": "audio",
+      "url": "combat/swivel.ogg",
+      "bytes": 9187
     }
   },
   "bundles": {
@@ -426,6 +511,27 @@
       "music.stinger.wanted-most",
       "music.stinger.wanted-rise",
       "voice.port.newsboy"
+    ],
+    "combat-audio": [
+      "sfx.combat.splash-ball",
+      "sfx.combat.zip",
+      "sfx.combat.boarding-fight",
+      "sfx.combat.boiler",
+      "sfx.combat.cannon",
+      "voice.combat.cheer",
+      "voice.combat.defiant",
+      "voice.combat.strike",
+      "sfx.combat.grapple",
+      "sfx.combat.hit-canvas",
+      "sfx.combat.hit-wood",
+      "sfx.combat.rifle",
+      "sfx.combat.flyby",
+      "music.stinger.struck",
+      "sfx.combat.swivel"
+    ],
+    "combat-music": [
+      "music.chase.drums",
+      "music.chase.fiddle"
     ]
   }
 }

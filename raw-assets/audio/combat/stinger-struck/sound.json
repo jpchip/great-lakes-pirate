@@ -1,0 +1,11 @@
+{
+  "id": "music.stinger.struck",
+  "name": "stinger-struck",
+  "description": "She strikes: the chase tune runs up and resolves onto D major",
+  "kind": "oneshot",
+  "bus": "music",
+  "bundles": [
+    "combat-audio"
+  ],
+  "source": "source.flac"
+}

@@ -726,7 +726,9 @@ export function attachBoarding(deps: BoardingDeps): GameBoarding {
         quick: false,
         ...(m ? { passage: { cycle: m.cycle, outbound: m.outbound } } : {}),
       };
-      if (deps.targets.isStruck(e.id)) {
+      const struck = deps.targets.isStruck(e.id);
+      ctx.events.emit('ShipGrappled', { shipId: e.id, struck });
+      if (struck) {
         s.message = `Her master meets you at the rail with the ship's papers.`;
         taken(s, 'struck');
       }

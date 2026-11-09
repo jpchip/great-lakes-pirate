@@ -1,0 +1,19 @@
+{
+  "source": "procedural",
+  "tool": "tools/audio/synth.ts (tools/audio/lib/synth.ts)",
+  "author": "Great Lakes Pirate contributors",
+  "reference": "A pitch-dropping 32 Hz sine and low-passed noise body, wavering band-passed steam noise, struck-plate clangs, splashes, low-passed echoes",
+  "date": "2026-11-09",
+  "license": "CC BY 4.0",
+  "attribution": "Great Lakes Pirate contributors",
+  "modifications": [],
+  "description": "A steamer's boiler bursting: a huge blast, steam roaring out, iron ringing, wreckage falling into the lake",
+  "durationS": 7.5,
+  "pipeline": [
+    "decoded to mono 48000 Hz",
+    "edge fades",
+    "peak-normalized toward -1 dB (+0.4 dB)",
+    "Opus 56 kbps mono in Ogg (ffmpeg libopus)"
+  ],
+  "inputHash": "7a35a5d446adbc6b"
+}

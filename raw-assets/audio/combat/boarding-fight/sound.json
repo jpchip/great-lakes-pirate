@@ -1,0 +1,11 @@
+{
+  "id": "sfx.combat.boarding-fight",
+  "name": "boarding-fight",
+  "description": "The boarding fight: men shouting, handspikes and steel clashing, feet on the deck, a pistol or two",
+  "kind": "oneshot",
+  "bus": "sfx",
+  "bundles": [
+    "combat-audio"
+  ],
+  "source": "source.flac"
+}

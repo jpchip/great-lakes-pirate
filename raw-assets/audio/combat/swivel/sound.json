@@ -1,0 +1,11 @@
+{
+  "id": "sfx.combat.swivel",
+  "name": "swivel",
+  "description": "The bow swivel fired, heard from the deck: a sharp bang and the slap back off the water",
+  "kind": "oneshot",
+  "bus": "sfx",
+  "bundles": [
+    "combat-audio"
+  ],
+  "source": "source.flac"
+}

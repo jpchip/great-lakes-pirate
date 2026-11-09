@@ -475,11 +475,15 @@ A second smuggler ship lies in Siskiwit Bay, built with the Siskiwit Bay zone (0
 - **The combat log** is the logbook: each sea crime, the dead, the wrecks and the abandonment get a line.
 - **Dev.** `__glpSeaLaw` (`incidents`, `wrecks`, `closeAll`, `crimes`, `reports`, `grudges`) and `__glpAbandon` (`founder`, `abandon`, `leave`, `leftS`, `open`, `landed`, `docked`). Saves gain optional `player.grudges`, `wrecks` and an open crime's `company`, `details` and `pending`; no version bump.
 - **For Jared.** The grudge numbers, the 20% hull floor, the rescue hours and the worn hull's price are first guesses.
+### 14.13 Piece G as built: combat audio (2026-11-09)
+
+Plan 15 §19 has the whole of it. The guns are heard near from your own deck and far across the water, the round in flight goes by with its pitch dropping, and where it lands is a splash, wood or canvas; the boiler bursts, the grapple goes over (`ShipGrappled`, a new event raised as F opens a boarding), the boarding panel has its vignette (defiance, the melee, your crew's cheer), and a ship that strikes has her crew calling out and a stinger. The chase layer of the music comes in as targets are alerted and goes to full with gunfire or a ship running close, and settles once she strikes. The law's own guns stay with piece H's sounds; piece F should keep only one of `CutterFired` and `WeaponFired` sounding when it puts the *Morrill* on the ballistics. For Jared: the levels and the chase's thresholds want a listen in the game.
 
 ---
 
 ## Changelog
 - v0.4.6: §14.12 piece F as built: sea crimes and their witnesses, the robbed crew's late report, sinking's spread, firing on the law, the Morrill's real gun, company grudges, the papers, wrecks and abandoning ship.
+- v0.4.7: §14.13 piece G as built: combat audio (plan 15 §19).
 - v0.4.5: §14.11 piece B as built: aim mode, the arc preview, firing on the roll, the rippled broadside, smoke and splinters, the aim HUD and the target card.
 - v0.4.4: §14.10 piece E built (fences, the shady shipwright, powder and shot, more than one smuggler).
 - v0.4.2: §14.8 piece A as built: guns and shot data, ballistics, hull boxes, damage pools, sinking and the boiler, save v8.

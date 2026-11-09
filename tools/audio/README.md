@@ -62,19 +62,21 @@ sources with `source: "procedural"` provenance (CC BY 4.0, like the repo's other
 then `npm run audio` encodes them as usual. The code is `tools/audio/synth.ts` and the DSP in
 `tools/audio/lib/synth.ts`; it is seeded, so a rerun writes the same samples.
 
-| Sound                    | Plays as                                                                 |
-| ------------------------ | ------------------------------------------------------------------------ |
-| `signals/fog-whistle`    | A lighthouse steam whistle blast, cut to each station's blast length     |
-| `signals/fog-bell`       | One stroke of a lighthouse fog bell                                      |
-| `music/open-water-day`   | "The Chequamegon Waltz" (concertina, guitar): open-water music v1 by day |
-| `music/open-water-night` | "Devils Island Air" (tin whistle, fiddle drone): v1 at night             |
-| `ships/whistle-*`        | The NPC ships' steam whistles (freighter, chime, tug, cutter), Phase 3   |
-| `ships/foghorn`          | The schooner-barge's hand-pumped fog horn, Phase 3                       |
-| `music/chart-voyage`     | "The Long Reach" (concertina, guitar, tin whistle): the chart's theme    |
-| `chart/stinger-*`        | Encounter stingers: sail, threat, hunted, squall, derelict, clear        |
-| `chart/fog-fade`         | The loading screen's fade to fog: wind and sea with a ship's bell        |
-| `harbor/mill-saw`        | A sawmill's head saw taking one cut through a log (Phase 4)              |
-| `harbor/ore-dump`        | An ore car dumping into an ore dock's pocket (Phase 4)                   |
+| Sound                    | Plays as                                                                                                                                                                 |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `signals/fog-whistle`    | A lighthouse steam whistle blast, cut to each station's blast length                                                                                                     |
+| `signals/fog-bell`       | One stroke of a lighthouse fog bell                                                                                                                                      |
+| `music/open-water-day`   | "The Chequamegon Waltz" (concertina, guitar): open-water music v1 by day                                                                                                 |
+| `music/open-water-night` | "Devils Island Air" (tin whistle, fiddle drone): v1 at night                                                                                                             |
+| `ships/whistle-*`        | The NPC ships' steam whistles (freighter, chime, tug, cutter), Phase 3                                                                                                   |
+| `ships/foghorn`          | The schooner-barge's hand-pumped fog horn, Phase 3                                                                                                                       |
+| `music/chart-voyage`     | "The Long Reach" (concertina, guitar, tin whistle): the chart's theme                                                                                                    |
+| `chart/stinger-*`        | Encounter stingers: sail, threat, hunted, squall, derelict, clear                                                                                                        |
+| `chart/fog-fade`         | The loading screen's fade to fog: wind and sea with a ship's bell                                                                                                        |
+| `harbor/mill-saw`        | A sawmill's head saw taking one cut through a log (Phase 4)                                                                                                              |
+| `harbor/ore-dump`        | An ore car dumping into an ore dock's pocket (Phase 4)                                                                                                                   |
+| `law/*`                  | The law's sounds and Wanted stingers (Phase 5, `lib/synth-law.ts`)                                                                                                       |
+| `combat/*`               | Guns, the round in flight, impacts, the boiler, the grapple and the boarding voices, the chase layer's two stems and the struck stinger (Phase 6, `lib/synth-combat.ts`) |
 
 The package steamer's chime (`ships/whistle-chime`) was synthesized here until Phase 4; it is
 now a public-domain recording, so `audio:synth` leaves it alone.

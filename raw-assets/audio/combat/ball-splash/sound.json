@@ -1,0 +1,11 @@
+{
+  "id": "sfx.combat.splash-ball",
+  "name": "ball-splash",
+  "description": "A rifle ball into the water: a plip and a little spray",
+  "kind": "oneshot",
+  "bus": "sfx",
+  "bundles": [
+    "combat-audio"
+  ],
+  "source": "source.flac"
+}

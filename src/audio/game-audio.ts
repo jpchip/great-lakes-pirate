@@ -4,6 +4,7 @@ import { headSeaAmplitude } from '../sim/sailing/controller';
 import { sunAt } from '../sim/weather/celestial';
 import { seaScaleAt } from '../sim/weather/waves';
 import type { GameContext } from '../modes/context';
+import type { Entity } from '../gameplay/ecs';
 import { loadSoundBank, soundUrls, type SoundBank } from './bank';
 import {
   CHART_AUDIO_BUNDLE,
@@ -16,6 +17,15 @@ import {
 import { CaptionFeed, type CaptionView } from './captions';
 import { HARBOR_AUDIO_BUNDLE, HarborWorks } from './harbor-audio';
 import { LAW_AUDIO_BUNDLE, LawSounds, type LawShipId, type LawShipView } from './law-audio';
+import {
+  COMBAT_AUDIO_BUNDLE,
+  COMBAT_MUSIC_BUNDLE,
+  CombatSounds,
+  type ShotView,
+} from './combat-audio';
+import { gunKindOf, type GunKind, type Vec3 } from './combat-mix';
+import { gameCombat } from '../sim/combat/defs';
+import { PLAYER_ID } from '../gameplay/combat';
 import { isLawShip } from '../gameplay/law-at-sea';
 import { TUG_ID } from '../gameplay/law-ships';
 import type { WorkSite } from './harbor-mix';
@@ -37,7 +47,9 @@ import { fogMix, musicMood, type MusicMood } from './world-mix';
  * stingers, with the fade-to-fog sound under each loading screen (piece J, part 2);
  * since Phase 4 piece J, the harbors at work, the trade sounds at the port screen, and
  * captions for the fog signals and whistles; since Phase 5 piece H, the law: Wanted
- * stingers, the cutter's whistle, engine, bell and gun, and the lockup's door.
+ * stingers, the cutter's whistle, engine, bell and gun, and the lockup's door; since
+ * Phase 6 piece G, combat: the guns, the round in flight and where it lands, the boiler,
+ * the grapple and the boarding vignette, her crew as she strikes, and the chase layer.
  */
 
 export const SAILING_AUDIO_BUNDLE = 'sailing-audio';
@@ -66,6 +78,7 @@ export interface GameAudio {
   harbor: HarborWorks;
   trade: TradeCues;
   law: LawSounds;
+  combat: CombatSounds;
   captions: CaptionFeed;
   /** The captions showing now, with arrows from the listener's view (plan 15 §5). */
   captionsNow(): CaptionView[];
@@ -80,6 +93,8 @@ export interface GameAudio {
   update(frameSeconds: number, mode: string | undefined, loading?: boolean): void;
   /** Hear from the camera instead of the ship once there is one. */
   setListener(pose: () => ListenerPose): void;
+  /** The combat core's shots and the targets' captains, once they're attached (piece G). */
+  setCombatSource(source: CombatSource): void;
   /** A new zone's fog signals, harbors and harbor work sites (Phase 3 piece A). */
   setZone(zone: {
     stations: readonly SignalStation[];
@@ -88,6 +103,12 @@ export interface GameAudio {
   }): void;
   setVolume(id: VolumeId, volume: number): void;
   setMuted(muted: boolean): void;
+}
+
+/** What the combat audio reads each frame from the combat core and the targets. */
+export interface CombatSource {
+  shots(): readonly ShotView[];
+  captains(): readonly { id: string; phase: string }[];
 }
 
 export interface GameAudioOptions {
@@ -137,6 +158,8 @@ export async function createGameAudio(options: GameAudioOptions): Promise<GameAu
         HARBOR_AUDIO_BUNDLE,
         PORT_AUDIO_BUNDLE,
         LAW_AUDIO_BUNDLE,
+        COMBAT_AUDIO_BUNDLE,
+        COMBAT_MUSIC_BUNDLE,
       ],
       baseUrl,
     ),
@@ -155,6 +178,8 @@ export async function createGameAudio(options: GameAudioOptions): Promise<GameAu
   const trade = new TradeCues(mixer, bank);
   const law = new LawSounds(mixer, bank);
   law.captions = captions;
+  const combat = new CombatSounds(mixer, bank);
+  combat.captions = captions;
   const records = new Map(SHIP_RECORDS.map((r) => [r.id, r]));
   const whistleShips: WhistleShip[] = [];
   const players: Partial<Record<Exclude<MusicMood, 'quiet'>, MusicPlayer>> = {};
@@ -222,6 +247,80 @@ export async function createGameAudio(options: GameAudioOptions): Promise<GameAu
     if (pursued && ship && running()) law.pursuit(ship);
   });
 
+  // Combat (Phase 6 piece G). The law's own guns stay with the law's sounds (piece H's
+  // CutterFired), so nothing is heard twice.
+  const defs = gameCombat();
+  const kindOf = (weapon: string): GunKind => gunKindOf(weapon, defs.weapons.get(weapon)?.kind);
+  const entityById = (id: string): Entity | undefined => {
+    for (const e of game.world.with('npc', 'transform')) if (e.id === id) return e;
+    return undefined;
+  };
+  const byLaw = (by: string): boolean => {
+    const e = entityById(by);
+    return e !== undefined && isLawShip(e);
+  };
+  game.events.on('WeaponFired', (e) => {
+    if (!running() || byLaw(e.by)) return;
+    combat.fired(
+      { by: e.by, kind: kindOf(e.weapon), ammo: e.ammo, at: e.at, y: e.y, bearing: e.bearing },
+      e.by === PLAYER_ID,
+    );
+  });
+  // A ball into a ship: \`ShotLanded\` comes first, then any \`ShipHit\` with where it struck.
+  const struckAt = new Map<string, string>();
+  const atKey = (at: Vec3): string => `${at.x.toFixed(2)},${at.y.toFixed(2)},${at.z.toFixed(2)}`;
+  game.events.on('ShipHit', (e) => {
+    if (e.weapon !== 'boiler' && e.weapon !== 'dev') struckAt.set(atKey(e.at), e.location);
+  });
+  game.events.on('ShotLanded', (e) => {
+    if (!running() || byLaw(e.by)) return;
+    if (e.on === 'water') {
+      combat.landed('water', e.ammo, e.at);
+      return;
+    }
+    const key = atKey(e.at);
+    queueMicrotask(() => {
+      const location = struckAt.get(key) ?? 'hull';
+      struckAt.delete(key);
+      combat.landed(location === 'rigging' ? 'canvas' : 'wood', e.ammo, e.at);
+    });
+  });
+  game.events.on('BoilerExploded', ({ at }) => {
+    if (running()) combat.boiler(at);
+  });
+  game.events.on('MoraleBroken', ({ shipId }) => {
+    const t = entityById(shipId)?.transform;
+    if (t && running()) combat.struck({ x: t.position.x, z: t.position.z });
+  });
+  game.events.on('ShipGrappled', () => {
+    if (running()) combat.grappled();
+  });
+  // Boarding: the outcome is raised right after the attempt, in the same call.
+  let surrendered: string | undefined;
+  let repelled: { shipId: string; killed: boolean } | undefined;
+  game.events.on('ShipSurrendered', ({ shipId }) => {
+    surrendered = shipId;
+  });
+  game.events.on('BoardingRepelled', ({ shipId, killed }) => {
+    repelled = { shipId, killed };
+  });
+  game.events.on('BoardingAttempted', ({ shipId, option }) => {
+    if (!running()) return;
+    surrendered = undefined;
+    repelled = undefined;
+    queueMicrotask(() => {
+      const won = surrendered === shipId;
+      if (option === 'intimidate') combat.intimidated(won);
+      else if (won || (repelled?.shipId === shipId && !repelled.killed)) combat.fight(won);
+    });
+  });
+  let pursuedBy: string | undefined;
+  game.events.on('PursuitChanged', ({ pursued, by }) => {
+    pursuedBy = pursued ? by : pursuedBy === by ? undefined : pursuedBy;
+  });
+  let combatSource: CombatSource | undefined;
+  const targetViews: { phase: string; distanceM: number }[] = [];
+
   const isPlayer = (shipId: string | undefined): boolean => {
     const player = game.world.with('playerControlled').first;
     return player !== undefined && shipId === player.id;
@@ -265,6 +364,7 @@ export async function createGameAudio(options: GameAudioOptions): Promise<GameAu
     harbor,
     trade,
     law,
+    combat,
     captions,
     captionsNow() {
       if (!lastPose || !active) return [];
@@ -294,6 +394,7 @@ export async function createGameAudio(options: GameAudioOptions): Promise<GameAu
         music.setActive(active);
         if (!active) {
           law.stop();
+          combat.stop();
           lawShipViews.length = 0;
         }
       }
@@ -417,11 +518,45 @@ export async function createGameAudio(options: GameAudioOptions): Promise<GameAu
         frameSeconds,
       );
 
+      targetViews.length = 0;
+      for (const c of combatSource?.captains() ?? []) {
+        const t = entityById(c.id)?.transform;
+        if (!t) continue;
+        targetViews.push({
+          phase: c.phase,
+          distanceM: Math.hypot(t.position.x - state.x, t.position.z - state.z),
+        });
+      }
+      const chaser = pursuedBy ? lawShipViews.find((s) => s.id === pursuedBy) : undefined;
+      combat.update(
+        {
+          listener: pose.at,
+          nowS,
+          damping: fogMix(fogVisibilityM, state.windKn).damping,
+          shots: combatSource?.shots() ?? [],
+          targets: targetViews,
+          lawPursuitM: chaser
+            ? Math.hypot(chaser.x - state.x, chaser.z - state.z)
+            : pursuedBy
+              ? Infinity
+              : undefined,
+        },
+        frameSeconds,
+      );
+
       mood = musicMood({ sunElevationDeg, fogVisibilityM, windKn: state.windKn, rain01, storm01 });
-      music.update(frameSeconds, mood, world.signalHeard || whistles.heard || law.ducking);
+      // The chase layer takes over from the open-water music while it plays.
+      music.update(
+        frameSeconds,
+        combat.chase > 0 ? 'quiet' : mood,
+        world.signalHeard || whistles.heard || law.ducking,
+      );
     },
     setListener(pose) {
       listener = pose;
+    },
+    setCombatSource(source) {
+      combatSource = source;
     },
     setZone(zone) {
       world.setStations(zone.stations);

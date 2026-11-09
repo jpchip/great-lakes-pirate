@@ -1,0 +1,18 @@
+{
+  "source": "procedural",
+  "tool": "tools/audio/synth.ts (tools/audio/lib/synth.ts)",
+  "author": "Great Lakes Pirate contributors",
+  "reference": "Original tune; synthesized frame drum, bowed strings (sawtooth through body resonances) and concertina, Freeverb-style reverb, the tail folded onto the head for a seamless loop",
+  "date": "2026-11-09",
+  "license": "CC BY 4.0",
+  "attribution": "Great Lakes Pirate contributors",
+  "modifications": [],
+  "description": "\"Hard Alee\", the chase layer (16 bars in D dorian at 138, 27.83 s, looped with the other stem): a reel-like fiddle tune and concertina stabs on the off-beats",
+  "durationS": 27.826,
+  "pipeline": [
+    "decoded to mono 48000 Hz",
+    "RMS-normalized toward -18 dB (-2.2 dB)",
+    "Opus 112 kbps mono in Ogg (ffmpeg libopus)"
+  ],
+  "inputHash": "acbd2bfc62215513"
+}

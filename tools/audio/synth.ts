@@ -5,7 +5,8 @@
 // ships' whistles and the schooner-barge's fog horn (Phase 3 piece J), and the chart's
 // traveling theme, the encounter stingers and the fade-to-fog sound (piece J, part 2),
 // and the harbors' mill saw and ore dump (Phase 4 piece J), and the law's sounds (Phase 5
-// piece H: Wanted stingers, the cutter's engine, bell and gun, the lockup's door). The package steamer's chime
+// piece H: Wanted stingers, the cutter's engine, bell and gun, the lockup's door), and the
+// combat sounds and the chase layer (Phase 6 piece G). The package steamer's chime
 // whistle is a recording since Phase 4 (raw-assets/audio/ships/whistle-chime), so it is
 // no longer rendered here.
 //
@@ -59,6 +60,26 @@ import {
   WANTED_STINGERS,
   type WantedStingerName,
 } from './lib/synth-law.ts';
+import {
+  CHASE,
+  CHASE_LOOP_S,
+  ballSplash,
+  ballZip,
+  boardingFight,
+  boilerBlast,
+  cannonGun,
+  chaseStem,
+  crewCheer,
+  crewDefiant,
+  crewStrike,
+  grapple,
+  hitCanvas,
+  hitWood,
+  rifleNear,
+  shotFlyby,
+  struckStinger,
+  swivelGun,
+} from './lib/synth-combat.ts';
 
 const ROOT = resolve(fileURLToPath(import.meta.url), '..', '..', '..');
 const RAW = join(ROOT, 'raw-assets', 'audio');
@@ -69,6 +90,7 @@ const TODAY_J = '2026-10-31';
 const TODAY_J2 = '2026-11-01';
 const TODAY_P4J = '2026-11-01';
 const TODAY_P5H = '2026-11-07';
+const TODAY_P6G = '2026-11-09';
 /** Render only this category (e.g. `ships`), leaving the other sources untouched. */
 const ONLY = process.argv[2];
 
@@ -380,6 +402,7 @@ function main(): void {
     TODAY_P4J,
   );
   renderLaw();
+  renderCombat();
 }
 
 function renderLaw(): void {
@@ -513,6 +536,155 @@ function renderLaw(): void {
     newsboyCall(RATE),
     "Formant synthesis: a band-limited pulse train through three moving resonances on a boy's pitch, a street slap-back",
   );
+}
+
+function renderCombat(): void {
+  type Hints = Omit<SoundHints, 'source' | 'trimStartS' | 'loopCrossfadeS' | 'bundles'> & {
+    loopCrossfadeS?: number;
+  };
+  const combat = (
+    hints: Hints,
+    samples: Float32Array,
+    how: string,
+    bundle = 'combat-audio',
+  ): void => writeSound('combat', { ...hints, bundles: [bundle] }, samples, how, TODAY_P6G);
+  const sfx = (
+    id: string,
+    name: string,
+    description: string,
+    samples: Float32Array,
+    how: string,
+    bus: SoundHints['bus'] = 'sfx',
+  ): void => combat({ id, name, description, kind: 'oneshot', bus }, samples, how);
+
+  sfx(
+    'sfx.combat.swivel',
+    'swivel',
+    'The bow swivel fired, heard from the deck: a sharp bang and the slap back off the water',
+    swivelGun(RATE),
+    'Band-passed noise crack, a pitch-dropping 78 Hz sine, low-passed noise body and smoke roll, a band-passed slap-back',
+  );
+  sfx(
+    'sfx.combat.cannon',
+    'cannon',
+    'The light cannon fired from her own deck: a deep bang, the carriage running back and brought up by its breeching',
+    cannonGun(RATE),
+    'Band-passed noise crack, a pitch-dropping 44 Hz sine, low-passed noise body, a rumble for the trucks, a thud and a stick-slip rope creak',
+  );
+  sfx(
+    'sfx.combat.rifle',
+    'rifle',
+    'A rifle fired close to, then the lever worked',
+    rifleNear(RATE),
+    "The deputies' rifle (synth-law) with a sharper crack, and damped metallic ticks for the lever",
+  );
+  sfx(
+    'sfx.combat.flyby',
+    'shot-flyby',
+    'A round shot going by: a rushing, warbling whistle that drops in pitch as it passes',
+    shotFlyby(RATE),
+    'Two band-passed noise bands and a faint warbling tone, their pitch falling through the pass (Doppler)',
+  );
+  sfx(
+    'sfx.combat.zip',
+    'ball-zip',
+    'A rifle ball going by close: a short zip',
+    ballZip(RATE),
+    'Band-passed noise sliding from 3.2 to 1.7 kHz around a sharp tick',
+  );
+  sfx(
+    'sfx.combat.splash-ball',
+    'ball-splash',
+    'A rifle ball into the water: a plip and a little spray',
+    ballSplash(RATE),
+    'A rising sine blip, band-passed noise spray, short rising drips',
+  );
+  sfx(
+    'sfx.combat.hit-wood',
+    'hit-wood',
+    'A round into her side or deck: planking stove in, timber splitting, splinters, bits coming down',
+    hitWood(RATE),
+    'Two low thuds, band-passed impulse crackle, noise-burst splinters and small knocks',
+  );
+  sfx(
+    'sfx.combat.hit-canvas',
+    'hit-canvas',
+    'A round through a sail: a dull punch, the cloth ripping, the torn canvas flogging',
+    hitCanvas(RATE),
+    'Low-passed noise punch, rough band-passed noise rip, a flapping band-passed noise burst',
+  );
+  sfx(
+    'sfx.combat.boiler',
+    'boiler',
+    "A steamer's boiler bursting: a huge blast, steam roaring out, iron ringing, wreckage falling into the lake",
+    boilerBlast(RATE),
+    'A pitch-dropping 32 Hz sine and low-passed noise body, wavering band-passed steam noise, struck-plate clangs, splashes, low-passed echoes',
+  );
+  sfx(
+    'sfx.combat.grapple',
+    'grapple',
+    'The grapple: the hook swung and thrown, biting on her rail, the line hauled taut, the hulls grinding together',
+    grapple(RATE),
+    'Swinging band-passed noise, a struck-plate clang and thuds, stick-slip rope creaks, juddering band-passed noise',
+  );
+  sfx(
+    'sfx.combat.boarding-fight',
+    'boarding-fight',
+    'The boarding fight: men shouting, handspikes and steel clashing, feet on the deck, a pistol or two',
+    boardingFight(RATE),
+    'Formant-synthesized shouts (no words), struck-plate clangs and thuds, two pitched-up rifle shots',
+  );
+  sfx(
+    'voice.combat.cheer',
+    'crew-cheer',
+    "Your crew's cheer: three ragged huzzahs",
+    crewCheer(RATE),
+    'Formant-synthesized shouts in a dozen voices, a little reverb',
+    'voice',
+  );
+  sfx(
+    'voice.combat.strike',
+    'crew-strike',
+    'Her crew calling out to hold fire as she strikes, and her bell rung fast',
+    crewStrike(RATE),
+    "Formant-synthesized falling calls, additive ship's bell strokes on an 880 Hz prime",
+    'voice',
+  );
+  sfx(
+    'voice.combat.defiant',
+    'crew-defiant',
+    "Her crew won't strike: a rough shout together, twice, and handspikes rapped on the rail",
+    crewDefiant(RATE),
+    'Formant-synthesized shouts in unison, short wooden thuds',
+    'voice',
+  );
+  sfx(
+    'music.stinger.struck',
+    'stinger-struck',
+    'She strikes: the chase tune runs up and resolves onto D major',
+    struckStinger(RATE),
+    'Original motif; synthesized fiddle, concertina and frame drum, Freeverb-style reverb',
+    'music',
+  );
+  const stems = {
+    drums: 'the frame drum and a low drum on a reel rhythm, low strings pulsing on the root',
+    fiddle: 'a reel-like fiddle tune and concertina stabs on the off-beats',
+  } as const;
+  for (const stem of ['drums', 'fiddle'] as const) {
+    combat(
+      {
+        id: `music.chase.${stem}`,
+        name: `chase-${stem}`,
+        description: `"Hard Alee", the chase layer (${CHASE.bars} bars in D dorian at ${CHASE.bpm}, ${CHASE_LOOP_S.toFixed(2)} s, looped with the other stem): ${stems[stem]}`,
+        kind: 'loop',
+        bus: 'music',
+        loopCrossfadeS: 0,
+      },
+      chaseStem(stem, RATE),
+      'Original tune; synthesized frame drum, bowed strings (sawtooth through body resonances) and concertina, Freeverb-style reverb, the tail folded onto the head for a seamless loop',
+      'combat-music',
+    );
+  }
 }
 
 main();

@@ -1,0 +1,11 @@
+{
+  "id": "sfx.combat.hit-wood",
+  "name": "hit-wood",
+  "description": "A round into her side or deck: planking stove in, timber splitting, splinters, bits coming down",
+  "kind": "oneshot",
+  "bus": "sfx",
+  "bundles": [
+    "combat-audio"
+  ],
+  "source": "source.flac"
+}
