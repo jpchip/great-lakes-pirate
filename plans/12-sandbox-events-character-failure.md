@@ -84,6 +84,7 @@ Perks are modest. They shape the early game and playstyle but never decide a run
 
 ### 4.1 Ambitions
 - A catalog of optional goals. The player can **pin up to 3** to track on the HUD and in the journal. Completing one gives a small reward (money, a curio, Fame) plus a newspaper mention.
+- **Logbook marks (decided):** finished goals are not a separate badge tray. Each completed Ambition (and onboarding milestones like the Captain's First Week) earns a **themed mark** in the journal, same ink-and-paper voice as the ledger: a bank draft for wealth, a WANTED clipping for infamy, a freight agent's seal for trade, and so on. The player can clear a mark from the ledger; the deed stays in the daily logbook. Pinned Ambitions on the HUD are unchanged.
 
 | Category | Examples |
 |---|---|
@@ -275,10 +276,12 @@ All resolved.
 | 2026-10-21 | **Each background has its own starting hideout** (and starting port); Hermit Island is a discoverable claim. |
 | 2026-10-21 | **Hall of Captains:** records of past runs, no gameplay carry-over. |
 | 2026-10-22 | Starting hideouts come pre-built with a strongbox and storage. MVP starts: Lumberjack at Siskiwit, everyone else at Stockton. MVP prisoners go to Bayfield's lockup. |
+| 2026-11-08 | Ambitions and milestones use **logbook marks** in the journal (not a generic achievement UI); the First Week is the first mark. |
 
 ---
 
 ## Changelog
+- v0.8: Ambitions shown as themed logbook marks in the journal; the First Week collapses to one clearable mark (Jared, 2026-11-08).
 - v0.7: Bail brings the region down to tier 1, as time served does (Jared, 2026-11-08).
 - v0.6: Phase 5 playtest (§11): jail, bail and the end screen checked; bail and heat and the end screen's look left for Jared.
 - v0.5: Phase 5 piece D built (§11): jail, bail, release and the end screen. The permadeath notice was dropped at Jared's request.

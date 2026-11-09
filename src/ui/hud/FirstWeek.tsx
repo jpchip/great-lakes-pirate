@@ -3,7 +3,8 @@ import type { FirstWeekSnapshot } from '../../gameplay/captain';
 /**
  * The Captain's First Week (plan 12 §3, plan 13 §5; Phase 4 piece C): a journal page
  * with every step, and a small tracker on the HUD with the next one. The tracker can be
- * put away; the journal keeps the list and can bring it back.
+ * put away; the journal keeps the list and can bring it back. When every step is done the
+ * list folds to one checked mark that can be cleared from the ledger.
  */
 
 export function FirstWeekTracker({
@@ -49,10 +50,33 @@ export function FirstWeekTracker({
 export function FirstWeekPage({
   week,
   setHidden,
+  clearFromLedger,
 }: {
   week: FirstWeekSnapshot;
   setHidden(hidden: boolean): void;
+  clearFromLedger(): void;
 }) {
+  if (week.complete) {
+    return (
+      <section class="first-week-page first-week-done" data-testid="first-week-page">
+        <div class="first-week-mark" data-testid="first-week-mark">
+          <span class="first-week-box" aria-hidden="true">
+            ✓
+          </span>
+          <span>The Captain&apos;s First Week</span>
+        </div>
+        <button
+          type="button"
+          class="menu-button"
+          data-testid="first-week-clear"
+          onClick={() => clearFromLedger()}
+        >
+          Clear from the ledger
+        </button>
+      </section>
+    );
+  }
+
   return (
     <section class="first-week-page" data-testid="first-week-page">
       <h3 class="create-heading">The Captain's First Week</h3>

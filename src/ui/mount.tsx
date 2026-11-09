@@ -58,6 +58,8 @@ export interface GameUiOptions {
   onWait?: (() => void) | undefined;
   /** Put the First Week tracker away or bring it back (Phase 4 piece C). */
   setFirstWeekHidden?: ((hidden: boolean) => void) | undefined;
+  /** Clear the finished First Week mark from the journal. */
+  clearFirstWeek?: (() => void) | undefined;
   /** The port screen's buttons and the journal's (Phase 4 piece B). */
   port?: (PortActions & { closeJournal(): void; openDocked(): void }) | undefined;
   /** Alongside the island smuggler (Phase 4 piece H). */
@@ -138,6 +140,7 @@ export function mountGameUi({
   boarding: boardingActions,
   stash: stashActions,
   setFirstWeekHidden = () => undefined,
+  clearFirstWeek = () => undefined,
   jail: jailActions,
   onAbandon,
   onEndMenu = () => window.location.assign(window.location.pathname),
@@ -290,12 +293,17 @@ export function mountGameUi({
             toggleSailOn={toggleSailOn}
             extra={
               firstWeek.value && (
-                <FirstWeekPage week={firstWeek.value} setHidden={setFirstWeekHidden} />
+                <FirstWeekPage
+                  week={firstWeek.value}
+                  setHidden={setFirstWeekHidden}
+                  clearFromLedger={clearFirstWeek}
+                />
               )
             }
           />
         )}
         {firstWeek.value &&
+          !firstWeek.value.complete &&
           !firstWeek.value.hidden &&
           !menuOpen.value &&
           !port.value &&

@@ -1120,6 +1120,7 @@ async function boot(): Promise<void> {
       setForecast: (lead) => travelRef.current?.setForecast(lead),
     },
     setFirstWeekHidden: (hidden) => captainRef.current?.setHidden(hidden),
+    clearFirstWeek: () => captainRef.current?.clearFirstWeek(),
     jail: {
       serve: () => captureRef.current?.actions.serve(),
       sendWord: (hideout) => captureRef.current?.actions.sendWord(hideout),
