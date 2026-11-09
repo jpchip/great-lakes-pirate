@@ -1610,36 +1610,14 @@ async function boot(): Promise<void> {
   // The fire button counts unless it went down on a control (a button, a field, the dev
   // panel): the HUD layer covers the whole screen, so the click is rarely on the canvas.
   let fireOnSea = false;
-  // PROBE (temporary): when the last mouse press began.
-  let probeDownAt = -1e9;
   window.addEventListener(
     'mousedown',
     (e) => {
       const target = e.target instanceof Element ? e.target : undefined;
       fireOnSea =
         !!scene && !target?.closest('button, a, input, select, textarea, label, .lil-gui');
-      // PROBE (temporary): remove once the click problem is found.
-      probeDownAt = performance.now();
-      console.info('[fire-probe] mousedown', {
-        button: e.button,
-        target: target?.tagName,
-        fireOnSea,
-      });
     },
     { capture: true },
-  );
-  // PROBE (temporary): does a press reach the window in the bubble phase, where the input mapper listens?
-  window.addEventListener('mousedown', (e) =>
-    console.info(
-      '[fire-probe] window-bubble',
-      e.target instanceof Element ? e.target.tagName : '?',
-    ),
-  );
-  document.addEventListener('mousedown', (e) =>
-    console.info(
-      '[fire-probe] document-bubble',
-      e.target instanceof Element ? e.target.tagName : '?',
-    ),
   );
   // Tab is the aim key at the helm: the browser mustn't move focus with it.
   window.addEventListener('keydown', (e) => {
@@ -2985,12 +2963,6 @@ async function boot(): Promise<void> {
       } else if (sameContext && input.context === 'sailing' && input.pressed('LieAtAnchor')) {
         const refused = stash.openLie();
         if (refused) showNotice(refused);
-      }
-      // PROBE (temporary): remove once the click problem is found.
-      if (performance.now() - probeDownAt < 800 || input.isDown('Fire') || input.pressed('Fire')) {
-        console.info(
-          `[fire-probe] tick pressed=${input.pressed('Fire')} isDown=${input.isDown('Fire')} ctx=${input.context} fireBind=${JSON.stringify(input.bindings[input.context]?.Fire)} held=${JSON.stringify([...(input as unknown as { held: Set<string> }).held])} sameCtx=${sameContext} mode=${machine.mode} paused=${machine.gameplayPaused} zone=${changingZone} fireOnSea=${fireOnSea}`,
-        );
       }
       if (sameContext && machine.mode === 'sailing' && !machine.gameplayPaused && !changingZone) {
         aim.step(input, fireOnSea);
