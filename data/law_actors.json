@@ -141,5 +141,17 @@
     "speedKn": 9,
     "stationH": [1, 3],
     "baseH": [1, 2]
+  },
+  "sea": {
+    "earshotM": 2000,
+    "quietH": 2,
+    "identifyM": 600,
+    "crewKnowsFromFameTier": 2
+  },
+  "companies": {
+    "grudgeMax": 100,
+    "decayPerDay": 2,
+    "refuseContractsFrom": 50,
+    "standingPerGrudge": 0.2
   }
 }

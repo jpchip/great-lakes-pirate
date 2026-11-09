@@ -96,6 +96,21 @@ export interface LedgerLawSnapshot {
   wanted: { region: string; name: string; tier: number; tierName: string; heat: number }[];
   /** Reports on their way, soonest first. */
   reports: { id: string; text: string }[];
+  /**
+   * Companies that bear you a grudge, deepest first (Phase 6 piece F): `shunned` when their
+   * agents won't deal with you.
+   */
+  grudges?: { id: string; name: string; value: number; shunned: boolean }[] | undefined;
+  /** Wrecks on the lake, newest first (Phase 6 piece F). */
+  wrecks?: { id: string; text: string; yours: boolean }[] | undefined;
+}
+
+/** What the ledger's law page shows beside the law itself (Phase 6 piece F). */
+export interface LedgerLawExtra {
+  grudges?: Record<string, number> | undefined;
+  companyName?(id: string): string | undefined;
+  refuseFrom?: number | undefined;
+  wrecks?: readonly { id: string; lore: string; byPlayer: boolean }[] | undefined;
 }
 
 export interface LawViewSources {
@@ -212,6 +227,7 @@ export function ledgerLawSnapshot(
   defs: LawDefs,
   law: LawState,
   gameSeconds: number,
+  extra: LedgerLawExtra = {},
 ): LedgerLawSnapshot {
   const ft = fameTier(defs, law.fame.value);
   const wanted = Object.keys(law.wanted)
@@ -246,5 +262,17 @@ export function ledgerLawSnapshot(
     fame: Math.round(law.fame.value),
     wanted,
     reports,
+    grudges: Object.entries(extra.grudges ?? {})
+      .filter(([, v]) => v >= 1)
+      .sort((a, b) => b[1] - a[1])
+      .map(([id, v]) => ({
+        id,
+        name: extra.companyName?.(id) ?? id,
+        value: Math.round(v),
+        shunned: v >= (extra.refuseFrom ?? Infinity),
+      })),
+    wrecks: [...(extra.wrecks ?? [])]
+      .reverse()
+      .map((w) => ({ id: w.id, text: w.lore, yours: w.byPlayer })),
   };
 }

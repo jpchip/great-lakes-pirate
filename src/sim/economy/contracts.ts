@@ -375,6 +375,11 @@ export interface BoardSources {
   state: ContractsState;
   standing: Standing;
   gameSeconds: number;
+  /**
+   * Companies with a grudge too deep to deal with you (plan 05 §8.2; Phase 6 piece F): their
+   * offers are left off the board until it fades.
+   */
+  shunned?: ReadonlySet<string> | undefined;
 }
 
 /**
@@ -389,6 +394,7 @@ export function boardOffers(src: BoardSources, port: string): BoardOffer[] {
   const out: BoardOffer[] = [];
   for (const d of draws(defs, econ, seed, port, board)) {
     if (state.taken.includes(d.id) || state.burned.includes(d.template.company)) continue;
+    if (src.shunned?.has(d.template.company)) continue;
     const terms = priceDraw(defs, passages, port, d, standing);
     const have = governingStanding(d.template, port, standing);
     out.push({

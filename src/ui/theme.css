@@ -1226,7 +1226,8 @@ body[data-mode='chart'] .chart-layer {
 }
 
 .standing-group h4,
-.ledger-section h4 {
+.ledger-section h4,
+.ledger-subhead {
   margin: 0 0 6px;
   font: 12px var(--serif);
   font-variant: small-caps;

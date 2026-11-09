@@ -445,6 +445,31 @@ function LawPage({ law }: { law: LedgerLawSnapshot }) {
           ))}
         </ul>
       )}
+      {law.grudges && law.grudges.length > 0 && (
+        <>
+          <h4 class="ledger-subhead">Companies with a grudge</h4>
+          <ul class="ledger-list" data-testid="ledger-grudges">
+            {law.grudges.map((g) => (
+              <li key={g.id}>
+                {g.name}: <span class="hud-num">{g.value}</span>
+                {g.shunned && <span class="port-dim"> (their agents won't deal with you)</span>}
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+      {law.wrecks && law.wrecks.length > 0 && (
+        <>
+          <h4 class="ledger-subhead">Wrecks</h4>
+          <ul class="ledger-list" data-testid="ledger-wrecks">
+            {law.wrecks.map((w) => (
+              <li key={w.id} class={w.yours ? 'ledger-wreck yours' : 'ledger-wreck'}>
+                {w.text}
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
     </div>
   );
 }

@@ -2,7 +2,7 @@ import { Rng } from '../../core/rng';
 import { SECONDS_PER_GAME_DAY, dayAndHour } from '../../core/time';
 import type { CrimeDef } from '../../../data/schemas/law';
 import { crimeDef, fameTier, tierDef, wantedTier, type LawDefs } from './defs';
-import type { LawState, OpenCrime, RegionWanted, Report } from './state';
+import type { CrimeDetails, LawState, OpenCrime, RegionWanted, Report } from './state';
 import { IDENTIFICATION_ORDER, type Identification, type Witness } from './witness';
 
 /**
@@ -33,6 +33,8 @@ export interface LawWorld {
   standing: Record<string, number>;
   /** The run's seed: the same crime gets the same report delays after a reload. */
   seed: string;
+  /** Company grudges (plan 05 §8.2; Phase 6 piece F), 0–`companies.grudgeMax`. */
+  grudges?: Record<string, number>;
 }
 
 export interface WitnessRef {
@@ -50,6 +52,8 @@ export type LawEvent =
       port: string | undefined;
       witnesses: number;
       at: number;
+      company?: string | undefined;
+      details?: CrimeDetails | undefined;
     }
   | {
       type: 'Witnessed';
@@ -69,11 +73,13 @@ export type LawEvent =
       identification: Identification;
       heatAdded: number;
       alertAdded: number;
+      details?: CrimeDetails | undefined;
     }
   | { type: 'ReportIntercepted'; crimeId: string; reportId: string; witness: WitnessRef }
   | { type: 'WantedTierChanged'; region: string; from: number; to: number; heat: number }
   | { type: 'HeatSpread'; crimeId: string; from: string; to: string[]; heat: number }
   | { type: 'FameChanged'; value: number; delta: number; tierFrom: number; tierTo: number }
+  | { type: 'GrudgeChanged'; company: string; from: number; to: number }
   | { type: 'ProfileChanged'; hull: number; classId: string; name: string; shed: number };
 
 export type LawEventOf<T extends LawEvent['type']> = Extract<LawEvent, { type: T }>;
@@ -85,6 +91,14 @@ export interface CrimeInput {
   port?: string;
   /** Who saw it. A `traced` crime is named to you whoever saw it, or nobody. */
   witnesses: readonly Witness[];
+  /** The company it was done to: their Standing and grudge when it's named to you. */
+  company?: string | undefined;
+  details?: CrimeDetails | undefined;
+  /**
+   * A witness who'll report later, when `releasePending` says (the robbed crew, Phase 6
+   * piece F). The crime stays open for them even if nobody else saw it.
+   */
+  pending?: Witness | undefined;
 }
 
 export function regionWanted(law: LawState, region: string): RegionWanted {
@@ -114,6 +128,7 @@ function stronger(a: Identification, b: Identification): Identification {
 
 /** When a witness's report lands (plan 06 §2.4), game seconds. */
 export function reportEta(defs: LawDefs, witness: Witness, at: number, rng: Rng): number {
+  if (witness.reportAt !== undefined) return Math.max(at, witness.reportAt);
   const rule = defs.actors.witnesses[witness.kind];
   const delay = (witness.reporting && rule?.byReporting?.[witness.reporting]) || rule?.delay;
   if (!delay) return at;
@@ -150,11 +165,14 @@ export function commitCrime(
       crime: def.id,
       region: input.region,
       port: input.port,
-      witnesses: input.witnesses.length,
+      witnesses: input.witnesses.length + (input.pending ? 1 : 0),
       at: now,
+      ...(input.company ? { company: input.company } : {}),
+      ...(input.details ? { details: input.details } : {}),
     },
   ];
-  if (input.witnesses.length === 0) return events;
+  if (input.witnesses.length === 0 && !input.pending) return events;
+  const p = input.pending;
   law.reports.crimes.push({
     id,
     crime: def.id,
@@ -164,27 +182,95 @@ export function commitCrime(
     hull: law.profiles.ship.hull,
     filed: 0,
     named: false,
+    ...(input.company ? { company: input.company } : {}),
+    ...(input.details ? { details: input.details } : {}),
+    ...(p
+      ? {
+          pending: {
+            id: p.id,
+            kind: p.kind,
+            name: p.name,
+            identification: def.traced ? 'person' : p.identification,
+          },
+        }
+      : {}),
   });
-  for (const w of input.witnesses) {
-    const rng = Rng.fromSeed(`${world.seed}|report|${id}|${w.id}`);
-    const report: Report = {
-      id: `report-${law.reports.nextId++}`,
-      crimeId: id,
-      witness: { id: w.id, kind: w.kind, name: w.name },
-      identification: def.traced ? 'person' : w.identification,
-      eta: reportEta(defs, w, now, rng),
-    };
-    law.reports.inProgress.push(report);
-    events.push({
-      type: 'Witnessed',
-      crimeId: id,
-      reportId: report.id,
-      witness: report.witness,
-      identification: report.identification,
-      eta: report.eta,
-    });
+  for (const w of input.witnesses) sendReport(defs, world, id, w, def.traced, now, events);
+  events.push(...fileDue(defs, world, now));
+  return events;
+}
+
+/** A witness sets off with a report on a crime. */
+function sendReport(
+  defs: LawDefs,
+  world: LawWorld,
+  crimeId: string,
+  w: Witness,
+  traced: boolean,
+  now: number,
+  events: LawEvent[],
+): void {
+  const { law } = world;
+  const rng = Rng.fromSeed(`${world.seed}|report|${crimeId}|${w.id}`);
+  const report: Report = {
+    id: `report-${law.reports.nextId++}`,
+    crimeId,
+    witness: { id: w.id, kind: w.kind, name: w.name },
+    identification: traced ? 'person' : w.identification,
+    eta: reportEta(defs, w, now, rng),
+  };
+  law.reports.inProgress.push(report);
+  events.push({
+    type: 'Witnessed',
+    crimeId,
+    reportId: report.id,
+    witness: report.witness,
+    identification: report.identification,
+    eta: report.eta,
+  });
+}
+
+/**
+ * Another witness for a crime still open (Phase 6 piece F: the ship that picks you out of
+ * the water knows your face). Nothing if the crime is closed.
+ */
+export function addWitness(
+  defs: LawDefs,
+  world: LawWorld,
+  crimeId: string,
+  witness: Witness,
+  now: number,
+): LawEvent[] {
+  const crime = world.law.reports.crimes.find((c) => c.id === crimeId);
+  if (!crime) return [];
+  const events: LawEvent[] = [];
+  sendReport(defs, world, crimeId, witness, !!crimeDef(defs, crime.crime).traced, now, events);
+  events.push(...fileDue(defs, world, now));
+  return events;
+}
+
+/**
+ * The pending witness of a crime sets off (Phase 6 piece F): the crew you let go reports
+ * at `at` (game seconds), or, with `at` undefined, never does (they went down with her).
+ */
+export function releasePending(
+  defs: LawDefs,
+  world: LawWorld,
+  crimeId: string,
+  at: number | undefined,
+  now: number,
+): LawEvent[] {
+  const crime = world.law.reports.crimes.find((c) => c.id === crimeId);
+  const p = crime?.pending;
+  if (!crime || !p) return [];
+  delete crime.pending;
+  const events: LawEvent[] = [];
+  if (at !== undefined) {
+    const traced = !!crimeDef(defs, crime.crime).traced;
+    sendReport(defs, world, crime.id, { ...p, reportAt: at }, traced, now, events);
   }
   events.push(...fileDue(defs, world, now));
+  pruneCrimes(world.law);
   return events;
 }
 
@@ -272,6 +358,7 @@ function fileReport(
     identification: id,
     heatAdded,
     alertAdded,
+    ...(crime.details ? { details: crime.details } : {}),
   });
 }
 
@@ -290,6 +377,44 @@ function nameCrime(
   }
   const fame = gainFame(defs, world.law, def.fame, now);
   if (fame) events.push(fame);
+  if (crime.company && def.grudge > 0) {
+    const e = addGrudge(defs, world, crime.company, def.grudge);
+    if (e) events.push(e);
+  }
+}
+
+/**
+ * A company's grudge rises (plan 05 §8.2): it was their ship. Standing with them falls by
+ * the grudge's share as it does.
+ */
+export function addGrudge(
+  defs: LawDefs,
+  world: LawWorld,
+  company: string,
+  amount: number,
+): LawEvent | undefined {
+  if (amount <= 0) return undefined;
+  const c = defs.actors.companies;
+  const grudges = (world.grudges ??= {});
+  const from = grudges[company] ?? 0;
+  const to = Math.min(c.grudgeMax, from + amount);
+  grudges[company] = to;
+  const standing = world.standing[company] ?? 0;
+  world.standing[company] = Math.max(0, standing - (to - from) * c.standingPerGrudge);
+  return to !== from ? { type: 'GrudgeChanged', company, from, to } : undefined;
+}
+
+/** Grudges fade slowly (plan 05 §8.2), per game hour. */
+function decayGrudges(defs: LawDefs, world: LawWorld, hours: number): void {
+  const g = world.grudges;
+  if (!g) return;
+  const fall = (defs.actors.companies.decayPerDay * hours) / 24;
+  // In place: the world's grudges are the save's own record.
+  for (const [id, v] of Object.entries(g)) {
+    const next = v - fall;
+    if (next <= 0) Reflect.deleteProperty(g, id);
+    else g[id] = next;
+  }
 }
 
 /** Files every report whose time has come. */
@@ -307,11 +432,14 @@ export function fileDue(defs: LawDefs, world: LawWorld, now: number): LawEvent[]
   return events;
 }
 
-/** Drops crimes with nothing left in flight: no report on its way, no news to spread. */
+/**
+ * Drops crimes with nothing left in flight: no report on its way, no news to spread, no
+ * witness yet to set off.
+ */
 function pruneCrimes(law: LawState): void {
   const pending = new Set(law.reports.inProgress.map((r) => r.crimeId));
   law.reports.crimes = law.reports.crimes.filter(
-    (c) => pending.has(c.id) || c.newsAt !== undefined,
+    (c) => pending.has(c.id) || c.newsAt !== undefined || c.pending !== undefined,
   );
 }
 
@@ -437,6 +565,7 @@ export function tickLaw(
   spreadNews(defs, world, now, events);
   decayHeat(defs, world.law, hours, here, now, events);
   decayFame(defs, world.law, hours, now, events);
+  decayGrudges(defs, world, hours);
   return events;
 }
 

@@ -73,7 +73,13 @@ import {
 } from './sim/arena/encounter';
 import { clearArenaCentre, sampleArenaLand } from './sim/arena/land';
 import { westernSuperiorChart } from './sim/chart/chart-data';
-import { bearing, distance, toWorldChart } from './sim/chart/geography';
+import {
+  bearing,
+  distance,
+  fromWorldChart,
+  toWorldChart,
+  WORLD_PROJECTION,
+} from './sim/chart/geography';
 import { OPEN_WATER } from './sim/weather/shelter';
 import { FULL_SAIL, speedKn, updateTargetSpeed } from './sim/sailing/controller';
 import type { SaveControls } from './debug/overlay';
@@ -140,7 +146,9 @@ import { ambientSightM, daylight01 } from './sim/law/perception';
 import { aimSightM, barrelTilt, type AimWeapon } from './sim/combat/aim';
 import { attachAim } from './gameplay/aim';
 import { attachLawAtSea, isLawShip, PURSUES_FROM_TIER } from './gameplay/law-at-sea';
-import { attachCombat, PLAYER_ID } from './gameplay/combat';
+import { attachCombat, PLAYER_ID, type GameCombat } from './gameplay/combat';
+import { attachSeaLaw, type SeaLaw } from './gameplay/sea-law';
+import { attachAbandon, type Abandon } from './gameplay/abandon';
 import { attachBoarding, type GameBoarding } from './gameplay/boarding';
 import { holdCu } from './sim/traffic/cargo';
 import { SHIP_RECORDS, serviceSpeedKn } from './sim/sailing/ships';
@@ -1056,6 +1064,7 @@ async function boot(): Promise<void> {
   };
   /** Boarding a prize (Phase 6 piece D); attached once the guns and the captains are. */
   const boardingRef: { current: GameBoarding | undefined } = { current: undefined };
+  const abandonRef: { current: Abandon | undefined } = { current: undefined };
   /** Puts the tier-5 front page away (piece F); set once the papers are attached. */
   const frontPageRef: { current: (() => void) | undefined } = { current: undefined };
   const ui = mountGameUi({
@@ -1131,7 +1140,8 @@ async function boot(): Promise<void> {
       sendWord: (hideout) => captureRef.current?.actions.sendWord(hideout),
       jailbreak: () => captureRef.current?.actions.jailbreak(),
       hang: () => captureRef.current?.actions.hang(),
-      leave: () => captureRef.current?.actions.leave(),
+      leave: () =>
+        abandonRef.current?.open ? abandonRef.current.leave() : captureRef.current?.actions.leave(),
     },
     onAbandon: () => void endRef.current?.('abandoned'),
     onFrontPageClosed: () => frontPageRef.current?.(),
@@ -1213,6 +1223,7 @@ async function boot(): Promise<void> {
     seed: trafficSeed,
     goodName: (good) => economy.defs.goods.get(good)?.name ?? good,
     lawShips,
+    ownerName: (id) => traffic.defs.factions.get(id)?.name,
     // A region gone Most Wanted: its paper's front page fills the screen.
     onFrontPage: () => queueMicrotask(showFrontPage),
   });
@@ -1389,6 +1400,8 @@ async function boot(): Promise<void> {
 
   // The law at close quarters (Phase 5 piece C): the cutter's captain in a zone or arena.
   const devHunt = params.get('cutter') === 'hunt';
+  /** The combat core, attached below: the Morrill's bow gun fires on its ballistics. */
+  const late: { combat?: GameCombat } = {};
   const lawAtSea = attachLawAtSea({
     ctx,
     law,
@@ -1437,6 +1450,7 @@ async function boot(): Promise<void> {
     notice: (text) => showNotice(text),
     splash: (x, z) => scene?.spray.burst(x, z),
     ...(devHunt ? { devTier: () => PURSUES_FROM_TIER } : {}),
+    combat: () => late.combat,
   });
   ctx.events.on('ZoneEntered', () => lawAtSea.reset());
   ctx.events.on('ArenaEntered', () => lawAtSea.reset());
@@ -1560,6 +1574,9 @@ async function boot(): Promise<void> {
     };
     (window as unknown as { __glpCutter: typeof hook }).__glpCutter = hook;
   }
+  /** Every NPC ship on the water now, the law's among them (arena or zone). */
+  const shipsOnWaterAll = (): Entity[] =>
+    arena ? arena.ships.map((s) => s.entity) : [...traffic.shown.values()].map((s) => s.entity);
   // The combat core (Phase 6 piece A): guns, shot in flight, and the damage it does.
   const combat = attachCombat({
     ctx,
@@ -1581,6 +1598,12 @@ async function boot(): Promise<void> {
     isLawShip,
     splash: (x, z) => scene?.spray.burst(x, z),
     notice: (text) => showNotice(text),
+    // The law's rounds never sink you unless you fired on her (Phase 6 piece F, §14.3 #10).
+    playerHullFloor: (shooter) => {
+      const e = shipsOnWaterAll().find((k) => k.id === shooter);
+      if (!e || !isLawShip(e) || lawAtSea.hostile(shooter)) return 0;
+      return hazards.cls.hullHP * 0.2;
+    },
     // The sea's roll throws the barrel off its sight (piece B); her steady heel is laid out.
     barrelTilt: (mount) => {
       const t = playerShip.transform;
@@ -1589,6 +1612,7 @@ async function boot(): Promise<void> {
         : 0;
     },
   });
+  late.combat = combat;
   if (scene) scene.shots.source = () => combat.shots();
   // Aim mode (Phase 6 piece B): Tab, the arc and splash ring, 1/2/3, C and the left mouse.
   const shipsOnWater = (): Entity[] =>
@@ -1653,6 +1677,16 @@ async function boot(): Promise<void> {
   // Boarding, looting and the aftermath (Phase 6 piece D): F alongside a target under 2 kn.
   // Its screens pause the game like the port screen's; looting runs the clock.
   let contextBeforeBoarding: InputContext = 'sailing';
+  /** Runs the clock on, every world tick with it (looting, the boat, the yard). */
+  const passGameTime = (gameSeconds: number): void => {
+    const clock = state.environment.clock;
+    const before = dayAndHour(clock.gameSeconds).day;
+    const n = advanceGameTime(clock, gameSeconds);
+    for (let i = 0; i < n; i++) ctx.events.emit('WorldTick', { gameSeconds: clock.gameSeconds });
+    const after = dayAndHour(clock.gameSeconds).day;
+    if (after !== before) ctx.events.emit('DayChanged', { day: after });
+    ctx.weather.tick(clock.gameSeconds, shipPose(), ctx.sea);
+  };
   const boarding = attachBoarding({
     ctx,
     player: playerShip,
@@ -1694,15 +1728,7 @@ async function boot(): Promise<void> {
       return (best * zoneFrame(zone, zoneData).compression) / knotsToMs(kn);
     },
     playerKn: () => speedKn(sailing.state),
-    passTime: (gameSeconds) => {
-      const clock = state.environment.clock;
-      const before = dayAndHour(clock.gameSeconds).day;
-      const n = advanceGameTime(clock, gameSeconds);
-      for (let i = 0; i < n; i++) ctx.events.emit('WorldTick', { gameSeconds: clock.gameSeconds });
-      const after = dayAndHour(clock.gameSeconds).day;
-      if (after !== before) ctx.events.emit('DayChanged', { day: after });
-      ctx.weather.tick(clock.gameSeconds, shipPose(), ctx.sea);
-    },
+    passTime: (gameSeconds) => passGameTime(gameSeconds),
     show: (snapshot) => {
       ui.setBoarding(snapshot);
       document.body.dataset['boarding'] = snapshot?.stage ?? 'closed';
@@ -1726,6 +1752,52 @@ async function boot(): Promise<void> {
     ownerName: (id) => traffic.defs.factions.get(id)?.name,
   });
   boardingRef.current = boarding;
+  // The law and the world answer (Phase 6 piece F): crimes at sea, the robbed crew's report,
+  // gunfire heard, firing on the law, and wrecks.
+  const contactOf = (id: string): string => id.replace(/\.consort_\d+$/, '');
+  /** Where a point on the water lies in lat/lon (an arena's: where she was met). */
+  const geoAt = (x: number, z: number): { lat: number; lon: number } | undefined => {
+    if (arena) return westernSuperiorChart().projection.chartToGeo(arena.encounter.at);
+    if (inArenaSpace) return undefined;
+    return WORLD_PROJECTION.chartToGeo(zoneToChart({ x, z }, zoneFrame(zone, zoneData)));
+  };
+  const seaLaw: SeaLaw = attachSeaLaw({
+    ctx,
+    law,
+    detection,
+    lawAtSea,
+    ships: shipsOnWaterAll,
+    isLawShip,
+    nameOf: shipNameOf,
+    ownerOf: (id) => traffic.manifest(contactOf(id))?.owner,
+    ownerName: (id) => traffic.defs.factions.get(id)?.name,
+    cargoOf: (id) => traffic.manifest(contactOf(id))?.cargo ?? [],
+    zoneId: () => (arena || inArenaSpace ? undefined : zoneData.id),
+    geoAt,
+    dark01: () => {
+      const c = detection.conditions;
+      if (!c) return 0;
+      const night = 1 - daylight01(c.sky.sunElevationRad);
+      const fog = Math.min(1, Math.max(0, (2000 - c.fogM) / 1400));
+      return Math.max(night, fog);
+    },
+    windKn: (x, z) => sailingOptions.wind(x, z).speedKn,
+    notice: (text) => showNotice(text),
+    goodName: (good) => economy.defs.goods.get(good)?.name.toLowerCase() ?? good,
+  });
+  if (import.meta.env.DEV || params.has('debug')) {
+    // `__glpSeaLaw.incidents()` reads the encounters whose crews are yet to report;
+    // `wrecks()` the wreck sites; `closeAll()` lets every crew go.
+    const hook = {
+      incidents: () => seaLaw.incidents(),
+      wrecks: () => state.wrecks?.list ?? [],
+      closeAll: () => seaLaw.closeAll(),
+      crimes: () => state.reports.crimes,
+      reports: () => state.reports.inProgress,
+      grudges: () => state.player.grudges ?? {},
+    };
+    (window as unknown as { __glpSeaLaw: typeof hook }).__glpSeaLaw = hook;
+  }
   if (import.meta.env.DEV || params.has('debug')) {
     // `__glpBoarding.near()` reads the target alongside; `board()` presses F; `odds(id)` the
     // panel's numbers; `lay(id)` puts the ship alongside her, stopped; `ships()` the record.
@@ -2016,13 +2088,15 @@ async function boot(): Promise<void> {
   // with the jail screen over the game.
   const lockup = gameJail().lockup;
   /** Back alongside the lockup's pier, out of the impound: docked, so the port screen opens. */
-  const backAboard = async (): Promise<void> => {
+  const backAboard = (): Promise<void> => dockAt(lockup.port, lockup.pier);
+  /** Alongside a port's pier, the zone loaded if it must be: docked, so the port screen opens. */
+  const dockAt = async (port: string, pier: string): Promise<void> => {
     if (machine.mode === 'chart') travelRef.current?.towed();
-    const zoneId = portInfo(lockup.port)?.zone;
+    const zoneId = portInfo(port)?.zone;
     const dock = (): void => {
       const berth =
-        freeBerths().find((b) => b.dockId === lockup.pier) ??
-        sailingOptions.berths.find((b) => b.dockId === lockup.pier);
+        freeBerths().find((b) => b.dockId === pier) ??
+        sailingOptions.berths.find((b) => b.dockId === pier);
       if (!berth) return;
       placeShip(berth.pose);
       const h = hazards.state;
@@ -2103,6 +2177,81 @@ async function boot(): Promise<void> {
   });
   captureRef.current = capture;
   endRef.current = endTheRun;
+  // Abandon ship (Phase 6 piece F, decision 2): F while she founders, or she goes down with
+  // you in the boat. You're landed at the nearest yard with a worn hull; the jail's release
+  // screen tells it.
+  /** A port the boat's rescuer is bound for, waiting for the arena to end. */
+  let landingPort: string | undefined;
+  const landAt = async (port: string): Promise<void> => {
+    if (arena) {
+      landingPort = port;
+      leaveArena('caught');
+      return;
+    }
+    await dockAt(port, `pier.${port.replace(/^port\./, '')}_city`);
+  };
+  const abandon: Abandon = attachAbandon({
+    ctx,
+    law,
+    seaLaw,
+    hazards,
+    shipyard,
+    economy,
+    seed: trafficSeed,
+    where: () => {
+      const geo = westernSuperiorChart();
+      if (arena) {
+        const at = arena.encounter.at;
+        return { chart: at, geo: geo.projection.chartToGeo(at) };
+      }
+      if (machine.mode === 'chart' || inArenaSpace) return undefined;
+      const p = shipPose();
+      const world = zoneToChart({ x: p.x, z: p.z }, zoneFrame(zone, zoneData));
+      return {
+        chart: fromWorldChart(geo, world),
+        geo: WORLD_PROJECTION.chartToGeo(world),
+        zone: { id: zoneData.id, x: p.x, z: p.z },
+      };
+    },
+    portAt: (port) => westernSuperiorChart().ports.find((p) => p.id === port)?.pos,
+    passTime: (s) => passGameTime(s),
+    show: (snapshot) => {
+      ui.setJail(snapshot);
+      document.body.dataset['abandon'] = snapshot ? 'open' : 'closed';
+    },
+    onOpen(open) {
+      if (open) {
+        machine.pushOverlay('jail');
+        input.context = 'menu';
+      } else {
+        machine.removeOverlay('jail');
+        input.context = machine.mode === 'chart' ? 'chart' : 'sailing';
+        input.endTick();
+      }
+      if (cameraRig) cameraRig.suspended = open;
+      hudClock = HUD_INTERVAL_S;
+    },
+    landAt: (port) => landAt(port),
+    notice: (text) => showNotice(text),
+  });
+  abandonRef.current = abandon;
+  if (import.meta.env.DEV || params.has('debug')) {
+    // `__glpAbandon.founder()` holes her to nothing; `abandon()` presses F; `leave()` goes aboard.
+    const hook = {
+      founder: () => {
+        hazards.state.hull = 0;
+        hazards.state.foundering = true;
+        return true;
+      },
+      abandon: () => abandon.abandon(),
+      leave: () => abandon.leave(),
+      leftS: () => abandon.leftS,
+      open: () => abandon.open,
+      landed: () => abandon.landed,
+      docked: () => ports.dockedPort,
+    };
+    (window as unknown as { __glpAbandon: typeof hook }).__glpAbandon = hook;
+  }
   /** Jails a capture once the arena it happened in has ended (piece C raises it inside). */
   const takeCapture = (): void => {
     if (machine.mode === 'chart') travelRef.current?.towed();
@@ -2221,6 +2370,8 @@ async function boot(): Promise<void> {
     return [`Running dark: ${near.contact?.name ?? 'a ship'} can't see you`];
   };
   const trafficChips = (): string[] => {
+    const sinking = machine.mode === 'sailing' ? abandonRef.current?.chip() : undefined;
+    if (sinking) return [sinking];
     if (machine.mode !== 'sailing' || hazards.state.mooring !== 'free') return [];
     const board = boardingRef.current?.chip();
     if (board) return [board];
@@ -2241,6 +2392,8 @@ async function boot(): Promise<void> {
   // In an arena F is "look her over", not a dock order, so its refusal says nothing. In a
   // zone, F with no berth in reach looks over the nearest ship instead.
   ctx.events.on('DockRefused', (e) => {
+    // Going down: F takes to the boat (Phase 6 piece F).
+    if (abandonRef.current?.abandon()) return;
     // Alongside a target, F grapples (Phase 6 piece D), in a zone or an arena.
     if (e.reason === 'noBerth' || e.reason === 'anchored' || arena) {
       const b = boardingRef.current?.board();
@@ -2725,6 +2878,12 @@ async function boot(): Promise<void> {
         label: `${m.def.anchorage.name} (after dark)`,
         kind: 'smuggler' as const,
       })),
+      // Wrecks on the lake (Phase 6 piece F): where each lies, in the chart's sign.
+      ...(state.wrecks?.list ?? []).map((w) => ({
+        at: w.at,
+        label: `Wreck of the ${w.name}`,
+        kind: 'wreck' as const,
+      })),
       // Where the law wants you (piece E), at each region's middle.
       ...portLaw.marks().flatMap((m) => {
         const at = law.defs.regionById.get(m.region)?.anchor;
@@ -2877,13 +3036,17 @@ async function boot(): Promise<void> {
    * resumes from it with the hunter back on your tail. When the hunt ends the slot is
    * cleared and a normal save follows.
    */
+  /** Your ship is going down under you (Phase 6 piece F): a danger like a hunt. */
+  const foundering = (): boolean => hazards.state.foundering && !abandon.open;
   const setDanger = (on: boolean): void => {
     run.inDanger = on;
     document.body.dataset['danger'] = on ? 'on' : 'off';
     if (on) {
+      const hunt = [...pursuitOn][0];
+      const sinking = !hunt && !arena?.run.pursued && !pursued && foundering();
       state.danger = {
-        kind: 'pursuit',
-        by: [...pursuitOn][0] ?? 'law.morrill',
+        kind: sinking ? 'foundering' : 'pursuit',
+        by: sinking ? 'sea' : (hunt ?? 'law.morrill'),
         since: state.environment.clock.gameSeconds,
         ...(arena ? { at: { ...arena.encounter.at } } : {}),
         heading: shipPose().heading,
@@ -2915,7 +3078,8 @@ async function boot(): Promise<void> {
       machine.update(dt);
       if (arena?.run.result) leaveArena(arena.run.result);
       // Danger (plan 16 §4.2–4.3): a hunt on snapshots the run; its end clears it.
-      const hunted = (pursued || !!arena?.run.pursued || pursuitOn.size > 0) && !run.over;
+      const hunted =
+        (pursued || !!arena?.run.pursued || pursuitOn.size > 0 || foundering()) && !run.over;
       if (hunted !== run.inDanger) setDanger(hunted);
       // A capture is taken once the arena it happened in is gone (piece C raises it there).
       if (capture.pending && !arena && !inArenaSpace && !changingZone && !run.over) {
@@ -2946,6 +3110,13 @@ async function boot(): Promise<void> {
       }
       if (machine.mode === 'sailing' && !machine.gameplayPaused && !changingZone) {
         detection.step(dt);
+        abandon.step(dt);
+      }
+      // Landed by the ship that picked you up, once the arena you sank in is gone.
+      if (landingPort && !arena && !inArenaSpace && !changingZone && !run.over) {
+        const port = landingPort;
+        landingPort = undefined;
+        void dockAt(port, `pier.${port.replace(/^port\./, '')}_city`);
       }
       if (sameContext && input.context === 'sailing' && input.pressed('Hail')) {
         const near = traffic.nearest(shipPose(), HAIL_RANGE_M);
@@ -3098,7 +3269,13 @@ async function boot(): Promise<void> {
   // Loaded from the danger snapshot (plan 16 §4.3): the hunter is back on your tail. On the
   // chart she closes and can't be avoided; in a zone, the arena opens around you.
   const danger = state.danger;
-  if (danger && !state.jail) {
+  // Foundering (Phase 6 piece F): she's holed to nothing again and goes on sinking.
+  if (danger?.kind === 'foundering' && !state.jail) {
+    hazards.state.hull = 0;
+    hazards.state.foundering = true;
+    document.body.dataset['dangerResumed'] = danger.by;
+  }
+  if (danger?.kind === 'pursuit' && !state.jail) {
     document.body.dataset['dangerResumed'] = danger.by;
     if (machine.mode === 'chart') {
       meetContact(danger.by === 'law.chartered_tug' ? 'tug' : 'cutter', true);

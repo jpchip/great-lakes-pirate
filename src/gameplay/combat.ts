@@ -122,6 +122,11 @@ export interface CombatDeps {
    * elevation (piece B: the roll, so firing on the downroll is the skill). 0 if absent.
    */
   barrelTilt?(mount: Mount): number;
+  /**
+   * Hull points a shooter's rounds can't take the player's ship below (Phase 6 piece F,
+   * §14.3 criterion 10: the cutter never sinks you unless you fired on her). 0 if absent.
+   */
+  playerHullFloor?(shooter: string): number;
   defs?: CombatDefs;
 }
 
@@ -377,8 +382,14 @@ export function attachCombat(deps: CombatDeps): GameCombat {
       return;
     }
     const mul = end.location === 'waterline' ? DAMAGE_RULES.waterlineMul : 1;
-    const pts = Math.min(hazards.state.hull, dmg.hull * mul);
+    const floor = deps.playerHullFloor?.(shot.shooter) ?? 0;
+    const pts = Math.max(0, Math.min(hazards.state.hull - floor, dmg.hull * mul));
     hazards.state.hull -= pts;
+    // Holed to nothing, she founders (Phase 6 piece F: the abandon-ship clock starts).
+    if (hazards.state.hull <= 0) {
+      hazards.state.hull = 0;
+      hazards.state.foundering = true;
+    }
     ctx.events.emit('ShipHit', {
       shipId: PLAYER_ID,
       by: shot.shooter,

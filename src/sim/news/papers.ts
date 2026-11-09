@@ -79,6 +79,11 @@ export interface StoryInput {
   goods?: { good: string; qty: number }[] | undefined;
   tier?: number | undefined;
   heat?: number | undefined;
+  /** A crime at sea: the ship (in words), her owners (in words), the dead, the cash taken. */
+  victim?: string | undefined;
+  owner?: string | undefined;
+  killed?: number | undefined;
+  cashCents?: number | undefined;
 }
 
 const IDENT_ORDER: readonly Identification[] = ['unknown', 'schooner', 'ship', 'person'];
@@ -107,7 +112,8 @@ export function addStory(defs: NewsDefs, news: NewsState, input: StoryInput): St
       same.ident = input.ident;
     }
     same.heat += input.heat ?? 0;
-    if (input.goods) same.goods = [...(same.goods ?? []), ...input.goods];
+    if (input.goods && !same.victim) same.goods = [...(same.goods ?? []), ...input.goods];
+    if (input.killed !== undefined) same.killed = Math.max(same.killed ?? 0, input.killed);
     return same;
   }
   const story: Story = {
@@ -121,6 +127,10 @@ export function addStory(defs: NewsDefs, news: NewsState, input: StoryInput): St
     ...(input.crime ? { crime: input.crime } : {}),
     ...(input.goods ? { goods: input.goods } : {}),
     ...(input.tier !== undefined ? { tier: input.tier } : {}),
+    ...(input.victim ? { victim: input.victim } : {}),
+    ...(input.owner ? { owner: input.owner } : {}),
+    ...(input.killed ? { killed: input.killed } : {}),
+    ...(input.cashCents ? { cashCents: input.cashCents } : {}),
     heat: input.heat ?? 0,
     printedIn: [],
     heated: false,
@@ -182,11 +192,15 @@ function capitalize(s: string): string {
   return s.charAt(0).toUpperCase() + s.slice(1);
 }
 
-/** Fills `{key}`; an upper-case key gives the value with a capital first letter. */
+/**
+ * Fills `{key}`; a key with a capital first letter (`{WHO}`, `{Victim}`) gives the value
+ * with a capital first letter, for the start of a sentence.
+ */
 export function fill(template: string, values: Record<string, string>): string {
   const text = template.replace(/\{(\w+)\}/g, (_, k: string) => {
     const v = values[k] ?? values[k.toLowerCase()] ?? '';
-    return k === k.toUpperCase() ? capitalize(v) : v;
+    const first = k.charAt(0);
+    return first === first.toUpperCase() ? capitalize(v) : v;
   });
   return capitalize(
     text
@@ -228,6 +242,43 @@ export function goodsText(
   return parts.length > 1
     ? `${parts.slice(0, -1).join(', ')} and ${parts.at(-1) ?? ''}`
     : (parts[0] ?? 'a cargo');
+}
+
+const NUMBERS = [
+  'no one',
+  'one man',
+  'two men',
+  'three men',
+  'four men',
+  'five men',
+  'six men',
+  'seven men',
+  'eight men',
+  'nine men',
+  'ten men',
+];
+
+/** "three men": the dead, the count inflated by Fame as the papers inflate everything. */
+export function deadText(killed: number, fame: number, defs: NewsDefs): string {
+  if (killed <= 0) return 'no one';
+  const n = Math.max(
+    killed,
+    Math.round(killed * (1 + defs.file.exaggeration.quantityPerTier * fame)),
+  );
+  return NUMBERS[n] ?? `${n} men`;
+}
+
+/** What was taken: the goods (exaggerated) and the cash box. */
+function takenText(
+  defs: NewsDefs,
+  story: Pick<Story, 'goods' | 'cashCents'>,
+  name: (good: string) => string,
+  fame: number,
+): string {
+  const parts: string[] = [];
+  if (story.goods?.length) parts.push(goodsText(defs, story.goods, name, fame));
+  if (story.cashCents) parts.push(`${formatCents(story.cashCents)} from her strongbox`);
+  return parts.length > 0 ? parts.join(' and ') : 'what she carried';
 }
 
 function pick<T>(rng: Rng, items: readonly T[]): T {
@@ -277,6 +328,11 @@ export function renderStory(
       : 'Reward Offered',
     epithet: isNamed ? (ex.epithets[Math.min(fame, ex.epithets.length - 1)] ?? '') : '',
     town: paper.town,
+    victim: story.victim ?? 'a ship',
+    owner: story.owner ?? 'her owners',
+    dead: deadText(story.killed ?? 0, fame, defs),
+    cash: story.cashCents ? formatCents(story.cashCents) : '',
+    taken: takenText(defs, story, world.goodName, fame),
   };
   return {
     headline: fill(t.headline, values).toUpperCase(),

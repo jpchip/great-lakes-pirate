@@ -48,5 +48,21 @@ export const jailFileSchema = z.object({
     /** Game hours until the money comes. */
     delayHours: range,
   }),
+  /**
+   * Abandoning your own ship when she founders (plan 07 §14.6 decision 2; Phase 6 piece F):
+   * a passing vessel picks you up and lands you at the nearest port with a shipyard, where
+   * the yard sells you a worn hull of `hullClass` for `wornShare` of a new one's price,
+   * paid from the purse, then the strongboxes by word, and the rest worked off at the yard.
+   */
+  abandon: z.object({
+    /** Game hours in the boat before a ship picks you up and lands you. */
+    rescueHours: range,
+    hullClass: idOf('ship'),
+    wornShare: z.number().positive().max(1),
+    wornHull01: z.number().positive().max(1),
+    wornRigging01: z.number().positive().max(1),
+    /** Wages at the yard toward what's still owed, cents a game day (a week). */
+    workCentsPerDay: z.number().int().positive(),
+  }),
 });
 export type JailFile = z.infer<typeof jailFileSchema>;
