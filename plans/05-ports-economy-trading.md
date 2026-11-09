@@ -1,6 +1,6 @@
 # 05 — Ports, Economy & Trading
 
-Status: DRAFT v0.8 (decisions made; gap review applied; Phase 4 pieces A–L built; 0.4.0 signed off by Jared)
+Status: DRAFT v0.12 (decisions made; gap review applied; Phase 4 pieces A–L built; 0.4.0 signed off by Jared; fences and company grudges built in Phase 6)
 Parent: [00-master-plan.md](00-master-plan.md)
 Inputs: [R1a gazetteer](R1a-western-superior-gazetteer.md) (ports, industries), [03](03-world-scale-chart-travel.md) (routes, chart, encounters), [04](04-water-weather-seasons.md) (seasons; 1 game day = 1 week), [02](02-arcade-sailing.md) (cargo load, shipless play), [01](01-tech-architecture.md) (sim layer, data files)
 Feeds: 06 (hot goods, informants), 07 (what's in the holds), 08 (fences, warehouses), 09 (materials), 10 (ship prices), 12 (contracts, events)
@@ -133,6 +133,7 @@ Harder but viable. A legit player avoids all heat, gets the best contracts, and 
 - Limits: each fence has **weekly cash** and good-type preferences (the Duluth fence takes anything; the Bayfield fence wants fish and furs).
 - **Unlocks by Fame** (plan 06): Unknown players know one small fence (Bayfield). Higher Fame unlocks the Duluth fence and better rates, then smugglers who *sell* contraband and special goods.
 - **Informants:** at high Wanted, a fence may sell you out (a small chance per visit, higher if you've wronged them). That keeps tension.
+- **Built in Phase 6 (2026-11-08, [07 §14.10](07-combat-boarding-targets.md)):** until Phase 7's docks districts, the fences are a Back room tab on the port screen after dark, Bayfield's from Unknown ($250 a week) and Duluth's from Known ($800), at 40–70% by Fame, trust and heat, with the informant on Phase 5's odds at tier 2+. Looted goods come aboard hot with the owning company's marks (`hot.owner`), and robbing a company's ships raises its grudge and costs Standing with it; at a grudge of 50 its agents offer no contracts (07 §14.12). The Phase 6 playtest checks a lot from a prize's hold to the Bayfield fence and to an honest merchant (07 §14.14 criterion 6).
 
 ### 6.3 Smuggling
 - **Untaxed whiskey** and other contraband are bought from smugglers or distilled at a hideout (plan 09) and sold to saloons and lumber and mining camps for big margins. Selling openly is illegal.
@@ -864,6 +865,7 @@ The plan 05 §4.2 profile says "Small". At small, Red Cliff's three seasonal exp
 **Rumors:** a new `seasonal` kind in `data/rumors.json` and `src/sim/rumors/rumors.ts`. While a listed good is in season, saloons in `region.apostles`, `region.chequamegon` and `region.ashland` can tell one tip per good per calendar season (maple sugar, wild rice, furs at Red Cliff). A true tip carries a heard buy price for the ledger; a false tip points at another Red Cliff good that's out of season. R1 §5 pre-release review still applies.
 
 ## Changelog
+- v0.12: Phase 6's fences, looted goods and company grudges as built (§6.2).
 
 - v0.11: Red Cliff seasonal bargain and saloon rumors (§26.5): `exportPrice` on the market, small size, balance harness split, `seasonal` rumor kind.
 - v0.10: Red Cliff built as a trade-only landing (§26): footprint, dock and houses, a tiny market, the `tradeOnly` rule; decision 2 revised, Bad River still out.

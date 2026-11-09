@@ -162,6 +162,8 @@ export interface GameCombat {
   ): FireResult;
   /** Where a mount's (first) gun stands now, world meters; undefined off the water. */
   muzzle(mount: Mount): { x: number; y: number; z: number } | undefined;
+  /** Where any ship's gun at a mount stands now (the one `fireFrom` lets fly from). */
+  muzzleOf(shooter: Entity, mount: Mount): { x: number; y: number; z: number } | undefined;
   /** The player's way over the ground, m/s: every shot she fires carries it. */
   playerVelocity(): { x: number; z: number };
   /** Whether the player's guns are crewed (a T2 or bigger) and laid with the Ex-Navy's eye. */
@@ -790,6 +792,14 @@ export function attachCombat(deps: CombatDeps): GameCombat {
         { x: 0, y: 0, z: 0 },
       );
       return toWorld(mid, pose);
+    },
+
+    muzzleOf(shooter, mount) {
+      const cls = classOf(shooter);
+      const shape = cls && shapeOf(cls);
+      const pose = poseOf(shooter);
+      const local = shape && muzzlesLocal(shape, mount, 1)[0];
+      return local && pose ? toWorld(local, pose) : undefined;
     },
 
     playerVelocity() {

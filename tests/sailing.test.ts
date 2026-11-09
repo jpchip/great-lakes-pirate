@@ -19,6 +19,7 @@ import { compileSailingClass } from '../src/sim/sailing/ship-class';
 import {
   classServiceSpeedKn,
   sailShipRecord,
+  SHIP_RECORDS,
   T1_SCHOONER_ID,
   T2_SCHOONER_ID,
 } from '../src/sim/sailing/ships';
@@ -430,5 +431,39 @@ describe('speed against the cutter (plan 02 §10.1; Phase 5 piece G)', () => {
     expect(broadReach(6, t1(), true)).toBeLessThan(cutterKn);
     expect(steady(90, 6)).toBeLessThan(cutterKn);
     expect(steady(180, 8)).toBeLessThan(cutterKn);
+  });
+});
+
+describe('against a steamer (plan 07 §14.3 criterion 3; Phase 6 piece H)', () => {
+  const broadReach = (windKn: number, manual = false): number => {
+    const s = ship(130);
+    if (manual) {
+      s.manualTrim = true;
+      s.trim = idealTrimAt(t1(), 130 * DEG);
+    }
+    return speedKn(run(s, 60, north(windKn)));
+  };
+  const best = (windKn: number): number =>
+    Math.max(...[90, 110, 130, 150].map((h) => steady(h, windKn)));
+
+  it('a steamer in a calm outruns the T1, sweeps and all', () => {
+    for (const id of ['ship.fish_tug', 'ship.package_steamer', 'ship.ore_freighter']) {
+      expect(best(3), id).toBeLessThan(classServiceSpeedKn(id) / 2);
+    }
+    expect(sailShipRecord(T1_SCHOONER_ID).sweepsKn).toBeLessThan(
+      classServiceSpeedKn('ship.fish_tug'),
+    );
+  });
+
+  it('in a fresh breeze on a reach, the T1 overhauls the wooden package steamer', () => {
+    // Beaufort 5 is 17–21 kn. At her service speed she's caught on auto-trim; fleeing at her
+    // forced draught (`combat.flankKn`, 12.5 kn) only with the sheets trimmed by hand, at the
+    // top of it: plan 07 §14.14 has the call.
+    const steamer = SHIP_RECORDS.find((r) => r.id === 'ship.package_steamer');
+    const flank = steamer?.combat?.flankKn ?? 0;
+    expect(broadReach(20)).toBeGreaterThan(classServiceSpeedKn('ship.package_steamer') * 1.1);
+    expect(broadReach(20, true)).toBeGreaterThan(flank);
+    expect(broadReach(17)).toBeLessThan(classServiceSpeedKn('ship.package_steamer'));
+    expect(broadReach(14)).toBeGreaterThan(classServiceSpeedKn('ship.fish_tug'));
   });
 });

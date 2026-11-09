@@ -1,7 +1,7 @@
 {
   "name": "great-lakes-pirate",
   "private": true,
-  "version": "0.5.0",
+  "version": "0.6.0",
   "type": "module",
   "license": "MIT",
   "engines": {
@@ -30,7 +30,8 @@
     "geo:chart": "node tools/geo/chart.ts",
     "assets:hull": "node tools/assets/build-hull.ts",
     "audio": "node tools/audio/build.ts",
-    "audio:synth": "node tools/audio/synth.ts"
+    "audio:synth": "node tools/audio/synth.ts",
+    "bench:combat": "vitest run --config bench/combat/vitest.config.ts"
   },
   "dependencies": {
     "@preact/signals": "2.11.3",

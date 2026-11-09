@@ -1,6 +1,6 @@
 # 13 — UI / UX
 
-Status: DRAFT v0.8 (decisions made; Phases 1, 3, 4 and 5 UI built)
+Status: DRAFT v0.9 (decisions made; Phases 1, 3, 4, 5 and 6 UI built)
 Parent: [00-master-plan.md](00-master-plan.md)
 Inputs: [01](01-tech-architecture.md) (Preact DOM overlay, input action map, budgets), the HUD and screen needs of every system plan (02–12), master plan (mouse and keyboard only, stylized art, period flavor, sepia/newsprint UI idea)
 Feeds: 14 (UI art assets, fonts), 15 (UI sounds), 17 (usability testing)
@@ -255,6 +255,8 @@ UI and settings preferences are stored **outside the run save** (a separate Inde
 
 **Phase 5 as built (2026-11-04 to 11-08, [06 §14.8–14.14](06-fame-wanted-law-lighthouses.md)).** The HUD's top right carries the regional Wanted chip (an empty ring for Clean, a shield with one to four pips, the noose for Most Wanted, which turns the chip heavy and red and says capture means the rope; shown from tier 1 on Minimal, always on Full) and under it the report eye with who's carrying word, where to and a game-time timer. The detection eye says "Watched by…", "Seen by…" or "Known to…" with the watcher's name, and the lantern chip "Lantern lit" or "Running dark". The chart marks each region at tier 1+ in red pencil and Most Wanted with a noose, and its card has the law lines. The port screen gained the Harbor tab (the region's tier and heat bar, the fine or bribe, reports still on their way, posters and informant risk, a WANTED badge in the header) and the Papers tab (pick a paper, its masthead and lead, buy it for 2¢ to read the front page in newsprint with the WANTED column, the cutter sightings and the weather). The ledger's Standing page is Standing & law. Full-screen: the cell, the release summary and the gallows, the tier-5 WANTED: DEAD OR ALIVE front page, and the end of the run's front page, summary and logbook export, with the last run on the main menu. Docking in a Most Wanted region asks for F twice. All checked by unit and e2e tests in the playtest; the indicator's and the end screen's looks are Jared's.
 
+**Phase 6 as built (2026-11-08 to 11-09, [07 §14.8–14.14](07-combat-boarding-targets.md)).** Tab at the helm is aim mode: the camera goes to the gun, a dotted arc and a splash ring lay the shot on the water (cut short at night and in fog), and the aim HUD at the bottom shows the gun, its shot, reach, the barrel's tilt on the roll, powder, a load ring per mount and "Steering locked" on a T1. The target card names the ship within sight with her class, range, her captain's phase and nerve with the latest reason, hull, rig and engine, crew killed and wounded, colors struck and hawser. A struck ship flies a white flag (made bigger and self-lit in the playtest). F alongside opens the boarding panel: strength against defense, Intimidate, Fight and Withdraw, each with its odds and, at bad odds, the death chance before you commit; then her hold against yours with the cash box and valuables first, a quick grab and the clock; then the four aftermath cards with each one's report time and the boat's death chance. The port screen has a Back room tab after dark (the fence and the shady shipwright). The logbook is the combat log. Foundering shows "She's going down: F abandon ship" and a landing screen. The chart and ledger list wrecks; the ledger's Standing & law page lists company grudges. All checked by unit and e2e tests; their looks, and the full-screen WANTED page opening mid-fight when you fire on the cutter (07 §14.14.3), are Jared's.
+
 ## 13. Cut List
 1. 3D preview in character creation (use 2D portraits).
 2. Player-written journal notes.
@@ -281,6 +283,7 @@ All resolved.
 ---
 
 ## Changelog
+- v0.9: Phase 6: aim mode and the aim HUD, the target card, the white flag, the boarding panel, looting and the aftermath, the back room, abandon ship, wrecks and grudges in the ledger (§12).
 - v0.8: Phase 5: the Wanted chip and report eye, the detection eye and lantern chip, the chart's law marks, the Harbor and Papers tabs, jail and release, the tier-5 front page and the end of the run (§12).
 - v0.7: Phase 4 pieces E–K: freight, saloon, shipyard, stash and smuggler screens, the ledger's pages, and sailing on with the journal open (§12).
 - v0.6: Phase 4 piece C: main menu, character creation and the First Week tracker built (§12).

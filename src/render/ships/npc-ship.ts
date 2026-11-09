@@ -339,23 +339,29 @@ export function createNpcShip(l: NpcShipLines, displayScale = 1): NpcShipModel {
   rigging.name = `${l.id}-rigging`;
   frame.add(rigging);
 
-  // The white flag she hoists when she strikes: off the aftermost masthead, flying aft.
-  const flagGeometry = new THREE.PlaneGeometry(2.6, 1.7, 2, 1);
+  // The white flag she hoists when she strikes: off the aftermost masthead, flying aft. A
+  // big one, faintly self-lit so it reads white against the sky and at dusk, not grey
+  // (Jared, Phase 6 playtest: the first one was hard to see).
+  const flagGeometry = new THREE.PlaneGeometry(4.2, 2.8, 2, 1);
   flagGeometry.rotateY(Math.PI / 2);
   const white = new THREE.Color(0xf4f2ec);
   const n = flagGeometry.attributes['position']?.count ?? 0;
   const rgb = new Float32Array(n * 3);
   for (let i = 0; i < n; i++) rgb.set([white.r, white.g, white.b], i * 3);
   flagGeometry.setAttribute('color', new THREE.BufferAttribute(rgb, 3));
-  const flag = new THREE.Mesh(
-    flagGeometry,
-    new THREE.MeshStandardMaterial({ vertexColors: true, roughness: 0.9, side: THREE.DoubleSide }),
-  );
+  const flagMaterial = new THREE.MeshStandardMaterial({
+    vertexColors: true,
+    roughness: 0.9,
+    side: THREE.DoubleSide,
+    emissive: white,
+    emissiveIntensity: 0.45,
+  });
+  const flag = new THREE.Mesh(flagGeometry, flagMaterial);
   flag.name = `${l.id}-white-flag`;
   const aft =
     [...mastHeads].sort((a, b) => b.z - a.z)[0] ??
     stacks[0]?.top.clone().divideScalar(displayScale);
-  if (aft) flag.position.set(aft.x, aft.y - 0.95, aft.z + 1.35);
+  if (aft) flag.position.set(aft.x, aft.y - 1.5, aft.z + 2.2);
   flag.userData['noOutline'] = true;
 
   const lights = createRunningLights(lamps, 1.4 / displayScale);
@@ -379,6 +385,8 @@ export function createNpcShip(l: NpcShipLines, displayScale = 1): NpcShipModel {
     update(sunElevationDeg, fogDensity, windFromStarboard) {
       const level = lampLevel(sunElevationDeg);
       lights.update(level, fogDensity);
+      // By day it catches the light; after dark only a glimmer, as a lantern shows it.
+      flagMaterial.emissiveIntensity = sunElevationDeg > -4 ? 0.45 : 0.12;
       if (windows && level !== litLevel) {
         litLevel = level;
         const material = windows.material as THREE.Material & Partial<StylizedMaterial>;

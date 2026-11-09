@@ -1,6 +1,6 @@
 # 07 — Combat, Boarding & Targets
 
-Status: DRAFT v0.4 (decisions made; gap review applied; Phase 6 scope proposed in §14)
+Status: DRAFT v0.5 (decisions made; gap review applied; Phase 6 built, pieces A–H, and checked in the container for 0.6.0)
 Parent: [00-master-plan.md](00-master-plan.md)
 Inputs: master plan decisions (weapons vary by ship and are upgradable; boarding is an intimidate/fight check driven by crew; solo players can only loot surrendered ships; violence is optional and adds heavy heat), [02](02-arcade-sailing.md) (ship model, tiers, damage pools, sinking/rowboat, NPC steam mode), [05](05-ports-economy-trading.md) (manifests, grudges), [06](06-fame-wanted-law-lighthouses.md) (heat, witnesses, the cutter)
 Feeds: 10 (weapon upgrades), 11 (wreck salvage), 12 (rival pirates, events), 13 (aim UI)
@@ -374,7 +374,7 @@ A second smuggler ship lies in Siskiwit Bay, built with the Siskiwit Bay zone (0
 
 ### 14.7 Housekeeping found along the way
 
-- The 0.5.0 tag is still Jared's to push from the release merge (PR #88). Two Phase 5 calls are open in 06 §14.14.3: whether the end screen looks right, and where the smuggler anchors relative to Raspberry light.
+- The 0.5.0 tag is still Jared's to push from the release merge (PR #88); 0.6.0's waits on piece H's release PR (§14.14). Two Phase 5 calls are open in 06 §14.14.3: whether the end screen looks right, and where the smuggler anchors relative to Raspberry light.
 - Plan 17 wants a tracking issue per phase with the acceptance checklist; §14.3 can become it once approved.
 - Plan 04 still calls snow and the aurora Phase 6 (§14.1); its next edit should say Phase 9.
 
@@ -479,9 +479,71 @@ A second smuggler ship lies in Siskiwit Bay, built with the Siskiwit Bay zone (0
 
 Plan 15 §19 has the whole of it. The guns are heard near from your own deck and far across the water, the round in flight goes by with its pitch dropping, and where it lands is a splash, wood or canvas; the boiler bursts, the grapple goes over (`ShipGrappled`, a new event raised as F opens a boarding), the boarding panel has its vignette (defiance, the melee, your crew's cheer), and a ship that strikes has her crew calling out and a stinger. The chase layer of the music comes in as targets are alerted and goes to full with gunfire or a ship running close, and settles once she strikes. The law's own guns stay with piece H's sounds; piece F should keep only one of `CutterFired` and `WeaponFired` sounding when it puts the *Morrill* on the ballistics. For Jared: the levels and the chase's thresholds want a listen in the game.
 
+### 14.14 Piece H: playtest and release (2026-11-09)
+
+**Goal** (§14.4, piece H): check the §14.3 exit criteria with pieces A–G merged, run the benches, write the laptop route, bring the plans up to date, and prepare 0.6.0. As for Phase 5 ([06 §14.14](06-fame-wanted-law-lighthouses.md)), the phase is done when the criteria pass on the baseline laptop and Jared signs off the playtest; this section holds what the cloud container could check and what's left for the laptop.
+
+**Added for the playtest:**
+
+- `tests/piracy-playtest.test.ts`: criterion 4 through the sea law for each aftermath choice (the dead in the logbook, killing and piracy committed, the crew's report bringing heat; sunk with all hands and unseen, no report and no heat; seen by a passer, heat), and criterion 6 from a prize's hold to the Bayfield fence and to an honest merchant who finds some lots out.
+- `tests/sailing.test.ts` checks criterion 3's speeds: a steamer in a calm against the T1 and her sweeps, and the T1 on a broad reach in a fresh breeze against the package steamer's service speed.
+- `tests/save-size.test.ts` checks a run a game month into piracy (below).
+- `npm run bench:combat` (`bench/combat/combat.report.ts`): a T2 with every gun her class mounts and three ships circling her at 120–260 m firing the cutter's gun at her as often as it loads, for four minutes at 60 Hz, timing the combat core's tick.
+- `__glpCombat.fireFrom(shipId)`: a ship on the water fires the cutter's gun at you, for the four-ship check in the browser.
+- **Fixed: the _Morrill_ laid her bow gun from amidships** while piece A lets the shot fly from her bow, 25 m forward. Chasing you bow-on, every round went long over a T1's low hull: fired on in an arena, she missed eleven shots of eleven at 140–410 m. Laid from the bow (`GameCombat.muzzleOf`), the same run had her hull a T1 three times in about 25 seconds, and the T1 foundered. `tests/combat.test.ts` has the check (laid from amidships it scores 0 of 6). Her chain at your rigging was off the same way, so since piece F she'd barely touched a fleeing T1; she's as accurate as Phase 5's dice made her again.
+- **The white flag** (Jared: hard to see) is 4.2 × 2.8 m, from 2.6 × 1.7, and faintly self-lit by day so it reads white against the sky (a glimmer after dark). Screenshots in the project files (`phase6-playtest/white-flag-*.png`).
+
+#### 14.14.1 Checked in the cloud container
+
+Typecheck, lint, Prettier, 1,468 unit tests (one skipped) and all 44 e2e tests (the two WebGL `*.local` ones too) pass on the release branch, as they did on main with pieces A–G merged before it. Headless Chromium renders on SwiftShader, so frame times here say nothing about the laptop.
+
+| # | Criterion | Result here | Still needs |
+|---|---|---|---|
+| 1 | T1 makes a tug or a stranded barge strike to warning shots and loots her, killing nobody | `tests/targets.test.ts` (the tug strikes to two or three warning shots, the stranded barge to two), `e2e/boarding.spec.ts` (real warning shots from the swivel until she strikes, aboard, her cash and fish taken, let go, nobody killed; and the solo rule refusing a crew that hasn't struck) and the smoke test's hawser. Pass | The route by hand off Sand Island |
+| 2 | T2 takes a package steamer by intimidation at medium Fame, and by fighting at a cost | `tests/boarding.test.ts`: a T2 at Known against a steamer shaken to 45 intimidates at about 70%, unknown against a fresh crew about 20%; a won fight kills and wounds her hands, and the new playtest test commits killing with its heat. Pass | Jared at the panel |
+| 3 | A steamer in a calm outruns the T1; in a fresh breeze on a reach the T1 catches a wooden steamer | **Calm** (3 kn, arena): the T1 makes 4.5 m/s, a fleeing package steamer 17–18.6 m/s. Pass. **20 kn, broad reach** (`?encounter=steamer` and `freighter`, the T1 at Full heading 130° off the wind, a warning shot to set her running): the T1 makes 19.1–19.2 arena m/s. The steel ore freighter flees at 15.4 rising to 16.7 m/s, so the T1 gains about 15%: caught. The **wooden package steamer** goes from 17.0 to 19.1 m/s as she works up to her forced draught (`flankKn` 12.5) over about 70 s: the T1 closes in the first minute, then they're level. In knots: on auto-trim the T1 makes 12.4 at the top of a fresh breeze (10.9 at 17 kn) against her 11 service and 12.5 forced; with the sheets trimmed by hand she makes 13.5 (02 §10.2), 8% better than the steamer's forced draught, and that's in `tests/sailing.test.ts` now. She also turns for a harbor off her quarter as she runs, so the T1 can't hold the broad reach on her for long. **Passes only for a captain trimming by hand at the top of a fresh breeze** | Jared: decision 1 below |
+| 4 | Every death in the combat log, with its heat if witnessed | `tests/piracy-playtest.test.ts`, one test per aftermath choice (above), and `tests/sea-law.test.ts`. Pass | — |
+| 5 | Engagements of 1–4 minutes; budgets hold with four ships firing | `npm run bench:combat` (four minutes, four ships, 139 rounds fired, 53 hits, one ship sunk, at most six balls in the air): the combat tick **0.006 ms** mean, **0.036 ms** p99, 1.2 ms worst (the first tick warming up). In the browser, the convoy arena (`?debug&play&encounter=convoy&ship=t2&quality=medium`, 1280 × 720) with the T2 firing every gun and the three ships firing back through `fireFrom`, held in her arcs for a minute: **46 → 51** draw calls by day and **49 → 54** at 22:00 (the smoke and splinters are one sprite pool of up to 223 puffs), under 150. In the e2e test the tug strikes within ten seconds of the first warning shot, and the whole of it (strike, board, loot, let go) takes under ten seconds of play through the hooks; by hand, the approach and the looting screen make it longer | How long a real engagement takes by hand; frame times on the laptop |
+| 6 | Looted goods hot with the owner's marks, sold to a fence, refused or reported by an honest merchant | `tests/piracy-playtest.test.ts` (from her hold: hot, the owner's marks; to Bayfield's fence that night; an honest Bayfield merchant finds some lots out), `tests/back-room.test.ts` and `tests/boarding.test.ts`. Pass | A run from robbery to sale |
+| 7 | Let go, a report at her next port; adrift or disabled, later; sunk with all hands, none unless seen | `tests/sea-law.test.ts` and `tests/boarding.test.ts`, and the new per-choice tests. Pass | — |
+| 8 | Sinking spreads; firing on the _Morrill_ means Most Wanted and she shoots to sink | `tests/sea-law.test.ts`. In the arena (`?encounter=cutter`): one swivel round into her and the region's heat is 500 (Most Wanted) at once, and she goes from patrol to firing on your hull. **Her rounds all missed until the fix above**; now she sinks a T1 in three hits. The full-screen WANTED page opens the moment you fire on her and holds the fight until you close it | Decision 3 below |
+| 9 | Your ship sinking, and closing the tab while she founders | `e2e/abandon.spec.ts` (abandoned, landed at a yard aboard a worn hull; the reload lands you back in the foundering ship). Pass | — |
+| 10 | No surprise deaths: the death chance shown first; the cutter never sinks you unprovoked | `tests/boarding.test.ts` (the death chance on the Fight card, capped at 15%) and `tests/sea-law.test.ts` (rigging fire and the 20% hull floor until fired on). Pass. With her gun laid right she hits more often, and the floor still holds | — |
+| 11 | A 0.5.0 save loads unarmed; the save fits | `tests/save-migrations.test.ts` (v7 → v8 with small arms only, no loose powder, at its saved place). A new run's save is under 10 KB for every background; a month of piracy (sea crimes with their details in every region daily, grudges, the 40 wrecks the chart keeps, 120 ships robbed or lost in the traffic slice, guns and a full logbook) **14.1 KB** compressed, against 250 KB. Pass | — |
+| 12 | Piracy feels like a choice | — | Jared |
+| 13 | Plans updated, CI green, 0.6.0 tagged | Plans 00, 02, 05, 07, 10, 13, 15 and 16 record what was built; version 0.6.0, the changelog and the README are in the release PR | CI on the PR; the tag on the merge (Jared) |
+
+#### 14.14.2 For Jared on the laptop
+
+Start a **New run as a Poacher**: Bayfield, $100, enough for the bow swivel ($75) and a keg of powder. `?debug` gives the overlay's Combat folder (arm every gun, stow powder, fire at the nearest ship) and Law folder to skip the shopping and the waiting; each step says where it's worth it. Take a stopwatch to steps 2 and 4 (criterion 5).
+
+1. **Arm her.** After dark, dock at Bayfield: the port screen has a Back room tab. Buy the bow swivel from the shipwright (four game hours pass while he mounts it) and a keg of powder and shot at the chandlery.
+2. **A tug off Sand Island** (criterion 1). By day, sail out toward Sand Island and find a fish tug on her lane (the chart's lookout, or `?encounter=tug`). Tab to aim, 1 for the swivel, C to the warning shot, and lay it across her bow. Watch her captain's nerve on the target card; she should strike under a white flag after two or three (**is the flag easy to see now?**). Come alongside under 2 kn, F, take her cash and fish, and let her go. The logbook should show no one killed.
+3. **Sell it** (criterion 6). Back to Bayfield after dark: the fence takes the fish at 40% or better. Another time, offer a lot at the market instead and see the merchant find it out.
+4. **A steamer with a T2** (criteria 2, 3). With a T2 and cannon (Known Fame, or the Combat folder's arm every gun), go after the package steamer (`?encounter=steamer`). Warning shots, then the boarding panel: Intimidate at your Fame, or Fight, with the odds and the death chance shown first. Then try the chase in a fresh breeze with a T1 (`&wind=0&knots=20`), on auto-trim and with the sheets trimmed by hand: **can you catch her once she's running, and should you?**
+5. **The aftermath and the law** (criteria 4, 7). Take a ship and set her crew adrift, then another and sink her with her crew aboard. Read the logbook, and the Harbor tab and the papers a few days on: the adrift crew's report comes late, the sunk one's never, unless someone saw.
+6. **Fire on the _Morrill_** (criteria 8, 10). With her in sight (`?encounter=cutter`), fire one round near her. The WANTED page fills the screen (decision 3); close it, and she should open fire on your hull and sink a T1 in a few hits. Abandon ship with F, and land at a yard aboard a worn hull. Close the tab while she founders once, and reopen it.
+7. **Combat sounds** (piece G). The swivel and cannon from your deck and across the water, the round going by, its landing, the boiler (the Combat folder's burst), the grapple, her crew as she strikes, and the chase layer coming in as a target's alerted and going full with gunfire. **Are the levels right, and does the chase come in and settle at the right moments?** (plan 15 §19).
+8. **Grudges and the rescue** (piece F's first guesses). Rob two of one company's ships and read the ledger's Standing & law page; at 50 their agents stop offering contracts. After abandoning ship: are 6–18 hours in the boat, and the worn hull at 40% of a new one, right?
+9. **Frame times** (criterion 5): `?bench=water` on Medium and Low at `?harbor=bayfield` by day and at 22:00, and a minute of the four-ship fight with `?debug` showing the fps: `?debug&play&encounter=convoy&ship=t2&quality=medium`, then in the console `c=__glpCombat; c.armFully(); c.powder(30); setInterval(() => { for (const s of ['dev.convoy.freighter','dev.convoy.barge','dev.convoy.tug']) { c.fireAt(s); c.fireFrom(s); } }, 400)`. Phase 3's budget is a p95 frame of at most 16.7 ms on Medium.
+10. **Criterion 12:** does piracy feel like a choice, can a careful pirate stay off the murder list, and when a robbery goes wrong, can you see why?
+
+#### 14.14.3 Open decisions for Jared
+
+1. **How catchable should the wooden steamer be?** (criterion 3). She runs at 12.5 kn forced; a T1 makes 12.4 on auto-trim in 20 kn and 13.5 trimmed by hand. Recommended: her forced draught 11.5 kn (her service speed stays 11), so a T1 on a broad reach in a fresh breeze overhauls her on auto-trim too, by about 8%, and handily trimmed by hand; in moderate wind she still gets away. Or keep 12.5, so she's a T2's prey and a T1 needs the sheets in the sweet spot.
+2. **Combat audio levels and the chase thresholds** (piece G): a listen in the game (step 7).
+3. **The WANTED page in the middle of a fight** (criterion 8). Firing on the _Morrill_ opens the full-screen front page at once. Recommended: hold it until the fight is over (the arena ends or she loses you), and show the HUD's noose and a notice meanwhile.
+4. **Company grudges, the rescue hours and the worn hull's price** (piece F): 10/20/25/30 a crime, fading 2 a day, contracts refused from 50; 6–18 hours in the boat; 40% of a new T1. Recommended: keep them until a run says otherwise.
+5. **The white flag:** bigger and self-lit now; is it enough at range?
+
+#### 14.14.4 Results
+
+Pending Jared's playtest.
+
 ---
 
 ## Changelog
+- v0.5: Phase 6 piece H (§14.14): the exit criteria checked in the container, the cutter's gun laid from her bow, a bigger white flag, the combat bench, the laptop route, and five decisions for Jared (the wooden steamer's speed, combat audio, the WANTED page mid-fight, piece F's numbers, the flag).
 - v0.4.6: §14.12 piece F as built: sea crimes and their witnesses, the robbed crew's late report, sinking's spread, firing on the law, the Morrill's real gun, company grudges, the papers, wrecks and abandoning ship.
 - v0.4.7: §14.13 piece G as built: combat audio (plan 15 §19).
 - v0.4.5: §14.11 piece B as built: aim mode, the arc preview, firing on the roll, the rippled broadside, smoke and splinters, the aim HUD and the target card.

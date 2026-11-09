@@ -1889,6 +1889,15 @@ async function boot(): Promise<void> {
       fire: (bearingDeg: number, rangeM: number, ammo = 'ammo.round') =>
         combat.fire({ ammo, bearing: bearingDeg * DEG, rangeM }),
       fireAt: (shipId: string, ammo = 'ammo.round') => combat.fire({ ammo, target: shipId }),
+      /** A ship on the water fires the cutter's gun at the player (the four-ship fight check). */
+      fireFrom: (shipId: string, elevationDeg = 2, ammo = 'ammo.round') => {
+        const e = shipsOnWater().find((k) => k.id === shipId);
+        const from = e?.transform?.position;
+        const to = playerShip.transform?.position;
+        if (!e || !from || !to) return { ok: false as const, reason: 'noTarget' as const };
+        const bearing = Math.atan2(to.x - from.x, -(to.z - from.z));
+        return combat.fireFrom(e, 'weapon.cutter_gun', ammo, bearing, elevationDeg * DEG);
+      },
       /** Aim mode: `aim('swivel')` enters it, `aimAt(x, z)` lays on the water, `aimFire()`. */
       aim: (weapon?: AimWeapon) => (weapon ? aim.select(weapon) : aim.enter()),
       standDown: () => aim.exit(),

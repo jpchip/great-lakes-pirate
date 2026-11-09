@@ -13,6 +13,8 @@ import { LOGBOOK_MAX } from '../src/sim/run/record';
 import { allPortraits } from '../src/sim/character/backgrounds';
 import { createNewRun } from '../src/sim/character/new-run';
 import { BACKGROUNDS } from '../src/sim/world-state';
+import { recordLost, recordRobbed } from '../src/sim/boarding/record';
+import { freshWrecks, recordWreck, WRECKS_MAX } from '../src/sim/wrecks';
 
 const header: SaveHeader = {
   gameVersion: '0.0.0',
@@ -100,5 +102,113 @@ describe('a Phase 5 run save size', () => {
     const envelope = encodeSave(state, header);
     console.log(`a month of crime: ${(envelope.payload.length / 1024).toFixed(1)} KB compressed`);
     expect(envelope.payload.length).toBeLessThan(20_000);
+  });
+});
+
+// Phase 6 criterion 11 (plan 07 §14.3): a pirate's month on top of Phase 5's, with every
+// sea crime carrying its details and company, grudges against every company, the most
+// wrecks the chart keeps, a hundred ships robbed or lost in the traffic slice, and guns.
+describe('a Phase 6 run save size', () => {
+  it('compresses under 30 KB a month into a life of piracy', () => {
+    const state = createNewRun({
+      name: 'Ole Haugen',
+      shipName: 'Lizzie Bell',
+      background: 'ex_navy',
+      portrait: allPortraits()[0]?.id ?? 'portrait.weathered',
+      seed: 'size-check',
+    });
+    const events = new EventBus<GameEvents>();
+    const ctx = { state, events } as unknown as GameContext;
+    const economy = attachEconomy(ctx, undefined);
+    const law = attachLaw(ctx, 'size-check');
+    attachPapers({
+      ctx,
+      law,
+      seed: 'size-check',
+      goodName: (g) => economy.defs.goods.get(g)?.name ?? g,
+      onFrontPage: () => undefined,
+    });
+    const crimes = ['crime.firing_on_ship', 'crime.piracy', 'crime.killing', 'crime.sinking'];
+    const companies = [
+      'company.hollister_fish',
+      'company.northern_range',
+      'company.gogebic_lake_shore',
+      'company.northland_packet',
+    ];
+    const start = state.environment.clock.gameSeconds;
+    state.traffic ??= { deliveredTo: start, ships: {} };
+    state.wrecks ??= freshWrecks();
+    for (let day = 0; day < 30; day++) {
+      gameLaw().regions.forEach((r, k) => {
+        law.commit({
+          crime: crimes[(day + k) % crimes.length] ?? 'crime.piracy',
+          region: r.id,
+          witnesses: [devWitness('crew', 'ship'), devWitness('keeper', 'schooner')],
+          company: companies[(day + k) % companies.length],
+          details: {
+            victim: `Steamer No. ${day}-${k}`,
+            victimClass: 'ship.package_steamer',
+            owner: companies[(day + k) % companies.length] ?? 'company.northland_packet',
+            killed: k,
+            goods: [
+              { good: 'good.furs', qty: 6 },
+              { good: 'good.dry_goods', qty: 12 },
+            ],
+            cashCents: 12_500,
+          },
+        });
+      });
+      for (let i = 0; i < 4; i++) {
+        const id = `ship.traffic.${day}.${i}`;
+        const at = start + day * SECONDS_PER_GAME_DAY;
+        recordRobbed(state.traffic.ships, id, at, [{ good: 'good.furs', qty: 6 }], 9_000, {
+          cycle: day,
+          outbound: i % 2 === 0,
+        });
+        if (i === 0) recordLost(state.traffic.ships, id, at, 'scuttled', 1);
+      }
+      for (let i = 0; i < 2; i++) {
+        recordWreck(state.wrecks, {
+          shipId: `ship.traffic.${day}.${i}`,
+          name: `Steamer No. ${day}-${i}`,
+          classId: 'ship.package_steamer',
+          className: 'Package steamer',
+          owner: 'company.northland_packet',
+          ownerName: 'Northland Packet Line',
+          how: 'scuttled',
+          byPlayer: true,
+          at: { lat: 46.9 + day / 100, lon: -90.8 - i / 100 },
+          zone: { id: 'zone.apostles', x: 1000 + day, z: -2000 - i },
+          region: 'region.apostles',
+          regionName: 'The Apostle Islands',
+          now: start + day * SECONDS_PER_GAME_DAY,
+          drowned: i,
+          cargo: [
+            { good: 'good.dry_goods', qty: 20 },
+            { good: 'good.coal', qty: 40 },
+          ],
+        });
+      }
+      const end = start + (day + 1) * SECONDS_PER_GAME_DAY;
+      while (state.environment.clock.gameSeconds < end) {
+        state.environment.clock.gameSeconds += WORLD_TICK_GAME_SECONDS;
+        events.emit('WorldTick', { gameSeconds: state.environment.clock.gameSeconds });
+      }
+    }
+    if (state.player.ship)
+      state.player.ship.weapons = [
+        { weapon: 'weapon.swivel', mount: 'bow' },
+        { weapon: 'weapon.rifle', mount: 'hand' },
+      ];
+    state.player.ammo = { charges: 7 };
+    state.logbook = Array.from({ length: LOGBOOK_MAX }, (_, i) => ({
+      at: i * 3600,
+      text: `3 of the Steamer No. ${i}'s crew killed by your fire, 2 wounded (${i})`,
+    }));
+    expect(state.wrecks.list.length).toBe(WRECKS_MAX);
+    expect(Object.keys(state.player.grudges ?? {}).length).toBeGreaterThan(0);
+    const envelope = encodeSave(state, header);
+    console.log(`a month of piracy: ${(envelope.payload.length / 1024).toFixed(1)} KB compressed`);
+    expect(envelope.payload.length).toBeLessThan(30_000);
   });
 });
