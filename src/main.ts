@@ -1628,6 +1628,19 @@ async function boot(): Promise<void> {
     },
     { capture: true },
   );
+  // PROBE (temporary): does a press reach the window in the bubble phase, where the input mapper listens?
+  window.addEventListener('mousedown', (e) =>
+    console.info(
+      '[fire-probe] window-bubble',
+      e.target instanceof Element ? e.target.tagName : '?',
+    ),
+  );
+  document.addEventListener('mousedown', (e) =>
+    console.info(
+      '[fire-probe] document-bubble',
+      e.target instanceof Element ? e.target.tagName : '?',
+    ),
+  );
   // Tab is the aim key at the helm: the browser mustn't move focus with it.
   window.addEventListener('keydown', (e) => {
     if (input.context !== 'sailing') return;
