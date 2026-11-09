@@ -1166,9 +1166,12 @@ test('a new captain completes the First Week', async ({ page }) => {
   await page.keyboard.press('Enter');
   await expect(page.getByTestId('chart-status')).toContainText('Under way');
   await page.keyboard.press('KeyJ');
-  for (const step of ['sell', 'contract', 'stash', 'rumor', 'voyage']) {
-    await expect(page.getByTestId(`first-week-${step}`)).toHaveClass(/done/);
-  }
+  await expect(page.getByTestId('first-week-mark')).toBeVisible();
+  await expect(page.getByTestId('first-week-clear')).toBeVisible();
+  await expect(page.getByTestId('first-week-tracker')).toHaveCount(0);
+  await page.getByTestId('first-week-clear').click();
+  await expect(page.getByTestId('first-week-page')).toHaveCount(0);
+  await page.keyboard.press('KeyJ');
   expect(errors).toEqual([]);
 });
 

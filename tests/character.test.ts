@@ -3,7 +3,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { EventBus } from '../src/core/events';
 
-import { attachCaptain } from '../src/gameplay/captain';
+import { attachCaptain, FIRST_WEEK_LOGBOOK_LINE } from '../src/gameplay/captain';
 import type { GameContext, GameEvents } from '../src/modes/context';
 import {
   allBackgrounds,
@@ -327,6 +327,46 @@ describe('the First Week', () => {
     expect(state.knowledge.prices['port.duluth']?.['good.salted_fish']?.seenAt).toBe(
       state.environment.clock.gameSeconds,
     );
+    captain.dispose();
+  });
+
+  it('hides the tracker, logs, and clears when the week is finished', () => {
+    const state = createNewRun(setup({ background: 'fisherman' }));
+    const events = new EventBus<GameEvents>();
+    const ctx = { state, events } as unknown as GameContext;
+    const captain = attachCaptain(ctx, gameEconomy(), () => undefined);
+    const at = state.environment.clock.gameSeconds;
+    events.emit('TradeCompleted', {
+      port: 'port.bayfield',
+      good: 'good.salted_fish',
+      side: 'sell',
+      qty: 8,
+      totalCents: 9000,
+      nextUnitCents: 1000,
+    });
+    events.emit('ContractCompleted', { late: false } as GameEvents['ContractCompleted']);
+    (events as unknown as EventBus<Record<string, unknown>>).emit('StorageChanged', {
+      hideout: 'hideout.stockton',
+      direction: 'in',
+      good: 'good.salt',
+      qty: 1,
+    });
+    events.emit('RumorHeard', {
+      rumor: { source: 'saloon' },
+      costCents: 50,
+    } as GameEvents['RumorHeard']);
+    expect(captain.firstWeek()?.complete).toBe(false);
+    events.emit('VoyageStarted', { legs: 1, lengthM: 1000, destinationZoneId: undefined });
+    const snap = captain.firstWeek();
+    expect(snap?.complete).toBe(true);
+    expect(state.firstWeek?.hidden).toBe(true);
+    expect(state.logbook?.some((e) => e.text === FIRST_WEEK_LOGBOOK_LINE && e.at === at)).toBe(
+      true,
+    );
+    captain.clearFirstWeek();
+    expect(captain.firstWeek()).toBeUndefined();
+    expect(state.firstWeek?.cleared).toBe(true);
+    expect(state.firstWeek?.done).toHaveLength(FIRST_WEEK_STEPS.length);
     captain.dispose();
   });
 

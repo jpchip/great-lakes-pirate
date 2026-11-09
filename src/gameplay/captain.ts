@@ -10,7 +10,10 @@ import {
 } from '../sim/character/first-week';
 import { firstWeekContext } from '../sim/character/new-run';
 import { recordFishPrices } from '../sim/character/perks';
+import { log } from '../sim/run/record';
 import type { GameContext } from '../modes/context';
+
+export const FIRST_WEEK_LOGBOOK_LINE = 'Stood the first week.';
 
 /**
  * The captain in the running game (Phase 4 piece C): the Fisherman's fish prices kept
@@ -32,6 +35,8 @@ export interface CaptainControl {
   firstWeek(): FirstWeekSnapshot | undefined;
   /** Put the tracker away (or bring it back); the journal keeps the list. */
   setHidden(hidden: boolean): void;
+  /** Drop the finished week's mark from the journal. */
+  clearFirstWeek(): void;
   dispose(): void;
 }
 
@@ -45,7 +50,7 @@ export function attachCaptain(
 
   const snapshot = (): FirstWeekSnapshot | undefined => {
     const fw = state.firstWeek;
-    if (!fw) return undefined;
+    if (!fw || fw.cleared) return undefined;
     const c = firstWeekContext(state.player.captain.background);
     return {
       lines: firstWeekLines(fw, c),
@@ -66,9 +71,15 @@ export function attachCaptain(
     const step = stepForEvent(String(type), payload, { cargoGood });
     if (step && completeStep(fw, step)) {
       justDone = step;
+      if (firstWeekComplete(fw)) {
+        fw.hidden = true;
+        log(state, state.environment.clock.gameSeconds, FIRST_WEEK_LOGBOOK_LINE);
+      }
       onFirstWeek(snapshot());
     }
   });
+  const fw0 = state.firstWeek;
+  if (fw0 && firstWeekComplete(fw0) && !fw0.cleared) fw0.hidden = true;
   onFirstWeek(snapshot());
 
   return {
@@ -76,6 +87,11 @@ export function attachCaptain(
     setHidden(hidden) {
       if (!state.firstWeek) return;
       state.firstWeek.hidden = hidden;
+      onFirstWeek(snapshot());
+    },
+    clearFirstWeek() {
+      if (!state.firstWeek) return;
+      state.firstWeek.cleared = true;
       onFirstWeek(snapshot());
     },
     dispose() {

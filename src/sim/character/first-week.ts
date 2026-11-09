@@ -20,6 +20,8 @@ export const firstWeekSchema = z.object({
   done: z.array(z.enum(FIRST_WEEK_STEPS)),
   /** The captain put the checklist away; the journal keeps it. */
   hidden: z.boolean(),
+  /** The one-line mark was cleared from the journal; `done` stays for the save. */
+  cleared: z.boolean().optional(),
 });
 
 export type FirstWeekState = z.infer<typeof firstWeekSchema>;

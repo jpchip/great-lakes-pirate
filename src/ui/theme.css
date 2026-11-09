@@ -1801,6 +1801,14 @@ body[data-mode='chart'] .chart-layer {
   margin-bottom: 8px;
 }
 
+.first-week-mark {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  margin: 4px 0 10px;
+  font-size: 15px;
+}
+
 .first-week-list {
   margin: 0;
   padding: 0;
