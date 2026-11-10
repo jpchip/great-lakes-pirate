@@ -446,6 +446,26 @@ describe('combat in play', () => {
     expect(world.has(npc)).toBe(false);
   });
 
+  it("lays the cutter's bow gun from her bow, where the shot leaves, and finds a T1 (piece H)", () => {
+    const { combat, npc, run, seen } = setup('ship.cutter_morrill', 300);
+    const muzzle = combat.muzzleOf(npc, 'bow');
+    if (!muzzle) throw new Error('no muzzle');
+    // Lying across the bearing, her bow gun stands well forward of amidships.
+    expect(Math.hypot(muzzle.x - 0, muzzle.z + 300)).toBeGreaterThan(15);
+    const sol = leadSolution(muzzle, { x: 0, z: 0 }, { x: 0, z: 0, vx: 0, vz: 0 }, 96);
+    if (!sol) throw new Error('no solution');
+    for (let i = 0; i < 6; i++) {
+      const lift = Math.atan2(1, 300);
+      expect(
+        combat.fireFrom(npc, 'weapon.cutter_gun', 'ammo.round', sol.bearing, sol.elevation + lift)
+          .ok,
+      ).toBe(true);
+      run(9.1);
+    }
+    const hits = seen.filter((s) => s.type === 'ShipHit').length;
+    expect(hits).toBeGreaterThanOrEqual(4);
+  });
+
   it("damages the player's ship when a shot finds her", () => {
     const { combat, npc, run, hazards, seen } = setup('ship.cutter_morrill', 200);
     // The cutter's gun, fired back down the bearing at the player (piece F lays it for real).

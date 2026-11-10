@@ -195,11 +195,11 @@ export function isDevEncounter(id: string | null): id is DevEncounterId {
 
 /** The dev ships' classes; their speeds come from ships.json (`speedKn` 0 lies stopped). */
 const DEV_SHIPS: Readonly<Record<string, { classId: string; name: string; stopped?: true }>> = {
-  freighter: { classId: 'ship.ore_freighter', name: 'Ore boat Manola' },
-  barge: { classId: 'ship.schooner_barge', name: 'Schooner-barge Grampian' },
-  steamer: { classId: 'ship.package_steamer', name: 'Steamer Hiram R. Dixon' },
-  tug: { classId: 'ship.fish_tug', name: 'Fish tug Ella G.' },
-  cutter: { classId: 'ship.cutter_morrill', name: 'Revenue cutter Morrill' },
+  freighter: { classId: 'ship.ore_freighter', name: 'Manola' },
+  barge: { classId: 'ship.schooner_barge', name: 'Grampian' },
+  steamer: { classId: 'ship.package_steamer', name: 'Hiram R. Dixon' },
+  tug: { classId: 'ship.fish_tug', name: 'Ella G.' },
+  cutter: { classId: 'ship.cutter_morrill', name: 'Morrill' },
   derelict: { classId: 'ship.schooner_barge', name: 'Wreck of the Pretoria', stopped: true },
 };
 

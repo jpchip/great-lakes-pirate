@@ -178,7 +178,8 @@ export function attachLawAtSea(deps: LawAtSeaDeps): LawAtSea {
     const t = e.transform;
     const pt = deps.player.transform;
     if (!combat || !w || !t || !pt) return false;
-    const muzzle = { x: t.position.x, y: 3, z: t.position.z };
+    // Laid from where the shot leaves: her bow gun stands well forward of amidships.
+    const muzzle = combat.muzzleOf(e, 'bow') ?? { x: t.position.x, y: 3, z: t.position.z };
     let bearing: number;
     let elevation: number | undefined;
     let ammo: string;

@@ -1,6 +1,6 @@
 # 02 — Arcade Sailing & Ship Handling
 
-Status: DRAFT v1.3 (decisions made; gap review applied; S2 buoyancy notes; Phase 1 built and playtested; 0.1.0; Phase 5 speed pass, checked in the 0.5.0 playtest)
+Status: DRAFT v1.4 (decisions made; gap review applied; S2 buoyancy notes; Phase 1 built and playtested; 0.1.0; Phase 5 speed pass, checked in the 0.5.0 playtest; checked against steamers in the 0.6.0 playtest)
 Parent: [00-master-plan.md](00-master-plan.md)
 Inputs:
 - [01 tech/architecture](01-tech-architecture.md): minimal physics, 30–60 Hz tick, budgets, shared wave function
@@ -300,6 +300,8 @@ Unit tested (`tests/sailing.test.ts`): the T1 beats the cutter on a broad reach 
 
 **The arena chase, checked in the Phase 5 playtest (2026-11-08, [06 §14.14](06-fame-wanted-law-lighthouses.md)):** with piece C's cutter in the game, `?encounter=cutter&cutter=hunt` in 20 kn from the north, the T1 at Full on a broad reach away from her. By day she makes 19.0 arena m/s to the cutter's 18.5, so the range holds at about 380 m for 50 s; then her rounds into the rigging slow the T1, the arena's edge holds her at 90 s, and the cutter is alongside at 100. At night, overcast and dark, the lookout loses her within 10 s and the cutter gives up after a minute's search. The speed pass did what it set out to (the T1 is faster on a broad reach), but the edge piece C left in place and the cutter's rigging fire mean no daylight escape in open water. Whether a clean broad reach should win by day is Jared's call (06 §14.14.3). **Decided the same day: it should.** The edge now opens while you're pulling away (06 §14.14.5): from outside her gun the T1 gets away on auto-trim; from a forced meeting's 520 m her rigging fire still wins, so the margin by hand trim is for the playtest to judge.
 
+**Against steamers, checked in the Phase 6 playtest (2026-11-09, [07 §14.14](07-combat-boarding-targets.md) criterion 3):** in a calm (3 kn) a fleeing package steamer makes 17–18.6 arena m/s to the T1's 4.5. In 20 kn on a broad reach the T1 makes 19.1–19.2 arena m/s on auto-trim: the steel ore freighter flees at 15.4–16.7 and is caught, but the wooden package steamer works up from 17.0 to 19.1 at her forced draught (`combat.flankKn` 12.5 kn) over about 70 s and holds level. Trimmed by hand the T1 makes 13.5 kn, enough to overhaul her. Whether to slow her forced draught is Jared's call (07 §14.14.3). Abandoning a ship that founders (decision 2 of 07 §14.6) is built in place of §6.5's rowboat for now ([07 §14.12](07-combat-boarding-targets.md)).
+
 ---
 
 ## 11. Wind Interface (contract with plan 04)
@@ -449,6 +451,7 @@ All resolved. Follow-ups for other plans: passage prices and shipless earning (0
 ---
 
 ## Changelog
+- v1.4: The Phase 6 playtest's chase against the steamers, and abandon ship in place of the rowboat (§10.2).
 - v1.3: The cutter's engine speed is 9.5 kn after the playtest (§10.2; 06 §14.14.6).
 - v1.2: The arena edge opens while you pull away from the cutter (06 §14.14.5).
 - v1.1: The Phase 5 playtest's arena chase against the cutter after the speed pass (§10.2).

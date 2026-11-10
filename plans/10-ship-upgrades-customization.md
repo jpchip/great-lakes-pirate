@@ -1,6 +1,6 @@
 # 10 — Ship Upgrades & Customization
 
-Status: DRAFT v0.3 (decisions made; gap review applied)
+Status: DRAFT v0.6 (decisions made; gap review applied; Phase 4 shipyard and Phase 6 guns built)
 Parent: [00-master-plan.md](00-master-plan.md)
 Inputs:
 - Master plan decisions: one ship at a time and always your own (no stealing ships); the invisible crew comes with bigger ships
@@ -236,7 +236,7 @@ Numbers are draft tuning values. ★ = visible on the model.
 
 ## 13. Phasing
 - **Phase 4:** shipyard buying and trading in (T1 → T2), ~10 upgrades (quality canvas, reinforced planking, expanded hold, barometer, sounding, spyglass, improved blocks), repairs.
-- **Phase 6:** weapons and weapon mods, hidden compartments, the shady shipwright.
+- **Phase 6:** weapons and weapon mods, hidden compartments, the shady shipwright. **Built (2026-11-08, [07 §14.10](07-combat-boarding-targets.md)):** the shady shipwright in the back room after dark sells the bow swivel ($75, any Fame, T1+) and the light cannon ($240 a pair, Known, T2), mounted straight into `player.ship.weapons`; four weapon mods in the `weaponMods` slot (gun sights, bored-out barrels, improved carriages, hidden gun ports), each needing a gun aboard; a trade-in moves a gun to a new hull that has its mount. The hidden compartment shipped in 0.5.0. Powder and shot are cargo from the chandlery, refused from Wanted tier 2. Abandoning a foundering ship loses her guns, and the yard sells a worn T1 at 40% of a new one (07 §14.12).
 - **Phase 8:** hideout-crafted upgrades, drydock installs, shipless shipbuilding.
 - **Phase 9+:** ice bow, T3, hull variants, cosmetic editor polish.
 
@@ -362,6 +362,7 @@ The four instruments and the anchor move to a new hull; sails, planking, the hol
 ---
 
 ## Changelog
+- v0.6: Phase 6 as built (§13): the shady shipwright's guns and weapon mods, powder at the chandlery, the worn hull after abandoning ship.
 - v0.5: Phase 4 piece G, second half (§17): the shipyard, trade-in, ten upgrades, repairs and kits, `player.ship` in the save.
 - v0.4: Phase 4 piece G, first half (§16): the T2 schooner's record, lines, deck layout, yawl boat and handling.
 - v0.3: Gap review: auto-sell excess cargo, T3 single swivel, shipyard wait before districts exist.

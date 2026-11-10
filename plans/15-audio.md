@@ -397,11 +397,12 @@ All resolved.
 ### Still to do
 
 1. **Music:** like the stingers, "Hard Alee" is a synthesized placeholder (§16 item 1).
-2. **A listen in the game** (plan 07 §14.4 row G: "Listen by ear"): the stems' balance against the guns, the gun levels from the deck at each camera place, and the chase's thresholds and hold.
+2. **A listen in the game** (plan 07 §14.4 row G: "Listen by ear"): the stems' balance against the guns, the gun levels from the deck at each camera place, and the chase's thresholds and hold. It's step 7 of the Phase 6 laptop route and decision 2 there ([07 §14.14](07-combat-boarding-targets.md)).
 
 ---
 
 ## Changelog
+- v1.2: The Phase 6 playtest's listen is on the laptop route (§19).
 - v1.1: Phase 6 piece G built (§19): the guns near and far, the round in flight, impacts in water, wood and canvas, the boiler, the grapple and the boarding vignette, her crew as she strikes with a stinger, and the chase layer.
 - v1.0: The paper boy's call wired to piece F's papers and checked in the Phase 5 playtest (§18).
 - v0.9: Phase 5 piece H built (§18): Wanted stingers, the cutter's whistle hails, engine, bell and bow gun, the deputies' rifles, the lockup's door and release.
