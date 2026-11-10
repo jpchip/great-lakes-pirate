@@ -1,6 +1,6 @@
 # 08 — Docks District Stealth (Night)
 
-Status: DRAFT v0.6 (decisions made; gap review applied; spike S5 written up; Phase 7 scope proposed)
+Status: DRAFT v0.6 (decisions made; gap review applied; spike S5 written up; Phase 7 scope approved)
 Parent: [00-master-plan.md](00-master-plan.md)
 Inputs:
 - Master plan: compact docks-district scenes, no full towns; lockpicks, distractions, bribes, the whiskey trick; carry limits
@@ -397,7 +397,7 @@ Phase 7 is the **On Foot: Docks & Islands** build (version 0.7.0), with one goal
 
 The scope comes from §16 above and [11 §15](11-exploration-islands-secrets.md)'s Phase 7 row, plus what earlier phases left for it: going ashore and the rowboat ([03 §7](03-world-scale-chart-travel.md), [02 §6.5](02-arcade-sailing.md), [07 §14.6](07-combat-boarding-targets.md) decision 2), the walkable back room that replaces the port-screen tab ([07 §14.6](07-combat-boarding-targets.md) decision 1), constables, marshals and the jailbreak that Phase 5 stubbed ([06 §14](06-fame-wanted-law-lighthouses.md)), the captain's body ([05 §16.5](05-ports-economy-trading.md)), the First Week's sixth step ([12 §3](12-sandbox-events-character-failure.md)), the on-foot HUD ([13 §4.2](13-ui-ux.md)) and the docks and stealth sounds ([15 §4.5, §11](15-audio.md)).
 
-This section is the phase's proposed scope. Its exit criteria (§20.3) become the phase's acceptance checklist once Jared approves it with the calls in §20.6.
+This section is the phase's scope, approved by Jared on 2026-11-10 with the recommended calls in §20.5 and §20.6. Its exit criteria (§20.3) are the phase's acceptance checklist, and the playtest piece checks them.
 
 ### 20.1 What Phases 4–6 change or put at risk
 
@@ -434,7 +434,7 @@ This section is the phase's proposed scope. Its exit criteria (§20.3) become th
 
 **Out of scope:** the Ashland, Washburn, Duluth, Superior, Two Harbors and La Pointe districts (§2.2: 8+ and 9+), with their lockups, harbor launches and the Twin Ports waterfront; lighthouse stations on foot, raids and dousing (Phase 9, 11 §15); the other 21 islands, wildlife, hunting and trapping, caves, salvage, legends and clues (Phase 9); hideout building and the Siskiwit Bay zone (Phase 8); snow tracks and winter (Phase 9); bounty hunters (06 cut list #1); and §17's cuts #1 (handcart) and #4 (two-level interiors).
 
-### 20.3 Exit criteria (proposed)
+### 20.3 Exit criteria
 
 Phase 7 is done when these pass on the baseline laptop and Jared signs off the playtest. The first five are §16's acceptance; the rest come from 11 §15, Phases 4–6 and plan 17's definition of done.
 
@@ -491,21 +491,21 @@ Ten pieces, each sized to be one thread. Four can start at once (A, B, C and D).
 
 ### 20.6 Decisions for Jared
 
-1. **Which island is the walkable one?** 11 §15 says Stockton or Hermit.
+1. **Which island is the walkable one?** **Decided 2026-11-10: Stockton** (Jared). 11 §15 says Stockton or Hermit.
    - **Stockton (recommended):** the Phase 4 stash is already there, it's a Phase 8 hideout, and its old brownstone quarry is the POI. About 1.5 × 1 km of game ground (24 baked tiles), so most of it is forest to dress, with the quarry and the stash bay as the walked parts.
    - **Hermit:** about 500 m across (4 tiles), its own abandoned quarry and derrick, and the payroll legend's site for Phase 9. Much less to dress, but nothing there yet to come back for.
-2. **What does the rowboat do?** Going ashore at anchor needs a boat; 02 §6.5 wants abandon ship to put you in it.
+2. **What does the rowboat do?** **Decided 2026-11-10: row ashore and abandon into it** (Jared). Going ashore at anchor needs a boat; 02 §6.5 wants abandon ship to put you in it.
    - **Row ashore and abandon into it (recommended):** at anchor, you row a short way to the landing (2–3 kn, zone only, swamped in a sea); abandoning a foundering ship near land in moderate weather puts you in it to row for the nearest landing or port, and the 0.6.0 rescue stays for far offshore.
    - **A cutaway only:** "Go ashore" fades to the landing and back. Abandon ship stays the rescue. Least work.
    - **All of 02 §6.5:** the rowable boat as above plus buying passage between ports and fishing from the boat. More than the island needs.
-3. **When you dock at Bayfield, where do you land?** §2.3 keeps trading in menus but makes the district walkable by day.
+3. **When you dock at Bayfield, where do you land?** **Decided 2026-11-10: the port screen, with "Go ashore"** (Jared). §2.3 keeps trading in menus but makes the district walkable by day.
    - **The port screen, with "Go ashore" (recommended):** as today, so a quick sale stays quick; going ashore walks you into the district, where shop doors open their tabs, and at night it's the only way to the back room.
    - **On foot first:** you step off onto the wharf and walk to each shop. More atmosphere, slower trading every visit.
    - **The port screen by day, on foot by night:** docking after dark puts you ashore. Neat, but no daytime scouting unless you choose it from a menu anyway.
 
 ### 20.7 Housekeeping found along the way
 
-- Phase 6's two tuning calls are in already (`28a2592`): the package steamer's forced draught is 11.5 kn and the WANTED page waits for the arena to end. [07 §14.14.4](07-combat-boarding-targets.md)'s results still read "pending Jared's playtest", and the white flag's visibility (decision 5 there) is unanswered; piece J can close both.
+- Phase 6's two tuning calls are in already (`28a2592`): the package steamer's forced draught is 11.5 kn and the WANTED page waits for the arena to end. Jared's Phase 6 playtest passed and the white flag is good enough (2026-11-10), recorded in [07 §14.14.4](07-combat-boarding-targets.md).
 - The master plan's Phase 7 row should gain the jailbreak, the walkable back room and the rowboat once this scope is approved. 00 §4.4 says the other districts come in "Phase 8+", which §2.2 already splits into 8+ and 9+.
 - Plan 06 §14.2 and §14.5 and plan 05 §16.5 send harbor launches, lighthouse raids and the Twin Ports waterfront to Phase 7; their next edits should point at the phases in §20.5.
 - Plan 14's roadmap put the character base in Phases 4–6; piece B builds it now.
@@ -514,7 +514,7 @@ Ten pieces, each sized to be one thread. Four can start at once (A, B, C and D).
 ---
 
 ## Changelog
-- v0.6: Phase 7 scope proposed (§20): what Phases 4–6 change, deliverables, exit criteria, ten work pieces, smaller calls and three decisions.
+- v0.6: Phase 7 scope (§20), approved 2026-11-10 with Stockton, the rowable boat and the port screen first: what Phases 4–6 change, deliverables, exit criteria, ten work pieces, smaller calls and three decisions.
 - v0.5: S5 playtest: a hop on Space, smoother slope measurement and control on steep patches, so rough ground doesn't snag you.
 - v0.4: Spike S5 written up (§19): the hand-rolled controller is good enough without Rapier; crouch moved off Ctrl.
 - v0.3: Gap review: Bayfield lockup for MVP jail and jailbreaks, rifle added to on-foot tools, disguises removed, scent removed from the changelog.
