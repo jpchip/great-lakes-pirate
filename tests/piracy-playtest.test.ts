@@ -39,7 +39,7 @@ const passer: Witness = {
 };
 
 /** The sea law over a bare world: one package steamer, and a passer in sight or not. */
-function seaLaw(witnessed: boolean) {
+function seaLaw(witnessed: boolean, options?: { struck?: boolean }) {
   const state = createWorldState('piracy-playtest', NOON);
   const events = new EventBus<GameEvents>();
   const world = createGameWorld();
@@ -53,9 +53,15 @@ function seaLaw(witnessed: boolean) {
   law.locate = () => APOSTLES;
   const ada: Entity = {
     id: ADA,
-    npc: { classId: 'ship.package_steamer' },
+    npc: { classId: 'ship.package_steamer', struck: options?.struck ?? false },
     transform: { position: { x: 0, y: 0, z: 0 }, heading: 0 },
   } as unknown as Entity;
+  const player: Entity = {
+    id: PLAYER_ID,
+    playerControlled: true,
+    transform: { position: { x: 0, y: 0, z: 0 }, heading: 0 },
+  } as unknown as Entity;
+  world.add(player);
   const detection = {
     witnesses: () => (witnessed ? [passer] : []),
     watchers: [],
@@ -176,6 +182,84 @@ describe('every death in the combat log, and its heat (§14.3 criterion 4)', () 
 
   it('sinkWithCrew in sight of another ship: she tells, and the heat comes', () => {
     const r = takeHer('sinkWithCrew', true);
+    expect(r.reports).toBeGreaterThan(0);
+    expect(r.heat).toBeGreaterThan(0);
+  });
+
+  const crewWitnessId = `crew.${ADA}`;
+  const tickHours = (t: ReturnType<typeof seaLaw>, hours: number) => {
+    for (let i = 0; i < hours; i++) {
+      t.state.environment.clock.gameSeconds += HOUR;
+      t.events.emit('WorldTick', { gameSeconds: t.state.environment.clock.gameSeconds });
+    }
+  };
+
+  it('cancels a crew report already in flight when everyone goes down with her', () => {
+    const t = seaLaw(false);
+    t.events.emit('ShotLanded', {
+      by: PLAYER_ID,
+      ammo: 'round',
+      on: 'ship',
+      shipId: ADA,
+      at: { x: 0, y: 0, z: 0 },
+    });
+    tickHours(t, 3);
+    expect(t.state.reports.inProgress.some((r) => r.witness.id === crewWitnessId)).toBe(true);
+    t.events.emit('ShipSurrendered', { shipId: ADA, classId: 'ship.package_steamer', how: 'fought' });
+    t.events.emit('ShipLooted', {
+      shipId: ADA,
+      owner: COMPANY,
+      region: APOSTLES,
+      goods: [],
+      cashCents: 0,
+      valueCents: 0,
+      minutes: 0,
+      quick: true,
+    });
+    t.events.emit('CrewCasualties', {
+      shipId: ADA,
+      by: PLAYER_ID,
+      killed: 5,
+      wounded: 0,
+      cause: 'sunk',
+      lethal: true,
+    });
+    t.events.emit('ShipScuttled', { shipId: ADA, withCrew: true });
+    t.events.emit('AftermathChosen', {
+      shipId: ADA,
+      owner: COMPANY,
+      choice: 'sinkWithCrew',
+      killed: 5,
+      survivors: 0,
+      reportInS: undefined,
+    });
+    t.events.emit('ShipSunk', {
+      shipId: ADA,
+      classId: 'ship.package_steamer',
+      by: PLAYER_ID,
+      crewAboard: 5,
+      at: { x: 0, z: 0 },
+    });
+    expect(t.state.reports.inProgress.some((r) => r.witness.id === crewWitnessId)).toBe(false);
+    t.law.fileAll();
+    expect(heatIn(t.state, APOSTLES)).toBe(0);
+  });
+
+  it('holds the encounter open while you are still alongside a struck ship', () => {
+    const t = seaLaw(false, { struck: true });
+    t.events.emit('ShotLanded', {
+      by: PLAYER_ID,
+      ammo: 'round',
+      on: 'ship',
+      shipId: ADA,
+      at: { x: 0, y: 0, z: 0 },
+    });
+    tickHours(t, 3);
+    expect(t.sea.incidents().some((i) => i.shipId === ADA)).toBe(true);
+  });
+
+  it('adrift survivors still report after the crew is set loose', () => {
+    const r = takeHer('adrift', false);
     expect(r.reports).toBeGreaterThan(0);
     expect(r.heat).toBeGreaterThan(0);
   });

@@ -109,6 +109,8 @@ const FIRED_ON_M = 150;
 const FIRED_ON_LAW_M = 90;
 /** Ships within this of the prize while you loot her are in sight (piece D's count). */
 const IN_SIGHT_M = 2000;
+/** A struck ship still this close is in the boarding encounter: no quiet timeout. */
+const QUIET_BESIDE_M = 500;
 
 const recordOf = (classId: string | undefined) => SHIP_RECORDS.find((r) => r.id === classId);
 
@@ -219,11 +221,29 @@ export function attachSeaLaw(deps: SeaLawDeps): SeaLaw {
     for (const id of inc.crimes.values()) law.releasePending(id, at);
   };
 
+  /** Cancels every report already on its way from her crew (nobody left to tell). */
+  const silenceCrew = (shipId: string): void => {
+    const witnessId = `crew.${shipId}`;
+    for (const r of [...ctx.state.reports.inProgress]) {
+      if (r.witness.id === witnessId) law.intercept(r.id);
+    }
+  };
+
+  const stillBeside = (shipId: string): boolean => {
+    const e = shipById(shipId);
+    if (!e?.npc?.struck || !e.transform) return false;
+    const player = ctx.world.with('playerControlled', 'transform').first?.transform?.position;
+    if (!player) return false;
+    const p = e.transform.position;
+    return Math.hypot(p.x - player.x, p.z - player.z) <= QUIET_BESIDE_M;
+  };
+
   /** The crew now knows you better (they had you on their deck): their pending reports say so. */
   const boarded = (shipId: string): void => {
     const inc = incidents.get(shipId) ?? incidentFor(shipId);
     if (!inc) return;
     inc.boarded = true;
+    inc.lastAt = now();
     const ident = crewIdentOf(inc);
     for (const id of inc.crimes.values()) {
       const c = openCrime(id);
@@ -286,7 +306,7 @@ export function attachSeaLaw(deps: SeaLawDeps): SeaLaw {
     if (!p) return [];
     const out: Witness[] = [];
     for (const o of deps.ships()) {
-      if (o === e || !o.id || !o.transform || o.npc?.derelict) continue;
+      if (o === e || !o.id || !o.transform || o.playerControlled || o.npc?.derelict) continue;
       if (o.npc?.towedBy === shipId || e?.npc?.towedBy === o.id) continue;
       const d = Math.hypot(o.transform.position.x - p.x, o.transform.position.z - p.z);
       if (d > IN_SIGHT_M) continue;
@@ -384,6 +404,7 @@ export function attachSeaLaw(deps: SeaLawDeps): SeaLaw {
     ev.on('ShipLooted', (e) => {
       const inc = incidentFor(e.shipId);
       if (!inc) return;
+      inc.lastAt = now();
       inc.goods = e.goods.map((g) => ({ ...g }));
       inc.cashCents = e.cashCents;
       const what = e.goods.map((g) => `${g.qty} CU of ${deps.goodName?.(g.good) ?? g.good}`);
@@ -409,6 +430,7 @@ export function attachSeaLaw(deps: SeaLawDeps): SeaLaw {
       const inc = incidents.get(e.shipId);
       if (!inc) return;
       close(inc, crewReportAt(now(), e.reportInS));
+      if (e.survivors === 0) silenceCrew(e.shipId);
     }),
     ev.on('ShipFled', (e) => {
       const inc = incidents.get(e.shipId);
@@ -444,6 +466,7 @@ export function attachSeaLaw(deps: SeaLawDeps): SeaLaw {
             deps.notice(`Her boat swamps: ${r.killed} of her crew drown.`);
           }
           close(inc, r.survivors > 0 ? crewReportAt(now(), r.reportInS) : undefined);
+          if (r.survivors === 0) silenceCrew(e.shipId);
         }
       }
       const drowned = drownedOf.get(e.shipId) ?? 0;
@@ -457,6 +480,7 @@ export function attachSeaLaw(deps: SeaLawDeps): SeaLaw {
     ev.on('WorldTick', () => {
       const t = now();
       for (const inc of [...incidents.values()]) {
+        if (stillBeside(inc.shipId)) continue;
         if (t - inc.lastAt >= sea.quietH * 3600) close(inc, defaultReportAt());
       }
     }),
