@@ -232,3 +232,26 @@ describe('v7 → v8: guns and powder join the save (plan 07 §10, Phase 6 piece 
     expect(state.player.ammo.charges).toBe(7);
   });
 });
+
+describe('v8 → v9: going ashore joins the save (plan 08 §20, Phase 7 piece A)', () => {
+  const read = (v: number): Fixture =>
+    JSON.parse(readFileSync(join(fixturesDir, `v${v}.json`), 'utf8')) as Fixture;
+
+  it('loads a 0.6.0 run aboard at its saved place, at full health, with the boat stowed', () => {
+    const before = read(8).state;
+    const state = parseWorldState(migrateSave(read(8).state, 8));
+    expect(state.player.ashore).toBeNull();
+    expect(state.player.health).toBe(100);
+    expect(state.player.rowboat).toEqual({ state: 'stowed' });
+    expect(state.player.location).toEqual((before['player'] as { location: unknown }).location);
+    expect(state.player.ship?.weapons.map((w) => w.weapon)).toContain('weapon.swivel');
+  });
+
+  it('a v9 save made ashore keeps where you stood, the boat on the beach and your wounds', () => {
+    const state = parseWorldState(migrateSave(read(9).state, 9));
+    expect(state.player.ashore).toMatchObject({ from: 'anchor', inBoat: false });
+    expect(state.player.ashore?.anchor).toBeDefined();
+    expect(state.player.rowboat.state).toBe('beached');
+    expect(state.player.health).toBe(72);
+  });
+});

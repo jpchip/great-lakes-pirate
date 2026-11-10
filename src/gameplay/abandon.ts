@@ -60,6 +60,11 @@ export interface AbandonDeps {
   /** Puts the new hull alongside the port's pier (the zone loads if it must). */
   landAt(port: string): Promise<void>;
   notice(text: string): void;
+  /**
+   * Into the boat to row for land, if there's land near and the sea lets her be got away
+   * (plan 08 §20.6 decision 2). False leaves you to the rescue.
+   */
+  castAway?(): boolean;
 }
 
 export interface Abandon {
@@ -74,6 +79,10 @@ export interface Abandon {
   readonly open: boolean;
   /** Where you were landed last (the dev hook and tests). */
   readonly landed: string | undefined;
+  /** In the boat after abandoning her, rowing for land. */
+  readonly adrift: boolean;
+  /** Cast away, you've reached land: you make your way to the nearest yard. */
+  cameAshore(): void;
   leave(): void;
 }
 
@@ -93,6 +102,11 @@ export function attachAbandon(deps: AbandonDeps): Abandon {
   let open = false;
   let landed: string | undefined;
   let busy = false;
+  let adrift = false;
+  let lostWith: ReturnType<typeof loseShip> | undefined;
+  let lostWhere: { chart: { x: number; y: number } } | undefined;
+  let lostName = '';
+  let lostRegion: string | undefined;
 
   const nearestYard = (at: { x: number; y: number } | undefined): string => {
     const ports = yardPorts();
@@ -176,12 +190,39 @@ export function attachAbandon(deps: AbandonDeps): Abandon {
       guns: lost.guns,
     });
 
-    // In the boat until a ship comes by, and landed where she's bound.
+    // Near land in a sea the boat can live in, you row for it; otherwise you wait in the
+    // boat for a ship to come by and land you where she's bound.
+    if (deps.castAway?.()) {
+      adrift = true;
+      lostWith = lost;
+      lostWhere = where;
+      lostName = shipName;
+      lostRegion = regionName;
+      busy = false;
+      log(state, now(), `Abandoned the ${shipName} and took to the boat.`);
+      return true;
+    }
     const rng = Rng.fromSeed(`${deps.seed}|abandon|${now()}`);
     const [lo, hi] = jail.abandon.rescueHours;
     const port = nearestYard(where?.chart);
     deps.passTime(rng.range(lo, hi) * 3600);
     const told = recognized(now());
+    settle(port, lost, shipName, regionName, told, rng, 'rescued');
+    busy = false;
+    return true;
+  };
+
+  /** The yard's worn hull and the screen that tells it. */
+  const settle = (
+    port: string,
+    lost: ReturnType<typeof loseShip>,
+    shipName: string,
+    regionName: string | undefined,
+    told: number,
+    rng: Rng,
+    how: 'rescued' | 'rowed',
+  ): void => {
+    const player = state.player;
 
     // The yard's worn hull: purse, strongboxes by word, then work.
     const econ = gameEconomy();
@@ -207,7 +248,13 @@ export function attachAbandon(deps: AbandonDeps): Abandon {
       moved: [],
     });
     landed = port;
-    log(state, now(), `Abandoned the ${shipName}; landed at ${portInfo(port)?.name ?? port}.`);
+    log(
+      state,
+      now(),
+      how === 'rescued'
+        ? `Abandoned the ${shipName}; landed at ${portInfo(port)?.name ?? port}.`
+        : `Rowed ashore from the wreck of the ${shipName}; made our way to ${portInfo(port)?.name ?? port}.`,
+    );
 
     // The screen.
     const portName = portInfo(port)?.name ?? port;
@@ -245,20 +292,33 @@ export function attachAbandon(deps: AbandonDeps): Abandon {
       kind: 'released',
       title: 'Abandoned ship',
       heading: 'After she went down...',
-      lead: `The ${shipName} foundered${regionName ? ` in ${regionName}` : ''} and went down under you. You got away in the boat, and a passing steamer landed you at ${portName}, ${dateText(now())}.`,
+      lead:
+        how === 'rescued'
+          ? `The ${shipName} foundered${regionName ? ` in ${regionName}` : ''} and went down under you. You got away in the boat, and a passing steamer landed you at ${portName}, ${dateText(now())}.`
+          : `The ${shipName} foundered${regionName ? ` in ${regionName}` : ''} and went down under you. You rowed the boat ashore and made your way to ${portName}, ${dateText(now())}.`,
       inside: lines,
       ship: `She's sound enough to sail: hull ${Math.round(jail.abandon.wornHull01 * 100)}%, rigging ${Math.round(jail.abandon.wornRigging01 * 100)}%. You named her the ${shipName}.`,
       leaveLabel: 'Aboard her',
     });
     open = true;
     deps.onOpen(true);
-    busy = false;
-    return true;
+  };
+
+  const cameAshore = (): void => {
+    if (!adrift || !lostWith) return;
+    adrift = false;
+    // Overland or along the shore to the nearest yard: no rescuer, so nobody to tell on you.
+    const rng = Rng.fromSeed(`${deps.seed}|castaway|${now()}`);
+    const [lo, hi] = jail.abandon.rescueHours;
+    const port = nearestYard(lostWhere?.chart);
+    deps.passTime(rng.range(lo, hi) * 3600);
+    settle(port, lostWith, lostName, lostRegion, 0, rng, 'rowed');
+    lostWith = undefined;
   };
 
   return {
     step(dt) {
-      if (open || busy) return;
+      if (open || busy || adrift) return;
       // Alongside a pier she's holding on her lines: the yard or the chandler can patch her.
       if (!hazards.state.foundering || hazards.state.mooring !== 'free') {
         leftS = undefined;
@@ -274,7 +334,7 @@ export function attachAbandon(deps: AbandonDeps): Abandon {
       return leftS;
     },
     chip() {
-      if (open || leftS === undefined) return undefined;
+      if (open || adrift || leftS === undefined) return undefined;
       return `She's going down: F abandon ship (${Math.max(0, Math.ceil(leftS))} s)`;
     },
     abandon,
@@ -284,6 +344,10 @@ export function attachAbandon(deps: AbandonDeps): Abandon {
     get landed() {
       return landed;
     },
+    get adrift() {
+      return adrift;
+    },
+    cameAshore,
     leave() {
       if (!open) return;
       open = false;

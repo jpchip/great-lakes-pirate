@@ -65,6 +65,8 @@ export interface HudSnapshot {
   portName: string | undefined;
   /** Moored (anchored and holding, or alongside): the HUD offers "Wait" (Z). */
   canWait?: boolean | undefined;
+  /** G goes ashore here (Phase 7 piece A): down the gangway, or into the boat at anchor. */
+  canGoAshore?: 'gangway' | 'boat' | undefined;
   /** The lantern (plan 02 §9, Phase 5 piece B): lit or running dark, and the oil aboard. */
   lantern?: LanternSnapshot | undefined;
   /** The watcher most aware of the ship (plan 06 §7.1): the HUD's eye. */
@@ -190,6 +192,8 @@ export interface HudSources {
   portName?: string | undefined;
   /** Whether the ship lies where she can wait; worked out from the hazards when absent. */
   canWait?: boolean | undefined;
+  /** Whether G goes ashore here, and how (Phase 7 piece A). */
+  canGoAshore?: 'gangway' | 'boat' | undefined;
   lantern?: LanternSnapshot | undefined;
   eye?: EyeSnapshot | undefined;
   wanted?: WantedSnapshot | undefined;
@@ -293,6 +297,7 @@ export function sampleHud(src: HudSources): HudSnapshot | undefined {
     eye: src.eye,
     wanted: src.wanted,
     report: src.report,
+    canGoAshore: src.canGoAshore,
     canWait:
       src.canWait ??
       (!!hz &&
