@@ -1,0 +1,14 @@
+[
+  {
+    "id": "district.bayfield",
+    "name": "Bayfield waterfront",
+    "port": "port.bayfield",
+    "harbor": "harbor.bayfield",
+    "layout": "bayfield.json",
+    "bake": "bayfield",
+    "origin": { "alongM": -80, "inlandM": 0 },
+    "skirtM": 40,
+    "waterLevelM": 0,
+    "gangway": "gangway.fish_pier"
+  }
+]

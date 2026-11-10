@@ -1,15 +1,13 @@
+import type { Surface } from '../../../data/schemas/districts';
+
+export type { Surface };
+
 /**
  * Simple collision primitives for on-foot areas (plan 01 §2.2): vertical boxes with a
  * yaw, vertical cylinders, and grid-cell occupancy maps for buildings. Every shape is
  * an extruded 2D footprint between minY and maxY, which is all docks, crates, trees
  * and hideout pieces need. A uniform spatial hash keeps queries local.
  */
-
-/**
- * What a surface underfoot is made of (plan 08 §3.2): wooden piers ring louder than dirt
- * alleys. Piece I looks footstep noise up by it; terrain gets one from the zone.
- */
-export type Surface = 'wood' | 'stone' | 'dirt' | 'grass' | 'sand' | 'rock' | 'gravel';
 
 /**
  * A marked spot on a prop (plan 08 §3.1): Space vaults onto (or over) a `vault` prop up to
@@ -35,6 +33,8 @@ export interface BoxCollider extends ColliderTags {
   yaw: number;
   minY: number;
   maxY: number;
+  /** False for things you can see through (railings, bars, lamp posts); default true. */
+  blocksSight?: boolean;
 }
 
 export interface CylinderCollider extends ColliderTags {
@@ -44,6 +44,7 @@ export interface CylinderCollider extends ColliderTags {
   radius: number;
   minY: number;
   maxY: number;
+  blocksSight?: boolean;
 }
 
 export type Collider = BoxCollider | CylinderCollider;

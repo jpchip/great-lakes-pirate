@@ -1,0 +1,553 @@
+[
+  {
+    "id": "kit.pier_deck",
+    "name": "Pier deck",
+    "placement": "cell",
+    "category": "pier",
+    "collider": "deck",
+    "heightM": 0,
+    "deckM": 1.6,
+    "surface": "wood"
+  },
+  {
+    "id": "kit.wharf",
+    "name": "Crib wharf",
+    "placement": "cell",
+    "category": "pier",
+    "collider": "deck",
+    "heightM": 0,
+    "deckM": 1.8,
+    "surface": "wood"
+  },
+  {
+    "id": "kit.floor_plank",
+    "name": "Plank floor",
+    "placement": "cell",
+    "category": "ground",
+    "collider": "floor",
+    "heightM": 0.15,
+    "surface": "wood"
+  },
+  {
+    "id": "kit.floor_stone",
+    "name": "Flagstone floor",
+    "placement": "cell",
+    "category": "ground",
+    "collider": "floor",
+    "heightM": 0.15,
+    "surface": "stone"
+  },
+  {
+    "id": "kit.boardwalk",
+    "name": "Boardwalk",
+    "placement": "cell",
+    "category": "ground",
+    "collider": "floor",
+    "heightM": 0.2,
+    "surface": "wood"
+  },
+  {
+    "id": "kit.track",
+    "name": "Rail track",
+    "placement": "cell",
+    "category": "ground",
+    "collider": "flat",
+    "heightM": 0.15,
+    "surface": "gravel"
+  },
+  {
+    "id": "kit.gravel",
+    "name": "Gravel yard",
+    "placement": "cell",
+    "category": "ground",
+    "collider": "flat",
+    "heightM": 0,
+    "surface": "gravel"
+  },
+  {
+    "id": "kit.sawdust",
+    "name": "Sawdust floor",
+    "placement": "cell",
+    "category": "ground",
+    "collider": "floor",
+    "heightM": 0.15,
+    "surface": "sawdust"
+  },
+  {
+    "id": "kit.none",
+    "name": "Open edge",
+    "placement": "edge",
+    "category": "wall",
+    "collider": "none",
+    "heightM": 0,
+    "blocksSight": false
+  },
+  {
+    "id": "kit.wall_plank",
+    "name": "Plank wall",
+    "placement": "edge",
+    "category": "wall",
+    "collider": "wall",
+    "heightM": 3
+  },
+  {
+    "id": "kit.wall_plank_window",
+    "name": "Plank wall, window",
+    "placement": "edge",
+    "category": "wall",
+    "collider": "window",
+    "heightM": 3
+  },
+  {
+    "id": "kit.wall_plank_door",
+    "name": "Plank wall, door",
+    "placement": "edge",
+    "category": "wall",
+    "collider": "door",
+    "heightM": 3,
+    "openingM": 1.4
+  },
+  {
+    "id": "kit.wall_plank_bigdoor",
+    "name": "Plank wall, cargo door",
+    "placement": "edge",
+    "category": "wall",
+    "collider": "door",
+    "heightM": 3,
+    "openingM": 1.8
+  },
+  {
+    "id": "kit.wall_brick",
+    "name": "Brick wall",
+    "placement": "edge",
+    "category": "wall",
+    "collider": "wall",
+    "heightM": 3
+  },
+  {
+    "id": "kit.wall_brick_window",
+    "name": "Brick wall, window",
+    "placement": "edge",
+    "category": "wall",
+    "collider": "window",
+    "heightM": 3
+  },
+  {
+    "id": "kit.wall_brick_door",
+    "name": "Brick wall, door",
+    "placement": "edge",
+    "category": "wall",
+    "collider": "door",
+    "heightM": 3,
+    "openingM": 1.4
+  },
+  {
+    "id": "kit.wall_bars",
+    "name": "Cell bars",
+    "placement": "edge",
+    "category": "wall",
+    "collider": "wall",
+    "heightM": 3,
+    "blocksSight": false
+  },
+  {
+    "id": "kit.wall_bars_door",
+    "name": "Cell door",
+    "placement": "edge",
+    "category": "wall",
+    "collider": "door",
+    "heightM": 3,
+    "openingM": 1.0,
+    "blocksSight": false
+  },
+  {
+    "id": "kit.fence_board",
+    "name": "Board fence",
+    "placement": "edge",
+    "category": "fence",
+    "collider": "fence",
+    "heightM": 2.1
+  },
+  {
+    "id": "kit.gate_board",
+    "name": "Board gate",
+    "placement": "edge",
+    "category": "fence",
+    "collider": "door",
+    "heightM": 2.1,
+    "openingM": 1.8
+  },
+  {
+    "id": "kit.fence_picket",
+    "name": "Picket fence",
+    "placement": "edge",
+    "category": "fence",
+    "collider": "rail",
+    "heightM": 1.0,
+    "blocksSight": false,
+    "climb": "vault"
+  },
+  {
+    "id": "kit.rail_pier",
+    "name": "Pier railing",
+    "placement": "edge",
+    "category": "fence",
+    "collider": "rail",
+    "heightM": 1.0,
+    "blocksSight": false,
+    "climb": "vault"
+  },
+  {
+    "id": "kit.ladder",
+    "name": "Pier ladder",
+    "placement": "edge",
+    "category": "marine",
+    "collider": "none",
+    "heightM": 0,
+    "blocksSight": false,
+    "climb": "ladder"
+  },
+  {
+    "id": "kit.crate",
+    "name": "Crate",
+    "placement": "prop",
+    "category": "cargo",
+    "collider": "solid",
+    "heightM": 0.9,
+    "sizeM": [0.9, 0.9],
+    "climb": "vault"
+  },
+  {
+    "id": "kit.crate_stack",
+    "name": "Stacked crates",
+    "placement": "prop",
+    "category": "cargo",
+    "collider": "solid",
+    "heightM": 1.8,
+    "sizeM": [1.8, 0.9]
+  },
+  {
+    "id": "kit.barrel",
+    "name": "Barrel",
+    "placement": "prop",
+    "category": "cargo",
+    "collider": "solid",
+    "heightM": 0.9,
+    "sizeM": [0.6, 0.6],
+    "round": true
+  },
+  {
+    "id": "kit.barrel_stack",
+    "name": "Barrel rack",
+    "placement": "prop",
+    "category": "cargo",
+    "collider": "solid",
+    "heightM": 1.3,
+    "sizeM": [1.9, 1.0]
+  },
+  {
+    "id": "kit.fish_boxes",
+    "name": "Fish boxes",
+    "placement": "prop",
+    "category": "cargo",
+    "collider": "solid",
+    "heightM": 0.6,
+    "sizeM": [1.2, 0.8],
+    "climb": "vault"
+  },
+  {
+    "id": "kit.sacks",
+    "name": "Sacks of salt",
+    "placement": "prop",
+    "category": "cargo",
+    "collider": "solid",
+    "heightM": 0.6,
+    "sizeM": [1.4, 1.0],
+    "climb": "vault"
+  },
+  {
+    "id": "kit.ice_blocks",
+    "name": "Ice blocks",
+    "placement": "prop",
+    "category": "cargo",
+    "collider": "solid",
+    "heightM": 1.0,
+    "sizeM": [1.2, 1.2],
+    "climb": "vault"
+  },
+  {
+    "id": "kit.net_reel",
+    "name": "Net reel",
+    "placement": "prop",
+    "category": "cargo",
+    "collider": "solid",
+    "heightM": 1.6,
+    "sizeM": [1.6, 1.0],
+    "blocksSight": false
+  },
+  {
+    "id": "kit.lumber_pile",
+    "name": "Lumber pile",
+    "placement": "prop",
+    "category": "yard",
+    "collider": "solid",
+    "heightM": 1.4,
+    "sizeM": [4.0, 1.6]
+  },
+  {
+    "id": "kit.coal_heap",
+    "name": "Coal heap",
+    "placement": "prop",
+    "category": "yard",
+    "collider": "solid",
+    "heightM": 1.5,
+    "sizeM": [4.0, 4.0],
+    "round": true
+  },
+  {
+    "id": "kit.cart",
+    "name": "Dray cart",
+    "placement": "prop",
+    "category": "yard",
+    "collider": "solid",
+    "heightM": 1.1,
+    "sizeM": [1.4, 2.4],
+    "blocksSight": false
+  },
+  {
+    "id": "kit.woodpile",
+    "name": "Cordwood",
+    "placement": "prop",
+    "category": "yard",
+    "collider": "solid",
+    "heightM": 1.2,
+    "sizeM": [2.4, 0.8],
+    "climb": "vault"
+  },
+  {
+    "id": "kit.rowboat",
+    "name": "Rowboat, ashore",
+    "placement": "prop",
+    "category": "marine",
+    "collider": "solid",
+    "heightM": 0.6,
+    "sizeM": [1.2, 3.8]
+  },
+  {
+    "id": "kit.privy",
+    "name": "Privy",
+    "placement": "prop",
+    "category": "yard",
+    "collider": "solid",
+    "heightM": 2.2,
+    "sizeM": [1.2, 1.2]
+  },
+  {
+    "id": "kit.derrick",
+    "name": "Derrick",
+    "placement": "prop",
+    "category": "yard",
+    "collider": "post",
+    "heightM": 8,
+    "sizeM": [0.4, 0.4],
+    "blocksSight": false
+  },
+  {
+    "id": "kit.telegraph_pole",
+    "name": "Telegraph pole",
+    "placement": "prop",
+    "category": "yard",
+    "collider": "post",
+    "heightM": 7,
+    "sizeM": [0.3, 0.3],
+    "blocksSight": false
+  },
+  {
+    "id": "kit.hitching_rail",
+    "name": "Hitching rail",
+    "placement": "prop",
+    "category": "yard",
+    "collider": "solid",
+    "heightM": 1.0,
+    "sizeM": [2.4, 0.2],
+    "blocksSight": false,
+    "climb": "vault"
+  },
+  {
+    "id": "kit.sign_post",
+    "name": "Sign post",
+    "placement": "prop",
+    "category": "yard",
+    "collider": "post",
+    "heightM": 2.4,
+    "sizeM": [0.15, 0.15],
+    "blocksSight": false
+  },
+  {
+    "id": "kit.bar_counter",
+    "name": "Bar counter",
+    "placement": "prop",
+    "category": "furniture",
+    "collider": "solid",
+    "heightM": 1.1,
+    "sizeM": [3.0, 0.7],
+    "climb": "vault"
+  },
+  {
+    "id": "kit.table",
+    "name": "Table",
+    "placement": "prop",
+    "category": "furniture",
+    "collider": "solid",
+    "heightM": 0.75,
+    "sizeM": [1.2, 1.2],
+    "blocksSight": false
+  },
+  {
+    "id": "kit.bench",
+    "name": "Bench",
+    "placement": "prop",
+    "category": "furniture",
+    "collider": "solid",
+    "heightM": 0.45,
+    "sizeM": [1.8, 0.45],
+    "blocksSight": false
+  },
+  {
+    "id": "kit.shelf",
+    "name": "Shelves",
+    "placement": "prop",
+    "category": "furniture",
+    "collider": "solid",
+    "heightM": 2.0,
+    "sizeM": [2.0, 0.5]
+  },
+  {
+    "id": "kit.desk",
+    "name": "Desk",
+    "placement": "prop",
+    "category": "furniture",
+    "collider": "solid",
+    "heightM": 0.8,
+    "sizeM": [1.5, 0.8],
+    "blocksSight": false
+  },
+  {
+    "id": "kit.bunk",
+    "name": "Cot",
+    "placement": "prop",
+    "category": "furniture",
+    "collider": "solid",
+    "heightM": 0.5,
+    "sizeM": [0.9, 2.0],
+    "blocksSight": false
+  },
+  {
+    "id": "kit.stove",
+    "name": "Stove",
+    "placement": "prop",
+    "category": "furniture",
+    "collider": "solid",
+    "heightM": 1.0,
+    "sizeM": [0.8, 0.8],
+    "round": true,
+    "blocksSight": false
+  },
+  {
+    "id": "kit.safe",
+    "name": "Strongbox safe",
+    "placement": "prop",
+    "category": "furniture",
+    "collider": "solid",
+    "heightM": 1.1,
+    "sizeM": [0.8, 0.7]
+  },
+  {
+    "id": "kit.gas_lamp",
+    "name": "Gas lamp",
+    "placement": "prop",
+    "category": "light",
+    "collider": "post",
+    "heightM": 3.4,
+    "sizeM": [0.25, 0.25],
+    "blocksSight": false,
+    "light": {
+      "radiusM": 9,
+      "intensity": 1,
+      "color": "#ffc46b",
+      "heightM": 3.2
+    }
+  },
+  {
+    "id": "kit.lantern_hook",
+    "name": "Lantern on a hook",
+    "placement": "prop",
+    "category": "light",
+    "collider": "none",
+    "heightM": 2.6,
+    "sizeM": [0.3, 0.3],
+    "blocksSight": false,
+    "light": {
+      "radiusM": 5.5,
+      "intensity": 0.75,
+      "color": "#ffb35a",
+      "heightM": 2.4
+    }
+  },
+  {
+    "id": "kit.lantern_post",
+    "name": "Lantern post",
+    "placement": "prop",
+    "category": "light",
+    "collider": "post",
+    "heightM": 2.2,
+    "sizeM": [0.2, 0.2],
+    "blocksSight": false,
+    "light": {
+      "radiusM": 6.5,
+      "intensity": 0.8,
+      "color": "#ffb35a",
+      "heightM": 2.0
+    }
+  },
+  {
+    "id": "kit.bollard",
+    "name": "Bollard",
+    "placement": "prop",
+    "category": "marine",
+    "collider": "solid",
+    "heightM": 0.5,
+    "sizeM": [0.4, 0.4],
+    "round": true,
+    "blocksSight": false
+  },
+  {
+    "id": "kit.pile_cluster",
+    "name": "Pile cluster",
+    "placement": "prop",
+    "category": "marine",
+    "collider": "solid",
+    "heightM": 2.4,
+    "sizeM": [1.3, 1.3],
+    "round": true,
+    "blocksSight": false
+  },
+  {
+    "id": "kit.facade_one",
+    "name": "Storefront facade",
+    "placement": "prop",
+    "category": "backdrop",
+    "collider": "solid",
+    "heightM": 6,
+    "sizeM": [8, 6]
+  },
+  {
+    "id": "kit.facade_two",
+    "name": "Two-storey facade",
+    "placement": "prop",
+    "category": "backdrop",
+    "collider": "solid",
+    "heightM": 9,
+    "sizeM": [8, 7]
+  }
+]
