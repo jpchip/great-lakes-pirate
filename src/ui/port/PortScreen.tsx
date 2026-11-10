@@ -69,6 +69,8 @@ export interface PortActions {
   close(): void;
   /** Close the screen and cast off (F). */
   castOff(): void;
+  /** Close the screen and go ashore down the gangway (G; Phase 7 piece A). */
+  goAshore?(): void;
   /**
    * Waits alongside (the lie-at-anchor clock): the refusal, or what the wait came to, in a
    * line. Optional so the screen still works without it.
@@ -915,6 +917,16 @@ export function PortScreen({
               lie={actions.wait}
               setMessage={setMessage}
             />
+          )}
+          {actions.goAshore && (
+            <button
+              type="button"
+              class="menu-button"
+              data-testid="port-go-ashore"
+              onClick={actions.goAshore}
+            >
+              Go ashore (G)
+            </button>
           )}
           <button
             type="button"

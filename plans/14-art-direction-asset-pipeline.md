@@ -139,7 +139,7 @@ One custom GLSL material (spike S1 picked `WebGLRenderer` + GLSL; [01 §14](01-t
 | | **Built 2026-10-26 (T1, Phase 1 piece H):** `src/render/ships/` (`schooner-lines.ts` per-class record, `schooner-hull.ts`, `schooner.ts`). About 2.6k triangles and 16 meshes with every sail set, before outlines; outline shells on the hull, spars and furled canvas, 1 px edge lines on the sails, rigging as ink lines. The shell now sits 0.15 m behind the surface along the view ray (`outline.ts uDepthOffset`), which hides flipped slivers on thin or flared faces that otherwise showed as black streaks on the hull. | |
 | | **Built 2026-11-01 (T2, Phase 4 piece G):** `T2_SCHOONER_LINES`, 30 m, from the same generator with a `rigScale` for heavier spars and a per-class `DeckLayout` (forecastle house, three hatches, after cabin, a yawl boat in stern davits); green rail and houses. About 2.8k triangles. Details in [10 §16](10-ship-upgrades-customization.md). | |
 | **NPC ships** (package and bulk freighters, whaleback, sidewheel steamer, tug, fishing boats, cutter, schooner-barge) | **The same parametric generator**, with steamer parts (stacks, pilothouses, paddle boxes) | Lower budgets; reuse parts (deckhouses, stacks). Mostly boxy shapes, which suit code. **First five built 2026-10-31** (Phase 3 piece H, §19). |
-| **Characters** | One **CC0 base humanoid** (e.g., Quaternius-style) with period clothing variants (AI-generated accessories: hats, coats) | Shared skeleton for all ([08 §13](08-docks-district-stealth.md)) |
+| **Characters** | One **CC0 base humanoid** (e.g., Quaternius-style) with period clothing variants (AI-generated accessories: hats, coats) | Shared skeleton for all ([08 §13](08-docks-district-stealth.md)). **Built 2026-11-10** (§20): Quaternius CC0 parts, hats and props in code. |
 | **Animations** | **CC0 animation libraries** (e.g., Quaternius Universal Animation Library) plus a few custom ones | Avoid Mixamo-style terms that restrict redistributing raw files in a public repo |
 | **Animals** (deer, bear, wolf) | CC0 packs, or AI plus auto-rig | Low poly |
 | **Building kits** (hideout grid pieces, docks-district kit) | **Procedural/parametric or simple hand-modeled** pieces (exact 2 m / 3 m dimensions, [09 §4](09-hideouts-building-crafting.md)) | Grid pieces need precise dimensions and clean seams. AI is for decorative variants only. |
@@ -427,7 +427,26 @@ The first NPC hulls ([03 §20.4](03-world-scale-chart-travel.md), piece H), brou
 
 ---
 
+## 20. Phase 7 Piece B: The Captain's Body (2026-11-10)
+
+Plan 08 §20 piece B. Every on-foot character, the player and the NPCs, is one CC0 humanoid.
+
+| Piece | Where | Notes |
+|---|---|---|
+| Sources | `raw-assets/characters/quaternius/`, fetched by `tools/assets/fetch-quaternius.ts` | Quaternius's free Standard editions, all CC0: Universal Base Characters (heads, hands, hair, beard), Modular Character Outfits - Fantasy (the male and female peasant: shirt, trousers, tall boots), Universal Animation Library 1 and 2. One rig (65 joints), so every part and clip fits. No Mixamo. |
+| Build | `tools/assets/build-characters.ts` → `public/assets/characters/{male,female}.glb` | Parts rebound onto the outfit's skeleton; the head cut from the base body by its head and neck weights. Textures become a color region and a shade per vertex (luma clusters of the base color), so a character is dressed by palette (§4). The jacket is a shell 12 mm out from the shirt, hips and forearms. Three LODs per piece by meshopt (the heaviest dressed look is 4.2k / 1.5k / 0.5k triangles, §8). 37 clips retargeted from the libraries (world-delta, per body), 30 fps. About 1.3 MB per body. |
+| Pieces | `src/render/characters/humanoid-spec.ts` | Head (eyes, brows), hands, shirt, jacket, legs, boots, four hair styles, the full beard. |
+| Accessories | `src/render/characters/accessories.ts` | Built in code like the ships, rigidly skinned to one joint: cap, bowler, sou'wester, wool watch cap, bonnet, police helmet with badge, the marshal's slouch hat, the mustache, the watchman's lantern (its glass glows at night), the constable's club, the marshal's slung rifle. |
+| Looks | `src/render/characters/looks.ts` | The player from the portrait preset (skin, hair, hair style, beard, hat, coat; `portraits.json` gains `body`). NPCs by role and seed: watchman, constable, sailor, marshal, dockhand, townsman, townswoman. |
+| Runtime | `src/render/characters/humanoid.ts`, `character-material.ts`, `gait.ts` | The look's pieces and accessories merged into one skinned mesh (shared between characters of the same shape), the toon material with GPU skinning and a 16-color palette uniform, a skinned ink outline (none on eyes and brows, none at LOD 2). Animation LOD: the mixer runs every frame within 18 m, every 2nd to 40 m, then every 4th. Gaits map to clips with the playback rate matched to the controller's speed. |
+| Dev pages | `characters.html`, `onfoot-spike.html` | The lineup (`?clip=`, `?tod=`, `?lod=`, `?cycle=1`); the S5 spike now walks the captain instead of the capsule (`?portrait=<n>`, `?body=capsule`). |
+
+**Clips** (§9): idle, walk, run, sprint, sneak and sneak idle, carry, climb (1 m), swim and swim idle, hop, fall, land, pick (hold-interact), kneeling work, pick up, open a chest, cosh, punch, hit, knocked down, get up, search, alarmed (calling out), lantern idle, talk, arms folded, drink, sit down, sit, stand up, throw, pistol idle, aim and shoot, push, helm. Not in the libraries yet and still to make: ladder, row, tie-up, knife, rifle aim and fire, haul line.
+
+**Open:** the look is Jared's call. The outfit is a belted work tunic, so the "jacket" reads as a longer tunic in the coat color rather than a reefer; lapels and buttons, or a period coat model, would fix it. The female outfit is a bodice over trousers, not a skirt.
+
 ## Changelog
+- v1.1: Phase 7 piece B (§20): the CC0 humanoid, its pipeline, palette regions, code-built hats and props, 37 retargeted clips, LODs and animation LOD.
 - v1.0: The T2 schooner from the hull generator (§5): `rigScale`, deck layouts and the yawl boat.
 - v0.9: Phase 3 piece H (§19): five NPC classes from the parametric generator, the hull generator opened up to lakers, lit windows, running lights by the 1900 rules, funnel smoke, wakes, the NPC contact sheet and `?npcs`. Palette v1 gains the NPC colors.
 - v0.8: Phase 2 piece F (§18): the seven Apostles lights from `lighthouses.json` and a three-style tower kit, fixed and flashing characteristics, a beam cone, lit lanterns and windows, and one real lamp near the ship.

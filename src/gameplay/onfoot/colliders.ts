@@ -7,7 +7,26 @@ import type { Surface } from '../../../data/schemas/districts';
  * and hideout pieces need. A uniform spatial hash keeps queries local.
  */
 
-export interface BoxCollider {
+/**
+ * What a surface underfoot is made of (plan 08 §3.2): wooden piers ring louder than dirt
+ * alleys. Piece I looks footstep noise up by it; terrain gets one from the zone.
+ */
+export type Surface = 'wood' | 'stone' | 'dirt' | 'grass' | 'sand' | 'rock' | 'gravel';
+
+/**
+ * A marked spot on a prop (plan 08 §3.1): Space vaults onto (or over) a `vault` prop up to
+ * waist height, and climbs a `climb` prop up to a low roof. Unmarked props only take a hop.
+ */
+export type Spot = 'vault' | 'climb';
+
+/** Tags any collider can carry. */
+interface ColliderTags {
+  /** Its top's surface; absent reads as wood (the kit's piers, crates and floors). */
+  surface?: Surface;
+  spot?: Spot;
+}
+
+export interface BoxCollider extends ColliderTags {
   kind: 'box';
   /** Footprint center. */
   x: number;
@@ -24,7 +43,7 @@ export interface BoxCollider {
   blocksSight?: boolean;
 }
 
-export interface CylinderCollider {
+export interface CylinderCollider extends ColliderTags {
   kind: 'cylinder';
   x: number;
   z: number;

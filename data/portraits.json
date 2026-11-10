@@ -67,7 +67,8 @@
     "beard": "none",
     "hat": "none",
     "coat": "#2f5a5c",
-    "hairStyle": "braid"
+    "hairStyle": "braid",
+    "body": "female"
   },
   {
     "id": "portrait.woman_hat",
@@ -77,6 +78,7 @@
     "beard": "none",
     "hat": "bonnet",
     "coat": "#4a3550",
-    "hairStyle": "long"
+    "hairStyle": "long",
+    "body": "female"
   }
 ]
