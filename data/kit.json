@@ -7,7 +7,7 @@
     "collider": "deck",
     "heightM": 0,
     "deckM": 1.6,
-    "surface": "planks"
+    "surface": "wood"
   },
   {
     "id": "kit.wharf",
@@ -17,7 +17,7 @@
     "collider": "deck",
     "heightM": 0,
     "deckM": 1.8,
-    "surface": "planks"
+    "surface": "wood"
   },
   {
     "id": "kit.floor_plank",
@@ -26,7 +26,7 @@
     "category": "ground",
     "collider": "floor",
     "heightM": 0.15,
-    "surface": "planks"
+    "surface": "wood"
   },
   {
     "id": "kit.floor_stone",
@@ -44,7 +44,7 @@
     "category": "ground",
     "collider": "floor",
     "heightM": 0.2,
-    "surface": "planks"
+    "surface": "wood"
   },
   {
     "id": "kit.track",

@@ -119,8 +119,8 @@ export interface DistrictModel extends OnFootZone {
   edges: PlacedPiece[];
   props: PlacedPiece[];
   mark(id: string): DistrictMark;
-  /** What's underfoot at a point and height: a deck, a floor, a crate top, or the ground. */
-  surfaceAt(x: number, y: number, z: number): Surface;
+  /** What's underfoot: with a height, the deck, floor or crate top there; without, the cell. */
+  surfaceAt(x: number, z: number, y?: number): Surface;
   /** The building whose inside holds the point, if any (roof fade, close camera). */
   buildingAt(x: number, y: number, z: number): DistrictBuilding | undefined;
   /** The highest walkable top at (x, z): the ground, a deck or a floor. */
@@ -188,7 +188,7 @@ export function buildDistrict(
     buildings.push({ def, minX, maxX, minZ, maxZ, floorY, eavesY, topY, doors: [] });
     for (let c = def.col; c < def.col + def.cols; c++) {
       for (let r = def.row; r < def.row + def.rows; r++) {
-        top.set(cellKey(c, r), { y: floorY, surface: floor.surface ?? 'planks', deck: false });
+        top.set(cellKey(c, r), { y: floorY, surface: floor.surface ?? 'wood', deck: false });
       }
     }
     add({
@@ -200,7 +200,7 @@ export function buildDistrict(
       yaw: 0,
       minY: groundMin(minX, minZ, maxX, maxZ) - FOOTING_M,
       maxY: floorY,
-      surface: floor.surface ?? 'planks',
+      surface: floor.surface ?? 'wood',
     });
   }
 
@@ -479,7 +479,7 @@ export function buildDistrict(
           minY: y,
           maxY: y + piece.heightM,
           ...(blocks ? {} : { blocksSight: false }),
-          surface: 'planks',
+          surface: 'wood',
         });
       } else {
         add({
@@ -491,7 +491,7 @@ export function buildDistrict(
           yaw: -heading,
           minY: y,
           maxY: y + piece.heightM,
-          surface: 'planks',
+          surface: 'wood',
           ...(blocks ? {} : { blocksSight: false }),
         });
       }
@@ -581,10 +581,11 @@ export function buildDistrict(
       if (!m) throw new Error(`district ${layout.id}: no mark ${id}`);
       return m;
     },
-    surfaceAt(x, y, z) {
+    surfaceAt(x, z, y) {
       let best: Surface | undefined;
       let bestTop = -Infinity;
       for (const c of colliders.query(x, z, 0.05, scratch)) {
+        if (y === undefined) break;
         if (!c.surface || c.maxY > y + 0.1 || c.maxY < y - 0.25 || c.maxY < bestTop) continue;
         const inside =
           c.kind === 'cylinder'
