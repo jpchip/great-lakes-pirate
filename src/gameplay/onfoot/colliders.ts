@@ -1,3 +1,5 @@
+import type { Surface } from '../../../data/schemas/districts';
+
 /**
  * Simple collision primitives for on-foot areas (plan 01 §2.2): vertical boxes with a
  * yaw, vertical cylinders, and grid-cell occupancy maps for buildings. Every shape is
@@ -16,6 +18,10 @@ export interface BoxCollider {
   yaw: number;
   minY: number;
   maxY: number;
+  /** What its top is made of, for footsteps (plan 08 §3.2); set by the district kit. */
+  surface?: Surface;
+  /** False for things you can see through (railings, bars, lamp posts); default true. */
+  blocksSight?: boolean;
 }
 
 export interface CylinderCollider {
@@ -25,6 +31,8 @@ export interface CylinderCollider {
   radius: number;
   minY: number;
   maxY: number;
+  surface?: Surface;
+  blocksSight?: boolean;
 }
 
 export type Collider = BoxCollider | CylinderCollider;

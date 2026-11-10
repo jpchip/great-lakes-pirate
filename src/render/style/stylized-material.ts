@@ -150,6 +150,12 @@ uniform vec3 uLampPosition;
 uniform vec3 uLampColor;
 uniform float uLampRange;
 uniform float uWet;
+#ifdef LAMP_POOLS
+  // The nearest street lamps and lanterns (docks districts, plan 08 §14): xyz and range,
+  // and color times intensity. Unused slots have zero color.
+  uniform vec4 uPoolPosition[LAMP_POOLS];
+  uniform vec3 uPoolColor[LAMP_POOLS];
+#endif
 
 vec3 styleLight(vec3 n, vec3 worldPos) {
   #ifdef STYLE_WRAP
@@ -173,8 +179,25 @@ vec3 styleLight(vec3 n, vec3 worldPos) {
   #ifdef STYLE_TOON
     lamp = step(0.2, lamp);
   #endif
+  vec3 pools = vec3(0.0);
+  #ifdef LAMP_POOLS
+    for (int i = 0; i < LAMP_POOLS; i++) {
+      vec3 toPool = uPoolPosition[i].xyz - worldPos;
+      float d = length(toPool);
+      float reach = clamp(1.0 - d / uPoolPosition[i].w, 0.0, 1.0);
+      float facing = max(dot(n, toPool / max(d, 1e-3)), 0.0);
+      #ifdef STYLE_TOON
+        // A soft-edged pool in two bands, so lamplight reads as a pool, not a gradient.
+        facing = 0.35 + 0.65 * step(0.15, facing);
+        reach = 0.55 * smoothstep(0.0, 0.12, reach) + 0.45 * smoothstep(0.35, 0.5, reach);
+      #else
+        reach *= reach;
+      #endif
+      pools += uPoolColor[i] * facing * reach;
+    }
+  #endif
   // Wet surfaces are darker (rain, spray and wet rock), and so are their colors' lights.
-  return (ambient + uKeyColor * key + uLampColor * lamp * falloff * falloff) * (1.0 - 0.22 * uWet);
+  return (ambient + uKeyColor * key + uLampColor * lamp * falloff * falloff + pools) * (1.0 - 0.22 * uWet);
 }
 `;
 
@@ -244,6 +267,16 @@ export interface StylizedMaterialOptions {
    * over to impostors). The uniforms are shared, so one preset change moves them all.
    */
   fade?: { start: THREE.IUniform<number>; end: THREE.IUniform<number> };
+  /**
+   * Pools of lamplight from the nearest lamps (docks districts): shared uniforms, filled
+   * each frame by the district view. The arrays' length is the number of slots.
+   */
+  pools?: LampPoolUniforms;
+}
+
+export interface LampPoolUniforms {
+  uPoolPosition: THREE.IUniform<THREE.Vector4[]>;
+  uPoolColor: THREE.IUniform<THREE.Color[]>;
 }
 
 export type StylizedMaterial = THREE.ShaderMaterial & {
@@ -266,10 +299,12 @@ export function createStylizedMaterial(
       uColor: { value: new THREE.Color(options.color ?? 0xffffff) },
       uEmissive: { value: new THREE.Color(options.emissive ?? 0x000000) },
       ...(options.fade ? { uFadeStart: options.fade.start, uFadeEnd: options.fade.end } : {}),
+      ...(options.pools ?? {}),
     },
     defines: {
       ...(style === 'flat' ? { STYLE_FLAT: '' } : { STYLE_TOON: '' }),
       ...(options.fade ? { USE_DISTANCE_FADE: '' } : {}),
+      ...(options.pools ? { LAMP_POOLS: options.pools.uPoolPosition.value.length } : {}),
     },
     vertexShader,
     fragmentShader,

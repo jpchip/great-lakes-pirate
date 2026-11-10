@@ -11,3 +11,5 @@ test-results/
 tools/geo/reports/
 # Written by tools/geo/chart.ts
 data/chart-coast.json
+# Written by tools/district/bake.run.ts
+tools/district/reports/
