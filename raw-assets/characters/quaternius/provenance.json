@@ -1,0 +1,12 @@
+{
+  "source": "cc0",
+  "tool": "Quaternius: Universal Base Characters, Modular Character Outfits - Fantasy, Universal Animation Library, Universal Animation Library 2 (Standard editions)",
+  "author": "Quaternius",
+  "reference": "https://quaternius.itch.io/universal-base-characters, https://quaternius.itch.io/modular-character-outfits-fantasy, https://quaternius.itch.io/universal-animation-library, https://quaternius.itch.io/universal-animation-library-2",
+  "date": "2026-11-10",
+  "license": "CC0 1.0",
+  "termsUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+  "modifications": [
+    "tools/assets/fetch-quaternius.ts: parts repacked as GLB, base color textures shrunk to 1024 px, normal/roughness/ORM maps dropped, the animation libraries' mannequin mesh removed"
+  ]
+}

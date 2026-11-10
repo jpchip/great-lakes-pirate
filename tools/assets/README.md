@@ -67,3 +67,17 @@ procedurally on top of the hull (plan 14 §5). Generate hulls without sails, or 
 
 If the result is unusable, regenerate rather than repair (plan 14 §7): change the image or
 the hints (`bow`, `stripAboveM`, `maxTriangles`) and run it again.
+
+## Characters: `node tools/assets/build-characters.ts`
+
+Plan 14 §20 (Phase 7 piece B). The sources are Quaternius's CC0 packs (Universal Base
+Characters, Modular Character Outfits - Fantasy, Universal Animation Library 1 and 2), fetched
+and repacked into `raw-assets/characters/quaternius/` by `node tools/assets/fetch-quaternius.ts`
+(or `--zips <dir>` with the free Standard zips downloaded by hand from quaternius.itch.io).
+
+The build writes `public/assets/characters/{male,female}.glb` (skeleton, pieces at three LODs,
+retargeted clips), their provenance sidecars, the manifest entries and
+`raw-assets/characters/build-report.json` (bytes and triangles per piece and LOD). No Blender:
+it's gltf-transform, meshoptimizer and sharp. Piece names, clip names and color regions live in
+`src/render/characters/`, which the game reads too. Look at the result with `npm run dev`, then
+`/characters.html`.

@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Characters — the captain's body</title>
+    <link rel="icon" href="./favicon.svg" type="image/svg+xml" />
+    <style>
+      html,
+      body {
+        margin: 0;
+        height: 100%;
+        overflow: hidden;
+        background: #1b2630;
+      }
+      #app {
+        width: 100%;
+        height: 100%;
+      }
+      #hud {
+        position: fixed;
+        top: 8px;
+        left: 8px;
+        padding: 6px 8px;
+        background: rgb(0 0 0 / 55%);
+        color: #e8eef2;
+        font:
+          12px/1.35 ui-monospace,
+          monospace;
+        white-space: pre;
+      }
+      .label {
+        color: #f2ead8;
+        font:
+          12px/1.2 Georgia,
+          serif;
+        text-shadow: 0 1px 2px #000;
+        transform: translate(-50%, 0);
+        position: fixed;
+        pointer-events: none;
+        white-space: nowrap;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app"></div>
+    <div id="hud"></div>
+    <!-- Dev-only lineup for Phase 7 piece B (plan 08 §20); not part of the production build. -->
+    <script type="module" src="/src/debug/characters/main.ts"></script>
+  </body>
+</html>

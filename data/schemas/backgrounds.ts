@@ -40,7 +40,8 @@ const color = z.string().regex(/^#[0-9a-f]{6}$/);
 
 /**
  * Portrait presets for character creation (plan 12 §2.1 step 2, Phase 4): likeness metadata
- * and colors for saves; the menu shows raster busts in `art/portraits/` until Phase 7.
+ * and colors for saves; the menu shows raster busts in `art/portraits/`, and the on-foot body
+ * (src/render/characters/looks.ts) is dressed from the same fields.
  */
 export const portraitSchema = z.object({
   id: idOf('portrait'),
@@ -52,6 +53,8 @@ export const portraitSchema = z.object({
   hairStyle: z.enum(['short', 'long', 'braid']),
   hat: z.enum(['none', 'cap', "sou'wester", 'bowler', 'wool', 'bonnet']),
   coat: color,
+  /** Which humanoid body the captain walks in on foot (plan 08 §20 piece B). */
+  body: z.enum(['male', 'female']).default('male'),
 });
 
 export const portraitsFileSchema = z.array(portraitSchema);
