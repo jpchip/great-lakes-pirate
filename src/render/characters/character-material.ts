@@ -66,14 +66,21 @@ void main() {
     vec3 n = normalize(cross(dFdx(vWorldPos), dFdy(vWorldPos)));
   #else
     vec3 n = normalize(vWorldNormal);
-    if (!gl_FrontFacing) n = -n;
   #endif
   vec3 toCamera = normalize(cameraPosition - vWorldPos);
+  // Turn the normal toward the eye by the normal itself, not by winding: simplified LODs
+  // carry a few flipped triangles, and the inside of a hat or collar is seen from behind.
+  // Flipping by gl_FrontFacing sent those normals away from the camera, so the rim term
+  // went to full and painted them pale grey.
+  if (dot(n, toCamera) < 0.0) n = -n;
   vec3 light = styleLight(n, vWorldPos);
   float rim = pow(1.0 - max(dot(n, toCamera), 0.0), 3.0);
   #ifdef STYLE_TOON
     rim = smoothstep(0.5, 0.55, rim);
   #endif
+  // A back face is an inside seen through an opening (hat, collar, boot top), never an
+  // edge against the sky, so it takes no rim.
+  if (!gl_FrontFacing) rim = 0.0;
   vec3 color = vColor * light + uRimColor * rim + vGlass * uGlow;
   gl_FragColor = vec4(color, 1.0);
   #include <tonemapping_fragment>

@@ -250,7 +250,7 @@ export function lookPieces(look: Look): PieceName[] {
     bald: null,
   };
   // A close hat covers parted hair; crop it so it can't poke through.
-  const close = look.hat === 'wool' || look.hat === 'helmet' || look.hat === 'bowler';
+  const close = (['wool', 'helmet', 'bowler', 'souwester'] as HatStyle[]).includes(look.hat);
   const style = hair[look.hair === 'short' && close ? 'cropped' : look.hair];
   if (style) pieces.push(style);
   if (look.beard === 'full' && look.body === 'male') pieces.push('beard.full');

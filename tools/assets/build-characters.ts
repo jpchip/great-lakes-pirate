@@ -51,6 +51,7 @@ import {
   shell,
   solidRegion,
   translate,
+  weldedNormals,
   triangleCount,
   triangleLuma,
   weightOn,
@@ -201,19 +202,41 @@ function solidShaded(p: LoadedPart, region: number): SkinnedGeo {
 // ---------------------------------------------------------------------------------------
 // Simplification
 
+/** Each vertex index replaced by the first vertex at the same position. */
+function weldByPosition(geo: SkinnedGeo): Uint32Array {
+  const first = new Map<string, number>();
+  const remap = new Uint32Array(geo.pos.length / 3);
+  for (let v = 0; v < remap.length; v++) {
+    const key = `${geo.pos[v * 3]?.toFixed(5)},${geo.pos[v * 3 + 1]?.toFixed(5)},${geo.pos[v * 3 + 2]?.toFixed(5)}`;
+    const seen = first.get(key);
+    remap[v] = seen ?? v;
+    if (seen === undefined) first.set(key, v);
+  }
+  return geo.index.map((i) => remap[i] ?? i);
+}
+
 async function simplifyTo(geo: SkinnedGeo, targetTriangles: number): Promise<SkinnedGeo> {
   if (targetTriangles <= 0) return { ...geo, index: new Uint32Array(0) };
   if (triangleCount(geo) <= targetTriangles) return geo;
   await MeshoptSimplifier.ready;
+  // The source meshes split vertices along UV seams, which the edge collapse treats as
+  // borders it must keep, so it stalls and the sloppy fallback tears the mesh into shards.
+  // Collapse on a position-welded index instead; the survivors keep one side's UVs.
+  const welded = weldByPosition(geo);
   const [index] = MeshoptSimplifier.simplify(
-    geo.index,
+    welded,
     geo.pos,
     3,
     Math.floor(targetTriangles) * 3,
     1, // error bound as a fraction of the mesh size: let the count decide
-    [],
+    ['Permissive', 'Prune'],
   );
-  if (index.length / 3 <= targetTriangles * 1.25) return compact(geo, index);
+  if (index.length / 3 <= targetTriangles * 1.25) {
+    // Fresh normals from the reduced surface: the survivors' original normals no longer
+    // match the bigger faces, and at grazing angles that lit whole faces with rim light.
+    const out = compact(geo, index);
+    return { ...out, nrm: weldedNormals(out) };
+  }
   // Layered or open meshes (hair cards, sleeves over sleeves) stall the edge collapse; the
   // sloppy simplifier clusters vertices instead and always reaches the count.
   // It overshoots on small meshes, so ask for more until it lands near the target.

@@ -4,12 +4,12 @@
     "character.male": {
       "type": "gltf",
       "url": "characters/male.glb",
-      "bytes": 1289188
+      "bytes": 1252948
     },
     "character.female": {
       "type": "gltf",
       "url": "characters/female.glb",
-      "bytes": 1305460
+      "bytes": 1254852
     }
   },
   "bundles": {
