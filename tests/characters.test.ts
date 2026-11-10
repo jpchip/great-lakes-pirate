@@ -15,7 +15,7 @@ import {
   LOOPING_CLIPS,
   PIECE_NAMES,
 } from '../src/render/characters/humanoid-spec';
-import { animationStride, lodForDistance } from '../src/render/characters/humanoid';
+import { animationStride, lodForDistance, measureHead } from '../src/render/characters/humanoid';
 import {
   lookFromPortrait,
   lookPalette,
@@ -165,7 +165,7 @@ describe('retarget (tools/assets/lib/humanoid.ts)', () => {
 });
 
 describe('accessories', () => {
-  const head = { top: 1.81, centerZ: 0.01, radius: 0.08, eyeY: 1.7, frontZ: 0.12 };
+  const head = { top: 1.81, centerZ: 0.01, radius: 0.08, scaleZ: 1.3, eyeY: 1.7, frontZ: 0.12 };
   it('builds every hat on the head joint, small enough for the budget', () => {
     const hats: HatStyle[] = [
       'cap',
@@ -277,4 +277,147 @@ describe('the body GLBs (public/assets/characters/)', async () => {
       }
     }
   });
+
+  /** A piece's geometry as the game reads it (`_look` lower case, like the loader). */
+  const pieceGeometry = (doc: (typeof docs)[number][1], name: string) => {
+    const prim = doc
+      .getRoot()
+      .listMeshes()
+      .find((m) => m.getName() === name)
+      ?.listPrimitives()[0];
+    if (!prim) return null;
+    const position = prim.getAttribute('POSITION');
+    const look = prim.getAttribute('_LOOK');
+    const indices = prim.getIndices();
+    if (!position || !look || !indices) return null;
+    const g = new THREE.BufferGeometry();
+    const pos = new Float32Array(position.getCount() * 3);
+    const lk = new Float32Array(look.getCount() * 2);
+    for (let i = 0; i < position.getCount(); i++) {
+      pos.set(position.getElement(i, []), i * 3);
+      lk.set(look.getElement(i, []), i * 2);
+    }
+    g.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    g.setAttribute('_look', new THREE.BufferAttribute(lk, 2));
+    g.setIndex(Array.from(indices.getArray() ?? []));
+    return g;
+  };
+  const doubleSided = (g: THREE.BufferGeometry) =>
+    new THREE.Mesh(g, new THREE.MeshBasicMaterial({ side: THREE.DoubleSide }));
+
+  it('lets no hat leave the skull bare: every skin vertex near the crown is inside a hat', () => {
+    const hats: HatStyle[] = [
+      'cap',
+      'peaked',
+      'bowler',
+      'souwester',
+      'wool',
+      'bonnet',
+      'helmet',
+      'slouch',
+    ];
+    const raycaster = new THREE.Raycaster();
+    for (const [id, doc] of docs) {
+      const headGeo = pieceGeometry(doc, 'head.lod0');
+      if (!headGeo) throw new Error(`${id} has no head`);
+      const frame = measureHead(headGeo);
+      expect(frame.scaleZ, id).toBeGreaterThan(1.1);
+      const pos = headGeo.getAttribute('position');
+      const look = headGeo.getAttribute('_look');
+      for (const hat of hats) {
+        const hatMesh = doubleSided(hatGeometry(hat, frame, 6) as THREE.BufferGeometry);
+        let bare = 0;
+        let checked = 0;
+        for (let i = 0; i < pos.count; i++) {
+          // Above the lowest hat band.
+          if (Math.round(look.getX(i)) !== REGION.skin || pos.getY(i) < frame.top - 0.055) continue;
+          checked++;
+          const out = new THREE.Vector3(pos.getX(i), 0, pos.getZ(i) - frame.centerZ).normalize();
+          raycaster.set(new THREE.Vector3(pos.getX(i), pos.getY(i), pos.getZ(i)), out);
+          if (raycaster.intersectObject(hatMesh).length === 0) bare++;
+        }
+        expect(checked, `${id} ${hat}`).toBeGreaterThan(20);
+        expect(bare, `${id} ${hat}: skin showing through`).toBe(0);
+      }
+    }
+  });
+
+  it('keeps every hair style over the scalp, so no bald patches show (all LODs)', () => {
+    // Looks at the scalp (skin above the brow) from the front, above and the sides, and
+    // counts the points where the first thing the eye meets is skin, not hair. Above the
+    // brow there is always some natural hairline, so allow a fifth; before the female hair
+    // was fitted (it was shrunk to 0.96) a third of her scalp and all of her cropped hair's
+    // showed bare.
+    const views: [number, number][] = [
+      [0, 0],
+      [0, 25],
+      [0, 50],
+      [0, 80],
+      [40, 25],
+      [-40, 25],
+      [75, 10],
+      [180, 25],
+    ];
+    const raycaster = new THREE.Raycaster();
+    for (const [id, doc] of docs) {
+      for (let lod = 0; lod < 2; lod++) {
+        const headGeo = pieceGeometry(doc, `head.lod${lod}`);
+        if (!headGeo) throw new Error(`${id} has no head`);
+        const look = headGeo.getAttribute('_look');
+        const index = headGeo.getIndex();
+        if (!index) throw new Error('unindexed head');
+        const frame = measureHead(headGeo);
+        const skinTriangle = new Set<number>();
+        for (let t = 0; t < index.count / 3; t++) {
+          if ([0, 1, 2].every((k) => Math.round(look.getX(index.getX(t * 3 + k))) === REGION.skin))
+            skinTriangle.add(t);
+        }
+        const headMesh = doubleSided(headGeo);
+        const target = new THREE.Vector3(0, frame.top - 0.05, 0);
+        for (const piece of ['hair.short', 'hair.cropped', 'hair.long', 'hair.buns']) {
+          const hairGeo = pieceGeometry(doc, `${piece}.lod${lod}`);
+          if (!hairGeo) continue;
+          const hairMesh = doubleSided(hairGeo);
+          let bare = 0;
+          let seen = 0;
+          for (const [azimuth, elevation] of views) {
+            const a = THREE.MathUtils.degToRad(azimuth);
+            const e = THREE.MathUtils.degToRad(elevation);
+            const toEye = new THREE.Vector3(
+              Math.sin(a) * Math.cos(e),
+              Math.sin(e),
+              Math.cos(a) * Math.cos(e),
+            );
+            const right = new THREE.Vector3().crossVectors(new THREE.Vector3(0, 1, 0), toEye);
+            right.normalize();
+            const up = new THREE.Vector3().crossVectors(toEye, right).normalize();
+            for (let u = -0.1; u <= 0.1; u += 0.01) {
+              for (let v = -0.1; v <= 0.1; v += 0.01) {
+                const origin = target
+                  .clone()
+                  .addScaledVector(toEye, 1)
+                  .addScaledVector(right, u)
+                  .addScaledVector(up, v);
+                raycaster.set(origin, toEye.clone().negate());
+                const onHead = raycaster.intersectObject(headMesh)[0];
+                if (
+                  !onHead ||
+                  onHead.faceIndex === undefined ||
+                  onHead.faceIndex === null ||
+                  !skinTriangle.has(onHead.faceIndex)
+                )
+                  continue;
+                if (onHead.point.y < frame.eyeY + 0.05) continue;
+                seen++;
+                const onHair = raycaster.intersectObject(hairMesh)[0];
+                if (!onHair || onHair.distance > onHead.distance + 0.001) bare++;
+              }
+            }
+          }
+          expect(seen, `${id} ${piece} lod${lod}`).toBeGreaterThan(200);
+          expect(bare / seen, `${id} ${piece} lod${lod}`).toBeLessThan(lod === 0 ? 0.2 : 0.35);
+        }
+      }
+    }
+  }, 30_000);
 });

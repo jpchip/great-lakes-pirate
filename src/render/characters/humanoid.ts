@@ -88,20 +88,29 @@ export function measureHead(geometry: THREE.BufferGeometry): HeadFrame {
     }
   }
   eyeY = eyes ? eyeY / eyes : top - 0.11;
-  // Width and depth just above the brow.
+  // The skull above the brow, as the ellipse (about the vertical axis) a hat must clear:
+  // width and depth over all of it, so the bulge of the forehead is inside, then the
+  // radius grown until every vertex is. The skull is much longer than wide (about 1.3).
   let minX = Infinity;
   let maxX = -Infinity;
   let minZ = Infinity;
   let maxZ = -Infinity;
+  const above: number[] = [];
   for (let i = 0; i < pos.count; i++) {
-    const y = pos.getY(i);
-    if (Math.round(look.getX(i)) !== REGION.skin || y < eyeY + 0.03 || y > eyeY + 0.07) continue;
+    if (Math.round(look.getX(i)) !== REGION.skin || pos.getY(i) < eyeY + 0.03) continue;
+    above.push(i);
     minX = Math.min(minX, pos.getX(i));
     maxX = Math.max(maxX, pos.getX(i));
     minZ = Math.min(minZ, pos.getZ(i));
     maxZ = Math.max(maxZ, pos.getZ(i));
   }
-  return { top, eyeY, frontZ, radius: (maxX - minX) / 2, centerZ: (minZ + maxZ) / 2 };
+  const centerZ = (minZ + maxZ) / 2;
+  const scaleZ = (maxZ - minZ) / Math.max(maxX - minX, 1e-6);
+  let radius = (maxX - minX) / 2;
+  for (const i of above) {
+    radius = Math.max(radius, Math.hypot(pos.getX(i), (pos.getZ(i) - centerZ) / scaleZ));
+  }
+  return { top, eyeY, frontZ, radius, centerZ, scaleZ };
 }
 
 /** Pull a body out of its loaded GLB. */

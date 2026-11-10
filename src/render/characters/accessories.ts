@@ -16,8 +16,10 @@ export interface HeadFrame {
   top: number;
   /** Center of the skull, horizontally. */
   centerZ: number;
-  /** Half the skull's width. */
+  /** Radius of the ellipse (about the vertical axis) that holds the skull above the brow. */
   radius: number;
+  /** How much longer the skull is front to back than wide. */
+  scaleZ: number;
   /** Eyes' height and the front of the face (nose tip). */
   eyeY: number;
   frontZ: number;
@@ -183,8 +185,8 @@ export function hatGeometry(
   const b = builder();
   const R = head.radius;
   const T = head.top;
-  const cz = head.centerZ - 0.005;
-  const sz = 1.12; // heads are longer than wide
+  const cz = head.centerZ;
+  const sz = head.scaleZ; // heads are longer than wide
   const o = { cz, scaleZ: sz };
   switch (style) {
     case 'none':
@@ -362,7 +364,7 @@ export function hatGeometry(
           [R * 1.05, T + 0.06],
         ],
         'hat',
-        { cz: cz - 0.01, scaleZ: 1.35, arc: Math.PI * 1.1, segments: 10 },
+        { cz: cz - 0.01, scaleZ: sz * 1.2, arc: Math.PI * 1.1, segments: 10 },
       );
       // The ribbon under the brim.
       lathe(

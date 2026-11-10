@@ -4,6 +4,10 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ## [Unreleased]
 
+### Fixed
+
+- **Skin through hats, and bald patches on the women:** every hat was an oval sized from the head's width, but the skull is about a third longer than wide and the forehead bulges forward, so a strip of forehead showed through the front of every hat band. Hats are now fitted to the measured skull (its centre, depth and a radius that holds every vertex above the brow). The female hair was shrunk to 96% for a skull that is in fact as wide as the male one, leaving a third of her scalp bare (nearly all of it under cropped hair); it now grows to 106%. Tests ray-cast the scalp against each hat and each hair style so a bare patch fails the build.
+
 ## [0.6.0] - 2026-11-09
 
 The **Piracy & Combat** build (Phase 6): arm your schooner in a back room after dark, lay a warning shot across a steamer's bow, board her when she strikes, swing her furs into your hold and decide what becomes of her crew. Every robbery has witnesses, her crew tells the law at her next port, the papers print it and her owners remember. Sell the goods to a fence before word gets round, and don't fire on the _Morrill_.

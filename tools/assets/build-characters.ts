@@ -325,9 +325,11 @@ const BODIES: BodySpec[] = [
       'hair.long': 'hair-long.glb',
       'hair.buns': 'hair-buns.glb',
     },
-    // The rebind already moves the hair from the male head bone to hers; it only needs to
-    // shrink a little to her smaller skull.
-    hairFit: { dy: 0, dz: 0, scale: 0.96 },
+    // The rebind already moves the hair from the male head bone to hers. Her skull is as
+    // wide as his and her forehead sits further forward, so the hair grows a little rather
+    // than shrinks (at 0.96 about a third of her scalp showed through; at 1.06 only the
+    // natural hairline above the brow does).
+    hairFit: { dy: 0, dz: 0, scale: 1.06 },
   },
 ];
 
