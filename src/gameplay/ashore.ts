@@ -88,6 +88,8 @@ export interface AshoreDeps {
   save(): Promise<void>;
   /** Your health ran out on foot: the run ends. */
   died(cause: 'drowned' | 'fell'): void;
+  /** Cast away from a lost ship (decision 2), you've reached dry land. */
+  castawayLanded?(): void;
   look: PointerLook;
   /** The view drawn each frame; its `foot` is set while you're ashore. */
   view?: (SailingView & { foot: FootFrame | undefined }) | undefined;
@@ -117,6 +119,15 @@ export interface GameAshore {
   goAboard(): Promise<void>;
   /** From a beached boat onto the beach. */
   stepAshore(): Promise<string | undefined>;
+  /** Off your feet and back to the helm at once, behind someone else's fade. */
+  leave(): void;
+  /** Why the boat can't take you off a foundering ship here (no land near, too much sea). */
+  castawayRefusal(): string | undefined;
+  /**
+   * Abandon ship into the boat (plan 08 §20.6 decision 2): she's gone, and you row for the
+   * nearest land. False if the boat can't be got away here.
+   */
+  castAway(): boolean;
   /** The F prompt now, for the HUD. */
   prompt(): string | undefined;
   /** The HUD's body readout. */
@@ -145,6 +156,8 @@ export interface FootHudSnapshot {
 const REACH_M = 2.2;
 /** In the boat, this close to the schooner's side you can climb aboard. */
 const ALONGSIDE_M = 3.5;
+/** Abandoning ship, the boat is got away only this close to land, zone m (plan 08 §20.6). */
+export const CASTAWAY_SHORE_M = 1500;
 /** The scene is rebuilt around the boat when she comes this close to its edge. */
 const REBUILD_MARGIN_M = 60;
 
@@ -171,6 +184,8 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
   let elapsed = 0;
   let lastDt = 1 / 60;
   let dead = false;
+  /** Cast away: told main once you're on dry land. */
+  let landedTold = false;
 
   const hazards = (): NonNullable<Entity['hazards']> => {
     const h = deps.ship.hazards;
@@ -181,8 +196,7 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
     const t = deps.ship.transform;
     return { x: t?.position.x ?? 0, z: t?.position.z ?? 0, heading: t?.heading ?? 0 };
   };
-  const waterC = (): number =>
-    climateAt(calendarDate(state.environment.clock.gameSeconds)).waterC;
+  const waterC = (): number => climateAt(calendarDate(state.environment.clock.gameSeconds)).waterC;
 
   /** The pier a berth lies at. */
   const pierOf = (id: string | undefined): PlacedPier | undefined => {
@@ -204,7 +218,8 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
       center,
       piers: deps.harbors().flatMap((l) => l.piers),
       buildings: deps.harbors().flatMap((l) => l.buildings),
-      ship: { pose: shipPose(), ...deps.hull },
+      // Cast away, she's gone: nothing to bump into or climb aboard.
+      ship: from === 'wreck' ? undefined : { pose: shipPose(), ...deps.hull },
       inTown: deps.inTown,
     });
   };
@@ -261,24 +276,7 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
           from = 'anchor';
           berthId = undefined;
           anchor = { x: h.anchorX, z: h.anchorZ };
-          const p = shipPose();
-          // Over the side nearer the shore, pointing at it.
-          const terrain = deps.terrain();
-          const off = deps.hull.beamM / 2 + ROWBOAT.beamM;
-          const side = [1, -1]
-            .map((s) => {
-              const x = p.x + Math.cos(p.heading) * off * s;
-              const z = p.z + Math.sin(p.heading) * off * s;
-              return { s, x, z, d: terrain?.shoreDistanceAt(x, z) ?? 0 };
-            })
-            .sort((a, b) => a.d - b.d)[0] as { s: number; x: number; z: number };
-          boat = createRowboat(side.x, side.z, p.heading + (side.s * Math.PI) / 2);
-          boatState = 'afloat';
-          inBoat = true;
-          scene = build(boat);
-          seatInBoat();
-          copyPrevious();
-          enter();
+          overTheSide();
         });
       }
     } finally {
@@ -286,6 +284,52 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
     }
     await deps.save();
     return undefined;
+  };
+
+  /** The boat over the side nearer the shore, pointing at it, and you at the oars. */
+  const overTheSide = (): void => {
+    const p = shipPose();
+    const terrain = deps.terrain();
+    const off = deps.hull.beamM / 2 + ROWBOAT.beamM;
+    const side = [1, -1]
+      .map((s) => {
+        const x = p.x + Math.cos(p.heading) * off * s;
+        const z = p.z + Math.sin(p.heading) * off * s;
+        return { s, x, z, d: terrain?.shoreDistanceAt(x, z) ?? 0 };
+      })
+      .sort((a, b) => a.d - b.d)[0] as { s: number; x: number; z: number };
+    boat = createRowboat(side.x, side.z, p.heading + (side.s * Math.PI) / 2);
+    boatState = 'afloat';
+    inBoat = true;
+    scene = build(boat);
+    seatInBoat();
+    copyPrevious();
+    enter();
+  };
+
+  const castawayRefusal = (): string | undefined => {
+    if (active) return 'Already ashore';
+    const terrain = deps.terrain();
+    if (!terrain) return 'No land in reach';
+    const p = shipPose();
+    if (terrain.shoreDistanceAt(p.x, p.z) > CASTAWAY_SHORE_M) return 'No land in reach';
+    return launchRefusal(deps.hsAt(p.x, p.z));
+  };
+
+  const castAway = (): boolean => {
+    if (busy || castawayRefusal()) return false;
+    busy = true;
+    from = 'wreck';
+    berthId = undefined;
+    anchor = undefined;
+    landedTold = false;
+    void deps
+      .fade('Abandon ship', 'Into the boat, and pull clear before she goes', overTheSide)
+      .finally(() => {
+        busy = false;
+        deps.notice('She is gone. Row for the shore.');
+      });
+    return true;
   };
 
   const leave = (): void => {
@@ -298,6 +342,7 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
     from = undefined;
     berthId = undefined;
     anchor = undefined;
+    landedTold = false;
     if (deps.view) deps.view.foot = undefined;
     deps.look.detachListeners();
     deps.transition('sailing');
@@ -307,7 +352,11 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
     if (!active || busy) return;
     busy = true;
     try {
-      await deps.fade('Back aboard', inBoat ? 'The boat hoisted in' : 'Up the side and aboard', leave);
+      await deps.fade(
+        'Back aboard',
+        inBoat ? 'The boat hoisted in' : 'Up the side and aboard',
+        leave,
+      );
     } finally {
       busy = false;
     }
@@ -317,7 +366,13 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
   const stepAshore = async (): Promise<string | undefined> => {
     if (!active || !inBoat || !boat || busy) return 'Not in the boat';
     const terrain = deps.terrain();
-    const step = terrain && beachStep((x, z) => terrain.heightAt(x, z), bowPoint(boat), boat.heading);
+    // Over the bow first; grounded broadside or stern-on, over whichever side is dry.
+    const heightAt = (x: number, z: number): number => terrain?.heightAt(x, z) ?? -100;
+    let step = terrain && beachStep(heightAt, bowPoint(boat), boat.heading);
+    for (const turn of [0.5, -0.5, 1, -1, 1.5, -1.5, 2, -2]) {
+      if (step || !terrain) break;
+      step = beachStep(heightAt, boat, boat.heading + (turn * Math.PI) / 2);
+    }
     if (!step) return 'No place to step ashore here';
     busy = true;
     const b = boat;
@@ -376,11 +431,7 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
 
   const seatInBoat = (): void => {
     if (!boat) return;
-    placeCharacter(
-      character,
-      { x: boat.x, y: ROWBOAT.freeboardM - 0.4, z: boat.z },
-      boat.heading,
-    );
+    placeCharacter(character, { x: boat.x, y: ROWBOAT.freeboardM - 0.4, z: boat.z }, boat.heading);
   };
 
   const copyPrevious = (): void => {
@@ -420,7 +471,10 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
       const pier = pierOf(berthId);
       if (pier && c.grounded) {
         const g = gangwayAt(pier, shipPose());
-        if (Math.hypot(c.position.x - g.x, c.position.z - g.z) < REACH_M && Math.abs(c.position.y - g.y) < 1) {
+        if (
+          Math.hypot(c.position.x - g.x, c.position.z - g.z) < REACH_M &&
+          Math.abs(c.position.y - g.y) < 1
+        ) {
           return { text: 'Go aboard', act: () => void goAboard() };
         }
       }
@@ -485,7 +539,11 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
         boat.speed = 0;
         placeCharacter(
           character,
-          { x: boat.x + Math.cos(boat.heading) * 1.2, y: -DEFAULT_CONTROLLER.swimDepth, z: boat.z + Math.sin(boat.heading) * 1.2 },
+          {
+            x: boat.x + Math.cos(boat.heading) * 1.2,
+            y: -DEFAULT_CONTROLLER.swimDepth,
+            z: boat.z + Math.sin(boat.heading) * 1.2,
+          },
           boat.heading,
         );
         deps.notice('A sea filled the boat. Swim for it!');
@@ -504,7 +562,13 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
     } else {
       stepCharacter(
         character,
-        { forward: ahead, right: side, run: input.isDown('Sprint'), crouch: input.isDown('Crouch'), jump: input.pressed('Jump') },
+        {
+          forward: ahead,
+          right: side,
+          run: input.isDown('Sprint'),
+          crouch: input.isDown('Crouch'),
+          jump: input.pressed('Jump'),
+        },
         walkCamera.yaw,
         scene,
         dt,
@@ -521,11 +585,27 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
       }
       if (character.landedSpeed > 0) {
         hurt(fallDamage(character.landedSpeed, character.landedInWater), 'fell');
-        if (fallDamage(character.landedSpeed, character.landedInWater) > 0 && state.player.health > 0) {
-          deps.notice(state.player.health < BADLY_HURT ? 'A bad fall: you are badly hurt' : 'A hard landing');
+        if (
+          fallDamage(character.landedSpeed, character.landedInWater) > 0 &&
+          state.player.health > 0
+        ) {
+          deps.notice(
+            state.player.health < BADLY_HURT ? 'A bad fall: you are badly hurt' : 'A hard landing',
+          );
         }
       }
       if (character.swimming) hurt(coldDrainPerS(waterC()) * dt, 'drowned');
+      // Cast away, the first dry footing (a beach, a pier) is landfall.
+      if (
+        from === 'wreck' &&
+        !landedTold &&
+        character.grounded &&
+        !character.swimming &&
+        character.position.y > 0
+      ) {
+        landedTold = true;
+        deps.castawayLanded?.();
+      }
     }
 
     prompt = findPrompt();
@@ -585,7 +665,10 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
       const heading = previous.heading + dh * alpha;
       let boatFrame: FootFrame['boat'];
       if (boat) {
-        const bh = Math.atan2(Math.sin(boat.heading - boatPrev.heading), Math.cos(boat.heading - boatPrev.heading));
+        const bh = Math.atan2(
+          Math.sin(boat.heading - boatPrev.heading),
+          Math.cos(boat.heading - boatPrev.heading),
+        );
         boatFrame = {
           x: boatPrev.x + (boat.x - boatPrev.x) * alpha,
           z: boatPrev.z + (boat.z - boatPrev.z) * alpha,
@@ -595,7 +678,9 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
         };
       }
       const feet = inBoat && boatFrame ? { x: boatFrame.x, y: 0, z: boatFrame.z } : { x, y, z };
-      const head = y + (character.crouching ? DEFAULT_CONTROLLER.crouchHeight : DEFAULT_CONTROLLER.standHeight);
+      const head =
+        y +
+        (character.crouching ? DEFAULT_CONTROLLER.crouchHeight : DEFAULT_CONTROLLER.standHeight);
       const indoors = !inBoat && roofOver(scene, x, head, z);
       cam.update(feet, character.crouching || character.swimming, scene, frameSeconds, indoors);
       view.foot = {
@@ -610,6 +695,7 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
           visible: !inBoat,
         },
         boat: boatFrame,
+        shipGone: from === 'wreck',
       };
       view.render(alpha, ctx.sea.time - (1 - alpha) * lastDt, frameSeconds);
     },
@@ -640,6 +726,9 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
     goAshore,
     goAboard,
     stepAshore,
+    castawayRefusal,
+    castAway,
+    leave,
     prompt: () => prompt?.text,
     hud(): FootHudSnapshot {
       const swimming = !inBoat && character.swimming;
@@ -676,6 +765,7 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
     },
     resume(saved) {
       from = saved.from;
+      landedTold = false;
       berthId = saved.berthId;
       anchor = saved.anchor;
       const rb = state.player.rowboat;
@@ -697,9 +787,19 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
         seatInBoat();
       } else {
         const ground = deps.terrain()?.heightAt(x, z) ?? 0;
-        placeCharacter(character, { x, y: y ?? Math.max(ground, -DEFAULT_CONTROLLER.swimDepth), z });
+        placeCharacter(character, {
+          x,
+          y: y ?? Math.max(ground, -DEFAULT_CONTROLLER.swimDepth),
+          z,
+        });
       }
-      if (!scene || x < scene.bounds.minX + 20 || x > scene.bounds.maxX - 20 || z < scene.bounds.minZ + 20 || z > scene.bounds.maxZ - 20) {
+      if (
+        !scene ||
+        x < scene.bounds.minX + 20 ||
+        x > scene.bounds.maxX - 20 ||
+        z < scene.bounds.minZ + 20 ||
+        z > scene.bounds.maxZ - 20
+      ) {
         scene = build({ x, z }) ?? scene;
       }
       copyPrevious();

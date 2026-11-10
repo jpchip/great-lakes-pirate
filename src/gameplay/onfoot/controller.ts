@@ -84,16 +84,7 @@ export const DEFAULT_CONTROLLER: ControllerParams = {
 };
 
 export type Gait =
-  | 'idle'
-  | 'sneak'
-  | 'walk'
-  | 'run'
-  | 'swim'
-  | 'fall'
-  | 'slide'
-  | 'ladder'
-  | 'vault'
-  | 'climb';
+  'idle' | 'sneak' | 'walk' | 'run' | 'swim' | 'fall' | 'slide' | 'ladder' | 'vault' | 'climb';
 
 /**
  * A ladder (plan 08 §3.1): against a wall or a pier's end, from `bottomY` (often under

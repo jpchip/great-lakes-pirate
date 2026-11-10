@@ -173,7 +173,10 @@ export function buildAshoreScene(input: AshoreSceneInput): AshoreScene {
     maxZ: originZ + (n - 1) * step,
   };
   const inside = (x: number, z: number, pad: number): boolean =>
-    x > bounds.minX - pad && x < bounds.maxX + pad && z > bounds.minZ - pad && z < bounds.maxZ + pad;
+    x > bounds.minX - pad &&
+    x < bounds.maxX + pad &&
+    z > bounds.minZ - pad &&
+    z < bounds.maxZ + pad;
 
   const colliders = new ColliderSet();
   const all: Collider[] = [];
@@ -252,7 +255,9 @@ export function beachStep(
     const z = bow.z + fz * d;
     const h = heightAt(x, z);
     if (h < 0.15) continue;
-    const g = Math.hypot(heightAt(x + 1, z) - heightAt(x - 1, z), heightAt(x, z + 1) - heightAt(x, z - 1)) / 2;
+    const g =
+      Math.hypot(heightAt(x + 1, z) - heightAt(x - 1, z), heightAt(x, z + 1) - heightAt(x, z - 1)) /
+      2;
     if (Math.atan(g) > maxSlope) return undefined;
     return { x, y: h, z };
   }

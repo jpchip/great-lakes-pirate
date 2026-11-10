@@ -61,7 +61,11 @@ export interface RowEnv {
    * Pushes a point out of solid things (piers, the schooner): returns the outward
    * direction and how deep it was in, or undefined if it's clear.
    */
-  blocked?(x: number, z: number, radius: number): { nx: number; nz: number; depth: number } | undefined;
+  blocked?(
+    x: number,
+    z: number,
+    radius: number,
+  ): { nx: number; nz: number; depth: number } | undefined;
 }
 
 const bow = (s: RowboatState, ahead = ROWBOAT.lengthM / 2): { x: number; z: number } => ({

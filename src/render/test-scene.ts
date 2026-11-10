@@ -522,7 +522,7 @@ export async function createTestScene(
         object.rotation.set(t.pitch ?? 0, -t.heading, t.roll ?? 0);
         if (e.playerControlled) {
           // The spyglass looks from the deck, so the ship's own rig would fill the view.
-          object.visible = !cameraRig.ship.spyglass;
+          object.visible = !cameraRig.ship.spyglass && !foot?.shipGone;
           // Follow the ship sideways, not up and down, so the swell stays visible.
           pose.position.x = t.position.x;
           pose.position.z = t.position.z;
@@ -567,7 +567,15 @@ export async function createTestScene(
         footView.update(
           foot,
           b
-            ? seaHeightAt(sea.waves, sea.waves.length, b.x, b.z, seaTime, 2, seaScaleAt(sea, b.x, b.z))
+            ? seaHeightAt(
+                sea.waves,
+                sea.waves.length,
+                b.x,
+                b.z,
+                seaTime,
+                2,
+                seaScaleAt(sea, b.x, b.z),
+              )
             : 0,
         );
       } else {

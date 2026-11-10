@@ -14,7 +14,10 @@ import { createStylizedMaterial, type StyleLighting } from '../style/stylized-ma
 /** What main hands the scene each frame while you're ashore, interpolated already. */
 export interface FootFrame {
   /** Where the camera stands and looks, zone meters. */
-  camera: { position: { x: number; y: number; z: number }; target: { x: number; y: number; z: number } };
+  camera: {
+    position: { x: number; y: number; z: number };
+    target: { x: number; y: number; z: number };
+  };
   captain: {
     x: number;
     y: number;
@@ -36,6 +39,8 @@ export interface FootFrame {
         manned: boolean;
       }
     | undefined;
+  /** Cast away from a lost ship: hers isn't drawn. */
+  shipGone?: boolean;
 }
 
 export interface FootView {
@@ -86,7 +91,14 @@ function boatGeometry(): THREE.BufferGeometry {
   parts.push(box(B - 0.1, 0.06, 0.22, 0, fb + 0.02, 1.2, PALETTE.sparBrown));
   // The oars, shipped along the thwarts.
   for (const side of [-1, 1]) {
-    parts.push(place(part(new THREE.BoxGeometry(0.06, 0.05, 2.6), OAR), side * (B / 2 - 0.15), fb + 0.1, 0.4));
+    parts.push(
+      place(
+        part(new THREE.BoxGeometry(0.06, 0.05, 2.6), OAR),
+        side * (B / 2 - 0.15),
+        fb + 0.1,
+        0.4,
+      ),
+    );
   }
   return merged(parts);
 }

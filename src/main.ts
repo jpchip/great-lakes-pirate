@@ -2224,6 +2224,8 @@ async function boot(): Promise<void> {
       leaveArena('caught');
       return;
     }
+    // Cast away and walked to the yard: off your feet and aboard the new hull.
+    if (ashoreRef.current?.active) ashoreRef.current.leave();
     await dockAt(port, `pier.${port.replace(/^port\./, '')}_city`);
   };
   const abandon: Abandon = attachAbandon({
@@ -2269,6 +2271,8 @@ async function boot(): Promise<void> {
     },
     landAt: (port) => landAt(port),
     notice: (text) => showNotice(text),
+    // Near land in a sea she can live in, the boat takes you off to row for it (decision 2).
+    castAway: () => !arena && !inArenaSpace && (ashoreRef.current?.castAway() ?? false),
   });
   abandonRef.current = abandon;
   if (import.meta.env.DEV || params.has('debug')) {
@@ -2284,6 +2288,7 @@ async function boot(): Promise<void> {
       leftS: () => abandon.leftS,
       open: () => abandon.open,
       landed: () => abandon.landed,
+      adrift: () => abandon.adrift,
       docked: () => ports.dockedPort,
     };
     (window as unknown as { __glpAbandon: typeof hook }).__glpAbandon = hook;
@@ -2541,6 +2546,8 @@ async function boot(): Promise<void> {
       footLook.detachListeners();
       void endTheRun(cause);
     },
+    // Rowed ashore from the wreck: on to the nearest yard (Phase 7 piece A, decision 2).
+    castawayLanded: () => abandon.cameAshore(),
     look: footLook,
     view: scene && {
       render: (alpha, seaTime, frameSeconds) => view?.render(alpha, seaTime, frameSeconds),
@@ -2566,6 +2573,7 @@ async function boot(): Promise<void> {
       aboard: () => ashore.goAboard(),
       stepAshore: () => ashore.stepAshore(),
       refusal: () => ashore.refusal(),
+      castawayRefusal: () => ashore.castawayRefusal(),
       anchor() {
         const h = hazards.state;
         const p = shipPose();
@@ -2633,7 +2641,8 @@ async function boot(): Promise<void> {
     void ashore.goAshore().then((why) => why && showNotice(why));
   };
   machine.onTransition((_, to) => {
-    document.body.dataset['ashore'] = to === 'onFoot' ? (ashore.inBoat ? 'boat' : 'foot') : 'aboard';
+    document.body.dataset['ashore'] =
+      to === 'onFoot' ? (ashore.inBoat ? 'boat' : 'foot') : 'aboard';
   });
   /**
    * Leaves the zone and enters `id` with the ship at `pose`, behind the fade to fog
@@ -3397,7 +3406,11 @@ async function boot(): Promise<void> {
           inBoat: body.inBoat,
           mouseLocked: footLook.locked,
         });
-        document.body.dataset['ashore'] = body.inBoat ? 'boat' : body.swimming ? 'swimming' : 'foot';
+        document.body.dataset['ashore'] = body.inBoat
+          ? 'boat'
+          : body.swimming
+            ? 'swimming'
+            : 'foot';
         document.body.dataset['footPrompt'] = body.prompt ?? '';
         document.body.dataset['health'] = String(Math.round(body.health));
       } else if (hudClock >= HUD_INTERVAL_S && machine.mode === 'chart') {

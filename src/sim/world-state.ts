@@ -411,7 +411,7 @@ export function defaultCaptain(): Captain {
  */
 export const ashoreSchema = z.object({
   /** How you went ashore: from a berth, or at anchor in the boat. */
-  from: z.enum(['berth', 'anchor']),
+  from: z.enum(['berth', 'anchor', 'wreck']),
   /** Your feet and the way you face. */
   at: z.object({ x: z.number(), y: z.number(), z: z.number(), heading: z.number() }),
   /** In the boat (rowing), not on foot. */

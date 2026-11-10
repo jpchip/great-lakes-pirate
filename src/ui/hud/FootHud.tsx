@@ -28,9 +28,16 @@ function ColdChip({ cold }: { cold: NonNullable<FootHudView['cold']> }) {
   const last = Math.max(0, Math.round(cold.lastS));
   return (
     <div class={`hud-chip${deadly ? ' danger' : ''}`} data-testid="foot-cold" role="alert">
-      {cold.word === 'cool' ? 'Cool water' : `${cold.word[0]?.toUpperCase()}${cold.word.slice(1)} water`}{' '}
+      {cold.word === 'cool'
+        ? 'Cool water'
+        : `${cold.word[0]?.toUpperCase()}${cold.word.slice(1)} water`}{' '}
       <span class="hud-num">{Math.round(cold.waterC)} °C</span>
-      {deadly && <span class="hud-dim"> · get out: about {last < 120 ? `${last} s` : `${Math.round(last / 60)} min`}</span>}
+      {deadly && (
+        <span class="hud-dim">
+          {' '}
+          · get out: about {last < 120 ? `${last} s` : `${Math.round(last / 60)} min`}
+        </span>
+      )}
     </div>
   );
 }
