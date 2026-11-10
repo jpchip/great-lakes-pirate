@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import type { DistrictModel, PlacedPiece } from '../../sim/district/district';
+import type { DistrictModel, PlacedPiece } from '../../gameplay/district/district';
 import { kitPiece } from '../../sim/district/kit';
 import { PALETTE } from '../style/palette';
 import { merged } from '../style/parts';
@@ -54,7 +54,9 @@ export interface DistrictView {
 
 export function createLampPools(): LampPoolUniforms {
   return {
-    uPoolPosition: { value: Array.from({ length: POOL_SLOTS }, () => new THREE.Vector4(0, -1e4, 0, 1)) },
+    uPoolPosition: {
+      value: Array.from({ length: POOL_SLOTS }, () => new THREE.Vector4(0, -1e4, 0, 1)),
+    },
     uPoolColor: { value: Array.from({ length: POOL_SLOTS }, () => new THREE.Color(0, 0, 0)) },
   };
 }
@@ -89,7 +91,9 @@ export function createDistrictView(
   addMesh(groundGeometry(model), groundMat, 'ground');
   const g = model.ground;
   const water = new THREE.PlaneGeometry(g.width + 800, g.depth + 800);
-  water.rotateX(-Math.PI / 2).translate(g.originX + g.width / 2, model.waterLevel, g.originZ + g.depth / 2);
+  water
+    .rotateX(-Math.PI / 2)
+    .translate(g.originX + g.width / 2, model.waterLevel, g.originZ + g.depth / 2);
   addMesh(water, waterMat, 'water');
 
   // --- Static kit, merged per block ----------------------------------------------------
@@ -103,13 +107,17 @@ export function createDistrictView(
   const groundAt = (x: number, z: number): number => g.heightAt(x, z);
   for (const c of model.cells) cellGeometry(c, groundAt, sinkAt(c.x, c.z));
   for (const pile of model.piles) pileGeometry(pile, sinkAt(pile.x, pile.z));
-  const paintOf = (p: PlacedPiece): { wall: number; trim: number; brick: boolean; seed: number } => {
+  const paintOf = (
+    p: PlacedPiece,
+  ): { wall: number; trim: number; brick: boolean; seed: number } => {
     const b = p.building ? model.buildings.find((k) => k.def.id === p.building) : undefined;
     const wallPiece = b ? kitPiece(b.def.wall) : undefined;
     return {
       wall: b ? (PAINTS[b.def.paint % PAINTS.length] as number) : 0x7a6450,
       trim: 0xe8e2d2,
-      brick: p.piece.id.startsWith('kit.wall_brick') || (wallPiece?.id.startsWith('kit.wall_brick') ?? false),
+      brick:
+        p.piece.id.startsWith('kit.wall_brick') ||
+        (wallPiece?.id.startsWith('kit.wall_brick') ?? false),
       seed: b ? b.def.paint * 17 + b.minX : 3,
     };
   };
@@ -133,7 +141,9 @@ export function createDistrictView(
 
   // --- Per frame ------------------------------------------------------------------------
   const glow = new THREE.Color(PALETTE.windowAmber);
-  const lampColors = model.lamps.map((l) => new THREE.Color(l.color).multiplyScalar(l.intensity * POOL_GAIN));
+  const lampColors = model.lamps.map((l) =>
+    new THREE.Color(l.color).multiplyScalar(l.intensity * POOL_GAIN),
+  );
   const order = model.lamps.map((_, k) => k);
   const dist = new Float64Array(model.lamps.length);
   let inside: string | undefined;
@@ -151,21 +161,23 @@ export function createDistrictView(
     update(focus, night) {
       // The nearest lamps become the pools.
       for (let k = 0; k < model.lamps.length; k++) {
-        const l = model.lamps[k]!;
+        const l = model.lamps[k];
+        if (!l) continue;
         dist[k] = (l.x - focus.x) ** 2 + (l.z - focus.z) ** 2;
       }
-      order.sort((a, b) => dist[a]! - dist[b]!);
+      order.sort((a, b) => (dist[a] ?? 0) - (dist[b] ?? 0));
       for (let s = 0; s < POOL_SLOTS; s++) {
         const k = order[s];
-        const pos = pools.uPoolPosition.value[s]!;
-        const color = pools.uPoolColor.value[s]!;
-        if (k === undefined || night <= 0) {
+        const pos = pools.uPoolPosition.value[s];
+        const color = pools.uPoolColor.value[s];
+        if (!pos || !color) continue;
+        const l = k === undefined ? undefined : model.lamps[k];
+        if (!l || k === undefined || night <= 0) {
           color.setRGB(0, 0, 0);
           continue;
         }
-        const l = model.lamps[k]!;
         pos.set(l.x, l.y, l.z, l.radiusM * POOL_REACH);
-        color.copy(lampColors[k]!).multiplyScalar(night);
+        color.copy(lampColors[k] ?? color).multiplyScalar(night);
       }
       // Lamp glass and lit windows: dull glass by day, glowing after dusk.
       const litU = (lit as StylizedMaterial).uniforms;

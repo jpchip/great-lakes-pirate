@@ -11,8 +11,8 @@ import { DEFAULT_CONTROLLER } from '../../gameplay/onfoot/controller';
 import type { GameContext, GameEvents } from '../../modes/context';
 import { ModeMachine } from '../../modes/machine';
 import { createOnFootMode } from '../../modes/on-foot';
-import { buildDistrict, type DistrictModel } from '../../sim/district/district';
-import { decodeGround, districtDef } from '../../sim/district/ground';
+import { buildDistrict, type DistrictModel } from '../../gameplay/district/district';
+import { decodeGround, districtDef } from '../../gameplay/district/ground';
 import { layoutHash, parseLayout, type DistrictLayout } from '../../sim/district/layout';
 import { NavMesh, type NavMeshData, type NavPoint } from '../../sim/district/navmesh';
 import { createLocalWeather } from '../../sim/weather/local-weather';
@@ -32,7 +32,10 @@ import { createDistrictScene } from './scene';
 
 const params = new URLSearchParams(window.location.search);
 const def = districtDef(params.get('d') ?? 'bayfield');
-const layouts = import.meta.glob('../../../data/districts/*.json', { eager: true, import: 'default' });
+const layouts = import.meta.glob('../../../data/districts/*.json', {
+  eager: true,
+  import: 'default',
+});
 const layoutJson = layouts[`../../../data/districts/${def.layout}`];
 if (!layoutJson) throw new Error(`no layout ${def.layout}`);
 
@@ -43,7 +46,9 @@ if (!container || !hud) throw new Error('Missing #app or #hud');
 const base = `districts/${def.bake}/`;
 const [groundBytes, navJson] = await Promise.all([
   fetch(`${base}ground.bin`).then(async (r) => new Uint8Array(await r.arrayBuffer())),
-  fetch(`${base}navmesh.json`).then(async (r) => (r.ok ? ((await r.json()) as NavMeshData) : undefined)),
+  fetch(`${base}navmesh.json`).then(async (r) =>
+    r.ok ? ((await r.json()) as NavMeshData) : undefined,
+  ),
 ]);
 const ground = decodeGround(groundBytes);
 let layout: DistrictLayout = parseLayout(structuredClone(layoutJson));
@@ -137,7 +142,8 @@ function stepGuards(dt: number): void {
       w.leg = 1;
       continue;
     }
-    const target = w.path[w.leg]!;
+    const target = w.path[w.leg];
+    if (!target) continue;
     const dx = target.x - w.x;
     const dz = target.z - w.z;
     const d = Math.hypot(dx, dz);
@@ -187,9 +193,13 @@ window.addEventListener('keydown', (e) => {
   if ((e.target as HTMLElement | null)?.closest?.('input, select, textarea')) return;
   if (e.code === 'Tab') {
     e.preventDefault();
-    editor.active ? editor.exit() : editor.enter(mode.character.position);
+    if (editor.active) editor.exit();
+    else editor.enter(mode.character.position);
     input.context = editor.active ? 'menu' : 'onFoot';
-    if (editor.active) document.exitPointerLock();
+    if (editor.active) {
+      document.exitPointerLock();
+      look.detachListeners();
+    } else if (!bench) look.attach();
     document.body.dataset['mode'] = editor.active ? 'edit' : 'onFoot';
   } else if (editor.active) {
     return;
@@ -207,6 +217,7 @@ window.addEventListener('keydown', (e) => {
   }
 });
 if (params.get('edit') === '1') {
+  look.detachListeners();
   editor.enter(mode.character.position);
   input.context = 'menu';
   document.body.dataset['mode'] = 'edit';
@@ -227,8 +238,8 @@ let benchT = 0;
 function benchCamera(dt: number): void {
   benchT += dt;
   const seg = Math.floor(benchT / 4) % benchRoute.length;
-  const a = benchRoute[seg]!;
-  const b = benchRoute[(seg + 1) % benchRoute.length]!;
+  const a = benchRoute[seg] ?? benchRoute[0];
+  const b = benchRoute[(seg + 1) % benchRoute.length] ?? benchRoute[0];
   const t = (benchT % 4) / 4;
   const x = a[0] + (b[0] - a[0]) * t;
   const z = a[1] + (b[1] - a[1]) * t;

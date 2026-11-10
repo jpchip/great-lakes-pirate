@@ -1,10 +1,10 @@
 import * as THREE from 'three';
 import type { DistrictDef } from '../../../data/schemas/districts';
-import type { CharacterState, ControllerParams } from '../../gameplay/onfoot/controller';
+import type { ControllerParams } from '../../gameplay/onfoot/controller';
 import { createDistrictView, type DistrictView } from '../../render/district/district-view';
 import { createLightingSample, sampleLighting } from '../../render/style/lighting-luts';
 import { StyleLighting } from '../../render/style/stylized-material';
-import type { DistrictModel } from '../../sim/district/district';
+import type { DistrictModel } from '../../gameplay/district/district';
 import type { NavMesh } from '../../sim/district/navmesh';
 import { moonAt, sunAt } from '../../sim/weather/celestial';
 import { zoneDef } from '../../sim/terrain/zones';
@@ -34,7 +34,14 @@ export interface DistrictScene {
   /** Sky and light for the game clock. */
   setTime(gameSeconds: number): void;
   /** Places the player's capsule (feet) and heading (clockwise from north). */
-  setPlayer(x: number, y: number, z: number, heading: number, crouching: boolean, visible: boolean): void;
+  setPlayer(
+    x: number,
+    y: number,
+    z: number,
+    heading: number,
+    crouching: boolean,
+    visible: boolean,
+  ): void;
   setGuards(positions: readonly { x: number; y: number; z: number; heading: number }[]): void;
   render(focus: THREE.Vector3): void;
 }
@@ -54,7 +61,12 @@ export function createDistrictScene(
   const fogColor = new THREE.Color();
   scene.fog = new THREE.Fog(0x8a9aa6, 60, 320);
   scene.background = new THREE.Color();
-  const camera = new THREE.PerspectiveCamera(60, container.clientWidth / container.clientHeight, 0.1, 1200);
+  const camera = new THREE.PerspectiveCamera(
+    60,
+    container.clientWidth / container.clientHeight,
+    0.1,
+    1200,
+  );
 
   const lighting = new StyleLighting();
   let view = createDistrictView(model, lighting);
@@ -62,7 +74,9 @@ export function createDistrictScene(
 
   // The harbor's seaward bearing: a zone direction turns into the district by this much.
   const harbor = findHarbor(def.harbor);
-  const piece = harbor ? zoneDef(harborZoneId(harbor)).setPieces.find((p) => p.id === harbor.setPiece) : undefined;
+  const piece = harbor
+    ? zoneDef(harborZoneId(harbor)).setPieces.find((p) => p.id === harbor.setPiece)
+    : undefined;
   const bearing = (piece?.bearingDeg ?? 0) * DEG;
 
   // The player and guards as capsules (piece B's characters replace them).
@@ -76,14 +90,22 @@ export function createDistrictScene(
   const player = new THREE.Group();
   const stand = capsule(0x2f3b55, params.standHeight);
   const crouch = capsule(0x2f3b55, params.crouchHeight);
-  const nose = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.12, 0.3), new THREE.MeshLambertMaterial({ color: 0xe0c070 }));
+  const nose = new THREE.Mesh(
+    new THREE.BoxGeometry(0.12, 0.12, 0.3),
+    new THREE.MeshLambertMaterial({ color: 0xe0c070 }),
+  );
   player.add(stand, crouch, nose);
   scene.add(player);
   const playerLight = new THREE.HemisphereLight(0xffffff, 0x444444, 1.2);
   scene.add(playerLight);
 
   const guardMesh = new THREE.InstancedMesh(
-    new THREE.CapsuleGeometry(params.radius, params.standHeight - 2 * params.radius, 3, 8).translate(0, params.standHeight / 2, 0),
+    new THREE.CapsuleGeometry(
+      params.radius,
+      params.standHeight - 2 * params.radius,
+      3,
+      8,
+    ).translate(0, params.standHeight / 2, 0),
     new THREE.MeshLambertMaterial({ color: 0x8a2c2c, emissive: 0x220808 }),
     32,
   );
@@ -142,17 +164,28 @@ export function createDistrictScene(
       if (!nav) return;
       const pts: number[] = [];
       for (let i = 0; i < nav.polyCount; i++) {
-        const vs = nav.polys[i]!;
+        const vs = nav.polys[i] ?? [];
         for (let k = 0; k < vs.length; k++) {
-          const a = vs[k]!;
-          const b = vs[(k + 1) % vs.length]!;
-          pts.push(nav.vx[a]!, nav.vy[a]! + 0.08, nav.vz[a]!, nav.vx[b]!, nav.vy[b]! + 0.08, nav.vz[b]!);
+          const a = vs[k] ?? 0;
+          const b = vs[(k + 1) % vs.length] ?? 0;
+          pts.push(
+            nav.vx[a] ?? 0,
+            (nav.vy[a] ?? 0) + 0.08,
+            nav.vz[a] ?? 0,
+            nav.vx[b] ?? 0,
+            (nav.vy[b] ?? 0) + 0.08,
+            nav.vz[b] ?? 0,
+          );
         }
       }
-      for (const l of nav.links) pts.push(l.pa.x, l.pa.y + 0.3, l.pa.z, l.pb.x, l.pb.y + 0.3, l.pb.z);
+      for (const l of nav.links)
+        pts.push(l.pa.x, l.pa.y + 0.3, l.pa.z, l.pb.x, l.pb.y + 0.3, l.pb.z);
       const geo = new THREE.BufferGeometry();
       geo.setAttribute('position', new THREE.Float32BufferAttribute(pts, 3));
-      navLines = new THREE.LineSegments(geo, new THREE.LineBasicMaterial({ color: 0x3cf0a0, depthTest: true }));
+      navLines = new THREE.LineSegments(
+        geo,
+        new THREE.LineBasicMaterial({ color: 0x3cf0a0, depthTest: true }),
+      );
       navLines.visible = navOn;
       scene.add(navLines);
     },
@@ -168,7 +201,11 @@ export function createDistrictScene(
       const moon = moonAt(gameSeconds);
       moonPhase = moon.elevationRad > 0 ? moon.illumination01 : 0;
       const elev = sun.elevationRad / DEG;
-      sampleLighting(elev, { cloud01: fogOn ? 0.6 : 0.15, storm01: 0, fog01: fogOn ? 1 : 0 }, sample);
+      sampleLighting(
+        elev,
+        { cloud01: fogOn ? 0.6 : 0.15, storm01: 0, fog01: fogOn ? 1 : 0 },
+        sample,
+      );
       night = THREE.MathUtils.smoothstep(-elev, -4, 6);
       const toLocal = (b: { azimuthRad: number; elevationRad: number }): THREE.Vector3 => {
         const az = b.azimuthRad - bearing;
@@ -188,7 +225,9 @@ export function createDistrictScene(
       u.uGroundAmbient.value.b = Math.max(u.uGroundAmbient.value.b, 0.03);
       if (sun.elevationRad > -0.05) {
         u.uKeyDirection.value.copy(toLocal(sun)).normalize();
-        u.uKeyColor.value.setHex(0xfff0d8).multiplyScalar(THREE.MathUtils.smoothstep(elev, -3, 12) * 1.1);
+        u.uKeyColor.value
+          .setHex(0xfff0d8)
+          .multiplyScalar(THREE.MathUtils.smoothstep(elev, -3, 12) * 1.1);
       } else if (moon.elevationRad > 0) {
         u.uKeyDirection.value.copy(toLocal(moon)).normalize();
         u.uKeyColor.value.setHex(0x9fb4d6).multiplyScalar(0.05 + 0.28 * moon.illumination01);
@@ -197,7 +236,9 @@ export function createDistrictScene(
       }
       u.uRimColor.value.setRGB(0, 0, 0);
       fogColor.copy(sample.horizon);
-      (scene.background as THREE.Color).copy(fogOn ? sample.horizon : sample.zenith.clone().lerp(sample.horizon, 0.35));
+      (scene.background as THREE.Color).copy(
+        fogOn ? sample.horizon : sample.zenith.clone().lerp(sample.horizon, 0.35),
+      );
       const fog = scene.fog as THREE.Fog;
       fog.color.copy(fogColor);
       fog.near = fogOn ? 6 : 80;
@@ -217,7 +258,8 @@ export function createDistrictScene(
     setGuards(list) {
       guardMesh.count = Math.min(list.length, 32);
       for (let k = 0; k < guardMesh.count; k++) {
-        const gd = list[k]!;
+        const gd = list[k];
+        if (!gd) continue;
         q.setFromAxisAngle(up, -gd.heading);
         m4.compose(v3.set(gd.x, gd.y, gd.z), q, one);
         guardMesh.setMatrixAt(k, m4);

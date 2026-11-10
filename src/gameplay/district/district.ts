@@ -4,16 +4,10 @@ import type {
   KitPiece,
   Surface,
 } from '../../../data/schemas/districts';
-import { ColliderSet, type BoxCollider, type Collider } from '../../gameplay/onfoot/colliders';
-import type { OnFootZone } from '../../gameplay/onfoot/controller';
-import type { Heightfield } from '../../gameplay/onfoot/heightfield';
-import {
-  CELL_M,
-  DECK_THICK_M,
-  DOOR_HEIGHT_M,
-  kitPiece,
-  WALL_M,
-} from './kit';
+import { ColliderSet, type BoxCollider, type Collider } from '../onfoot/colliders';
+import type { OnFootZone } from '../onfoot/controller';
+import type { Heightfield } from '../onfoot/heightfield';
+import { CELL_M, DECK_THICK_M, DOOR_HEIGHT_M, kitPiece, WALL_M } from '../../sim/district/kit';
 import {
   edgeSegment,
   perimeter,
@@ -21,7 +15,7 @@ import {
   pieceId,
   type DistrictLayout,
   type EdgeRef,
-} from './layout';
+} from '../../sim/district/layout';
 
 /**
  * A district built from its layout (plan 08 §2, §13–15; Phase 7 piece C): the colliders the
@@ -148,7 +142,12 @@ export function buildDistrict(
   const colliders = new ColliderSet();
   const add = (c: Collider): void => colliders.add(c);
   const groundMin = (xa: number, za: number, xb: number, zb: number): number =>
-    Math.min(ground.heightAt(xa, za), ground.heightAt(xb, za), ground.heightAt(xa, zb), ground.heightAt(xb, zb));
+    Math.min(
+      ground.heightAt(xa, za),
+      ground.heightAt(xb, za),
+      ground.heightAt(xa, zb),
+      ground.heightAt(xb, zb),
+    );
   const groundMax = (xa: number, za: number, xb: number, zb: number): number =>
     Math.max(
       ground.heightAt(xa, za),
@@ -209,7 +208,10 @@ export function buildDistrict(
   const cells: PlacedPiece[] = [];
   const piles: DistrictPile[] = [];
   // Decks and floors collide as runs along a row, not cell by cell.
-  const runs = new Map<string, { row: number; c0: number; c1: number; minY: number; maxY: number; surface: Surface }>();
+  const runs = new Map<
+    string,
+    { row: number; c0: number; c1: number; minY: number; maxY: number; surface: Surface }
+  >();
   const sortedCells = [...layout.cells].sort((a, b) => a[2] - b[2] || a[1] - b[1]);
   for (const [p, col, row, variant] of sortedCells) {
     const piece = kitPiece(pieceId(layout, p));
@@ -225,7 +227,8 @@ export function buildDistrict(
       y = piece.deckM ?? 1.6;
       minY = y - DECK_THICK_M;
       const g = ground.heightAt(cx, cz);
-      if ((col + row) % 2 === 0 && g < minY - 0.2) piles.push({ x: cx, z: cz, y0: g - 0.5, y1: minY });
+      if ((col + row) % 2 === 0 && g < minY - 0.2)
+        piles.push({ x: cx, z: cz, y0: g - 0.5, y1: minY });
     } else if (piece.collider === 'floor') {
       y = groundMax(xa, za, xb, zb) + piece.heightM;
       minY = groundMin(xa, za, xb, zb) - FOOTING_M;
@@ -253,7 +256,14 @@ export function buildDistrict(
       runs.set(key, { row, c0: col, c1: col, minY, maxY: y, surface });
     }
   }
-  function addRun(r: { row: number; c0: number; c1: number; minY: number; maxY: number; surface: Surface }): void {
+  function addRun(r: {
+    row: number;
+    c0: number;
+    c1: number;
+    minY: number;
+    maxY: number;
+    surface: Surface;
+  }): void {
     add({
       kind: 'box',
       x: x0 + ((r.c0 + r.c1 + 1) / 2) * CELL_M,
@@ -268,7 +278,15 @@ export function buildDistrict(
   }
   for (const r of runs.values()) addRun(r);
   for (const pile of piles) {
-    add({ kind: 'cylinder', x: pile.x, z: pile.z, radius: 0.16, minY: pile.y0, maxY: pile.y1, blocksSight: false });
+    add({
+      kind: 'cylinder',
+      x: pile.x,
+      z: pile.z,
+      radius: 0.16,
+      minY: pile.y0,
+      maxY: pile.y1,
+      blocksSight: false,
+    });
   }
 
   /** The walkable top at (x, z): a cell's deck or floor, else the ground. */
@@ -321,12 +339,36 @@ export function buildDistrict(
     });
     const footY = Math.min(baseY, edgeGround(e)) - FOOTING_M;
     // A wall box spanning `from`..`to` along the edge (meters from its middle).
-    const wall = (from: number, to: number, minY: number, maxY: number, blocksSight: boolean): void => {
+    const wall = (
+      from: number,
+      to: number,
+      minY: number,
+      maxY: number,
+      blocksSight: boolean,
+    ): void => {
       const mid = (from + to) / 2;
       const half = (to - from) / 2;
       const b: BoxCollider = seg.alongX
-        ? { kind: 'box', x: seg.x + mid, z: seg.z, halfX: half, halfZ: WALL_M / 2, yaw: 0, minY, maxY }
-        : { kind: 'box', x: seg.x, z: seg.z + mid, halfX: WALL_M / 2, halfZ: half, yaw: 0, minY, maxY };
+        ? {
+            kind: 'box',
+            x: seg.x + mid,
+            z: seg.z,
+            halfX: half,
+            halfZ: WALL_M / 2,
+            yaw: 0,
+            minY,
+            maxY,
+          }
+        : {
+            kind: 'box',
+            x: seg.x,
+            z: seg.z + mid,
+            halfX: WALL_M / 2,
+            halfZ: half,
+            yaw: 0,
+            minY,
+            maxY,
+          };
       if (!blocksSight) b.blocksSight = false;
       add(b);
     };
@@ -345,9 +387,10 @@ export function buildDistrict(
         const w = piece.openingM ?? 1.4;
         wall(-h, -w / 2, footY, topY, piece.blocksSight);
         wall(w / 2, h, footY, topY, piece.blocksSight);
-        if (topY > baseY + DOOR_HEIGHT_M + 0.05) wall(-w / 2, w / 2, baseY + DOOR_HEIGHT_M, topY, piece.blocksSight);
+        if (topY > baseY + DOOR_HEIGHT_M + 0.05)
+          wall(-w / 2, w / 2, baseY + DOOR_HEIGHT_M, topY, piece.blocksSight);
         const n = doorIndex();
-        doors.push({
+        const door: DistrictDoor = {
           id: building ? `${building.def.id}.door${n}` : `door.${e.col}_${e.row}_${e.side}`,
           piece: piece.id,
           building: building?.def.id,
@@ -357,17 +400,32 @@ export function buildDistrict(
           widthM: w,
           y: baseY,
           opens: building?.def.opens,
-        });
-        if (building) building.doors.push(doors[doors.length - 1]!.id);
+        };
+        doors.push(door);
+        if (building) building.doors.push(door.id);
         break;
       }
       default:
         break;
     }
     if (piece.climb === 'ladder') {
-      climbs.push({ kind: 'ladder', piece: piece.id, x: seg.x, z: seg.z, y0: waterLevel, y1: baseY });
+      climbs.push({
+        kind: 'ladder',
+        piece: piece.id,
+        x: seg.x,
+        z: seg.z,
+        y0: waterLevel,
+        y1: baseY,
+      });
     } else if (piece.climb === 'vault') {
-      climbs.push({ kind: 'vault', piece: piece.id, x: seg.x, z: seg.z, y0: baseY, y1: baseY + piece.heightM });
+      climbs.push({
+        kind: 'vault',
+        piece: piece.id,
+        x: seg.x,
+        z: seg.z,
+        y0: baseY,
+        y1: baseY + piece.heightM,
+      });
     }
   };
 
@@ -399,12 +457,30 @@ export function buildDistrict(
     const y = floorAt(x, z);
     const heading = yawDeg * DEG;
     const inBuilding = buildings.find((b) => x > b.minX && x < b.maxX && z > b.minZ && z < b.maxZ);
-    props.push({ piece, x, y, z, heading, topY: y + piece.heightM, variant, building: inBuilding?.def.id });
+    props.push({
+      piece,
+      x,
+      y,
+      z,
+      heading,
+      topY: y + piece.heightM,
+      variant,
+      building: inBuilding?.def.id,
+    });
     const [w, d] = piece.sizeM;
     const blocks = piece.blocksSight;
     if (piece.collider === 'solid') {
       if (piece.round) {
-        add({ kind: 'cylinder', x, z, radius: w / 2, minY: y, maxY: y + piece.heightM, ...(blocks ? {} : { blocksSight: false }), surface: 'planks' });
+        add({
+          kind: 'cylinder',
+          x,
+          z,
+          radius: w / 2,
+          minY: y,
+          maxY: y + piece.heightM,
+          ...(blocks ? {} : { blocksSight: false }),
+          surface: 'planks',
+        });
       } else {
         add({
           kind: 'box',
@@ -420,7 +496,15 @@ export function buildDistrict(
         });
       }
     } else if (piece.collider === 'post') {
-      add({ kind: 'cylinder', x, z, radius: w / 2, minY: y, maxY: y + piece.heightM, blocksSight: false });
+      add({
+        kind: 'cylinder',
+        x,
+        z,
+        radius: w / 2,
+        minY: y,
+        maxY: y + piece.heightM,
+        blocksSight: false,
+      });
     }
     if (piece.light) {
       lamps.push({
@@ -445,9 +529,29 @@ export function buildDistrict(
   const maxX = x0 + cols * CELL_M;
   const maxZ = z0 + rows * CELL_M;
   const fence = (x: number, z: number, hx: number, hz: number): void =>
-    add({ kind: 'box', x, z, halfX: hx, halfZ: hz, yaw: 0, minY: -6, maxY: 12, blocksSight: false });
-  fence((minX + maxX) / 2, minZ - BOUND_WALL_M / 2, (maxX - minX) / 2 + BOUND_WALL_M, BOUND_WALL_M / 2);
-  fence((minX + maxX) / 2, maxZ + BOUND_WALL_M / 2, (maxX - minX) / 2 + BOUND_WALL_M, BOUND_WALL_M / 2);
+    add({
+      kind: 'box',
+      x,
+      z,
+      halfX: hx,
+      halfZ: hz,
+      yaw: 0,
+      minY: -6,
+      maxY: 12,
+      blocksSight: false,
+    });
+  fence(
+    (minX + maxX) / 2,
+    minZ - BOUND_WALL_M / 2,
+    (maxX - minX) / 2 + BOUND_WALL_M,
+    BOUND_WALL_M / 2,
+  );
+  fence(
+    (minX + maxX) / 2,
+    maxZ + BOUND_WALL_M / 2,
+    (maxX - minX) / 2 + BOUND_WALL_M,
+    BOUND_WALL_M / 2,
+  );
   fence(minX - BOUND_WALL_M / 2, (minZ + maxZ) / 2, BOUND_WALL_M / 2, (maxZ - minZ) / 2);
   fence(maxX + BOUND_WALL_M / 2, (minZ + maxZ) / 2, BOUND_WALL_M / 2, (maxZ - minZ) / 2);
 
@@ -497,7 +601,13 @@ export function buildDistrict(
     },
     buildingAt(x, y, z) {
       return buildings.find(
-        (b) => x > b.minX && x < b.maxX && z > b.minZ && z < b.maxZ && y >= b.floorY - 0.6 && y < b.eavesY,
+        (b) =>
+          x > b.minX &&
+          x < b.maxX &&
+          z > b.minZ &&
+          z < b.maxZ &&
+          y >= b.floorY - 0.6 &&
+          y < b.eavesY,
       );
     },
   };

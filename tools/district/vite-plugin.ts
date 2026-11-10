@@ -31,12 +31,17 @@ export function districtEditorPlugin(): Plugin {
             void (async () => {
               try {
                 const json: unknown = JSON.parse(Buffer.concat(chunks).toString('utf8'));
-                const { parseLayout } = (await server.ssrLoadModule('/src/sim/district/layout.ts')) as typeof import('../../src/sim/district/layout');
+                const { parseLayout } = (await server.ssrLoadModule(
+                  '/src/sim/district/layout.ts',
+                )) as typeof import('../../src/sim/district/layout');
                 parseLayout(json);
                 const prettier = await import('prettier');
                 const path = join(root, 'data', 'districts', file);
                 const options = (await prettier.resolveConfig(path)) ?? {};
-                const text = await prettier.format(JSON.stringify(json), { ...options, parser: 'json' });
+                const text = await prettier.format(JSON.stringify(json), {
+                  ...options,
+                  parser: 'json',
+                });
                 writeFileSync(path, text);
                 res.end('ok');
               } catch (e) {

@@ -1,6 +1,6 @@
 import { defineConfig } from 'vite';
 import pkg from './package.json' with { type: 'json' };
-import { districtEditorPlugin } from './tools/district/vite-plugin';
+import { districtEditorPlugin } from './tools/district/vite-plugin.ts';
 
 export default defineConfig({
   // Relative base keeps the build path-agnostic: domain root on the droplet

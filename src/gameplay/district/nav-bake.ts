@@ -1,8 +1,13 @@
-import type { Collider } from '../../gameplay/onfoot/colliders';
-import { DOOR_HEIGHT_M, WALL_M } from './kit';
+import type { Collider } from '../onfoot/colliders';
+import { DOOR_HEIGHT_M, WALL_M } from '../../sim/district/kit';
 import type { DistrictModel } from './district';
-import { layoutHash } from './layout';
-import { NavMesh, type NavDoorLink, type NavMeshData, type NavPoint } from './navmesh';
+import { layoutHash } from '../../sim/district/layout';
+import {
+  NavMesh,
+  type NavDoorLink,
+  type NavMeshData,
+  type NavPoint,
+} from '../../sim/district/navmesh';
 
 /**
  * The pure half of the navmesh bake (plan 08 §5.3; Phase 7 piece C): the triangle soup
@@ -164,18 +169,25 @@ export function finishNavMesh(
     const nx = d.alongX ? 0 : 1;
     const nz = d.alongX ? 1 : 0;
     const side = (s: number): { poly: number; point: NavPoint } =>
-      full.findNearest({ x: d.x + nx * s * LINK_REACH_M, y: d.y, z: d.z + nz * s * LINK_REACH_M }, 0.6, 0.6);
+      full.findNearest(
+        { x: d.x + nx * s * LINK_REACH_M, y: d.y, z: d.z + nz * s * LINK_REACH_M },
+        0.6,
+        0.6,
+      );
     const a = side(-1);
     const b = side(1);
     if (a.poly < 0 || b.poly < 0 || a.poly === b.poly) {
-      report.push(`door ${d.id}: no mesh on ${a.poly < 0 ? 'the front' : b.poly < 0 ? 'the back' : 'both sides as one'}; not linked`);
+      report.push(
+        `door ${d.id}: no mesh on ${a.poly < 0 ? 'the front' : b.poly < 0 ? 'the back' : 'both sides as one'}; not linked`,
+      );
       continue;
     }
     links.push({ door: d.id, a: a.poly, b: b.poly, pa: round(a.point), pb: round(b.point) });
   }
   const withLinks = new NavMesh(pack(raw.polys, raw.neis, links));
   const start = withLinks.findNearest(gangway, 3, 2);
-  if (start.poly < 0) throw new Error(`navmesh: no polygon at the gangway (${gangway.x}, ${gangway.z})`);
+  if (start.poly < 0)
+    throw new Error(`navmesh: no polygon at the gangway (${gangway.x}, ${gangway.z})`);
   const keep = withLinks.reachable(start.poly);
 
   // Renumber the kept polygons and the vertices they use.
@@ -201,7 +213,7 @@ export function finishNavMesh(
   }
   const keptLinks = links
     .filter((l) => polyMap.has(l.a) && polyMap.has(l.b))
-    .map((l) => ({ ...l, a: polyMap.get(l.a)!, b: polyMap.get(l.b)! }));
+    .map((l) => ({ ...l, a: polyMap.get(l.a) ?? 0, b: polyMap.get(l.b) ?? 0 }));
   report.push(
     `${polys.length} polygons kept of ${raw.polys.length}; ${keptLinks.length} door links of ${model.doors.length} doors`,
   );
@@ -218,5 +230,9 @@ export function finishNavMesh(
 }
 
 function round(p: NavPoint): NavPoint {
-  return { x: Math.round(p.x * 100) / 100, y: Math.round(p.y * 100) / 100, z: Math.round(p.z * 100) / 100 };
+  return {
+    x: Math.round(p.x * 100) / 100,
+    y: Math.round(p.y * 100) / 100,
+    z: Math.round(p.z * 100) / 100,
+  };
 }

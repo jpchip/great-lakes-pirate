@@ -1,10 +1,10 @@
 import districtsJson from '../../../data/districts.json';
 import { districtsFileSchema, type DistrictDef } from '../../../data/schemas/districts';
 import type { Zone, ZoneFrame } from '../../core/coords';
-import { Heightfield } from '../../gameplay/onfoot/heightfield';
-import { findHarbor, footprintPoint, harborZoneId, type HarborTerrain } from '../harbors';
-import { setPieceFootprint, zoneDef, type SetPieceFootprint } from '../terrain/zones';
-import type { DistrictLayout } from './layout';
+import { Heightfield } from '../onfoot/heightfield';
+import { findHarbor, footprintPoint, harborZoneId, type HarborTerrain } from '../../sim/harbors';
+import { setPieceFootprint, zoneDef, type SetPieceFootprint } from '../../sim/terrain/zones';
+import type { DistrictLayout } from '../../sim/district/layout';
 
 /**
  * Where a district sits and the ground under it (plan 08 §2.1, §15; Phase 7 piece C). A

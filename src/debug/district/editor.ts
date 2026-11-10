@@ -10,7 +10,7 @@ import {
   districtMarkSchema,
   portTabSchema,
 } from '../../../data/schemas/districts';
-import type { DistrictModel } from '../../sim/district/district';
+import type { DistrictModel } from '../../gameplay/district/district';
 import { CELL_M, KIT, kitPiece, PROP_TURN_DEG } from '../../sim/district/kit';
 import {
   buildingAtCell,
@@ -78,7 +78,7 @@ const HELP =
   'LMB place/select · drag paints · R/Shift+R turn · X delete · Q pick · Ctrl+Z/Y undo/redo · WASD pan · wheel zoom · RMB drag orbit · Tab walk';
 
 export function createEditor(host: EditorHost): Editor {
-  const { scene, container } = host;
+  const { scene } = host;
   let active = false;
   const target = new THREE.Vector3();
   let yaw = 0;
@@ -100,8 +100,18 @@ export function createEditor(host: EditorHost): Editor {
   const raycaster = new THREE.Raycaster();
 
   // --- Ghost and grid -------------------------------------------------------------------------
-  const ghostMat = new THREE.MeshBasicMaterial({ color: 0x40c0ff, transparent: true, opacity: 0.45, depthWrite: false });
-  const badMat = new THREE.MeshBasicMaterial({ color: 0xff5040, transparent: true, opacity: 0.45, depthWrite: false });
+  const ghostMat = new THREE.MeshBasicMaterial({
+    color: 0x40c0ff,
+    transparent: true,
+    opacity: 0.45,
+    depthWrite: false,
+  });
+  const badMat = new THREE.MeshBasicMaterial({
+    color: 0xff5040,
+    transparent: true,
+    opacity: 0.45,
+    depthWrite: false,
+  });
   const ghost = new THREE.Mesh(new THREE.BoxGeometry(1, 1, 1), ghostMat);
   ghost.visible = false;
   ghost.renderOrder = 10;
@@ -154,8 +164,11 @@ export function createEditor(host: EditorHost): Editor {
       button('Building ▭', () => setTool({ kind: 'building' }), 'Drag out a new building'),
     );
     const markSel = document.createElement('select');
-    for (const k of districtMarkSchema.shape.kind.options) markSel.append(new Option(`mark: ${k}`, k));
-    markSel.addEventListener('change', () => setTool({ kind: 'mark', markKind: markSel.value as DistrictMark['kind'] }));
+    for (const k of districtMarkSchema.shape.kind.options)
+      markSel.append(new Option(`mark: ${k}`, k));
+    markSel.addEventListener('change', () =>
+      setTool({ kind: 'mark', markKind: markSel.value as DistrictMark['kind'] }),
+    );
     tools.append(markSel);
     panel.append(tools, inspector);
     const cats = new Map<string, KitPiece[]>();
@@ -171,7 +184,11 @@ export function createEditor(host: EditorHost): Editor {
       h.style.cssText = 'margin-top:8px;color:#9fd0ff;text-transform:uppercase;';
       panel.append(h);
       for (const p of pieces) {
-        const b = button(p.name, () => setTool({ kind: 'piece', piece: p }), `${p.id} (${p.placement})`);
+        const b = button(
+          p.name,
+          () => setTool({ kind: 'piece', piece: p }),
+          `${p.id} (${p.placement})`,
+        );
         b.dataset['piece'] = p.id;
         panel.append(b);
       }
@@ -181,16 +198,25 @@ export function createEditor(host: EditorHost): Editor {
 
   function refreshPanel(): void {
     for (const b of panel.querySelectorAll<HTMLButtonElement>('button[data-piece]')) {
-      b.style.outline = tool.kind === 'piece' && tool.piece.id === b.dataset['piece'] ? '2px solid #40c0ff' : '';
+      b.style.outline =
+        tool.kind === 'piece' && tool.piece.id === b.dataset['piece'] ? '2px solid #40c0ff' : '';
     }
     const nav = host.nav;
     const hash = layoutHash(host.layout);
     const toolName =
-      tool.kind === 'piece' ? `${tool.piece.name} (${tool.piece.placement})` : tool.kind === 'mark' ? `mark: ${tool.markKind}` : tool.kind;
+      tool.kind === 'piece'
+        ? `${tool.piece.name} (${tool.piece.placement})`
+        : tool.kind === 'mark'
+          ? `mark: ${tool.markKind}`
+          : tool.kind;
     status.textContent = [
       `tool: ${toolName}${tool.kind === 'piece' && tool.piece.placement === 'prop' ? ` · yaw ${propYaw}°` : ''}`,
       `layout ${hash}${undo.length ? ` · ${undo.length} edits` : ''}`,
-      nav ? (nav.data.layoutHash === hash ? 'navmesh up to date' : 'navmesh STALE: Save, then Bake') : 'no navmesh: Save, then Bake',
+      nav
+        ? nav.data.layoutHash === hash
+          ? 'navmesh up to date'
+          : 'navmesh STALE: Save, then Bake'
+        : 'no navmesh: Save, then Bake',
     ].join('\n');
     renderInspector();
   }
@@ -223,7 +249,12 @@ export function createEditor(host: EditorHost): Editor {
       );
       row(key, i);
     };
-    const choose = <T extends string>(label: string, options: readonly T[], value: string, set: (v: T) => void): void => {
+    const choose = <T extends string>(
+      label: string,
+      options: readonly T[],
+      value: string,
+      set: (v: T) => void,
+    ): void => {
       const s = document.createElement('select');
       for (const o of options) s.append(new Option(o, o, false, o === value));
       s.addEventListener('change', () => edit(() => set(s.value as T)));
@@ -241,9 +272,13 @@ export function createEditor(host: EditorHost): Editor {
     text('id', b.id);
     text('name', b.name ?? '');
     choose('kind', districtBuildingKindSchema.options, b.kind, (v) => (b.kind = v));
-    const walls = KIT.filter((p) => p.placement === 'edge' && (p.collider === 'wall' || p.collider === 'window')).map((p) => p.id);
+    const walls = KIT.filter(
+      (p) => p.placement === 'edge' && (p.collider === 'wall' || p.collider === 'window'),
+    ).map((p) => p.id);
     choose('wall', walls, b.wall, (v) => (b.wall = v));
-    const floors = KIT.filter((p) => p.placement === 'cell' && p.collider === 'floor').map((p) => p.id);
+    const floors = KIT.filter((p) => p.placement === 'cell' && p.collider === 'floor').map(
+      (p) => p.id,
+    );
     choose('floor', floors, b.floor, (v) => (b.floor = v));
     choose('roof', ['gable', 'flat', 'falseFront'] as const, b.roof, (v) => (b.roof = v));
     choose('ridge', ['x', 'z'] as const, b.ridge, (v) => (b.ridge = v));
@@ -311,18 +346,24 @@ export function createEditor(host: EditorHost): Editor {
       method: 'POST',
       body: JSON.stringify(host.layout),
     });
-    status.textContent = r.ok ? `saved data/districts/${host.def.layout}` : `save failed: ${await r.text()}`;
+    status.textContent = r.ok
+      ? `saved data/districts/${host.def.layout}`
+      : `save failed: ${await r.text()}`;
   }
 
   async function bake(): Promise<void> {
     status.textContent = 'baking… (npm run district:bake)';
-    const r = await fetch(`/__district/bake?bake=${encodeURIComponent(host.def.bake)}`, { method: 'POST' });
+    const r = await fetch(`/__district/bake?bake=${encodeURIComponent(host.def.bake)}`, {
+      method: 'POST',
+    });
     const text = await r.text();
     if (!r.ok) {
       status.textContent = `bake failed:\n${text.slice(-600)}`;
       return;
     }
-    const nav = (await (await fetch(`districts/${host.def.bake}/navmesh.json?t=${Date.now()}`)).json()) as NavMeshData;
+    const nav = (await (
+      await fetch(`districts/${host.def.bake}/navmesh.json?t=${Date.now()}`)
+    ).json()) as NavMeshData;
     host.onNav(nav);
     refreshPanel();
   }
@@ -360,7 +401,10 @@ export function createEditor(host: EditorHost): Editor {
       }
     } else if (tool.kind === 'mark' && !dragging) {
       const kind = tool.markKind;
-      const id = window.prompt(`id for the new ${kind} mark`, `${kind}.${layout.marks.filter((m) => m.kind === kind).length}`);
+      const id = window.prompt(
+        `id for the new ${kind} mark`,
+        `${kind}.${layout.marks.filter((m) => m.kind === kind).length}`,
+      );
       if (!id) return;
       const [x, z, yaw] = snapProp(p.x, p.z, propYaw);
       edit(() => {
@@ -400,7 +444,8 @@ export function createEditor(host: EditorHost): Editor {
     const layout = host.layout;
     const k = propNear(layout, p.x, p.z, 0.8);
     if (k >= 0) {
-      const t = layout.props[k]!;
+      const t = layout.props[k];
+      if (!t) return;
       propYaw = t[3];
       setTool({ kind: 'piece', piece: kitPiece(pieceId(layout, t[0])) });
       return;
@@ -442,7 +487,11 @@ export function createEditor(host: EditorHost): Editor {
       ghost.visible = true;
       ghost.material = buildingFits(layout, r) ? ghostMat : badMat;
       ghost.scale.set(r.cols * CELL_M, 4, r.rows * CELL_M);
-      ghost.position.set(layout.bounds.x0 + (r.col + r.cols / 2) * CELL_M, p.y + 2, layout.bounds.z0 + (r.row + r.rows / 2) * CELL_M);
+      ghost.position.set(
+        layout.bounds.x0 + (r.col + r.cols / 2) * CELL_M,
+        p.y + 2,
+        layout.bounds.z0 + (r.row + r.rows / 2) * CELL_M,
+      );
       return;
     } else if (tool.kind === 'mark') {
       ghost.visible = true;
@@ -452,7 +501,10 @@ export function createEditor(host: EditorHost): Editor {
     ghost.material = ghostMat;
   }
 
-  function rect(a: { col: number; row: number }, b: { col: number; row: number }): Pick<DistrictBuildingDef, 'col' | 'row' | 'cols' | 'rows'> {
+  function rect(
+    a: { col: number; row: number },
+    b: { col: number; row: number },
+  ): Pick<DistrictBuildingDef, 'col' | 'row' | 'cols' | 'rows'> {
     return {
       col: Math.min(a.col, b.col),
       row: Math.min(a.row, b.row),
@@ -464,7 +516,11 @@ export function createEditor(host: EditorHost): Editor {
   function updateSelection(): void {
     const b = host.model.buildings.find((k) => k.def.id === selected);
     selBox.visible = !!b && active;
-    if (b) selBox.box.set(new THREE.Vector3(b.minX, b.floorY, b.minZ), new THREE.Vector3(b.maxX, b.topY, b.maxZ));
+    if (b)
+      selBox.box.set(
+        new THREE.Vector3(b.minX, b.floorY, b.minZ),
+        new THREE.Vector3(b.maxX, b.topY, b.maxZ),
+      );
   }
 
   // --- Input ----------------------------------------------------------------------------------
@@ -601,8 +657,12 @@ export function createEditor(host: EditorHost): Editor {
       const speed = distance * 0.9 * dt;
       const fx = Math.sin(yaw);
       const fz = -Math.cos(yaw);
-      const ax = (keys.has('KeyD') || keys.has('ArrowRight') ? 1 : 0) - (keys.has('KeyA') || keys.has('ArrowLeft') ? 1 : 0);
-      const az = (keys.has('KeyW') || keys.has('ArrowUp') ? 1 : 0) - (keys.has('KeyS') || keys.has('ArrowDown') ? 1 : 0);
+      const ax =
+        (keys.has('KeyD') || keys.has('ArrowRight') ? 1 : 0) -
+        (keys.has('KeyA') || keys.has('ArrowLeft') ? 1 : 0);
+      const az =
+        (keys.has('KeyW') || keys.has('ArrowUp') ? 1 : 0) -
+        (keys.has('KeyS') || keys.has('ArrowDown') ? 1 : 0);
       target.x += (fx * az - fz * ax) * speed;
       target.z += (fz * az + fx * ax) * speed;
       target.y = host.model.floorAt(target.x, target.z);

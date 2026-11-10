@@ -68,7 +68,11 @@ export function cellAt(layout: DistrictLayout, x: number, z: number): CellRef {
   };
 }
 
-export function cellCenter(layout: DistrictLayout, col: number, row: number): { x: number; z: number } {
+export function cellCenter(
+  layout: DistrictLayout,
+  col: number,
+  row: number,
+): { x: number; z: number } {
   return {
     x: layout.bounds.x0 + (col + 0.5) * CELL_M,
     z: layout.bounds.z0 + (row + 0.5) * CELL_M,
@@ -127,7 +131,7 @@ export function nearestEdge(layout: DistrictLayout, x: number, z: number): EdgeR
 
 export function snapProp(x: number, z: number, yawDeg: number): [number, number, number] {
   const s = (v: number): number => Math.round(v / PROP_SNAP_M) * PROP_SNAP_M;
-  const yaw = ((Math.round(yawDeg / PROP_TURN_DEG) * PROP_TURN_DEG) % 360 + 360) % 360;
+  const yaw = (((Math.round(yawDeg / PROP_TURN_DEG) * PROP_TURN_DEG) % 360) + 360) % 360;
   return [s(x), s(z), yaw];
 }
 
@@ -140,12 +144,14 @@ export function perimeter(
   b: DistrictBuildingDef,
 ): { side: number; index: number; edge: EdgeRef }[] {
   const out: { side: number; index: number; edge: EdgeRef }[] = [];
-  for (let i = 0; i < b.cols; i++) out.push({ side: 0, index: i, edge: normalizeEdge(b.col + i, b.row, 0) });
+  for (let i = 0; i < b.cols; i++)
+    out.push({ side: 0, index: i, edge: normalizeEdge(b.col + i, b.row, 0) });
   for (let i = 0; i < b.rows; i++)
     out.push({ side: 1, index: i, edge: normalizeEdge(b.col + b.cols - 1, b.row + i, 1) });
   for (let i = 0; i < b.cols; i++)
     out.push({ side: 2, index: i, edge: normalizeEdge(b.col + i, b.row + b.rows - 1, 2) });
-  for (let i = 0; i < b.rows; i++) out.push({ side: 3, index: i, edge: normalizeEdge(b.col, b.row + i, 3) });
+  for (let i = 0; i < b.rows; i++)
+    out.push({ side: 3, index: i, edge: normalizeEdge(b.col, b.row + i, 3) });
   return out;
 }
 
@@ -199,7 +205,11 @@ export function pieceId(layout: DistrictLayout, palette: number): string {
   return id;
 }
 
-export function cellPieceAt(layout: DistrictLayout, col: number, row: number): CellTuple | undefined {
+export function cellPieceAt(
+  layout: DistrictLayout,
+  col: number,
+  row: number,
+): CellTuple | undefined {
   return layout.cells.find((c) => c[1] === col && c[2] === row);
 }
 
@@ -250,7 +260,11 @@ export function placeEdge(
     if (id !== b.wall) b.edges.push([id, s, index]);
     return true;
   }
-  if (!inBounds(layout, e.col, e.row) && !inBounds(layout, e.col - 1, e.row) && !inBounds(layout, e.col, e.row - 1)) {
+  if (
+    !inBounds(layout, e.col, e.row) &&
+    !inBounds(layout, e.col - 1, e.row) &&
+    !inBounds(layout, e.col, e.row - 1)
+  ) {
     return false;
   }
   removeEdge(layout, e.col, e.row, e.side);
@@ -258,7 +272,12 @@ export function placeEdge(
   return true;
 }
 
-export function removeEdge(layout: DistrictLayout, col: number, row: number, side: number): boolean {
+export function removeEdge(
+  layout: DistrictLayout,
+  col: number,
+  row: number,
+  side: number,
+): boolean {
   const e = normalizeEdge(col, row, side);
   const onBuilding = buildingEdge(layout, e);
   if (onBuilding) {
@@ -311,7 +330,10 @@ export function buildingFits(
   b: Pick<DistrictBuildingDef, 'col' | 'row' | 'cols' | 'rows'>,
   ignore?: string,
 ): boolean {
-  if (!inBounds(layout, b.col, b.row) || !inBounds(layout, b.col + b.cols - 1, b.row + b.rows - 1)) {
+  if (
+    !inBounds(layout, b.col, b.row) ||
+    !inBounds(layout, b.col + b.cols - 1, b.row + b.rows - 1)
+  ) {
     return false;
   }
   return !layout.buildings.some(
@@ -347,8 +369,7 @@ export function compactPalette(layout: DistrictLayout): void {
  * so a test and the editor can tell when the bake is out of date.
  */
 export function layoutHash(layout: DistrictLayout): string {
-  const { marks: _marks, ...shape } = layout;
-  const text = JSON.stringify(shape);
+  const text = JSON.stringify({ ...layout, marks: undefined });
   let h = 0x811c9dc5;
   for (let i = 0; i < text.length; i++) {
     h ^= text.charCodeAt(i);

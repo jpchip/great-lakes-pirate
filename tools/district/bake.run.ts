@@ -16,16 +16,21 @@ import { join } from 'node:path';
 import { init } from 'recast-navigation';
 import { generateSoloNavMesh } from 'recast-navigation/generators';
 import { it } from 'vitest';
-import { buildDistrict } from '../../src/sim/district/district';
+import { buildDistrict } from '../../src/gameplay/district/district';
 import {
   DISTRICTS,
   districtFootprint,
   districtFrame,
   encodeGround,
   sampleGround,
-} from '../../src/sim/district/ground';
+} from '../../src/gameplay/district/ground';
 import { parseLayout } from '../../src/sim/district/layout';
-import { finishNavMesh, GUARD_AGENT, navGeometry, type RawNavMesh } from '../../src/sim/district/nav-bake';
+import {
+  finishNavMesh,
+  GUARD_AGENT,
+  navGeometry,
+  type RawNavMesh,
+} from '../../src/gameplay/district/nav-bake';
 import { loadZoneTerrain } from '../../src/sim/terrain/load';
 import { manifestFrame } from '../../src/sim/terrain/zones';
 
@@ -44,7 +49,9 @@ it('bakes the districts', async () => {
   for (const def of DISTRICTS) {
     if (only && !def.id.endsWith(only)) continue;
     const t0 = performance.now();
-    const layout = parseLayout(JSON.parse(readFileSync(join(root, 'data', 'districts', def.layout), 'utf8')));
+    const layout = parseLayout(
+      JSON.parse(readFileSync(join(root, 'data', 'districts', def.layout), 'utf8')),
+    );
     const local = districtFrame(def, districtFootprint(def, frame));
     const ground = sampleGround(def, layout, local, zone.terrain);
     const outDir = join(root, 'public', 'districts', def.bake);

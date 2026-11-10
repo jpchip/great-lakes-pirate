@@ -48,6 +48,11 @@ export interface PathOptions {
 
 const BUCKET_M = 4;
 
+function must<T>(v: T | undefined): T {
+  if (v === undefined) throw new Error('navmesh: index out of range');
+  return v;
+}
+
 class Heap {
   private readonly items: number[] = [];
   constructor(private readonly f: Float64Array) {}
@@ -60,16 +65,16 @@ class Heap {
     let i = a.length - 1;
     while (i > 0) {
       const p = (i - 1) >> 1;
-      if ((this.f[a[p]!] ?? 0) <= (this.f[n] ?? 0)) break;
-      a[i] = a[p]!;
+      if ((this.f[a[p] ?? 0] ?? 0) <= (this.f[n] ?? 0)) break;
+      a[i] = a[p] ?? 0;
       i = p;
     }
     a[i] = n;
   }
   pop(): number {
     const a = this.items;
-    const top = a[0]!;
-    const last = a.pop()!;
+    const top = a[0] ?? 0;
+    const last = must(a.pop());
     if (a.length > 0) {
       let i = 0;
       const fl = this.f[last] ?? 0;
@@ -77,9 +82,9 @@ class Heap {
         const l = 2 * i + 1;
         if (l >= a.length) break;
         const r = l + 1;
-        const c = r < a.length && (this.f[a[r]!] ?? 0) < (this.f[a[l]!] ?? 0) ? r : l;
-        if ((this.f[a[c]!] ?? 0) >= fl) break;
-        a[i] = a[c]!;
+        const c = r < a.length && (this.f[a[r] ?? 0] ?? 0) < (this.f[a[l] ?? 0] ?? 0) ? r : l;
+        if ((this.f[a[c] ?? 0] ?? 0) >= fl) break;
+        a[i] = a[c] ?? 0;
         i = c;
       }
       a[i] = last;
@@ -203,14 +208,16 @@ export class NavMesh {
 
   /** Is (x, z) inside polygon `i`'s footprint (either winding)? */
   contains(i: number, x: number, z: number): boolean {
-    if (x < this.minX[i]! - 1e-6 || x > this.maxX[i]! + 1e-6) return false;
-    if (z < this.minZ[i]! - 1e-6 || z > this.maxZ[i]! + 1e-6) return false;
-    const vs = this.polys[i]!;
+    if (x < (this.minX[i] ?? 0) - 1e-6 || x > (this.maxX[i] ?? 0) + 1e-6) return false;
+    if (z < (this.minZ[i] ?? 0) - 1e-6 || z > (this.maxZ[i] ?? 0) + 1e-6) return false;
+    const vs = must(this.polys[i]);
     let sign = 0;
     for (let k = 0; k < vs.length; k++) {
-      const a = vs[k]!;
-      const b = vs[(k + 1) % vs.length]!;
-      const c = (this.vx[b]! - this.vx[a]!) * (z - this.vz[a]!) - (this.vz[b]! - this.vz[a]!) * (x - this.vx[a]!);
+      const a = vs[k] ?? 0;
+      const b = vs[(k + 1) % vs.length] ?? 0;
+      const c =
+        ((this.vx[b] ?? 0) - (this.vx[a] ?? 0)) * (z - (this.vz[a] ?? 0)) -
+        ((this.vz[b] ?? 0) - (this.vz[a] ?? 0)) * (x - (this.vx[a] ?? 0));
       if (Math.abs(c) < 1e-9) continue;
       const s = c > 0 ? 1 : -1;
       if (sign === 0) sign = s;
@@ -221,20 +228,29 @@ export class NavMesh {
 
   /** The polygon's height at (x, z), from the fan triangle under it. */
   heightOn(i: number, x: number, z: number): number {
-    const vs = this.polys[i]!;
-    const a = vs[0]!;
+    const vs = must(this.polys[i]);
+    const a = vs[0] ?? 0;
     for (let k = 1; k + 1 < vs.length; k++) {
-      const b = vs[k]!;
-      const c = vs[k + 1]!;
-      const d = (this.vz[b]! - this.vz[c]!) * (this.vx[a]! - this.vx[c]!) + (this.vx[c]! - this.vx[b]!) * (this.vz[a]! - this.vz[c]!);
+      const b = vs[k] ?? 0;
+      const c = vs[k + 1] ?? 0;
+      const d =
+        ((this.vz[b] ?? 0) - (this.vz[c] ?? 0)) * ((this.vx[a] ?? 0) - (this.vx[c] ?? 0)) +
+        ((this.vx[c] ?? 0) - (this.vx[b] ?? 0)) * ((this.vz[a] ?? 0) - (this.vz[c] ?? 0));
       if (Math.abs(d) < 1e-12) continue;
-      const u = ((this.vz[b]! - this.vz[c]!) * (x - this.vx[c]!) + (this.vx[c]! - this.vx[b]!) * (z - this.vz[c]!)) / d;
-      const v = ((this.vz[c]! - this.vz[a]!) * (x - this.vx[c]!) + (this.vx[a]! - this.vx[c]!) * (z - this.vz[c]!)) / d;
+      const u =
+        (((this.vz[b] ?? 0) - (this.vz[c] ?? 0)) * (x - (this.vx[c] ?? 0)) +
+          ((this.vx[c] ?? 0) - (this.vx[b] ?? 0)) * (z - (this.vz[c] ?? 0))) /
+        d;
+      const v =
+        (((this.vz[c] ?? 0) - (this.vz[a] ?? 0)) * (x - (this.vx[c] ?? 0)) +
+          ((this.vx[a] ?? 0) - (this.vx[c] ?? 0)) * (z - (this.vz[c] ?? 0))) /
+        d;
       const w = 1 - u - v;
-      if (u >= -1e-6 && v >= -1e-6 && w >= -1e-6) return u * this.vy[a]! + v * this.vy[b]! + w * this.vy[c]!;
+      if (u >= -1e-6 && v >= -1e-6 && w >= -1e-6)
+        return u * (this.vy[a] ?? 0) + v * (this.vy[b] ?? 0) + w * (this.vy[c] ?? 0);
     }
     let s = 0;
-    for (const v of vs) s += this.vy[v]!;
+    for (const v of vs) s += this.vy[v] ?? 0;
     return s / vs.length;
   }
 
@@ -246,23 +262,29 @@ export class NavMesh {
       out.y = this.heightOn(i, x, z);
       return 0;
     }
-    const vs = this.polys[i]!;
+    const vs = must(this.polys[i]);
     let best = Infinity;
     for (let k = 0; k < vs.length; k++) {
-      const a = vs[k]!;
-      const b = vs[(k + 1) % vs.length]!;
-      const ex = this.vx[b]! - this.vx[a]!;
-      const ez = this.vz[b]! - this.vz[a]!;
+      const a = vs[k] ?? 0;
+      const b = vs[(k + 1) % vs.length] ?? 0;
+      const ex = (this.vx[b] ?? 0) - (this.vx[a] ?? 0);
+      const ez = (this.vz[b] ?? 0) - (this.vz[a] ?? 0);
       const len2 = ex * ex + ez * ez;
-      const t = len2 > 0 ? Math.min(1, Math.max(0, ((x - this.vx[a]!) * ex + (z - this.vz[a]!) * ez) / len2)) : 0;
-      const px = this.vx[a]! + ex * t;
-      const pz = this.vz[a]! + ez * t;
+      const t =
+        len2 > 0
+          ? Math.min(
+              1,
+              Math.max(0, ((x - (this.vx[a] ?? 0)) * ex + (z - (this.vz[a] ?? 0)) * ez) / len2),
+            )
+          : 0;
+      const px = (this.vx[a] ?? 0) + ex * t;
+      const pz = (this.vz[a] ?? 0) + ez * t;
       const d = Math.hypot(x - px, z - pz);
       if (d < best) {
         best = d;
         out.x = px;
         out.z = pz;
-        out.y = this.vy[a]! + (this.vy[b]! - this.vy[a]!) * t;
+        out.y = (this.vy[a] ?? 0) + ((this.vy[b] ?? 0) - (this.vy[a] ?? 0)) * t;
       }
     }
     return best;
@@ -277,8 +299,16 @@ export class NavMesh {
     const tmp: NavPoint = { x: 0, y: 0, z: 0 };
     let best = -1;
     let bestScore = Infinity;
-    for (let bz = Math.floor((p.z - radius) / BUCKET_M); bz <= Math.floor((p.z + radius) / BUCKET_M); bz++) {
-      for (let bx = Math.floor((p.x - radius) / BUCKET_M); bx <= Math.floor((p.x + radius) / BUCKET_M); bx++) {
+    for (
+      let bz = Math.floor((p.z - radius) / BUCKET_M);
+      bz <= Math.floor((p.z + radius) / BUCKET_M);
+      bz++
+    ) {
+      for (
+        let bx = Math.floor((p.x - radius) / BUCKET_M);
+        bx <= Math.floor((p.x + radius) / BUCKET_M);
+        bx++
+      ) {
         for (const i of this.buckets.get(this.key(bx, bz)) ?? []) {
           const d = this.closestOn(i, p.x, p.z, tmp);
           if (d > radius) continue;
@@ -323,9 +353,16 @@ export class NavMesh {
     const closedDoors = options.closedDoors;
     const maxNodes = options.maxNodes ?? 4096;
     const open = new Heap(this.f);
-    const visit = (i: number, g: number, parent: number, via: number, x: number, z: number): void => {
+    const visit = (
+      i: number,
+      g: number,
+      parent: number,
+      via: number,
+      x: number,
+      z: number,
+    ): void => {
       if (this.closed[i] === run) return;
-      if (this.stamp[i] === run && g >= this.g[i]!) return;
+      if (this.stamp[i] === run && g >= (this.g[i] ?? 0)) return;
       this.stamp[i] = run;
       this.g[i] = g;
       this.f[i] = g + Math.hypot(x - ep.x, z - ep.z);
@@ -343,52 +380,56 @@ export class NavMesh {
       this.closed[i] = run;
       if (i === end) break;
       if (++expanded > maxNodes) return undefined;
-      const ex = this.entryX[i]!;
-      const ez = this.entryZ[i]!;
-      const vs = this.polys[i]!;
-      const ns = this.neis[i]!;
+      const ex = this.entryX[i] ?? 0;
+      const ez = this.entryZ[i] ?? 0;
+      const vs = must(this.polys[i]);
+      const ns = must(this.neis[i]);
       for (let k = 0; k < vs.length; k++) {
         const n = ns[k] ?? -1;
         if (n < 0 || this.closed[n] === run) continue;
-        const a = vs[k]!;
-        const b = vs[(k + 1) % vs.length]!;
-        const mx = (this.vx[a]! + this.vx[b]!) / 2;
-        const mz = (this.vz[a]! + this.vz[b]!) / 2;
-        visit(n, this.g[i]! + Math.hypot(mx - ex, mz - ez), i, k, mx, mz);
+        const a = vs[k] ?? 0;
+        const b = vs[(k + 1) % vs.length] ?? 0;
+        const mx = ((this.vx[a] ?? 0) + (this.vx[b] ?? 0)) / 2;
+        const mz = ((this.vz[a] ?? 0) + (this.vz[b] ?? 0)) / 2;
+        visit(n, (this.g[i] ?? 0) + Math.hypot(mx - ex, mz - ez), i, k, mx, mz);
       }
-      for (const li of this.polyLinks[i]!) {
-        const l = this.links[li]!;
+      for (const li of must(this.polyLinks[i])) {
+        const l = must(this.links[li]);
         if (closedDoors?.has(l.door)) continue;
         const forward = l.a === i;
         const n = forward ? l.b : l.a;
         const p0 = forward ? l.pa : l.pb;
         const p1 = forward ? l.pb : l.pa;
         const cost = Math.hypot(p0.x - ex, p0.z - ez) + Math.hypot(p1.x - p0.x, p1.z - p0.z);
-        visit(n, this.g[i]! + cost, i, -(li + 1), p1.x, p1.z);
+        visit(n, (this.g[i] ?? 0) + cost, i, -(li + 1), p1.x, p1.z);
       }
     }
     if (this.closed[end] !== run) return undefined;
     const chain: { poly: number; via: number }[] = [];
-    for (let i = end; i >= 0; i = this.parent[i]!) {
-      chain.push({ poly: i, via: this.via[i]! });
+    for (let i = end; i >= 0; i = this.parent[i] ?? 0) {
+      chain.push({ poly: i, via: this.via[i] ?? 0 });
       if (i === start) break;
     }
     return chain.reverse();
   }
 
   /** The funnel through the chain's portals, then heights from the polygons. */
-  private stringPull(chain: { poly: number; via: number }[], sp: NavPoint, ep: NavPoint): NavPoint[] {
+  private stringPull(
+    chain: { poly: number; via: number }[],
+    sp: NavPoint,
+    ep: NavPoint,
+  ): NavPoint[] {
     // Portals as (left, right) in the plane; "right" is where cross(dir, p - mid) < 0.
     const lx: number[] = [sp.x];
     const lz: number[] = [sp.z];
     const rx: number[] = [sp.x];
     const rz: number[] = [sp.z];
-    const polyOf: number[] = [chain[0]!.poly];
+    const polyOf: number[] = [must(chain[0]).poly];
     for (let k = 1; k < chain.length; k++) {
-      const prev = chain[k - 1]!.poly;
-      const { poly, via } = chain[k]!;
+      const prev = must(chain[k - 1]).poly;
+      const { poly, via } = must(chain[k]);
       if (via < 0) {
-        const l = this.links[-via - 1]!;
+        const l = must(this.links[-via - 1]);
         const forward = l.a === prev;
         const p0 = forward ? l.pa : l.pb;
         const p1 = forward ? l.pb : l.pa;
@@ -399,48 +440,55 @@ export class NavMesh {
         polyOf.push(prev, poly);
         continue;
       }
-      const vs = this.polys[prev]!;
-      const a = vs[via]!;
-      const b = vs[(via + 1) % vs.length]!;
-      const mx = (this.vx[a]! + this.vx[b]!) / 2;
-      const mz = (this.vz[a]! + this.vz[b]!) / 2;
-      const dx = this.cx[poly]! - this.cx[prev]!;
-      const dz = this.cz[poly]! - this.cz[prev]!;
-      const crossA = dx * (this.vz[a]! - mz) - dz * (this.vx[a]! - mx);
+      const vs = must(this.polys[prev]);
+      const a = vs[via] ?? 0;
+      const b = vs[(via + 1) % vs.length] ?? 0;
+      const mx = ((this.vx[a] ?? 0) + (this.vx[b] ?? 0)) / 2;
+      const mz = ((this.vz[a] ?? 0) + (this.vz[b] ?? 0)) / 2;
+      const dx = (this.cx[poly] ?? 0) - (this.cx[prev] ?? 0);
+      const dz = (this.cz[poly] ?? 0) - (this.cz[prev] ?? 0);
+      const crossA = dx * ((this.vz[a] ?? 0) - mz) - dz * ((this.vx[a] ?? 0) - mx);
       const [r, l] = crossA < 0 ? [a, b] : [b, a];
-      lx.push(this.vx[l]!);
-      lz.push(this.vz[l]!);
-      rx.push(this.vx[r]!);
-      rz.push(this.vz[r]!);
+      lx.push(this.vx[l] ?? 0);
+      lz.push(this.vz[l] ?? 0);
+      rx.push(this.vx[r] ?? 0);
+      rz.push(this.vz[r] ?? 0);
       polyOf.push(poly);
     }
     lx.push(ep.x);
     lz.push(ep.z);
     rx.push(ep.x);
     rz.push(ep.z);
-    polyOf.push(chain[chain.length - 1]!.poly);
+    polyOf.push(must(chain[chain.length - 1]).poly);
 
     // Simple stupid funnel (Mononen 2010), with (x, z) as the plane.
-    const area2 = (ax: number, az: number, bx: number, bz: number, cx: number, cz: number): number =>
-      (cx - ax) * (bz - az) - (bx - ax) * (cz - az);
-    const out: { x: number; z: number; poly: number }[] = [{ x: sp.x, z: sp.z, poly: polyOf[0]! }];
+    const area2 = (
+      ax: number,
+      az: number,
+      bx: number,
+      bz: number,
+      cx: number,
+      cz: number,
+    ): number => (cx - ax) * (bz - az) - (bx - ax) * (cz - az);
+    const out: { x: number; z: number; poly: number }[] = [
+      { x: sp.x, z: sp.z, poly: polyOf[0] ?? 0 },
+    ];
     let apexX = sp.x;
     let apexZ = sp.z;
-    let leftX = lx[0]!;
-    let leftZ = lz[0]!;
-    let rightX = rx[0]!;
-    let rightZ = rz[0]!;
-    let apexIndex = 0;
+    let leftX = lx[0] ?? 0;
+    let leftZ = lz[0] ?? 0;
+    let rightX = rx[0] ?? 0;
+    let rightZ = rz[0] ?? 0;
     let leftIndex = 0;
     let rightIndex = 0;
     const same = (ax: number, az: number, bx: number, bz: number): boolean =>
       (ax - bx) ** 2 + (az - bz) ** 2 < 1e-8;
     const n = lx.length;
     for (let i = 1; i < n; i++) {
-      const nlx = lx[i]!;
-      const nlz = lz[i]!;
-      const nrx = rx[i]!;
-      const nrz = rz[i]!;
+      const nlx = lx[i] ?? 0;
+      const nlz = lz[i] ?? 0;
+      const nrx = rx[i] ?? 0;
+      const nrz = rz[i] ?? 0;
       if (area2(apexX, apexZ, rightX, rightZ, nrx, nrz) <= 0) {
         if (same(apexX, apexZ, rightX, rightZ) || area2(apexX, apexZ, leftX, leftZ, nrx, nrz) > 0) {
           rightX = nrx;
@@ -449,8 +497,8 @@ export class NavMesh {
         } else {
           apexX = leftX;
           apexZ = leftZ;
-          apexIndex = leftIndex;
-          out.push({ x: apexX, z: apexZ, poly: polyOf[apexIndex]! });
+          const apexIndex = leftIndex;
+          out.push({ x: apexX, z: apexZ, poly: polyOf[apexIndex] ?? 0 });
           leftX = rightX = apexX;
           leftZ = rightZ = apexZ;
           leftIndex = rightIndex = apexIndex;
@@ -466,8 +514,8 @@ export class NavMesh {
         } else {
           apexX = rightX;
           apexZ = rightZ;
-          apexIndex = rightIndex;
-          out.push({ x: apexX, z: apexZ, poly: polyOf[apexIndex]! });
+          const apexIndex = rightIndex;
+          out.push({ x: apexX, z: apexZ, poly: polyOf[apexIndex] ?? 0 });
           leftX = rightX = apexX;
           leftZ = rightZ = apexZ;
           leftIndex = rightIndex = apexIndex;
@@ -476,8 +524,8 @@ export class NavMesh {
         }
       }
     }
-    const last = out[out.length - 1]!;
-    if (!same(last.x, last.z, ep.x, ep.z)) out.push({ x: ep.x, z: ep.z, poly: polyOf[n - 1]! });
+    const last = must(out[out.length - 1]);
+    if (!same(last.x, last.z, ep.x, ep.z)) out.push({ x: ep.x, z: ep.z, poly: polyOf[n - 1] ?? 0 });
     // Drop repeats (a door's two link points can land on an apex twice).
     const path: NavPoint[] = [];
     for (const p of out) {
@@ -485,8 +533,8 @@ export class NavMesh {
       if (prev && same(prev.x, prev.z, p.x, p.z)) continue;
       path.push({ x: p.x, y: this.heightOn(p.poly, p.x, p.z), z: p.z });
     }
-    path[0]!.y = sp.y;
-    path[path.length - 1]!.y = ep.y;
+    must(path[0]).y = sp.y;
+    must(path[path.length - 1]).y = ep.y;
     return path;
   }
 
@@ -497,23 +545,29 @@ export class NavMesh {
     let pick = random() * total;
     let i = 0;
     for (; i < this.area.length - 1; i++) {
-      pick -= this.area[i]!;
+      pick -= this.area[i] ?? 0;
       if (pick <= 0) break;
     }
-    const vs = this.polys[i]!;
+    const vs = must(this.polys[i]);
     // A random fan triangle, then a random point in it.
     const k = 1 + Math.floor(random() * (vs.length - 2));
-    const a = vs[0]!;
-    const b = vs[k]!;
-    const c = vs[k + 1]!;
+    const a = vs[0] ?? 0;
+    const b = vs[k] ?? 0;
+    const c = vs[k + 1] ?? 0;
     let u = random();
     let v = random();
     if (u + v > 1) {
       u = 1 - u;
       v = 1 - v;
     }
-    const x = this.vx[a]! + u * (this.vx[b]! - this.vx[a]!) + v * (this.vx[c]! - this.vx[a]!);
-    const z = this.vz[a]! + u * (this.vz[b]! - this.vz[a]!) + v * (this.vz[c]! - this.vz[a]!);
+    const x =
+      (this.vx[a] ?? 0) +
+      u * ((this.vx[b] ?? 0) - (this.vx[a] ?? 0)) +
+      v * ((this.vx[c] ?? 0) - (this.vx[a] ?? 0));
+    const z =
+      (this.vz[a] ?? 0) +
+      u * ((this.vz[b] ?? 0) - (this.vz[a] ?? 0)) +
+      v * ((this.vz[c] ?? 0) - (this.vz[a] ?? 0));
     return { x, y: this.heightOn(i, x, z), z };
   }
 
@@ -522,7 +576,7 @@ export class NavMesh {
     const seen = new Set<number>([start]);
     const stack = [start];
     while (stack.length > 0) {
-      const i = stack.pop()!;
+      const i = must(stack.pop());
       for (const n of this.neis[i] ?? []) {
         if (n >= 0 && !seen.has(n)) {
           seen.add(n);
@@ -530,7 +584,7 @@ export class NavMesh {
         }
       }
       for (const li of this.polyLinks[i] ?? []) {
-        const l = this.links[li]!;
+        const l = must(this.links[li]);
         if (closedDoors?.has(l.door)) continue;
         const n = l.a === i ? l.b : l.a;
         if (!seen.has(n)) {
