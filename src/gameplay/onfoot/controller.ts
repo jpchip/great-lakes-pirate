@@ -63,6 +63,7 @@ export const DEFAULT_CONTROLLER: ControllerParams = {
   swimDepth: 1.3,
 };
 
+/** `'sneak'` covers crouching both moving and standing still (the clip picker tells them apart by speed). */
 export type Gait = 'idle' | 'sneak' | 'walk' | 'run' | 'swim' | 'fall' | 'slide';
 
 export interface CharacterState {
@@ -218,10 +219,10 @@ export function stepCharacter(
       ? 'fall'
       : s.groundSlope > p.maxSlope
         ? 'slide'
-        : hs < 0.1
-          ? 'idle'
-          : s.crouching
-            ? 'sneak'
+        : s.crouching
+          ? 'sneak'
+          : hs < 0.1
+            ? 'idle'
             : hs > (p.walkSpeed + p.runSpeed) / 2
               ? 'run'
               : 'walk';
