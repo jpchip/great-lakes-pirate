@@ -4,6 +4,16 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ## [Unreleased]
 
+### Added
+
+- **Going ashore (Phase 7 piece A):** the captain can leave the ship. Tied up at a pier, G at the helm (or **Go ashore** on the port screen, which still opens when you dock) puts you on the planks at the gangway; F there goes back aboard. At anchor, G puts the boat over the side nearer the shore and you row it: W/S pull or back water, A/D turn. Run her up a beach until she grounds and F steps ashore; F by the boat shoves off again, and F alongside the schooner climbs aboard. The boat won't go over in seas above 1.1 m, and seas above 1.6 m swamp it. On foot you walk, run, crouch and hop with the mouse for looking. Space vaults or climbs at marked spots. Pier heads have ladders down to the water. Falls from high up hurt, and water softens them. You can swim, but Superior's cold drains your life, quickly in spring and slowly in August; the HUD shows how cold the water is and about how long you'd last. Life comes back slowly with time. Under a roof the camera closes in. The footing underfoot is recorded (wood, sand, grass, rock, dirt) for the footsteps to come. Drowning and a deadly fall end the run on their own front pages. The game saves when you go ashore and when you come back aboard, and a save made ashore loads you where you stood. The captain is a stand-in figure for now. Saves move to v9; a 0.6.0 save loads aboard with full health ([plan 08 §20](plans/08-docks-district-stealth.md)).
+- `__glpFoot` dev hooks: `dock(key)`, `anchor()`, `place(x, z, deg)`, `land()`, `aboard()`, `teleport(x, z)`, `hour(h)`, `setHealth(n)` and `state()`.
+
+### Known limitations
+
+- Ashore is the zone's sailing terrain with the harbor kit's piers and buildings as solid blocks. You can walk through trees, and buildings can't be entered yet; Bayfield's district (piece C) and the island's 1 m landing tiles (piece H) replace it. On foot is silent until the audio piece.
+- Abandoning ship into the boat near land isn't in yet: a foundering ship still lands you at a shipyard by steamer.
+
 ## [0.6.0] - 2026-11-09
 
 The **Piracy & Combat** build (Phase 6): arm your schooner in a back room after dark, lay a warning shot across a steamer's bow, board her when she strikes, swing her furs into your hold and decide what becomes of her crew. Every robbery has witnesses, her crew tells the law at her next port, the papers print it and her owners remember. Sell the goods to a fence before word gets round, and don't fire on the _Morrill_.
