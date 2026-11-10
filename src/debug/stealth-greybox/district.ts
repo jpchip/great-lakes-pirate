@@ -6,7 +6,7 @@ import { Heightfield } from '../../gameplay/onfoot/heightfield';
 import type { Lamp } from '../../gameplay/onfoot/light';
 import { LampSet } from '../../gameplay/onfoot/light';
 import { NavGrid, type XZ } from '../../gameplay/onfoot/nav';
-import type { Surface } from '../../gameplay/onfoot/noise';
+import type { Surface as DistrictSurface } from '../../../data/schemas/districts';
 
 /**
  * A greybox docks district for piece D (plan 08 §20.4: "pure sim first, in the spike
@@ -31,7 +31,7 @@ export interface GreyboxDistrict extends OnFootZone {
   /** Out of bounds at night: being seen in here is suspicious (piece E: trespass). */
   restricted: { minX: number; maxX: number; minZ: number; maxZ: number }[];
   /** What's underfoot at a point (piece C tags the kit's colliders). */
-  surfaceAt(x: number, z: number, y: number): Surface;
+  surfaceAt(x: number, z: number, y?: number): DistrictSurface;
   /** Every box, for the view. */
   boxes: BoxCollider[];
   bounds: { minX: number; maxX: number; minZ: number; maxZ: number };
@@ -269,7 +269,7 @@ export function createGreyboxDistrict(): GreyboxDistrict {
       { minX: -46, maxX: -22, minZ: 6, maxZ: 12 },
       { minX: 14.5, maxX: 20.5, minZ: 23.5, maxZ: 44.5 },
     ],
-    surfaceAt(x, z, y) {
+    surfaceAt(x, z, y = LAND_Y) {
       if (y > LAND_Y + 0.05 || (x >= 10 && x <= 14 && z > SHORE_Z - 0.5)) return 'wood';
       if (z > 14 && z <= SHORE_Z) return 'wood'; // the wharf's planking
       if (x > 0 && x < 26 && z > -2 && z < 14) return 'gravel'; // the yard

@@ -35,6 +35,9 @@ export const MOVEMENT_FACTOR: Record<Gait, number> = {
   swim: 1,
   fall: 1.2,
   slide: 1.2,
+  ladder: 1.15,
+  vault: 1.25,
+  climb: 1.25,
 };
 
 /** Crouched you're a low shape; swimming only your head shows. */

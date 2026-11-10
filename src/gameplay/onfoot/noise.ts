@@ -1,3 +1,4 @@
+import type { Surface as DistrictSurface } from '../../../data/schemas/districts';
 import type { Gait } from './controller';
 
 /**
@@ -9,7 +10,8 @@ import type { Gait } from './controller';
  */
 
 /** What's underfoot (plan 15 §4.5's footstep set). */
-export type Surface = 'wood' | 'dirt' | 'gravel' | 'grass' | 'stone' | 'snow' | 'interior';
+/** The kit's surfaces (districts.json), plus snow and interior floors. */
+export type Surface = DistrictSurface | 'snow' | 'interior';
 
 export type NoiseKind =
   | 'footstep'
@@ -43,6 +45,9 @@ export const GAIT_NOISE_M: Record<Gait, number> = {
   swim: 1,
   fall: 0,
   slide: 4,
+  ladder: 2,
+  vault: 4,
+  climb: 3,
 };
 
 /** Planks are louder than dirt; grass hushes; snow crunches. */
@@ -52,6 +57,9 @@ export const SURFACE_NOISE: Record<Surface, number> = {
   gravel: 1.2,
   grass: 0.6,
   stone: 1,
+  rock: 1.1,
+  sand: 0.6,
+  sawdust: 0.5,
   snow: 1.3,
   interior: 1,
 };
@@ -63,6 +71,7 @@ export const STRIDE_M: Partial<Record<Gait, number>> = {
   run: 1.1,
   swim: 1.2,
   slide: 0.8,
+  ladder: 0.45,
 };
 
 /** A one-off noise's radius, meters (plan 08 §4.2, §6). Gunshots carry across the district. */

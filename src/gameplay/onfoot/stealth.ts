@@ -362,7 +362,7 @@ export function createStealth(
   const playerSounds = (inputs: StealthInputs): void => {
     const pl = inputs.player;
     const p = pl.position;
-    const surface = inputs.surface ?? 'dirt';
+    const surface = inputs.surface ?? (pl.surface === 'water' ? 'dirt' : (pl.surface ?? 'dirt'));
     if (prevPlayer) {
       const moved = Math.hypot(p.x - prevPlayer.x, p.z - prevPlayer.z);
       const r = footsteps.step(moved, pl.gait, surface, inputs.carrying);
