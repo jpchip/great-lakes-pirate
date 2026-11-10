@@ -10,7 +10,7 @@ import { z } from 'zod';
 export const assetHintsSchema = z.object({
   /** Manifest id the game loads it by, e.g. "ship.schooner". */
   id: z.string().regex(/^[a-z]+(\.[a-z0-9-]+)+$/),
-  category: z.enum(['ships']),
+  category: z.enum(['ships', 'characters']),
   /** Output file name (no extension); public/assets/<category>/<name>.glb. */
   name: z.string().regex(/^[a-z0-9-]+$/),
   /** The raw file inside the folder, as the tool exported it. */

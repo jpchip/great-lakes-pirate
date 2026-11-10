@@ -235,6 +235,8 @@ describe('character controller', () => {
     expect(s.gait).toBe('sneak');
     run(s, z, 0.5, { forward: 0, right: 0, run: false, crouch: false });
     expect(s.crouching).toBe(true);
+    // Crouched and still is still 'sneak', so the crouch idle clip plays, not the standing one.
+    expect(s.gait).toBe('sneak');
   });
 
   it('cannot climb terrain steeper than the slope limit', () => {

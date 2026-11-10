@@ -268,7 +268,7 @@ Set in a police lockup. **In the MVP this is Bayfield's lockup**, the only distr
 - **Kit pieces (MVP):** pier and wharf sections (straight, corner, ladder, pilings), warehouse walls, doors, windows, roofs (2–3 styles), shed, saloon front and interior set, office interior set, crates, barrels, sacks, carts, lamps (gas lamp, lantern hook), fences and gates, rail and siding, crane or derrick, lumber piles, coal heaps, facade backdrop pieces, and moored-ship decks (reusing ship models with walkable deck colliders).
 - **Layout authoring:** a **dev-only layout editor** that **reuses the hideout grid-building system** from plan 09 (the same snapping, placement and save format) plus free-placed props. One tool serves two features.
 - Pieces come from AI generation, CC0 packs or simple procedural models, run through the asset pipeline ([01 §4.9](01-tech-architecture.md)) with the unified stylized material.
-- **Characters:** one stylized low-poly humanoid base with a shared skeleton and animation set (walk, sneak, run, carry, climb, idle, knockout, search, alarmed). Variety comes from palette swaps and accessories (hats, coats, lanterns). The player model takes appearance options from character creation.
+- **Characters:** one stylized low-poly humanoid base with a shared skeleton and animation set (walk, sneak, run, carry, climb, idle, knockout, search, alarmed). Variety comes from palette swaps and accessories (hats, coats, lanterns). The player model takes appearance options from character creation. **Built in Phase 7 piece B** ([14 §20](14-art-direction-asset-pipeline.md)).
 
 ---
 
