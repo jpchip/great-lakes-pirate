@@ -205,11 +205,7 @@ describe('every death in the combat log, and its heat (§14.3 criterion 4)', () 
     });
     tickHours(t, 3);
     expect(t.state.reports.inProgress.some((r) => r.witness.id === crewWitnessId)).toBe(true);
-    t.events.emit('ShipSurrendered', {
-      shipId: ADA,
-      classId: 'ship.package_steamer',
-      how: 'fought',
-    });
+    t.events.emit('ShipSurrendered', { shipId: ADA, classId: 'ship.package_steamer', how: 'fought' });
     t.events.emit('ShipLooted', {
       shipId: ADA,
       owner: COMPANY,
