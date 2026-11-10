@@ -230,7 +230,7 @@ function groundGeometry(model: DistrictModel): THREE.BufferGeometry {
     else if (g.slopeAt(x, z, 1) > 0.5) c.copy(rock);
     else if (inside) {
       c.copy(dirt);
-      if (model.surfaceAt(x, h, z) === 'gravel') c.copy(gravel);
+      if (model.surfaceAt(x, z, h) === 'gravel') c.copy(gravel);
       // A little mottling so the street isn't one flat color.
       const n = Math.sin(x * 0.37 + z * 0.11) * Math.sin(z * 0.29 - x * 0.07);
       c.lerp(grass, Math.max(0, n) * 0.25);

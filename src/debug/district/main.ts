@@ -306,7 +306,7 @@ const loop = createLoop(
         ``,
         `frame ${frameMsAvg.toFixed(1)} ms · ${info.calls} calls · ${(info.triangles / 1000).toFixed(0)}k tris · ${scene.view.meshes} meshes`,
         `clock ${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')} · night ${scene.night.toFixed(2)} · moonlight ${(scene.moonPhase * 100).toFixed(0)}%`,
-        `pos ${x.toFixed(1)}, ${y.toFixed(2)}, ${z.toFixed(1)} · ${c.gait} on ${model.surfaceAt(x, y, z)}${inside ? ` · inside ${inside.def.name ?? inside.def.id}` : ''}`,
+        `pos ${x.toFixed(1)}, ${y.toFixed(2)}, ${z.toFixed(1)} · ${c.gait} on ${model.surfaceAt(x, z, y)}${inside ? ` · inside ${inside.def.name ?? inside.def.id}` : ''}`,
         door ? `door ${door.id}${door.opens ? ` → opens ${door.opens}` : ''}` : '',
         `colliders ${model.colliders.size} · lamps ${model.lamps.length} · doors ${model.doors.length}`,
         nav

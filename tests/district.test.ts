@@ -139,10 +139,10 @@ describe('a district built from its layout', () => {
     placeCell(l, 'kit.track', 0, 0);
     placeCell(l, 'kit.pier_deck', 0, 2);
     const m = buildDistrict(l, flat(0.5));
-    expect(m.surfaceAt(-19, 0.5, -19)).toBe('gravel');
-    expect(m.surfaceAt(-19, 1.6, -15)).toBe('planks');
-    expect(m.surfaceAt(-10, 0.5, -10)).toBe('dirt');
-    expect(m.surfaceAt(-5, must(m.buildings[0]).floorY, -5)).toBe('planks');
+    expect(m.surfaceAt(-19, -19, 0.5)).toBe('gravel');
+    expect(m.surfaceAt(-19, -15, 1.6)).toBe('wood');
+    expect(m.surfaceAt(-10, -10, 0.5)).toBe('dirt');
+    expect(m.surfaceAt(-5, -5, must(m.buildings[0]).floorY)).toBe('wood');
   });
 
   it('keeps everything inside the walkable bounds', () => {
@@ -302,7 +302,7 @@ describe('Bayfield', () => {
     // Off the fish pier, inland (heading π is inland, +z), past the warehouse.
     const end = walk(model, -41.5, -56, Math.PI, 20);
     expect(end.z).toBeGreaterThan(-30);
-    expect(model.surfaceAt(-41, 1.6, -56)).toBe('planks');
+    expect(model.surfaceAt(-41, -56, 1.6)).toBe('wood');
     expect(model.lamps.length).toBeGreaterThan(15);
     // Shop doors open their port tabs by day.
     expect(model.doors.find((d) => d.building === 'general_store')?.opens).toBe('market');

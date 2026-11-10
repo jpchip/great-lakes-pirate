@@ -55,5 +55,5 @@ Bayfield at night with 12 guards and checks the draw-call budget (≤ 200).
   pools of light; colliders carry `blocksSight: false` for railings, bars and posts.
   `NavMesh.findPath(from, to, { closedDoors })` treats a shut or locked door as a missing link.
 - **Theft (E), the saloon (F), the lockup (G):** door ids are `<building>.door<n>` in
-  perimeter order (north, east, south, west); `model.surfaceAt` gives footstep surfaces;
+  perimeter order (north, east, south, west); `model.surfaceAt(x, z, y)` gives footstep surfaces;
   the `loot`, `post` and `patrol` marks are placeholders to move in the editor.

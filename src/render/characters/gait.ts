@@ -56,5 +56,11 @@ export function gaitClip(input: GaitInput): GaitClip {
     case 'run':
       if (input.carrying) return scaled('carry');
       return scaled(speed > 4.6 ? 'sprint' : 'run');
+    // No ladder clip in the library yet (humanoid-spec): the 1 m climb stands in for it.
+    case 'ladder':
+    case 'climb':
+      return { clip: 'climb', timeScale: 1 };
+    case 'vault':
+      return { clip: 'hop', timeScale: 1 };
   }
 }

@@ -13,8 +13,20 @@ import { idOf } from './common';
  * their perimeter edges can be swapped for doors and windows.
  */
 
-/** What the ground or deck is made of underfoot: footstep noise (plan 08 §3.2). */
-export const surfaceSchema = z.enum(['planks', 'dirt', 'gravel', 'stone', 'sawdust']);
+/**
+ * What the ground or deck is made of underfoot, for footstep noise (plan 08 §3.2): wooden
+ * piers ring louder than dirt alleys. The on-foot `Surface` type; terrain gets one from the zone.
+ */
+export const surfaceSchema = z.enum([
+  'wood',
+  'stone',
+  'dirt',
+  'grass',
+  'sand',
+  'rock',
+  'gravel',
+  'sawdust',
+]);
 export type Surface = z.infer<typeof surfaceSchema>;
 
 export const kitPlacementSchema = z.enum(['cell', 'edge', 'prop']);
