@@ -166,6 +166,10 @@ import { attachCapture } from './gameplay/capture';
 import { gameJail } from './sim/law/jail';
 import { buildLastRun, type LastRun, type RunEndCause, type RunEndDetail } from './sim/run/run-end';
 import { showTabLocked } from './ui/menu/tab-locked';
+import { attachAshore, type GameAshore } from './gameplay/ashore';
+import { PointerLook } from './core/pointer-look';
+import { calendarDate } from './core/time';
+import { weekLabel, clockLabel } from './ui/hud/model';
 
 /** Periodic autosave while safe (plan 16 §4.1). */
 const AUTOSAVE_INTERVAL_MS = 2 * 60_000;
@@ -858,11 +862,15 @@ async function boot(): Promise<void> {
    * In danger (plan 16 §4.2), regular saves wait: the danger snapshot stands for the run.
    */
   const run = { over: false, inDanger: false };
+  /** Going ashore (Phase 7 piece A); attached once the berths and the fade are. */
+  const ashoreRef: { current: GameAshore | undefined } = { current: undefined };
+  const goAshoreRef: { current: (() => void) | undefined } = { current: undefined };
   /** Readies the state for a save: the RNG, where the ship is, her damage. */
   const prepareSave = (): void => {
     state.environment.rng = ctx.rng.getState();
     if (!changingZone && !travelRef.current?.record(state) && !inArenaSpace)
       recordZonePose(state, zoneData.id, shipPose());
+    ashoreRef.current?.record(state);
     shipyard.sync();
   };
   const saveControls: SaveControls = {
@@ -878,6 +886,8 @@ async function boot(): Promise<void> {
       // entered from a zone keeps the place recorded on the way in; its frame isn't the zone's.
       if (!changingZone && !travelRef.current?.record(state) && !inArenaSpace)
         recordZonePose(state, zoneData.id, shipPose());
+      // Ashore (Phase 7 piece A): where you stand, the boat and your health.
+      ashoreRef.current?.record(state);
       // Her damage as it stands (piece G).
       shipyard.sync();
       try {
@@ -1091,6 +1101,7 @@ async function boot(): Promise<void> {
       buyPaper: (paper) => portsRef.current?.actions.buyPaper?.(paper),
       close: () => portsRef.current?.close(),
       castOff: () => portsRef.current?.actions.castOff(),
+      goAshore: () => goAshoreRef.current?.(),
       wait: (until) => portsRef.current?.actions.wait?.(until),
       closeJournal: () => portsRef.current?.closeJournal(),
       openDocked: () => {
@@ -1148,6 +1159,12 @@ async function boot(): Promise<void> {
     onTakeToChart: () => {
       if (machine.mode === 'sailing' && !machine.overlayOpen) travelRef.current?.takeToChart();
     },
+    onGoAshore: () => {
+      if (machine.mode === 'sailing' && !machine.overlayOpen) goAshoreRef.current?.();
+    },
+    onFootPrompt: () => {
+      if (machine.mode === 'onFoot' && !machine.overlayOpen) input.trigger('Interact');
+    },
     onWait: () => {
       if (machine.mode !== 'sailing' || machine.overlayOpen) return;
       const refused = stashRef.current?.openLie();
@@ -1169,7 +1186,7 @@ async function boot(): Promise<void> {
         // The Esc that closed the menu mustn't reopen it on the next tick.
         input.endTick();
       }
-      if (cameraRig) cameraRig.suspended = open;
+      if (cameraRig) cameraRig.suspended = open || machine.mode === 'onFoot';
       document.body.dataset['menu'] = open ? 'open' : 'closed';
     },
   });
@@ -2469,6 +2486,155 @@ async function boot(): Promise<void> {
     (window as unknown as { __glpTraffic: typeof hook }).__glpTraffic = hook;
   }
   ctx.events.on('AnchorRefused', (e) => showNotice(anchorRefusedNotice(e.reason)));
+
+  // Going ashore (Phase 7 piece A, plan 08 §20): G at a berth puts you on the pier, G at
+  // anchor puts you in the boat; F on foot goes back aboard. The world runs on at R = 6.
+  /** The fade to fog for going ashore and coming back aboard. */
+  const ashoreFade = async (title: string, line: string, work: () => void): Promise<void> => {
+    changingZone = true;
+    machine.pushOverlay('loading');
+    input.context = 'menu';
+    ui.setLoading({ title, line });
+    document.body.dataset['zoneLoad'] = 'loading';
+    try {
+      await new Promise((resolve) => window.setTimeout(resolve, FADE_MS));
+      work();
+    } finally {
+      changingZone = false;
+      ui.setLoading(undefined);
+      input.context = machine.mode === 'onFoot' ? 'onFoot' : 'sailing';
+      input.endTick();
+      machine.removeOverlay('loading');
+      document.body.dataset['zoneLoad'] = 'done';
+    }
+  };
+  const footLook = new PointerLook(renderer?.renderer.domElement ?? container);
+  const ashore = attachAshore({
+    ctx,
+    ship: playerShip,
+    hull: {
+      lengthM: shipRecord.buoyancy.length,
+      beamM: shipRecord.buoyancy.beam,
+      deckM: 1.2,
+    },
+    terrain: () => ctx.terrain,
+    harbors: () => harborLayouts,
+    berths: () => allBerths,
+    inTown: (x, z) => !!setPieceAt(zoneData, zoneFrame(zone, zoneData), { x, z }),
+    hsAt: (x, z) => ctx.weather.waveParams({ x, z }).hsM,
+    blocked: () => {
+      if (arena || inArenaSpace) return 'Not out here';
+      if (run.inDanger || pursued || pursuitOn.size > 0) return 'Not with the law on your tail';
+      if (machine.mode !== 'sailing' && machine.mode !== 'onFoot') return 'Not now';
+      if (abandon.open || capture.pending || state.jail) return 'Not now';
+      return undefined;
+    },
+    fade: ashoreFade,
+    transition: (to) => {
+      machine.transition(to);
+      if (cameraRig) cameraRig.suspended = to === 'onFoot';
+      hudClock = HUD_INTERVAL_S;
+    },
+    notice: (text) => showNotice(text),
+    save: () => saveControls.saveNow(),
+    died: (cause) => {
+      footLook.detachListeners();
+      void endTheRun(cause);
+    },
+    look: footLook,
+    view: scene && {
+      render: (alpha, seaTime, frameSeconds) => view?.render(alpha, seaTime, frameSeconds),
+      get foot() {
+        return scene?.foot;
+      },
+      set foot(next) {
+        if (scene) scene.foot = next;
+      },
+    },
+  });
+  ashoreRef.current = ashore;
+  goAshoreRef.current = () => goAshore();
+  machine.register(ashore.mode);
+  if (import.meta.env.DEV || params.has('debug')) {
+    /**
+     * `__glpFoot.dock('bayfield_city')` ties up at a pier as F would, `anchor()` lets go
+     * where she is, `land()` goes ashore (G), `aboard()` comes back, `teleport(x, z)`
+     * puts you there, `hour(21)` sets the clock, `state()` reads it all.
+     */
+    const hook = {
+      land: () => ashore.goAshore(),
+      aboard: () => ashore.goAboard(),
+      stepAshore: () => ashore.stepAshore(),
+      refusal: () => ashore.refusal(),
+      anchor() {
+        const h = hazards.state;
+        const p = shipPose();
+        Object.assign(sailing.state, { speed: 0, sailLevel: 0, sailSetting: 0 });
+        h.anchor = 'down';
+        h.anchorX = p.x + Math.sin(p.heading) * shipRecord.lengthM * 0.45;
+        h.anchorZ = p.z - Math.cos(p.heading) * shipRecord.lengthM * 0.45;
+      },
+      dock(key: string) {
+        const berth = allBerths.find((b) => b.dockId.includes(key));
+        if (!berth) return false;
+        placeShip(berth.pose);
+        const h = hazards.state;
+        h.mooring = 'docked';
+        h.berthId = berth.id;
+        h.from = { ...berth.pose };
+        ports.markDocked(berth.id);
+        return true;
+      },
+      /** Puts the ship at (x, z) heading `deg`, way off, e.g. off a beach to anchor. */
+      place: (x: number, z: number, deg = 0) => placeShip({ x, z, heading: (deg * Math.PI) / 180 }),
+      teleport: (x: number, z: number, y?: number) => ashore.teleport(x, z, y),
+      hour(h: number) {
+        const clock = state.environment.clock;
+        const { day } = dayAndHour(clock.gameSeconds);
+        clock.gameSeconds = day * SECONDS_PER_GAME_DAY + h * 3600;
+      },
+      setHealth: (h: number) => (state.player.health = Math.max(0, Math.min(100, h))),
+      waterC: () => ashore.hud().cold?.waterC,
+      month: () => calendarDate(state.environment.clock.gameSeconds).getUTCMonth(),
+      state: () => {
+        const c = ashore.character;
+        return {
+          active: ashore.active,
+          from: ashore.from,
+          inBoat: ashore.inBoat,
+          boatState: ashore.boatState,
+          boat: ashore.boat && { ...ashore.boat },
+          at: { ...c.position },
+          heading: c.heading,
+          gait: c.gait,
+          surface: c.surface,
+          swimming: c.swimming,
+          grounded: c.grounded,
+          ladder: c.ladder,
+          health: state.player.health,
+          prompt: ashore.prompt(),
+          ladders: ashore.scene?.ladders ?? [],
+          bounds: ashore.scene?.bounds,
+          ship: shipPose(),
+          mooring: hazards.state.mooring,
+          anchor: hazards.state.anchor,
+        };
+      },
+      saved: () => ({ ashore: state.player.ashore, rowboat: state.player.rowboat }),
+      /** Ground height above the lake at a zone point (negative under water). */
+      height: (x: number, z: number) => ctx.terrain?.heightAt(x, z),
+      save: () => saveControls.saveNow(),
+    };
+    (window as unknown as { __glpFoot: typeof hook }).__glpFoot = hook;
+  }
+  /** G at the helm or on the port screen: ashore, or why not. */
+  const goAshore = (): void => {
+    if (ports.openPort) ports.close();
+    void ashore.goAshore().then((why) => why && showNotice(why));
+  };
+  machine.onTransition((_, to) => {
+    document.body.dataset['ashore'] = to === 'onFoot' ? (ashore.inBoat ? 'boat' : 'foot') : 'aboard';
+  });
   /**
    * Leaves the zone and enters `id` with the ship at `pose`, behind the fade to fog
    * (Phase 3 piece A, plan 03 §7). Saves on the way out and on arrival (plan 16 §4.1).
@@ -3117,7 +3283,8 @@ async function boot(): Promise<void> {
       }
       // The traffic sails on the clock: in the zone, every tick (Phase 4 piece D), and
       // behind a look at the chart while the ship sails on.
-      const inZone = machine.mode === 'sailing' || chartTravel.trip === 'look';
+      const inZone =
+        machine.mode === 'sailing' || machine.mode === 'onFoot' || chartTravel.trip === 'look';
       if (inZone && !arena && !changingZone) {
         if (traffic.step(hazards.state.berthId)) sailingOptions.berths = freeBerths();
         smuggler.step(shipPose());
@@ -3151,7 +3318,16 @@ async function boot(): Promise<void> {
       if (hunted && ports.journalOpen && !machine.gameplayPaused) {
         ports.closeJournal();
       }
-      const inGame = input.context === 'sailing' || input.context === 'chart';
+      if (
+        sameContext &&
+        input.context === 'sailing' &&
+        !machine.overlayOpen &&
+        input.pressed('GoAshore')
+      ) {
+        goAshore();
+      }
+      const inGame =
+        input.context === 'sailing' || input.context === 'chart' || input.context === 'onFoot';
       if (sameContext && inGame && input.pressed('Pause')) {
         ui.openMenu();
       } else if (sameContext && inGame && input.pressed('Journal')) {
@@ -3204,13 +3380,35 @@ async function boot(): Promise<void> {
       if (card && (hudSeconds > card.untilS || cardOutOfHail())) {
         hideCard();
       }
-      if (hudClock >= HUD_INTERVAL_S && machine.mode === 'chart') {
+      if (hudClock >= HUD_INTERVAL_S && machine.mode === 'onFoot') {
         hudClock = 0;
+        ui.setHud(undefined);
+        ui.setCaptions([]);
+        const now = state.environment.clock.gameSeconds;
+        const body = ashore.hud();
+        ui.setFootHud({
+          dateText: weekLabel(now),
+          timeText: clockLabel(now),
+          health: body.health,
+          hurt: body.hurt,
+          cold: body.cold,
+          prompt: body.prompt,
+          notice: notice?.text,
+          inBoat: body.inBoat,
+          mouseLocked: footLook.locked,
+        });
+        document.body.dataset['ashore'] = body.inBoat ? 'boat' : body.swimming ? 'swimming' : 'foot';
+        document.body.dataset['footPrompt'] = body.prompt ?? '';
+        document.body.dataset['health'] = String(Math.round(body.health));
+      } else if (hudClock >= HUD_INTERVAL_S && machine.mode === 'chart') {
+        hudClock = 0;
+        ui.setFootHud(undefined);
         ui.setHud(undefined);
         ui.setCaptions([]);
         chartTravel.sampleHud();
       } else if (hudClock >= HUD_INTERVAL_S) {
         hudClock = 0;
+        ui.setFootHud(undefined);
         ui.setCaptions(audio?.captionsNow() ?? []);
         ui.setHud(
           sampleHud({
@@ -3228,6 +3426,12 @@ async function boot(): Promise<void> {
               ...trafficChips(),
               ...darkChips(),
             ],
+            canGoAshore:
+              machine.mode === 'sailing' && !ashore.refusal()
+                ? hazards.state.mooring === 'docked'
+                  ? 'gangway'
+                  : 'boat'
+                : undefined,
             lantern: {
               lit: lantern.state.lit,
               nights: Math.floor(lantern.nights()),
@@ -3285,6 +3489,27 @@ async function boot(): Promise<void> {
 
   // A run saved in the lockup or awaiting the rope opens on the jail screen (piece D).
   if (state.jail) capture.resume();
+  // Saved ashore (Phase 7 piece A): the ship moored as she was left, and you where you stood.
+  const savedAshore = state.player.ashore;
+  if (savedAshore && machine.mode === 'sailing' && !state.jail && !paramDef) {
+    const h = hazards.state;
+    const berth = savedAshore.berthId
+      ? allBerths.find((b) => b.id === savedAshore.berthId)
+      : undefined;
+    if (berth) {
+      placeShip(berth.pose);
+      h.mooring = 'docked';
+      h.berthId = berth.id;
+      h.from = { ...berth.pose };
+      ports.markDocked(berth.id);
+    } else if (savedAshore.anchor) {
+      h.anchor = 'down';
+      h.anchorX = savedAshore.anchor.x;
+      h.anchorZ = savedAshore.anchor.z;
+    }
+    ashore.resume(savedAshore);
+    document.body.dataset['start'] = 'ashore';
+  }
   // Loaded from the danger snapshot (plan 16 §4.3): the hunter is back on your tail. On the
   // chart she closes and can't be avoided; in a zone, the arena opens around you.
   const danger = state.danger;

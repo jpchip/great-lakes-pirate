@@ -404,6 +404,35 @@ export function defaultCaptain(): Captain {
   return { name: 'Captain', shipName: 'Schooner', background: 'deckhand' };
 }
 
+/**
+ * Ashore (plan 08 §20, Phase 7 piece A; save v9): you left the ship at a berth or at
+ * anchor and are on foot, swimming, or in the boat. `location` still holds the ship's
+ * place; this is yours, in the same zone's meters. Null aboard.
+ */
+export const ashoreSchema = z.object({
+  /** How you went ashore: from a berth, or at anchor in the boat. */
+  from: z.enum(['berth', 'anchor']),
+  /** Your feet and the way you face. */
+  at: z.object({ x: z.number(), y: z.number(), z: z.number(), heading: z.number() }),
+  /** In the boat (rowing), not on foot. */
+  inBoat: z.boolean(),
+  /** The berth the ship lies at (`from: 'berth'`). */
+  berthId: z.string().optional(),
+  /** Where her anchor lies (`from: 'anchor'`), so she's anchored again on a reload. */
+  anchor: z.object({ x: z.number(), z: z.number() }).optional(),
+});
+export type AshoreState = z.infer<typeof ashoreSchema>;
+
+/**
+ * The ship's boat (plan 02 §6.5; save v9): stowed aboard, in the water (by the ship or
+ * under way), drawn up on a beach, or swamped where a sea filled her.
+ */
+export const rowboatSchema = z.object({
+  state: z.enum(['stowed', 'afloat', 'beached', 'swamped']),
+  pose: poseSchema.optional(),
+});
+export type RowboatSave = z.infer<typeof rowboatSchema>;
+
 /** A danger state the run was snapshotted in (plan 16 §4.2–4.3). */
 export const dangerSchema = z.object({
   /** A hunt, or your ship foundering under you (Phase 6 piece F: she's still going down). */
@@ -446,6 +475,12 @@ export const worldStateSchema = z.object({
      * themselves are cargo.
      */
     ammo: ammoStateSchema,
+    /** Health, 0–100 (plan 08 §3.3; save v9): hurt on foot, healing over game days. */
+    health: z.number().min(0).max(100),
+    /** Ashore, or null aboard (Phase 7 piece A; save v9). */
+    ashore: ashoreSchema.nullable(),
+    /** The ship's boat (save v9). */
+    rowboat: rowboatSchema,
   }),
   voyage: voyageSchema.nullable(),
   markets: marketsSchema,
@@ -520,6 +555,9 @@ export function createWorldState(seed: string, startSeconds = 0): WorldState {
       standing: {},
       ship: defaultShipState(),
       ammo: { charges: 0 },
+      health: 100,
+      ashore: null,
+      rowboat: { state: 'stowed' },
     },
     voyage: null,
     markets: createMarkets(gameEconomy(), clock.gameSeconds),

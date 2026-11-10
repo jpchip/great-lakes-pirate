@@ -45,6 +45,11 @@ export interface PortControl {
   readonly journalOpen: boolean;
   /** Opens the screen of the port the ship is docked at; false if there's none. */
   openDocked(): boolean;
+  /**
+   * Alongside this berth without the arrival (Phase 7 piece A): a run reloaded ashore
+   * comes back to a ship still tied up, and P opens the port as if she'd just docked.
+   */
+  markDocked(berthId: string): void;
   /** Opens a port's screen directly (the dev hook). */
   open(port: string): void;
   close(): void;
@@ -356,6 +361,10 @@ export function attachPorts(opts: PortControlOptions): PortControl {
     },
     get journalOpen() {
       return journalOpen;
+    },
+    markDocked(berthId) {
+      const pier = opts.berthPier(berthId);
+      dockedPort = pier ? pierPort(pier) : undefined;
     },
     openDocked() {
       if (!dockedPort || hazards.state.mooring !== 'docked') return false;

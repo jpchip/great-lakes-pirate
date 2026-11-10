@@ -25,6 +25,12 @@ export interface CameraParams {
   clearance: number;
   /** How fast the boom grows back after a collision shortened it, in m/s. */
   recoverSpeed: number;
+  /**
+   * The close mode under a roof (plan 08 §19 finding 4): a short boom and a smaller
+   * shoulder offset, so a low ceiling doesn't pin the camera to the back of your head.
+   */
+  closeDistance: number;
+  closeShoulder: number;
 }
 
 export const DEFAULT_CAMERA: CameraParams = {
@@ -38,7 +44,37 @@ export const DEFAULT_CAMERA: CameraParams = {
   shoulder: 0.5,
   clearance: 0.2,
   recoverSpeed: 4,
+  closeDistance: 1.8,
+  closeShoulder: 0.3,
 };
+
+/** In the boat: farther back and higher, over the middle, so the bow and the beach show. */
+export const ROWING_CAMERA: CameraParams = {
+  ...DEFAULT_CAMERA,
+  minPitch: -0.6,
+  distance: 7,
+  crouchDistance: 7,
+  pivotHeight: 1.6,
+  crouchPivotHeight: 1.6,
+  shoulder: 0,
+  closeDistance: 7,
+  closeShoulder: 0,
+};
+
+/** How high above your head a roof still counts as "indoors". */
+const ROOF_REACH_M = 2.2;
+
+/** True if something solid hangs over (x, z) within reach above the head: a roof, a deck. */
+export function roofOver(zone: OnFootZone, x: number, headY: number, z: number): boolean {
+  const near: Collider[] = [];
+  const push: Push = { nx: 0, nz: 0 };
+  zone.colliders.query(x, z, 0.05, near);
+  for (const c of near) {
+    if (c.minY < headY || c.minY > headY + ROOF_REACH_M) continue;
+    if (footprintDistance(c, x, z, push) < 0) return true;
+  }
+  return false;
+}
 
 export class FollowCamera {
   /** Radians, clockwise from north. */
@@ -62,15 +98,25 @@ export class FollowCamera {
     this.pitch = Math.min(p.maxPitch, Math.max(p.minPitch, this.pitch + dyPixels * p.sensitivity));
   }
 
-  /** Place the camera for a character whose feet are at `feet`. Call once per frame. */
-  update(feet: Vec3, crouching: boolean, zone: OnFootZone, frameSeconds: number): void {
+  /**
+   * Place the camera for a character whose feet are at `feet`. Call once per frame.
+   * `close` pulls the boom in for a low roof overhead (indoors).
+   */
+  update(
+    feet: Vec3,
+    crouching: boolean,
+    zone: OnFootZone,
+    frameSeconds: number,
+    close = false,
+  ): void {
     const p = this.params;
     const fx = Math.sin(this.yaw);
     const fz = -Math.cos(this.yaw);
+    const shoulder = close ? p.closeShoulder : p.shoulder;
     // Right of the view is (−fz, fx).
-    this.target.x = feet.x - fz * p.shoulder;
+    this.target.x = feet.x - fz * shoulder;
     this.target.y = feet.y + (crouching ? p.crouchPivotHeight : p.pivotHeight);
-    this.target.z = feet.z + fx * p.shoulder;
+    this.target.z = feet.z + fx * shoulder;
 
     // Boom points back from the pivot, raised by pitch.
     const cp = Math.cos(this.pitch);
@@ -78,7 +124,11 @@ export class FollowCamera {
     const by = Math.sin(this.pitch);
     const bz = -fz * cp;
 
-    const want = crouching ? p.crouchDistance : p.distance;
+    const want = close
+      ? Math.min(p.closeDistance, crouching ? p.crouchDistance : p.distance)
+      : crouching
+        ? p.crouchDistance
+        : p.distance;
     const free = this.clearDistance(this.target, bx, by, bz, want, zone);
     // Snap in at once so walls never clip; ease back out.
     this.boom = free < this.boom ? free : Math.min(free, this.boom + p.recoverSpeed * frameSeconds);

@@ -41,7 +41,8 @@ export type Action =
   | 'Port'
   | 'Journal'
   | 'LieAtAnchor'
-  | 'Repair';
+  | 'Repair'
+  | 'GoAshore';
 
 export type Bindings = Record<InputContext, Partial<Record<Action, readonly string[]>>>;
 
@@ -50,7 +51,7 @@ export const DEFAULT_BINDINGS: Bindings = {
     Confirm: ['Enter', 'Space'],
     Cancel: ['Escape'],
   },
-  // Plan 02 §2. Interact stays F here; on foot it is E for now (plan 08 §19).
+  // Plan 02 §2. Interact is F here and on foot (plan 08 §20.1: E is left for lean/peek).
   sailing: {
     Pause: ['Escape'],
     SteerPort: ['KeyA', 'ArrowLeft'],
@@ -74,6 +75,8 @@ export const DEFAULT_BINDINGS: Bindings = {
     LieAtAnchor: ['KeyZ'],
     // Phase 4 piece G: use a patch or mend kit from the lockers at sea.
     Repair: ['KeyK'],
+    // Phase 7 piece A: go ashore from a berth, or into the boat at anchor.
+    GoAshore: ['KeyG'],
     // Combat (plan 07 §3; Phase 6 piece B): Tab in and out of aim mode, 1/2/3 the swivel,
     // the broadside and the rifle, C the shot, left mouse fires while aiming.
     AimMode: ['Tab'],
@@ -94,7 +97,8 @@ export const DEFAULT_BINDINGS: Bindings = {
     // A hop for now; vault and climb at marked spots share Space later (plan 08 §3.1).
     Jump: ['Space'],
     Sprint: ['ShiftLeft'],
-    Interact: ['KeyE'],
+    Interact: ['KeyF'],
+    Journal: ['KeyJ'],
   },
   // Phase 3 piece D. Clicks plot on the chart canvas itself; M goes back to the helm and
   // follows the sailing binding when that is rebound. Backspace takes the last waypoint off.

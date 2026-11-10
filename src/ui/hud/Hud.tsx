@@ -252,6 +252,7 @@ export function Hud({
   onTakeToChart,
   onOpenPort,
   onWait,
+  onGoAshore,
 }: {
   hud: ReadonlySignal<HudSnapshot | undefined>;
   density: ReadonlySignal<HudDensity>;
@@ -262,6 +263,8 @@ export function Hud({
   onOpenPort?: (() => void) | undefined;
   /** Lie at anchor or alongside (Z), while the ship is moored. */
   onWait?: (() => void) | undefined;
+  /** Go ashore (G), while she lies at a berth or at anchor (Phase 7 piece A). */
+  onGoAshore?: (() => void) | undefined;
 }) {
   const h = hud.value;
   const mode = density.value;
@@ -298,6 +301,16 @@ export function Hud({
           onClick={() => onWait?.()}
         >
           Wait <span class="hud-key">Z</span>
+        </button>
+      )}
+      {h?.canGoAshore && (
+        <button
+          type="button"
+          class="hud-take-chart hud-ashore"
+          data-testid="hud-ashore"
+          onClick={() => onGoAshore?.()}
+        >
+          {h.canGoAshore === 'boat' ? 'Into the boat' : 'Go ashore'} <span class="hud-key">G</span>
         </button>
       )}
       {h && mode !== 'off' && (
