@@ -85,7 +85,19 @@ describe('gait to clip', () => {
     expect(gaitClip({ gait: 'walk', speed: 1.3, carrying: true }).clip).toBe('carry');
     expect(gaitClip({ gait: 'swim', speed: 0 }).clip).toBe('swimIdle');
     expect(gaitClip({ gait: 'fall', speed: 3 }).clip).toBe('fall');
-    for (const gait of ['idle', 'sneak', 'walk', 'run', 'swim', 'fall', 'slide'] as const) {
+    expect(gaitClip({ gait: 'ladder', speed: 0 }).clip).toBe('climb');
+    for (const gait of [
+      'idle',
+      'sneak',
+      'walk',
+      'run',
+      'swim',
+      'fall',
+      'slide',
+      'ladder',
+      'vault',
+      'climb',
+    ] as const) {
       expect(Object.keys(CLIPS)).toContain(gaitClip({ gait, speed: 1 }).clip);
     }
   });
