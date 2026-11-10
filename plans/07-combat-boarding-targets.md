@@ -534,11 +534,11 @@ Start a **New run as a Poacher**: Bayfield, $100, enough for the bow swivel ($75
 2. **Combat audio levels and the chase thresholds** (piece G): a listen in the game (step 7). Jared's answer to the five: take the recommendations.
 3. **The WANTED page in the middle of a fight** (criterion 8). **Decided 2026-11-09 by Jared: hold it until the arena ends (the recommendation), applied in `main.ts`.** Firing on the _Morrill_ opens the full-screen front page at once. Recommended: hold it until the fight is over (the arena ends or she loses you), and show the HUD's noose and a notice meanwhile.
 4. **Company grudges, the rescue hours and the worn hull's price** (piece F): 10/20/25/30 a crime, fading 2 a day, contracts refused from 50; 6–18 hours in the boat; 40% of a new T1. Recommended: keep them until a run says otherwise.
-5. **The white flag:** bigger and self-lit now; is it enough at range?
+5. **The white flag:** bigger and self-lit now; is it enough at range? **Decided 2026-11-10 by Jared: good enough.**
 
 #### 14.14.4 Results
 
-Pending Jared's playtest.
+Jared played it on 2026-11-10: the playtest was good and the white flag is good enough at range (decision 5). With decisions 1 and 3 applied in `28a2592` and the recommendations kept for 2 and 4, Phase 6 is signed off as 0.6.0.
 
 ---
 
