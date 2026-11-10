@@ -24,6 +24,21 @@ export interface OnFootMode extends Mode {
 }
 
 /**
+ * One on-foot tick of the world clock (plan 03 §3.3): R = 6, the strategic world ticks
+ * it passes, and the day turning over. The game's ashore mode and the spike share it.
+ */
+export function tickOnFootClock(ctx: GameContext, dt: number): void {
+  const clock = ctx.state.environment.clock;
+  const dayBefore = dayAndHour(clock.gameSeconds).day;
+  const worldTicks = advanceClock(clock, dt, R_ON_FOOT);
+  for (let i = 0; i < worldTicks; i++) {
+    ctx.events.emit('WorldTick', { gameSeconds: clock.gameSeconds });
+  }
+  const dayAfter = dayAndHour(clock.gameSeconds).day;
+  if (dayAfter !== dayBefore) ctx.events.emit('DayChanged', { day: dayAfter });
+}
+
+/**
  * On-foot mode (spike S5): runs the clock at R = 6, reads the onFoot input context and
  * steps the hand-rolled character controller. `viewYaw` gives the camera heading that
  * WASD is relative to.
@@ -56,14 +71,7 @@ export function createOnFootMode(
       previous.position.z = character.position.z;
       previous.heading = character.heading;
 
-      const clock = ctx.state.environment.clock;
-      const dayBefore = dayAndHour(clock.gameSeconds).day;
-      const worldTicks = advanceClock(clock, dt, R_ON_FOOT);
-      for (let i = 0; i < worldTicks; i++) {
-        ctx.events.emit('WorldTick', { gameSeconds: clock.gameSeconds });
-      }
-      const dayAfter = dayAndHour(clock.gameSeconds).day;
-      if (dayAfter !== dayBefore) ctx.events.emit('DayChanged', { day: dayAfter });
+      tickOnFootClock(ctx, dt);
 
       const input = ctx.input;
       const t0 = performance.now();

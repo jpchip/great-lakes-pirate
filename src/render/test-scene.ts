@@ -12,7 +12,7 @@ import { sceneSpeed, DEFAULT_COMPRESSION } from '../core/coords';
 import { R_SAILING, type ClockState } from '../core/time';
 import type { LocalWeather } from '../sim/weather/local-weather';
 import type { StubIsland } from '../sim/weather/shelter';
-import type { Sea } from '../sim/weather/waves';
+import { heightAt as seaHeightAt, seaScaleAt, type Sea } from '../sim/weather/waves';
 import { CameraRig } from './camera-rig';
 import type { GameRenderer } from './renderer';
 import { createSchooner, styleSchooner, type SchoonerModel } from './ships/schooner';
@@ -57,6 +57,7 @@ import { createAimView, type AimPreviewView } from './aim-view';
 import { createCombatFx, type CombatFx } from './combat-fx';
 import type { ArcPreview } from '../sim/combat/aim';
 import { createWindCues, type WindCues } from './water/wind-cues';
+import { createFootView, type FootFrame } from './onfoot/foot-view';
 
 const HORIZON = new THREE.Color(0xb7c6cf);
 const ZENITH = new THREE.Color(0x6f8ea3);
@@ -110,6 +111,11 @@ export interface TestScene {
   render(alpha: number, seaTime: number, frameSeconds: number): void;
   /** The lenses' clock, real seconds: detection reads it so the beam seen is the beam that hits. */
   readonly beamSeconds: number;
+  /**
+   * Ashore (Phase 7 piece A): while set, the camera stands where it says and the captain
+   * and the boat are drawn, instead of the sailing camera following the ship.
+   */
+  foot: FootFrame | undefined;
 }
 
 export interface SceneArena {
@@ -411,6 +417,12 @@ export async function createTestScene(
   });
 
   const cameraRig = new CameraRig(camera, renderer.renderer.domElement);
+  const footView = createFootView(lighting);
+  scene.add(footView.group);
+  let foot: FootFrame | undefined;
+  /** The sailing camera's near plane; on foot it comes in so a wall at arm's length draws. */
+  const SAIL_NEAR = camera.near;
+  const FOOT_NEAR = 0.1;
   // The camera stays above the hills, and a little above the mean water so swell
   // crests don't cut through it.
   const surface = (x: number, z: number): number =>
@@ -485,6 +497,17 @@ export async function createTestScene(
     get beamSeconds() {
       return now;
     },
+    get foot() {
+      return foot;
+    },
+    set foot(next) {
+      foot = next;
+      const near = next ? FOOT_NEAR : SAIL_NEAR;
+      if (camera.near !== near) {
+        camera.near = near;
+        camera.updateProjectionMatrix();
+      }
+    },
     onZoneChange(listener) {
       zoneListeners.push(listener);
     },
@@ -499,7 +522,7 @@ export async function createTestScene(
         object.rotation.set(t.pitch ?? 0, -t.heading, t.roll ?? 0);
         if (e.playerControlled) {
           // The spyglass looks from the deck, so the ship's own rig would fill the view.
-          object.visible = !cameraRig.ship.spyglass;
+          object.visible = !cameraRig.ship.spyglass && !foot?.shipGone;
           // Follow the ship sideways, not up and down, so the swell stays visible.
           pose.position.x = t.position.x;
           pose.position.z = t.position.z;
@@ -528,7 +551,37 @@ export async function createTestScene(
       spray.update(frameSeconds);
       shots.update();
       combatFx.update(frameSeconds, fxWind);
-      cameraRig.update(pose, surface, frameSeconds);
+      if (foot) {
+        const c = foot.camera;
+        camera.position.set(c.position.x, c.position.y, c.position.z);
+        camera.up.set(0, 1, 0);
+        camera.lookAt(c.target.x, c.target.y, c.target.z);
+        if (camera.fov !== 50) {
+          camera.fov = 50;
+          camera.updateProjectionMatrix();
+        }
+        // The fog, the sky and the light follow you, not the ship you left.
+        focus.x = foot.captain.x;
+        focus.z = foot.captain.z;
+        const b = foot.boat;
+        footView.update(
+          foot,
+          b
+            ? seaHeightAt(
+                sea.waves,
+                sea.waves.length,
+                b.x,
+                b.z,
+                seaTime,
+                2,
+                seaScaleAt(sea, b.x, b.z),
+              )
+            : 0,
+        );
+      } else {
+        footView.update(undefined, 0);
+        cameraRig.update(pose, surface, frameSeconds);
+      }
       const aimNow = aimSource?.();
       aimView.update(aimNow?.preview, aimNow?.ready ?? false, camera.position);
       sky.position.copy(camera.position);

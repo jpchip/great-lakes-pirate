@@ -1,3 +1,7 @@
+import type { Surface } from '../../../data/schemas/districts';
+
+export type { Surface };
+
 /**
  * Simple collision primitives for on-foot areas (plan 01 §2.2): vertical boxes with a
  * yaw, vertical cylinders, and grid-cell occupancy maps for buildings. Every shape is
@@ -5,7 +9,20 @@
  * and hideout pieces need. A uniform spatial hash keeps queries local.
  */
 
-export interface BoxCollider {
+/**
+ * A marked spot on a prop (plan 08 §3.1): Space vaults onto (or over) a `vault` prop up to
+ * waist height, and climbs a `climb` prop up to a low roof. Unmarked props only take a hop.
+ */
+export type Spot = 'vault' | 'climb';
+
+/** Tags any collider can carry. */
+interface ColliderTags {
+  /** Its top's surface; absent reads as wood (the kit's piers, crates and floors). */
+  surface?: Surface;
+  spot?: Spot;
+}
+
+export interface BoxCollider extends ColliderTags {
   kind: 'box';
   /** Footprint center. */
   x: number;
@@ -16,15 +33,18 @@ export interface BoxCollider {
   yaw: number;
   minY: number;
   maxY: number;
+  /** False for things you can see through (railings, bars, lamp posts); default true. */
+  blocksSight?: boolean;
 }
 
-export interface CylinderCollider {
+export interface CylinderCollider extends ColliderTags {
   kind: 'cylinder';
   x: number;
   z: number;
   radius: number;
   minY: number;
   maxY: number;
+  blocksSight?: boolean;
 }
 
 export type Collider = BoxCollider | CylinderCollider;

@@ -3,12 +3,19 @@ import type { Transform } from '../../gameplay/ecs';
 import type { FollowCamera } from '../../gameplay/onfoot/camera';
 import type { BoxCollider, CylinderCollider } from '../../gameplay/onfoot/colliders';
 import type { CharacterState, ControllerParams } from '../../gameplay/onfoot/controller';
+import { gaitClip } from '../../render/characters/gait';
+import { Character, loadHumanoids } from '../../render/characters/humanoid';
+import { lookFromPortrait } from '../../render/characters/looks';
+import { OutlineSettings } from '../../render/style/outline';
+import { StyleLighting } from '../../render/style/stylized-material';
+import { allPortraits } from '../../sim/character/backgrounds';
 import type { SpikeChunk } from './chunk';
 
 /**
  * Greybox view for spike S5: vertex-colored terrain (sand, grass, and red where the
  * slope is too steep to walk), translucent water, every collider drawn through two
- * instanced meshes, and a capsule for the character.
+ * instanced meshes, and the captain's body (Phase 7 piece B) walking the controller; the
+ * capsule stays until the body loads, or with `?body=capsule`.
  */
 export function createSpikeScene(
   container: HTMLElement,
@@ -33,7 +40,8 @@ export function createSpikeScene(
     0.05,
     400,
   );
-  scene.add(new THREE.HemisphereLight(0xe4edf2, 0x3a4a3a, 1.3));
+  const hemi = new THREE.HemisphereLight(0xe4edf2, 0x3a4a3a, 1.3);
+  scene.add(hemi);
   const sun = new THREE.DirectionalLight(0xffffff, 1.6);
   sun.position.set(30, 50, 20);
   scene.add(sun);
@@ -171,6 +179,31 @@ export function createSpikeScene(
   body.add(capsule, nose);
   scene.add(body);
 
+  // The captain's body over the capsule: the first portrait preset, or ?portrait=<n>.
+  let captain: Character | null = null;
+  const query = new URLSearchParams(window.location.search);
+  if (query.get('body') !== 'capsule') {
+    const lighting = new StyleLighting();
+    lighting.fromSceneLights(hemi, sun, new THREE.Color(0x000000));
+    const outline = new OutlineSettings();
+    outline.setResolution(renderer);
+    const portraits = allPortraits();
+    const portrait = portraits[Number(query.get('portrait') ?? 0)] ?? portraits[0];
+    void loadHumanoids(new URL('./', document.baseURI).href, [portrait?.body ?? 'male']).then(
+      (library) => {
+        if (!portrait) return;
+        captain = new Character(library, lookFromPortrait(portrait), {
+          style: 'toon',
+          lighting,
+          outline,
+        });
+        body.add(captain.root);
+        capsule.visible = false;
+        nose.visible = false;
+      },
+    );
+  }
+
   const onResize = (): void => {
     view.aspect = container.clientWidth / container.clientHeight;
     view.updateProjectionMatrix();
@@ -200,6 +233,12 @@ export function createSpikeScene(
       body.position.set(x, y, z);
       // Heading is clockwise from north; three.js yaw is counter-clockwise.
       body.rotation.y = -heading;
+      if (captain) {
+        const speed = Math.hypot(character.velocity.x, character.velocity.z);
+        const { clip, timeScale } = gaitClip({ gait: character.gait, speed });
+        captain.play(clip, 0.2, timeScale);
+        captain.update(frameSeconds, view.position.distanceTo(body.position));
+      }
 
       feet.x = x;
       feet.y = y;

@@ -883,6 +883,28 @@ body[data-mode='chart'] .chart-layer {
   bottom: 258px;
 }
 
+/* Go ashore (Phase 7 piece A) stacks above Wait and the port button. */
+.hud-ashore {
+  bottom: 258px;
+}
+
+.hud-port ~ .hud-wait ~ .hud-ashore {
+  bottom: 302px;
+}
+
+/* On foot (Phase 7 piece A): the F prompt sits low over the center, under the captain. */
+.foot-prompt {
+  bottom: 120px;
+}
+
+.foot-keys {
+  position: absolute;
+  right: 16px;
+  bottom: 16px;
+  max-width: 46vw;
+  text-align: right;
+}
+
 .menu.port {
   width: min(1060px, calc(100vw - 32px));
 }

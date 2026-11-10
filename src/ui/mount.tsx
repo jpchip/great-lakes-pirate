@@ -3,6 +3,7 @@ import { computed, signal } from '@preact/signals';
 import type { Action } from '../core/input';
 import type { SettingsStore } from '../core/settings';
 import { Hud } from './hud/Hud';
+import { FootHud, type FootHudView } from './hud/FootHud';
 import type { HudSnapshot } from './hud/model';
 import type { CaptionView } from '../audio/captions';
 import { Captions } from './hud/Captions';
@@ -56,6 +57,10 @@ export interface GameUiOptions {
   onTakeToChart?: (() => void) | undefined;
   /** The HUD's "Wait" while anchored or alongside: opens the lie-at-anchor choice. */
   onWait?: (() => void) | undefined;
+  /** The HUD's and port screen's "Go ashore" (Phase 7 piece A). */
+  onGoAshore?: (() => void) | undefined;
+  /** The on-foot HUD's prompt button: does what F would. */
+  onFootPrompt?: (() => void) | undefined;
   /** Put the First Week tracker away or bring it back (Phase 4 piece C). */
   setFirstWeekHidden?: ((hidden: boolean) => void) | undefined;
   /** Clear the finished First Week mark from the journal. */
@@ -82,6 +87,8 @@ export interface GameUiOptions {
 
 export interface GameUi {
   setHud(snapshot: HudSnapshot | undefined): void;
+  /** The on-foot HUD (Phase 7 piece A); undefined hides it. */
+  setFootHud(snapshot: FootHudView | undefined): void;
   /** The chart HUD; undefined hides it. */
   setChart(snapshot: ChartHudSnapshot | undefined): void;
   setSpyglass(on: boolean): void;
@@ -135,6 +142,8 @@ export function mountGameUi({
   chart: chartActions,
   onTakeToChart,
   onWait,
+  onGoAshore,
+  onFootPrompt,
   port: portActions,
   smuggler: smugglerActions,
   boarding: boardingActions,
@@ -165,6 +174,7 @@ export function mountGameUi({
   const journal = signal<LedgerSnapshot | undefined>(undefined);
   const journalSailing = signal<boolean | undefined>(undefined);
   const hud = signal<HudSnapshot | undefined>(undefined);
+  const footHud = signal<FootHudView | undefined>(undefined);
   const chart = signal<ChartHudSnapshot | undefined>(undefined);
   const spyglass = signal(false);
   const aimHud = signal<AimHudSnapshot | undefined>(undefined);
@@ -237,6 +247,9 @@ export function mountGameUi({
     } else if (port.value && is('Interact')) {
       e.preventDefault();
       portActions?.castOff();
+    } else if (port.value && is('GoAshore') && portActions?.goAshore) {
+      e.preventDefault();
+      portActions.goAshore();
     } else if (port.value && is('Journal')) {
       e.preventDefault();
       portTab.value = 'ledger';
@@ -259,7 +272,9 @@ export function mountGameUi({
           onTakeToChart={onTakeToChart}
           onOpenPort={portActions?.openDocked}
           onWait={onWait}
+          onGoAshore={onGoAshore}
         />
+        {!menuOpen.value && <FootHud hud={footHud} density={density} onPrompt={onFootPrompt} />}
         {!menuOpen.value && !port.value && !journal.value && <Captions captions={captions} />}
         {!menuOpen.value && <ShipCardView card={shipCard} />}
         {!menuOpen.value && <AimHud aim={aimHud} />}
@@ -370,6 +385,9 @@ export function mountGameUi({
   return {
     setHud(snapshot) {
       hud.value = snapshot;
+    },
+    setFootHud(snapshot) {
+      footHud.value = snapshot;
     },
     setChart(snapshot) {
       chart.value = snapshot;

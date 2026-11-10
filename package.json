@@ -31,7 +31,9 @@
     "assets:hull": "node tools/assets/build-hull.ts",
     "audio": "node tools/audio/build.ts",
     "audio:synth": "node tools/audio/synth.ts",
-    "bench:combat": "vitest run --config bench/combat/vitest.config.ts"
+    "bench:combat": "vitest run --config bench/combat/vitest.config.ts",
+    "district:bake": "vitest run --config tools/district/vitest.config.ts",
+    "bench:docks": "playwright test --config bench/docks/playwright.config.ts"
   },
   "dependencies": {
     "@preact/signals": "2.11.3",
@@ -57,6 +59,7 @@
     "globals": "17.13.0",
     "meshoptimizer": "1.3.0",
     "prettier": "3.9.10",
+    "recast-navigation": "^0.44.0",
     "typescript": "6.0.3",
     "typescript-eslint": "8.72.0",
     "vite": "8.3.5",

@@ -26,6 +26,7 @@ interface Hooks {
   };
   __glpSeaLaw: { wrecks(): { how: string; byPlayer: boolean; name: string }[] };
   __glpEconomy: { cargo(): { good: string; qty: number }[] };
+  __glpFoot: { place(x: number, z: number, deg?: number): void };
 }
 
 test('a foundering ship is abandoned and you are landed at a yard aboard a worn hull', async ({
@@ -35,7 +36,12 @@ test('a foundering ship is abandoned and you are landed at a yard aboard a worn 
   const errors = collectErrors(page);
   await page.goto('/?renderer=null&debug&play');
   await page.waitForFunction(() => '__glpAbandon' in window);
-  await page.evaluate(() => (window as unknown as Hooks).__glpAbandon.founder());
+  // Out of the boat's reach of land, where only a passing steamer saves you.
+  await page.evaluate(() => {
+    const w = window as unknown as Hooks;
+    w.__glpFoot.place(2500, 1500, 0);
+    w.__glpAbandon.founder();
+  });
   // She starts going down: the clock runs.
   await expect
     .poll(() => page.evaluate(() => (window as unknown as Hooks).__glpAbandon.leftS()))

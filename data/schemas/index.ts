@@ -5,6 +5,7 @@ import { chartFileSchema } from './chart';
 import { climateFileSchema } from './climate';
 import { ammoFileSchema, weaponsFileSchema } from './combat';
 import { contractsFileSchema } from './contracts';
+import { districtsFileSchema, kitFileSchema } from './districts';
 import { factionsFileSchema } from './factions';
 import { fencesFileSchema } from './fences';
 import { gunsFileSchema } from './guns';
@@ -44,6 +45,7 @@ export const dataFileSchemas: Readonly<Record<string, z.ZodType>> = {
   'climate.json': climateFileSchema,
   'contracts.json': contractsFileSchema,
   'crimes.json': crimesFileSchema,
+  'districts.json': districtsFileSchema,
   'factions.json': factionsFileSchema,
   'fame_tiers.json': fameTiersFileSchema,
   'flows.json': flowsFileSchema,
@@ -51,6 +53,7 @@ export const dataFileSchemas: Readonly<Record<string, z.ZodType>> = {
   'harbors.json': harborsFileSchema,
   'islands.json': islandsFileSchema,
   'jail.json': jailFileSchema,
+  'kit.json': kitFileSchema,
   'law_actors.json': lawActorsFileSchema,
   'lighthouses.json': lighthousesFileSchema,
   'markets.json': marketsFileSchema,

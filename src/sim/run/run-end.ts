@@ -14,7 +14,8 @@ import { freshStats, type LogEntry } from './record';
  */
 
 /** `killed`: shot down in a boarding fight lost at bad odds (Phase 6 piece D). */
-export type RunEndCause = 'executed' | 'abandoned' | 'killed';
+/** `drowned` and `fell`: health ran out ashore, in the water or from a fall (Phase 7 piece A). */
+export type RunEndCause = 'executed' | 'abandoned' | 'killed' | 'drowned' | 'fell';
 
 /** What a death needs for the papers: the ship she died boarding. */
 export interface RunEndDetail {
@@ -157,6 +158,38 @@ function frontPage(
       ],
     };
   }
+  if (cause === 'drowned') {
+    return {
+      paper,
+      town,
+      dateline: dateline(now),
+      headline: `CAPTAIN ${name} DROWNED`,
+      deck: `Master of the Schooner ${ship} Lost in the Cold Water Ashore`,
+      body: [
+        `Captain ${c.name}, master of the schooner ${ship}, went into the lake and did not come out. Superior's water is cold enough to kill a strong swimmer in minutes, and it did.`,
+        `The ${ship} was found lying where the captain left her, with nobody aboard to say why.`,
+        famous
+          ? 'The waterfront knew the name. The lake, they say, gives up nothing it takes.'
+          : 'Few on the waterfront knew the name. The lake keeps its own accounts.',
+      ],
+    };
+  }
+  if (cause === 'fell') {
+    return {
+      paper,
+      town,
+      dateline: dateline(now),
+      headline: `CAPTAIN ${name} KILLED IN A FALL`,
+      deck: `Master of the Schooner ${ship} Found at the Foot of a Drop`,
+      body: [
+        `Captain ${c.name}, master of the schooner ${ship}, was found dead ashore at the foot of a fall too high to walk away from. What the captain was doing up there, nobody would say.`,
+        `The ${ship} lies where she was left.`,
+        famous
+          ? 'Some on the waterfront will not be sorry. Most will not be surprised.'
+          : 'Few on the waterfront knew the name. The lake keeps its own accounts.',
+      ],
+    };
+  }
   return {
     paper,
     town,
@@ -174,6 +207,8 @@ const ENDINGS: Readonly<Record<RunEndCause, string>> = {
   executed: 'Hanged',
   abandoned: 'Gave up the lake',
   killed: 'Killed boarding a prize',
+  drowned: 'Drowned in the cold water',
+  fell: 'Killed in a fall ashore',
 };
 
 function statsFor(state: WorldState, now: number) {

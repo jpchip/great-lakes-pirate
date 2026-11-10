@@ -13,7 +13,7 @@ import { Rng, type RngState } from '../../rng';
 export type SavePayload = Record<string, unknown>;
 export type Migration = (state: SavePayload) => SavePayload;
 
-export const CURRENT_SAVE_VERSION = 8;
+export const CURRENT_SAVE_VERSION = 9;
 
 /** Hours of weather a migrated save catches up on at load, like a new run's spin-up. */
 const WEATHER_SPIN_UP_HOURS = 48;
@@ -143,6 +143,18 @@ function addWeapons(state: SavePayload): SavePayload {
   };
 }
 
+/**
+ * v8 → v9 (plan 08 §20, Phase 7 piece A): going ashore joins the save. Every 0.6.0 run
+ * was aboard, at full health (nothing hurt the captain's body yet), with the boat stowed.
+ */
+function addAshore(state: SavePayload): SavePayload {
+  const player = (state['player'] ?? {}) as SavePayload;
+  return {
+    ...state,
+    player: { ...player, health: 100, ashore: null, rowboat: { state: 'stowed' } },
+  };
+}
+
 export const migrations: Readonly<Record<number, Migration>> = {
   1: addWeather,
   2: addLocation,
@@ -151,4 +163,5 @@ export const migrations: Readonly<Record<number, Migration>> = {
   5: addKnowledge,
   6: addLaw,
   7: addWeapons,
+  8: addAshore,
 };

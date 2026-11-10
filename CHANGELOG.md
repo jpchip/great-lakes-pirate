@@ -4,6 +4,20 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ## [Unreleased]
 
+### Added
+
+- **Going ashore (Phase 7 piece A):** the captain can leave the ship. Tied up at a pier, G at the helm (or **Go ashore** on the port screen, which still opens when you dock) puts you on the planks at the gangway; F there goes back aboard. At anchor, G puts the boat over the side nearer the shore and you row it: W/S pull or back water, A/D turn. Run her up a beach until she grounds and F steps ashore; F by the boat shoves off again, and F alongside the schooner climbs aboard. The boat won't go over in seas above 1.1 m, and seas above 1.6 m swamp it. On foot you walk, run, crouch and hop with the mouse for looking. Space vaults or climbs at marked spots. Pier heads have ladders down to the water. Falls from high up hurt, and water softens them. You can swim, but Superior's cold drains your life, quickly in spring and slowly in August; the HUD shows how cold the water is and about how long you'd last. Life comes back slowly with time. Under a roof the camera closes in. The footing underfoot is recorded (wood, sand, grass, rock, dirt) for the footsteps to come. Drowning and a deadly fall end the run on their own front pages. The game saves when you go ashore and when you come back aboard, and a save made ashore loads you where you stood. The captain is a stand-in figure for now. Abandoning a foundering ship within 1.5 km of land, in a sea the boat can live in, now puts you in the boat: she's gone, and you row for the shore, then make your way to the nearest yard for a worn hull. Nobody rescued you, so nobody tells the law. Far offshore, the passing steamer still picks you up. Saves move to v9; a 0.6.0 save loads aboard with full health ([plan 08 §20](plans/08-docks-district-stealth.md)).
+- `__glpFoot` dev hooks: `dock(key)`, `anchor()`, `place(x, z, deg)`, `land()`, `aboard()`, `stepAshore()`, `teleport(x, z)`, `hour(h)`, `setHealth(n)`, `castawayRefusal()` and `state()`; `__glpAbandon.adrift()`.
+
+### Fixed
+
+- **Skin through hats, and bald patches on the women:** every hat was an oval sized from the head's width, but the skull is about a third longer than wide and the forehead bulges forward, so a strip of forehead showed through the front of every hat band. Hats are now fitted to the measured skull (its centre, depth and a radius that holds every vertex above the brow). The female hair was shrunk to 96% for a skull that is in fact as wide as the male one, leaving a third of her scalp bare (nearly all of it under cropped hair); it now grows to 106%. Tests ray-cast the scalp against each hat and each hair style so a bare patch fails the build.
+
+### Known limitations
+
+- Ashore is the zone's sailing terrain with the harbor kit's piers and buildings as solid blocks. You can walk through trees, and buildings can't be entered yet; Bayfield's district (piece C) and the island's 1 m landing tiles (piece H) replace it. On foot is silent until the audio piece.
+- No saves are made while you row from a wreck, as in any danger: closing the game then puts you back on the sinking ship.
+
 ## [0.6.0] - 2026-11-09
 
 The **Piracy & Combat** build (Phase 6): arm your schooner in a back room after dark, lay a warning shot across a steamer's bow, board her when she strikes, swing her furs into your hold and decide what becomes of her crew. Every robbery has witnesses, her crew tells the law at her next port, the papers print it and her owners remember. Sell the goods to a fence before word gets round, and don't fire on the _Morrill_.

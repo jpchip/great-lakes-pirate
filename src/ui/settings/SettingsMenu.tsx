@@ -102,6 +102,7 @@ const ACTION_LABELS: Partial<Record<Action, string>> = {
   Journal: 'Journal',
   LieAtAnchor: 'Lie at anchor',
   Repair: 'Use a repair kit',
+  GoAshore: 'Go ashore',
   AimMode: 'Aim the guns',
   Fire: 'Fire (aiming)',
   AimSwivel: 'Bow swivel',

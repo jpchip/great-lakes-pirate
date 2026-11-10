@@ -230,7 +230,7 @@ export interface GameEvents {
   Jailed: { region: string; port: string; tier: number; sentenceWeeks: number; execution: boolean };
   BailSent: { hideout: string; cents: number };
   Released: { how: 'served' | 'bail'; region: string; weeks: number };
-  RunEnded: { cause: 'executed' | 'abandoned' | 'killed' };
+  RunEnded: { cause: 'executed' | 'abandoned' | 'killed' | 'drowned' | 'fell' };
   /**
    * Abandon ship (Phase 6 piece F, plan 07 §14.6 decision 2): your ship foundered and you
    * took to the boat. She went down with her cargo and her guns.
