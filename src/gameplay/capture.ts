@@ -88,6 +88,9 @@ const GALLOWS_NOT_YET =
   'ONE CHANCE: the jailbreak before the hanging comes with the docks district in a later version. Not yet.';
 
 function byName(by: string): string {
+  if (by === 'npc.watchman') return 'a night watchman';
+  if (by === 'npc.constable') return 'a constable';
+  if (by === 'npc.marshal') return 'a marshal';
   return by === 'law.chartered_tug' ? 'the chartered tug' : 'the revenue cutter Morrill';
 }
 

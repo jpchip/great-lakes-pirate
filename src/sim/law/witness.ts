@@ -13,7 +13,12 @@ export type WitnessKind =
   | 'merchant'
   | 'freightAgent'
   | 'harborMaster'
-  | 'informant';
+  | 'informant'
+  // On foot (plan 08 §5.1): a watchman runs for a constable, a constable files at once,
+  // a sailor on watch tells it when he's ashore.
+  | 'watchman'
+  | 'constable'
+  | 'sailor';
 
 /** Plan 06 §2.3: nobody, "a schooner", your ship's profile, or you. Factors 0.25/0.5/1/1. */
 export type Identification = 'unknown' | 'schooner' | 'ship' | 'person';

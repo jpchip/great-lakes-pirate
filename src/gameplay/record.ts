@@ -11,6 +11,13 @@ import { log, statsOf } from '../sim/run/record';
  * The logbook keeps what a captain would write down: ports made, trades and contracts, the
  * smuggler, the law's word reaching town, the lockup.
  */
+/** Who took you on foot (Phase 7 piece D), for the log. */
+const ON_FOOT_CAPTOR: Record<string, string> = {
+  'npc.watchman': 'a night watchman',
+  'npc.constable': 'a constable',
+  'npc.marshal': 'a marshal',
+};
+
 export function attachRecord(ctx: GameContext, defs: LawDefs): () => void {
   const now = (): number => ctx.state.environment.clock.gameSeconds;
   const stats = () => statsOf(ctx.state, now());
@@ -74,7 +81,9 @@ export function attachRecord(ctx: GameContext, defs: LawDefs): () => void {
     ),
     ev.on('PlayerCaptured', (e) =>
       write(
-        `${e.how === 'surrender' ? 'Hove to for' : 'Boarded by'} the ${e.by === 'law.morrill' ? 'revenue cutter Morrill' : 'chartered tug'} in ${region(e.region)}.`,
+        e.how === 'subdued'
+          ? `Taken ashore by ${ON_FOOT_CAPTOR[e.by] ?? 'the law'} in ${region(e.region)}.`
+          : `${e.how === 'surrender' ? 'Hove to for' : 'Boarded by'} the ${e.by === 'law.morrill' ? 'revenue cutter Morrill' : 'chartered tug'} in ${region(e.region)}.`,
       ),
     ),
     ev.on('Jailed', (e) => {

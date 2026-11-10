@@ -18,6 +18,10 @@ export const WITNESS_KINDS = [
   'freightAgent',
   'harborMaster',
   'informant',
+  // On foot (plan 08 §5.1; Phase 7 piece D).
+  'watchman',
+  'constable',
+  'sailor',
 ] as const;
 
 /** How well a witness saw it (plan 06 §2.3). */
