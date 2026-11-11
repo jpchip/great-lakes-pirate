@@ -561,6 +561,38 @@ export function tellRumor(
   return out.price ? { rumor, price: out.price } : { rumor };
 }
 
+/**
+ * A shipping schedule read off a desk at night (plan 08 §7 documents; Phase 7 piece E): the
+ * next sailing out of the port or its neighbors that you haven't heard of, in print, so true.
+ * Undefined when there's nothing new on it.
+ */
+export function scheduleRumor(
+  world: RumorWorld,
+  rumors: readonly Rumor[],
+  port: string,
+  now: number,
+  rand: Rand,
+  defs = rumorDefs(),
+): Rumor | undefined {
+  const draft = shipmentDrafts(defs, world, port, now).find((d) => !heard(rumors, d, now));
+  if (!draft) return undefined;
+  const out = draft.render(true, rand);
+  return {
+    id: `rumor.${Math.round(now)}.papers.${Math.floor(rand() * 1e6)}`,
+    kind: 'shipment',
+    source: 'papers',
+    port,
+    heardAt: now,
+    text: out.text,
+    teller: 'a shipping schedule',
+    reliability: 0.95,
+    truth: true,
+    draft: draft.subject,
+    subject: out.subject ?? draft.subject,
+    ...(out.expiresAt !== undefined ? { expiresAt: out.expiresAt } : {}),
+  };
+}
+
 /** The shipment tip a hailed ship gave, as a rumor for the ledger: what she's seen herself. */
 export function hailRumor(
   news: HailNews,

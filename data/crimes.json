@@ -61,7 +61,8 @@
     "heat": 25,
     "phase": 7,
     "standing": 8,
-    "notes": "A warehouse, or cargo from a moored ship."
+    "notes": "A warehouse, a storeroom or a strongbox, or cargo from a moored ship. Found at dawn from the broken lock or the empty crates if nobody saw it (plan 08 \u00a715); named to you, the owner's grudge rises.",
+    "grudge": 10
   },
   {
     "id": "crime.assault",

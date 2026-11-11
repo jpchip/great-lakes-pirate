@@ -161,6 +161,10 @@ describe('conduct (plan 08 §4: when being seen is suspicious)', () => {
       ['3', 'Knife', ''],
       ['4', 'Whiskey', 'none'],
       ['5', 'Bribe', '$12'],
+      ['6', 'Crowbar', 'none'],
+      ['7', 'Stone', ''],
+      ['8', 'Pistol', 'none'],
+      ['9', 'Rifle', 'none'],
     ]);
   });
 });
@@ -520,5 +524,90 @@ describe('bribes and whiskey (plan 08 §6, §6.2)', () => {
     expect(s.g('c').state).toBe('suspicious');
     expect(s.pockets.stores['store.whiskey']).toBe(2);
     expect(s.crimes()).toEqual([]);
+  });
+});
+
+describe('stones, the pistol and the rifle (plan 08 §6; piece E part two)', () => {
+  it('a stone lands ahead with a clatter the guards come to look at', () => {
+    const s = scene([post('w', 'npc.watchman', -10, -30)], { x: -10, z: -18 });
+    s.tools.select('tool.stone');
+    const o = s.tools.offer(s.ctx());
+    expect(o).toMatchObject({ verb: 'throw', ok: true, label: 'Throw a stone' });
+    expect(s.tools.lowPriority(o as NonNullable<typeof o>)).toBe(true);
+    const noises: { kind: string; z: number }[] = [];
+    s.stealth.on((e) => e.type === 'NoiseMade' && noises.push(e.noise));
+    const evs = s.use();
+    expect(evs[0]?.type).toBe('StoneThrown');
+    expect(noises[0]?.kind).toBe('distraction');
+    // Thrown north (−z), it comes down ahead of you.
+    expect(noises[0]?.z ?? 0).toBeLessThan(-18 - 3.5);
+    expect(s.crimes()).toEqual([]);
+  });
+
+  it('the pistol: a man in front, in range and in sight; a hit kills, heard far off', () => {
+    const s = scene(
+      [post('w', 'npc.watchman', -10, -24, Math.PI), post('c', 'npc.constable', -10, -30)],
+      { x: -10, z: -18 },
+    );
+    s.pockets.stores['store.pistol'] = 1;
+    s.tools.select('tool.pistol');
+    expect(s.tools.armed()).toBe(true);
+    expect(s.tools.offer(s.ctx())).toMatchObject({ verb: 'shoot', ok: true, target: 'w' });
+    const noises: { kind: string; radiusM: number }[] = [];
+    s.stealth.on((e) => e.type === 'NoiseMade' && noises.push(e.noise));
+    const evs = s.use();
+    expect(evs[0]).toMatchObject({ type: 'Shot', npc: 'w', hit: true, killed: true });
+    expect(s.g('w').state).toBe('dead');
+    expect(noises.find((n) => n.kind === 'gunshot')?.radiusM).toBe(200);
+    // The constable beyond him faces away: nobody saw it, so no crime until the body's found.
+    expect(s.crimes()).toEqual([]);
+  });
+
+  it('not facing him, or no pistol: nothing to shoot at, or says why', () => {
+    const s = scene([post('w', 'npc.watchman', -10, -24)], { x: -10, z: -18 });
+    s.tools.select('tool.pistol');
+    expect(s.tools.offer(s.ctx())).toMatchObject({ ok: false, why: 'No pistol' });
+    s.player.heading = Math.PI;
+    expect(s.tools.offer(s.ctx())).toBeUndefined();
+  });
+
+  it("the rifle is the ship's own: on the belt only when she has one in the hand mount", () => {
+    const d = createGreyboxDistrict();
+    const stealth = createStealth(
+      { zone: d, nav: d.nav, lamps: d.lamps, rng: Rng.fromSeed('t') },
+      gameNpcs(),
+      [],
+    );
+    const pockets = { purse: 0, stores: {} };
+    const rifle = gameTools().byId.get('tool.rifle');
+    if (!rifle) throw new Error('rifle');
+    const none = createTools(stealth, pockets, d, Rng.fromSeed('t'));
+    expect(none.count(rifle)).toBe(0);
+    const owned = createTools(stealth, pockets, d, Rng.fromSeed('t'), gameTools(), {
+      hasWeapon: (id) => id === 'weapon.rifle',
+    });
+    expect(owned.count(rifle)).toBe(Infinity);
+  });
+
+  it('arms full of a crate: no blows, drinks or shots', () => {
+    const d = createGreyboxDistrict();
+    const stealth = createStealth(
+      { zone: d, nav: d.nav, lamps: d.lamps, rng: Rng.fromSeed('t') },
+      gameNpcs(),
+      [post('w', 'npc.watchman', -10, -17)],
+    );
+    const tools = createTools(
+      stealth,
+      { purse: 0, stores: { 'store.cosh': 1 } },
+      d,
+      Rng.fromSeed('t'),
+      gameTools(),
+      { handsFull: () => true },
+    );
+    tools.select('tool.cosh');
+    const player = createCharacter({ x: -10, y: 1.5, z: -15.5 }, 0);
+    const ctx = { player, gameSeconds: NIGHT, wantedTier: 0, fame01: 0, light01: 0 };
+    expect(tools.offer(ctx)).toBeUndefined();
+    expect(tools.armed()).toBe(false);
   });
 });

@@ -174,6 +174,8 @@ export interface GameAshore {
   stealthReadout(): StealthReadout | undefined;
   /** The tool belt, conduct and the F prompt (piece E), when the watch has tools. */
   toolsHud(): FootToolsSnapshot | undefined;
+  /** Where a crate is stowed aboard (the gangway of the berth she lies at), scene meters. */
+  stowPoints(): { x: number; y: number; z: number }[];
 }
 
 /** What the on-foot HUD shows (plan 13 §4.2's minimum for piece A). */
@@ -696,12 +698,14 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
           forward: ahead,
           right: side,
           run: input.isDown('Sprint'),
-          crouch: input.isDown('Crouch'),
+          // Arms full of a crate, you can't stoop (plan 08 §7).
+          crouch: input.isDown('Crouch') && !watch?.heist?.carrying,
           jump: input.pressed('Jump'),
         },
         walkCamera.yaw,
         scene,
         dt,
+        watch ? watch.params(DEFAULT_CONTROLLER) : DEFAULT_CONTROLLER,
       );
       // The edge of what's built: the rest of the shore is for another day.
       const b = scene.bounds;
@@ -746,14 +750,23 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
     // in reach of it (or a man who's down), else the ashore prompt's.
     const belt = watch?.tools;
     if (belt) {
-      (['Tool1', 'Tool2', 'Tool3', 'Tool4', 'Tool5'] as const).forEach((a, n) => {
+      (
+        ['Tool1', 'Tool2', 'Tool3', 'Tool4', 'Tool5', 'Tool6', 'Tool7', 'Tool8', 'Tool9'] as const
+      ).forEach((a, n) => {
         if (input.pressed(a)) belt.selectSlot(n);
       });
     }
+    const own = findPrompt();
     const toolTookF =
       !inBoat &&
-      !!watch?.interact(dt, character, input.isDown('Interact'), input.pressed('Interact'));
-    prompt = toolTookF ? undefined : findPrompt();
+      !!watch?.interact(
+        dt,
+        character,
+        input.isDown('Interact'),
+        input.pressed('Interact'),
+        own !== undefined,
+      );
+    prompt = toolTookF ? undefined : own;
     if (!toolTookF && input.pressed('Interact') && prompt) prompt.act();
 
     if (state.player.health <= 0 && !dead) {
@@ -978,6 +991,11 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
     get watch() {
       return watch;
     },
+    stowPoints() {
+      if (from !== 'berth' || !berthId) return [];
+      const pier = pierOf(berthId);
+      return pier ? [gangway(pier)] : [];
+    },
     get pursued() {
       return active && !!watch?.pursued;
     },
@@ -987,7 +1005,9 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
       return { x: z.x, y: c.y, z: z.z, heading: headingToZone(character.heading) };
     },
     toolsHud() {
-      return watch && active && !inBoat ? watch.toolsHud(character) : undefined;
+      return watch && active && !inBoat
+        ? watch.toolsHud(character, findPrompt() !== undefined)
+        : undefined;
     },
     stealthReadout() {
       if (!watch || !active) return undefined;
