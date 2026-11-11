@@ -6,41 +6,61 @@ import { PointerLook } from '../../core/pointer-look';
 import { Rng } from '../../core/rng';
 import { dayAndHour } from '../../core/time';
 import { createGameWorld } from '../../gameplay/ecs';
+import { attachLaw } from '../../gameplay/law';
 import { FollowCamera } from '../../gameplay/onfoot/camera';
+import {
+  conduct as judge,
+  isNight,
+  rectConductMap,
+  type Conduct,
+} from '../../gameplay/onfoot/conduct';
+import { createFootLaw, type FootLaw } from '../../gameplay/onfoot/foot-law';
 import { DEFAULT_CONTROLLER } from '../../gameplay/onfoot/controller';
 import { gameNpcs, rosterForTier } from '../../gameplay/onfoot/guards';
 import { ambientLight01, type Lamp } from '../../gameplay/onfoot/light';
 import { fogOnFoot01 } from '../../gameplay/onfoot/perception';
 import {
   createStealth,
-  isDown,
   type Stealth,
   type StealthEvent,
   type StealthInputs,
 } from '../../gameplay/onfoot/stealth';
 import type { GameContext, GameEvents } from '../../modes/context';
 import { ModeMachine } from '../../modes/machine';
+import {
+  createTools,
+  guardNoun,
+  type OnFootTools,
+  type ToolEvent,
+} from '../../gameplay/onfoot/tools';
 import { createOnFootMode } from '../../modes/on-foot';
+import { heatIn } from '../../sim/law/law';
+import { regionOfPort } from '../../sim/law/regions';
+import type { LawEvent } from '../../sim/law/law';
 import type { SkyLight } from '../../sim/law/perception';
 import { moonAt, sunAt } from '../../sim/weather/celestial';
 import { createLocalWeather } from '../../sim/weather/local-weather';
 import { createSea } from '../../sim/weather/waves';
 import { createWorldState } from '../../sim/world-state';
+import { FootTools } from '../../ui/hud/FootTools';
+import { footToolsHud } from '../../ui/hud/foot-tools-model';
 import { StealthHud } from '../../ui/hud/StealthHud';
 import { stealthHud } from '../../ui/hud/stealth-model';
 import '../../ui/theme.css';
-import { createGreyboxDistrict, inRestricted } from './district';
+import { createGreyboxDistrict } from './district';
 import { createGreyboxView } from './view';
 
 /**
- * Phase 7 piece D's greybox (dev only: `npm run dev`, then /stealth-greybox.html): the
- * perception and the guards in a docks district of plain boxes, with the stealth HUD, until
- * piece A wires on-foot into the game and piece C builds Bayfield.
+ * Phase 7 pieces D and E's greybox (dev only: `npm run dev`, then /stealth-greybox.html):
+ * the perception, the guards, conduct and the tools in a docks district of plain boxes,
+ * with the stealth HUD and the tool belt, until Bayfield on foot has them all.
  *
  * Query options: `?moon=full|new|sky` (default full), `?fog=<meters>` (default clear),
  * `?rain=0..1`, `?tier=0..5`, `?hour=<0–24>` (default 23), `?fame=0..1`, `?cones=0`.
+ * Keys: 1–5 the tool belt (cosh, rope, knife, whiskey, bribe), F use it (hold to tie a man
+ * up), or pick up and put down a man who's down.
  * Dev keys: N moon, G fog, T tier, H an hour on, L your lantern, R throw a stone ahead,
- * K knock out / X kill / B bribe / J give whiskey to the nearest guard, V sight cones.
+ * V sight cones, P restock the belt.
  */
 
 const params = new URLSearchParams(window.location.search);
@@ -58,6 +78,18 @@ if (!container || !hud || !hudRoot) throw new Error('Missing #app, #hud or #ui')
 const district = createGreyboxDistrict();
 const state = createWorldState('stealth-greybox');
 state.environment.clock.gameSeconds = Number(params.get('hour') ?? 23) * 3600 + 10 * 86400;
+const restock = (): void => {
+  state.player.purse = Math.max(state.player.purse, 5000);
+  state.player.stores['store.cosh'] = 1;
+  state.player.stores['store.rope'] = 2;
+  state.player.stores['store.whiskey'] = 3;
+};
+restock();
+// The greybox's yards and the moored ship are private (piece E's conduct).
+const conductMap = rectConductMap(
+  district.restricted.map((rect, i) => ({ id: `greybox.private${i}`, kind: 'private', rect })),
+);
+const region = regionOfPort('port.bayfield') ?? 'region.apostles';
 
 const input = new InputMapper();
 input.attach(window);
@@ -85,6 +117,8 @@ const view = createGreyboxView(
 );
 view.showCones = params.get('cones') !== '0';
 
+const law = attachLaw(ctx, 'stealth-greybox');
+
 const machine = new ModeMachine();
 machine.register(mode).transition('onFoot');
 document.body.dataset['mode'] = 'onFoot';
@@ -102,17 +136,66 @@ const describe = (e: StealthEvent): string | undefined => {
     case 'GuardReported':
       return `${e.npc} reported you (${e.why})${e.identified ? ', by name' : ''}`;
     case 'BodyFound':
-      return `${e.finder} found ${e.npc} ${e.dead ? 'dead' : 'out cold'}`;
-    case 'GuardWoke':
-      return `${e.npc} came round`;
+      return `${e.finder} found ${e.npc} ${e.dead ? 'dead' : e.drunk ? 'asleep drunk' : 'out cold'}`;
     case 'Captured':
       return `Taken by ${e.npc}`;
+    case 'GuardWoke':
+      return `${e.npc} came round${e.drank ? ', sheepish' : ''}`;
     case 'NoiseMade':
       return e.noise.kind === 'footstep' ? undefined : `${e.noise.kind} (${e.noise.radiusM} m)`;
   }
 };
 
+const describeTool = (e: ToolEvent): string => {
+  const who = (id: string) => {
+    const g = stealth.guard(id);
+    return g ? guardNoun(g) : id;
+  };
+  switch (e.type) {
+    case 'KnockedOut':
+      return `You knocked out ${who(e.npc)}${e.seenBy.length ? ` (seen by ${e.seenBy.join(', ')})` : ''}`;
+    case 'Killed':
+      return `You killed ${who(e.npc)}${e.seenBy.length ? ` (seen by ${e.seenBy.join(', ')})` : ''}`;
+    case 'Bound':
+      return `You tied up ${who(e.npc)}`;
+    case 'BribePaid':
+      return `${who(e.npc)} took $${(e.cents / 100).toFixed(2)} and looks away`;
+    case 'BribeRefused':
+      return `${who(e.npc)} won't take your money${e.reports ? ' and will report it' : ''}`;
+    case 'WhiskeyTaken':
+      return `${who(e.npc)} took a long pull`;
+    case 'WhiskeyRefused':
+      return `${who(e.npc)} won't drink on duty`;
+    case 'BodyLifted':
+      return `You picked up ${who(e.npc)}`;
+    case 'BodyDropped':
+      return e.sunk
+        ? `${who(e.npc)} went into the lake${e.drowned ? ' and drowned' : ''}`
+        : `You put ${who(e.npc)} down`;
+  }
+};
+const describeLaw = (e: LawEvent): string | undefined => {
+  switch (e.type) {
+    case 'CrimeCommitted':
+      return `LAW: ${e.crime} (${e.witnesses} witness${e.witnesses === 1 ? '' : 'es'})`;
+    case 'ReportFiled':
+      return `LAW: ${e.witness.name} reported ${e.crime} (${e.identification}) +${e.heatAdded.toFixed(0)} heat`;
+    case 'Witnessed':
+      return `LAW: ${e.witness.name} will report (${e.identification})`;
+    default:
+      return undefined;
+  }
+};
+const say = (line: string | undefined): void => {
+  if (!line) return;
+  log.unshift(line);
+  log.length = Math.min(log.length, 10);
+};
+
 let stealth: Stealth;
+let tools: OnFootTools;
+let footLaw: FootLaw | undefined;
+let lastConduct: Conduct | undefined;
 const build = (): void => {
   const defs = gameNpcs();
   stealth = createStealth(
@@ -127,14 +210,27 @@ const build = (): void => {
     rosterForTier(defs, district.guards, district.spareBeats, tier),
     tier,
   );
-  stealth.on((e) => {
-    const line = describe(e);
-    if (!line) return;
-    log.unshift(line);
-    log.length = Math.min(log.length, 8);
-  });
+  stealth.on((e) => say(describe(e)));
+  tools = createTools(
+    stealth,
+    state.player,
+    district,
+    Rng.fromSeed(`stealth-greybox-tools-${tier}`),
+  );
+  tools.on((e) => say(describeTool(e)));
+  footLaw?.dispose();
+  footLaw = createFootLaw(
+    stealth,
+    tools,
+    law,
+    { region, port: 'port.bayfield' },
+    () => lastConduct?.reason,
+  );
   view.setGuards(stealth.guards);
 };
+for (const type of ['CrimeCommitted', 'Witnessed', 'ReportFiled'] as const) {
+  ctx.events.on(type, (payload) => say(describeLaw({ type, ...payload } as LawEvent)));
+}
 build();
 
 const sky = (): SkyLight => {
@@ -157,6 +253,30 @@ const sky = (): SkyLight => {
   };
 };
 
+const conductNow = (): Conduct => {
+  const c = mode.character;
+  const { hour } = dayAndHour(state.environment.clock.gameSeconds);
+  lastConduct = judge(conductMap, {
+    at: c.position,
+    gait: c.gait,
+    crouching: c.crouching,
+    swimming: c.swimming,
+    hour,
+    night: isNight(sky()),
+    carryingBody: tools.carrying !== undefined,
+    armed: tools.armed(),
+  });
+  return lastConduct;
+};
+
+const toolContext = () => ({
+  player: mode.character,
+  gameSeconds: state.environment.clock.gameSeconds,
+  wantedTier: tier,
+  fame01,
+  light01: stealth.readout().light.level01,
+});
+
 const inputs = (): StealthInputs => {
   const p = mode.character.position;
   return {
@@ -168,32 +288,38 @@ const inputs = (): StealthInputs => {
     fogM,
     rain01,
     gameSeconds: state.environment.clock.gameSeconds,
-    // Piece E owns conduct; here: in the yard, on the ship, skulking or running about.
-    suspect: inRestricted(district, p) || mode.character.crouching || mode.character.gait === 'run',
+    carrying: tools.carrying !== undefined,
+    suspect: conductNow().suspect,
     fame01,
     wantedTier: tier,
   };
 };
 
-const nearestGuard = () => {
-  const p = mode.character.position;
-  let best: (typeof stealth.guards)[number] | undefined;
-  let bestD = Infinity;
-  for (const g of stealth.guards) {
-    if (isDown(g.state)) continue;
-    const d = Math.hypot(g.body.position.x - p.x, g.body.position.z - p.z);
-    if (d < bestD) {
-      bestD = d;
-      best = g;
-    }
-  }
-  return best;
-};
+/** F held: seconds, for a tool that's held (rope). */
+let holdS = -1;
+
+window.addEventListener('keyup', (e) => {
+  if (e.code === 'KeyF') holdS = -1;
+});
 
 window.addEventListener('keydown', (e) => {
-  const now = state.environment.clock.gameSeconds;
-  const g = nearestGuard();
+  if (e.code.startsWith('Digit')) {
+    const n = Number(e.code.slice(5));
+    if (n >= 1 && n <= 9) tools.selectSlot(n - 1);
+    return;
+  }
   switch (e.code) {
+    case 'KeyF': {
+      if (e.repeat || stealth.captured) break;
+      const o = tools.offer(toolContext());
+      if (!o) break;
+      if (o.holdS > 0) holdS = 0;
+      else tools.use(toolContext());
+      break;
+    }
+    case 'KeyP':
+      restock();
+      break;
     case 'KeyN':
       moonMode = moonMode === 'full' ? 'new' : moonMode === 'new' ? 'sky' : 'full';
       break;
@@ -223,18 +349,6 @@ window.addEventListener('keydown', (e) => {
       });
       break;
     }
-    case 'KeyK':
-      if (g) stealth.knockOut(g.id, now);
-      break;
-    case 'KeyX':
-      if (g) stealth.kill(g.id);
-      break;
-    case 'KeyB':
-      if (g) stealth.bribe(g.id, now + 2 * 3600);
-      break;
-    case 'KeyJ':
-      if (g) stealth.makeDrunk(g.id, now, 1800);
-      break;
   }
 });
 
@@ -249,6 +363,15 @@ const loop = createLoop(
       playerLantern.y = p.y + 1.0;
       playerLantern.z = p.z;
       stealth.step(dt, inputs());
+      if (holdS >= 0) {
+        const o = tools.offer(toolContext());
+        if (!o || !o.ok || o.holdS <= 0) holdS = -1;
+        else if ((holdS += dt) >= o.holdS) {
+          tools.use(toolContext());
+          holdS = -1;
+        }
+      }
+      tools.step(toolContext());
     },
     frame(alpha, frameSeconds) {
       const { dx, dy } = look.consume();
@@ -270,7 +393,22 @@ const loop = createLoop(
         view.size(),
         now,
       );
-      render(<StealthHud hud={snapshot} />, hudRoot);
+      const offer = tools.offer(toolContext());
+      const toolsHud = footToolsHud(
+        tools,
+        lastConduct ?? conductNow(),
+        offer,
+        offer && offer.holdS > 0 && holdS >= 0 ? holdS / offer.holdS : 0,
+        state.player.purse,
+      );
+      render(
+        <>
+          <StealthHud hud={snapshot} />
+          <FootTools hud={toolsHud} />
+        </>,
+        hudRoot,
+      );
+      document.body.dataset['conduct'] = lastConduct?.reason ?? 'none';
       document.body.dataset['gem'] = snapshot.gem.level;
       document.body.dataset['danger'] = snapshot.danger;
       document.body.dataset['captured'] = String(readout.captured);
@@ -280,10 +418,10 @@ const loop = createLoop(
       const mm = Math.floor((hour - hh) * 60);
       const info = view.renderer.info.render;
       hud.textContent = [
-        `Phase 7 piece D: perception and guards (greybox)  ${look.locked ? '' : '(click to look)'}`,
-        `WASD · Shift run · C crouch · Space hop`,
+        `Phase 7 pieces D–E: guards, conduct and tools (greybox)  ${look.locked ? '' : '(click to look)'}`,
+        `WASD · Shift run · C crouch · Space hop · 1–5 tool belt · F use (hold to tie)`,
         `N moon (${moonMode}) · G fog (${fogM > 1000 ? 'clear' : `${fogM} m`}) · T tier (${tier}) · H +1 h · L lantern (${playerLantern.lit ? 'lit' : 'dark'})`,
-        `R throw a stone · nearest guard: K knock out, X kill, B bribe, J whiskey · V cones`,
+        `R throw a stone · V cones · P restock the belt · heat in ${region}: ${heatIn(state, region).toFixed(0)}`,
         ``,
         `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')} · light ${readout.light.level01.toFixed(2)} (sky ${readout.light.ambient01.toFixed(2)}) · exposure ${readout.exposure01.toFixed(2)} · noise ${readout.noiseM.toFixed(1)} m`,
         `perception ${stealth.lastStepMs.toFixed(3)} ms · ${stealth.guards.length} guards · ${info.calls} calls`,
@@ -311,6 +449,15 @@ Object.assign(window, {
     get stealth() {
       return stealth;
     },
+    get tools() {
+      return tools;
+    },
+    get footLaw() {
+      return footLaw;
+    },
+    state,
+    law,
+    toolContext,
     setMoon(m: string) {
       moonMode = m;
     },

@@ -5,7 +5,7 @@
     "heat": 20,
     "phase": 5,
     "standing": 3,
-    "notes": "Seen alongside the island smuggler, buying from her or fencing to her (plan 06 §14.6 decision 1). Plan 06 §2.2 has no row for it; it's heated like smuggling."
+    "notes": "Seen alongside the island smuggler, buying from her or fencing to her (plan 06 \u00a714.6 decision 1). Plan 06 \u00a72.2 has no row for it; it's heated like smuggling."
   },
   {
     "id": "crime.fence_deal",
@@ -13,7 +13,7 @@
     "heat": 20,
     "phase": 6,
     "standing": 3,
-    "notes": "Selling stolen goods or contraband in a port fence's back room (plan 05 §6.2; Phase 6 piece E). Nobody sees it indoors; it reaches the law only when the fence informs, at Wanted tier 2+ on Phase 5's receiver odds."
+    "notes": "Selling stolen goods or contraband in a port fence's back room (plan 05 \u00a76.2; Phase 6 piece E). Nobody sees it indoors; it reaches the law only when the fence informs, at Wanted tier 2+ on Phase 5's receiver odds."
   },
   {
     "id": "crime.contraband",
@@ -21,7 +21,7 @@
     "heat": 20,
     "phase": 5,
     "standing": 5,
-    "notes": "Caught with contraband: a merchant who finds it out, or the cutter's hold search (piece C). Confiscation is the economy's (plan 05 §6)."
+    "notes": "Caught with contraband: a merchant who finds it out, or the cutter's hold search (piece C). Confiscation is the economy's (plan 05 \u00a76)."
   },
   {
     "id": "crime.hot_goods",
@@ -39,7 +39,7 @@
     "traced": true,
     "news": true,
     "fame": 5,
-    "notes": "Always traced to you. The company's agents up and down the lake hear of it, so its news spreads (Phase 5's stand-in for the crime that spreads; Phase 6 makes sinking that crime). The Standing hit is the contracts' own (plan 05 §5.2)."
+    "notes": "Always traced to you. The company's agents up and down the lake hear of it, so its news spreads (Phase 5's stand-in for the crime that spreads; Phase 6 makes sinking that crime). The Standing hit is the contracts' own (plan 05 \u00a75.2)."
   },
   {
     "id": "crime.trespass",
@@ -70,6 +70,14 @@
     "phase": 7,
     "standing": 8,
     "fame": 2
+  },
+  {
+    "id": "crime.bribery",
+    "name": "Offering a bribe",
+    "heat": 10,
+    "phase": 7,
+    "standing": 2,
+    "notes": "A constable or marshal who turns your money down reports it at once (plan 08 \u00a76). A watchman or a sailor only gets suspicious."
   },
   {
     "id": "crime.piracy",
@@ -107,7 +115,7 @@
     "standing": 15,
     "fame": 20,
     "grudge": 30,
-    "notes": "Sinking or scuttling a ship. The crime that spreads (plan 06 §3.4): its news reaches the neighboring regions."
+    "notes": "Sinking or scuttling a ship. The crime that spreads (plan 06 \u00a73.4): its news reaches the neighboring regions."
   },
   {
     "id": "crime.killing",
@@ -128,7 +136,7 @@
     "news": true,
     "standing": 20,
     "fame": 40,
-    "notes": "Firing on the revenue cutter or the chartered tug. Puts the region at Most Wanted at once, and the Morrill shoots to sink (plan 07 §14.6)."
+    "notes": "Firing on the revenue cutter or the chartered tug. Puts the region at Most Wanted at once, and the Morrill shoots to sink (plan 07 \u00a714.6)."
   },
   {
     "id": "crime.jailbreak",

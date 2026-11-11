@@ -21,6 +21,7 @@ export type NoiseKind =
   | 'crate'
   | 'distraction'
   | 'glass'
+  | 'blow'
   | 'shout'
   | 'whistle'
   | 'gunshot';
@@ -81,6 +82,8 @@ export const EVENT_NOISE_M: Record<Exclude<NoiseKind, 'footstep' | 'landing'>, n
   crate: 8,
   distraction: 9,
   glass: 14,
+  // A cosh on a skull or a scuffle (piece E).
+  blow: 3,
   shout: 22,
   whistle: 40,
   gunshot: 150,
