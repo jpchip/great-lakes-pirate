@@ -96,7 +96,12 @@ import { createSailingState } from './sim/sailing/controller';
 import type { ZoneFrame } from './core/coords';
 import { createHazardState, mooringBerths, type MooringBerth } from './sim/sailing/hazards';
 import { PLAYER_SHIP_IDS } from './sim/sailing/ships';
-import { httpBytes, loadZoneTerrain, type LoadedZone } from './sim/terrain/load';
+import { httpBytes, loadIslandGround, loadZoneTerrain, type LoadedZone } from './sim/terrain/load';
+import type { GridField } from './sim/terrain/grid-field';
+import { placeZoneIslands, walkableIslands, type PlacedIsland } from './sim/islands/on-foot';
+import { zoneClearings } from './sim/terrain/clearings';
+import { plantTile, TREE_CELL_M } from './sim/terrain/vegetation';
+import { attachIslandAshore } from './gameplay/island-ashore';
 import { TEST_BAY, type Dock, type Pose } from './sim/terrain/test-bay';
 import { findHarbor, harborZoneId, layoutHarbors, type HarborLayout } from './sim/harbors';
 import { workSites } from './audio/harbor-mix';
@@ -455,7 +460,24 @@ async function boot(): Promise<void> {
   // one cached for a minute. Gameplay needs the zone with or without a renderer; without
   // its files the zone is open water.
   const zones = new ZoneManager({
-    load: (id) => loadZoneTerrain(httpBytes(new URL(zoneDef(id).world, document.baseURI))),
+    load: async (id) => {
+      const read = httpBytes(new URL(zoneDef(id).world, document.baseURI));
+      const loaded = await loadZoneTerrain(read);
+      // The walkable islands' 1 m ground comes with the zone, so a save ashore on one
+      // resumes on it (Phase 7 piece H). A missing island only costs its fine ground.
+      const grounds = new Map<string, GridField>();
+      await Promise.all(
+        walkableIslands(id).map(async (def) => {
+          const g = await loadIslandGround(read, loaded.manifest, def.id).catch((err: unknown) => {
+            console.warn(`Island ${def.id}: no 1 m ground`, err);
+            return undefined;
+          });
+          if (g) grounds.set(def.id, g);
+        }),
+      );
+      loaded.islandGrounds = grounds;
+      return loaded;
+    },
     onFree: (id) => console.info(`Zone ${id} freed`),
   });
   window.setInterval(() => zones.sweep(), 1000);
@@ -2522,6 +2544,57 @@ async function boot(): Promise<void> {
       document.body.dataset['zoneLoad'] = 'done';
     }
   };
+  // The walkable islands (Phase 7 piece H, plan 08 §20.4): Stockton's quarry and cache
+  // placed on the zone's drawn ground, its 1 m tiles from the zone load, and the trees the
+  // renderer plants (same hash, same clearings) as trunks on any landing.
+  const islandCache = new WeakMap<
+    LoadedZone,
+    { placed: PlacedIsland[]; clearings: ReturnType<typeof zoneClearings> }
+  >();
+  const zoneIslands = (): {
+    placed: PlacedIsland[];
+    clearings: ReturnType<typeof zoneClearings>;
+  } => {
+    if (!zone || arena) return { placed: [], clearings: [] };
+    let hit = islandCache.get(zone);
+    if (!hit) {
+      const z = zone;
+      const placed = placeZoneIslands(z.manifest.zone, z.manifest.islands ?? [], (x, zz) =>
+        z.terrain.heightAt(x, zz),
+      );
+      hit = { placed, clearings: zoneClearings(z, harborLayouts, placed) };
+      islandCache.set(zone, hit);
+    }
+    return hit;
+  };
+  const islandAshore = attachIslandAshore({
+    state,
+    heightAt: (x, z) => ctx.terrain?.heightAt(x, z) ?? -100,
+    islands: () => zoneIslands().placed,
+    ground: (id) => zone?.islandGrounds?.get(id),
+    harbors: () => harborLayouts,
+    runSeed: () => state.environment.weather.noiseSeed,
+    openStash: (id) => {
+      stash.open(id);
+      return stash.openHideout === id;
+    },
+    notice: (text) => showNotice(text),
+  });
+  const plantsIn = (b: {
+    minX: number;
+    minZ: number;
+    maxX: number;
+    maxZ: number;
+  }): { trees: Float32Array; rocks: Float32Array; density: number } | undefined => {
+    if (!zone || arena) return undefined;
+    // plantTile takes a square on the planting lattice: the rectangle's, rounded out.
+    const minX = Math.floor(b.minX / TREE_CELL_M) * TREE_CELL_M;
+    const minZ = Math.floor(b.minZ / TREE_CELL_M) * TREE_CELL_M;
+    const side = Math.max(b.maxX - minX, b.maxZ - minZ);
+    const size = Math.ceil(side / (TREE_CELL_M * 3)) * TREE_CELL_M * 3;
+    const plants = plantTile(zone.terrain.height, minX, minZ, size, zoneIslands().clearings);
+    return { ...plants, density: renderer?.preset.vegetationDensity ?? 0.5 };
+  };
   const footLook = new PointerLook(renderer?.renderer.domElement ?? container);
   /**
    * A crate carried up the gangway (Phase 7 piece E): into the hold, hot with its owner's
@@ -2592,6 +2665,8 @@ async function boot(): Promise<void> {
     // Rowed ashore from the wreck: on to the nearest yard (Phase 7 piece A, decision 2).
     castawayLanded: () => abandon.cameAshore(),
     look: footLook,
+    island: islandAshore,
+    plants: plantsIn,
     // Bayfield's district (Phase 7): only for a harbor in the zone you're in.
     districtFrame: (def) => {
       const h = findHarbor(def.harbor);
@@ -2742,6 +2817,23 @@ async function boot(): Promise<void> {
         };
       },
       saved: () => ({ ashore: state.player.ashore, rowboat: state.player.rowboat }),
+      /**
+       * The walkable island you're on (Phase 7 piece H): its prefabs' pieces (zone meters,
+       * tops), the cache's cairns and which holds it, and the stash's strongbox.
+       */
+      island: () => ({
+        island: ashore.island,
+        colliders: ashore.scene?.colliders.size ?? 0,
+        pieces: zoneIslands().placed.flatMap((i) =>
+          i.pieces.map((p) => ({ kind: p.kind, poi: p.poi, x: p.x, z: p.z, top: p.maxY })),
+        ),
+        cache: islandAshore.cache('cache.stockton_quarry'),
+        strongbox: islandAshore.strongbox(),
+      }),
+      /** Presses F for a tick: whatever the prompt offers. */
+      interact: () => input.trigger('Interact'),
+      /** Faces a zone bearing in degrees, the camera behind you, `pitch` radians down. */
+      face: (deg: number, pitch?: number) => ashore.face((deg * Math.PI) / 180, pitch),
       /** Where you stand in zone meters (`state().at` is the scene's own frame). */
       zoneAt: () => ashore.zoneAt(),
       /** The district and its watch (Phase 7): guards in the district's local meters. */

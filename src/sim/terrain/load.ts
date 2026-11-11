@@ -26,6 +26,8 @@ export interface LoadedZone {
    */
   seabed: GridField;
   shoreline: GridField;
+  /** The walkable islands' 1 m ground by island id, where it was loaded (Phase 7 piece H). */
+  islandGrounds?: Map<string, GridField>;
 }
 
 /** Backdrop spacing in heightmap samples (32 m at the 4 m sailing grid). */
@@ -51,6 +53,66 @@ export function httpBytes(zoneUrl: URL): FetchBytes {
     if (!response.ok) throw new Error(`terrain: ${path}: HTTP ${response.status}`);
     return new Uint8Array(await response.arrayBuffer());
   };
+}
+
+/** Tiles share their edge row and column, so k tiles of n are k·n + 1 samples a side. */
+async function readTiles(
+  read: FetchBytes,
+  pattern: string,
+  tilesX: number,
+  tilesY: number,
+  width: number,
+  height: number,
+  format: ZoneManifest['heightFormat'],
+): Promise<Float32Array> {
+  const n = format.tileSamples;
+  if (tilesX * n + 1 !== width || tilesY * n + 1 !== height) {
+    throw new RangeError(`terrain: ${tilesX}×${tilesY} tiles don't make ${width}×${height}`);
+  }
+  const values = new Float32Array(width * height);
+  const jobs: Promise<void>[] = [];
+  for (let ty = 0; ty < tilesY; ty++) {
+    for (let tx = 0; tx < tilesX; tx++) {
+      const path = pattern.replace('{tx}', String(tx)).replace('{ty}', String(ty));
+      jobs.push(
+        read(path).then((bytes) => {
+          const tile = decodeGrid(bytes, (n + 1) * (n + 1), n + 1, format);
+          for (let j = 0; j <= n; j++) {
+            values.set(
+              tile.subarray(j * (n + 1), (j + 1) * (n + 1)),
+              (ty * n + j) * width + tx * n,
+            );
+          }
+        }),
+      );
+    }
+  }
+  await Promise.all(jobs);
+  return values;
+}
+
+/**
+ * One island's 1 m on-foot ground (plan 03 §8, plan 08 §20.4 piece H), in zone meters:
+ * its baked tiles joined into one grid. Undefined if the bake has no tiles for it.
+ * Stockton is 1537 × 1025 samples, 6 MB decoded.
+ */
+export async function loadIslandGround(
+  read: FetchBytes,
+  manifest: ZoneManifest,
+  islandId: string,
+): Promise<GridField | undefined> {
+  const island = manifest.islands?.find((i) => i.id === islandId);
+  if (!island) return undefined;
+  const values = await readTiles(
+    read,
+    island.tiles,
+    island.tilesX,
+    island.tilesY,
+    island.width,
+    island.height,
+    manifest.heightFormat,
+  );
+  return new GridField(island.x0, island.z0, island.step, island.width, island.height, values);
 }
 
 export async function loadZoneTerrain(read: FetchBytes): Promise<LoadedZone> {

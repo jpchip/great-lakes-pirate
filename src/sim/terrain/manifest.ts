@@ -54,6 +54,23 @@ export const zoneManifestSchema = z.looseObject({
     fetch: gridFormat.extend({ file: z.string() }),
     funnel: gridFormat.extend({ file: z.string() }),
   }),
+  /**
+   * Each named island's 1 m on-foot tiles (plan 03 §8, plan 11 §3.1): its footprint and
+   * the tile pattern, in the height format at 1 m. Absent from bakes before the islands.
+   */
+  islands: z
+    .array(
+      z.looseObject({
+        id: z.string(),
+        ...frame,
+        tilesX: z.number().int().positive(),
+        tilesY: z.number().int().positive(),
+        tiles: z.string(),
+      }),
+    )
+    .optional(),
 });
+
+export type ManifestIsland = NonNullable<ZoneManifest['islands']>[number];
 
 export type ZoneManifest = z.infer<typeof zoneManifestSchema>;

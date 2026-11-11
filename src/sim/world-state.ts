@@ -513,6 +513,17 @@ export const worldStateSchema = z.object({
   contraband: contrabandStateSchema.optional(),
   contracts: contractsStateSchema.optional(),
   hideouts: hideoutsSchema.optional(),
+  /**
+   * The islands' caches (plan 11 §16 `caches[id]`; Phase 7 piece H): the cairns searched
+   * and whether it's been found. Which cairn holds it comes from the run's seed, so it
+   * isn't saved. Absent until the first search.
+   */
+  caches: z
+    .record(
+      z.string(),
+      z.object({ searched: z.array(z.number().int().nonnegative()), looted: z.boolean() }),
+    )
+    .optional(),
   knowledge: knowledgeSchema,
   /**
    * The Captain's First Week checklist (plan 12 §3, Phase 4 piece C). Only a run made in

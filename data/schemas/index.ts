@@ -26,6 +26,7 @@ import { lighthousesFileSchema } from './lighthouses';
 import { marketsFileSchema } from './markets';
 import { newspapersFileSchema } from './newspapers';
 import { npcTypesFileSchema } from './npc_types';
+import { poisFileSchema } from './pois';
 import { portsFileSchema } from './ports';
 import { routesFileSchema } from './routes';
 import { rumorsFileSchema } from './rumors';
@@ -63,6 +64,7 @@ export const dataFileSchemas: Readonly<Record<string, z.ZodType>> = {
   'markets.json': marketsFileSchema,
   'newspapers.json': newspapersFileSchema,
   'npc_types.json': npcTypesFileSchema,
+  'pois.json': poisFileSchema,
   'portraits.json': portraitsFileSchema,
   'ports.json': portsFileSchema,
   'regions.json': regionsFileSchema,

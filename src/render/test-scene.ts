@@ -5,8 +5,10 @@ import { edgeVisibility, type ZoneEdge } from '../sim/terrain/zone-edge';
 import type { TerrainBounds } from '../sim/terrain/zone-terrain';
 import type { CoastRun } from '../sim/arena/coast';
 import { createCoastMesh, disposeCoastMesh } from './arena/coast-view';
-import { manifestFrame, setPieceFootprint, zoneDef } from '../sim/terrain/zones';
-import { clearingFromFootprint, type Clearing } from '../sim/terrain/vegetation';
+import { manifestFrame } from '../sim/terrain/zones';
+import { zoneClearings } from '../sim/terrain/clearings';
+import { placeZoneIslands } from '../sim/islands/on-foot';
+import { createPoiView } from './onfoot/poi-view';
 import { interpolateTransform, type Entity, type GameWorld, type Transform } from '../gameplay/ecs';
 import { sceneSpeed, DEFAULT_COMPRESSION } from '../core/coords';
 import { R_SAILING, type ClockState } from '../core/time';
@@ -31,9 +33,9 @@ import {
 import { createSky, setSkyQuality } from './sky';
 import { createAtmosphere, type Atmosphere } from './atmosphere/atmosphere';
 import { createLighthouses, type LighthouseView } from './lighthouses/lighthouses';
-import { lampLevel, lightClearing, lightsIn } from '../sim/lighthouses';
+import { lampLevel, lightsIn } from '../sim/lighthouses';
 import { createHarbors, type HarborView } from './harbors/harbors';
-import { harborClearings, layoutHarbors, type HarborLayout } from '../sim/harbors';
+import { layoutHarbors, type HarborLayout } from '../sim/harbors';
 import { createTerrainMaterial } from './terrain/terrain-material';
 import { createTerrainView, type TerrainView } from './terrain/terrain-mesh';
 import {
@@ -265,20 +267,18 @@ export async function createTestScene(
     );
     scene.add(lighthouses.group);
     onPreset((preset) => lighthouses.applyPreset(preset));
-    const clearings: Clearing[] = zoneDef(zone.manifest.zone).setPieces.map((def) => {
-      const f = setPieceFootprint(def, frame);
-      return clearingFromFootprint(
-        f.anchor,
-        f.bearing,
-        def.alongM + def.blendM,
-        def.inlandM + def.blendM,
-        def.seawardM,
-      );
-    });
-    clearings.push(...lighthouses.placed.map(lightClearing));
-    // The harbors' buildings and pier ends stay clear of trees too.
+    // Set pieces, light stations, the harbors' buildings and pier ends and the walkable
+    // islands' points of interest stay clear of trees (the on-foot scene reads the same).
     const harborLayouts = layoutHarbors(frame, zone.terrain, zone.manifest.zone);
-    for (const layout of harborLayouts) clearings.push(...harborClearings(layout));
+    const terrainHeight = zone.terrain;
+    const placedIslands = placeZoneIslands(
+      zone.manifest.zone,
+      zone.manifest.islands ?? [],
+      (x, z) => terrainHeight.heightAt(x, z),
+    );
+    const clearings = zoneClearings(zone, harborLayouts, placedIslands);
+    const pois = createPoiView(placedIslands, lighting);
+    scene.add(pois.group);
     const vegetation = createVegetationView(
       terrain,
       createPlantModels(renderer.renderer),
@@ -304,8 +304,9 @@ export async function createTestScene(
       harborLayouts,
       dispose() {
         for (const off of unsubscribe) off();
-        scene.remove(terrain.group, vegetation.group, lighthouses.group, harbors.group);
+        scene.remove(terrain.group, vegetation.group, lighthouses.group, harbors.group, pois.group);
         vegetation.dispose();
+        pois.dispose();
         terrain.dispose();
         lighthouses.dispose();
         harbors.dispose();
