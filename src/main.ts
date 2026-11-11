@@ -169,7 +169,6 @@ import { showTabLocked } from './ui/menu/tab-locked';
 import { attachAshore, type GameAshore } from './gameplay/ashore';
 import { districtFootprint, districtFrame } from './gameplay/district/ground';
 import { createWatch } from './gameplay/onfoot/watch';
-import { suspectAshore } from './gameplay/onfoot/district-guards';
 import { stealthHud } from './ui/hud/stealth-model';
 import { PointerLook } from './core/pointer-look';
 import { calendarDate } from './core/time';
@@ -2564,7 +2563,6 @@ async function boot(): Promise<void> {
     // The night watch on its navmesh (piece D's guards), sized by the region's Wanted tier.
     watch: (landing, onCaptured) => {
       if (!landing.nav) return undefined;
-      const conduct = suspectAshore;
       const region = (): string => law.region() ?? '';
       const tierNow = (): number => wantedTier(law.defs, state.wanted[region()]?.heat ?? 0);
       const fameTiers = Math.max(1, law.defs.fame.tiers.length - 1);
@@ -2585,7 +2583,15 @@ async function boot(): Promise<void> {
           };
         },
         onCaptured,
-        suspect: (c) => suspectOverride.value ?? conduct(c),
+        suspect: () => suspectOverride.value,
+        // Piece E: the tool belt spends your purse and stores; its crimes go to the law.
+        pockets: state.player,
+        law: {
+          commit: (input) => law.commit(input),
+          addWitness: (id, w) => law.addWitness(id, w),
+          region,
+          port: landing.def.port,
+        },
       });
     },
     // Taken on foot: to the lockup as the Morrill would take you at sea (Phase 5's jail).
@@ -2702,6 +2708,43 @@ async function boot(): Promise<void> {
           ashore.face(d.frame.headingToZone((headingDeg * Math.PI) / 180), pitch);
         }
         return true;
+      },
+      /**
+       * Piece E: stands you `distM` behind a guard (held at his post), facing his way, as a
+       * cosh would want. False if there's no such guard.
+       */
+      behindGuard: (id: string, distM = 1.5) => {
+        const d = ashore.district;
+        const g = ashore.watch?.stealth.guard(id);
+        if (!d || !g) return false;
+        g.waitS = 1e6;
+        g.path = undefined;
+        const wp = g.route.points[g.waypoint];
+        if (wp) wp.face = g.body.heading;
+        const h = g.body.heading;
+        const x = g.body.position.x - Math.sin(h) * distM;
+        const z = g.body.position.z + Math.cos(h) * distM;
+        const p = d.frame.toZone(x, z);
+        ashore.teleport(p.x, p.z, g.body.position.y);
+        ashore.face(d.frame.headingToZone(h));
+        return true;
+      },
+      /** Piece E: a cosh, two lengths of rope and three bottles, as if from the chandlery. */
+      restock: () => {
+        state.player.stores['store.cosh'] = 1;
+        state.player.stores['store.rope'] = 2;
+        state.player.stores['store.whiskey'] = 3;
+      },
+      /** Piece E: the tool belt and conduct as the HUD has them. */
+      tools: () => {
+        const w = ashore.watch;
+        return {
+          selected: w?.tools?.selected.id,
+          carrying: w?.tools?.carrying,
+          conduct: w?.conduct?.reason,
+          offer: ashore.toolsHud()?.prompt?.label,
+          purse: state.player.purse,
+        };
       },
       /**
        * Overrides whether being seen is suspicious (true: anything you do is; undefined: the
@@ -3514,7 +3557,10 @@ async function boot(): Promise<void> {
             return { x: ((v.x + 1) / 2) * vp.width, y: ((1 - v.y) / 2) * vp.height, behind };
           };
           const snap = stealthHud(readout, ashore.zoneAt(), project, vp, now);
-          ui.setStealthHud(snap);
+          const tools = ashore.toolsHud();
+          ui.setStealthHud(tools ? { ...snap, tools } : snap);
+          const conduct = ashore.watch?.conduct;
+          document.body.dataset['conduct'] = conduct?.reason ?? 'none';
           document.body.dataset['gem'] = snap.gem.level;
           document.body.dataset['danger'] = snap.danger;
         } else {

@@ -36,6 +36,15 @@ interface Hooks {
     teleport(x: number, z: number, y?: number): void;
     hour(h: number): void;
     suspect(on: boolean | undefined): void;
+    behindGuard(id: string, distM?: number): boolean;
+    restock(): void;
+    tools(): {
+      selected: string | undefined;
+      carrying: string | undefined;
+      conduct: string | undefined;
+      offer: string | undefined;
+      purse: number;
+    };
     teleportLocal(x: number, z: number, headingDeg?: number): boolean;
     watch(): {
       district: string | undefined;
@@ -183,5 +192,43 @@ test('in Bayfield at night the watch walks the district, and a constable takes y
   await expect(screen).toBeVisible({ timeout: 60_000 });
   await expect(screen).toContainText('Taken by a constable');
   await expect(page.locator('body')).toHaveAttribute('data-ashore', 'aboard');
+  expect(errors).toEqual([]);
+});
+
+test('in Bayfield the tool belt is in hand: a cosh from behind drops the constable', async ({
+  page,
+}) => {
+  test.setTimeout(120_000);
+  const errors = collectErrors(page);
+  await page.goto('/?renderer=null&debug&play');
+  await page.waitForFunction(() => '__glpFoot' in window);
+  await page.evaluate(() => {
+    const f = (window as unknown as Hooks).__glpFoot;
+    f.hour(23);
+    f.dock('bayfield_fish');
+  });
+  expect(await page.evaluate(() => (window as unknown as Hooks).__glpFoot.land())).toBeUndefined();
+  const tools = () => page.evaluate(() => (window as unknown as Hooks).__glpFoot.tools());
+  // The purse is in hand to start, and walking the pier is nothing to anyone.
+  expect(await tools()).toMatchObject({ selected: 'tool.purse', conduct: undefined });
+  await expect(page.getByTestId('foot-belt')).toBeVisible();
+
+  // A cosh from the chandlery, in hand behind the lockup's constable.
+  await page.evaluate(() => {
+    const f = (window as unknown as Hooks).__glpFoot;
+    f.restock();
+    f.behindGuard('constable.lockup', 1.5);
+  });
+  await page.keyboard.press('Digit1');
+  await expect.poll(async () => (await tools()).selected).toBe('tool.cosh');
+  expect((await tools()).conduct).toBe('armed');
+  await expect(page.getByTestId('foot-prompt')).toContainText('Knock out the constable');
+  await page.keyboard.press('KeyF');
+  await expect
+    .poll(async () => {
+      const w = await page.evaluate(() => (window as unknown as Hooks).__glpFoot.watch());
+      return w.guards.find((g) => g.id === 'constable.lockup')?.state;
+    })
+    .toBe('unconscious');
   expect(errors).toEqual([]);
 });

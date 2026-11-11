@@ -1,0 +1,110 @@
+/*
+ * The tool belt, conduct line and prompt (plan 13 §4.2; Phase 7 piece E): brass and enamel
+ * like the stealth HUD, at the bottom right, clear of the gem and the ring.
+ */
+.foot-tools {
+  position: absolute;
+  right: 18px;
+  /* Above the controls hint (.foot-keys), which sits at the bottom right. */
+  bottom: 48px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  pointer-events: none;
+  font-family: var(--serif);
+  color: var(--hud-text);
+}
+
+.foot-belt {
+  display: flex;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.foot-slot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 58px;
+  padding: 4px 6px;
+  background: var(--enamel);
+  border: 1px solid rgb(184 137 46 / 45%);
+  border-radius: 5px;
+  font-size: 12px;
+}
+
+.foot-slot.selected {
+  border-color: var(--brass-light);
+  box-shadow: 0 0 0 1px var(--brass-light);
+}
+
+.foot-slot.empty {
+  opacity: 0.5;
+}
+
+.foot-slot-key {
+  font-size: 10px;
+  opacity: 0.75;
+}
+
+.foot-slot-count {
+  font-size: 11px;
+  opacity: 0.85;
+}
+
+.foot-conduct {
+  padding: 3px 8px;
+  background: rgb(120 30 20 / 75%);
+  border: 1px solid rgb(224 120 90 / 60%);
+  border-radius: 4px;
+  font-size: 13px;
+}
+
+.foot-prompt {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px 4px 4px;
+  background: var(--enamel);
+  border: 1px solid rgb(184 137 46 / 60%);
+  border-radius: 6px;
+  font-size: 14px;
+}
+
+.foot-prompt.blocked .foot-label {
+  opacity: 0.6;
+}
+
+.foot-key {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border: 1px solid var(--brass-light);
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+.foot-key svg {
+  position: absolute;
+  inset: -4px;
+  width: 32px;
+  height: 32px;
+  transform: rotate(-90deg);
+}
+
+.foot-hold {
+  fill: none;
+  stroke: var(--brass-light);
+  stroke-width: 2.5;
+}
+
+.foot-why {
+  font-size: 12px;
+  font-style: italic;
+  opacity: 0.9;
+}

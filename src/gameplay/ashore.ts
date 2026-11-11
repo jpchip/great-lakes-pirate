@@ -51,6 +51,7 @@ import {
 import { FollowCamera, ROWING_CAMERA, roofOver } from './onfoot/camera';
 import { footprintDistance, type Collider, type Push } from './onfoot/colliders';
 import type { Watch } from './onfoot/watch';
+import type { FootToolsSnapshot } from '../ui/hud/foot-tools-model';
 import type { StealthReadout } from './onfoot/stealth';
 import {
   climbDownLadder,
@@ -171,6 +172,8 @@ export interface GameAshore {
   zoneAt(): { x: number; y: number; z: number; heading: number };
   /** The watch's readout with the guards placed in zone meters, for the stealth HUD. */
   stealthReadout(): StealthReadout | undefined;
+  /** The tool belt, conduct and the F prompt (piece E), when the watch has tools. */
+  toolsHud(): FootToolsSnapshot | undefined;
 }
 
 /** What the on-foot HUD shows (plan 13 §4.2's minimum for piece A). */
@@ -739,8 +742,19 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
     if (watch && !taken) watch.step(dt, character);
     if (!active || taken) return;
 
-    prompt = findPrompt();
-    if (input.pressed('Interact') && prompt) prompt.act();
+    // The tool belt (piece E): 1–5 take a tool in hand, and F is the tool's when a guard is
+    // in reach of it (or a man who's down), else the ashore prompt's.
+    const belt = watch?.tools;
+    if (belt) {
+      (['Tool1', 'Tool2', 'Tool3', 'Tool4', 'Tool5'] as const).forEach((a, n) => {
+        if (input.pressed(a)) belt.selectSlot(n);
+      });
+    }
+    const toolTookF =
+      !inBoat &&
+      !!watch?.interact(dt, character, input.isDown('Interact'), input.pressed('Interact'));
+    prompt = toolTookF ? undefined : findPrompt();
+    if (!toolTookF && input.pressed('Interact') && prompt) prompt.act();
 
     if (state.player.health <= 0 && !dead) {
       dead = true;
@@ -971,6 +985,9 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
       const c = character.position;
       const z = toZone(c.x, c.z);
       return { x: z.x, y: c.y, z: z.z, heading: headingToZone(character.heading) };
+    },
+    toolsHud() {
+      return watch && active && !inBoat ? watch.toolsHud(character) : undefined;
     },
     stealthReadout() {
       if (!watch || !active) return undefined;

@@ -514,6 +514,7 @@ Ten pieces, each sized to be one thread. Four can start at once (A, B, C and D).
 ---
 
 ## Changelog
+- v0.7: Piece E, part one (2026-11-11): conduct (`conduct.ts`: trespass by building and shop hours from `tools.json`, after-hours areas, skulking, running and swimming at night, a weapon in hand, carrying a man), the cosh, rope, knife, whiskey and bribes on a tool belt (`tools.ts`, `tools.json`), carrying and sinking bodies, and their crimes (`foot-law.ts`: one crime per incident, a woken man's assault report, the murder investigation tied to a face learned tonight, `crime.bribery`). Strikes reach 1.7–1.8 m, past the 1.2 m where a guard feels you behind him. Locks, the crowbar, throwables, the pistol and rifle on foot, loot, carrying crates, evidence and stock are part two.
 - v0.6: Phase 7 scope (§20), approved 2026-11-10 with Stockton, the rowable boat and the port screen first: what Phases 4–6 change, deliverables, exit criteria, ten work pieces, smaller calls and three decisions.
 - v0.5: S5 playtest: a hop on Space, smoother slope measurement and control on steep patches, so rough ground doesn't snag you.
 - v0.4: Spike S5 written up (§19): the hand-rolled controller is good enough without Rapier; crouch moved off Ctrl.

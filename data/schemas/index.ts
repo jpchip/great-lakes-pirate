@@ -32,6 +32,7 @@ import { shipsFileSchema } from './ships';
 import { sitesFileSchema } from './sites';
 import { smugglersFileSchema } from './smuggler';
 import { storesFileSchema } from './stores';
+import { toolsFileSchema } from './tools';
 import { upgradesFileSchema } from './upgrades';
 import { zonesFileSchema } from './zones';
 
@@ -70,6 +71,7 @@ export const dataFileSchemas: Readonly<Record<string, z.ZodType>> = {
   'fences.json': fencesFileSchema,
   'guns.json': gunsFileSchema,
   'stores.json': storesFileSchema,
+  'tools.json': toolsFileSchema,
   'upgrades.json': upgradesFileSchema,
   'wanted_tiers.json': wantedTiersFileSchema,
   'weapons.json': weaponsFileSchema,

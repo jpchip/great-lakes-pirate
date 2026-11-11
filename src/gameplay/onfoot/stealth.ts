@@ -58,7 +58,9 @@ import { lineBlocked, type P3 } from './sightline';
  * decides comes out as an event: the HUD's eyes, the law's witnesses and reports, the
  * barks and whistles (piece I) and capture into Phase 5's jail all read the same ones.
  *
- * Piece E's tools act through `knockOut`, `bind`, `kill`, `makeDrunk`, `bribe` and `noise`.
+ * Piece E's tools (`tools.ts`) act through `knockOut`, `bind`, `kill`, `makeDrunk`, `bribe`,
+ * `noise`, and the hands below them: `witnessAct` (who saw you do it), `faceToFace` (a talk
+ * shows your face), `wary` (a refusal makes them suspicious), `moveBody` and `sink`.
  */
 
 export type GuardState =
@@ -125,6 +127,8 @@ export interface Guard {
   untilGame: number;
   /** A downed guard someone has found. */
   found: boolean;
+  /** Why they're down: a blow (they wake and report it) or drink (they wake sheepish). */
+  downBy: 'blow' | 'drink' | undefined;
   /** Close enough to lay hands on you, seconds held. */
   grabS: number;
   /** Stagger: looks happen when this crosses zero. */
@@ -144,8 +148,8 @@ export type StealthEvent =
       identified: boolean;
       why: 'seen' | 'assault' | 'body';
     }
-  | { type: 'BodyFound'; npc: string; finder: string; dead: boolean }
-  | { type: 'GuardWoke'; npc: string; identified: boolean }
+  | { type: 'BodyFound'; npc: string; finder: string; dead: boolean; drunk: boolean }
+  | { type: 'GuardWoke'; npc: string; identified: boolean; drank: boolean }
   | { type: 'Captured'; npc: string; by: string };
 
 /** What the district gives the guards. */
@@ -260,6 +264,19 @@ export interface Stealth {
   kill(id: string): void;
   makeDrunk(id: string, gameSeconds: number, passOutInGameS: number): void;
   bribe(id: string, untilGameSeconds: number): void;
+  /**
+   * The player just did something nobody could mistake (a blow, a knife): every guard
+   * standing who can see them right now is alerted. Returns who saw it (not `except`).
+   */
+  witnessAct(except?: string): Guard[];
+  /** Talking to a guard shows them your face: recognition jumps. Returns whether they know it. */
+  faceToFace(id: string, light01: number, fame01: number): boolean;
+  /** A refusal: they're suspicious of you and watch you (a bribe or a bottle turned down). */
+  wary(id: string): void;
+  /** A downed guard carried somewhere (piece E's dragging): moved, still where nobody's seen. */
+  moveBody(id: string, at: { x: number; y: number; z: number }): void;
+  /** A body put in the lake: gone tonight, never found. */
+  sink(id: string): void;
   /** Measured cost of the last step, ms (the ≤ 1 ms budget, plan 08 §20.3 #10). */
   readonly lastStepMs: number;
 }
@@ -338,6 +355,7 @@ export function createStealth(
       recruit: undefined,
       untilGame: 0,
       found: false,
+      downBy: undefined,
       grabS: 0,
       lookInS: k / Math.max(1, spawns.length) / LOOK_HZ,
       stuck: { x: start.x, z: start.z, s: 0 },
@@ -650,8 +668,11 @@ export function createStealth(
   const findBody = (finder: Guard, o: Guard): void => {
     o.found = true;
     const dead = o.state === 'dead';
-    emit({ type: 'BodyFound', npc: o.id, finder: finder.id, dead });
+    const drunk = !dead && o.downBy === 'drink' && o.state === 'unconscious';
+    emit({ type: 'BodyFound', npc: o.id, finder: finder.id, dead, drunk });
     if (!dead) o.untilGame = Math.min(o.untilGame, nowGame + FOUND_WAKE_GAME_S);
+    // Asleep on watch with a bottle: a shake and a curse, no alarm.
+    if (drunk) return;
     if (o.state === 'bound') o.state = 'unconscious';
     // A body means trouble: the finder calls out and searches round it.
     callOut(finder);
@@ -921,6 +942,7 @@ export function createStealth(
           setState(g, 'unconscious');
           g.untilGame = nowGame + KNOCKOUT_GAME_S;
           g.found = false;
+          g.downBy = 'drink';
         }
         return;
       case 'unconscious':
@@ -936,8 +958,18 @@ export function createStealth(
 
   const wake = (g: Guard): void => {
     g.found = true;
+    if (g.downBy === 'drink' && g.state === 'unconscious') {
+      // Slept it off: back to the beat with a sore head and nothing to tell (plan 08 §6.2).
+      g.downBy = undefined;
+      g.meter = 0;
+      g.witnessed = false;
+      emit({ type: 'GuardWoke', npc: g.id, identified: g.identified, drank: true });
+      setState(g, 'return');
+      return;
+    }
+    g.downBy = undefined;
     g.meter = SUSPICIOUS;
-    emit({ type: 'GuardWoke', npc: g.id, identified: g.identified });
+    emit({ type: 'GuardWoke', npc: g.id, identified: g.identified, drank: false });
     // "Assaulted by someone" (identified only if they saw you), reported as their kind does.
     g.witnessed = true;
     if (g.type.onAlert === 'report') fileReport(g, 'assault');
@@ -1064,6 +1096,7 @@ export function createStealth(
       setState(g, 'unconscious');
       g.untilGame = gameSeconds + outGameS;
       g.found = false;
+      g.downBy = 'blow';
       g.meter = 0;
     },
     bind(id, gameSeconds) {
@@ -1092,6 +1125,57 @@ export function createStealth(
       g.witnessed = false;
       setState(g, 'bribed');
       g.untilGame = untilGameSeconds;
+    },
+    witnessAct(except) {
+      const p = lastInputs?.player.position;
+      const out: Guard[] = [];
+      if (!p) return out;
+      for (const g of guards) {
+        if (g.id === except || !aware(g) || g.state === 'bribed' || !g.glimpse?.seen) continue;
+        alert(g, p);
+        g.witnessed = true;
+        out.push(g);
+      }
+      return out;
+    },
+    faceToFace(id, light01, fame01) {
+      const g = guardOrThrow(id);
+      if (!g.identified) {
+        // Close and talking: a lit face is learned at once, a dark one half-way.
+        g.recognition = Math.min(1, g.recognition + 0.35 + 0.5 * light01 + 0.3 * fame01);
+        if (g.recognition >= 1) {
+          g.identified = true;
+          emit({ type: 'PlayerIdentified', npc: g.id });
+        }
+      }
+      return g.identified;
+    },
+    wary(id) {
+      const g = guardOrThrow(id);
+      if (!aware(g) || g.state === 'alerted') return;
+      const p = lastInputs?.player.position;
+      g.meter = Math.max(g.meter, SUSPICIOUS + 0.05);
+      g.stimulus = p ? { x: p.x, z: p.z } : g.stimulus;
+      if (g.state !== 'suspicious') setState(g, 'suspicious');
+    },
+    moveBody(id, at) {
+      const g = guardOrThrow(id);
+      if (!isDown(g.state)) return;
+      g.body.position.x = at.x;
+      g.body.position.y = at.y;
+      g.body.position.z = at.z;
+      g.body.velocity.x = 0;
+      g.body.velocity.y = 0;
+      g.body.velocity.z = 0;
+      g.previous.x = at.x;
+      g.previous.y = at.y;
+      g.previous.z = at.z;
+    },
+    sink(id) {
+      const g = guardOrThrow(id);
+      if (g.state !== 'dead') setState(g, 'dead');
+      g.found = true;
+      g.witnessed = false;
     },
   };
   return self;

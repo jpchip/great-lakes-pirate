@@ -26,5 +26,26 @@
     "blurb": "Salt pork, hardtack, flour and coffee: a week's food for the crew.",
     "priceCents": 250,
     "max": 8
+  },
+  {
+    "id": "store.cosh",
+    "name": "Cosh",
+    "blurb": "A leather sap filled with shot: puts a man down from behind without killing him.",
+    "priceCents": 150,
+    "max": 2
+  },
+  {
+    "id": "store.rope",
+    "name": "Rope",
+    "blurb": "A short coil of tarred line for tying a man who's out cold, so he stays out longer.",
+    "priceCents": 40,
+    "max": 4
+  },
+  {
+    "id": "store.whiskey",
+    "name": "Bottle of whiskey",
+    "blurb": "A quart of rye. A watchman or a sailor on a cold night seldom says no to a drink.",
+    "priceCents": 75,
+    "max": 6
   }
 ]

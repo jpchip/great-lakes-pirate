@@ -1,0 +1,77 @@
+{
+  "tools": [
+    {
+      "id": "tool.cosh",
+      "name": "Cosh",
+      "kind": "blunt",
+      "store": "store.cosh",
+      "reachM": 1.8,
+      "noiseM": 3,
+      "drawn": true
+    },
+    {
+      "id": "tool.rope",
+      "name": "Rope",
+      "kind": "bind",
+      "store": "store.rope",
+      "reachM": 1.6,
+      "holdS": 3
+    },
+    {
+      "id": "tool.knife",
+      "name": "Knife",
+      "kind": "blade",
+      "reachM": 1.7,
+      "noiseM": 2,
+      "drawn": true
+    },
+    {
+      "id": "tool.whiskey",
+      "name": "Whiskey",
+      "kind": "gift",
+      "store": "store.whiskey",
+      "reachM": 2.4
+    },
+    {
+      "id": "tool.purse",
+      "name": "Bribe",
+      "kind": "bribe",
+      "reachM": 2.4
+    }
+  ],
+  "takedown": {
+    "behindCone": 1,
+    "outH": 2
+  },
+  "bribe": {
+    "priceCents": {
+      "npc.watchman": 500,
+      "npc.constable": 1500,
+      "npc.sailor": 200,
+      "npc.marshal": 5000
+    },
+    "perTier": 0.5,
+    "knownFace": 0.5,
+    "wary": 0.6,
+    "hours": 6
+  },
+  "whiskey": {
+    "accept": {
+      "npc.watchman": 0.6,
+      "npc.constable": 0.15,
+      "npc.sailor": 0.9,
+      "npc.marshal": 0
+    },
+    "wary": 0.4,
+    "passOutMin": [20, 45]
+  },
+  "conduct": {
+    "hours": {
+      "backRoom": [9, 1],
+      "market": [7, 18],
+      "chandlery": [7, 18],
+      "contracts": [8, 17],
+      "ledger": [8, 17]
+    }
+  }
+}

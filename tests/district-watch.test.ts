@@ -209,4 +209,51 @@ describe.skipIf(!baked)('the watch in Bayfield', () => {
     expect(suspectAshore({ model, player: street, hour: 12 })).toBe(false);
     expect(suspectAshore({ model, player: at(10, -20), hour: 12, carrying: true })).toBe(true);
   });
+
+  it("judges you by piece E's conduct, and hands F to the tool belt by a guard", () => {
+    const { model, nav } = load();
+    const pockets = { purse: 10_000, stores: { 'store.cosh': 1 } as Record<string, number> };
+    const watch = createWatch({
+      model,
+      nav,
+      tier: 0,
+      seed: 'conduct',
+      conditions: conditions(NOON),
+      onCaptured: () => undefined,
+      pockets,
+    });
+    const warehouse = model.buildings.find((b) => b.def.id === 'hollister_warehouse');
+    if (!warehouse) throw new Error('no warehouse');
+    const inside = createCharacter({
+      x: (warehouse.minX + warehouse.maxX) / 2,
+      y: model.floorAt(
+        (warehouse.minX + warehouse.maxX) / 2,
+        (warehouse.minZ + warehouse.maxZ) / 2,
+      ),
+      z: (warehouse.minZ + warehouse.maxZ) / 2,
+    });
+    watch.step(1 / 60, inside);
+    expect(watch.conduct?.reason).toBe('trespass');
+    expect(watch.toolsHud(inside)?.conduct).toBe('Suspicious if seen: Trespassing');
+    const street = createCharacter({ x: 10, y: model.floorAt(10, -20), z: -20 });
+    watch.step(1 / 60, street);
+    expect(watch.conduct?.suspect).toBe(false);
+    // Behind the lockup's constable with the cosh in hand: F is the belt's.
+    const c = watch.stealth.guards.find((g) => g.type.id === 'npc.constable');
+    if (!c) throw new Error('no constable');
+    const h = c.body.heading;
+    const me = createCharacter({
+      x: c.body.position.x - Math.sin(h) * 1.5,
+      y: c.body.position.y,
+      z: c.body.position.z + Math.cos(h) * 1.5,
+    });
+    // The purse is in hand to start: face to face only.
+    expect(watch.offer(me)).toMatchObject({ verb: 'bribe', ok: false, why: 'Get in front of him' });
+    watch.tools?.select('tool.cosh');
+    expect(watch.offer(me)).toMatchObject({ verb: 'knockOut', ok: true });
+    expect(watch.interact(1 / 60, me, true, true)).toBe(true);
+    expect(c.state).toBe('unconscious');
+    // Nobody near: F goes back to the ashore prompts.
+    expect(watch.interact(1 / 60, street, true, true)).toBe(false);
+  });
 });
