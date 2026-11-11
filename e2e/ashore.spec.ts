@@ -38,6 +38,15 @@ interface Hooks {
     suspect(on: boolean | undefined): void;
     behindGuard(id: string, distM?: number): boolean;
     restock(): void;
+    restockBurglar(): void;
+    heist(): {
+      carrying: { good: string; owner: string } | undefined;
+      doors: { id: string; x: number; z: number; locked: boolean }[];
+      containers: { mark: string; x: number; z: number; crates: Record<string, number> }[];
+      hot: { good: string; qty: number; hot: { owner?: string } }[];
+      prompt: string | undefined;
+      stow: { x: number; z: number } | undefined;
+    };
     tools(): {
       selected: string | undefined;
       carrying: string | undefined;
@@ -222,7 +231,9 @@ test('in Bayfield the tool belt is in hand: a cosh from behind drops the constab
   await page.keyboard.press('Digit1');
   await expect.poll(async () => (await tools()).selected).toBe('tool.cosh');
   expect((await tools()).conduct).toBe('armed');
-  await expect(page.getByTestId('foot-prompt')).toContainText('Knock out the constable');
+  await expect(page.getByTestId('foot-tools').getByTestId('foot-prompt')).toContainText(
+    'Knock out the constable',
+  );
   await page.keyboard.press('KeyF');
   await expect
     .poll(async () => {
@@ -230,5 +241,80 @@ test('in Bayfield the tool belt is in hand: a cosh from behind drops the constab
       return w.guards.find((g) => g.id === 'constable.lockup')?.state;
     })
     .toBe('unconscious');
+  expect(errors).toEqual([]);
+});
+
+test('in Bayfield at night: pick the warehouse lock, carry a crate of its fish aboard, hot', async ({
+  page,
+}) => {
+  test.setTimeout(180_000);
+  const errors = collectErrors(page);
+  await page.goto('/?renderer=null&debug&play');
+  await page.waitForFunction(() => '__glpFoot' in window);
+  await page.evaluate(() => {
+    const f = (window as unknown as Hooks).__glpFoot;
+    f.hour(23);
+    f.dock('bayfield_fish');
+  });
+  expect(await page.evaluate(() => (window as unknown as Hooks).__glpFoot.land())).toBeUndefined();
+  const heist = () => page.evaluate(() => (window as unknown as Hooks).__glpFoot.heist());
+  // The watch looks the other way: this is about the lock and the crates.
+  await page.evaluate(() => {
+    const f = (window as unknown as Hooks).__glpFoot;
+    f.suspect(false);
+    f.restockBurglar();
+  });
+  const h = await heist();
+  const door = h.doors.find((d) => d.id === 'hollister_warehouse.door0');
+  expect(door?.locked).toBe(true);
+  // Outside the door, a little way out from the warehouse's middle (-26, -20).
+  await page.evaluate(
+    ([x, z]) => {
+      const f = (window as unknown as Hooks).__glpFoot;
+      const dx = (x as number) + 26;
+      const dz = (z as number) + 20;
+      const out = Math.abs(dx) > Math.abs(dz) ? [Math.sign(dx) * 0.9, 0] : [0, Math.sign(dz) * 0.9];
+      f.teleportLocal((x as number) + (out[0] as number), (z as number) + (out[1] as number));
+    },
+    [door?.x ?? 0, door?.z ?? 0],
+  );
+  await expect(page.getByTestId('foot-tools').getByTestId('foot-prompt')).toContainText(
+    'Pick the lock (tier 1)',
+  );
+  await page.keyboard.down('KeyF');
+  await expect
+    .poll(async () => (await heist()).doors.find((d) => d.id === door?.id)?.locked, {
+      timeout: 20_000,
+    })
+    .toBe(false);
+  await page.keyboard.up('KeyF');
+
+  // In to the crates, lift one, and down the wharf to the gangway.
+  const box = h.containers.find((c) => c.mark === 'loot.0');
+  await page.evaluate(
+    ([x, z]) =>
+      (window as unknown as Hooks).__glpFoot.teleportLocal((x as number) + 0.6, z as number),
+    [box?.x ?? 0, box?.z ?? 0],
+  );
+  await expect(page.getByTestId('foot-tools').getByTestId('foot-prompt')).toContainText(
+    'Lift a crate of',
+  );
+  await page.keyboard.down('KeyF');
+  await expect
+    .poll(async () => (await heist()).carrying?.owner, { timeout: 10_000 })
+    .toBe('company.hollister_fish');
+  await page.keyboard.up('KeyF');
+  await expect(page.getByTestId('foot-load')).toContainText('Carrying a crate of');
+  const gangway = (await heist()).stow;
+  expect(gangway).toBeDefined();
+  await page.evaluate(
+    ([x, z]) => (window as unknown as Hooks).__glpFoot.teleportLocal(x as number, z as number),
+    [gangway?.x ?? 0, gangway?.z ?? 0],
+  );
+  await expect(page.getByTestId('foot-tools').getByTestId('foot-prompt')).toContainText('aboard');
+  await page.keyboard.press('KeyF');
+  await expect.poll(async () => (await heist()).hot.length).toBe(1);
+  const hot = (await heist()).hot[0];
+  expect(hot?.hot.owner).toBe('company.hollister_fish');
   expect(errors).toEqual([]);
 });

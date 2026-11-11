@@ -222,7 +222,8 @@ export type TrafficState = z.infer<typeof trafficStateSchema>;
 export const rumorSchema = z.object({
   id: z.string(),
   kind: z.enum(RUMOR_KINDS),
-  source: z.enum(['saloon', 'hail']),
+  // 'papers': a shipping schedule read in an office or a ship's cabin (Phase 7 piece E).
+  source: z.enum(['saloon', 'hail', 'papers']),
   /** The saloon it was heard in. */
   port: z.string().optional(),
   heardAt: z.number(),
@@ -404,6 +405,30 @@ export function defaultCaptain(): Captain {
   return { name: 'Captain', shipName: 'Schooner', background: 'deckhand' };
 }
 
+/** A district's record (plan 08 §15 WorldState per district; Phase 7 piece E). */
+export const districtWorldSchema = z.object({
+  /** Containers by loot mark: what's been taken out of this stocking, and when it's refilled. */
+  containers: z.record(
+    z.string(),
+    z.object({
+      /** CU taken, by good. */
+      taken: z.record(z.string(), z.number().int().nonnegative()),
+      cash: z.boolean().default(false),
+      documents: z.boolean().default(false),
+      /** Its own lock (a strongbox) is open. */
+      opened: z.boolean().default(false),
+      /** Game seconds it's stocked afresh (and its lock mended). */
+      restockAt: z.number(),
+    }),
+  ),
+  /** Doors opened at night: picked (shut behind you, no sign) or forced (broken until mended). */
+  doors: z.record(
+    z.string(),
+    z.object({ how: z.enum(['picked', 'forced']), night: z.number().int() }),
+  ),
+});
+export type DistrictWorld = z.infer<typeof districtWorldSchema>;
+
 /**
  * Ashore (plan 08 §20, Phase 7 piece A; save v9): you left the ship at a berth or at
  * anchor and are on foot, swimming, or in the boat. `location` still holds the ship's
@@ -524,6 +549,12 @@ export const worldStateSchema = z.object({
    * them. Optional: absent, the lake has none yet.
    */
   wrecks: wrecksSchema.optional(),
+  /**
+   * The docks districts' own record (plan 08 §15; Phase 7 piece E): which containers were
+   * emptied and when they fill again, and which doors were picked or forced on which
+   * night. Optional: absent, every district is as its owners left it.
+   */
+  districts: z.record(z.string(), districtWorldSchema).optional(),
   /**
    * The danger a snapshot was taken in (plan 16 §4.3; piece D): set only in the `danger`
    * slot's copy, so a reload from it puts the threat back on your tail.

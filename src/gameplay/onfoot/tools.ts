@@ -2,6 +2,7 @@ import toolsJson from '../../../data/tools.json';
 import { toolsFileSchema, type ToolDef, type ToolsFile } from '../../../data/schemas/tools';
 import type { Rng } from '../../core/rng';
 import type { CharacterState, OnFootZone } from './controller';
+import { lineBlocked } from './sightline';
 import { isDown, type Guard, type Stealth } from './stealth';
 
 /**
@@ -24,6 +25,17 @@ import { isDown, type Guard, type Stealth } from './stealth';
  * - **Carrying a man:** pick up anyone down, carry him (slow, loud, unmistakable), put him
  *   down in the shadows or drop him off a pier: a man out cold drowns, and the lake keeps
  *   the body.
+ *
+ * Part two adds:
+ * - **Crowbar:** in hand at a lock, F forces it (`heist.ts` does the lock); it's a burglar's
+ *   tool, so holding it out is as suspicious as a cosh.
+ * - **Stone:** always to hand. F throws it the way you face, up to 14 m or the first wall,
+ *   and it lands with a clatter guards come to look at. F does anything else first (a door,
+ *   a crate, the gangway): a throw is what F does when there's nothing else to do.
+ * - **Pistol and rifle:** a man standing in front of you, in range and in sight, is shot at:
+ *   likelier to hit close, and a hit usually kills (else he's down wounded, and talks when
+ *   he comes round). The shot is heard all over the district. The pistol is the chandlery's
+ *   (at Known); the rifle is the ship's own, in its hand mount. Not with your arms full.
  *
  * Everything that happens comes out as a `ToolEvent`; `foot-law.ts` turns them into crimes.
  */
@@ -51,7 +63,8 @@ export interface Pockets {
   stores: Record<string, number>;
 }
 
-export type ToolVerb = 'knockOut' | 'kill' | 'bind' | 'whiskey' | 'bribe' | 'lift' | 'drop';
+export type ToolVerb =
+  'knockOut' | 'kill' | 'bind' | 'whiskey' | 'bribe' | 'lift' | 'drop' | 'throw' | 'shoot';
 
 /** What F does now: the prompt. */
 export interface Offer {
@@ -78,7 +91,17 @@ export type ToolEvent =
   | { type: 'WhiskeyTaken'; npc: string }
   | { type: 'WhiskeyRefused'; npc: string }
   | { type: 'BodyLifted'; npc: string }
-  | { type: 'BodyDropped'; npc: string; sunk: boolean; drowned: boolean };
+  | { type: 'BodyDropped'; npc: string; sunk: boolean; drowned: boolean }
+  | { type: 'StoneThrown'; x: number; y: number; z: number }
+  | { type: 'Shot'; npc: string; tool: string; hit: boolean; killed: boolean; seenBy: string[] };
+
+/** What the tools need to know beyond the pockets (part two). */
+export interface ToolOptions {
+  /** The ship's weapon is aboard (the rifle in its hand mount). */
+  hasWeapon?(id: string): boolean;
+  /** Your arms are full (a crate, `heist.ts`): no blows, drinks, shots or lifting a man. */
+  handsFull?(): boolean;
+}
 
 /** The world around the tools each tick. */
 export interface ToolContext {
@@ -105,6 +128,8 @@ export interface OnFootTools {
   armed(): boolean;
   /** What F would do now, or nothing in reach. */
   offer(ctx: ToolContext): Offer | undefined;
+  /** An offer anything else F can do takes over (a throw). */
+  readonly lowPriority: (o: Offer) => boolean;
   /** Does it (if it's ok). */
   use(ctx: ToolContext): ToolEvent[];
   /** Each tick after the guards: a carried man goes where you go. */
@@ -169,6 +194,7 @@ export function createTools(
   zone: OnFootZone,
   rng: Rng,
   defs: ToolDefs = gameTools(),
+  opts: ToolOptions = {},
 ): OnFootTools {
   const listeners = new Set<(e: ToolEvent) => void>();
   const emit = (out: ToolEvent[], e: ToolEvent): void => {
@@ -182,7 +208,15 @@ export function createTools(
   const refusedBribe = new Set<string>();
   const refusedDrink = new Set<string>();
 
-  const count = (t: ToolDef): number => (t.store ? (pockets.stores[t.store] ?? 0) : Infinity);
+  const count = (t: ToolDef): number =>
+    t.store
+      ? (pockets.stores[t.store] ?? 0)
+      : t.weapon
+        ? opts.hasWeapon?.(t.weapon)
+          ? Infinity
+          : 0
+        : Infinity;
+  const handsFull = (): boolean => opts.handsFull?.() ?? false;
   const spend = (t: ToolDef): void => {
     if (t.store) pockets.stores[t.store] = Math.max(0, (pockets.stores[t.store] ?? 0) - 1);
   };
@@ -271,7 +305,71 @@ export function createTools(
         }
         return { ...base, ok: true };
       }
+      case 'gun': {
+        const g = inSights(ctx, t);
+        if (!g) return undefined;
+        const base = {
+          verb: 'shoot',
+          tool: t,
+          target: g.id,
+          label: `Shoot ${guardNoun(g)}`,
+          holdS: t.holdS,
+        } as const;
+        if (have <= 0) return { ...base, ok: false, why: `No ${t.name.toLowerCase()}` };
+        return { ...base, ok: true };
+      }
+      case 'throw':
+        return {
+          verb: 'throw',
+          tool: t,
+          target: undefined,
+          label: `Throw a ${t.name.toLowerCase()}`,
+          ok: true,
+          holdS: 0,
+        };
+      case 'force':
+        // The crowbar is for locks (heist.ts): nothing to do to a man with it here.
+        return undefined;
     }
+  };
+
+  /** The man a gun is pointed at: standing, in range, in the cone ahead and in plain sight. */
+  const inSights = (ctx: ToolContext, t: ToolDef): Guard | undefined => {
+    const p = ctx.player.position;
+    const cone = (defs.file.guns.coneDeg * Math.PI) / 180;
+    let best: Guard | undefined;
+    let bestD = t.reachM;
+    for (const g of stealth.guards) {
+      if (isDown(g.state) || g.id === carrying) continue;
+      const at = g.body.position;
+      const d = Math.hypot(at.x - p.x, at.z - p.z);
+      if (d > bestD || d < 0.3) continue;
+      const bearing = Math.atan2(at.x - p.x, -(at.z - p.z));
+      if (Math.abs(wrapAngle(bearing - ctx.player.heading)) > cone) continue;
+      const eye = { x: p.x, y: p.y + 1.5, z: p.z };
+      const chest = { x: at.x, y: at.y + 1.3, z: at.z };
+      if (lineBlocked(zone.colliders, eye, chest, zone.ground)) continue;
+      bestD = d;
+      best = g;
+    }
+    return best;
+  };
+
+  /** Where a stone thrown the way you face comes down: short of the first wall in its way. */
+  const landing = (ctx: ToolContext, t: ToolDef): { x: number; y: number; z: number } => {
+    const p = ctx.player.position;
+    const h = ctx.player.heading;
+    const from = { x: p.x, y: p.y + 1.6, z: p.z };
+    const step = 0.5;
+    let reach = defs.file.throw.minM;
+    for (let d = step; d <= t.reachM; d += step) {
+      const at = { x: p.x + Math.sin(h) * d, y: p.y + 1.6, z: p.z - Math.cos(h) * d };
+      if (lineBlocked(zone.colliders, from, at)) break;
+      reach = d;
+    }
+    const x = p.x + Math.sin(h) * reach;
+    const z = p.z - Math.cos(h) * reach;
+    return { x, y: zone.ground.heightAt(x, z), z };
   };
 
   const self: OnFootTools = {
@@ -292,8 +390,9 @@ export function createTools(
       return carrying;
     },
     armed() {
-      return selected.drawn && count(selected) > 0 && carrying === undefined;
+      return selected.drawn && count(selected) > 0 && carrying === undefined && !handsFull();
     },
+    lowPriority: (o) => o.verb === 'throw',
     offer(ctx) {
       if (carrying) {
         const g = stealth.guard(carrying);
@@ -306,7 +405,7 @@ export function createTools(
           holdS: 0,
         };
       }
-      if (ctx.player.swimming) return undefined;
+      if (ctx.player.swimming || handsFull()) return undefined;
       const fromTool = toolOffer(ctx);
       if (fromTool) return fromTool;
       const down = nearest(ctx, 1.6, liftable);
@@ -323,12 +422,49 @@ export function createTools(
     use(ctx) {
       const out: ToolEvent[] = [];
       const o = self.offer(ctx);
-      if (!o || !o.ok || !o.target) return out;
+      if (!o || !o.ok) return out;
+      const p = ctx.player.position;
+      if (o.verb === 'throw') {
+        const at = landing(ctx, o.tool as ToolDef);
+        stealth.noise({
+          kind: 'distraction',
+          ...at,
+          radiusM: (o.tool as ToolDef).noiseM,
+          source: 'player',
+        });
+        emit(out, { type: 'StoneThrown', ...at });
+        return out;
+      }
+      if (!o.target) return out;
       const g = stealth.guard(o.target);
       if (!g) return out;
       const now = ctx.gameSeconds;
-      const p = ctx.player.position;
       switch (o.verb) {
+        case 'shoot': {
+          const t = o.tool as ToolDef;
+          const gun = defs.file.guns;
+          const d = Math.hypot(g.body.position.x - p.x, g.body.position.z - p.z);
+          const k = Math.min(1, d / t.reachM);
+          const hit = rng.chance(gun.hitNear + (gun.hitFar - gun.hitNear) * k);
+          // Everyone looking sees the flash: the target too, if he's facing you.
+          const seenBy = stealth.witnessAct(hit ? g.id : undefined).map((w) => w.id);
+          let killed = false;
+          if (hit) {
+            killed = rng.chance(gun.killOnHit);
+            if (killed) stealth.kill(g.id);
+            else stealth.knockOut(g.id, now, defs.file.takedown.outH * 3600);
+          }
+          stealth.noise({
+            kind: 'gunshot',
+            x: p.x,
+            y: p.y + 1.4,
+            z: p.z,
+            radiusM: t.noiseM,
+            source: 'player',
+          });
+          emit(out, { type: 'Shot', npc: g.id, tool: t.id, hit, killed, seenBy });
+          return out;
+        }
         case 'knockOut':
         case 'kill': {
           const t = o.tool as ToolDef;

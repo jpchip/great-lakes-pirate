@@ -37,6 +37,43 @@
       "name": "Bribe",
       "kind": "bribe",
       "reachM": 2.4
+    },
+    {
+      "id": "tool.crowbar",
+      "name": "Crowbar",
+      "kind": "force",
+      "store": "store.crowbar",
+      "reachM": 1.6,
+      "holdS": 1.2,
+      "noiseM": 16,
+      "drawn": true
+    },
+    {
+      "id": "tool.stone",
+      "name": "Stone",
+      "kind": "throw",
+      "reachM": 14,
+      "noiseM": 9
+    },
+    {
+      "id": "tool.pistol",
+      "name": "Pistol",
+      "kind": "gun",
+      "store": "store.pistol",
+      "reachM": 14,
+      "noiseM": 200,
+      "drawn": true,
+      "holdS": 0.4
+    },
+    {
+      "id": "tool.rifle",
+      "name": "Rifle",
+      "kind": "gun",
+      "weapon": "weapon.rifle",
+      "reachM": 60,
+      "noiseM": 260,
+      "drawn": true,
+      "holdS": 1.2
     }
   ],
   "takedown": {
@@ -73,5 +110,15 @@
       "contracts": [8, 17],
       "ledger": [8, 17]
     }
+  },
+  "guns": {
+    "coneDeg": 14,
+    "hitNear": 0.95,
+    "hitFar": 0.45,
+    "killOnHit": 0.85
+  },
+  "throw": {
+    "minM": 4,
+    "arcDeg": 30
   }
 }

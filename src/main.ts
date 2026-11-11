@@ -131,7 +131,12 @@ import { mountGameUi } from './ui/mount';
 import { showMainMenu } from './ui/menu/mount-menu';
 import type { MenuChoice } from './ui/menu/MainMenu';
 import { randomSeed, savedRunSummary } from './ui/menu/model';
-import { allPortraits, backgroundDef, type BackgroundKey } from './sim/character/backgrounds';
+import {
+  allPortraits,
+  backgroundDef,
+  hasPerk,
+  type BackgroundKey,
+} from './sim/character/backgrounds';
 import { createNewRun, startingPort } from './sim/character/new-run';
 import { withSailingPerks } from './sim/character/perks';
 import { attachCaptain } from './gameplay/captain';
@@ -155,7 +160,8 @@ import { SHIP_RECORDS, serviceSpeedKn } from './sim/sailing/ships';
 import { advanceGameTime } from './core/time';
 import { knotsToMs } from './core/coords';
 import { fitRefusal } from './sim/combat/armament';
-import { addToHold } from './sim/economy/hold';
+import { addToHold, holdFree } from './sim/economy/hold';
+import type { Crate } from './gameplay/onfoot/heist';
 import { regionAtChart, regionAtZone } from './sim/law/regions';
 import type { Identification, WitnessKind } from './sim/law/witness';
 import { attachLantern, DARK_WARNING_M } from './gameplay/lantern';
@@ -2517,6 +2523,38 @@ async function boot(): Promise<void> {
     }
   };
   const footLook = new PointerLook(renderer?.renderer.domElement ?? container);
+  /**
+   * A crate carried up the gangway (Phase 7 piece E): into the hold, hot with its owner's
+   * marks, one stack a good, owner and night.
+   */
+  const stowCrate = (crate: Crate, region: string): string | undefined => {
+    const cargo = state.player.cargo;
+    if (holdFree(cargo, economy.capacity) < 1) return 'The hold is full';
+    const same = cargo.find(
+      (s) =>
+        s.good === crate.good &&
+        !s.contract &&
+        s.hot?.owner === crate.owner &&
+        s.hot?.region === region &&
+        Math.abs((s.hot?.since ?? -Infinity) - crate.since) < 6 * 3600,
+    );
+    if (same) same.qty += 1;
+    else {
+      cargo.push({
+        good: crate.good,
+        qty: 1,
+        hot: {
+          region,
+          heat: 1,
+          traceability: economy.defs.goods.get(crate.good)?.traceability ?? 0.5,
+          since: crate.since,
+          ...(crate.owner ? { owner: crate.owner } : {}),
+        },
+      });
+    }
+    economy.syncLoad();
+    return undefined;
+  };
   /** Dev hook: forces `suspect` on foot (see `__glpFoot.suspect`). */
   const suspectOverride: { value: boolean | undefined } = { value: undefined };
   const ashore = attachAshore({
@@ -2586,11 +2624,32 @@ async function boot(): Promise<void> {
         suspect: () => suspectOverride.value,
         // Piece E: the tool belt spends your purse and stores; its crimes go to the law.
         pockets: state.player,
+        hasWeapon: (id) => !!state.player.ship?.weapons.some((w) => w.weapon === id),
         law: {
           commit: (input) => law.commit(input),
           addWitness: (id, w) => law.addWitness(id, w),
+          detail: (id, details) => {
+            const open = state.reports.crimes.find((c) => c.id === id);
+            if (open) open.details = details;
+          },
           region,
           port: landing.def.port,
+        },
+        // Part two: the district's locks and loot, remembered in the save.
+        heist: {
+          targets: landing.def.targets,
+          world: ((state.districts ??= {})[landing.def.id] ??= { containers: {}, doors: {} }),
+          hooks: {
+            stowPoints: () => ashoreRef.current?.stowPoints() ?? [],
+            stow: (crate) => stowCrate(crate, region()),
+            takeStock: (good, qty) => {
+              const s = state.markets[landing.def.port]?.[good];
+              if (s) s.stock = Math.max(0, s.stock - qty);
+            },
+            readPapers: () => rumors.readSchedule(landing.def.port)?.text,
+            perk: (id) => hasPerk(state.player.captain, id),
+            notice: (text) => showNotice(text),
+          },
         },
       });
     },
@@ -2734,6 +2793,32 @@ async function boot(): Promise<void> {
         state.player.stores['store.cosh'] = 1;
         state.player.stores['store.rope'] = 2;
         state.player.stores['store.whiskey'] = 3;
+      },
+      /** Part two: picks, a crowbar and the pistol, as if from the chandlery. */
+      restockBurglar: () => {
+        state.player.stores['store.lockpicks'] = 4;
+        state.player.stores['store.crowbar'] = 1;
+        state.player.stores['store.pistol'] = 1;
+      },
+      /** Part two: the locks and loot, in the district's local meters. */
+      heist: () => {
+        const h = ashore.watch?.heist;
+        const t = state.environment.clock.gameSeconds;
+        return {
+          carrying: h?.carrying && { ...h.carrying },
+          doors:
+            h?.doors.map((d) => ({ id: d.id, x: d.x, z: d.z, locked: h.locked(d.id, t) })) ?? [],
+          containers:
+            h?.containers.map((c) => ({
+              mark: c.mark,
+              x: c.x,
+              z: c.z,
+              ...h.contents(c.mark, t),
+            })) ?? [],
+          hot: state.player.cargo.filter((s) => s.hot).map((s) => ({ ...s })),
+          stow: ashore.stowPoints()[0],
+          prompt: ashore.toolsHud()?.prompt?.label,
+        };
       },
       /** Piece E: the tool belt and conduct as the HUD has them. */
       tools: () => {

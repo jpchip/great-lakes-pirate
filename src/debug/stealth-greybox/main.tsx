@@ -172,6 +172,10 @@ const describeTool = (e: ToolEvent): string => {
       return e.sunk
         ? `${who(e.npc)} went into the lake${e.drowned ? ' and drowned' : ''}`
         : `You put ${who(e.npc)} down`;
+    case 'StoneThrown':
+      return `A stone clatters down at ${e.x.toFixed(0)}, ${e.z.toFixed(0)}`;
+    case 'Shot':
+      return `You shot at ${who(e.npc)}: ${e.hit ? (e.killed ? 'dead' : 'down, wounded') : 'missed'}`;
   }
 };
 const describeLaw = (e: LawEvent): string | undefined => {

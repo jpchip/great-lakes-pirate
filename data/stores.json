@@ -47,5 +47,27 @@
     "blurb": "A quart of rye. A watchman or a sailor on a cold night seldom says no to a drink.",
     "priceCents": 75,
     "max": 6
+  },
+  {
+    "id": "store.lockpicks",
+    "name": "Lockpicks",
+    "blurb": "A roll of picks and a tension wrench. Opens a padlock or a door lock if you've the patience; a pick can snap.",
+    "priceCents": 300,
+    "max": 6
+  },
+  {
+    "id": "store.crowbar",
+    "name": "Crowbar",
+    "blurb": "A two-foot pry bar. Forces a door or a crate in a moment, loudly, and leaves the marks to show it.",
+    "priceCents": 120,
+    "max": 1
+  },
+  {
+    "id": "store.pistol",
+    "name": "Pocket revolver",
+    "blurb": "A .38 five-shot. Halvorsen sells one only to a captain whose name he knows. A shot is heard all over town.",
+    "priceCents": 900,
+    "max": 1,
+    "fameTier": 2
   }
 ]

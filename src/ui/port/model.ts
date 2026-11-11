@@ -23,6 +23,7 @@ import {
 } from '../../sim/economy/contraband';
 import {
   storeItems,
+  storeOffered,
   storePriceCents,
   storeRoom,
   type ShipStores,
@@ -389,6 +390,8 @@ export interface PortSources {
   markets: MarketsState;
   knowledge: PriceKnowledge;
   trader: Trader & { stores: ShipStores };
+  /** The captain's Fame tier: some stores are sold only to a known name (the pistol). */
+  fameTier?: number;
   capacity: number;
   load01: number;
   cargoSpeedLoss: number;
@@ -892,18 +895,20 @@ export function portSnapshot(src: PortSources): PortSnapshot {
     .sort((a, b) => goodOrder(defs)(a.good, b.good) || Number(a.hot) - Number(b.hot));
 
   const stores: StoreRow[] = services.includes('chandlery')
-    ? storeItems().map((item) => {
-        const price = storePriceCents(defs, port, item);
-        return {
-          id: item.id,
-          name: item.name,
-          blurb: item.blurb,
-          priceCents: price,
-          have: trader.stores[item.id] ?? 0,
-          max: item.max,
-          maxBuy: Math.min(storeRoom(trader.stores, item), Math.floor(trader.purse / price)),
-        };
-      })
+    ? storeItems()
+        .filter((item) => storeOffered(item, src.fameTier ?? 0))
+        .map((item) => {
+          const price = storePriceCents(defs, port, item);
+          return {
+            id: item.id,
+            name: item.name,
+            blurb: item.blurb,
+            priceCents: price,
+            have: trader.stores[item.id] ?? 0,
+            max: item.max,
+            maxBuy: Math.min(storeRoom(trader.stores, item), Math.floor(trader.purse / price)),
+          };
+        })
     : [];
 
   const yard = (place: 'shipyard' | 'chandlery'): YardSnapshot | undefined =>

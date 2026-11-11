@@ -1,0 +1,52 @@
+{
+  "tables": [
+    {
+      "id": "loot.fish_warehouse",
+      "name": "crates of salted fish",
+      "crates": [
+        { "good": "good.salted_fish", "min": 2, "max": 4 },
+        { "good": "good.salt", "min": 0, "max": 2 }
+      ]
+    },
+    {
+      "id": "loot.packing_floor",
+      "name": "barrels of salted fish",
+      "crates": [{ "good": "good.salted_fish", "min": 1, "max": 3 }],
+      "cashCents": [0, 1500]
+    },
+    {
+      "id": "loot.freight_shed",
+      "name": "package freight",
+      "crates": [
+        { "good": "good.dry_goods", "min": 1, "max": 2 },
+        { "good": "good.kerosene", "min": 0, "max": 2 },
+        { "good": "good.flour", "min": 1, "max": 2 }
+      ],
+      "documents": 0.3
+    },
+    {
+      "id": "loot.chandlery_store",
+      "name": "the chandler's storeroom",
+      "crates": [
+        { "good": "good.powder_shot", "min": 1, "max": 2 },
+        { "good": "good.rope_canvas", "min": 1, "max": 2 }
+      ],
+      "cashCents": [500, 3000]
+    },
+    {
+      "id": "loot.strongbox",
+      "name": "the harbor master's strongbox",
+      "cashCents": [6000, 15000],
+      "documents": 1
+    }
+  ],
+  "restockDays": 2,
+  "season": { "spring": 0.8, "summer": 1, "fall": 1.5, "winter": 1.25 },
+  "carry": {
+    "liftS": 0.6,
+    "takeS": 1.5,
+    "walk": 0.7,
+    "run": 0.65,
+    "strongBack": { "perk": "perk.strong_back", "speed": 1.2 }
+  }
+}

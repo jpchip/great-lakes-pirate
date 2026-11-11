@@ -1,0 +1,30 @@
+{
+  "tiers": {
+    "1": {
+      "pickS": 2,
+      "clickPerS": 0.25,
+      "clickM": 4,
+      "breakPerS": 0.04,
+      "forceS": 1,
+      "forceM": 14
+    },
+    "2": {
+      "pickS": 4,
+      "clickPerS": 0.3,
+      "clickM": 5,
+      "breakPerS": 0.07,
+      "forceS": 1.6,
+      "forceM": 16
+    },
+    "3": {
+      "pickS": 7,
+      "clickPerS": 0.35,
+      "clickM": 6,
+      "breakPerS": 0.1,
+      "forceS": 2.4,
+      "forceM": 18
+    }
+  },
+  "picks": "store.lockpicks",
+  "bootPick": { "perk": "perk.boot_lockpick", "speed": 1.25 }
+}
