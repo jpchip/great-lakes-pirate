@@ -2,6 +2,7 @@ import { R_ON_FOOT } from '../../core/time';
 import { gemLevel, SUSPICIOUS, type GemLevel } from '../../gameplay/onfoot/perception';
 import type { GuardState, StealthReadout } from '../../gameplay/onfoot/stealth';
 import { sunAt } from '../../sim/weather/celestial';
+import type { FootToolsSnapshot } from './foot-tools-model';
 
 /**
  * The on-foot HUD's model (plan 13 §4.2, plan 08 §12; Phase 7 piece D): the light gem, the
@@ -63,6 +64,8 @@ export interface StealthHudSnapshot {
   dawn: DawnView | undefined;
   /** The worst any guard is at: drives a banner line and the music (piece I). */
   danger: 'none' | 'suspicious' | 'searching' | 'pursued';
+  /** The tool belt, conduct and the F prompt (piece E), when there are tools to show. */
+  tools?: FootToolsSnapshot;
 }
 
 const GEM_WORDS: Record<GemLevel, string> = {

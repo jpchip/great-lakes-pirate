@@ -35,7 +35,7 @@ import { npcParade } from './gameplay/npc-ships';
 import { attachEconomy } from './gameplay/economy';
 import { attachPorts, type PortControl } from './gameplay/port';
 import { attachBackRoom } from './gameplay/back-room';
-import { fameTier, gameLaw } from './sim/law/defs';
+import { fameTier, gameLaw, wantedTier } from './sim/law/defs';
 import { attachRumors } from './gameplay/rumors';
 import { knowsRumor } from './sim/rumors/rumors';
 import { smugglerAnchorage } from './sim/economy/smuggler';
@@ -167,6 +167,9 @@ import { gameJail } from './sim/law/jail';
 import { buildLastRun, type LastRun, type RunEndCause, type RunEndDetail } from './sim/run/run-end';
 import { showTabLocked } from './ui/menu/tab-locked';
 import { attachAshore, type GameAshore } from './gameplay/ashore';
+import { districtFootprint, districtFrame } from './gameplay/district/ground';
+import { createWatch } from './gameplay/onfoot/watch';
+import { stealthHud } from './ui/hud/stealth-model';
 import { PointerLook } from './core/pointer-look';
 import { calendarDate } from './core/time';
 import { weekLabel, clockLabel } from './ui/hud/model';
@@ -2514,6 +2517,8 @@ async function boot(): Promise<void> {
     }
   };
   const footLook = new PointerLook(renderer?.renderer.domElement ?? container);
+  /** Dev hook: forces `suspect` on foot (see `__glpFoot.suspect`). */
+  const suspectOverride: { value: boolean | undefined } = { value: undefined };
   const ashore = attachAshore({
     ctx,
     ship: playerShip,
@@ -2549,6 +2554,55 @@ async function boot(): Promise<void> {
     // Rowed ashore from the wreck: on to the nearest yard (Phase 7 piece A, decision 2).
     castawayLanded: () => abandon.cameAshore(),
     look: footLook,
+    // Bayfield's district (Phase 7): only for a harbor in the zone you're in.
+    districtFrame: (def) => {
+      const h = findHarbor(def.harbor);
+      if (!zone || !h || harborZoneId(h) !== zoneData.id) return undefined;
+      return districtFrame(def, districtFootprint(def, manifestFrame(zone.manifest)));
+    },
+    // The night watch on its navmesh (piece D's guards), sized by the region's Wanted tier.
+    watch: (landing, onCaptured) => {
+      if (!landing.nav) return undefined;
+      const region = (): string => law.region() ?? '';
+      const tierNow = (): number => wantedTier(law.defs, state.wanted[region()]?.heat ?? 0);
+      const fameTiers = Math.max(1, law.defs.fame.tiers.length - 1);
+      return createWatch({
+        model: landing.model,
+        nav: landing.nav,
+        tier: tierNow(),
+        seed: trafficSeed,
+        conditions: () => {
+          const t = state.environment.clock.gameSeconds;
+          return {
+            gameSeconds: t,
+            cloud01: ctx.weather.cloudAt(t),
+            fogM: ctx.weather.fogVisibilityAt(t),
+            rain01: ctx.weather.rainAt(t),
+            wantedTier: tierNow(),
+            fame01: fameTier(law.defs, state.fame.value) / fameTiers,
+          };
+        },
+        onCaptured,
+        suspect: () => suspectOverride.value,
+        // Piece E: the tool belt spends your purse and stores; its crimes go to the law.
+        pockets: state.player,
+        law: {
+          commit: (input) => law.commit(input),
+          addWitness: (id, w) => law.addWitness(id, w),
+          region,
+          port: landing.def.port,
+        },
+      });
+    },
+    // Taken on foot: to the lockup as the Morrill would take you at sea (Phase 5's jail).
+    captured: (by) => {
+      ctx.events.emit('PlayerCaptured', {
+        by: by === 'npc.watchman' || by === 'npc.marshal' ? by : 'npc.constable',
+        region: law.region() ?? '',
+        how: 'subdued',
+        at: zoneToChart(shipPose(), zoneFrame(zone, zoneData)),
+      });
+    },
     view: scene && {
       render: (alpha, seaTime, frameSeconds) => view?.render(alpha, seaTime, frameSeconds),
       get foot() {
@@ -2629,6 +2683,76 @@ async function boot(): Promise<void> {
         };
       },
       saved: () => ({ ashore: state.player.ashore, rowboat: state.player.rowboat }),
+      /** Where you stand in zone meters (`state().at` is the scene's own frame). */
+      zoneAt: () => ashore.zoneAt(),
+      /** The district and its watch (Phase 7): guards in the district's local meters. */
+      watch: () => {
+        const w = ashore.watch;
+        return {
+          district: ashore.district?.def.id,
+          tier: w?.tier,
+          pursued: ashore.pursued,
+          captured: w?.stealth.captured ?? false,
+          lastStepMs: w?.stealth.lastStepMs,
+          guards: w?.readout().guards.map((g) => ({ ...g })) ?? [],
+          gem: document.body.dataset['gem'],
+        };
+      },
+      /** Puts you at district-local (x, z), on the floor there, facing a local heading (deg). */
+      teleportLocal: (x: number, z: number, headingDeg?: number, pitch?: number) => {
+        const d = ashore.district;
+        if (!d) return false;
+        const p = d.frame.toZone(x, z);
+        ashore.teleport(p.x, p.z);
+        if (headingDeg !== undefined) {
+          ashore.face(d.frame.headingToZone((headingDeg * Math.PI) / 180), pitch);
+        }
+        return true;
+      },
+      /**
+       * Piece E: stands you `distM` behind a guard (held at his post), facing his way, as a
+       * cosh would want. False if there's no such guard.
+       */
+      behindGuard: (id: string, distM = 1.5) => {
+        const d = ashore.district;
+        const g = ashore.watch?.stealth.guard(id);
+        if (!d || !g) return false;
+        g.waitS = 1e6;
+        g.path = undefined;
+        const wp = g.route.points[g.waypoint];
+        if (wp) wp.face = g.body.heading;
+        const h = g.body.heading;
+        const x = g.body.position.x - Math.sin(h) * distM;
+        const z = g.body.position.z + Math.cos(h) * distM;
+        const p = d.frame.toZone(x, z);
+        ashore.teleport(p.x, p.z, g.body.position.y);
+        ashore.face(d.frame.headingToZone(h));
+        return true;
+      },
+      /** Piece E: a cosh, two lengths of rope and three bottles, as if from the chandlery. */
+      restock: () => {
+        state.player.stores['store.cosh'] = 1;
+        state.player.stores['store.rope'] = 2;
+        state.player.stores['store.whiskey'] = 3;
+      },
+      /** Piece E: the tool belt and conduct as the HUD has them. */
+      tools: () => {
+        const w = ashore.watch;
+        return {
+          selected: w?.tools?.selected.id,
+          carrying: w?.tools?.carrying,
+          conduct: w?.conduct?.reason,
+          offer: ashore.toolsHud()?.prompt?.label,
+          purse: state.player.purse,
+        };
+      },
+      /**
+       * Overrides whether being seen is suspicious (true: anything you do is; undefined: the
+       * conduct rule), to test detection, pursuit and capture end to end.
+       */
+      suspect: (on: boolean | undefined) => {
+        suspectOverride.value = on;
+      },
       /** Ground height above the lake at a zone point (negative under water). */
       height: (x: number, z: number) => ctx.terrain?.heightAt(x, z),
       save: () => saveControls.saveNow(),
@@ -3273,7 +3397,12 @@ async function boot(): Promise<void> {
       if (arena?.run.result) leaveArena(arena.run.result);
       // Danger (plan 16 §4.2–4.3): a hunt on snapshots the run; its end clears it.
       const hunted =
-        (pursued || !!arena?.run.pursued || pursuitOn.size > 0 || foundering()) && !run.over;
+        (pursued ||
+          !!arena?.run.pursued ||
+          pursuitOn.size > 0 ||
+          foundering() ||
+          !!ashoreRef.current?.pursued) &&
+        !run.over;
       if (hunted !== run.inDanger) setDanger(hunted);
       // A capture is taken once the arena it happened in is gone (piece C raises it there).
       if (capture.pending && !arena && !inArenaSpace && !changingZone && !run.over) {
@@ -3413,15 +3542,47 @@ async function boot(): Promise<void> {
             : 'foot';
         document.body.dataset['footPrompt'] = body.prompt ?? '';
         document.body.dataset['health'] = String(Math.round(body.health));
+        // The stealth HUD in a district (Phase 7 piece D): what the watch sees of you.
+        const readout = ashore.stealthReadout();
+        const cam = scene?.camera;
+        const canvas = renderer?.renderer.domElement;
+        if (readout) {
+          const vp = { width: canvas?.clientWidth ?? 1280, height: canvas?.clientHeight ?? 720 };
+          const v = new Vector3();
+          const project = (q: { x: number; y: number; z: number }) => {
+            if (!cam) return { x: vp.width / 2, y: vp.height / 2, behind: false };
+            v.set(q.x, q.y, q.z).applyMatrix4(cam.matrixWorldInverse);
+            const behind = v.z > 0;
+            v.set(q.x, q.y, q.z).project(cam);
+            return { x: ((v.x + 1) / 2) * vp.width, y: ((1 - v.y) / 2) * vp.height, behind };
+          };
+          const snap = stealthHud(readout, ashore.zoneAt(), project, vp, now);
+          const tools = ashore.toolsHud();
+          ui.setStealthHud(tools ? { ...snap, tools } : snap);
+          const conduct = ashore.watch?.conduct;
+          document.body.dataset['conduct'] = conduct?.reason ?? 'none';
+          document.body.dataset['gem'] = snap.gem.level;
+          document.body.dataset['danger'] = snap.danger;
+        } else {
+          ui.setStealthHud(undefined);
+          delete document.body.dataset['gem'];
+          delete document.body.dataset['danger'];
+        }
       } else if (hudClock >= HUD_INTERVAL_S && machine.mode === 'chart') {
         hudClock = 0;
         ui.setFootHud(undefined);
+        ui.setStealthHud(undefined);
         ui.setHud(undefined);
         ui.setCaptions([]);
         chartTravel.sampleHud();
       } else if (hudClock >= HUD_INTERVAL_S) {
         hudClock = 0;
         ui.setFootHud(undefined);
+        ui.setStealthHud(undefined);
+        if (document.body.dataset['gem']) {
+          delete document.body.dataset['gem'];
+          delete document.body.dataset['danger'];
+        }
         ui.setCaptions(audio?.captionsNow() ?? []);
         ui.setHud(
           sampleHud({

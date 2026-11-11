@@ -29,6 +29,16 @@ import type { Pose } from '../sim/terrain/test-bay';
 import type { ZoneTerrain } from '../sim/terrain/zone-terrain';
 import { climateAt } from '../sim/weather/climate';
 import type { AshoreState, RowboatSave, WorldState } from '../sim/world-state';
+import type { DistrictDef } from '../../data/schemas/districts';
+import {
+  districtForHarbor,
+  insideDistrict,
+  landInDistrict,
+  loadDistrictAssets,
+  shipCollider,
+  type DistrictLanding,
+} from './district/district-ashore';
+import type { DistrictFrame } from './district/ground';
 import { bobSystem, snapshotTransforms, type Entity, type Transform } from './ecs';
 import { buoyancySystem } from './buoyancy';
 import {
@@ -40,6 +50,9 @@ import {
 } from './onfoot/ashore-scene';
 import { FollowCamera, ROWING_CAMERA, roofOver } from './onfoot/camera';
 import { footprintDistance, type Collider, type Push } from './onfoot/colliders';
+import type { Watch } from './onfoot/watch';
+import type { FootToolsSnapshot } from '../ui/hud/foot-tools-model';
+import type { StealthReadout } from './onfoot/stealth';
 import {
   climbDownLadder,
   createCharacter,
@@ -91,6 +104,15 @@ export interface AshoreDeps {
   /** Cast away from a lost ship (decision 2), you've reached dry land. */
   castawayLanded?(): void;
   look: PointerLook;
+  /**
+   * Where a docks district sits in this zone (Phase 7): its frame from the harbor's set
+   * piece. Without it, every landing is piece A's stand-in scene.
+   */
+  districtFrame?(def: DistrictDef): DistrictFrame | undefined;
+  /** The night watch for a district you've landed in (piece D's guards), if any. */
+  watch?(landing: DistrictLanding, onCaptured: (by: string) => void): Watch | undefined;
+  /** A guard took you on foot: `by` is their npc type. You're already off your feet. */
+  captured?(by: string): void;
   /** The view drawn each frame; its `foot` is set while you're ashore. */
   view?: (SailingView & { foot: FootFrame | undefined }) | undefined;
 }
@@ -136,8 +158,22 @@ export interface GameAshore {
   record(state: WorldState): void;
   /** Back ashore as the save left you (the ship already moored as it was). */
   resume(saved: AshoreState): void;
-  /** For the dev hooks: where to put you. */
+  /** For the dev hooks: where to put you, zone meters. */
   teleport(x: number, z: number, y?: number): void;
+  /** For the dev hooks and screenshots: face a zone bearing, the camera behind you. */
+  face(bearing: number, pitch?: number): void;
+  /** The docks district you're walking, if this landing has one (Bayfield). */
+  readonly district: DistrictLanding | undefined;
+  /** Its night watch: piece E's tools act on `watch.stealth`. */
+  readonly watch: Watch | undefined;
+  /** A guard is chasing you ashore: the danger snapshot, no autosave. */
+  readonly pursued: boolean;
+  /** Where you stand, zone meters (the district's local frame turned out). */
+  zoneAt(): { x: number; y: number; z: number; heading: number };
+  /** The watch's readout with the guards placed in zone meters, for the stealth HUD. */
+  stealthReadout(): StealthReadout | undefined;
+  /** The tool belt, conduct and the F prompt (piece E), when the watch has tools. */
+  toolsHud(): FootToolsSnapshot | undefined;
 }
 
 /** What the on-foot HUD shows (plan 13 §4.2's minimum for piece A). */
@@ -186,6 +222,19 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
   let dead = false;
   /** Cast away: told main once you're on dry land. */
   let landedTold = false;
+  /** The docks district this landing walks (local meters), or none (zone meters). */
+  let district: DistrictLanding | undefined;
+  let watch: Watch | undefined;
+  /** Taken by a guard: the fade to the lockup is under way. */
+  let taken = false;
+
+  // The scene's frame: a district's local meters, or the zone's own.
+  const toScene = (p: { x: number; z: number }): { x: number; z: number } =>
+    district ? district.frame.toLocal(p) : { x: p.x, z: p.z };
+  const toZone = (x: number, z: number): { x: number; z: number } =>
+    district ? district.frame.toZone(x, z) : { x, z };
+  const headingToZone = (h: number): number => (district ? district.frame.headingToZone(h) : h);
+  const headingToScene = (h: number): number => (district ? district.frame.headingToLocal(h) : h);
 
   const hazards = (): NonNullable<Entity['hazards']> => {
     const h = deps.ship.hazards;
@@ -209,7 +258,78 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
     return undefined;
   };
 
+  /**
+   * The district to land in from this pier (Bayfield), loaded: only where the gangway
+   * lies inside it. Undefined means piece A's stand-in scene.
+   */
+  const districtLanding = async (pier: PlacedPier): Promise<DistrictLanding | undefined> => {
+    if (!deps.districtFrame) return undefined;
+    const harbor = deps.harbors().find((l) => l.piers.includes(pier));
+    const def = harbor && districtForHarbor(harbor.def.id);
+    const frame = def && deps.districtFrame(def);
+    if (!def || !frame) return undefined;
+    const assets = await loadDistrictAssets(def);
+    if (!assets) return undefined;
+    const gang = frame.toLocal(gangwayAt(pier, shipPose()));
+    const landing = landInDistrict(assets, frame, shipCollider(frame, shipPose(), deps.hull));
+    return insideDistrict(landing.model, gang.x, gang.z) ? landing : undefined;
+  };
+
+  /**
+   * The gangway in the scene's frame. In a district the kit's pier can sit a little off the
+   * harbor kit's (they're drawn from the same plan, a cell apart at most), so it's the
+   * nearest deck to where the harbor kit puts it.
+   */
+  const gangway = (pier: PlacedPier): { x: number; y: number; z: number } => {
+    const at = gangwayAt(pier, shipPose());
+    if (!district) return at;
+    const m = district.model;
+    const l = toScene(at);
+    const dry = (x: number, z: number): boolean => m.floorAt(x, z) > m.waterLevel + 0.6;
+    if (!dry(l.x, l.z)) {
+      search: for (let r = 0.5; r <= 4; r += 0.5) {
+        for (let k = 0; k < 16; k++) {
+          const a = (k / 16) * Math.PI * 2;
+          const x = l.x + Math.sin(a) * r;
+          const z = l.z - Math.cos(a) * r;
+          if (dry(x, z)) {
+            l.x = x;
+            l.z = z;
+            break search;
+          }
+        }
+      }
+    }
+    return { x: l.x, y: m.floorAt(l.x, l.z), z: l.z };
+  };
+
+  /** Into a district: its scene, and its watch on duty. */
+  const enterDistrict = (landing: DistrictLanding): void => {
+    district = landing;
+    scene = landing.scene;
+    taken = false;
+    watch = deps.watch?.(landing, (by) => takenBy(by));
+  };
+
+  /** A guard has you: off your feet behind the fade, and the jail takes it from there. */
+  const takenBy = (by: string): void => {
+    if (taken) return;
+    taken = true;
+    const who =
+      by === 'npc.watchman'
+        ? 'The watchman'
+        : by === 'npc.marshal'
+          ? 'The marshal'
+          : 'The constable';
+    void deps.fade('Taken', `${who} marches you to the lockup`, () => {
+      leave();
+      deps.captured?.(by);
+    });
+  };
+
   const build = (center: { x: number; z: number }): AshoreScene | undefined => {
+    // A district is the whole scene: nothing to rebuild around you.
+    if (district) return district.scene;
     const terrain = deps.terrain();
     if (!terrain) return undefined;
     const g = terrain.height;
@@ -259,15 +379,23 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
     try {
       if (h.mooring === 'docked') {
         const pier = pierOf(h.berthId) as PlacedPier;
+        const landing = await districtLanding(pier);
         await deps.fade('Ashore', `Down the gangway onto the ${pier.name}`, () => {
           from = 'berth';
           berthId = h.berthId;
           anchor = undefined;
+          district = undefined;
+          watch = undefined;
           const at = gangwayAt(pier, shipPose());
-          scene = build(at);
           inBoat = false;
-          // Face along the pier toward the town.
-          placeCharacter(character, at, pier.bearing + Math.PI);
+          if (landing) {
+            enterDistrict(landing);
+            // Face along the pier toward the town.
+            placeCharacter(character, gangway(pier), headingToScene(pier.bearing + Math.PI));
+          } else {
+            scene = build(at);
+            placeCharacter(character, at, pier.bearing + Math.PI);
+          }
           copyPrevious();
           enter();
         });
@@ -335,6 +463,8 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
   const leave = (): void => {
     active = false;
     scene = undefined;
+    district = undefined;
+    watch = undefined;
     inBoat = false;
     boat = undefined;
     boatState = 'stowed';
@@ -470,7 +600,7 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
     if (from === 'berth' && berthId) {
       const pier = pierOf(berthId);
       if (pier && c.grounded) {
-        const g = gangwayAt(pier, shipPose());
+        const g = gangway(pier);
         if (
           Math.hypot(c.position.x - g.x, c.position.z - g.z) < REACH_M &&
           Math.abs(c.position.y - g.y) < 1
@@ -608,8 +738,23 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
       }
     }
 
-    prompt = findPrompt();
-    if (input.pressed('Interact') && prompt) prompt.act();
+    // The night watch looks and listens after you've moved (plan 08 §4–5).
+    if (watch && !taken) watch.step(dt, character);
+    if (!active || taken) return;
+
+    // The tool belt (piece E): 1–5 take a tool in hand, and F is the tool's when a guard is
+    // in reach of it (or a man who's down), else the ashore prompt's.
+    const belt = watch?.tools;
+    if (belt) {
+      (['Tool1', 'Tool2', 'Tool3', 'Tool4', 'Tool5'] as const).forEach((a, n) => {
+        if (input.pressed(a)) belt.selectSlot(n);
+      });
+    }
+    const toolTookF =
+      !inBoat &&
+      !!watch?.interact(dt, character, input.isDown('Interact'), input.pressed('Interact'));
+    prompt = toolTookF ? undefined : findPrompt();
+    if (!toolTookF && input.pressed('Interact') && prompt) prompt.act();
 
     if (state.player.health <= 0 && !dead) {
       dead = true;
@@ -638,7 +783,8 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
       snapshotTransforms(ctx.world);
       ctx.sea.time += dt;
       tickOnFootClock(ctx, dt);
-      ctx.weather.tick(state.environment.clock.gameSeconds, character.position, ctx.sea);
+      const here = toZone(character.position.x, character.position.z);
+      ctx.weather.tick(state.environment.clock.gameSeconds, here, ctx.sea);
       bobSystem(ctx.world, elapsed);
       buoyancySystem(ctx.world, ctx.sea, dt);
       if (!inBoat) copyPrevious();
@@ -681,15 +827,51 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
       const head =
         y +
         (character.crouching ? DEFAULT_CONTROLLER.crouchHeight : DEFAULT_CONTROLLER.standHeight);
-      const indoors = !inBoat && roofOver(scene, x, head, z);
+      const indoors =
+        !inBoat &&
+        (district ? !!district.model.buildingAt(x, head - 0.3, z) : roofOver(scene, x, head, z));
       cam.update(feet, character.crouching || character.swimming, scene, frameSeconds, indoors);
+      // The scene's frame out to the zone's, where the world is drawn.
+      const out = (p: { x: number; y: number; z: number }): { x: number; y: number; z: number } => {
+        const q = toZone(p.x, p.z);
+        return { x: q.x, y: p.y, z: q.z };
+      };
+      const at = out({ x, y, z });
       view.foot = {
-        camera: { position: cam.position, target: cam.target },
+        camera: { position: out(cam.position), target: out(cam.target) },
+        district: district && {
+          harbor: district.def.harbor,
+          model: district.model,
+          frame: district.frame,
+          focus: { x, y: head, z },
+        },
+        guards: watch?.stealth.guards.map((g) => {
+          const p = g.body.position;
+          const q = g.previous;
+          const gx = q.x + (p.x - q.x) * alpha;
+          const gz = q.z + (p.z - q.z) * alpha;
+          const w = toZone(gx, gz);
+          const dg = Math.atan2(
+            Math.sin(g.body.heading - q.heading),
+            Math.cos(g.body.heading - q.heading),
+          );
+          return {
+            id: g.id,
+            type: g.type.id,
+            state: g.state,
+            x: w.x,
+            y: q.y + (p.y - q.y) * alpha,
+            z: w.z,
+            heading: headingToZone(q.heading + dg * alpha),
+            crouching: g.body.crouching,
+            lantern: !!g.lantern?.lit,
+          };
+        }),
         captain: {
-          x,
+          x: at.x,
           y,
-          z,
-          heading,
+          z: at.z,
+          heading: headingToZone(heading),
           crouching: character.crouching,
           swimming: character.swimming,
           visible: !inBoat,
@@ -755,56 +937,124 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
         return;
       }
       const c = character.position;
+      const z = toZone(c.x, c.z);
       s.player.ashore = {
         from,
-        at: { x: c.x, y: c.y, z: c.z, heading: character.heading },
+        at: { x: z.x, y: c.y, z: z.z, heading: headingToZone(character.heading) },
         inBoat,
         ...(berthId ? { berthId } : {}),
         ...(anchor ? { anchor: { ...anchor } } : {}),
       };
     },
     resume(saved) {
-      from = saved.from;
-      landedTold = false;
-      berthId = saved.berthId;
-      anchor = saved.anchor;
-      const rb = state.player.rowboat;
-      boat = rb.pose ? createRowboat(rb.pose.x, rb.pose.z, rb.pose.heading) : undefined;
-      boatState = boat ? rb.state : 'stowed';
-      inBoat = saved.inBoat && !!boat;
-      if (boat && boatState === 'beached') boat.beached = true;
-      scene = build(inBoat && boat ? boat : saved.at);
-      if (inBoat) seatInBoat();
-      else placeCharacter(character, saved.at, saved.at.heading);
-      copyPrevious();
-      enter();
+      // Back into a district (Bayfield) once it has loaded; else the stand-in at once.
+      const pier = saved.from === 'berth' ? pierOf(saved.berthId) : undefined;
+      if (pier && deps.districtFrame) {
+        void districtLanding(pier).then((landing) => resumeIn(saved, landing));
+        return;
+      }
+      resumeIn(saved, undefined);
     },
     teleport(x, z, y) {
       if (!active) return;
-      if (inBoat && boat) {
-        boat.x = x;
-        boat.z = z;
-        seatInBoat();
-      } else {
-        const ground = deps.terrain()?.heightAt(x, z) ?? 0;
-        placeCharacter(character, {
-          x,
-          y: y ?? Math.max(ground, -DEFAULT_CONTROLLER.swimDepth),
-          z,
-        });
+      if (district && !inBoat) {
+        const l = district.frame.toLocal({ x, z });
+        placeCharacter(character, { x: l.x, y: y ?? district.model.floorAt(l.x, l.z), z: l.z });
+        copyPrevious();
+        return;
       }
-      if (
-        !scene ||
-        x < scene.bounds.minX + 20 ||
-        x > scene.bounds.maxX - 20 ||
-        z < scene.bounds.minZ + 20 ||
-        z > scene.bounds.maxZ - 20
-      ) {
-        scene = build({ x, z }) ?? scene;
-      }
+      teleportZone(x, z, y);
+    },
+    face(bearing, pitch) {
+      const h = headingToScene(bearing);
+      character.heading = h;
+      walkCamera.yaw = h;
+      if (pitch !== undefined) walkCamera.pitch = pitch;
       copyPrevious();
     },
+    get district() {
+      return district;
+    },
+    get watch() {
+      return watch;
+    },
+    get pursued() {
+      return active && !!watch?.pursued;
+    },
+    zoneAt() {
+      const c = character.position;
+      const z = toZone(c.x, c.z);
+      return { x: z.x, y: c.y, z: z.z, heading: headingToZone(character.heading) };
+    },
+    toolsHud() {
+      return watch && active && !inBoat ? watch.toolsHud(character) : undefined;
+    },
+    stealthReadout() {
+      if (!watch || !active) return undefined;
+      const r = watch.readout();
+      return {
+        ...r,
+        guards: r.guards.map((g) => {
+          const z = toZone(g.x, g.z);
+          return { ...g, x: z.x, z: z.z };
+        }),
+      };
+    },
   };
+
+  function resumeIn(saved: AshoreState, landing: DistrictLanding | undefined): void {
+    from = saved.from;
+    landedTold = false;
+    berthId = saved.berthId;
+    anchor = saved.anchor;
+    district = undefined;
+    watch = undefined;
+    const rb = state.player.rowboat;
+    boat = rb.pose ? createRowboat(rb.pose.x, rb.pose.z, rb.pose.heading) : undefined;
+    boatState = boat ? rb.state : 'stowed';
+    inBoat = saved.inBoat && !!boat;
+    if (boat && boatState === 'beached') boat.beached = true;
+    if (landing) {
+      enterDistrict(landing);
+      const l = toScene(saved.at);
+      placeCharacter(
+        character,
+        { x: l.x, y: saved.at.y, z: l.z },
+        headingToScene(saved.at.heading),
+      );
+    } else {
+      scene = build(inBoat && boat ? boat : saved.at);
+      if (inBoat) seatInBoat();
+      else placeCharacter(character, saved.at, saved.at.heading);
+    }
+    copyPrevious();
+    enter();
+  }
+
+  function teleportZone(x: number, z: number, y?: number): void {
+    if (inBoat && boat) {
+      boat.x = x;
+      boat.z = z;
+      seatInBoat();
+    } else {
+      const ground = deps.terrain()?.heightAt(x, z) ?? 0;
+      placeCharacter(character, {
+        x,
+        y: y ?? Math.max(ground, -DEFAULT_CONTROLLER.swimDepth),
+        z,
+      });
+    }
+    if (
+      !scene ||
+      x < scene.bounds.minX + 20 ||
+      x > scene.bounds.maxX - 20 ||
+      z < scene.bounds.minZ + 20 ||
+      z > scene.bounds.maxZ - 20
+    ) {
+      scene = build({ x, z }) ?? scene;
+    }
+    copyPrevious();
+  }
 }
 
 export { ASHORE_HALF_M };

@@ -147,6 +147,7 @@ export function createDistrictView(
   const order = model.lamps.map((_, k) => k);
   const dist = new Float64Array(model.lamps.length);
   let inside: string | undefined;
+  const lampAt = new THREE.Vector3();
   return {
     group,
     get triangles() {
@@ -176,7 +177,9 @@ export function createDistrictView(
           color.setRGB(0, 0, 0);
           continue;
         }
-        pos.set(l.x, l.y, l.z, l.radiusM * POOL_REACH);
+        // The pools are lit in world space: placed on a zone, the lamps go with the group.
+        lampAt.set(l.x, l.y, l.z).applyMatrix4(group.matrix);
+        pos.set(lampAt.x, lampAt.y, lampAt.z, l.radiusM * POOL_REACH);
         color.copy(lampColors[k] ?? color).multiplyScalar(night);
       }
       // Lamp glass and lit windows: dull glass by day, glowing after dusk.

@@ -42,7 +42,13 @@ export type Action =
   | 'Journal'
   | 'LieAtAnchor'
   | 'Repair'
-  | 'GoAshore';
+  | 'GoAshore'
+  // The tool belt on foot (plan 08 §3.1: 1–6; Phase 7 piece E).
+  | 'Tool1'
+  | 'Tool2'
+  | 'Tool3'
+  | 'Tool4'
+  | 'Tool5';
 
 export type Bindings = Record<InputContext, Partial<Record<Action, readonly string[]>>>;
 
@@ -99,6 +105,11 @@ export const DEFAULT_BINDINGS: Bindings = {
     Sprint: ['ShiftLeft'],
     Interact: ['KeyF'],
     Journal: ['KeyJ'],
+    Tool1: ['Digit1'],
+    Tool2: ['Digit2'],
+    Tool3: ['Digit3'],
+    Tool4: ['Digit4'],
+    Tool5: ['Digit5'],
   },
   // Phase 3 piece D. Clicks plot on the chart canvas itself; M goes back to the helm and
   // follows the sailing binding when that is rebound. Backspace takes the last waypoint off.

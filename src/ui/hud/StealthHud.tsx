@@ -1,3 +1,4 @@
+import { FootTools } from './FootTools';
 import type { EyeView, GemView, NoiseView, StealthHudSnapshot } from './stealth-model';
 import './stealth.css';
 
@@ -154,6 +155,7 @@ export function StealthHud({ hud }: { hud: StealthHudSnapshot }) {
         <LightGem gem={hud.gem} />
         <NoiseRing noise={hud.noise} />
       </div>
+      {hud.tools && <FootTools hud={hud.tools} />}
     </div>
   );
 }

@@ -175,7 +175,8 @@ export function createTools(
     out.push(e);
     for (const fn of listeners) fn(e);
   };
-  let selected: ToolDef = defs.belt[0] as ToolDef;
+  // Nothing drawn to start: the purse is in hand, so an honest walk stays honest.
+  let selected: ToolDef = defs.belt.find((t) => t.kind === 'bribe') ?? (defs.belt[0] as ToolDef);
   let carrying: string | undefined;
   /** Who said no tonight, to money or drink. */
   const refusedBribe = new Set<string>();

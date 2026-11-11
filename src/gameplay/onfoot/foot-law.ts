@@ -98,6 +98,8 @@ export function createFootLaw(
     witnesses: Witness[],
     details?: CrimeInput['details'],
   ): void => {
+    // Nowhere the law knows (a district outside the regions): nothing to report to.
+    if (!place.region) return;
     const open = incidents.get(key);
     if (open) {
       for (const w of witnesses) record(hooks.addWitness(open, w));

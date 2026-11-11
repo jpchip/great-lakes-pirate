@@ -5,7 +5,8 @@
 .foot-tools {
   position: absolute;
   right: 18px;
-  bottom: 18px;
+  /* Above the controls hint (.foot-keys), which sits at the bottom right. */
+  bottom: 48px;
   display: flex;
   flex-direction: column;
   align-items: flex-end;

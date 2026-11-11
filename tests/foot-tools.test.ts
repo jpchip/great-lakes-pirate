@@ -196,6 +196,7 @@ function scene(
     stores: { 'store.cosh': 1, 'store.rope': 1, 'store.whiskey': 2 },
   };
   const tools = createTools(stealth, pockets, d, dice(opts.yes ?? true));
+  tools.select('tool.cosh');
   const defs = gameLaw();
   const inputs: StealthInputs = {
     player: createCharacter({ x: at.x, y: 1.5, z: at.z }, 0),
