@@ -140,7 +140,7 @@ export const jailSchema = z
     releaseAt: z.number(),
     /** Who took you and how (piece C's `PlayerCaptured`). */
     by: z.string().default('law.morrill'),
-    how: z.enum(['surrender', 'boarded']).default('surrender'),
+    how: z.enum(['surrender', 'boarded', 'subdued']).default('surrender'),
     /** The region's tier and heat when you were taken. */
     tier: z.number().int().min(0).default(0),
     heat: z.number().nonnegative().default(0),

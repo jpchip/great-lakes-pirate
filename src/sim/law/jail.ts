@@ -29,7 +29,8 @@ export function gameJail(): JailFile {
   return cached;
 }
 
-export type CaptureHow = 'surrender' | 'boarded';
+/** `subdued`: taken on foot by a constable, watchman or marshal (Phase 7 piece D). */
+export type CaptureHow = 'surrender' | 'boarded' | 'subdued';
 
 export interface CaptureInput {
   /** The region you were taken in. */

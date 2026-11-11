@@ -62,6 +62,24 @@
         "minH": 1,
         "maxH": 4
       }
+    },
+    "watchman": {
+      "delay": {
+        "minH": 0.1,
+        "maxH": 0.4
+      }
+    },
+    "constable": {
+      "delay": {
+        "minH": 0,
+        "maxH": 0
+      }
+    },
+    "sailor": {
+      "delay": {
+        "minH": 0.5,
+        "maxH": 3
+      }
     }
   },
   "dawnHour": 6,

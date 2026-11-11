@@ -217,9 +217,10 @@ export interface GameEvents {
         found: { good: string; qty: number; kind: 'hot' | 'contraband' }[];
       };
   PlayerCaptured: {
-    by: 'law.morrill' | 'law.chartered_tug';
+    /** On foot (Phase 7 piece D), a guard's npc type stands in: `npc.constable` and so on. */
+    by: 'law.morrill' | 'law.chartered_tug' | 'npc.watchman' | 'npc.constable' | 'npc.marshal';
     region: string;
-    how: 'surrender' | 'boarded';
+    how: 'surrender' | 'boarded' | 'subdued';
     at: Chart;
   };
   /**

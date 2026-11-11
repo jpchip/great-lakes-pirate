@@ -1,0 +1,215 @@
+/*
+ * The on-foot stealth HUD (plan 13 §4.2; Phase 7 piece D). Brass and enamel like the
+ * sailing HUD; every state has a shape and a word as well as a colour.
+ */
+.stealth-hud {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  font-family: var(--serif);
+  color: var(--hud-text);
+}
+
+.stealth-meters {
+  position: absolute;
+  bottom: 18px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 14px;
+  align-items: flex-end;
+}
+
+.stealth-gem,
+.stealth-noise {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  min-width: 64px;
+  padding: 6px 8px 4px;
+  background: var(--enamel);
+  border: 1px solid rgb(184 137 46 / 60%);
+  border-radius: 6px;
+}
+
+.stealth-gem svg {
+  width: 40px;
+  height: 40px;
+}
+
+.stealth-noise svg {
+  width: 44px;
+  height: 44px;
+}
+
+.stealth-word {
+  font-size: 12px;
+  letter-spacing: 0.02em;
+}
+
+.gem-edge {
+  fill: none;
+  stroke: var(--brass-light);
+  stroke-width: 1.4;
+}
+
+.gem-facets {
+  fill: none;
+  stroke: rgb(224 185 85 / 45%);
+  stroke-width: 0.6;
+}
+
+.gem-fill {
+  fill: #f6e7a8;
+}
+
+.gem-rays {
+  stroke: #f6e7a8;
+  stroke-width: 1.6;
+  stroke-linecap: round;
+}
+
+.gem-hidden .gem-edge {
+  stroke-dasharray: 3 2;
+  stroke: var(--fog-gray);
+}
+
+.gem-exposed {
+  border-color: var(--brass-light);
+}
+
+.noise-you {
+  fill: var(--hud-text);
+}
+
+.noise-ring {
+  fill: none;
+  stroke: var(--hud-text);
+  stroke-width: 1.6;
+}
+
+.noise-quiet .noise-ring {
+  stroke-dasharray: 2 3;
+  opacity: 0.8;
+}
+
+.noise-veryLoud .noise-ring {
+  stroke: var(--brass-light);
+  stroke-width: 2.4;
+}
+
+.stealth-eye {
+  position: absolute;
+  transform: translate(-50%, -100%);
+  display: flex;
+  align-items: center;
+  gap: 1px;
+}
+
+.stealth-eye .eye-icon {
+  width: 26px;
+  height: 16px;
+}
+
+.stealth-eye .eye-lid {
+  fill: rgb(20 28 34 / 55%);
+  stroke: var(--hud-text);
+  stroke-width: 1.3;
+}
+
+.stealth-eye .eye-fill {
+  fill: var(--hud-text);
+  opacity: 0.85;
+}
+
+.stealth-eye .eye-pupil {
+  fill: var(--ink);
+}
+
+.stealth-eye .eye-mark {
+  font-weight: bold;
+  font-size: 15px;
+  line-height: 1;
+  text-shadow: 0 1px 2px #000;
+}
+
+.eye-suspicious .eye-fill,
+.eye-searching .eye-fill {
+  fill: var(--brass-light);
+}
+
+.eye-suspicious .eye-mark,
+.eye-searching .eye-mark {
+  color: var(--brass-light);
+}
+
+.eye-searching .eye-lid {
+  stroke-dasharray: 3 2;
+}
+
+.eye-alerted .eye-fill {
+  fill: #e0503f;
+  opacity: 1;
+}
+
+.eye-alerted .eye-lid {
+  stroke: #ffd9d2;
+  stroke-width: 1.8;
+}
+
+.eye-alerted .eye-mark {
+  color: #ff7a66;
+}
+
+.stealth-eye.known .eye-lid {
+  stroke-width: 2.4;
+}
+
+.stealth-eye.offscreen {
+  transform: translate(-50%, -50%);
+  flex-direction: column;
+}
+
+.eye-arrow {
+  width: 12px;
+  height: 12px;
+  fill: var(--hud-text);
+}
+
+.eye-alerted .eye-arrow {
+  fill: #ff7a66;
+}
+
+.stealth-dawn {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 4px 10px;
+  background: var(--enamel);
+  border: 1px solid rgb(184 137 46 / 60%);
+  border-radius: 12px;
+  font-size: 13px;
+}
+
+.stealth-dawn.urgent {
+  border: 2px solid var(--brass-light);
+}
+
+.stealth-danger {
+  position: absolute;
+  bottom: 104px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 14px;
+  padding: 2px 10px;
+  background: var(--enamel);
+  border-radius: 4px;
+}
+
+.danger-pursued {
+  border: 2px solid var(--signal-red);
+  color: #ffd9d2;
+  font-weight: bold;
+}
