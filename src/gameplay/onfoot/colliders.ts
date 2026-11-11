@@ -20,6 +20,11 @@ interface ColliderTags {
   /** Its top's surface; absent reads as wood (the kit's piers, crates and floors). */
   surface?: Surface;
   spot?: Spot;
+  /**
+   * Out of the world for now (a locked door's leaf once it's open, piece E): queries skip
+   * it, so nothing bumps into it or is hidden behind it.
+   */
+  disabled?: boolean;
 }
 
 export interface BoxCollider extends ColliderTags {
@@ -222,7 +227,8 @@ export class ColliderSet {
         for (const index of list) {
           if (this.seen[index] === this.stamp) continue;
           this.seen[index] = this.stamp;
-          out.push(this.all[index] as Collider);
+          const c = this.all[index] as Collider;
+          if (!c.disabled) out.push(c);
         }
       }
     }

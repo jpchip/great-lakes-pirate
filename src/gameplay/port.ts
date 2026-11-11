@@ -1,4 +1,5 @@
 import { buyStores } from '../sim/economy/chandlery';
+import { fameTier, gameLaw } from '../sim/law/defs';
 import { portInfo } from '../sim/economy/defs';
 import { recordPrices } from '../sim/economy/knowledge';
 import type { TradeSide } from '../sim/economy/market';
@@ -167,6 +168,7 @@ const STORE_REFUSALS: Record<StoreRefusal, string> = {
   unknown: "The chandler doesn't stock that.",
   full: 'The lockers are full.',
   noMoney: "You haven't the money.",
+  notKnown: "Halvorsen doesn't know your name well enough to sell you that.",
 };
 
 export function attachPorts(opts: PortControlOptions): PortControl {
@@ -190,6 +192,7 @@ export function attachPorts(opts: PortControlOptions): PortControl {
       markets: ctx.state.markets,
       knowledge: ctx.state.knowledge.prices,
       trader: player,
+      fameTier: fameTier(gameLaw(), ctx.state.fame.value),
       capacity: economy.capacity,
       load01: hazards.state.cargo01,
       cargoSpeedLoss: hazards.cls.rules.cargoSpeedLoss,
@@ -411,7 +414,14 @@ export function attachPorts(opts: PortControlOptions): PortControl {
       buyStores(item, qty) {
         const port = openPort;
         if (!port) return 'The chandlery is closed.';
-        const r = buyStores(economy.defs, ctx.state.player, port, item, qty);
+        const r = buyStores(
+          economy.defs,
+          ctx.state.player,
+          port,
+          item,
+          qty,
+          fameTier(gameLaw(), ctx.state.fame.value),
+        );
         if (!r.ok) return STORE_REFUSALS[r.reason];
         ctx.events.emit('StoresBought', {
           port,

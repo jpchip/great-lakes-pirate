@@ -1,6 +1,9 @@
+import { dayAndHour, SECONDS_PER_GAME_DAY } from '../../core/time';
 import type { CrimeInput, LawEvent } from '../../sim/law/law';
+import type { CrimeDetails } from '../../sim/law/state';
 import type { Identification, Witness } from '../../sim/law/witness';
 import type { ConductReason } from './conduct';
+import type { Heist, HeistEvent } from './heist';
 import type { Guard, Stealth, StealthEvent } from './stealth';
 import { guardNoun, type OnFootTools, type ToolEvent } from './tools';
 
@@ -22,11 +25,39 @@ import { guardNoun, type OnFootTools, type ToolEvent } from './tools';
  *   killing to any face a guard learned in the district tonight, else to "someone".
  * - **A refused bribe** to a constable or marshal is reported at once.
  * - **Whiskey** is a gift: a drunk who slept it off reports nothing.
+ * - **A burglary** (part two): crates lifted, a box rifled or a lock forced are one burglary
+ *   a building, reported at dawn by its owner from the evidence (the empty crates, the
+ *   broken lock) by "someone". A guard who sees you carrying its crates is a witness to that
+ *   same burglary, and names you. A lock picked and nothing taken leaves no sign.
+ * - **A shot** that hits is a killing or an assault, like the blade or the cosh; a miss is an
+ *   assault on the man you shot at, if anyone saw it.
  */
 
 export interface FootLawHooks {
   commit(input: CrimeInput): LawEvent[];
   addWitness(crimeId: string, witness: Witness): LawEvent[];
+  /** The latest of what was taken, for the papers (an open crime's details). */
+  detail?(crimeId: string, details: CrimeDetails): void;
+}
+
+/** The hour the law's dawn comes (`law_actors.json` `dawnHour`). */
+export const DAWN_HOUR = 6;
+
+/** The next dawn after a moment, game seconds. */
+export function nextDawn(gameSeconds: number, dawnHour = DAWN_HOUR): number {
+  const { day, hour } = dayAndHour(gameSeconds);
+  return (hour < dawnHour ? day : day + 1) * SECONDS_PER_GAME_DAY + dawnHour * 3600;
+}
+
+/** The owner who finds the empty crates or the broken lock at dawn. */
+export function evidenceWitness(building: string, name: string, gameSeconds: number): Witness {
+  return {
+    id: `evidence.${building}`,
+    kind: 'merchant',
+    name,
+    identification: 'unknown',
+    reportAt: nextDawn(gameSeconds),
+  };
 }
 
 export interface FootLawPlace {
@@ -77,11 +108,18 @@ export function createFootLaw(
   place: FootLawPlace,
   /** Conduct right now (the reason only). */
   conductNow: () => ConductReason | undefined,
+  /** The locks and loot (part two), and the game clock its evidence is dated by. */
+  heist?: { heist: Heist; now(): number; buildingName(id: string): string | undefined },
 ): FootLaw {
   const events: LawEvent[] = [];
   const incidents = new Map<string, string>();
   /** The conduct each guard saw when he spotted you. */
-  const sawYou = new Map<string, { reason: ConductReason | undefined; carriedDead: boolean }>();
+  const sawYou = new Map<
+    string,
+    { reason: ConductReason | undefined; carriedDead: boolean; crateFrom: string | undefined }
+  >();
+  /** What each burglary took so far, for the papers. */
+  const hauls = new Map<string, { goods: Map<string, number>; cashCents: number }>();
   /** Someone in the district learned your face tonight. */
   let faceKnown = false;
 
@@ -97,6 +135,7 @@ export function createFootLaw(
     crime: string,
     witnesses: Witness[],
     details?: CrimeInput['details'],
+    company?: string,
   ): void => {
     // Nowhere the law knows (a district outside the regions): nothing to report to.
     if (!place.region) return;
@@ -112,6 +151,7 @@ export function createFootLaw(
         ...(place.port ? { port: place.port } : {}),
         witnesses,
         ...(details ? { details } : {}),
+        ...(company ? { company } : {}),
       }),
     );
     if (id) incidents.set(key, id);
@@ -126,7 +166,11 @@ export function createFootLaw(
         return;
       case 'PlayerSpotted': {
         const carried = tools?.carrying ? guard(tools.carrying) : undefined;
-        sawYou.set(e.npc, { reason: conductNow(), carriedDead: carried?.state === 'dead' });
+        sawYou.set(e.npc, {
+          reason: conductNow(),
+          carriedDead: carried?.state === 'dead',
+          crateFrom: heist?.heist.carrying?.building,
+        });
         return;
       }
       case 'GuardReported': {
@@ -136,6 +180,11 @@ export function createFootLaw(
           const saw = sawYou.get(e.npc);
           const crime = crimeForSighting(saw?.reason, saw?.carriedDead);
           if (!crime) return;
+          // Seen with a building's crates: a witness to that burglary, who names you.
+          if (saw?.reason === 'loot' && saw.crateFrom) {
+            burglary(saw.crateFrom, [guardWitness(g)]);
+            return;
+          }
           // Carrying a man is that man's crime; anything else is one incident a kind.
           const key =
             saw?.reason === 'body' && tools?.carrying
@@ -192,6 +241,21 @@ export function createFootLaw(
         );
         return;
       }
+      case 'Shot': {
+        const victim = guard(e.npc);
+        const witnesses = e.seenBy.flatMap((id) => {
+          const g = guard(id);
+          return g ? [guardWitness(g)] : [];
+        });
+        if (witnesses.length === 0) return;
+        incident(
+          `victim:${e.npc}`,
+          e.killed ? 'crime.killing' : 'crime.assault',
+          witnesses,
+          victim ? { victim: guardNoun(victim), ...(e.killed ? { killed: 1 } : {}) } : undefined,
+        );
+        return;
+      }
       case 'BribeRefused': {
         const g = guard(e.npc);
         if (!e.reports || !g) return;
@@ -204,14 +268,68 @@ export function createFootLaw(
     }
   };
 
+  /** The building's burglary: opened once, found at dawn, with more witnesses as they come. */
+  function burglary(building: string, extra: Witness[] = []): void {
+    if (!heist) return;
+    const target = heist.heist.containers.find((c) => c.building === building);
+    const owner = target?.owner;
+    const name = heist.buildingName(building) ?? building;
+    const haul = hauls.get(building);
+    const details: CrimeDetails = {
+      victim: name,
+      ...(owner ? { owner } : {}),
+      ...(haul && haul.goods.size
+        ? { goods: [...haul.goods].map(([good, qty]) => ({ good, qty })) }
+        : {}),
+      ...(haul?.cashCents ? { cashCents: haul.cashCents } : {}),
+    };
+    const key = `burglary:${building}`;
+    const open = incidents.get(key);
+    if (open) {
+      hooks.detail?.(open, details);
+      for (const w of extra) record(hooks.addWitness(open, w));
+      return;
+    }
+    incident(
+      key,
+      'crime.burglary',
+      [evidenceWitness(building, `whoever opens up the ${name}`, heist.now()), ...extra],
+      details,
+      owner,
+    );
+  }
+
+  const onHeist = (e: HeistEvent): void => {
+    switch (e.type) {
+      case 'ItemStolen': {
+        let haul = hauls.get(e.building);
+        if (!haul) {
+          haul = { goods: new Map(), cashCents: 0 };
+          hauls.set(e.building, haul);
+        }
+        if (e.good) haul.goods.set(e.good, (haul.goods.get(e.good) ?? 0) + 1);
+        if (e.cashCents) haul.cashCents += e.cashCents;
+        burglary(e.building);
+        return;
+      }
+      case 'LockForced':
+        burglary(e.building);
+        return;
+      default:
+        return;
+    }
+  };
+
   const offStealth = stealth.on(onStealth);
   const offTools = tools?.on(onTool);
+  const offHeist = heist?.heist.on(onHeist);
   return {
     events,
     incidents,
     dispose() {
       offStealth();
       offTools?.();
+      offHeist?.();
     },
   };
 }

@@ -6,9 +6,87 @@
     "harbor": "harbor.bayfield",
     "layout": "bayfield.json",
     "bake": "bayfield",
-    "origin": { "alongM": -80, "inlandM": 0 },
+    "origin": {
+      "alongM": -80,
+      "inlandM": 0
+    },
     "skirtM": 40,
     "waterLevelM": 0,
-    "gangway": "gangway.fish_pier"
+    "gangway": "gangway.fish_pier",
+    "targets": [
+      {
+        "building": "hollister_warehouse",
+        "owner": "company.hollister_fish",
+        "lock": {
+          "tier": 1,
+          "hours": [19, 6]
+        },
+        "containers": [
+          {
+            "mark": "loot.0",
+            "table": "loot.fish_warehouse"
+          },
+          {
+            "mark": "loot.3",
+            "table": "loot.fish_warehouse"
+          }
+        ]
+      },
+      {
+        "building": "packing_house",
+        "owner": "company.hollister_fish",
+        "lock": {
+          "tier": 1,
+          "hours": [19, 6]
+        },
+        "containers": [
+          {
+            "mark": "loot.2",
+            "table": "loot.packing_floor"
+          }
+        ]
+      },
+      {
+        "building": "dock_warehouse",
+        "owner": "company.northland_packet",
+        "lock": {
+          "tier": 2,
+          "hours": [19, 6]
+        },
+        "containers": [
+          {
+            "mark": "loot.1",
+            "table": "loot.freight_shed"
+          }
+        ]
+      },
+      {
+        "building": "chandlery",
+        "lock": {
+          "tier": 2,
+          "hours": [18, 7]
+        },
+        "containers": [
+          {
+            "mark": "loot.chandlery",
+            "table": "loot.chandlery_store"
+          }
+        ]
+      },
+      {
+        "building": "harbor_office",
+        "lock": {
+          "tier": 2,
+          "hours": [17, 8]
+        },
+        "containers": [
+          {
+            "mark": "loot.harbor_office",
+            "table": "loot.strongbox",
+            "lock": 3
+          }
+        ]
+      }
+    ]
   }
 ]

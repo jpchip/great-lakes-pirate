@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { idOf } from './common';
+import { heistTargetSchema } from './heist';
 
 /**
  * Docks districts (plan 08 §2, §13, §15; Phase 7 piece C): the modular kit, the district
@@ -229,6 +230,8 @@ export const districtDefSchema = z.object({
   waterLevelM: z.number().default(0),
   /** The mark you step ashore at from a berth (piece A). */
   gangway: z.string(),
+  /** The buildings worth breaking into, their locks, owners and containers (piece E). */
+  targets: z.array(heistTargetSchema).default([]),
 });
 export type DistrictDef = z.infer<typeof districtDefSchema>;
 

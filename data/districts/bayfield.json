@@ -1982,6 +1982,22 @@
     { "id": "loot.1", "kind": "loot", "x": 58, "z": 17, "headingDeg": 0 },
     { "id": "loot.2", "kind": "loot", "x": -40, "z": 30, "headingDeg": 0 },
     { "id": "loot.3", "kind": "loot", "x": -18, "z": -24, "headingDeg": 0 },
+    {
+      "id": "loot.chandlery",
+      "kind": "loot",
+      "x": 37,
+      "z": 17,
+      "headingDeg": 0,
+      "ref": "chandlery"
+    },
+    {
+      "id": "loot.harbor_office",
+      "kind": "loot",
+      "x": 91.5,
+      "z": 5,
+      "headingDeg": 0,
+      "ref": "harbor_office"
+    },
     { "id": "exit.west", "kind": "exit", "x": -100, "z": 0, "headingDeg": 270 },
     { "id": "exit.east", "kind": "exit", "x": 124, "z": 10, "headingDeg": 90 },
     { "id": "exit.uptown", "kind": "exit", "x": 10, "z": 78, "headingDeg": 180 },

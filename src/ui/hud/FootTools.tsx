@@ -33,24 +33,31 @@ export function FootTools({ hud }: { hud: FootToolsSnapshot }) {
           {!hud.prompt.ok && <span class="foot-why">{hud.prompt.why}</span>}
         </div>
       )}
+      {hud.load && (
+        <div class="foot-load" data-testid="foot-load" role="status">
+          {hud.load}
+        </div>
+      )}
       {hud.conduct && (
         <div class="foot-conduct" data-testid="foot-conduct" role="status">
           {hud.conduct}
         </div>
       )}
       <ol class="foot-belt" data-testid="foot-belt" aria-label="Tool belt">
-        {hud.belt.map((s) => (
-          <li
-            key={s.id}
-            class={`foot-slot${s.selected ? ' selected' : ''}${s.empty ? ' empty' : ''}`}
-            data-tool={s.id}
-            aria-current={s.selected ? 'true' : undefined}
-          >
-            <span class="foot-slot-key">{s.key}</span>
-            <span class="foot-slot-name">{s.name}</span>
-            {s.count && <span class="foot-slot-count">{s.count}</span>}
-          </li>
-        ))}
+        {hud.belt
+          .filter((s) => !s.hidden)
+          .map((s) => (
+            <li
+              key={s.id}
+              class={`foot-slot${s.selected ? ' selected' : ''}${s.empty ? ' empty' : ''}`}
+              data-tool={s.id}
+              aria-current={s.selected ? 'true' : undefined}
+            >
+              <span class="foot-slot-key">{s.key}</span>
+              <span class="foot-slot-name">{s.name}</span>
+              {s.count && <span class="foot-slot-count">{s.count}</span>}
+            </li>
+          ))}
       </ol>
     </div>
   );

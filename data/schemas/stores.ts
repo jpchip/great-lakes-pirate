@@ -15,6 +15,11 @@ export const storeItemSchema = z.object({
   priceCents: z.number().int().positive(),
   /** The most the ship's lockers hold. */
   max: z.number().int().positive(),
+  /**
+   * The chandler sells it only to a captain this famous (plan 08 §20.5: the pistol at
+   * Known, Fame tier 2). Absent, anyone may buy it.
+   */
+  fameTier: z.number().int().min(0).optional(),
 });
 
 export const storesFileSchema = z.array(storeItemSchema);

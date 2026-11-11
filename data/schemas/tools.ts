@@ -13,13 +13,17 @@ export const toolSchema = z.object({
   name: z.string().min(1),
   /**
    * What it does: `blunt` knocks a man out from behind, `blade` kills from behind, `bind`
-   * ties a man who's out cold, `gift` offers a drink, `bribe` offers money.
+   * ties a man who's out cold, `gift` offers a drink, `bribe` offers money (part one);
+   * `force` breaks a lock (the crowbar), `throw` makes a noise where it lands (a stone),
+   * `gun` shoots a man in front of you (the pistol, the rifle) (part two).
    */
-  kind: z.enum(['blunt', 'blade', 'bind', 'gift', 'bribe']),
+  kind: z.enum(['blunt', 'blade', 'bind', 'gift', 'bribe', 'force', 'throw', 'gun']),
   /** The ship's store it's bought as and spent from; absent, it's always to hand. */
   store: idOf('store').optional(),
+  /** Or the ship's weapon it is (the rifle in the hand mount, `weapons.json`). */
+  weapon: idOf('weapon').optional(),
   /**
-   * How close you must be, meters. A blow's reach is past the guards' `BUMP_M` (1.2 m), where
+   * How close you must be, meters (a stone's throw and a gun's range for those). A blow's reach is past the guards' `BUMP_M` (1.2 m), where
    * a man feels you behind him: strike from just outside it.
    */
   reachM: z.number().positive(),
@@ -71,6 +75,22 @@ export const toolsFileSchema = z
        * outside them is trespass. `[from, to]` in hours; `to` past midnight is below `from`.
        */
       hours: z.record(z.string(), z.tuple([z.number().min(0).max(24), z.number().min(0).max(24)])),
+    }),
+    /** Shots on foot: who's in your sights, and the odds at point-blank and at full range. */
+    guns: z
+      .object({
+        /** Half-width of the cone a man must stand in, degrees, off the way you face. */
+        coneDeg: z.number().positive(),
+        hitNear: z.number().min(0).max(1),
+        hitFar: z.number().min(0).max(1),
+        /** A hit kills this often; else he's down wounded (out cold, and he'll talk). */
+        killOnHit: z.number().min(0).max(1),
+      })
+      .default({ coneDeg: 14, hitNear: 0.95, hitFar: 0.45, killOnHit: 0.85 }),
+    /** A stone falls short of its full throw by no more than this, and no nearer than `minM`. */
+    throw: z.object({ minM: z.number().positive(), arcDeg: z.number().positive() }).default({
+      minM: 4,
+      arcDeg: 30,
     }),
   })
   .superRefine((f, ctx) => {

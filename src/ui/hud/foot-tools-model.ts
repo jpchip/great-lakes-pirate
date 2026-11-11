@@ -15,6 +15,11 @@ export interface BeltSlot {
   count: string;
   selected: boolean;
   empty: boolean;
+  /**
+   * Off the belt for now: none of it on you and not in hand (part two's nine tools don't
+   * fit beside the light gem otherwise). Its key still takes it in hand, to be told "none".
+   */
+  hidden: boolean;
 }
 
 export interface PromptView {
@@ -32,6 +37,8 @@ export interface FootToolsSnapshot {
   conduct: string;
   prompt: PromptView | undefined;
   carrying: boolean;
+  /** What's in your arms (piece E part two's crates): "A crate of salted fish", or empty. */
+  load: string;
 }
 
 export function footToolsHud(
@@ -40,6 +47,8 @@ export function footToolsHud(
   offer: Offer | undefined,
   hold01: number,
   purseCents: number,
+  /** A lock, a crate or the gangway's prompt (heist.ts), when it's what F does instead. */
+  heist?: { prompt: PromptView | undefined; load: string },
 ): FootToolsSnapshot {
   const belt = tools.defs.belt.map((t, i) => {
     const n = tools.count(t);
@@ -57,20 +66,26 @@ export function footToolsHud(
             : 'none',
       selected: tools.selected.id === t.id,
       empty: money ? purseCents <= 0 : n <= 0,
+      hidden: !money && n <= 0 && tools.selected.id !== t.id,
     };
   });
   return {
     belt,
     conduct: conduct.suspect ? `Suspicious if seen: ${conduct.words}` : '',
-    prompt: offer
-      ? {
-          key: 'F',
-          label: offer.label,
-          ok: offer.ok,
-          why: offer.why ?? '',
-          hold01: offer.holdS > 0 ? Math.min(1, hold01) : 0,
-        }
-      : undefined,
-    carrying: tools.carrying !== undefined,
+    prompt: heist?.prompt ?? toolPrompt(offer, hold01),
+    carrying: tools.carrying !== undefined || !!heist?.load,
+    load: heist?.load ?? '',
   };
+}
+
+function toolPrompt(offer: Offer | undefined, hold01: number): PromptView | undefined {
+  return offer
+    ? {
+        key: 'F',
+        label: offer.label,
+        ok: offer.ok,
+        why: offer.why ?? '',
+        hold01: offer.holdS > 0 ? Math.min(1, hold01) : 0,
+      }
+    : undefined;
 }

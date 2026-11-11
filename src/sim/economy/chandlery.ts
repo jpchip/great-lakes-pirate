@@ -31,7 +31,12 @@ export function storePriceCents(defs: EconomyDefs, portId: string, item: StoreIt
   return Math.ceil((item.priceCents * (1 + spread)) / (1 + LIST_SPREAD));
 }
 
-export type StoreRefusal = 'badQty' | 'unknown' | 'full' | 'noMoney';
+export type StoreRefusal = 'badQty' | 'unknown' | 'full' | 'noMoney' | 'notKnown';
+
+/** Whether the chandler will sell this to a captain of this Fame tier (the pistol at Known). */
+export function storeOffered(item: StoreItem, fameTier: number): boolean {
+  return item.fameTier === undefined || fameTier >= item.fameTier;
+}
 
 export type StoreResult =
   { ok: true; item: string; qty: number; totalCents: number } | { ok: false; reason: StoreRefusal };
@@ -48,10 +53,13 @@ export function buyStores(
   portId: string,
   itemId: string,
   qty: number,
+  /** The captain's Fame tier, for the stores a chandler sells only to a known name. */
+  fameTier = 0,
 ): StoreResult {
   if (!Number.isInteger(qty) || qty <= 0) return { ok: false, reason: 'badQty' };
   const item = storeItems().find((s) => s.id === itemId);
   if (!item) return { ok: false, reason: 'unknown' };
+  if (!storeOffered(item, fameTier)) return { ok: false, reason: 'notKnown' };
   if (storeRoom(trader.stores, item) < qty) return { ok: false, reason: 'full' };
   const total = storePriceCents(defs, portId, item) * qty;
   if (total > trader.purse) return { ok: false, reason: 'noMoney' };

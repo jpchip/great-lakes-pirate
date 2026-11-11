@@ -8,6 +8,7 @@ import {
   noteHeardPrices,
   reliabilityBonus,
   saloonTerms,
+  scheduleRumor,
   tellRumor,
   type RumorWorld,
   type SaloonTerms,
@@ -29,6 +30,8 @@ export interface RumorControl {
   terms(port: string): SaloonTerms;
   /** Buys a round: the rumor it brought, or why there was none. */
   buyRound(port: string): { ok: true; rumor: Rumor } | { ok: false; reason: string };
+  /** A shipping schedule read on foot (piece E): the sailing it told of, now in the ledger. */
+  readSchedule(port: string): Rumor | undefined;
   dispose(): void;
 }
 
@@ -95,6 +98,14 @@ export function attachRumors(opts: RumorControlOptions): RumorControl {
       }
       ctx.events.emit('RumorHeard', { rumor: told.rumor, costCents: t.roundCents });
       return { ok: true, rumor: told.rumor };
+    },
+    readSchedule(port) {
+      const rumor = scheduleRumor(world(), rumors(), port, now(), () => ctx.rng.next());
+      ctx.state.environment.rng = ctx.rng.getState();
+      if (!rumor) return undefined;
+      addRumor(rumors(), rumor);
+      ctx.events.emit('RumorHeard', { rumor, costCents: 0 });
+      return rumor;
     },
     dispose() {
       offHail();
