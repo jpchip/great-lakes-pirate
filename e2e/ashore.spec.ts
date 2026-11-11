@@ -34,6 +34,14 @@ interface Hooks {
     saved(): { ashore: { from: string } | null; rowboat: { state: string } };
     save(): Promise<void>;
     teleport(x: number, z: number, y?: number): void;
+    hour(h: number): void;
+    suspect(on: boolean | undefined): void;
+    teleportLocal(x: number, z: number, headingDeg?: number): boolean;
+    watch(): {
+      district: string | undefined;
+      pursued: boolean;
+      guards: { id: string; state: string; x: number; z: number }[];
+    };
   };
   __glpAbandon: {
     founder(): boolean;
@@ -133,5 +141,47 @@ test('abandoning a foundering ship near land puts you in the boat to row ashore'
   expect(await page.evaluate(() => (window as unknown as Hooks).__glpAbandon.landed())).toMatch(
     /^port\./,
   );
+  expect(errors).toEqual([]);
+});
+
+test('in Bayfield at night the watch walks the district, and a constable takes you to the lockup', async ({
+  page,
+}) => {
+  test.setTimeout(180_000);
+  const errors = collectErrors(page);
+  await page.goto('/?renderer=null&debug&play');
+  await page.waitForFunction(() => '__glpFoot' in window);
+  await page.evaluate(() => {
+    const f = (window as unknown as Hooks).__glpFoot;
+    f.hour(23);
+    f.dock('bayfield_fish');
+  });
+  expect(await page.evaluate(() => (window as unknown as Hooks).__glpFoot.land())).toBeUndefined();
+  await expect(page.locator('body')).toHaveAttribute('data-ashore', 'foot');
+  const watch = () => page.evaluate(() => (window as unknown as Hooks).__glpFoot.watch());
+  const w = await watch();
+  expect(w.district).toBe('district.bayfield');
+  expect(w.guards.map((g) => g.id)).toContain('constable.lockup');
+  // The stealth HUD is up: the light gem says how lit you are.
+  await expect(page.getByTestId('stealth-gem')).toBeVisible();
+  const s = await foot(page);
+  expect(s.surface).toBe('wood');
+  expect(s.prompt).toBe('Go aboard');
+
+  // Up to no good in front of the lockup's constable: seen, chased and taken.
+  const lockup = w.guards.find((g) => g.id === 'constable.lockup');
+  await page.evaluate(
+    ([x, z]) => {
+      const f = (window as unknown as Hooks).__glpFoot;
+      f.suspect(true);
+      f.teleportLocal(x as number, (z as number) - 4, 180);
+    },
+    [lockup?.x ?? 0, lockup?.z ?? 0],
+  );
+  await expect.poll(async () => (await watch()).pursued, { timeout: 60_000 }).toBe(true);
+  const screen = page.getByTestId('jail-screen');
+  await expect(screen).toBeVisible({ timeout: 60_000 });
+  await expect(screen).toContainText('Taken by a constable');
+  await expect(page.locator('body')).toHaveAttribute('data-ashore', 'aboard');
   expect(errors).toEqual([]);
 });

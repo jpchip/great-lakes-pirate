@@ -58,6 +58,8 @@ import { createCombatFx, type CombatFx } from './combat-fx';
 import type { ArcPreview } from '../sim/combat/aim';
 import { createWindCues, type WindCues } from './water/wind-cues';
 import { createFootView, type FootFrame } from './onfoot/foot-view';
+import { createDistrictView, type DistrictView } from './district/district-view';
+import type { DistrictModel } from '../gameplay/district/district';
 
 const HORIZON = new THREE.Color(0xb7c6cf);
 const ZENITH = new THREE.Color(0x6f8ea3);
@@ -420,6 +422,52 @@ export async function createTestScene(
   const footView = createFootView(lighting);
   scene.add(footView.group);
   let foot: FootFrame | undefined;
+  /**
+   * The docks district you're walking (Phase 7): its kit drawn in its own frame and placed
+   * on the zone, with the harbor kit's stand-in buildings for that harbor hidden under it.
+   * The zone's water stays; the district's own water plane (for its dev page) is dropped.
+   */
+  let districtView: { model: DistrictModel; view: DistrictView; harbor: string } | undefined;
+  const districtFocus = new THREE.Vector3();
+  const harborKit = (harbor: string, visible: boolean): void => {
+    const g = layer?.harbors.group;
+    for (const name of [`${harbor}-body`, `${harbor}-windows`]) {
+      const o = g?.getObjectByName(name);
+      if (o) o.visible = visible;
+    }
+  };
+  const syncDistrict = (d: FootFrame['district']): void => {
+    if (districtView && districtView.model !== d?.model) {
+      scene.remove(districtView.view.group);
+      districtView.view.dispose();
+      harborKit(districtView.harbor, true);
+      districtView = undefined;
+    }
+    if (!d) return;
+    if (!districtView) {
+      const view = createDistrictView(d.model, lighting);
+      const water = view.group.getObjectByName('water');
+      if (water) view.group.remove(water);
+      // Local x along the shore and z inland, turned and set down on the zone.
+      const o = d.frame.toZone(0, 0);
+      const ex = d.frame.toZone(1, 0);
+      const ez = d.frame.toZone(0, 1);
+      const g = view.group;
+      g.matrixAutoUpdate = false;
+      g.matrix.makeBasis(
+        new THREE.Vector3(ex.x - o.x, 0, ex.z - o.z),
+        new THREE.Vector3(0, 1, 0),
+        new THREE.Vector3(ez.x - o.x, 0, ez.z - o.z),
+      );
+      g.matrix.setPosition(o.x, 0, o.z);
+      g.updateMatrixWorld(true);
+      scene.add(g);
+      districtView = { model: d.model, view, harbor: d.harbor };
+    }
+    harborKit(d.harbor, false);
+    districtFocus.set(d.focus.x, d.focus.y, d.focus.z);
+    districtView.view.update(districtFocus, lampLevel(environment.sunElevationDeg));
+  };
   /** The sailing camera's near plane; on foot it comes in so a wall at arm's length draws. */
   const SAIL_NEAR = camera.near;
   const FOOT_NEAR = 0.1;
@@ -564,6 +612,7 @@ export async function createTestScene(
         focus.x = foot.captain.x;
         focus.z = foot.captain.z;
         const b = foot.boat;
+        syncDistrict(foot.district);
         footView.update(
           foot,
           b
@@ -580,6 +629,7 @@ export async function createTestScene(
         );
       } else {
         footView.update(undefined, 0);
+        syncDistrict(undefined);
         cameraRig.update(pose, surface, frameSeconds);
       }
       const aimNow = aimSource?.();

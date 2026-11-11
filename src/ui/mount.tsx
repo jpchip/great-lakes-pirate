@@ -4,6 +4,8 @@ import type { Action } from '../core/input';
 import type { SettingsStore } from '../core/settings';
 import { Hud } from './hud/Hud';
 import { FootHud, type FootHudView } from './hud/FootHud';
+import { StealthHud } from './hud/StealthHud';
+import type { StealthHudSnapshot } from './hud/stealth-model';
 import type { HudSnapshot } from './hud/model';
 import type { CaptionView } from '../audio/captions';
 import { Captions } from './hud/Captions';
@@ -89,6 +91,8 @@ export interface GameUi {
   setHud(snapshot: HudSnapshot | undefined): void;
   /** The on-foot HUD (Phase 7 piece A); undefined hides it. */
   setFootHud(snapshot: FootHudView | undefined): void;
+  /** The stealth HUD in a district at night (Phase 7 piece D); undefined hides it. */
+  setStealthHud(snapshot: StealthHudSnapshot | undefined): void;
   /** The chart HUD; undefined hides it. */
   setChart(snapshot: ChartHudSnapshot | undefined): void;
   setSpyglass(on: boolean): void;
@@ -175,6 +179,7 @@ export function mountGameUi({
   const journalSailing = signal<boolean | undefined>(undefined);
   const hud = signal<HudSnapshot | undefined>(undefined);
   const footHud = signal<FootHudView | undefined>(undefined);
+  const stealthHud = signal<StealthHudSnapshot | undefined>(undefined);
   const chart = signal<ChartHudSnapshot | undefined>(undefined);
   const spyglass = signal(false);
   const aimHud = signal<AimHudSnapshot | undefined>(undefined);
@@ -275,6 +280,7 @@ export function mountGameUi({
           onGoAshore={onGoAshore}
         />
         {!menuOpen.value && <FootHud hud={footHud} density={density} onPrompt={onFootPrompt} />}
+        {!menuOpen.value && stealthHud.value && <StealthHud hud={stealthHud.value} />}
         {!menuOpen.value && !port.value && !journal.value && <Captions captions={captions} />}
         {!menuOpen.value && <ShipCardView card={shipCard} />}
         {!menuOpen.value && <AimHud aim={aimHud} />}
@@ -388,6 +394,9 @@ export function mountGameUi({
     },
     setFootHud(snapshot) {
       footHud.value = snapshot;
+    },
+    setStealthHud(snapshot) {
+      stealthHud.value = snapshot;
     },
     setChart(snapshot) {
       chart.value = snapshot;
