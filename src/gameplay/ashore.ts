@@ -30,6 +30,7 @@ import type { ZoneTerrain } from '../sim/terrain/zone-terrain';
 import { climateAt } from '../sim/weather/climate';
 import type { AshoreState, RowboatSave, WorldState } from '../sim/world-state';
 import type { DistrictDef } from '../../data/schemas/districts';
+import type { IslandAshore } from './island-ashore';
 import {
   districtForHarbor,
   insideDistrict,
@@ -113,6 +114,21 @@ export interface AshoreDeps {
   watch?(landing: DistrictLanding, onCaptured: (by: string) => void): Watch | undefined;
   /** A guard took you on foot: `by` is their npc type. You're already off your feet. */
   captured?(by: string): void;
+  /**
+   * The walkable islands (plan 08 §20.4 piece H): a landing on one builds it whole on its
+   * 1 m tiles with its quarry, and F searches its cairns and opens the stash's strongbox.
+   */
+  island?: IslandAshore | undefined;
+  /**
+   * The trees and shore rocks the renderer plants over a rectangle (zone meters), and the
+   * share the quality preset draws: they get trunks you walk around.
+   */
+  plants?(box: {
+    minX: number;
+    minZ: number;
+    maxX: number;
+    maxZ: number;
+  }): { trees: Float32Array; rocks: Float32Array; density: number } | undefined;
   /** The view drawn each frame; its `foot` is set while you're ashore. */
   view?: (SailingView & { foot: FootFrame | undefined }) | undefined;
 }
@@ -164,6 +180,8 @@ export interface GameAshore {
   face(bearing: number, pitch?: number): void;
   /** The docks district you're walking, if this landing has one (Bayfield). */
   readonly district: DistrictLanding | undefined;
+  /** The walkable island the scene is built on (its 1 m tiles), if any. */
+  readonly island: string | undefined;
   /** Its night watch: piece E's tools act on `watch.stealth`. */
   readonly watch: Watch | undefined;
   /** A guard is chasing you ashore: the danger snapshot, no autosave. */
@@ -227,6 +245,8 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
   let watch: Watch | undefined;
   /** Taken by a guard: the fade to the lockup is under way. */
   let taken = false;
+  /** The walkable island the scene is built on, if any. */
+  let sceneIsland: string | undefined;
 
   // The scene's frame: a district's local meters, or the zone's own.
   const toScene = (p: { x: number; z: number }): { x: number; z: number } =>
@@ -333,14 +353,32 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
     const terrain = deps.terrain();
     if (!terrain) return undefined;
     const g = terrain.height;
+    // A walkable island is built whole on its 1 m tiles; elsewhere a square of the 4 m.
+    const island = deps.island?.sceneFor(center);
+    sceneIsland = island?.island;
+    const box = island?.box ?? {
+      minX: center.x - ASHORE_HALF_M,
+      minZ: center.z - ASHORE_HALF_M,
+      maxX: center.x + ASHORE_HALF_M,
+      maxZ: center.z + ASHORE_HALF_M,
+    };
     return buildAshoreScene({
-      ground: { heightAt: (x, z) => terrain.heightAt(x, z), x0: g.x0, z0: g.z0, step: g.step },
+      ground: island?.ground ?? {
+        heightAt: (x, z) => terrain.heightAt(x, z),
+        x0: g.x0,
+        z0: g.z0,
+        step: g.step,
+      },
       center,
+      box,
       piers: deps.harbors().flatMap((l) => l.piers),
       buildings: deps.harbors().flatMap((l) => l.buildings),
       // Cast away, she's gone: nothing to bump into or climb aboard.
       ship: from === 'wreck' ? undefined : { pose: shipPose(), ...deps.hull },
       inTown: deps.inTown,
+      extra: island?.extra,
+      ladders: island?.ladders,
+      plants: deps.plants?.(box),
     });
   };
 
@@ -615,6 +653,11 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
     if (boat && Math.hypot(c.position.x - boat.x, c.position.z - boat.z) < REACH_M + 0.8) {
       if (boatState === 'beached' && !c.swimming) return { text: 'Shove off', act: shoveOff };
       if (boatState !== 'beached') return { text: 'Climb into the boat', act: climbIn };
+    }
+    // An island's cairns and the stash's strongbox (zone meters: never in a district).
+    if (!district && c.grounded && !c.swimming) {
+      const found = deps.island?.prompt(c.position);
+      if (found) return found;
     }
     const top = ladderTopNear(c, scene);
     if (top !== undefined) {
@@ -972,6 +1015,9 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
       if (pitch !== undefined) walkCamera.pitch = pitch;
       copyPrevious();
     },
+    get island() {
+      return district ? undefined : sceneIsland;
+    },
     get district() {
       return district;
     },
@@ -1032,18 +1078,6 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
   }
 
   function teleportZone(x: number, z: number, y?: number): void {
-    if (inBoat && boat) {
-      boat.x = x;
-      boat.z = z;
-      seatInBoat();
-    } else {
-      const ground = deps.terrain()?.heightAt(x, z) ?? 0;
-      placeCharacter(character, {
-        x,
-        y: y ?? Math.max(ground, -DEFAULT_CONTROLLER.swimDepth),
-        z,
-      });
-    }
     if (
       !scene ||
       x < scene.bounds.minX + 20 ||
@@ -1052,6 +1086,19 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
       z > scene.bounds.maxZ - 20
     ) {
       scene = build({ x, z }) ?? scene;
+    }
+    if (inBoat && boat) {
+      boat.x = x;
+      boat.z = z;
+      seatInBoat();
+    } else {
+      // The scene's own ground (an island's 1 m tiles), else the zone's.
+      const ground = scene?.ground.heightAt(x, z) ?? deps.terrain()?.heightAt(x, z) ?? 0;
+      placeCharacter(character, {
+        x,
+        y: y ?? Math.max(ground, -DEFAULT_CONTROLLER.swimDepth),
+        z,
+      });
     }
     copyPrevious();
   }

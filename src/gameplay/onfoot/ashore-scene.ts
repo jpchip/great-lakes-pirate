@@ -3,6 +3,7 @@ import type { Pose } from '../../sim/terrain/test-bay';
 import { ColliderSet, type BoxCollider, type Collider, type Surface } from './colliders';
 import type { Ladder, OnFootZone } from './controller';
 import { Heightfield } from './heightfield';
+import { PLANT_STRIDE, PlantKind } from '../../sim/terrain/vegetation';
 
 /**
  * The on-foot scene for going ashore (plan 03 §7, plan 08 §20.4 piece A): the ground, the
@@ -45,6 +46,20 @@ export interface AshoreSceneInput {
   ship?: AshoreShip | undefined;
   /** True inside a town's footprint, where the ground is dirt streets. */
   inTown?(x: number, z: number): boolean;
+  /**
+   * The rectangle to build, zone meters, instead of a square around `center`: a walkable
+   * island is built whole (plan 08 §20.4 piece H), so you never reach an edge on it.
+   */
+  box?: { minX: number; minZ: number; maxX: number; maxZ: number };
+  /** More solids: an island's points of interest. */
+  extra?: readonly Collider[] | undefined;
+  /** More ladders: down a quarry wharf's face. */
+  ladders?: readonly Ladder[] | undefined;
+  /**
+   * The trees and shore rocks drawn over the built ground (the renderer's planting, by the
+   * same hash), and the share of them the quality preset draws: those get trunks.
+   */
+  plants?: { trees: Float32Array; rocks: Float32Array; density: number } | undefined;
 }
 
 export interface AshoreScene extends OnFootZone {
@@ -144,6 +159,57 @@ function pierColliders(
   }
 }
 
+/** Trunk radius at shoulder height, m, at scale 1 (render/vegetation/plant-models). */
+const PINE_TRUNK_R = 0.36;
+const BIRCH_TRUNK_R = 0.22;
+/** A tree's trunk stands this high before the boughs (no ducking under a pine). */
+const TRUNK_TOP_M = 9;
+
+/**
+ * Trunks and shore rocks as colliders (plan 08 §20.4 piece H): every planted tree the
+ * preset draws (rank below `density`) gets a post, and every shore rock a low one you can
+ * hop. Instances are `PLANT_STRIDE` floats: x, y, z, scale, yaw, kind, tint, rank.
+ */
+export function plantColliders(
+  plants: { trees: Float32Array; rocks: Float32Array; density: number },
+  out: Collider[],
+): void {
+  const add = (list: Float32Array, tree: boolean): void => {
+    for (let k = 0; k + PLANT_STRIDE <= list.length; k += PLANT_STRIDE) {
+      if ((list[k + 7] ?? 1) >= plants.density) break;
+      const x = list[k] ?? 0;
+      const y = list[k + 1] ?? 0;
+      const z = list[k + 2] ?? 0;
+      const s = list[k + 3] ?? 1;
+      if (tree) {
+        const birch = (list[k + 5] ?? 0) === PlantKind.Birch;
+        out.push({
+          kind: 'cylinder',
+          x,
+          z,
+          radius: (birch ? BIRCH_TRUNK_R : PINE_TRUNK_R) * s,
+          minY: y - 2,
+          maxY: y + TRUNK_TOP_M * s,
+          surface: 'wood',
+        });
+      } else {
+        out.push({
+          kind: 'cylinder',
+          x,
+          z,
+          radius: 0.85 * s,
+          minY: y - 1,
+          maxY: y + 0.55 * s,
+          surface: 'rock',
+          spot: 'vault',
+        });
+      }
+    }
+  };
+  add(plants.trees, true);
+  add(plants.rocks, false);
+}
+
 /** A building as a solid block to its roof ridge (piece C opens the ones you can enter). */
 function buildingCollider(b: PlacedBuilding): BoxCollider {
   return bearingBox(b.x, b.z, b.facing, b.widthM, b.depthM, b.footM, b.floorM + b.heightM + 3);
@@ -153,24 +219,31 @@ export function buildAshoreScene(input: AshoreSceneInput): AshoreScene {
   const { ground } = input;
   const half = input.halfSizeM ?? ASHORE_HALF_M;
   const step = ground.step;
+  const want = input.box ?? {
+    minX: input.center.x - half,
+    minZ: input.center.z - half,
+    maxX: input.center.x + half,
+    maxZ: input.center.z + half,
+  };
   // Snap to the terrain's own samples, so the walked ground is the drawn ground.
-  const i0 = Math.floor((input.center.x - half - ground.x0) / step);
-  const j0 = Math.floor((input.center.z - half - ground.z0) / step);
-  const n = Math.ceil((2 * half) / step) + 2;
+  const i0 = Math.floor((want.minX - ground.x0) / step);
+  const j0 = Math.floor((want.minZ - ground.z0) / step);
+  const nx = Math.ceil((want.maxX - want.minX) / step) + 2;
+  const nz = Math.ceil((want.maxZ - want.minZ) / step) + 2;
   const originX = ground.x0 + i0 * step;
   const originZ = ground.z0 + j0 * step;
-  const heights = new Float32Array(n * n);
-  for (let j = 0; j < n; j++) {
-    for (let i = 0; i < n; i++) {
-      heights[j * n + i] = ground.heightAt(originX + i * step, originZ + j * step);
+  const heights = new Float32Array(nx * nz);
+  for (let j = 0; j < nz; j++) {
+    for (let i = 0; i < nx; i++) {
+      heights[j * nx + i] = ground.heightAt(originX + i * step, originZ + j * step);
     }
   }
-  const field = new Heightfield(n, n, step, originX, originZ, heights);
+  const field = new Heightfield(nx, nz, step, originX, originZ, heights);
   const bounds = {
     minX: originX,
     minZ: originZ,
-    maxX: originX + (n - 1) * step,
-    maxZ: originZ + (n - 1) * step,
+    maxX: originX + (nx - 1) * step,
+    maxZ: originZ + (nz - 1) * step,
   };
   const inside = (x: number, z: number, pad: number): boolean =>
     x > bounds.minX - pad &&
@@ -204,6 +277,16 @@ export function buildAshoreScene(input: AshoreSceneInput): AshoreScene {
     );
     all.push(ship);
   }
+  for (const c of input.extra ?? []) all.push(c);
+  if (input.plants) {
+    const planted: Collider[] = [];
+    plantColliders(input.plants, planted);
+    // Only what's on the built ground, and not a trunk through a pier or a building.
+    for (const c of planted) {
+      if (inside(c.x, c.z, 0)) all.push(c);
+    }
+  }
+  ladders.push(...(input.ladders ?? []));
   for (const c of all) colliders.add(c);
 
   const surfaceAt = (x: number, z: number): Surface => {

@@ -141,6 +141,43 @@
     "at": {
       "lat": 46.9375,
       "lon": -90.5824
+    },
+    "tier": "hero",
+    "onFoot": {
+      "pois": [
+        {
+          "id": "stockton_quarry",
+          "poi": "poi.quarry",
+          "x": 474,
+          "z": 760,
+          "facingDeg": 90
+        }
+      ],
+      "caches": [
+        {
+          "id": "cache.stockton_quarry",
+          "name": "The quarrymen's cache",
+          "spots": [
+            {
+              "name": "the cairn by the derrick",
+              "x": 476,
+              "z": 757
+            },
+            {
+              "name": "the cairn on the upper cut",
+              "x": 456,
+              "z": 764
+            },
+            {
+              "name": "the cairn in the woods above",
+              "x": 458,
+              "z": 738
+            }
+          ],
+          "cashCents": [2500, 7500],
+          "found": "Under the stones, an oilcloth bundle: {cash} in old banknotes, left when the quarry closed."
+        }
+      ]
     }
   },
   {
