@@ -2830,6 +2830,11 @@ async function boot(): Promise<void> {
         cache: islandAshore.cache('cache.stockton_quarry'),
         strongbox: islandAshore.strongbox(),
       }),
+      /** The frame's draw calls and triangles, for bench.island (plan 17). */
+      renderStats: () => {
+        const r = renderer?.stats();
+        return r && { drawCalls: r.drawCalls, triangles: r.triangles, scale: r.scale };
+      },
       /** Presses F for a tick: whatever the prompt offers. */
       interact: () => input.trigger('Interact'),
       /** Faces a zone bearing in degrees, the camera behind you, `pitch` radians down. */
