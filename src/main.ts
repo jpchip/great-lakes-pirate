@@ -82,6 +82,7 @@ import {
 } from './sim/chart/geography';
 import { OPEN_WATER } from './sim/weather/shelter';
 import { FULL_SAIL, speedKn, updateTargetSpeed } from './sim/sailing/controller';
+import { jumpPlacesShip } from './debug/jump-panel';
 import type { SaveControls } from './debug/overlay';
 import type { GameContext, GameEvents } from './modes/context';
 import { ModeMachine } from './modes/machine';
@@ -3846,6 +3847,13 @@ async function boot(): Promise<void> {
   // A run saved in the lockup or awaiting the rope opens on the jail screen (piece D).
   if (state.jail) capture.resume();
   // Saved ashore (Phase 7 piece A): the ship moored as she was left, and you where you stood.
+  // A dev jump (the overlay's Jump to, or a place switch) puts the ship somewhere new, so
+  // you start back aboard her there, the boat stowed, not in the boat at the old place.
+  const jumped = jumpPlacesShip(params);
+  if (jumped && state.player.ashore) {
+    state.player.ashore = null;
+    state.player.rowboat = { state: 'stowed' };
+  }
   const savedAshore = state.player.ashore;
   if (savedAshore && machine.mode === 'sailing' && !state.jail && !paramDef) {
     const h = hazards.state;
