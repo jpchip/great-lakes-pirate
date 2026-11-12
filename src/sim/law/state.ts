@@ -150,6 +150,8 @@ export const jailSchema = z
     /** What the harbor wants for the ship on release. */
     impoundCents: z.number().int().nonnegative().default(0),
     execution: z.boolean().default(false),
+    /** A minor arrest on foot that the purse couldn't cover: nothing taken, no bail. */
+    minor: z.boolean().default(false),
     confiscated: z
       .object({
         cargo: z.array(z.object({ good: z.string(), qty: z.number().int().positive() })),

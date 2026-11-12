@@ -32,6 +32,19 @@ export const jailFileSchema = z.object({
       }),
     )
     .min(1),
+  /**
+   * A minor arrest on foot (a guard takes you for a knife in hand, trespass, skulking...):
+   * at `maxTier` or below, with one of these conduct reasons, you pay a fine from the
+   * purse, by tier (the last entry for any tier past the list), and nothing else is taken.
+   * With the purse short, it's `sentenceWeeks` in the lockup, with no confiscation, no
+   * impound and no bail.
+   */
+  minorArrest: z.object({
+    maxTier: z.number().int().min(0),
+    conduct: z.array(z.string().min(1)),
+    fineCents: z.array(z.number().int().nonnegative()).min(1),
+    sentenceWeeks: z.number().int().positive(),
+  }),
   /** Captured at this tier or above: the rope (decided: tier 5). */
   executionFromTier: z.number().int().min(1),
   /** Heat comes down to this tier after time served (plan 06 §8.2: tier 1). */

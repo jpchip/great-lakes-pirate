@@ -4,7 +4,13 @@ import type { SkyLight } from '../../sim/law/perception';
 import { moonAt, sunAt } from '../../sim/weather/celestial';
 import type { DistrictModel } from '../district/district';
 import { DEFAULT_CONTROLLER, type CharacterState } from './controller';
-import { conduct as judge, isNight, layoutConductMap, type Conduct } from './conduct';
+import {
+  conduct as judge,
+  isNight,
+  layoutConductMap,
+  type Conduct,
+  type ConductReason,
+} from './conduct';
 import {
   districtLamps,
   lightLamps,
@@ -99,6 +105,11 @@ export interface Watch {
   readonly footLaw: FootLaw | undefined;
   /** Conduct at the last step. */
   readonly conduct: Conduct | undefined;
+  /**
+   * What an arrest would be for: the conduct a guard spotted you at (a body or loot beating
+   * a weapon or a trespass), or what it is now. Undefined when nothing was amiss.
+   */
+  arrestReason(): ConductReason | undefined;
   /** What F would do to a guard now, if anything. */
   offer(player: CharacterState): Offer | undefined;
   /**
@@ -216,8 +227,16 @@ export function createWatch(opts: WatchOptions): Watch {
       light01: stealth.readout().light.level01,
     };
   };
+  /** The worst conduct a guard spotted you at tonight: a body or loot over the rest. */
+  let spottedFor: ConductReason | undefined;
+  const noteReason = (r: ConductReason | undefined): void => {
+    if (!r) return;
+    const severe = (x: ConductReason): boolean => x === 'body' || x === 'loot';
+    if (!spottedFor || (severe(r) && !severe(spottedFor))) spottedFor = r;
+  };
   let told = false;
   stealth.on((e) => {
+    if (e.type === 'PlayerSpotted') noteReason(lastConduct?.reason);
     if (e.type !== 'Captured' || told) return;
     told = true;
     opts.onCaptured(e.by, e.npc);
@@ -273,6 +292,10 @@ export function createWatch(opts: WatchOptions): Watch {
     footLaw,
     get conduct() {
       return lastConduct;
+    },
+    arrestReason() {
+      noteReason(lastConduct?.reason);
+      return spottedFor;
     },
     offer: (player) => tools?.offer(toolContext(player)),
     heist,

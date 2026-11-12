@@ -113,8 +113,11 @@ export interface AshoreDeps {
   districtFrame?(def: DistrictDef): DistrictFrame | undefined;
   /** The night watch for a district you've landed in (piece D's guards), if any. */
   watch?(landing: DistrictLanding, onCaptured: (by: string) => void): Watch | undefined;
-  /** A guard took you on foot: `by` is their npc type. You're already off your feet. */
-  captured?(by: string): void;
+  /**
+   * A guard took you on foot: `by` is their npc type, `conduct` what you were taken for
+   * (a `ConductReason`, if anything was amiss). You're already off your feet.
+   */
+  captured?(by: string, conduct?: string): void;
   /**
    * The walkable islands (plan 08 §20.4 piece H): a landing on one builds it whole on its
    * 1 m tiles with its quarry, and F searches its cairns and opens the stash's strongbox.
@@ -351,9 +354,10 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
         : by === 'npc.marshal'
           ? 'The marshal'
           : 'The constable';
-    void deps.fade('Taken', `${who} marches you to the lockup`, () => {
+    const conduct = watch?.arrestReason();
+    void deps.fade('Taken', `${who} takes you in hand`, () => {
       leave();
-      deps.captured?.(by);
+      deps.captured?.(by, conduct);
     });
   };
 

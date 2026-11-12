@@ -20,12 +20,16 @@ export function JailScreen({ jail, actions }: { jail: JailSnapshot; actions: Jai
           <p class="jail-lead" data-testid="jail-lead">
             {jail.lead}
           </p>
-          <h3 class="jail-heading">{jail.heading ?? 'While you were inside...'}</h3>
-          <ul class="jail-list" data-testid="jail-inside">
-            {jail.inside.map((l) => (
-              <li key={l}>{l}</li>
-            ))}
-          </ul>
+          {jail.inside.length > 0 && (
+            <>
+              <h3 class="jail-heading">{jail.heading ?? 'While you were inside...'}</h3>
+              <ul class="jail-list" data-testid="jail-inside">
+                {jail.inside.map((l) => (
+                  <li key={l}>{l}</li>
+                ))}
+              </ul>
+            </>
+          )}
           <p class="jail-ship">{jail.ship}</p>
           <footer class="menu-footer">
             <button
@@ -117,38 +121,49 @@ export function JailScreen({ jail, actions }: { jail: JailSnapshot; actions: Jai
               </dd>
               <dt>Out</dt>
               <dd>{jail.releaseText.replace(/^Out /, '')}</dd>
-              <dt>The ship</dt>
-              <dd>Impounded: {jail.impound} to get her back</dd>
-              <dt>Bail</dt>
-              <dd data-testid="jail-bail">{jail.bail}</dd>
+              {jail.minor ? (
+                <>
+                  <dt>The ship</dt>
+                  <dd>Left alone at her pier</dd>
+                </>
+              ) : (
+                <>
+                  <dt>The ship</dt>
+                  <dd>Impounded: {jail.impound} to get her back</dd>
+                  <dt>Bail</dt>
+                  <dd data-testid="jail-bail">{jail.bail}</dd>
+                </>
+              )}
             </dl>
           </section>
         </div>
 
-        <div class="jail-option">
-          <h3 class="jail-heading">Send word for bail</h3>
-          <p class="jail-note">
-            A messenger takes bail, the ship's fee and a {jail.wordFee} fee ({jail.wordTotal} in
-            all) from a strongbox. You're out when the money comes, but bail doesn't clear your
-            name.
-          </p>
-          {jail.wordSent && <p class="jail-note">{jail.wordSent}</p>}
-          <div class="jail-word">
-            {jail.wordOptions.map((o) => (
-              <button
-                key={o.hideout}
-                type="button"
-                class="menu-button"
-                data-testid={`jail-word-${o.hideout}`}
-                disabled={!o.enough || !!jail.wordSent}
-                onClick={() => actions.sendWord(o.hideout)}
-              >
-                Send word to {o.name} <small class="port-dim">({o.cash})</small>
-              </button>
-            ))}
+        {!jail.minor && (
+          <div class="jail-option">
+            <h3 class="jail-heading">Send word for bail</h3>
+            <p class="jail-note">
+              A messenger takes bail, the ship's fee and a {jail.wordFee} fee ({jail.wordTotal} in
+              all) from a strongbox. You're out when the money comes, but bail doesn't clear your
+              name.
+            </p>
+            {jail.wordSent && <p class="jail-note">{jail.wordSent}</p>}
+            <div class="jail-word">
+              {jail.wordOptions.map((o) => (
+                <button
+                  key={o.hideout}
+                  type="button"
+                  class="menu-button"
+                  data-testid={`jail-word-${o.hideout}`}
+                  disabled={!o.enough || !!jail.wordSent}
+                  onClick={() => actions.sendWord(o.hideout)}
+                >
+                  Send word to {o.name} <small class="port-dim">({o.cash})</small>
+                </button>
+              ))}
+            </div>
+            {jail.wordRefusal && <p class="jail-note bad">{jail.wordRefusal}</p>}
           </div>
-          {jail.wordRefusal && <p class="jail-note bad">{jail.wordRefusal}</p>}
-        </div>
+        )}
 
         <div class="jail-option jail-break">
           <button

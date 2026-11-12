@@ -107,7 +107,74 @@ export function imprison(
     bailCents: outcome.kind === 'jail' ? outcome.bailCents : 0,
     impoundCents: outcome.kind === 'jail' ? outcome.impoundCents : 0,
     execution,
+    minor: false,
     confiscated: { cargo, cashCents },
+    workOffDays: 0,
+  };
+  state.jail = jailed;
+  return jailed;
+}
+
+/**
+ * A minor arrest on foot: a guard taking you for a weapon in hand, trespass, skulking and
+ * the like, while the region has you at tier 0-1. Returns the fine, or undefined when it's
+ * no minor arrest (a body or loot, a higher tier, or no conduct to go by) and the capture
+ * goes through `imprison` as before.
+ */
+export function minorArrest(
+  defs: LawDefs,
+  jail: JailFile,
+  heat: number,
+  conduct: string | undefined,
+): { fineCents: number } | undefined {
+  const rule = jail.minorArrest;
+  if (!conduct || !rule.conduct.includes(conduct)) return undefined;
+  const tier = wantedTier(defs, heat);
+  if (tier > rule.maxTier) return undefined;
+  const fineCents = rule.fineCents[Math.min(tier, rule.fineCents.length - 1)] ?? 0;
+  return { fineCents };
+}
+
+/** Whether the purse covers a fine. */
+export function canPayFine(state: WorldState, cents: number): boolean {
+  return state.player.purse >= cents;
+}
+
+/** Takes a fine out of the purse (never below nothing). */
+export function payFine(state: WorldState, cents: number): void {
+  state.player.purse = Math.max(0, state.player.purse - cents);
+}
+
+/**
+ * A minor arrest the purse can't cover: a short stay in the lockup. Nothing is taken, the
+ * ship isn't impounded and there's no bail to send word for. The voyage stands. Returns the
+ * jail state.
+ */
+export function imprisonMinor(
+  defs: LawDefs,
+  jail: JailFile,
+  state: WorldState,
+  input: CaptureInput,
+  now: number,
+): Jailed {
+  const heat = state.wanted[input.region]?.heat ?? 0;
+  const tier = wantedTier(defs, heat);
+  const weeks = jail.minorArrest.sentenceWeeks;
+  const jailed: Jailed = {
+    region: input.region,
+    port: jail.lockup.port,
+    since: now,
+    releaseAt: now + weeks * SECONDS_PER_GAME_DAY,
+    by: input.by,
+    how: input.how,
+    tier,
+    heat,
+    sentenceWeeks: weeks,
+    bailCents: 0,
+    impoundCents: 0,
+    execution: false,
+    minor: true,
+    confiscated: { cargo: [], cashCents: 0 },
     workOffDays: 0,
   };
   state.jail = jailed;
@@ -131,7 +198,7 @@ export function wordCost(jail: JailFile, jailed: Jailed): number {
   return jailed.bailCents + jailed.impoundCents + jail.sendWord.feeCents;
 }
 
-export type WordRefusal = 'execution' | 'sent' | 'noStrongbox' | 'short';
+export type WordRefusal = 'execution' | 'minor' | 'sent' | 'noStrongbox' | 'short';
 
 export function wordRefusal(
   jail: JailFile,
@@ -140,6 +207,7 @@ export function wordRefusal(
 ): WordRefusal | undefined {
   const jailed = state.jail;
   if (!jailed || jailed.execution) return 'execution';
+  if (jailed.minor) return 'minor';
   if (jailed.word) return 'sent';
   const box = strongboxes(state).find((b) => (hideout ? b.id === hideout : true));
   if (!box) return 'noStrongbox';
@@ -182,7 +250,9 @@ export function sendWord(
  */
 export function settleImpound(jail: JailFile, state: WorldState): string | undefined {
   const jailed = state.jail;
-  if (!jailed || jailed.execution || jailed.word || jailed.workOffDays > 0) return undefined;
+  if (!jailed || jailed.execution || jailed.minor || jailed.word || jailed.workOffDays > 0) {
+    return undefined;
+  }
   const box = strongboxes(state)
     .filter((b) => b.cash >= jailed.impoundCents)
     .sort((a, b) => b.cash - a.cash)[0];

@@ -12,6 +12,12 @@
     { "tier": 3, "weeks": [4, 6], "bailCents": [20000, 50000] },
     { "tier": 4, "weeks": [8, 12], "bailCents": [60000, 150000] }
   ],
+  "minorArrest": {
+    "maxTier": 1,
+    "conduct": ["armed", "trespass", "afterHours", "skulking", "running", "swimming"],
+    "fineCents": [1000, 2500],
+    "sentenceWeeks": 1
+  },
   "executionFromTier": 5,
   "releaseTier": 1,
   "impound": { "baseCents": 1500, "perWeekCents": 500, "workOffCentsPerDay": 300 },

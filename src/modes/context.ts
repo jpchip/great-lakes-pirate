@@ -222,7 +222,11 @@ export interface GameEvents {
     region: string;
     how: 'surrender' | 'boarded' | 'subdued';
     at: Chart;
+    /** On foot: what the guard made of your conduct (`ConductReason`), when you were taken. */
+    conduct?: string;
   };
+  /** A fine paid out of the purse for a minor arrest on foot (nothing else taken). */
+  Fined: { region: string; cents: number; by: string; conduct: string };
   /**
    * Jail and the run's end (plan 06 §10, plan 12 §10; piece D): taken to the lockup (or
    * the gallows), bail sent for, let out, and the run over.

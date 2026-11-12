@@ -15,6 +15,8 @@ export interface WordOption {
 
 export interface CellSnapshot {
   kind: 'cell';
+  /** A minor arrest: nothing taken, no impound, no bail to send word for. */
+  minor?: boolean;
   lockup: string;
   /** "Taken by the revenue cutter Morrill off the Apostle Islands, Wk of June 4, 1900". */
   taken: string;
