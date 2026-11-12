@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest';
-import { harborJump, jumpUrl, lightJump, zoneJump } from '../src/debug/jump-panel';
+import {
+  harborJump,
+  jumpPlacesShip,
+  jumpUrl,
+  lightJump,
+  zoneJump,
+} from '../src/debug/jump-panel';
 import { findHarbor } from '../src/sim/harbors';
 import { LIGHTHOUSES } from '../src/sim/lighthouses';
 
@@ -29,6 +35,20 @@ describe('jumpUrl', () => {
     expect(jumpUrl(new URLSearchParams(), harborJump('harbor.duluth', 1))).toBe(
       '?harbor=harbor.duluth,1',
     );
+  });
+});
+
+describe('jumpPlacesShip', () => {
+  it('is true for a harbor, zone or encounter jump', () => {
+    expect(jumpPlacesShip(new URLSearchParams('harbor=harbor.duluth,1'))).toBe(true);
+    expect(jumpPlacesShip(new URLSearchParams('debug&zone=zone.apostles&entry=west'))).toBe(true);
+    expect(jumpPlacesShip(new URLSearchParams('encounter=tug'))).toBe(true);
+  });
+
+  it('is false for a ship swap, a plain debug start or no switches', () => {
+    expect(jumpPlacesShip(new URLSearchParams('ship=t2'))).toBe(false);
+    expect(jumpPlacesShip(new URLSearchParams('debug&play&timewarp=60'))).toBe(false);
+    expect(jumpPlacesShip(new URLSearchParams())).toBe(false);
   });
 });
 

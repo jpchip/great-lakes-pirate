@@ -37,6 +37,27 @@ export const PLACE_SWITCHES = [
   'npcs',
 ] as const;
 
+/** The place switches that put the ship somewhere new (the rest, like `ship`, leave her be). */
+const SHIP_PLACING_SWITCHES = [
+  'zone',
+  'entry',
+  'harbor',
+  'spawn',
+  'light',
+  'fogbank',
+  'encounter',
+  'at',
+  'npcs',
+] as const;
+
+/**
+ * Whether the URL moves the ship to a new place (a jump). A run saved ashore must not
+ * resume there: the boat is stowed and you're back aboard at the new place.
+ */
+export function jumpPlacesShip(params: URLSearchParams): boolean {
+  return SHIP_PLACING_SWITCHES.some((key) => params.has(key));
+}
+
 /**
  * The query string (with its `?`) for a jump: the current switches without the place
  * ones, plus `set`. A `ship` jump keeps the place switches, since it only swaps the ship.

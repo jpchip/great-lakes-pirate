@@ -82,6 +82,7 @@ import {
 } from './sim/chart/geography';
 import { OPEN_WATER } from './sim/weather/shelter';
 import { FULL_SAIL, speedKn, updateTargetSpeed } from './sim/sailing/controller';
+import { jumpPlacesShip } from './debug/jump-panel';
 import type { SaveControls } from './debug/overlay';
 import type { GameContext, GameEvents } from './modes/context';
 import { ModeMachine } from './modes/machine';
@@ -102,6 +103,7 @@ import { placeZoneIslands, walkableIslands, type PlacedIsland } from './sim/isla
 import { zoneClearings } from './sim/terrain/clearings';
 import { plantTile, TREE_CELL_M } from './sim/terrain/vegetation';
 import { attachIslandAshore } from './gameplay/island-ashore';
+import { createIslandPosse } from './gameplay/island-posse';
 import { TEST_BAY, type Dock, type Pose } from './sim/terrain/test-bay';
 import { findHarbor, harborZoneId, layoutHarbors, type HarborLayout } from './sim/harbors';
 import { workSites } from './audio/harbor-mix';
@@ -2667,6 +2669,31 @@ async function boot(): Promise<void> {
     look: footLook,
     island: islandAshore,
     plants: plantsIn,
+    // The marshal posse on a walkable island at Wanted tier 4 and up (plan 08 §20.4 piece H).
+    posse: (island, scene) => {
+      const placed = zoneIslands().placed.find((p) => p.id === island);
+      if (!placed) return undefined;
+      const region = (): string => law.region() ?? '';
+      const fameTiers = Math.max(1, law.defs.fame.tiers.length - 1);
+      const tier = wantedTier(law.defs, state.wanted[region()]?.heat ?? 0);
+      return createIslandPosse({
+        scene,
+        placed,
+        tier,
+        seed: trafficSeed,
+        conditions: () => {
+          const t = state.environment.clock.gameSeconds;
+          return {
+            gameSeconds: t,
+            cloud01: ctx.weather.cloudAt(t),
+            fogM: ctx.weather.fogVisibilityAt(t),
+            rain01: ctx.weather.rainAt(t),
+            wantedTier: wantedTier(law.defs, state.wanted[region()]?.heat ?? 0),
+            fame01: fameTier(law.defs, state.fame.value) / fameTiers,
+          };
+        },
+      });
+    },
     // Bayfield's district (Phase 7): only for a harbor in the zone you're in.
     districtFrame: (def) => {
       const h = findHarbor(def.harbor);
@@ -2830,6 +2857,22 @@ async function boot(): Promise<void> {
         cache: islandAshore.cache('cache.stockton_quarry'),
         strongbox: islandAshore.strongbox(),
       }),
+      /** The marshal posse on the island you're on (piece H): its count and who it has. */
+      posse: () => {
+        const p = ashore.posse;
+        return (
+          p && {
+            count: p.count,
+            captured: p.captured,
+            guards: p.stealth.guards.map((g) => ({ id: g.id, type: g.type.id, state: g.state })),
+          }
+        );
+      },
+      /** The frame's draw calls and triangles, for bench.island (plan 17). */
+      renderStats: () => {
+        const r = renderer?.stats();
+        return r && { drawCalls: r.drawCalls, triangles: r.triangles, scale: r.scale };
+      },
       /** Presses F for a tick: whatever the prompt offers. */
       interact: () => input.trigger('Interact'),
       /** Faces a zone bearing in degrees, the camera behind you, `pitch` radians down. */
@@ -3841,6 +3884,13 @@ async function boot(): Promise<void> {
   // A run saved in the lockup or awaiting the rope opens on the jail screen (piece D).
   if (state.jail) capture.resume();
   // Saved ashore (Phase 7 piece A): the ship moored as she was left, and you where you stood.
+  // A dev jump (the overlay's Jump to, or a place switch) puts the ship somewhere new, so
+  // you start back aboard her there, the boat stowed, not in the boat at the old place.
+  const jumped = jumpPlacesShip(params);
+  if (jumped && state.player.ashore) {
+    state.player.ashore = null;
+    state.player.rowboat = { state: 'stowed' };
+  }
   const savedAshore = state.player.ashore;
   if (savedAshore && machine.mode === 'sailing' && !state.jail && !paramDef) {
     const h = hazards.state;
