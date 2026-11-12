@@ -103,6 +103,7 @@ import { placeZoneIslands, walkableIslands, type PlacedIsland } from './sim/isla
 import { zoneClearings } from './sim/terrain/clearings';
 import { plantTile, TREE_CELL_M } from './sim/terrain/vegetation';
 import { attachIslandAshore } from './gameplay/island-ashore';
+import { createIslandPosse } from './gameplay/island-posse';
 import { TEST_BAY, type Dock, type Pose } from './sim/terrain/test-bay';
 import { findHarbor, harborZoneId, layoutHarbors, type HarborLayout } from './sim/harbors';
 import { workSites } from './audio/harbor-mix';
@@ -2668,6 +2669,31 @@ async function boot(): Promise<void> {
     look: footLook,
     island: islandAshore,
     plants: plantsIn,
+    // The marshal posse on a walkable island at Wanted tier 4 and up (plan 08 §20.4 piece H).
+    posse: (island, scene) => {
+      const placed = zoneIslands().placed.find((p) => p.id === island);
+      if (!placed) return undefined;
+      const region = (): string => law.region() ?? '';
+      const fameTiers = Math.max(1, law.defs.fame.tiers.length - 1);
+      const tier = wantedTier(law.defs, state.wanted[region()]?.heat ?? 0);
+      return createIslandPosse({
+        scene,
+        placed,
+        tier,
+        seed: trafficSeed,
+        conditions: () => {
+          const t = state.environment.clock.gameSeconds;
+          return {
+            gameSeconds: t,
+            cloud01: ctx.weather.cloudAt(t),
+            fogM: ctx.weather.fogVisibilityAt(t),
+            rain01: ctx.weather.rainAt(t),
+            wantedTier: wantedTier(law.defs, state.wanted[region()]?.heat ?? 0),
+            fame01: fameTier(law.defs, state.fame.value) / fameTiers,
+          };
+        },
+      });
+    },
     // Bayfield's district (Phase 7): only for a harbor in the zone you're in.
     districtFrame: (def) => {
       const h = findHarbor(def.harbor);
@@ -2831,6 +2857,17 @@ async function boot(): Promise<void> {
         cache: islandAshore.cache('cache.stockton_quarry'),
         strongbox: islandAshore.strongbox(),
       }),
+      /** The marshal posse on the island you're on (piece H): its count and who it has. */
+      posse: () => {
+        const p = ashore.posse;
+        return (
+          p && {
+            count: p.count,
+            captured: p.captured,
+            guards: p.stealth.guards.map((g) => ({ id: g.id, type: g.type.id, state: g.state })),
+          }
+        );
+      },
       /** The frame's draw calls and triangles, for bench.island (plan 17). */
       renderStats: () => {
         const r = renderer?.stats();
