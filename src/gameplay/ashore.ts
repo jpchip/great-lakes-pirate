@@ -31,6 +31,7 @@ import { climateAt } from '../sim/weather/climate';
 import type { AshoreState, RowboatSave, WorldState } from '../sim/world-state';
 import type { DistrictDef } from '../../data/schemas/districts';
 import type { IslandAshore } from './island-ashore';
+import type { IslandPosse } from './island-posse';
 import {
   districtForHarbor,
   insideDistrict,
@@ -119,6 +120,8 @@ export interface AshoreDeps {
    * 1 m tiles with its quarry, and F searches its cairns and opens the stash's strongbox.
    */
   island?: IslandAshore | undefined;
+  /** The marshal posse on a walkable island, at Wanted tier 4 and up (piece H). */
+  posse?(island: string, scene: AshoreScene): IslandPosse | undefined;
   /**
    * The trees and shore rocks the renderer plants over a rectangle (zone meters), and the
    * share the quality preset draws: they get trunks you walk around.
@@ -182,6 +185,8 @@ export interface GameAshore {
   readonly district: DistrictLanding | undefined;
   /** The walkable island the scene is built on (its 1 m tiles), if any. */
   readonly island: string | undefined;
+  /** The marshal posse on the island you're on, if any (piece H). */
+  readonly posse: IslandPosse | undefined;
   /** Its night watch: piece E's tools act on `watch.stealth`. */
   readonly watch: Watch | undefined;
   /** A guard is chasing you ashore: the danger snapshot, no autosave. */
@@ -249,6 +254,8 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
   let taken = false;
   /** The walkable island the scene is built on, if any. */
   let sceneIsland: string | undefined;
+  /** The marshal posse on the island the scene is built on, if any. */
+  let posse: IslandPosse | undefined;
 
   // The scene's frame: a district's local meters, or the zone's own.
   const toScene = (p: { x: number; z: number }): { x: number; z: number } =>
@@ -327,6 +334,7 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
 
   /** Into a district: its scene, and its watch on duty. */
   const enterDistrict = (landing: DistrictLanding): void => {
+    posse = undefined;
     district = landing;
     scene = landing.scene;
     taken = false;
@@ -364,7 +372,7 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
       maxX: center.x + ASHORE_HALF_M,
       maxZ: center.z + ASHORE_HALF_M,
     };
-    return buildAshoreScene({
+    const built = buildAshoreScene({
       ground: island?.ground ?? {
         heightAt: (x, z) => terrain.heightAt(x, z),
         x0: g.x0,
@@ -382,6 +390,8 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
       ladders: island?.ladders,
       plants: deps.plants?.(box),
     });
+    posse = island && deps.posse ? deps.posse(island.island, built) : undefined;
+    return built;
   };
 
   // --- Going ashore and back -----------------------------------------------------------
@@ -502,6 +512,7 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
 
   const leave = (): void => {
     active = false;
+    posse = undefined;
     scene = undefined;
     district = undefined;
     watch = undefined;
@@ -787,6 +798,12 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
 
     // The night watch looks and listens after you've moved (plan 08 §4–5).
     if (watch && !taken) watch.step(dt, character);
+    // The marshal posse on the island (piece H): wanted men are hunted on the island.
+    if (posse && !taken && !inBoat && scene) {
+      const p = character.position;
+      posse.step(dt, character, true, scene.surfaceAt?.(p.x, p.z));
+      if (posse.captured) takenBy('npc.marshal');
+    }
     if (!active || taken) return;
 
     // The tool belt (piece E): 1–5 take a tool in hand, and F is the tool's when a guard is
@@ -901,7 +918,7 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
           frame: district.frame,
           focus: { x, y: head, z },
         },
-        guards: watch?.stealth.guards.map((g) => {
+        guards: [...(watch?.stealth.guards ?? []), ...(posse?.stealth.guards ?? [])].map((g) => {
           const p = g.body.position;
           const q = g.previous;
           const gx = q.x + (p.x - q.x) * alpha;
@@ -1030,6 +1047,9 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
     },
     get island() {
       return district ? undefined : sceneIsland;
+    },
+    get posse() {
+      return posse;
     },
     get district() {
       return district;
