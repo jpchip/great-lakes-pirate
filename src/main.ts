@@ -2756,12 +2756,13 @@ async function boot(): Promise<void> {
       });
     },
     // Taken on foot: to the lockup as the Morrill would take you at sea (Phase 5's jail).
-    captured: (by) => {
+    captured: (by, conduct) => {
       ctx.events.emit('PlayerCaptured', {
         by: by === 'npc.watchman' || by === 'npc.marshal' ? by : 'npc.constable',
         region: law.region() ?? '',
         how: 'subdued',
         at: zoneToChart(shipPose(), zoneFrame(zone, zoneData)),
+        ...(conduct ? { conduct } : {}),
       });
     },
     view: scene && {

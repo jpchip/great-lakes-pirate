@@ -3,9 +3,13 @@ import { SECONDS_PER_GAME_DAY } from '../src/core/time';
 import { acquireTabLock } from '../src/core/tab-lock';
 import { gameLaw, tierDef, wantedTier } from '../src/sim/law/defs';
 import {
+  canPayFine,
   captureOutcome,
   gameJail,
   imprison,
+  imprisonMinor,
+  minorArrest,
+  payFine,
   release,
   sendWord,
   settleImpound,
@@ -190,6 +194,65 @@ describe('jail (plan 12 §8.1)', () => {
     const loaded = parseWorldState(old);
     expect(loaded.stats?.crimes).toBe(0);
     expect(loaded.logbook).toEqual([]);
+  });
+});
+
+describe('minor arrests on foot', () => {
+  const foot = { region: APOSTLES, by: 'npc.constable', how: 'subdued' as const };
+
+  it('fines weapons, trespass and the like at tier 0-1, more at tier 1', () => {
+    const t0 = minorArrest(defs, jail, 0, 'armed');
+    const t1 = minorArrest(defs, jail, tierDef(defs, 1).minHeat, 'armed');
+    expect(t0?.fineCents).toBe(jail.minorArrest.fineCents[0]);
+    expect(t1?.fineCents).toBe(jail.minorArrest.fineCents[1]);
+    for (const c of ['trespass', 'afterHours', 'skulking', 'running', 'swimming']) {
+      expect(minorArrest(defs, jail, 0, c)).toBeDefined();
+    }
+  });
+
+  it('is no minor arrest at tier 2, for loot or a body, or with nothing amiss', () => {
+    expect(minorArrest(defs, jail, tierDef(defs, 2).minHeat, 'armed')).toBeUndefined();
+    expect(minorArrest(defs, jail, 0, 'loot')).toBeUndefined();
+    expect(minorArrest(defs, jail, 0, 'body')).toBeUndefined();
+    expect(minorArrest(defs, jail, 0, undefined)).toBeUndefined();
+  });
+
+  it('a fine takes only the money: the cargo stays', () => {
+    const s = run(0);
+    const fine = minorArrest(defs, jail, 0, 'armed')?.fineCents ?? 0;
+    expect(canPayFine(s, fine)).toBe(true);
+    payFine(s, fine);
+    expect(s.player.purse).toBe(4321 - fine);
+    expect(s.player.cargo).toHaveLength(2);
+    expect(s.jail).toBeNull();
+    s.player.purse = fine - 1;
+    expect(canPayFine(s, fine)).toBe(false);
+  });
+
+  it('a short purse means a short stay: nothing taken, no impound, no bail', () => {
+    const s = run(0);
+    const j = imprisonMinor(defs, jail, s, foot, NOON);
+    expect(j.minor).toBe(true);
+    expect(j.sentenceWeeks).toBe(jail.minorArrest.sentenceWeeks);
+    expect(j.bailCents).toBe(0);
+    expect(j.impoundCents).toBe(0);
+    expect(j.confiscated).toEqual({ cargo: [], cashCents: 0 });
+    expect(s.player.purse).toBe(4321);
+    expect(s.player.cargo).toHaveLength(2);
+    expect(wordRefusal(jail, s, undefined)).toBe('minor');
+    expect(settleImpound(jail, s)).toBeUndefined();
+    expect(s.jail?.workOffDays).toBe(0);
+    const r = release(defs, jail, s, j.releaseAt);
+    expect(r.how).toBe('served');
+    expect(s.jail).toBeNull();
+  });
+
+  it('loads a jail saved before minor arrests', () => {
+    const s = run(tierDef(defs, 2).minHeat);
+    imprison(defs, jail, s, capture, NOON);
+    const raw = JSON.parse(JSON.stringify(s)) as { jail: Record<string, unknown> };
+    delete raw.jail['minor'];
+    expect(parseWorldState(raw).jail?.minor).toBe(false);
   });
 });
 

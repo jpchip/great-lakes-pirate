@@ -94,6 +94,11 @@ export function attachRecord(ctx: GameContext, defs: LawDefs): () => void {
           : `Locked up at ${port(e.port)}: ${e.sentenceWeeks} week${e.sentenceWeeks === 1 ? '' : 's'}.`,
       );
     }),
+    ev.on('Fined', (e) =>
+      write(
+        `Fined ${formatCents(e.cents)} by ${ON_FOOT_CAPTOR[e.by] ?? 'the law'} in ${region(e.region)}.`,
+      ),
+    ),
     ev.on('BailSent', (e) =>
       write(`Sent word for bail: ${formatCents(e.cents)} from the strongbox.`),
     ),

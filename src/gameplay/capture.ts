@@ -15,8 +15,12 @@ import { formatCents } from '../sim/economy/knowledge';
 import { siteDef } from '../sim/hideouts/stash';
 import { tierDef, wantedTier } from '../sim/law/defs';
 import {
+  canPayFine,
   gameJail,
   imprison,
+  imprisonMinor,
+  minorArrest,
+  payFine,
   release,
   sendWord,
   settleImpound,
@@ -77,6 +81,7 @@ export interface CaptureControl {
 
 const WORD_REFUSALS: Record<WordRefusal, string> = {
   execution: 'Nobody posts bail for a captain the law means to hang.',
+  minor: 'There is no bail on a night in the lockup: you serve it.',
   sent: 'Word is already on its way.',
   noStrongbox: 'You have no strongbox to send word to.',
   short: "There isn't enough in the strongbox for bail, the ship and the messenger.",
@@ -93,6 +98,16 @@ function byName(by: string): string {
   if (by === 'npc.marshal') return 'a marshal';
   return by === 'law.chartered_tug' ? 'the chartered tug' : 'the revenue cutter Morrill';
 }
+
+/** What a minor arrest is for, by the conduct the guard saw. */
+const MINOR_REASONS: Record<string, string> = {
+  armed: 'carrying a weapon about the docks',
+  trespass: 'trespassing',
+  afterHours: 'being out after hours',
+  skulking: 'skulking about the docks',
+  running: 'running about the docks at night',
+  swimming: 'swimming in the harbor at night',
+};
 
 function weeks(n: number): string {
   return `${n} week${n === 1 ? '' : 's'}`;
@@ -127,6 +142,7 @@ export function attachCapture(opts: CaptureOptions): CaptureControl {
   const taken = (j: Jailed): string =>
     `Taken by ${byName(j.by)} in ${regionName(j.region)}, the week of ${dateText(j.since)}`;
   const confiscated = (j: Jailed): string[] => {
+    if (j.minor) return ['Nothing: your hold and purse are as you left them'];
     const goods = gameEconomy().goods;
     const lines = j.confiscated.cargo.map(
       (c) => `${c.qty} CU of ${goods.get(c.good)?.name ?? c.good}`,
@@ -152,6 +168,7 @@ export function attachCapture(opts: CaptureOptions): CaptureControl {
     const cost = wordCost(jail, j);
     return {
       kind: 'cell',
+      ...(j.minor ? { minor: true } : {}),
       lockup: lockupName(),
       taken: taken(j),
       tierName: tierDef(defs, j.tier).name,
@@ -184,7 +201,39 @@ export function attachCapture(opts: CaptureOptions): CaptureControl {
   const takeNow = (e = pending): void => {
     pending = undefined;
     if (!e || state.jail) return;
-    const j = imprison(defs, jail, state, { region: e.region, by: e.by, how: e.how }, now());
+    const input = { region: e.region, by: e.by, how: e.how };
+    // A minor arrest on foot (a knife in hand, trespass...) at tier 0-1: a fine from the
+    // purse and back to your ship, or a short stay when you can't pay. Nothing is taken.
+    const minor =
+      e.how === 'subdued'
+        ? minorArrest(defs, jail, state.wanted[e.region]?.heat ?? 0, e.conduct)
+        : undefined;
+    if (minor && e.conduct && canPayFine(state, minor.fineCents)) {
+      payFine(state, minor.fineCents);
+      ctx.events.emit('Fined', {
+        region: e.region,
+        cents: minor.fineCents,
+        by: e.by,
+        conduct: e.conduct,
+      });
+      const captor = byName(e.by);
+      const why = MINOR_REASONS[e.conduct] ?? 'a minor offense';
+      released = {
+        kind: 'released',
+        title: 'Fined',
+        lead: `${captor.charAt(0).toUpperCase()}${captor.slice(1)} fines you ${formatCents(minor.fineCents)} for ${why}, and sends you back to your ship.`,
+        inside: [],
+        ship: `The ${state.player.captain.shipName} is alongside, as you left her. Your cargo is untouched.`,
+        leaveLabel: 'Back aboard',
+      };
+      setOpen(true);
+      refresh();
+      void opts.save();
+      return;
+    }
+    const j = minor
+      ? imprisonMinor(defs, jail, state, input, now())
+      : imprison(defs, jail, state, input, now());
     opts.economy.syncLoad();
     ctx.events.emit('Jailed', {
       region: j.region,

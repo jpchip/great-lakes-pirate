@@ -1,11 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import {
-  harborJump,
-  jumpPlacesShip,
-  jumpUrl,
-  lightJump,
-  zoneJump,
-} from '../src/debug/jump-panel';
+import { harborJump, jumpPlacesShip, jumpUrl, lightJump, zoneJump } from '../src/debug/jump-panel';
 import { findHarbor } from '../src/sim/harbors';
 import { LIGHTHOUSES } from '../src/sim/lighthouses';
 
