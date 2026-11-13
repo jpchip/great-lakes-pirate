@@ -1,10 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { beforeAll, describe, expect, it } from 'vitest';
-import {
-  districtBerthPiers,
-  districtForHarbor,
-} from '../src/gameplay/district/district-ashore';
+import { districtBerthPiers, districtForHarbor } from '../src/gameplay/district/district-ashore';
 import { findDistrict } from '../src/gameplay/district/ground';
 import { attachIslandAshore } from '../src/gameplay/island-ashore';
 import type { PlacedIsland } from '../src/sim/islands/on-foot';
@@ -47,7 +44,8 @@ describe('harbor piers on the Apostles zone', () => {
     for (const pier of layout.piers) {
       const allowed = piers.has(pier.id);
       if (pier.id.includes('lumber')) expect(allowed, pier.id).toBe(false);
-      else if (pier.id.includes('fish') || pier.id.includes('city')) expect(allowed, pier.id).toBe(true);
+      else if (pier.id.includes('fish') || pier.id.includes('city'))
+        expect(allowed, pier.id).toBe(true);
     }
   });
 

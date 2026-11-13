@@ -147,9 +147,7 @@ export function insideLayout(def: DistrictDef, x: number, z: number, padM = 2): 
   const minZ = z0;
   const maxX = x0 + cols * CELL_M;
   const maxZ = z0 + rows * CELL_M;
-  return (
-    x > minX + padM && x < maxX - padM && z > minZ + padM && z < maxZ - padM
-  );
+  return x > minX + padM && x < maxX - padM && z > minZ + padM && z < maxZ - padM;
 }
 
 /** Harbor pier ids that berth inside this district (from the layout's berth marks). */
