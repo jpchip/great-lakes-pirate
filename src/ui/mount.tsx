@@ -252,7 +252,7 @@ export function mountGameUi({
     } else if (port.value && is('Interact')) {
       e.preventDefault();
       portActions?.castOff();
-    } else if (port.value && is('GoAshore') && portActions?.goAshore) {
+    } else if (port.value && is('GoAshore') && portActions?.goAshore && port.value.canGoAshore) {
       e.preventDefault();
       portActions.goAshore();
     } else if (port.value && is('Journal')) {

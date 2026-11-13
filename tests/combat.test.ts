@@ -350,7 +350,11 @@ describe('the guns aboard (plan 07 §2.3, §14.5)', () => {
 });
 
 describe('combat in play', () => {
-  const setup = (classId = 'ship.fish_tug', distance = 150) => {
+  const setup = (
+    classId = 'ship.fish_tug',
+    distance = 150,
+    opts: { tilt?: number; targetY?: number } = {},
+  ) => {
     const state = createWorldState('combat');
     const events = new EventBus<GameEvents>();
     const world = createGameWorld();
@@ -369,6 +373,7 @@ describe('combat in play', () => {
     // Lying stopped, broadside on, dead ahead.
     const npc = createNpcShipEntity(record(classId), 0, -distance, 90 * DEG, 0);
     npc.id = 'npc.target';
+    if (opts.targetY !== undefined && npc.transform) npc.transform.position.y = opts.targetY;
     world.add(npc);
     let onTimetable = true;
     const combat = attachCombat({
@@ -383,6 +388,7 @@ describe('combat in play', () => {
       },
       zoneLand: () => undefined,
       isLawShip: () => false,
+      barrelTilt: () => opts.tilt ?? 0,
     });
     const seen: { type: keyof GameEvents; payload: unknown }[] = [];
     events.tap((type, payload) => seen.push({ type, payload }));
@@ -433,6 +439,24 @@ describe('combat in play', () => {
     expect(d && d.hull + d.engine).toBeLessThan((d?.hullMax ?? 0) + (d?.engineMax ?? 0));
     expect(timetable()).toBe(false);
     expect(state.player.ammo.charges).toBe(4);
+  });
+
+  it('still hulls her when the bow is pitching and she rides up on a swell', () => {
+    const { combat, state, seen, run, npc } = setup('ship.fish_tug', 150, {
+      tilt: 4 * DEG,
+      targetY: 2.4,
+    });
+    state.player.ship?.weapons.push({ weapon: 'weapon.swivel', mount: 'bow' });
+    state.player.cargo.push({ good: 'good.powder_shot', qty: 1 });
+
+    for (let i = 0; i < 6; i++) {
+      expect(combat.fire({ ammo: 'ammo.round', target: 'npc.target' }).ok).toBe(true);
+      run(6.1);
+    }
+    const d = npc.damage;
+    expect(d).toBeDefined();
+    expect(d?.hull).toBeLessThan(d?.hullMax ?? 80);
+    expect(seen.filter((s) => s.type === 'WeaponFired')).toHaveLength(6);
   });
 
   it('lets a hulled ship founder and go under, and raises it', () => {
