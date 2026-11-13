@@ -244,7 +244,7 @@ test('in Bayfield the tool belt is in hand: a cosh from behind drops the constab
   });
   await page.keyboard.press('Digit1');
   await expect.poll(async () => (await tools()).selected).toBe('tool.cosh');
-  expect((await tools()).conduct).toBe('armed');
+  await expect.poll(async () => (await tools()).conduct).toBe('armed');
   await expect(page.getByTestId('foot-tools').getByTestId('foot-prompt')).toContainText(
     'Knock out the constable',
   );

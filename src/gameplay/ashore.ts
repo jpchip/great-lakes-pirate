@@ -839,6 +839,16 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
       }
     }
 
+    // Draw the tool before the watch looks, so a cosh in hand is what they see this frame.
+    if (active && !taken && watch?.tools) {
+      const belt = watch.tools;
+      (
+        ['Tool1', 'Tool2', 'Tool3', 'Tool4', 'Tool5', 'Tool6', 'Tool7', 'Tool8', 'Tool9'] as const
+      ).forEach((a, n) => {
+        if (input.pressed(a)) belt.selectSlot(n);
+      });
+    }
+
     // The night watch looks and listens after you've moved (plan 08 §4–5).
     if (watch && !taken) watch.step(dt, character);
     // The marshal posse on the island (piece H): wanted men are hunted on the island.
@@ -849,16 +859,8 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
     }
     if (!active || taken) return;
 
-    // The tool belt (piece E): 1–5 take a tool in hand, and F is the tool's when a guard is
-    // in reach of it (or a man who's down), else the ashore prompt's.
-    const belt = watch?.tools;
-    if (belt) {
-      (
-        ['Tool1', 'Tool2', 'Tool3', 'Tool4', 'Tool5', 'Tool6', 'Tool7', 'Tool8', 'Tool9'] as const
-      ).forEach((a, n) => {
-        if (input.pressed(a)) belt.selectSlot(n);
-      });
-    }
+    // F is the tool's when a guard is in reach of it (or a man who's down), else the
+    // ashore prompt's. The belt itself was taken up before the watch looked.
     const own = findPrompt();
     const toolTookF =
       !inBoat &&
