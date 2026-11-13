@@ -47,6 +47,8 @@ export interface IslandAshoreDeps {
 }
 
 export interface IslandAshore {
+  /** True when (x, z) is within a hero island's walkable tiles (plus landing pad). */
+  walkableAt(at: { x: number; z: number }): boolean;
   /** The island scene for a landing here, or undefined off the walkable islands. */
   sceneFor(at: { x: number; z: number }): IslandScene | undefined;
   /** F on foot at (x, y, z): search a cairn, or open the stash at its strongbox. */
@@ -220,6 +222,7 @@ export function attachIslandAshore(deps: IslandAshoreDeps): IslandAshore {
   };
 
   return {
+    walkableAt: (at) => islandAt(at.x, at.z) !== undefined,
     sceneFor,
     prompt,
     cache(id) {

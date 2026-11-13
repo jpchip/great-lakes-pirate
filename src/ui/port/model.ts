@@ -268,6 +268,8 @@ export interface PortSnapshot {
    */
   canWait?: boolean | undefined;
   waitRefusal?: string | undefined;
+  /** Go ashore (G) on the footer; only when a built landing exists at this berth. */
+  canGoAshore?: boolean | undefined;
 }
 
 /** A rumor as the ledger and the saloon show it. */
