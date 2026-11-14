@@ -33,6 +33,7 @@ import type { DistrictDef } from '../../data/schemas/districts';
 import type { IslandAshore } from './island-ashore';
 import type { IslandPosse } from './island-posse';
 import {
+  districtBerthPiers,
   districtForHarbor,
   insideDistrict,
   landInDistrict,
@@ -157,6 +158,8 @@ export interface GameAshore {
   readonly from: AshoreState['from'] | undefined;
   /** Why you can't go ashore here now, or undefined if G would take you. */
   refusal(): string | undefined;
+  /** True when a built on-foot area exists at the current berth or anchor. */
+  landingHere(): boolean;
   /** G: ashore from a berth, or into the boat at anchor. The refusal, if not. */
   goAshore(): Promise<string | undefined>;
   /** Back aboard, however you are: ends ashore at the helm. */
@@ -222,6 +225,8 @@ const REACH_M = 2.2;
 const ALONGSIDE_M = 3.5;
 /** Abandoning ship, the boat is got away only this close to land, zone m (plan 08 §20.6). */
 export const CASTAWAY_SHORE_M = 1500;
+/** Shown when only the zone stand-in exists (no district or hero island). */
+export const NO_WALKABLE_ASHORE = 'Nothing ashore here to walk';
 /** The scene is rebuilt around the boat when she comes this close to its edge. */
 const REBUILD_MARGIN_M = 60;
 
@@ -400,6 +405,38 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
 
   // --- Going ashore and back -----------------------------------------------------------
 
+  /** Where the boat goes over the side at anchor (same as `overTheSide`). */
+  const boatLaunchAt = (): { x: number; z: number } => {
+    const p = shipPose();
+    const terrain = deps.terrain();
+    const off = deps.hull.beamM / 2 + ROWBOAT.beamM;
+    const side = [1, -1]
+      .map((s) => {
+        const x = p.x + Math.cos(p.heading) * off * s;
+        const z = p.z + Math.sin(p.heading) * off * s;
+        return { x, z, d: terrain?.shoreDistanceAt(x, z) ?? 0 };
+      })
+      .sort((a, b) => a.d - b.d)[0];
+    return { x: side?.x ?? p.x, z: side?.z ?? p.z };
+  };
+
+  const landingHere = (): boolean => {
+    if (!deps.terrain()) return false;
+    const h = hazards().state;
+    if (h.mooring === 'docked') {
+      const pier = pierOf(h.berthId);
+      if (!pier) return false;
+      const harbor = deps.harbors().find((l) => l.piers.includes(pier));
+      const def = harbor && districtForHarbor(harbor.def.id);
+      if (!def || !deps.districtFrame) return false;
+      if (!deps.districtFrame(def)) return false;
+      return districtBerthPiers(def).has(pier.id);
+    }
+    if (h.mooring !== 'free' || h.anchor !== 'down' || h.dragging) return false;
+    const at = boatLaunchAt();
+    return !!deps.island?.walkableAt(at);
+  };
+
   const refusal = (): string | undefined => {
     if (active) return 'Already ashore';
     const other = deps.blocked();
@@ -407,9 +444,12 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
     const h = hazards().state;
     if (h.foundering) return 'She is going down: F to abandon ship';
     if (!deps.terrain()) return 'No shore here';
-    if (h.mooring === 'docked' && pierOf(h.berthId)) return undefined;
+    if (h.mooring === 'docked' && pierOf(h.berthId)) {
+      return landingHere() ? undefined : NO_WALKABLE_ASHORE;
+    }
     if (h.mooring !== 'free') return 'Wait until she is alongside';
     if (h.anchor !== 'down' || h.dragging) return 'Anchor or tie up first (X, or F at a berth)';
+    if (!landingHere()) return NO_WALKABLE_ASHORE;
     const at = shipPose();
     return launchRefusal(deps.hsAt(at.x, at.z));
   };
@@ -434,22 +474,19 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
       if (h.mooring === 'docked') {
         const pier = pierOf(h.berthId) as PlacedPier;
         const landing = await districtLanding(pier);
+        if (!landing) {
+          return NO_WALKABLE_ASHORE;
+        }
         await deps.fade('Ashore', `Down the gangway onto the ${pier.name}`, () => {
           from = 'berth';
           berthId = h.berthId;
           anchor = undefined;
           district = undefined;
           watch = undefined;
-          const at = gangwayAt(pier, shipPose());
           inBoat = false;
-          if (landing) {
-            enterDistrict(landing);
-            // Face along the pier toward the town.
-            placeCharacter(character, gangway(pier), headingToScene(pier.bearing + Math.PI));
-          } else {
-            scene = build(at);
-            placeCharacter(character, at, pier.bearing + Math.PI);
-          }
+          enterDistrict(landing);
+          // Face along the pier toward the town.
+          placeCharacter(character, gangway(pier), headingToScene(pier.bearing + Math.PI));
           copyPrevious();
           enter();
         });
@@ -471,16 +508,15 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
   /** The boat over the side nearer the shore, pointing at it, and you at the oars. */
   const overTheSide = (): void => {
     const p = shipPose();
-    const terrain = deps.terrain();
+    const launch = boatLaunchAt();
     const off = deps.hull.beamM / 2 + ROWBOAT.beamM;
-    const side = [1, -1]
-      .map((s) => {
+    const sideSign =
+      [1, -1].find((s) => {
         const x = p.x + Math.cos(p.heading) * off * s;
         const z = p.z + Math.sin(p.heading) * off * s;
-        return { s, x, z, d: terrain?.shoreDistanceAt(x, z) ?? 0 };
-      })
-      .sort((a, b) => a.d - b.d)[0] as { s: number; x: number; z: number };
-    boat = createRowboat(side.x, side.z, p.heading + (side.s * Math.PI) / 2);
+        return Math.hypot(x - launch.x, z - launch.z) < 0.01;
+      }) ?? 1;
+    boat = createRowboat(launch.x, launch.z, p.heading + (sideSign * Math.PI) / 2);
     boatState = 'afloat';
     inBoat = true;
     scene = build(boat);
@@ -740,7 +776,10 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
       } else {
         seatInBoat();
         const b = scene.bounds;
-        if (
+        if (sceneIsland && from !== 'wreck') {
+          boat.x = Math.min(Math.max(boat.x, b.minX + REBUILD_MARGIN_M), b.maxX - REBUILD_MARGIN_M);
+          boat.z = Math.min(Math.max(boat.z, b.minZ + REBUILD_MARGIN_M), b.maxZ - REBUILD_MARGIN_M);
+        } else if (
           boat.x < b.minX + REBUILD_MARGIN_M ||
           boat.x > b.maxX - REBUILD_MARGIN_M ||
           boat.z < b.minZ + REBUILD_MARGIN_M ||
@@ -800,6 +839,16 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
       }
     }
 
+    // Draw the tool before the watch looks, so a cosh in hand is what they see this frame.
+    if (active && !taken && watch?.tools) {
+      const belt = watch.tools;
+      (
+        ['Tool1', 'Tool2', 'Tool3', 'Tool4', 'Tool5', 'Tool6', 'Tool7', 'Tool8', 'Tool9'] as const
+      ).forEach((a, n) => {
+        if (input.pressed(a)) belt.selectSlot(n);
+      });
+    }
+
     // The night watch looks and listens after you've moved (plan 08 §4–5).
     if (watch && !taken) watch.step(dt, character);
     // The marshal posse on the island (piece H): wanted men are hunted on the island.
@@ -810,16 +859,8 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
     }
     if (!active || taken) return;
 
-    // The tool belt (piece E): 1–5 take a tool in hand, and F is the tool's when a guard is
-    // in reach of it (or a man who's down), else the ashore prompt's.
-    const belt = watch?.tools;
-    if (belt) {
-      (
-        ['Tool1', 'Tool2', 'Tool3', 'Tool4', 'Tool5', 'Tool6', 'Tool7', 'Tool8', 'Tool9'] as const
-      ).forEach((a, n) => {
-        if (input.pressed(a)) belt.selectSlot(n);
-      });
-    }
+    // F is the tool's when a guard is in reach of it (or a man who's down), else the
+    // ashore prompt's. The belt itself was taken up before the watch looked.
     const own = findPrompt();
     const toolTookF =
       !inBoat &&
@@ -982,6 +1023,7 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
       return from;
     },
     refusal,
+    landingHere,
     goAshore,
     goAboard,
     stepAshore,

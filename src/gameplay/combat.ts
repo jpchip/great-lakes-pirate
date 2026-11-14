@@ -698,18 +698,25 @@ export function attachCombat(deps: CombatDeps): GameCombat {
       const reach = reachM(defs, first.weapon, order.ammo);
       if (target?.transform) {
         const tp = target.transform.position;
+        // Her waterline, not the mean sea: a ship on a swell sits above or below it.
+        const waterline = tp.y - (target.npc?.sinkM ?? 0);
         const sol = leadSolution(
-          muzzle,
+          { x: muzzle.x, y: muzzle.y - waterline, z: muzzle.z },
           shipVelocity(player),
           { x: tp.x, z: tp.z, vx: target.velocity?.x ?? 0, vz: target.velocity?.z ?? 0 },
           w.muzzleMs,
         );
         if (!sol) return { ok: false, reason: 'outOfRange' };
         bearing = sol.bearing;
-        // Aim at her rail rather than her waterline.
+        // Aim at her rail rather than her waterline. The barrel is already off its sight
+        // by the sea's pitch and roll; lay the sight back by that, so the round leaves on
+        // this arc. Aim mode passes its own elevation, and the ring there shows the tilt.
         const ts = shapeOf(classOf(target) ?? '');
         rangeM = Math.hypot(tp.x - muzzle.x, tp.z - muzzle.z);
-        elevation = sol.elevation + (ts ? Math.atan2(ts.freeboardM * 0.7, Math.max(rangeM, 1)) : 0);
+        elevation =
+          sol.elevation +
+          (ts ? Math.atan2(ts.freeboardM * 0.7, Math.max(rangeM, 1)) : 0) -
+          (deps.barrelTilt?.(mount) ?? 0);
       }
       if (!inArc(w, mount, relative(t.heading, bearing))) return { ok: false, reason: 'outOfArc' };
       if (elevation === undefined) {

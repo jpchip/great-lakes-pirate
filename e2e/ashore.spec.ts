@@ -107,7 +107,7 @@ test('ashore at a berth: the pier underfoot, the save remembers, and back aboard
   expect(errors).toEqual([]);
 });
 
-test('at anchor you go ashore in the boat', async ({ page }) => {
+test('at anchor away from a built island: no go ashore', async ({ page }) => {
   test.setTimeout(120_000);
   const errors = collectErrors(page);
   await page.goto('/?renderer=null&debug&play');
@@ -118,13 +118,27 @@ test('at anchor you go ashore in the boat', async ({ page }) => {
     f.anchor();
   });
   const why = await page.evaluate(() => (window as unknown as Hooks).__glpFoot.land());
-  expect(why).toBeUndefined();
-  await expect(page.locator('body')).toHaveAttribute('data-ashore', 'boat');
-  const s = await foot(page);
-  expect(s.from).toBe('anchor');
-  expect(s.inBoat).toBe(true);
-  const saved = await page.evaluate(() => (window as unknown as Hooks).__glpFoot.saved());
-  expect(saved.rowboat.state).toBe('afloat');
+  expect(why).toBe('Nothing ashore here to walk');
+  await expect(page.locator('body')).toHaveAttribute('data-ashore', 'aboard');
+  await expect(page.getByRole('button', { name: /Go ashore/i })).toHaveCount(0);
+  expect(errors).toEqual([]);
+});
+
+test('at the lumber pier: the port screen has no go ashore', async ({ page }) => {
+  test.setTimeout(120_000);
+  const errors = collectErrors(page);
+  await page.goto('/?renderer=null&debug&harbor=bayfield');
+  await expect(page.locator('body')).toHaveAttribute('data-terrain', 'loaded');
+  await page.waitForFunction(() => '__glpPort' in window);
+  expect(
+    await page.evaluate(() =>
+      (window as unknown as { __glpPort: { dock(k: string): boolean } }).__glpPort.dock(
+        'bayfield_lumber',
+      ),
+    ),
+  ).toBe(true);
+  await expect(page.getByTestId('port-screen')).toBeVisible({ timeout: 15_000 });
+  await expect(page.getByTestId('port-go-ashore')).toHaveCount(0);
   expect(errors).toEqual([]);
 });
 
@@ -230,7 +244,7 @@ test('in Bayfield the tool belt is in hand: a cosh from behind drops the constab
   });
   await page.keyboard.press('Digit1');
   await expect.poll(async () => (await tools()).selected).toBe('tool.cosh');
-  expect((await tools()).conduct).toBe('armed');
+  await expect.poll(async () => (await tools()).conduct).toBe('armed');
   await expect(page.getByTestId('foot-tools').getByTestId('foot-prompt')).toContainText(
     'Knock out the constable',
   );

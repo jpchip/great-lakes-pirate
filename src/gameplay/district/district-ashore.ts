@@ -1,5 +1,6 @@
 import type { DistrictDef } from '../../../data/schemas/districts';
 import { NavMesh, type NavMeshData } from '../../sim/district/navmesh';
+import { CELL_M } from '../../sim/district/kit';
 import { parseLayout, type DistrictLayout } from '../../sim/district/layout';
 import type { Pose } from '../../sim/terrain/test-bay';
 import { bearingBox, type AshoreScene } from '../onfoot/ashore-scene';
@@ -137,4 +138,23 @@ export function insideDistrict(model: DistrictModel, x: number, z: number, padM 
   return (
     x > model.minX + padM && x < model.maxX - padM && z > model.minZ + padM && z < model.maxZ - padM
   );
+}
+
+/** Whether a local point lies inside the district layout's bounds (sync; no bake required). */
+export function insideLayout(def: DistrictDef, x: number, z: number, padM = 2): boolean {
+  const { x0, z0, cols, rows } = districtLayout(def).bounds;
+  const minX = x0;
+  const minZ = z0;
+  const maxX = x0 + cols * CELL_M;
+  const maxZ = z0 + rows * CELL_M;
+  return x > minX + padM && x < maxX - padM && z > minZ + padM && z < maxZ - padM;
+}
+
+/** Harbor pier ids that berth inside this district (from the layout's berth marks). */
+export function districtBerthPiers(def: DistrictDef): ReadonlySet<string> {
+  const out = new Set<string>();
+  for (const m of districtLayout(def).marks) {
+    if (m.kind === 'berth' && m.ref) out.add(m.ref);
+  }
+  return out;
 }

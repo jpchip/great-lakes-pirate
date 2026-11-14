@@ -918,7 +918,7 @@ export function PortScreen({
               setMessage={setMessage}
             />
           )}
-          {actions.goAshore && (
+          {actions.goAshore && port.canGoAshore && (
             <button
               type="button"
               class="menu-button"

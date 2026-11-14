@@ -898,6 +898,7 @@ async function boot(): Promise<void> {
   /** Going ashore (Phase 7 piece A); attached once the berths and the fade are. */
   const ashoreRef: { current: GameAshore | undefined } = { current: undefined };
   const goAshoreRef: { current: (() => void) | undefined } = { current: undefined };
+  const ashoreOfferedRef: { current: () => boolean } = { current: () => false };
   /** Readies the state for a save: the RNG, where the ship is, her damage. */
   const prepareSave = (): void => {
     state.environment.rng = ctx.rng.getState();
@@ -1345,6 +1346,7 @@ async function boot(): Promise<void> {
       hudClock = HUD_INTERVAL_S;
     },
     castOff: () => input.trigger('Interact'),
+    ashore: { offered: () => ashoreOfferedRef.current() },
     // Waiting alongside runs the stash's lie-at-anchor clock (attached below).
     wait: {
       refusal: () => {
@@ -2777,6 +2779,7 @@ async function boot(): Promise<void> {
   });
   ashoreRef.current = ashore;
   goAshoreRef.current = () => goAshore();
+  ashoreOfferedRef.current = () => ashore.landingHere();
   machine.register(ashore.mode);
   if (import.meta.env.DEV || params.has('debug')) {
     /**

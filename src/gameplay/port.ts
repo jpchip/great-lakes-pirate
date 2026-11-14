@@ -87,6 +87,8 @@ export interface PortControlOptions {
   backRoom?: BackRoom | undefined;
   /** The pier a berth belongs to, from the zone's berths. */
   berthPier(berthId: string): string | undefined;
+  /** When "Go ashore" should show on the port screen (built landing only). */
+  ashore?: { offered(): boolean } | undefined;
   /** Show or hide the screens. */
   showPort(snapshot: PortSnapshot | undefined): void;
   showJournal(snapshot: LedgerSnapshot | undefined): void;
@@ -256,6 +258,7 @@ export function attachPorts(opts: PortControlOptions): PortControl {
       snap.canWait = true;
       snap.waitRefusal = opts.wait.refusal();
     }
+    if (opts.ashore) snap.canGoAshore = opts.ashore.offered();
     return snap;
   };
   /** Writes down this port's prices as they stand now (plan 05 §4.3). */

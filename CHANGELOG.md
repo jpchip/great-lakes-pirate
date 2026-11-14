@@ -4,6 +4,10 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ## [Unreleased]
 
+### Changed
+
+- **Go ashore only where it is built:** G, the HUD, and the port screen offer going ashore only at the Bayfield waterfront district (fish pier and city dock) and at anchor off Stockton Island. Other berths and anchorages keep trading and the port screen, but not the broken zone stand-in ashore. Abandoning ship near land is unchanged.
+
 ### Added
 
 - **Going ashore (Phase 7 piece A):** the captain can leave the ship. Tied up at a pier, G at the helm (or **Go ashore** on the port screen, which still opens when you dock) puts you on the planks at the gangway; F there goes back aboard. At anchor, G puts the boat over the side nearer the shore and you row it: W/S pull or back water, A/D turn. Run her up a beach until she grounds and F steps ashore; F by the boat shoves off again, and F alongside the schooner climbs aboard. The boat won't go over in seas above 1.1 m, and seas above 1.6 m swamp it. On foot you walk, run, crouch and hop with the mouse for looking. Space vaults or climbs at marked spots. Pier heads have ladders down to the water. Falls from high up hurt, and water softens them. You can swim, but Superior's cold drains your life, quickly in spring and slowly in August; the HUD shows how cold the water is and about how long you'd last. Life comes back slowly with time. Under a roof the camera closes in. The footing underfoot is recorded (wood, sand, grass, rock, dirt) for the footsteps to come. Drowning and a deadly fall end the run on their own front pages. The game saves when you go ashore and when you come back aboard, and a save made ashore loads you where you stood. The captain is a stand-in figure for now. Abandoning a foundering ship within 1.5 km of land, in a sea the boat can live in, now puts you in the boat: she's gone, and you row for the shore, then make your way to the nearest yard for a worn hull. Nobody rescued you, so nobody tells the law. Far offshore, the passing steamer still picks you up. Saves move to v9; a 0.6.0 save loads aboard with full health ([plan 08 §20](plans/08-docks-district-stealth.md)).
@@ -20,7 +24,7 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ### Known limitations
 
-- Away from Bayfield's district and Stockton, ashore is the zone's sailing terrain with the harbor kit's piers and buildings as solid blocks, and those buildings can't be entered. On Stockton you walk the 1 m ground while the 4 m terrain is drawn, so your feet can sit a hand's width into or above the grass (0.13 m on average). On foot is silent until the audio piece.
+- Going ashore is only offered at the Bayfield waterfront and off Stockton; the zone stand-in remains in the code for saves and castaways, not menu landings. On Stockton you walk the 1 m ground while the 4 m terrain is drawn, so your feet can sit a hand's width into or above the grass (0.13 m on average). On foot is silent until the audio piece.
 - In the district, conduct is a placeholder rule until piece E (trespass, tools, loot and the crimes the guards report). A guard's report doesn't raise heat yet, and there's no jailbreak until piece G.
 - No saves are made while you row from a wreck, as in any danger: closing the game then puts you back on the sinking ship.
 
