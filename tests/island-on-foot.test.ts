@@ -119,9 +119,7 @@ describe('trunks and rocks as colliders', () => {
     const placed = placeIsland(STOCKTON, { x0: 0, z0: 0 }, (x) => hill(x));
     const wharf = placed.pieces.find((p) => p.kind === 'ledge' && Math.abs(p.maxY - 1) < 1e-6);
     if (!wharf) throw new Error('no wharf');
-    const steps = placed.pieces
-      .filter((p) => p.kind === 'steps')
-      .sort((a, b) => a.maxY - b.maxY);
+    const steps = placed.pieces.filter((p) => p.kind === 'steps').sort((a, b) => a.maxY - b.maxY);
     expect(steps.length).toBeGreaterThan(1);
     let prevY = hill(486); // the ground at the stairs' foot (off the wharf, on the flat).
     for (const t of steps) {
@@ -235,7 +233,11 @@ describe('Stockton on its baked tiles', () => {
     const island = attachIslandAshore({
       state,
       heightAt: (x, z) => zone.terrain.heightAt(x, z),
-      grid: () => ({ x0: zone.terrain.height.x0, z0: zone.terrain.height.z0, step: zone.terrain.height.step }),
+      grid: () => ({
+        x0: zone.terrain.height.x0,
+        z0: zone.terrain.height.z0,
+        step: zone.terrain.height.step,
+      }),
       islands: () => [placed],
       ground: (id) => (id === 'island.stockton' ? field : undefined),
       harbors: () => harbors,

@@ -366,15 +366,13 @@ describe('arena steering', () => {
     s.vx = Math.sin(heading) * 2;
     s.vz = -Math.cos(heading) * 2;
     expect(probesOnLand(land, true, s.x, s.z, s.heading, s.lengthM)).toBe(true);
-    const inland0 =
-      Math.sin(heading) * (s.x - start.x) - Math.cos(heading) * (s.z - start.z);
+    const inland0 = Math.sin(heading) * (s.x - start.x) - Math.cos(heading) * (s.z - start.z);
     for (let i = 0; i < 20; i++) {
       const prev = { x: s.x, z: s.z };
       separateSteeredFromLand(s, land, prev, 1 / 30);
     }
     expect(probesOnLand(land, true, s.x, s.z, s.heading, s.lengthM)).toBe(false);
-    const inland1 =
-      Math.sin(heading) * (s.x - start.x) - Math.cos(heading) * (s.z - start.z);
+    const inland1 = Math.sin(heading) * (s.x - start.x) - Math.cos(heading) * (s.z - start.z);
     expect(inland1).toBeLessThan(inland0 + 1);
   });
 
