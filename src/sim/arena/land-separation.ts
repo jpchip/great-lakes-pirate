@@ -50,7 +50,6 @@ export function separateSteeredFromLand(
   s: SteeredShip,
   land: ArenaLand,
   prev: { x: number; z: number },
-  _dt: number,
 ): void {
   const deep = !!s.helm.deepDraft;
   if (land.allWater && (!deep || land.allDeep)) return;

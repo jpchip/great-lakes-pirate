@@ -34,7 +34,7 @@ export function attachLandSeparation(deps: LandSeparationDeps): LandSeparation {
         steer.x = t.position.x;
         steer.z = t.position.z;
         steer.heading = t.heading;
-        separateSteeredFromLand(steer, land, prev, dt);
+        separateSteeredFromLand(steer, land, prev);
         t.position.x = steer.x;
         t.position.z = steer.z;
         if (entity.velocity) {

@@ -83,7 +83,7 @@ function run(
       const p = prev[i] as { x: number; z: number };
       s.x += s.vx * dt;
       s.z += s.vz * dt;
-      separateSteeredFromLand(s, land, p, dt);
+      separateSteeredFromLand(s, land, p);
     }
     if (player) {
       player.x += player.vx * dt;
@@ -369,7 +369,7 @@ describe('arena steering', () => {
     const inland0 = Math.sin(heading) * (s.x - start.x) - Math.cos(heading) * (s.z - start.z);
     for (let i = 0; i < 20; i++) {
       const prev = { x: s.x, z: s.z };
-      separateSteeredFromLand(s, land, prev, 1 / 30);
+      separateSteeredFromLand(s, land, prev);
     }
     expect(probesOnLand(land, true, s.x, s.z, s.heading, s.lengthM)).toBe(false);
     const inland1 = Math.sin(heading) * (s.x - start.x) - Math.cos(heading) * (s.z - start.z);
