@@ -69,9 +69,11 @@ export function attachCaptain(
     if (!fw) return;
     const cargoGood = backgroundDef(state.player.captain.background).cargo[0]?.good ?? '';
     const step = stepForEvent(String(type), payload, { cargoGood });
+    // The optional step can come after the week is done: the mark is logged once.
+    const wasComplete = firstWeekComplete(fw);
     if (step && completeStep(fw, step)) {
       justDone = step;
-      if (firstWeekComplete(fw)) {
+      if (!wasComplete && firstWeekComplete(fw)) {
         fw.hidden = true;
         log(state, state.environment.clock.gameSeconds, FIRST_WEEK_LOGBOOK_LINE);
       }

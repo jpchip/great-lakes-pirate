@@ -4,7 +4,8 @@ import { z } from 'zod';
  * The Captain's First Week checklist (plan 12 §3, Phase 4 piece C): optional, skippable,
  * in the journal, with a small tracker on the HUD. It adapts to the starting port, cargo
  * and hideout, and ticks itself off from the game's events, so it teaches by doing.
- * Step 6 (the poorly watched warehouse) waits for Phase 7's docks on foot.
+ * Step 6 (the poorly watched warehouse; Phase 7 piece F) is optional and flagged as a
+ * crime: it's ticked by a burglary ashore, and the week is complete without it.
  *
  * Steps 2–4 are ticked by events from pieces F, E and K (`ContractCompleted`,
  * `StorageChanged`, `RumorHeard`). The checklist reads them by name from the bus's tap,
@@ -12,12 +13,16 @@ import { z } from 'zod';
  */
 
 export const FIRST_WEEK_STEPS = ['sell', 'contract', 'stash', 'rumor', 'voyage'] as const;
-export type FirstWeekStep = (typeof FIRST_WEEK_STEPS)[number];
+/** Steps offered but never needed (plan 12 §3 step 6): the week is done without them. */
+export const FIRST_WEEK_OPTIONAL = ['warehouse'] as const;
+export type FirstWeekStep =
+  (typeof FIRST_WEEK_STEPS)[number] | (typeof FIRST_WEEK_OPTIONAL)[number];
+const ALL_STEPS = [...FIRST_WEEK_STEPS, ...FIRST_WEEK_OPTIONAL] as const;
 
 /** The checklist's saved state (save v6, optional: absent for runs made without it). */
 export const firstWeekSchema = z.object({
   /** Steps done, in the order they were done. */
-  done: z.array(z.enum(FIRST_WEEK_STEPS)),
+  done: z.array(z.enum(ALL_STEPS)),
   /** The captain put the checklist away; the journal keeps it. */
   hidden: z.boolean(),
   /** The one-line mark was cleared from the journal; `done` stays for the save. */
@@ -48,6 +53,8 @@ export interface FirstWeekLine {
   /** How it's done, in a line. */
   hint: string;
   done: boolean;
+  /** Not needed for the week, and against the law. */
+  optional?: true;
 }
 
 export function firstWeekLines(state: FirstWeekState, c: FirstWeekContext): FirstWeekLine[] {
@@ -66,13 +73,20 @@ export function firstWeekLines(state: FirstWeekState, c: FirstWeekContext): Firs
     ],
     rumor: ['Visit a saloon and hear a rumor', 'Buy a drink in a port with a saloon.'],
     voyage: ['Plot a voyage on the chart', 'At a zone edge press M, lay a course and set sail.'],
+    warehouse: [
+      `A warehouse in ${c.portName} looks poorly watched...`,
+      'Optional, and a crime. Go ashore after dark, pick the lock and carry a crate to your ship.',
+    ],
   };
-  return FIRST_WEEK_STEPS.map((step, i) => ({
+  return ALL_STEPS.map((step, i) => ({
     step,
     number: i + 1,
     text: text[step][0],
     hint: text[step][1],
     done: state.done.includes(step),
+    ...((FIRST_WEEK_OPTIONAL as readonly string[]).includes(step)
+      ? { optional: true as const }
+      : {}),
   }));
 }
 
@@ -85,7 +99,7 @@ export function nextFirstWeekLine(
   state: FirstWeekState,
   c: FirstWeekContext,
 ): FirstWeekLine | undefined {
-  return firstWeekLines(state, c).find((l) => !l.done);
+  return firstWeekLines(state, c).find((l) => !l.done && !l.optional);
 }
 
 const record = (v: unknown): Record<string, unknown> =>
@@ -114,6 +128,9 @@ export function stepForEvent(
       return record(p['rumor'])['source'] === 'saloon' ? 'rumor' : undefined;
     case 'VoyageStarted':
       return 'voyage';
+    case 'CrimeCommitted':
+      // A burglary ashore: a lock forced or a warehouse's goods carried off.
+      return p['crime'] === 'crime.burglary' ? 'warehouse' : undefined;
     default:
       return undefined;
   }

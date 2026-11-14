@@ -256,7 +256,9 @@ describe('the First Week', () => {
 
   it('adapts its steps to the starting port, cargo and hideout', () => {
     const lines = firstWeekLines(createFirstWeek(), c);
-    expect(lines.map((l) => l.step)).toEqual([...FIRST_WEEK_STEPS]);
+    expect(lines.map((l) => l.step)).toEqual([...FIRST_WEEK_STEPS, 'warehouse']);
+    expect(lines.at(-1)).toMatchObject({ optional: true, number: 6 });
+    expect(lines.at(-1)?.text).toMatch(/warehouse in Bayfield/);
     expect(lines[0]?.text).toBe('Sell your salted fish in Bayfield');
     expect(lines[2]?.text).toBe('Stash goods at Stockton Island');
     expect(lines.every((l) => !l.done)).toBe(true);

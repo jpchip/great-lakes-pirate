@@ -741,6 +741,8 @@ function Saloon({
 }) {
   const s = port.saloon;
   if (!s) return null;
+  // The keeper sells a bottle over the bar: the chandler's quart, at his price.
+  const bottle = port.stores.find((r) => r.id === 'store.whiskey');
   const price = s.free ? 'on the house' : formatCents(s.roundCents);
   return (
     <div class="port-saloon" data-testid="saloon">
@@ -765,6 +767,27 @@ function Saloon({
             : "The bar's talked out for today."}
         </span>
       </p>
+      {bottle && (
+        <p>
+          <button
+            type="button"
+            class="menu-button"
+            data-testid="saloon-bottle"
+            disabled={bottle.maxBuy <= 0}
+            title={bottle.blurb}
+            onClick={() =>
+              setMessage(
+                actions.buyStores(bottle.id, 1) ?? 'A bottle across the bar, and into your coat.',
+              )
+            }
+          >
+            Buy a bottle of whiskey ({formatCents(bottle.priceCents)})
+          </button>{' '}
+          <span class="port-dim" data-testid="saloon-bottles">
+            {bottle.have} of {bottle.max} aboard.
+          </span>
+        </p>
+      )}
       {port.backRoomHint && (
         <p class="menu-note" data-testid="back-room-hint">
           {port.backRoomHint}
@@ -798,9 +821,15 @@ export function PortScreen({
   const shown = port.tabs.includes(tab) ? tab : (port.tabs[0] ?? 'ledger');
   return (
     <div class="menu-backdrop" data-testid="port-screen" data-port={port.port}>
-      <div class="menu port" role="dialog" aria-modal="true" aria-label={port.portName}>
+      <div
+        class="menu port"
+        role="dialog"
+        aria-modal="true"
+        aria-label={port.shop?.title ?? port.portName}
+        data-shop={port.shop ? shown : undefined}
+      >
         <header class="menu-header">
-          <h2>{port.portName}</h2>
+          <h2 data-testid="port-title">{port.shop?.title ?? port.portName}</h2>
           <span class="port-purse">
             {port.dateText} · Purse{' '}
             <strong class="hud-num" data-testid="port-purse">
@@ -910,7 +939,7 @@ export function PortScreen({
           {shown === 'ledger' && <Ledger ledger={port.ledger} here={port.port} />}
         </div>
         <footer class="menu-footer port-footer">
-          {port.canWait && actions.wait && (
+          {!port.shop && port.canWait && actions.wait && (
             <LieButtons
               label="Wait"
               refusal={port.waitRefusal}
@@ -918,7 +947,7 @@ export function PortScreen({
               setMessage={setMessage}
             />
           )}
-          {actions.goAshore && port.canGoAshore && (
+          {!port.shop && actions.goAshore && port.canGoAshore && (
             <button
               type="button"
               class="menu-button"
@@ -928,21 +957,23 @@ export function PortScreen({
               Go ashore (G)
             </button>
           )}
-          <button
-            type="button"
-            class="menu-button"
-            data-testid="port-cast-off"
-            onClick={actions.castOff}
-          >
-            Cast off (F)
-          </button>
+          {!port.shop && (
+            <button
+              type="button"
+              class="menu-button"
+              data-testid="port-cast-off"
+              onClick={actions.castOff}
+            >
+              Cast off (F)
+            </button>
+          )}
           <button
             type="button"
             class="menu-button primary"
             data-testid="port-close"
             onClick={actions.close}
           >
-            Back aboard (Esc)
+            {port.shop ? 'Leave (Esc)' : 'Back aboard (Esc)'}
           </button>
         </footer>
       </div>

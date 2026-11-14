@@ -17,6 +17,7 @@ import {
   portSnapshot,
   type LedgerSnapshot,
   type PortSnapshot,
+  type PortTab,
 } from '../ui/port/model';
 import type { PortActions } from '../ui/port/PortScreen';
 import type { GameEconomy } from './economy';
@@ -53,6 +54,13 @@ export interface PortControl {
   markDocked(berthId: string): void;
   /** Opens a port's screen directly (the dev hook). */
   open(port: string): void;
+  /**
+   * Walked up to a counter ashore (Phase 7 piece F): the screen with that one tab, under
+   * the shop's name, and no ship's business on it. The refusal if the tab isn't there now.
+   */
+  openShop(port: string, tab: PortTab, title: string): string | undefined;
+  /** The shop whose counter the screen is open at, if it was walked into. */
+  readonly openShopTab: PortTab | undefined;
   close(): void;
   openJournal(): void;
   closeJournal(): void;
@@ -85,6 +93,11 @@ export interface PortControlOptions {
    * tab of their own, and a hint in the saloon by day. Without it neither shows.
    */
   backRoom?: BackRoom | undefined;
+  /**
+   * The port's back room is walked into (its docks district is built; Phase 7 piece F), so
+   * the port screen keeps no tab for it: the saloon says where it is.
+   */
+  walkInBackRoom?(port: string): boolean;
   /** The pier a berth belongs to, from the zone's berths. */
   berthPier(berthId: string): string | undefined;
   /** When "Go ashore" should show on the port screen (built landing only). */
@@ -179,6 +192,8 @@ export function attachPorts(opts: PortControlOptions): PortControl {
   let dockedPort: string | undefined;
   let openPort: string | undefined;
   let journalOpen = false;
+  /** Walked into a shop ashore: the one tab the screen shows, and the name over the door. */
+  let shop: { tab: PortTab; title: string } | undefined;
   /** What happened on arriving at the open port, shown until the screen closes. */
   let notices: string[] = [];
   const contractSources = () => {
@@ -245,14 +260,27 @@ export function attachPorts(opts: PortControlOptions): PortControl {
       snap.stormSignal = opts.papers.signal(port);
     }
     if (opts.backRoom) {
-      snap.backRoom = opts.backRoom.snapshot(port);
+      // Where the district is built the room is walked into: no tab from the ship.
+      const walkIn = (opts.walkInBackRoom?.(port) ?? false) && shop?.tab !== 'backRoom';
+      snap.backRoom = walkIn ? undefined : opts.backRoom.snapshot(port);
       if (snap.backRoom) {
         const saloon = snap.tabs.indexOf('saloon');
         const at = saloon >= 0 ? saloon + 1 : snap.tabs.indexOf('ledger');
         snap.tabs.splice(at, 0, 'backRoom');
+      } else if (walkIn) {
+        const shut = opts.backRoom.hint(port);
+        snap.backRoomHint = opts.backRoom.isOpen(port)
+          ? 'The back room is open tonight. Go ashore and walk through the saloon to it.'
+          : shut && `${shut} You walk in to it: go ashore.`;
       } else {
         snap.backRoomHint = opts.backRoom.hint(port);
       }
+    }
+    if (shop) {
+      // At a counter ashore: that tab alone, and nothing of the ship's.
+      snap.tabs = snap.tabs.filter((t) => t === shop?.tab);
+      snap.shop = { title: shop.title };
+      return snap;
     }
     if (opts.wait) {
       snap.canWait = true;
@@ -271,6 +299,7 @@ export function attachPorts(opts: PortControlOptions): PortControl {
 
   const open = (port: string): void => {
     if (!portInfo(port)) return;
+    shop = undefined;
     // The journal gives way to the port screen: closed properly, since it may have let the
     // ship sail on (docking can finish behind it), where the port screen holds the world.
     if (journalOpen && !openPort) {
@@ -289,9 +318,26 @@ export function attachPorts(opts: PortControlOptions): PortControl {
     refresh();
     if (!wasOpen) opts.onOpen(true);
   };
+  /** The screen at a counter ashore: no arrival, no paper boy, only the one tab. */
+  const openShop = (port: string, tab: PortTab, title: string): string | undefined => {
+    if (!portInfo(port) || openPort || journalOpen) return 'Not now';
+    shop = { tab, title };
+    const snap = snapshot(port);
+    if (snap.tabs.length === 0) {
+      shop = undefined;
+      return 'Nobody here to deal with now';
+    }
+    notices = [];
+    openPort = port;
+    if (tab === 'market' && economy.defs.markets.has(port)) note(port);
+    opts.showPort(snap);
+    opts.onOpen(true);
+    return undefined;
+  };
   const close = (): void => {
     if (!openPort) return;
     openPort = undefined;
+    shop = undefined;
     notices = [];
     opts.showPort(undefined);
     opts.onOpen(false);
@@ -378,6 +424,10 @@ export function attachPorts(opts: PortControlOptions): PortControl {
       return true;
     },
     open,
+    openShop,
+    get openShopTab() {
+      return shop?.tab;
+    },
     close,
     openJournal() {
       if (journalOpen || openPort) return;
@@ -514,7 +564,10 @@ export function attachPorts(opts: PortControlOptions): PortControl {
       },
       close,
       castOff() {
+        // At a counter ashore F only leaves it: the ship isn't under your feet.
+        const walkedIn = !!shop;
         close();
+        if (walkedIn) return;
         opts.castOff();
       },
       wait(until) {

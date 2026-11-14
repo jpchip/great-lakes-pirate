@@ -127,6 +127,10 @@ export const districtBuildingKindSchema = z.enum([
 /** A port-screen tab a shop door opens by day (plan 08 §20.6 decision 3). */
 export const portTabSchema = z.enum(['market', 'chandlery', 'ledger', 'contracts', 'backRoom']);
 
+/** What a `shop` mark opens when you walk up to it (piece F): a shop's tab, or the saloon's bar. */
+export const shopTabSchema = z.enum([...portTabSchema.options, 'saloon']);
+export type ShopTab = z.infer<typeof shopTabSchema>;
+
 /** A building: a rectangle of cells with walls round it and a roof over it. */
 export const districtBuildingSchema = z.object({
   /** Unique in the district: `hollister_warehouse`. Doors are `<id>.door<n>`. */
@@ -160,17 +164,20 @@ export type DistrictBuildingDef = z.infer<typeof districtBuildingSchema>;
 
 /**
  * Named spots for the systems that come after the kit: where you step ashore, where a
- * ship is moored, guard posts and patrol points (piece D), loot (piece E), the exits.
+ * ship is moored, guard posts and patrol points (piece D), loot (piece E), the exits, and
+ * the counters you trade at on foot (piece F's `shop` marks, in the building of their `ref`).
  */
 export const districtMarkSchema = z.object({
   id: z.string().regex(/^[a-z0-9_.]+$/),
-  kind: z.enum(['gangway', 'berth', 'post', 'patrol', 'loot', 'exit', 'crowd']),
+  kind: z.enum(['gangway', 'berth', 'post', 'patrol', 'loot', 'exit', 'crowd', 'shop']),
   x: z.number(),
   z: z.number(),
   /** Degrees clockwise from north (-z). */
   headingDeg: z.number().default(0),
   /** A building this mark belongs to, or the route it is on. */
   ref: z.string().optional(),
+  /** A `shop` mark: the port-screen tab F opens there. */
+  opens: shopTabSchema.optional(),
 });
 export type DistrictMark = z.infer<typeof districtMarkSchema>;
 

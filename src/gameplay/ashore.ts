@@ -4,7 +4,7 @@ import type { GameContext } from '../modes/context';
 import type { Mode } from '../modes/machine';
 import { tickOnFootClock } from '../modes/on-foot';
 import type { SailingView } from '../modes/sailing';
-import type { FootFrame } from '../render/onfoot/foot-view';
+import type { FootFrame, GuardFrame } from '../render/onfoot/foot-view';
 import {
   BADLY_HURT,
   coldDrainPerS,
@@ -29,7 +29,7 @@ import type { Pose } from '../sim/terrain/test-bay';
 import type { ZoneTerrain } from '../sim/terrain/zone-terrain';
 import { climateAt } from '../sim/weather/climate';
 import type { AshoreState, RowboatSave, WorldState } from '../sim/world-state';
-import type { DistrictDef } from '../../data/schemas/districts';
+import type { DistrictDef, DistrictMark } from '../../data/schemas/districts';
 import type { IslandAshore } from './island-ashore';
 import type { IslandPosse } from './island-posse';
 import {
@@ -54,6 +54,7 @@ import {
 import { FollowCamera, ROWING_CAMERA, roofOver } from './onfoot/camera';
 import { footprintDistance, type Collider, type Push } from './onfoot/colliders';
 import type { Watch } from './onfoot/watch';
+import { keeperSpot, keeperType } from './onfoot/shops';
 import type { FootToolsSnapshot } from '../ui/hud/foot-tools-model';
 import type { StealthReadout } from './onfoot/stealth';
 import {
@@ -136,6 +137,11 @@ export interface AshoreDeps {
     maxX: number;
     maxZ: number;
   }): { trees: Float32Array; rocks: Float32Array; density: number } | undefined;
+  /**
+   * A counter in a district you can trade at now (piece F's `shop` marks): the prompt and
+   * what F does there, or undefined when it's shut or there's nobody to deal with.
+   */
+  shop?(district: DistrictLanding, mark: DistrictMark): { text: string; act(): void } | undefined;
   /** The view drawn each frame; its `foot` is set while you're ashore. */
   view?: (SailingView & { foot: FootFrame | undefined }) | undefined;
 }
@@ -226,6 +232,8 @@ export interface FootHudSnapshot {
 
 /** You can reach the gangway, the boat or a ladder from this far. */
 const REACH_M = 2.2;
+/** You can deal across a shop's counter from this far. */
+const SHOP_REACH_M = 2.4;
 /** In the boat, this close to the schooner's side you can climb aboard. */
 const ALONGSIDE_M = 3.5;
 /** Abandoning ship, the boat is got away only this close to land, zone m (plan 08 §20.6). */
@@ -717,11 +725,51 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
       const found = deps.island?.prompt(c.position);
       if (found) return found;
     }
+    // A shop's counter, the saloon's bar or the back room's table (piece F): only from
+    // inside the building it stands in, so a wall between you and it is no way to trade.
+    if (district && deps.shop && c.grounded && !c.swimming && !watch?.pursued) {
+      const m = district.model;
+      const inside = m.buildingAt(c.position.x, c.position.y, c.position.z)?.def.id;
+      for (const mark of m.marks) {
+        if (mark.kind !== 'shop' || !mark.opens) continue;
+        if (mark.ref !== undefined && mark.ref !== inside) continue;
+        if (Math.hypot(c.position.x - mark.x, c.position.z - mark.z) > SHOP_REACH_M) continue;
+        const found = deps.shop(district, mark);
+        if (found) return found;
+      }
+    }
     const top = ladderTopNear(c, scene);
     if (top !== undefined) {
       return { text: 'Climb down', act: () => scene && climbDownLadder(c, scene, top) };
     }
     return undefined;
+  };
+
+  /**
+   * The men behind the counters that are open now (piece F): the keeper at the bar, the
+   * shopkeepers, and the fence at his table after dark. Figures only, zone meters.
+   */
+  const keepers = (): GuardFrame[] => {
+    if (!district || !deps.shop) return [];
+    const m = district.model;
+    const out: GuardFrame[] = [];
+    for (const mark of m.marks) {
+      if (mark.kind !== 'shop' || !deps.shop(district, mark)) continue;
+      const spot = keeperSpot(mark);
+      const w = toZone(spot.x, spot.z);
+      out.push({
+        id: `keeper:${mark.id}`,
+        type: keeperType(mark),
+        state: 'idle',
+        x: w.x,
+        y: m.floorAt(spot.x, spot.z),
+        z: w.z,
+        heading: headingToZone(spot.heading),
+        crouching: false,
+        lantern: false,
+      });
+    }
+    return out;
   };
 
   const ladderNear = (x: number, z: number, reach: number): number | undefined => {
@@ -968,28 +1016,31 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
           frame: district.frame,
           focus: { x, y: head, z },
         },
-        guards: [...(watch?.stealth.guards ?? []), ...(posse?.stealth.guards ?? [])].map((g) => {
-          const p = g.body.position;
-          const q = g.previous;
-          const gx = q.x + (p.x - q.x) * alpha;
-          const gz = q.z + (p.z - q.z) * alpha;
-          const w = toZone(gx, gz);
-          const dg = Math.atan2(
-            Math.sin(g.body.heading - q.heading),
-            Math.cos(g.body.heading - q.heading),
-          );
-          return {
-            id: g.id,
-            type: g.type.id,
-            state: g.state,
-            x: w.x,
-            y: q.y + (p.y - q.y) * alpha,
-            z: w.z,
-            heading: headingToZone(q.heading + dg * alpha),
-            crouching: g.body.crouching,
-            lantern: !!g.lantern?.lit,
-          };
-        }),
+        guards: [
+          ...keepers(),
+          ...[...(watch?.stealth.guards ?? []), ...(posse?.stealth.guards ?? [])].map((g) => {
+            const p = g.body.position;
+            const q = g.previous;
+            const gx = q.x + (p.x - q.x) * alpha;
+            const gz = q.z + (p.z - q.z) * alpha;
+            const w = toZone(gx, gz);
+            const dg = Math.atan2(
+              Math.sin(g.body.heading - q.heading),
+              Math.cos(g.body.heading - q.heading),
+            );
+            return {
+              id: g.id,
+              type: g.type.id,
+              state: g.state,
+              x: w.x,
+              y: q.y + (p.y - q.y) * alpha,
+              z: w.z,
+              heading: headingToZone(q.heading + dg * alpha),
+              crouching: g.body.crouching,
+              lantern: !!g.lantern?.lit,
+            };
+          }),
+        ],
         captain: {
           x: at.x,
           y,

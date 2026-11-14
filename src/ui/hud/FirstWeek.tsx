@@ -14,14 +14,16 @@ export function FirstWeekTracker({
   week: FirstWeekSnapshot;
   setHidden(hidden: boolean): void;
 }) {
-  const done = week.lines.filter((l) => l.done).length;
-  const next = week.lines.find((l) => !l.done);
+  // The optional step (the warehouse) isn't counted: the week is five things.
+  const needed = week.lines.filter((l) => !l.optional);
+  const done = needed.filter((l) => l.done).length;
+  const next = needed.find((l) => !l.done);
   return (
     <aside class="first-week-tracker" data-testid="first-week-tracker">
       <div class="first-week-head">
         <span class="hud-label first-week-kicker">First week</span>
         <span class="hud-num" data-testid="first-week-count">
-          {done}/{week.lines.length}
+          {done}/{needed.length}
         </span>
         <button
           type="button"
@@ -82,7 +84,11 @@ export function FirstWeekPage({
       <h3 class="create-heading">The Captain's First Week</h3>
       <ol class="first-week-list">
         {week.lines.map((l) => (
-          <li key={l.step} class={l.done ? 'done' : ''} data-testid={`first-week-${l.step}`}>
+          <li
+            key={l.step}
+            class={`${l.done ? 'done' : ''}${l.optional ? ' optional' : ''}`}
+            data-testid={`first-week-${l.step}`}
+          >
             <span class="first-week-box" aria-hidden="true">
               {l.done ? '✓' : ''}
             </span>
