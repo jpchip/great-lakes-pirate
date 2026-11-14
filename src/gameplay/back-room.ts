@@ -30,9 +30,10 @@ const GUN_REFUSALS: Record<GunRefusal, string> = {
 
 /**
  * A port's back room after dark (plan 05 §6.2, plan 10 §6; Phase 6 piece E, decision 1 of
- * plan 07 §14.6). Until the docks districts are walkable (Phase 7) it's a tab on the port
- * screen: at Bayfield from the start, at Duluth once you're Known, and only while the sun
- * is down. The fence buys hot goods and contraband with no detection risk; the shady
+ * plan 07 §14.6): at Bayfield from the start, at Duluth once you're Known, and only while
+ * the sun is down. Where the docks district is built (Bayfield, Phase 7 piece F) you walk
+ * into it through the saloon and deal at the fence's table (`onfoot/shops.ts`); elsewhere
+ * it's still a tab on the port screen. The fence buys hot goods and contraband with no detection risk; the shady
  * shipwright in the same room sells the guns, the gun work and the rifle, fitted that
  * night (his hours pass at the screen like the yard's). At high Wanted the fence may sell
  * you out: the law's roll on `FenceDealt` (`gameplay/law.ts`).

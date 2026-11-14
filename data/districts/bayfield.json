@@ -1218,6 +1218,7 @@
     [20, -42, 7.4, 0, 0],
     [20, -32, 7.4, 0, 0],
     [20, 20, 7.4, 0, 0],
+    [20, 16.5, 21.6, 0, 0],
     [20, 34, 7.4, 0, 0],
     [20, 56, 11.4, 0, 0],
     [20, 73, 9.4, 0, 0],
@@ -2005,6 +2006,51 @@
     { "id": "crowd.1", "kind": "crowd", "x": 36, "z": 4, "headingDeg": 0 },
     { "id": "crowd.2", "kind": "crowd", "x": 72, "z": 5, "headingDeg": 0 },
     { "id": "crowd.3", "kind": "crowd", "x": -40, "z": 4, "headingDeg": 0 },
-    { "id": "crowd.4", "kind": "crowd", "x": -41, "z": -40, "headingDeg": 0 }
+    { "id": "crowd.4", "kind": "crowd", "x": -41, "z": -40, "headingDeg": 0 },
+    {
+      "id": "shop.saloon_bar",
+      "kind": "shop",
+      "x": 14.6,
+      "z": 13,
+      "headingDeg": 270,
+      "ref": "saloon",
+      "opens": "saloon"
+    },
+    {
+      "id": "shop.back_room",
+      "kind": "shop",
+      "x": 14,
+      "z": 19,
+      "headingDeg": 0,
+      "ref": "saloon",
+      "opens": "backRoom"
+    },
+    {
+      "id": "shop.chandlery",
+      "kind": "shop",
+      "x": 34,
+      "z": 12.6,
+      "headingDeg": 180,
+      "ref": "chandlery",
+      "opens": "chandlery"
+    },
+    {
+      "id": "shop.general_store",
+      "kind": "shop",
+      "x": 73,
+      "z": 16.6,
+      "headingDeg": 180,
+      "ref": "general_store",
+      "opens": "market"
+    },
+    {
+      "id": "shop.harbor_office",
+      "kind": "shop",
+      "x": 91,
+      "z": 6.4,
+      "headingDeg": 0,
+      "ref": "harbor_office",
+      "opens": "contracts"
+    }
   ]
 }

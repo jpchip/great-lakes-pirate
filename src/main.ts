@@ -181,8 +181,10 @@ import { gameJail } from './sim/law/jail';
 import { buildLastRun, type LastRun, type RunEndCause, type RunEndDetail } from './sim/run/run-end';
 import { showTabLocked } from './ui/menu/tab-locked';
 import { attachAshore, type GameAshore } from './gameplay/ashore';
-import { districtFootprint, districtFrame } from './gameplay/district/ground';
+import { DISTRICTS, districtFootprint, districtFrame } from './gameplay/district/ground';
 import { createWatch } from './gameplay/onfoot/watch';
+import { shopPrompt } from './gameplay/onfoot/shops';
+import { gameTools } from './gameplay/onfoot/tools';
 import { stealthHud } from './ui/hud/stealth-model';
 import { PointerLook } from './core/pointer-look';
 import { calendarDate } from './core/time';
@@ -1323,6 +1325,8 @@ async function boot(): Promise<void> {
     hazards,
     rumors,
     shipyard,
+    // A port with a built district (Bayfield): the back room is walked into, through the saloon.
+    walkInBackRoom: (port) => DISTRICTS.some((d) => d.port === port),
     berthPier: (berthId) => sailingOptions.berths.find((b) => b.id === berthId)?.dockId,
     showPort: (snapshot) => ui.setPort(snapshot),
     showJournal: (snapshot) => ui.setJournal(snapshot),
@@ -2698,6 +2702,23 @@ async function boot(): Promise<void> {
     // Rowed ashore from the wreck: on to the nearest yard (Phase 7 piece A, decision 2).
     castawayLanded: () => abandon.cameAshore(),
     look: footLook,
+    // Counters ashore (piece F): a shop's tab by day, the bar, and the back room after dark.
+    shop: ({ def, model }, mark) => {
+      const found = shopPrompt(model.layout.buildings, mark, gameTools().file, {
+        hour: dayAndHour(state.environment.clock.gameSeconds).hour,
+        backRoomOpen: backRoom.isOpen(def.port),
+        fenceName: backRoom.fenceAt(def.port)?.name,
+      });
+      if (!found) return undefined;
+      return {
+        text: found.text,
+        act: () => {
+          const refused = ports.openShop(def.port, found.tab, found.title);
+          if (refused) showNotice(refused);
+          else ui.setPortTab(found.tab);
+        },
+      };
+    },
     island: islandAshore,
     plants: plantsIn,
     // The marshal posse on a walkable island at Wanted tier 4 and up (plan 08 §20.4 piece H).

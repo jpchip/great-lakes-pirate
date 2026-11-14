@@ -270,6 +270,11 @@ export interface PortSnapshot {
   waitRefusal?: string | undefined;
   /** Go ashore (G) on the footer; only when a built landing exists at this berth. */
   canGoAshore?: boolean | undefined;
+  /**
+   * Walked up to a counter ashore (Phase 7 piece F): the shop's name heads the screen, the
+   * one tab is all there is, and the footer only leaves.
+   */
+  shop?: { title: string } | undefined;
 }
 
 /** A rumor as the ledger and the saloon show it. */
