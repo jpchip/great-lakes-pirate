@@ -3369,6 +3369,26 @@ async function boot(): Promise<void> {
           headingDeg === undefined ? shipPose().heading : (headingDeg * Math.PI) / 180;
         if (arena) placeShip({ x, z, heading });
       },
+      /** Heaves one or every arena ship to (for gunnery checks and the like). */
+      stop: (id?: string) => {
+        if (!arena) return 0;
+        let n = 0;
+        for (const { entity, steer } of arena.ships) {
+          if (id && entity.id !== id) continue;
+          steer.vx = 0;
+          steer.vz = 0;
+          steer.helm.speedKn = 0;
+          steer.helm.state = 'stopped';
+          steer.helm.orders = { mode: 'stop' };
+          if (entity.velocity) {
+            entity.velocity.x = 0;
+            entity.velocity.z = 0;
+          }
+          if (entity.npc) entity.npc.speedKn = 0;
+          n++;
+        }
+        return n;
+      },
       hooks: arenaHooks,
     };
     (window as unknown as { __glpArena: typeof arenaHook }).__glpArena = arenaHook;
