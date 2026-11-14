@@ -104,6 +104,31 @@ describe('trunks and rocks as colliders', () => {
     expect(pieceColliders({ ...base, kind: 'derrick', maxY: 13 })[0]?.kind).toBe('cylinder');
     expect(pieceColliders({ ...base, kind: 'shack', maxY: 3 })[0]?.surface).toBe('wood');
   });
+
+  it('marks a ledge vault or climb by its rise over the ground, not its buried foot', () => {
+    // minY sits 1 m under the lower of the top and the ground (on-foot.ts `placeIsland`),
+    // so a ledge whose top is 1.2 m over its ground has minY = top − 1 − 1.2 = top − 2.2.
+    const low = { poi: 'q', x: 0, z: 0, bearing: 0, widthM: 4, depthM: 2, kind: 'ledge' as const };
+    expect(pieceColliders({ ...low, minY: -1.2, maxY: 1 })[0]?.spot).toBe('vault');
+    expect(pieceColliders({ ...low, minY: -6.2, maxY: 1 })[0]?.spot).toBe('climb');
+  });
+
+  it('a steps piece climbs from the ground to the wharf, no tread over 0.3 m', () => {
+    // The same hill as above: the wharf sits on the flat shallows (x ≥ 470).
+    const hill = (x: number): number => (x < 470 ? (470 - x) * 0.4 : -0.3);
+    const placed = placeIsland(STOCKTON, { x0: 0, z0: 0 }, (x) => hill(x));
+    const wharf = placed.pieces.find((p) => p.kind === 'ledge' && Math.abs(p.maxY - 1) < 1e-6);
+    if (!wharf) throw new Error('no wharf');
+    const steps = placed.pieces.filter((p) => p.kind === 'steps').sort((a, b) => a.maxY - b.maxY);
+    expect(steps.length).toBeGreaterThan(1);
+    let prevY = hill(486); // the ground at the stairs' foot (off the wharf, on the flat).
+    for (const t of steps) {
+      expect(t.maxY - prevY).toBeLessThanOrEqual(0.3 + 1e-6);
+      expect(t.maxY - prevY).toBeGreaterThan(0);
+      prevY = t.maxY;
+    }
+    expect(prevY).toBeCloseTo(wharf.maxY, 5);
+  });
 });
 
 describe('a rectangle of ground', () => {
@@ -208,6 +233,11 @@ describe('Stockton on its baked tiles', () => {
     const island = attachIslandAshore({
       state,
       heightAt: (x, z) => zone.terrain.heightAt(x, z),
+      grid: () => ({
+        x0: zone.terrain.height.x0,
+        z0: zone.terrain.height.z0,
+        step: zone.terrain.height.step,
+      }),
       islands: () => [placed],
       ground: (id) => (id === 'island.stockton' ? field : undefined),
       harbors: () => harbors,
@@ -235,8 +265,9 @@ describe('Stockton on its baked tiles', () => {
     // The whole island is built: its far corners are inside.
     expect(scene.bounds.minX).toBeLessThan(field.x0);
     expect(scene.bounds.maxZ).toBeGreaterThan(field.maxZ);
+    // The walked ground is the 4 m terrain everywhere now, the same the mesh is drawn on.
     expect(scene.ground.heightAt(field.x0 + 935, field.z0 + 679)).toBeCloseTo(
-      field.sample(field.x0 + 935, field.z0 + 679),
+      zone.terrain.heightAt(field.x0 + 935, field.z0 + 679),
       5,
     );
     // Stood on the wharf beside the derrick, you stay on its top.

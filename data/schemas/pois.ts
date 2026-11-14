@@ -21,6 +21,12 @@ export const poiPieceKindSchema = z.enum([
   'shack',
   /** Loose stones heaped over a hiding place: a cache spot. */
   'cairn',
+  /**
+   * A run of stone treads, from the ground at its foot to the top of the ledge standing in
+   * front of it (`out` ahead, along its own bearing): however high that turns out to be, no
+   * tread rises more than 0.3 m. `heightM` is ignored; the rise comes from the ground.
+   */
+  'steps',
 ]);
 
 export const poiPieceSchema = z.object({

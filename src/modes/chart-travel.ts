@@ -135,6 +135,11 @@ export interface ChartTravelHost {
   sailTick?: ((dt: number) => void) | undefined;
   /** Places the captain knows to mark on the chart, e.g. the smuggler's anchorage (piece H). */
   marks?: (() => readonly { at: Geo; label: string; kind: ChartMarkKind }[]) | undefined;
+  /**
+   * The captain and the rowboat, zone meters, while a look is open from on foot (piece
+   * ask: see the island and the ship from the chart). Undefined at the helm.
+   */
+  ashorePositions?: (() => { captain: Pose; boat?: Pose } | undefined) | undefined;
 }
 
 export interface ChartTravel {
@@ -159,6 +164,12 @@ export interface ChartTravel {
   takeToChart(): void;
   /** M in the zone or in a harbor: a look at the chart, the world held. */
   openLook(): void;
+  /**
+   * M on foot: a look at the chart from on foot, the world held, no plotting or setting
+   * sail. Refusal text for the HUD while a guard or marshal is chasing you; undefined when
+   * it opened.
+   */
+  openLookAshore(): string | undefined;
   /** Back to the helm from a look, or into the zone the ship is in on the chart. */
   back(): void;
   /**
@@ -247,6 +258,8 @@ export function createChartTravel(host: ChartTravelHost): ChartTravel {
   const knownLanes = tradeLaneLines(geo.projection).lines;
 
   let trip: ChartTrip | undefined;
+  /** Where a look returns to: the helm, or back on foot (piece ask). */
+  let openedFrom: 'sailing' | 'onFoot' = 'sailing';
   let departure: Departure | undefined;
   let notice: ChartNotice | undefined;
   let arriving = false;
@@ -296,11 +309,12 @@ export function createChartTravel(host: ChartTravelHost): ChartTravel {
   /** The zone the ship's chart position is in, if any. */
   const zoneHere = (): ChartZone | undefined => zoneAt(geo, session.position);
 
-  /** True while a look lets the ship sail on in the zone. */
-  const sailingOn = (): boolean => trip === 'look' && !!host.sailTick && !!host.sailOn?.();
+  /** True while a look lets the ship sail on in the zone (only ever opened from the helm). */
+  const sailingOn = (): boolean =>
+    openedFrom === 'sailing' && trip === 'look' && !!host.sailTick && !!host.sailOn?.();
 
   const backLabel = (): string | undefined => {
-    if (trip === 'look') return 'Back to the helm';
+    if (trip === 'look') return openedFrom === 'onFoot' ? 'Back' : 'Back to the helm';
     if (trip !== 'sea' || session.voyage || arriving) return undefined;
     const zone = zoneHere();
     return zone ? `Into ${placeName(zone)}` : undefined;
@@ -310,10 +324,11 @@ export function createChartTravel(host: ChartTravelHost): ChartTravel {
     trip = undefined;
     notice = undefined;
     host.setHud(undefined);
-    if (machine.mode === 'chart') machine.transition('sailing');
+    if (machine.mode === 'chart') machine.transition(openedFrom);
   };
 
-  const openChart = (kind: ChartTrip): void => {
+  const openChart = (kind: ChartTrip, from: 'sailing' | 'onFoot' = 'sailing'): void => {
+    openedFrom = from;
     const { frame } = host.zone();
     const pose = host.shipPose();
     trip = kind;
@@ -398,6 +413,10 @@ export function createChartTravel(host: ChartTravelHost): ChartTravel {
           if (c.inPort) continue;
           if (distance(session.position, c.pos) <= playerSeesAtM(c, h, weather)) visible.add(c.id);
         }
+        // On a look from on foot (piece ask): where you stand, and the rowboat if you left
+        // it, drawn with the schooner so you can place yourself against her at a glance.
+        const ashorePos = openedFrom === 'onFoot' ? host.ashorePositions?.() : undefined;
+        const { frame: ashoreFrame } = host.zone();
         view.draw({
           geo,
           position: session.position,
@@ -407,6 +426,10 @@ export function createChartTravel(host: ChartTravelHost): ChartTravel {
           contacts,
           lanes: knownLanes,
           hideouts: chartHideouts(),
+          ashore: ashorePos && {
+            captain: onChart(ashorePos.captain, ashoreFrame),
+            boat: ashorePos.boat ? onChart(ashorePos.boat, ashoreFrame) : undefined,
+          },
           weather: pictureNow(),
           now: clock.gameSeconds,
           daylight: daylight(h),
@@ -448,7 +471,13 @@ export function createChartTravel(host: ChartTravelHost): ChartTravel {
     },
     openLook() {
       if (machine.mode !== 'sailing') return;
-      openChart('look');
+      openChart('look', 'sailing');
+    },
+    openLookAshore() {
+      if (machine.mode !== 'onFoot') return undefined;
+      if (host.pursued()) return 'Chart locked: you are being pursued';
+      openChart('look', 'onFoot');
+      return undefined;
     },
     back() {
       if (trip === 'look') {

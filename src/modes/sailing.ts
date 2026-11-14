@@ -58,6 +58,8 @@ export interface SailingModeOptions {
    */
   targets?: { step(dt: number): void } | undefined;
   collisions?: { step(dt: number): void } | undefined;
+  /** Steered NPC hulls pushed off the shore after collisions (arena and zone). */
+  landSeparation?: { step(dt: number): void } | undefined;
   /**
    * The combat core (Phase 6 piece A): shot in the air, hits and the damage they do, after
    * the law and before the ships move.
@@ -233,6 +235,7 @@ export function createSailingMode(ctx: GameContext, options: SailingModeOptions)
       if (held) zoneEdgeSystem(ctx.world, held);
       velocitySystem(ctx.world, dt);
       options.collisions?.step(dt);
+      options.landSeparation?.step(dt);
       bobSystem(ctx.world, elapsed);
       buoyancySystem(ctx.world, ctx.sea, dt);
       heelSystem(ctx.world);

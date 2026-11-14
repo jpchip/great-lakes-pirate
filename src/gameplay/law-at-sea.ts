@@ -140,6 +140,8 @@ export interface LawAtSea {
   firedOn(entityId: string): boolean;
   /** Has the player fired on this law ship (by entity id)? Her rounds may sink you then. */
   hostile(entityId: string): boolean;
+  /** Law ships steered in a zone (land separation after movement); empty in an arena. */
+  steeredLand(): readonly { entity: Entity; steer: SteeredShip; draftM: number }[];
 }
 
 export function attachLawAtSea(deps: LawAtSeaDeps): LawAtSea {
@@ -579,6 +581,19 @@ export function attachLawAtSea(deps: LawAtSeaDeps): LawAtSea {
       }
       tracked.clear();
       captured = false;
+    },
+    steeredLand() {
+      if (deps.arena()) return [];
+      return [...tracked.values()]
+        .filter((t) => t.steer && t.entity.transform)
+        .map((t) => {
+          const record = SHIP_RECORDS.find((r) => r.id === t.entity.npc?.classId);
+          return {
+            entity: t.entity,
+            steer: t.steer as SteeredShip,
+            draftM: record?.draftFullM ?? cutterDraft,
+          };
+        });
     },
   };
 }

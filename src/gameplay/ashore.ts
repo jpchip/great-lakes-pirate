@@ -199,6 +199,11 @@ export interface GameAshore {
   readonly pursued: boolean;
   /** Where you stand, zone meters (the district's local frame turned out). */
   zoneAt(): { x: number; y: number; z: number; heading: number };
+  /**
+   * The captain and the rowboat, zone meters, for a look at the chart from on foot;
+   * undefined off your feet. No boat once you're ashore of it (hoisted, or never taken).
+   */
+  chartPositions(): { captain: Pose; boat?: Pose } | undefined;
   /** The watch's readout with the guards placed in zone meters, for the stealth HUD. */
   stealthReadout(): StealthReadout | undefined;
   /** The tool belt, conduct and the F prompt (piece E), when the watch has tools. */
@@ -1115,6 +1120,15 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
       const c = character.position;
       const z = toZone(c.x, c.z);
       return { x: z.x, y: c.y, z: z.z, heading: headingToZone(character.heading) };
+    },
+    chartPositions() {
+      if (!active) return undefined;
+      const c = character.position;
+      const cz = toZone(c.x, c.z);
+      const captain: Pose = { x: cz.x, z: cz.z, heading: headingToZone(character.heading) };
+      if (!boat) return { captain };
+      const bz = toZone(boat.x, boat.z);
+      return { captain, boat: { x: bz.x, z: bz.z, heading: headingToZone(boat.heading) } };
     },
     toolsHud() {
       return watch && active && !inBoat

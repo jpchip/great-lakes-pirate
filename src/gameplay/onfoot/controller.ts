@@ -56,6 +56,13 @@ export interface ControllerParams {
   /** Seconds a vault and a climb take. */
   vaultS: number;
   climbS: number;
+  /**
+   * Space at a steep natural bank too high to walk up (no marked spot there) scrambles to
+   * the top, the same as a climb, if it's no higher than this above your feet.
+   */
+  scrambleMax: number;
+  /** Seconds a scramble takes. */
+  scrambleS: number;
 }
 
 export const DEFAULT_CONTROLLER: ControllerParams = {
@@ -81,6 +88,8 @@ export const DEFAULT_CONTROLLER: ControllerParams = {
   climbMax: 2.6,
   vaultS: 0.45,
   climbS: 0.9,
+  scrambleMax: 2.6,
+  scrambleS: 0.7,
 };
 
 /** `'sneak'` covers crouching both moving and standing still (the clip picker tells them apart by speed). */
@@ -281,8 +290,10 @@ export function stepCharacter(
   if (s.grounded || s.swimming) s.velocity.y = 0;
   else s.velocity.y = Math.max(s.velocity.y - p.gravity * dt, -MAX_FALL_SPEED);
   if (input.jump && s.grounded && !s.crouching) {
-    // At a marked spot Space vaults or climbs; anywhere else it hops.
+    // At a marked spot Space vaults or climbs; at a steep natural bank too high to walk
+    // up it scrambles to the top; anywhere else it hops.
     if (startSpotMove(s, zone, p, wx, wz)) return;
+    if (startTerrainScramble(s, zone, p, wx, wz)) return;
     s.velocity.y = p.jumpSpeed;
     s.grounded = false;
   }
@@ -683,6 +694,60 @@ function startSpotMove(
   s.velocity.x = s.velocity.y = s.velocity.z = 0;
   s.heading = Math.atan2(dx, -dz);
   s.gait = s.move.kind === 'climb' ? 'climb' : 'vault';
+  return true;
+}
+
+/**
+ * Space where `startSpotMove` found no marked spot: a scramble up a steep natural bank
+ * ahead (plan 11 §3.1's cliffs, less than `scrambleMax` high), the same scripted climb a
+ * marked spot gives, so a short rise off a beach or a cut terrace isn't a wall. Probes the
+ * terrain heightfield only, so it works at any landing, not just the ones with pieces.
+ */
+function startTerrainScramble(
+  s: CharacterState,
+  zone: OnFootZone,
+  p: ControllerParams,
+  wx: number,
+  wz: number,
+): boolean {
+  let dx = wx;
+  let dz = wz;
+  const len = Math.hypot(dx, dz);
+  if (len < 0.1) {
+    dx = Math.sin(s.heading);
+    dz = -Math.cos(s.heading);
+  } else {
+    dx /= len;
+    dz /= len;
+  }
+  const ground = zone.ground;
+  let top: Vec3 | undefined;
+  for (let d = 0.2; d <= 2.5; d += 0.1) {
+    const x = s.position.x + dx * d;
+    const z = s.position.z + dz * d;
+    const y = ground.heightAt(x, z);
+    const rise = y - s.position.y;
+    // Too high out here, and it only gets higher farther on: no scramble reaches this bank.
+    if (rise > p.scrambleMax) break;
+    // Not a bank yet (an ordinary step, or still downhill): keep walking normally.
+    if (rise <= p.stepHeight) continue;
+    // Still on the steep face; the top is farther along.
+    if (ground.slopeAt(x, z, p.slopeSpan) > p.maxSlope) continue;
+    if (fitsAt({ x, y, z }, zone, p, p.standHeight, undefined)) top = { x, y, z };
+    break;
+  }
+  if (!top) return false;
+  s.move = {
+    kind: 'climb',
+    from: { ...s.position },
+    to: top,
+    peakY: top.y + 0.08,
+    t: 0,
+    durationS: p.scrambleS,
+  };
+  s.velocity.x = s.velocity.y = s.velocity.z = 0;
+  s.heading = Math.atan2(dx, -dz);
+  s.gait = 'climb';
   return true;
 }
 

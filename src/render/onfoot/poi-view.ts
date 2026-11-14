@@ -86,6 +86,12 @@ function blockGeometry(p: PlacedPoiPiece): THREE.BufferGeometry[] {
   return [orient(box(p.widthM, h, p.depthM, 0, 0, 0, PALETTE.sandstone), p, p.minY)];
 }
 
+/** One stone tread of a flight of `steps`: a slab, its top at the piece's `maxY`. */
+function stepsGeometry(p: PlacedPoiPiece): THREE.BufferGeometry[] {
+  const h = p.maxY - p.minY;
+  return [orient(box(p.widthM, h, p.depthM, 0, 0, 0, PALETTE.sandstoneDark), p, p.minY)];
+}
+
 function cairnGeometry(p: PlacedPoiPiece): THREE.BufferGeometry[] {
   const out: THREE.BufferGeometry[] = [];
   const stones: [number, number, number, number][] = [
@@ -113,6 +119,7 @@ export function islandPiecesGeometry(islands: readonly PlacedIsland[]): THREE.Bu
       else if (p.kind === 'derrick') parts.push(...derrickGeometry(p));
       else if (p.kind === 'shack') parts.push(...shackGeometry(p));
       else if (p.kind === 'block') parts.push(...blockGeometry(p));
+      else if (p.kind === 'steps') parts.push(...stepsGeometry(p));
       else parts.push(...cairnGeometry(p));
     }
   }

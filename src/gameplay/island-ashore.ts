@@ -30,11 +30,14 @@ export interface IslandPrompt {
 
 export interface IslandAshoreDeps {
   state: WorldState;
-  /** The zone's 4 m terrain height, for the ground around the tiles. */
+  /** The zone's 4 m terrain height: what's drawn, and now what's walked too. */
   heightAt(x: number, z: number): number;
+  /** The zone's 4 m terrain grid's origin and spacing, so the walked ground samples it the
+   * way the mesh does. */
+  grid(): { x0: number; z0: number; step: number } | undefined;
   /** The zone's walkable islands, placed. */
   islands(): readonly PlacedIsland[];
-  /** An island's 1 m tiles, once loaded. */
+  /** An island's 1 m tiles, once loaded: just its extent now the ground is the 4 m terrain. */
   ground(id: string): GridField | undefined;
   harbors(): readonly HarborLayout[];
   /** The run's seed for what's hidden where (the weather's noise seed). */
@@ -97,6 +100,13 @@ export function pieceColliders(p: PlacedPoiPiece): Collider[] {
   const box = bearingBox(p.x, p.z, p.bearing, p.widthM, p.depthM, p.minY, p.maxY, 'stone');
   if (p.kind === 'shack') return [{ ...box, surface: 'wood' }];
   if (p.kind === 'block') return [{ ...box, spot: height <= 1.6 ? 'vault' : 'climb' }];
+  if (p.kind === 'ledge') {
+    // A ledge's `minY` sits 1 m under the lower of its top and the ground around it (so its
+    // face never shows a gap underneath), which isn't its real rise: that's its top over
+    // the ground it stands above.
+    const rise = p.maxY - (p.minY + 1);
+    return [{ ...box, spot: rise <= 1.6 ? 'vault' : 'climb' }];
+  }
   return [box];
 }
 
@@ -126,17 +136,20 @@ export function attachIslandAshore(deps: IslandAshoreDeps): IslandAshore {
     const hit = islandAt(at.x, at.z);
     if (!hit) return undefined;
     const { island, field } = hit;
-    const onTiles = (x: number, z: number): boolean =>
-      x >= field.x0 && x <= field.maxX && z >= field.z0 && z <= field.maxZ;
+    const grid = deps.grid() ?? { x0: field.x0, z0: field.z0, step: field.step };
     const extra: Collider[] = [];
     for (const p of island.pieces) extra.push(...pieceColliders(p));
     return {
       island: island.id,
+      // Walked ground is the zone's 4 m terrain everywhere now, the same heights the mesh,
+      // the trees and the quarry's pieces are drawn and placed on (plan 08 §20.4 piece H
+      // follow-up): no more a hand's width of mismatch between the 1 m tiles and the 4 m
+      // mesh. The 1 m field still marks the island's walkable extent, above.
       ground: {
-        heightAt: (x, z) => (onTiles(x, z) ? field.sample(x, z) : deps.heightAt(x, z)),
-        x0: field.x0,
-        z0: field.z0,
-        step: field.step,
+        heightAt: deps.heightAt,
+        x0: grid.x0,
+        z0: grid.z0,
+        step: grid.step,
       },
       box: {
         minX: field.x0 - ISLAND_PAD_M,

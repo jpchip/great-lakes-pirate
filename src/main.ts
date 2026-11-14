@@ -154,6 +154,7 @@ import { pierPort } from './sim/harbors';
 import { attachLawShips } from './gameplay/law-ships';
 import { attachTargets } from './gameplay/targets';
 import { attachCollisions } from './gameplay/collisions';
+import { attachLandSeparation, type LandSteered } from './gameplay/land-separation';
 import { ambientSightM, daylight01 } from './sim/law/perception';
 import { aimSightM, barrelTilt, type AimWeapon } from './sim/combat/aim';
 import { attachAim } from './gameplay/aim';
@@ -1591,6 +1592,29 @@ async function boot(): Promise<void> {
     movable: (e) => !!arena || (!!e.id && traffic.isHeld(e.id)),
     helmOf: (e) => arena?.ships.find((s) => s.entity === e)?.steer.helm ?? targets.helmOf(e),
   });
+  const landSeparation = attachLandSeparation({
+    ctx,
+    steered: () => {
+      const play = arena;
+      if (play) {
+        return play.ships.map(({ entity, steer }) => ({
+          entity,
+          steer,
+          land: play.land,
+        }));
+      }
+      const out: LandSteered[] = [];
+      for (const p of targets.steeredLand()) {
+        const land = zoneLandFor(p.draftM);
+        if (land) out.push({ entity: p.entity, steer: p.steer, land });
+      }
+      for (const p of lawAtSea.steeredLand()) {
+        const land = zoneLandFor(p.draftM);
+        if (land) out.push({ entity: p.entity, steer: p.steer, land });
+      }
+      return out;
+    },
+  });
   ctx.events.on('ZoneEntered', () => targets.reset());
   ctx.events.on('ArenaEntered', () => targets.reset());
   if (import.meta.env.DEV || params.has('debug')) {
@@ -2409,6 +2433,7 @@ async function boot(): Promise<void> {
   sailingOptions.law = { step: (dt) => lawAtSea.step(dt) };
   sailingOptions.targets = targets;
   sailingOptions.collisions = collisions;
+  sailingOptions.landSeparation = landSeparation;
   sailingOptions.combat = { step: (dt) => combat.step(dt) };
   sailingOptions.helmHeld = () => aim.steeringLocked();
   const sailingMode = createSailingMode(ctx, sailingOptions);
@@ -2574,6 +2599,10 @@ async function boot(): Promise<void> {
   const islandAshore = attachIslandAshore({
     state,
     heightAt: (x, z) => ctx.terrain?.heightAt(x, z) ?? -100,
+    grid: () => {
+      const h = ctx.terrain?.height;
+      return h && { x0: h.x0, z0: h.z0, step: h.step };
+    },
     islands: () => zoneIslands().placed,
     ground: (id) => zone?.islandGrounds?.get(id),
     harbors: () => harborLayouts,
@@ -3340,6 +3369,26 @@ async function boot(): Promise<void> {
           headingDeg === undefined ? shipPose().heading : (headingDeg * Math.PI) / 180;
         if (arena) placeShip({ x, z, heading });
       },
+      /** Heaves one or every arena ship to (for gunnery checks and the like). */
+      stop: (id?: string) => {
+        if (!arena) return 0;
+        let n = 0;
+        for (const { entity, steer } of arena.ships) {
+          if (id && entity.id !== id) continue;
+          steer.vx = 0;
+          steer.vz = 0;
+          steer.helm.speedKn = 0;
+          steer.helm.state = 'stopped';
+          steer.helm.orders = { mode: 'stop' };
+          if (entity.velocity) {
+            entity.velocity.x = 0;
+            entity.velocity.z = 0;
+          }
+          if (entity.npc) entity.npc.speedKn = 0;
+          n++;
+        }
+        return n;
+      },
       hooks: arenaHooks,
     };
     (window as unknown as { __glpArena: typeof arenaHook }).__glpArena = arenaHook;
@@ -3383,11 +3432,15 @@ async function boot(): Promise<void> {
     placeShip,
     enterZone: (id, pose, arrival, onLoaded) => enterZone(id, pose, arrival, false, onLoaded),
     save: () => saveControls.saveNow(),
-    pursued: () => pursued || !!arena?.run.pursued || lawAtSea.locked,
+    pursued: () =>
+      pursued || !!arena?.run.pursued || lawAtSea.locked || !!ashoreRef.current?.pursued,
     // A look at the chart from the helm can let the ship sail on in the zone behind it.
     sailOn: () => sailOnAllowed(),
     sailTick: (dt) => sailingMode.update?.(dt),
     forecastHours: () => instruments.forecastHours,
+    // A look at the chart from on foot (plan 08 §20.4 follow-up): where you stand ashore,
+    // and the rowboat if you left it, alongside the schooner.
+    ashorePositions: () => ashoreRef.current?.chartPositions(),
     // Engage, or a failed avoid, meets them here; leaving reloads the zone and resumes the voyage.
     enterArena: (enc, travel) => {
       const zoneId = zoneData.id;
@@ -3641,6 +3694,10 @@ async function boot(): Promise<void> {
       const chartFree = !arena && !inArenaSpace && !changingZone;
       if (sameContext && chartFree && input.context === 'sailing' && input.pressed('ToggleChart')) {
         const refused = chartTravel.fromHelm({ atEdge: atEdge(), inHarbor: inHarbor() });
+        if (refused) showNotice(refused);
+      }
+      if (sameContext && chartFree && input.context === 'onFoot' && input.pressed('ToggleChart')) {
+        const refused = chartTravel.openLookAshore();
         if (refused) showNotice(refused);
       }
       // The traffic sails on the clock: in the zone, every tick (Phase 4 piece D), and

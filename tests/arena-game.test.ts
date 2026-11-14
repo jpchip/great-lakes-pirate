@@ -21,6 +21,7 @@ import {
   devEncounter,
 } from '../src/sim/arena/encounter';
 import { OPEN_LAKE, clearArenaCentre, sampleArenaLand } from '../src/sim/arena/land';
+import { probesOnLand, separateSteeredFromLand } from '../src/sim/arena/land-separation';
 import {
   PASSING_MARGIN_M,
   createHelm,
@@ -58,7 +59,14 @@ function ship(id: string, x: number, z: number, heading: number, hunting = false
   };
 }
 
-/** Moves the ships on their velocities, the way the velocity system does. */
+function bowPoint(s: SteeredShip): { x: number; z: number } {
+  const fx = Math.sin(s.heading);
+  const fz = -Math.cos(s.heading);
+  const bow = s.lengthM * 0.45;
+  return { x: s.x + fx * bow, z: s.z + fz * bow };
+}
+
+/** Moves the ships on their velocities, then holds them off the land like the game loop. */
 function run(
   ships: SteeredShip[],
   seconds: number,
@@ -68,10 +76,14 @@ function run(
 ): void {
   const dt = 1 / 30;
   for (let t = 0; t < seconds; t += dt) {
+    const prev = ships.map((s) => ({ x: s.x, z: s.z }));
     steerShips(ships, player, land, dt);
-    for (const s of ships) {
+    for (let i = 0; i < ships.length; i++) {
+      const s = ships[i] as SteeredShip;
+      const p = prev[i] as { x: number; z: number };
       s.x += s.vx * dt;
       s.z += s.vz * dt;
+      separateSteeredFromLand(s, land, p);
     }
     if (player) {
       player.x += player.vx * dt;
@@ -79,6 +91,20 @@ function run(
     }
     each?.();
   }
+}
+
+function shoreHeadingToward(land: typeof OPEN_LAKE, start: { x: number; z: number }): number {
+  for (let k = 0; k < 36; k++) {
+    const h = k * 10 * DEG;
+    if (land.isLand(start.x + Math.sin(h) * 700, start.z - Math.cos(h) * 700)) return h;
+  }
+  return 0;
+}
+
+function waterSpotOn(land: typeof OPEN_LAKE): { x: number; z: number } {
+  let start = { x: 0, z: 0 };
+  for (let r = 0; r < 1400 && land.isLand(start.x, start.z); r += 50) start = { x: 0, z: r };
+  return start;
 }
 
 describe('arena encounters', () => {
@@ -292,17 +318,8 @@ describe('arena steering', () => {
     const at = geo.projection.geoToChart({ lat: 46.99, lon: -91.62 });
     const frame = arenaFrame(at);
     const land = sampleArenaLand(geo, frame, ARENA_HALF_M + 400);
-    // Find a heading straight at the land from a water spot.
-    let start = { x: 0, z: 0 };
-    for (let r = 0; r < 1400 && land.isLand(start.x, start.z); r += 50) start = { x: 0, z: r };
-    let heading = 0;
-    for (let k = 0; k < 36; k++) {
-      const h = k * 10 * DEG;
-      if (land.isLand(start.x + Math.sin(h) * 700, start.z - Math.cos(h) * 700)) {
-        heading = h;
-        break;
-      }
-    }
+    const start = waterSpotOn(land);
+    const heading = shoreHeadingToward(land, start);
     const s = ship('ship.package_steamer', start.x, start.z, heading);
     let ashore = false;
     run([s], 180, undefined, land, () => {
@@ -311,6 +328,52 @@ describe('arena steering', () => {
       if (inside && land.isLand(s.x, s.z)) ashore = true;
     });
     expect(ashore).toBe(false);
+  });
+
+  it('keeps an ore freighter bow in the water when she runs for the shore', () => {
+    const at = geo.projection.geoToChart({ lat: 46.99, lon: -91.62 });
+    const frame = arenaFrame(at);
+    const land = sampleArenaLand(geo, frame, ARENA_HALF_M + 400);
+    const start = waterSpotOn(land);
+    const heading = shoreHeadingToward(land, start);
+    const s = ship('ship.ore_freighter', start.x, start.z, heading);
+    s.helm.deepDraft = true;
+    s.helm.orders = { mode: 'flee', kn: s.helm.serviceKn };
+    run([s], 180, undefined, land);
+    const bow = bowPoint(s);
+    expect(land.isLand(bow.x, bow.z)).toBe(false);
+    expect(probesOnLand(land, true, s.x, s.z, s.heading, s.lengthM)).toBe(false);
+  });
+
+  it('pushes a freighter already on the bank back into the lake', () => {
+    const at = geo.projection.geoToChart({ lat: 46.99, lon: -91.62 });
+    const frame = arenaFrame(at);
+    const land = sampleArenaLand(geo, frame, ARENA_HALF_M + 400);
+    const start = waterSpotOn(land);
+    const heading = shoreHeadingToward(land, start);
+    let edge = { ...start };
+    for (let n = 0; n < 80; n++) {
+      const next = {
+        x: edge.x + Math.sin(heading) * 25,
+        z: edge.z - Math.cos(heading) * 25,
+      };
+      if (land.isLand(next.x, next.z)) break;
+      edge = next;
+    }
+    const s = ship('ship.ore_freighter', edge.x, edge.z, heading);
+    s.helm.deepDraft = true;
+    s.helm.speedKn = 4;
+    s.vx = Math.sin(heading) * 2;
+    s.vz = -Math.cos(heading) * 2;
+    expect(probesOnLand(land, true, s.x, s.z, s.heading, s.lengthM)).toBe(true);
+    const inland0 = Math.sin(heading) * (s.x - start.x) - Math.cos(heading) * (s.z - start.z);
+    for (let i = 0; i < 20; i++) {
+      const prev = { x: s.x, z: s.z };
+      separateSteeredFromLand(s, land, prev);
+    }
+    expect(probesOnLand(land, true, s.x, s.z, s.heading, s.lengthM)).toBe(false);
+    const inland1 = Math.sin(heading) * (s.x - start.x) - Math.cos(heading) * (s.z - start.z);
+    expect(inland1).toBeLessThan(inland0 + 1);
   });
 
   it('the hunting cutter runs down a ship hove to', () => {

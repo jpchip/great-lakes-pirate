@@ -34,6 +34,15 @@
         "clearM": 0.25
       },
       {
+        "kind": "steps",
+        "right": 0,
+        "out": 12,
+        "widthM": 4,
+        "depthM": 4,
+        "heightM": 1.3,
+        "yawDeg": 180
+      },
+      {
         "kind": "derrick",
         "right": -6,
         "out": 4,

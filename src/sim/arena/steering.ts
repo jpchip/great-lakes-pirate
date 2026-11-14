@@ -2,7 +2,7 @@ import { DEFAULT_COMPRESSION, knotsToMs, sceneSpeed } from '../../core/coords';
 import { R_SAILING } from '../../core/time';
 import { createCurve, sampleCurve, type Curve } from '../sailing/curve';
 import type { ShipRecord } from '../../../data/schemas/ships';
-import type { ArenaLand } from './land';
+import { LAND_CELL_M, type ArenaLand } from './land';
 
 /**
  * NPC helms in an arena (plan 03 §6.3, Phase 3 piece G): each ship holds its lane's
@@ -144,9 +144,10 @@ function landAhead(land: ArenaLand, s: SteeredShip, heading: number): boolean {
   const reach = Math.max(LAND_LOOKAHEAD_MIN_M, arenaSceneSpeed(s.helm.speedKn) * LAND_LOOKAHEAD_S);
   const fx = Math.sin(heading);
   const fz = -Math.cos(heading);
-  for (const f of [0.25, 0.5, 0.75, 1]) {
-    const x = s.x + fx * reach * f;
-    const z = s.z + fz * reach * f;
+  const bow = s.lengthM * 0.45;
+  for (let d = bow; d <= bow + reach; d += LAND_CELL_M) {
+    const x = s.x + fx * d;
+    const z = s.z + fz * d;
     if (land.isLand(x, z) || shoal?.(x, z)) return true;
   }
   return false;
@@ -330,15 +331,18 @@ export function steerShips(
       h.speedKn += (target - h.speedKn) * (1 - Math.exp(-dt / tau));
     }
     let v = arenaSceneSpeed(h.speedKn);
-    // Her keel is the last word: a deep-draft ship stops short of shoal water dead ahead
-    // rather than run onto it, and turns off it from there.
-    if (h.deepDraft && land.isShoal && !land.allDeep && v > 0) {
-      const ahead = Math.max(60, v * 4);
-      const x = s.x + Math.sin(s.heading) * ahead;
-      const z = s.z - Math.cos(s.heading) * ahead;
-      if (land.isShoal(x, z) || land.isLand(x, z)) {
-        h.speedKn *= Math.exp(-dt / 2);
-        v = arenaSceneSpeed(h.speedKn);
+    // Her bow is the last word: stop dead before land (or shoal for a deep-draft ship) this tick.
+    const shoal = h.deepDraft && land.isShoal && !land.allDeep ? land.isShoal : undefined;
+    if (v > 0 && (!land.allWater || shoal)) {
+      const fx = Math.sin(s.heading);
+      const fz = -Math.cos(s.heading);
+      const bow = s.lengthM * 0.45;
+      const step = Math.max(v * dt + 2, LAND_CELL_M);
+      const x = s.x + fx * (bow + step);
+      const z = s.z + fz * (bow + step);
+      if (land.isLand(x, z) || shoal?.(x, z)) {
+        h.speedKn = 0;
+        v = 0;
       }
     }
     s.vx = Math.sin(s.heading) * v;

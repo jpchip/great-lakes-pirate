@@ -1323,12 +1323,17 @@ test('fires the bow swivel at a tug in an arena and hulls her', async ({ page })
   const tugId = await page.evaluate(() => {
     const w = window as unknown as {
       __glpCombat: CombatHook;
-      __glpArena: { state(): ArenaState; place(x: number, z: number, h?: number): void };
+      __glpArena: {
+        state(): ArenaState;
+        place(x: number, z: number, h?: number): void;
+        stop(id?: string): number;
+      };
     };
     if (w.__glpCombat.arm('weapon.swivel', 'bow') !== 'ok') return undefined;
     w.__glpCombat.powder(1);
     const tug = w.__glpArena.state().ships[0];
     if (!tug) return undefined;
+    w.__glpArena.stop(tug.id);
     // 150 m off her beam, bows on to her.
     const side = tug.heading + Math.PI / 2;
     w.__glpArena.place(

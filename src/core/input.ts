@@ -108,6 +108,9 @@ export const DEFAULT_BINDINGS: Bindings = {
     Jump: ['Space'],
     Sprint: ['ShiftLeft'],
     Interact: ['KeyF'],
+    // A look at the chart from on foot (plan 08 §20.4 follow-up): where you stand, and
+    // the ship. No plotting or setting sail; M again, or Back, returns to the walk.
+    ToggleChart: ['KeyM'],
     Journal: ['KeyJ'],
     Tool1: ['Digit1'],
     Tool2: ['Digit2'],
