@@ -154,6 +154,7 @@ import { pierPort } from './sim/harbors';
 import { attachLawShips } from './gameplay/law-ships';
 import { attachTargets } from './gameplay/targets';
 import { attachCollisions } from './gameplay/collisions';
+import { attachLandSeparation, type LandSteered } from './gameplay/land-separation';
 import { ambientSightM, daylight01 } from './sim/law/perception';
 import { aimSightM, barrelTilt, type AimWeapon } from './sim/combat/aim';
 import { attachAim } from './gameplay/aim';
@@ -1591,6 +1592,29 @@ async function boot(): Promise<void> {
     movable: (e) => !!arena || (!!e.id && traffic.isHeld(e.id)),
     helmOf: (e) => arena?.ships.find((s) => s.entity === e)?.steer.helm ?? targets.helmOf(e),
   });
+  const landSeparation = attachLandSeparation({
+    ctx,
+    steered: () => {
+      const play = arena;
+      if (play) {
+        return play.ships.map(({ entity, steer }) => ({
+          entity,
+          steer,
+          land: play.land,
+        }));
+      }
+      const out: LandSteered[] = [];
+      for (const p of targets.steeredLand()) {
+        const land = zoneLandFor(p.draftM);
+        if (land) out.push({ entity: p.entity, steer: p.steer, land });
+      }
+      for (const p of lawAtSea.steeredLand()) {
+        const land = zoneLandFor(p.draftM);
+        if (land) out.push({ entity: p.entity, steer: p.steer, land });
+      }
+      return out;
+    },
+  });
   ctx.events.on('ZoneEntered', () => targets.reset());
   ctx.events.on('ArenaEntered', () => targets.reset());
   if (import.meta.env.DEV || params.has('debug')) {
@@ -2409,6 +2433,7 @@ async function boot(): Promise<void> {
   sailingOptions.law = { step: (dt) => lawAtSea.step(dt) };
   sailingOptions.targets = targets;
   sailingOptions.collisions = collisions;
+  sailingOptions.landSeparation = landSeparation;
   sailingOptions.combat = { step: (dt) => combat.step(dt) };
   sailingOptions.helmHeld = () => aim.steeringLocked();
   const sailingMode = createSailingMode(ctx, sailingOptions);

@@ -144,6 +144,11 @@ export interface Targets {
   captains(): TargetView[];
   /** A new zone or arena: other ships, other captains. */
   reset(): void;
+  /**
+   * Zone ships steered off their timetables (for land separation after movement); empty in
+   * an arena.
+   */
+  steeredLand(): readonly { entity: Entity; steer: SteeredShip; draftM: number }[];
 }
 
 function recordOf(classId: string | undefined): ShipRecord | undefined {
@@ -632,6 +637,16 @@ export function attachTargets(deps: TargetsDeps): Targets {
     reset() {
       tracked.clear();
       tows.clear();
+    },
+    steeredLand() {
+      if (deps.arena()) return [];
+      return [...tracked.values()]
+        .filter((t) => t.steer && t.entity.transform)
+        .map((t) => ({
+          entity: t.entity,
+          steer: t.steer as SteeredShip,
+          draftM: t.record.draftFullM,
+        }));
     },
   };
 }
