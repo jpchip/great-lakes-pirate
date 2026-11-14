@@ -332,8 +332,8 @@ export function steerShips(
     }
     let v = arenaSceneSpeed(h.speedKn);
     // Her bow is the last word: stop dead before land (or shoal for a deep-draft ship) this tick.
-    if (v > 0 && !land.allWater) {
-      const shoal = h.deepDraft && land.isShoal && !land.allDeep ? land.isShoal : undefined;
+    const shoal = h.deepDraft && land.isShoal && !land.allDeep ? land.isShoal : undefined;
+    if (v > 0 && (!land.allWater || shoal)) {
       const fx = Math.sin(s.heading);
       const fz = -Math.cos(s.heading);
       const bow = s.lengthM * 0.45;
