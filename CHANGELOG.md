@@ -20,11 +20,12 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ### Fixed
 
+- **Stockton's feet meet its ground:** walking a hero island sampled the baked 1 m tiles while everything drawn on it (the terrain mesh, the trees, the quarry's ledges and blocks) stood on the zone's 4 m terrain, so your feet sat a hand's width into or above the grass, and could sink into scenery placed on the coarser ground. The walked ground is now the same 4 m terrain everywhere on the island, sampled on the same grid the mesh is built from; the 1 m tiles still mark the island's walkable extent.
 - **Skin through hats, and bald patches on the women:** every hat was an oval sized from the head's width, but the skull is about a third longer than wide and the forehead bulges forward, so a strip of forehead showed through the front of every hat band. Hats are now fitted to the measured skull (its centre, depth and a radius that holds every vertex above the brow). The female hair was shrunk to 96% for a skull that is in fact as wide as the male one, leaving a third of her scalp bare (nearly all of it under cropped hair); it now grows to 106%. Tests ray-cast the scalp against each hat and each hair style so a bare patch fails the build.
 
 ### Known limitations
 
-- Going ashore is only offered at the Bayfield waterfront and off Stockton; the zone stand-in remains in the code for saves and castaways, not menu landings. On Stockton you walk the 1 m ground while the 4 m terrain is drawn, so your feet can sit a hand's width into or above the grass (0.13 m on average). On foot is silent until the audio piece.
+- Going ashore is only offered at the Bayfield waterfront and off Stockton; the zone stand-in remains in the code for saves and castaways, not menu landings. On foot is silent until the audio piece.
 - In the district, conduct is a placeholder rule until piece E (trespass, tools, loot and the crimes the guards report). A guard's report doesn't raise heat yet, and there's no jailbreak until piece G.
 - No saves are made while you row from a wreck, as in any danger: closing the game then puts you back on the sinking ship.
 

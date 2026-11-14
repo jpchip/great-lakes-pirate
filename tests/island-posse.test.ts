@@ -55,6 +55,7 @@ describe('the marshal posse on Stockton', () => {
     const island = attachIslandAshore({
       state,
       heightAt: (x, z) => zone.terrain.heightAt(x, z),
+      grid: () => ({ x0: zone.terrain.height.x0, z0: zone.terrain.height.z0, step: zone.terrain.height.step }),
       islands: () => [placed],
       ground: (id) => (id === 'island.stockton' ? field : undefined),
       harbors: () => harbors,

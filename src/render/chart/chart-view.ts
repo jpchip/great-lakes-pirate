@@ -52,6 +52,11 @@ export interface ChartFrame {
   marks?: readonly ChartMark[] | undefined;
   /** The captain's hideouts (Phase 4 piece E): the stash, marked in pencil. */
   hideouts?: readonly { id: string; name: string; pos: Chart }[];
+  /**
+   * On a look from on foot: where you stand, and the rowboat if you left it ashore, drawn
+   * with the schooner (plan 08 §20.4 follow-up).
+   */
+  ashore?: { captain: Chart; boat?: Chart | undefined } | undefined;
 }
 
 export type ChartMarkKind = 'smuggler' | 'wanted' | 'mostWanted' | 'wreck';
@@ -234,6 +239,7 @@ export class ChartView {
     this.drawContacts(frame);
     this.drawCourse(frame);
     this.drawShip(frame.position, frame.heading);
+    this.drawAshore(frame.ashore);
     this.drawCompassRose(h);
     this.drawScaleBar(h);
   }
@@ -962,6 +968,34 @@ export class ChartView {
     ctx.fill();
     ctx.strokeStyle = CHART_COLORS.ink;
     ctx.lineWidth = 1.5;
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  /** On a look from on foot: a small brass hull for the rowboat, and an ink dot for you. */
+  private drawAshore(ashore: { captain: Chart; boat?: Chart | undefined } | undefined): void {
+    if (!ashore) return;
+    const { ctx } = this;
+    if (ashore.boat) {
+      const s = this.toScreen(ashore.boat);
+      ctx.save();
+      ctx.beginPath();
+      ctx.ellipse(s.x, s.y, 3, 5, 0, 0, Math.PI * 2);
+      ctx.fillStyle = CHART_COLORS.brass;
+      ctx.fill();
+      ctx.strokeStyle = CHART_COLORS.ink;
+      ctx.lineWidth = 1;
+      ctx.stroke();
+      ctx.restore();
+    }
+    const s = this.toScreen(ashore.captain);
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, 3.5, 0, Math.PI * 2);
+    ctx.fillStyle = CHART_COLORS.ink;
+    ctx.fill();
+    ctx.strokeStyle = CHART_COLORS.paper;
+    ctx.lineWidth = 1;
     ctx.stroke();
     ctx.restore();
   }

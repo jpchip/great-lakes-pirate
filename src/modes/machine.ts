@@ -33,10 +33,11 @@ export const TRANSITIONS: Readonly<Record<ModeId, readonly ModeId[]>> = {
   // Continue resumes in whichever in-game mode the run was saved in.
   mainMenu: ['characterCreation', 'chart', 'sailing', 'onFoot'],
   characterCreation: ['mainMenu', 'sailing'],
-  // Chart → Sailing also covers encounter interrupts.
-  chart: ['sailing', 'jail', 'mainMenu', 'gameOver'],
+  // Chart → Sailing also covers encounter interrupts. Chart → on foot is a look from on
+  // foot (plan 08 §20.4 follow-up): M there opens it, and it closes back to the walk.
+  chart: ['sailing', 'onFoot', 'jail', 'mainMenu', 'gameOver'],
   sailing: ['chart', 'onFoot', 'jail', 'mainMenu', 'gameOver'],
-  onFoot: ['sailing', 'build', 'jail', 'mainMenu', 'gameOver'],
+  onFoot: ['sailing', 'chart', 'build', 'jail', 'mainMenu', 'gameOver'],
   build: ['onFoot', 'mainMenu', 'gameOver'],
   jail: ['onFoot', 'mainMenu', 'gameOver'],
   gameOver: ['mainMenu'],

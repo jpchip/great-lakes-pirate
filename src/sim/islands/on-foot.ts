@@ -86,6 +86,8 @@ export interface IslandOrigin {
 const LADDER_DEPTH_M = 1.2;
 /** A cache cairn: low enough to step around, wide enough to see. */
 const CAIRN = { widthM: 1.4, heightM: 0.8 };
+/** No `steps` tread rises more than this: well under the controller's step height. */
+const STEP_RISE_M = 0.3;
 
 /** Unit vectors of a facing: forward (out) and right, zone x/z. */
 function axes(bearing: number): { fx: number; fz: number; rx: number; rz: number } {
@@ -208,6 +210,36 @@ export function placeIsland(
               topY: top,
               topX: hx - a.fx * 0.7,
               topZ: hz - a.fz * 0.7,
+            });
+          }
+        }
+        continue;
+      }
+      if (piece.kind === 'steps') {
+        // A flight from the ground at its foot to wherever `depthM` ahead lands: the top
+        // of the ledge standing there, once ledges are placed (they go first, above), or
+        // just the rise of the ground itself if there's no ledge to climb onto.
+        const a = axes(pb);
+        const foot = floorAt(pieces, heightAt, c.x, c.z);
+        const topX = c.x + a.fx * piece.depthM;
+        const topZ = c.z + a.fz * piece.depthM;
+        const top = floorAt(pieces, heightAt, topX, topZ);
+        const rise = top - foot;
+        if (rise > 0.05) {
+          const n = Math.max(1, Math.ceil(rise / STEP_RISE_M));
+          const treadDepth = piece.depthM / n;
+          const treadRise = rise / n;
+          for (let k = 1; k <= n; k++) {
+            pieces.push({
+              kind: 'steps',
+              poi: at.id,
+              x: c.x + a.fx * treadDepth * (k - 0.5),
+              z: c.z + a.fz * treadDepth * (k - 0.5),
+              bearing: pb,
+              widthM: piece.widthM,
+              depthM: treadDepth,
+              minY: foot - 0.3,
+              maxY: foot + treadRise * k,
             });
           }
         }

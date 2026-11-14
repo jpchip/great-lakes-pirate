@@ -257,6 +257,32 @@ describe('character controller', () => {
     expect(s.position.y).toBeCloseTo(z.ground.heightAt(s.position.x, s.position.z), 3);
   });
 
+  it('scrambles up a steep natural bank within reach, but not one too high', () => {
+    const still: MoveInput = { forward: 0, right: 0, run: false, crouch: false };
+    // A sheer bank of height `h`, one grid cell (1 m) wide, with flat ground atop it.
+    const bank = (h: number): OnFootZone => zone([], (_x, zz) => (zz < -1 ? h : 0));
+
+    const low = bank(2);
+    const short = createCharacter({ x: 0, y: 0, z: 0 });
+    run(short, low, 0.1, still);
+    expect(short.grounded).toBe(true);
+    stepCharacter(short, { ...still, jump: true }, NORTH, low, DT);
+    expect(short.move?.kind).toBe('climb');
+    run(short, low, 1, still);
+    expect(short.grounded).toBe(true);
+    expect(short.position.y).toBeCloseTo(2, 1);
+    expect(short.position.z).toBeLessThan(-1.9);
+
+    const high = bank(3);
+    const tall = createCharacter({ x: 0, y: 0, z: 0 });
+    run(tall, high, 0.1, still);
+    stepCharacter(tall, { ...still, jump: true }, NORTH, high, DT);
+    // Too high to scramble: it's an ordinary hop in place, not a scripted climb.
+    expect(tall.move).toBeUndefined();
+    expect(tall.velocity.y).toBeCloseTo(DEFAULT_CONTROLLER.jumpSpeed);
+    expect(tall.position.z).toBeGreaterThan(-1);
+  });
+
   it('swims in deep water and walks out where it is shallow', () => {
     // The lake bed shelves from 3 m deep in the south up to dry land in the north.
     const z = zone([], (_x, zz) => -zz * 0.25, 0);
