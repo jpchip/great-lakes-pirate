@@ -1,0 +1,12 @@
+{
+  "id": "amb.foot.saloon-room",
+  "name": "saloon-room",
+  "description": "The saloon's room: men talking low, a laugh, glasses, a chair",
+  "kind": "loop",
+  "bus": "ambience",
+  "loopCrossfadeS": 0,
+  "bundles": [
+    "foot-audio"
+  ],
+  "source": "source.flac"
+}

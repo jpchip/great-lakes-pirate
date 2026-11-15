@@ -1,0 +1,11 @@
+{
+  "id": "sfx.foot.step-snow-2",
+  "name": "step-snow-2",
+  "description": "A footstep in snow: a squeaking crunch (variant 2)",
+  "kind": "oneshot",
+  "bus": "sfx",
+  "bundles": [
+    "foot-audio"
+  ],
+  "source": "source.flac"
+}

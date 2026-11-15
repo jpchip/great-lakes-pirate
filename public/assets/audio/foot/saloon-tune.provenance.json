@@ -1,0 +1,18 @@
+{
+  "source": "procedural",
+  "tool": "tools/audio/synth.ts (tools/audio/lib/synth.ts)",
+  "author": "Great Lakes Pirate contributors",
+  "reference": "Original tune; synthesized concertina and plucked guitar, a little reverb, the tail folded onto the head for a seamless loop",
+  "date": "2026-11-15",
+  "license": "CC BY 4.0",
+  "attribution": "Great Lakes Pirate contributors",
+  "modifications": [],
+  "description": "\"The Booth Street Polka\" (16 bars in G at 104, 36.92 s, looped): the saloon's concertina over a vamping guitar",
+  "durationS": 36.923,
+  "pipeline": [
+    "decoded to mono 48000 Hz",
+    "RMS-normalized toward -24 dB (-2.4 dB)",
+    "Opus 64 kbps mono in Ogg (ffmpeg libopus)"
+  ],
+  "inputHash": "3961da69fdada981"
+}

@@ -1,5 +1,5 @@
 import type { PointerLook } from '../core/pointer-look';
-import { calendarDate } from '../core/time';
+import { calendarDate, dayAndHour } from '../core/time';
 import type { GameContext } from '../modes/context';
 import type { Mode } from '../modes/machine';
 import { tickOnFootClock } from '../modes/on-foot';
@@ -57,7 +57,11 @@ import type { Watch } from './onfoot/watch';
 import { keeperSpot, keeperType } from './onfoot/shops';
 import { crewFigures, shipWords } from './onfoot/moored';
 import type { FootToolsSnapshot } from '../ui/hud/foot-tools-model';
-import type { StealthReadout } from './onfoot/stealth';
+import type { GuardReadout, StealthReadout } from './onfoot/stealth';
+import { Footsteps, type Surface } from './onfoot/noise';
+import type { Gait } from './onfoot/controller';
+import { withinHours } from './onfoot/conduct';
+import { gameTools } from './onfoot/tools';
 import {
   climbDownLadder,
   createCharacter,
@@ -151,6 +155,28 @@ export interface AshoreDeps {
   shop?(district: DistrictLanding, mark: DistrictMark): { text: string; act(): void } | undefined;
   /** The view drawn each frame; its `foot` is set while you're ashore. */
   view?: (SailingView & { foot: FootFrame | undefined }) | undefined;
+  /** Your own body, heard (piece I): each stride, and each time you come down. */
+  sounds?: {
+    /** A stride on `surface` at a gait, with the radius the guards hear it at, meters. */
+    step(surface: Surface | 'water', gait: Gait, radiusM: number): void;
+    /** You landed at `speed` m/s, on the ground or into the lake. */
+    landed(speed: number, inWater: boolean): void;
+  };
+}
+
+/** What the sounds ashore read of where you are (piece I), zone meters. */
+export interface AshoreSound {
+  player: { x: number; y: number; z: number };
+  swimming: boolean;
+  waterC: number;
+  place: 'district' | 'island' | 'shore';
+  /** Under a roof. */
+  inside: boolean;
+  /** The saloon's bar, whether it keeps its hours now, and whether you're in the room. */
+  saloon: { x: number; z: number; open: boolean; within: boolean } | undefined;
+  guards: GuardReadout[];
+  /** F held on a lock with a pick: how far it's got, 0–1. */
+  picking: number | undefined;
 }
 
 /** A jailbreak begun (piece G): what the lockup's night is made with. */
@@ -240,6 +266,10 @@ export interface GameAshore {
   toolsHud(): FootToolsSnapshot | undefined;
   /** Where a crate is stowed aboard (the gangway of the berth she lies at), scene meters. */
   stowPoints(): { x: number; y: number; z: number }[];
+  /** A scene point (a district's local meters) in zone meters. */
+  toZone(x: number, z: number): { x: number; z: number };
+  /** What the sounds ashore read (piece I): undefined off your feet or at the oars. */
+  sound(): AshoreSound | undefined;
 }
 
 /** What the on-foot HUD shows (plan 13 §4.2's minimum for piece A). */
@@ -294,6 +324,10 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
   let dead = false;
   /** Cast away: told main once you're on dry land. */
   let landedTold = false;
+  /** Your strides, counted for the footstep sounds (piece I). */
+  const strides = new Footsteps();
+  const strideFrom = { x: 0, z: 0, fresh: false };
+  let underRoof = false;
   /** The docks district this landing walks (local meters), or none (zone meters). */
   let district: DistrictLanding | undefined;
   let watch: Watch | undefined;
@@ -997,6 +1031,28 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
         character.position.z = cz;
         character.velocity.x = character.velocity.z = 0;
       }
+      if (deps.sounds) {
+        const p = character.position;
+        const moved = strideFrom.fresh ? Math.hypot(p.x - strideFrom.x, p.z - strideFrom.z) : 0;
+        strideFrom.x = p.x;
+        strideFrom.z = p.z;
+        strideFrom.fresh = true;
+        // A teleport or a fade is not a stride.
+        if (moved < 2) {
+          const surface = character.swimming ? 'water' : character.surface;
+          const carrying = watch?.heist?.carrying !== undefined;
+          const r = strides.step(
+            moved,
+            character.gait,
+            surface === 'water' ? 'dirt' : surface,
+            carrying,
+          );
+          if (r > 0) deps.sounds.step(surface, character.gait, r);
+        }
+        if (character.landedSpeed > 0) {
+          deps.sounds.landed(character.landedSpeed, character.landedInWater);
+        }
+      }
       if (character.landedSpeed > 0) {
         hurt(fallDamage(character.landedSpeed, character.landedInWater), 'fell');
         if (
@@ -1131,6 +1187,7 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
       const indoors =
         !inBoat &&
         (district ? !!district.model.buildingAt(x, head - 0.3, z) : roofOver(scene, x, head, z));
+      underRoof = indoors;
       cam.update(feet, character.crouching || character.swimming, scene, frameSeconds, indoors);
       // The scene's frame out to the zone's, where the world is drawn.
       const out = (p: { x: number; y: number; z: number }): { x: number; y: number; z: number } => {
@@ -1330,6 +1387,49 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
       return watch && active && !inBoat
         ? watch.toolsHud(character, findPrompt() !== undefined)
         : undefined;
+    },
+    toZone,
+    sound() {
+      if (!active || inBoat || !scene) return undefined;
+      const c = character.position;
+      const at = toZone(c.x, c.z);
+      const zoned = (g: GuardReadout): GuardReadout => {
+        const z = toZone(g.x, g.z);
+        return { ...g, x: z.x, z: z.z };
+      };
+      const guards = [
+        ...(watch?.readout().guards ?? []),
+        ...(posse?.stealth.readout().guards ?? []),
+      ].map(zoned);
+      let saloon: AshoreSound['saloon'];
+      if (district) {
+        const bar = district.model.layout.marks.find((m) => m.opens === 'saloon');
+        if (bar) {
+          const { hour } = dayAndHour(state.environment.clock.gameSeconds);
+          const hours = gameTools().file.conduct.hours['saloon'];
+          const z = toZone(bar.x, bar.z);
+          saloon = {
+            x: z.x,
+            z: z.z,
+            open: !hours || withinHours(hour, hours),
+            within: district.model.buildingAt(c.x, c.y + 1, c.z)?.def.id === bar.ref,
+          };
+        }
+      }
+      const prompt = watch?.toolsHud(character)?.prompt;
+      return {
+        player: { x: at.x, y: c.y, z: at.z },
+        swimming: character.swimming,
+        waterC: waterC(),
+        place: district ? 'district' : sceneIsland ? 'island' : 'shore',
+        inside: underRoof,
+        saloon,
+        guards,
+        picking:
+          prompt && prompt.label.startsWith('Pick') && prompt.hold01 > 0
+            ? prompt.hold01
+            : undefined,
+      };
     },
     stealthReadout() {
       if (!watch || !active) return undefined;

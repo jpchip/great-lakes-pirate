@@ -1,0 +1,12 @@
+{
+  "id": "amb.foot.forest",
+  "name": "forest",
+  "description": "The island's woods: wind moving through leaves and needles, coming and going",
+  "kind": "loop",
+  "bus": "ambience",
+  "loopCrossfadeS": 2,
+  "bundles": [
+    "foot-audio"
+  ],
+  "source": "source.flac"
+}

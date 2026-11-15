@@ -9,6 +9,8 @@ import {
   WORLD_AUDIO_BUNDLE,
 } from '../src/audio/game-audio';
 import { WORLD_SOUND } from '../src/audio/world-audio';
+import { FOOT_AUDIO_BUNDLE, FOOT_SOUND } from '../src/audio/foot-audio';
+import { STEP_GROUNDS, STEP_VARIANTS, stepSoundId } from '../src/audio/foot-mix';
 import { HARBOR_AUDIO_BUNDLE, HARBOR_SOUND } from '../src/audio/harbor-audio';
 import { PORT_AUDIO_BUNDLE, PORT_SOUND } from '../src/audio/port-audio';
 import { LAW_AUDIO_BUNDLE, LAW_SOUND, LAW_WHISTLE } from '../src/audio/law-audio';
@@ -235,6 +237,24 @@ describe('shipped sounds (plan 15 §3.2, §8)', () => {
     expect(bytes(stems)).toBeLessThanOrEqual(1.25 * 1024 * 1024);
   });
 
+  it('has the sounds ashore: every footstep, the kit, the watch and the places (Phase 7 piece I)', () => {
+    const foot = manifest.bundles[FOOT_AUDIO_BUNDLE] ?? [];
+    const ids: string[] = [];
+    const walk = (v: unknown): void => {
+      if (typeof v === 'string') ids.push(v);
+      else if (v && typeof v === 'object') Object.values(v).forEach(walk);
+    };
+    walk(FOOT_SOUND);
+    for (const g of STEP_GROUNDS) {
+      for (let v = 1; v <= STEP_VARIANTS; v++) ids.push(stepSoundId(g, v));
+    }
+    for (const id of ids) expect(foot, id).toContain(id);
+    // Nothing rendered that the game never plays.
+    expect([...foot].sort()).toEqual([...ids].sort());
+    const bytes = foot.reduce((s, id) => s + (manifest.assets[id]?.bytes ?? 0), 0);
+    expect(bytes).toBeLessThanOrEqual(1.5 * 1024 * 1024);
+  });
+
   it('keeps the initial audio download within 5 MB, music streaming on top', () => {
     const size = (bundle: string): number =>
       (manifest.bundles[bundle] ?? []).reduce(
@@ -251,6 +271,7 @@ describe('shipped sounds (plan 15 §3.2, §8)', () => {
       LAW_AUDIO_BUNDLE,
       COMBAT_AUDIO_BUNDLE,
       COMBAT_MUSIC_BUNDLE,
+      FOOT_AUDIO_BUNDLE,
     ];
     const streamed = [MUSIC_BUNDLE, CHART_MUSIC_BUNDLE];
     expect(size(SAILING_AUDIO_BUNDLE) + size(WORLD_AUDIO_BUNDLE)).toBeLessThanOrEqual(

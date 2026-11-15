@@ -1,0 +1,11 @@
+{
+  "id": "voice.foot.bark-giveup",
+  "name": "bark-giveup",
+  "description": "A guard letting it go: a falling grunt",
+  "kind": "oneshot",
+  "bus": "voice",
+  "bundles": [
+    "foot-audio"
+  ],
+  "source": "source.flac"
+}

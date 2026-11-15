@@ -1,0 +1,11 @@
+{
+  "id": "sfx.foot.swim-stroke-1",
+  "name": "swim-stroke-1",
+  "description": "A swimming stroke: an arm through the water and the water running off (variant 1)",
+  "kind": "oneshot",
+  "bus": "sfx",
+  "bundles": [
+    "foot-audio"
+  ],
+  "source": "source.flac"
+}

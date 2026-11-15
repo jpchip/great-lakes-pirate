@@ -1,0 +1,11 @@
+{
+  "id": "sfx.foot.step-grass-1",
+  "name": "step-grass-1",
+  "description": "A footstep in grass: a swish and a soft thump (variant 1)",
+  "kind": "oneshot",
+  "bus": "sfx",
+  "bundles": [
+    "foot-audio"
+  ],
+  "source": "source.flac"
+}

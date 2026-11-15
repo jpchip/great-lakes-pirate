@@ -1,0 +1,12 @@
+{
+  "id": "amb.foot.docks-night",
+  "name": "docks-night",
+  "description": "The docks at night: the lake lapping at the piles, a hull easing on her lines",
+  "kind": "loop",
+  "bus": "ambience",
+  "loopCrossfadeS": 1.5,
+  "bundles": [
+    "foot-audio"
+  ],
+  "source": "source.flac"
+}

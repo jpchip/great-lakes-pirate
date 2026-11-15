@@ -1,0 +1,11 @@
+{
+  "id": "sfx.foot.land",
+  "name": "land",
+  "description": "Landing from a height: both boots and the breath knocked out",
+  "kind": "oneshot",
+  "bus": "sfx",
+  "bundles": [
+    "foot-audio"
+  ],
+  "source": "source.flac"
+}

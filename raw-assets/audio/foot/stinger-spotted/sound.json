@@ -1,0 +1,11 @@
+{
+  "id": "music.stinger.spotted",
+  "name": "stinger-spotted",
+  "description": "Seen by the watch: a drum stroke, a diminished stab on the concertina, the line climbing",
+  "kind": "oneshot",
+  "bus": "music",
+  "bundles": [
+    "foot-audio"
+  ],
+  "source": "source.flac"
+}

@@ -1,0 +1,12 @@
+{
+  "id": "music.foot.saloon",
+  "name": "saloon-tune",
+  "description": "\"The Booth Street Polka\" (16 bars in G at 104, 36.92 s, looped): the saloon's concertina over a vamping guitar",
+  "kind": "loop",
+  "bus": "ambience",
+  "loopCrossfadeS": 0,
+  "bundles": [
+    "foot-audio"
+  ],
+  "source": "source.flac"
+}

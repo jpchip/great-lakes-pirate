@@ -1,0 +1,11 @@
+{
+  "id": "sfx.foot.step-wood-2",
+  "name": "step-wood-2",
+  "description": "A footstep on planks: a hollow knock, heel and toe (variant 2)",
+  "kind": "oneshot",
+  "bus": "sfx",
+  "bundles": [
+    "foot-audio"
+  ],
+  "source": "source.flac"
+}

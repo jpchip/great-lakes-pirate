@@ -1,6 +1,6 @@
 # 15 — Audio
 
-Status: DRAFT v1.1 (decisions made; Phase 1 sailing audio, Phase 2 weather and harbor audio, Phase 3 ship whistles and chart music, Phase 4 harbor work and trade sounds, Phase 5 law audio and Phase 6 combat audio built and checked)
+Status: DRAFT v1.3 (decisions made; Phase 1 sailing audio, Phase 2 weather and harbor audio, Phase 3 ship whistles and chart music, Phase 4 harbor work and trade sounds, Phase 5 law audio, Phase 6 combat audio and Phase 7 on-foot audio built and checked)
 Parent: [00-master-plan.md](00-master-plan.md)
 Inputs:
 - Master plan: AI-generated audio
@@ -399,9 +399,38 @@ All resolved.
 1. **Music:** like the stingers, "Hard Alee" is a synthesized placeholder (§16 item 1).
 2. **A listen in the game** (plan 07 §14.4 row G: "Listen by ear"): the stems' balance against the guns, the gun levels from the deck at each camera place, and the chase's thresholds and hold. It's step 7 of the Phase 6 laptop route and decision 2 there ([07 §14.14](07-combat-boarding-targets.md)).
 
+## 20. Phase 7 Piece I: On-Foot Audio (2026-11-15)
+
+**Scope** (plan 08 §20.4 row I; §4.5, §6.1 "Stealth", §11 Phase 7 row): footsteps per surface and gait at the gameplay noise radius, locks, doors, crates, coins, rope, the cosh, guard barks and whistles, swimming, the stealth layer and its stinger, Bayfield's docks at night, the saloon's room and music, the island's forest, and every file in `CREDITS.md`. Built the way §18 and §19 are: pure rules in `src/audio/foot-mix.ts`, playback in `src/audio/foot-audio.ts` (`FootSounds`), wired in `game-audio.ts` and `main.ts`.
+
+| Part | Where | What it does |
+|---|---|---|
+| Footsteps | `foot-mix.ts` (`stepSound`, `stepGain`), `gameplay/ashore.ts` (`deps.sounds`) | Ashore counts your strides with the same `Footsteps` and `footstepRadiusM` the guards hear by, everywhere you can walk (a district, an island, a plain shore), and each stride plays the ground's sound at a gain set by that radius: a sneak on grass (under a meter) is barely there, a run on planks (18 m) is full. Six grounds, two variants each, pitched a little differently every step: wood (interior boards duller), dirt (sand and sawdust from it), gravel, grass, stone (rock lower), snow. A sneak is lower and muffled, a run sharper. |
+| The body | `foot-audio.ts` (`landed`, `update`) | A landing above 3 m/s thumps, harder the faster. Into the lake is a splash, captioned; each swimming stride is a stroke; in water under 18 °C a shivering breath comes every 3 to 9 s, oftener the colder. |
+| The kit | `foot-audio.ts` (`tool`, `heist`, `jail`) | From the on-foot events: the cosh, the knife, rope tied, a bottle taken, a bribe counted out (the port's coins), a body or a crate into the lake or onto the planks, a thrown stone landing where it fell after its flight (placed, captioned), the rifle (the law's) and the pistol (the same report pitched up). A lock's loud click, the lock giving and the door after it, the crowbar, a snapped pick, and while F is held on a lock that's making progress, slices of a pick at work. A crate up and down, a cash box counted, papers rustled. In the lockup: irons (the anchor chain, pitched up), keys, the cell door, the bars. |
+| The watch | `foot-mix.ts` (`barkFor`, `voiceRate`, `heardAt`), `foot-audio.ts` (`stealth`) | Each guard's change of state speaks, wordless (§2), from where he stands, with a caption: a hum as he grows suspicious ("Hm?"), a challenge when a noise draws him ("Who's there?"), a shout when he's sure ("Hey! Stop!"), a mutter as he searches, a grunt as he gives up, a cry over a body. Each man has his own pitch, marshals lower, sailors higher. A constable's alarm (the stealth sim's `whistle` noise) is a pea whistle heard across the district, captioned. Voices fade and dull with distance and stop at their reach (12 to 45 m). |
+| The stealth layer | `foot-mix.ts` (`tension01`, `tensionGain`), `foot-audio.ts` | A looped bed on the music bus: a low open fifth on strings and a muffled heartbeat drum. Its level follows the worst guard near you: a filling meter brings it in, a search raises it, a chase is full; distance thins all but the chase. Being seen (`PlayerSpotted`) plays the **spotted** stinger, at most once in 12 s. The open-water music stays out of town and out from under the layer. |
+| Places | `foot-mix.ts` (`placeMix`), `foot-audio.ts` (beds) | Looped beds with a low-pass each, eased over about half a second and dropped after 4 s of silence. **Docks:** the lake at the piles in a district, more after dark, faint and dull under a roof. **Saloon:** while it keeps its hours, "The Booth Street Polka" and the room's talk from the bar's position: a muffled tune from up to 38 m down the street, opening up as you step inside; the tune gives way as the stealth layer rises. **Woods:** wind in the trees on an island or a wild shore, with the wind's speed. **Crickets:** June to September, after dark, not in rain. |
+| The weather | `game-audio.ts` (`updateAshore`) | On foot the world soundscape stays on, heard from where you stand: rain (less under a roof), thunder, the fog's hush, fog signals, gulls and loons, the shore, and the harbors at work. |
+| Sounds | `tools/audio/lib/synth-foot.ts`, `raw-assets/audio/foot/` | 45 synthesized files in bundle `foot-audio` (1.35 MB), decoded up front. Voices are formant syllables like the combat crowds'. The stealth layer and the saloon's tune are encoded as beds (64 kbps) to fit the budget and played on the music bus. `node tools/audio/synth.ts foot` renders only these. |
+| Dev panel | `src/debug/audio-panel.ts` | Audio → Play → "Ashore: sound" picks any of the 45 and plays it. `data-foot-steps`, `data-foot-step`, `data-foot-cue` and `data-foot-beds` on the body read what's sounding. |
+
+**Download:** the decoded bundles are now 4.96 MB of the 5 MB (plan 15 §8); the pipeline test holds the foot bundle under 1.5 MB. Phase 8's build and UI sounds will need room: streaming the saloon's tune and the chase stems is the first place to find it.
+
+**Checked:** the rules and the playback by unit tests (`tests/audio-foot.test.ts`, 42: the gain against the gameplay radius, every surface, the barks per state change, reach and walls, the layer's levels, the places, the kit's events, the synthesis and its loop seams), the bundle and credits by the pipeline tests, and in the game with Playwright (`e2e/foot-audio.spec.ts`): planks underfoot on Bayfield's pier, the docks at night, the room and tune inside the saloon, the cosh, a captioned shout or whistle and the layer coming up.
+
+**Calls made here.** Your own sounds play at the listener, not in the world; only the watch and a landing stone are placed. Footsteps are counted by the ashore mode, not taken from the stealth sim's noise events, so they sound where there is no watch. A guard's sailor-type "shout" alarm has no separate sound; his alerted bark covers it. Walls don't yet muffle a voice (`heardAt` takes `walled`, nothing passes it).
+
+### Still to do
+
+1. **A listen in the game** (row I: "Listen by ear"): none of this has been heard by a person. The balance of footsteps against the beds, the voices' reach, the layer's thresholds and whether the synthesized steps read as their grounds are for the Phase 7 playtest.
+2. **Not built from §4.5:** ice and puddles underfoot, bears, wolves and deer, teeth chattering and gusts as warmth drops (Phase 9 with the islands' wildlife and winter), the rowboat's oars, occlusion and reverb by room.
+3. **Music:** the layer, the stinger and the polka are synthesized placeholders (§16 item 1).
+
 ---
 
 ## Changelog
+- v1.3: Phase 7 piece I built (§20): footsteps at the gameplay radius, the burglar's kit, the watch's voices and whistle, the stealth layer and the spotted stinger, the docks at night, the saloon and the island's woods.
 - v1.2: The Phase 6 playtest's listen is on the laptop route (§19).
 - v1.1: Phase 6 piece G built (§19): the guns near and far, the round in flight, impacts in water, wood and canvas, the boiler, the grapple and the boarding vignette, her crew as she strikes with a stinger, and the chase layer.
 - v1.0: The paper boy's call wired to piece F's papers and checked in the Phase 5 playtest (§18).

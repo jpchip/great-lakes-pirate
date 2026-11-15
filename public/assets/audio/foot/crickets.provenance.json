@@ -1,0 +1,18 @@
+{
+  "source": "procedural",
+  "tool": "tools/audio/synth.ts (tools/audio/lib/synth.ts)",
+  "author": "Great Lakes Pirate contributors",
+  "reference": "Three pulsed sines (3.9 to 4.75 kHz), three pulses to a chirp, a whole number of chirps to the loop",
+  "date": "2026-11-15",
+  "license": "CC BY 4.0",
+  "attribution": "Great Lakes Pirate contributors",
+  "modifications": [],
+  "description": "Crickets on a summer night: three of them, each at its own pitch and pace",
+  "durationS": 9,
+  "pipeline": [
+    "decoded to mono 48000 Hz",
+    "RMS-normalized toward -24 dB (-9.5 dB)",
+    "Opus 64 kbps mono in Ogg (ffmpeg libopus)"
+  ],
+  "inputHash": "0fefa69c2f1587e6"
+}

@@ -15,6 +15,7 @@ import {
   stingerFor,
 } from './chart-audio';
 import { CaptionFeed, type CaptionView } from './captions';
+import { FOOT_AUDIO_BUNDLE, FootSounds, type FootFrame } from './foot-audio';
 import { HARBOR_AUDIO_BUNDLE, HarborWorks } from './harbor-audio';
 import { LAW_AUDIO_BUNDLE, LawSounds, type LawShipId, type LawShipView } from './law-audio';
 import {
@@ -49,7 +50,9 @@ import { fogMix, musicMood, type MusicMood } from './world-mix';
  * captions for the fog signals and whistles; since Phase 5 piece H, the law: Wanted
  * stingers, the cutter's whistle, engine, bell and gun, and the lockup's door; since
  * Phase 6 piece G, combat: the guns, the round in flight and where it lands, the boiler,
- * the grapple and the boarding vignette, her crew as she strikes, and the chase layer.
+ * the grapple and the boarding vignette, her crew as she strikes, and the chase layer;
+ * since Phase 7 piece I, the captain ashore: footsteps, the burglar's kit, the watch's
+ * voices, the stealth layer and the places he walks, with the weather still over him.
  */
 
 export const SAILING_AUDIO_BUNDLE = 'sailing-audio';
@@ -79,6 +82,7 @@ export interface GameAudio {
   trade: TradeCues;
   law: LawSounds;
   combat: CombatSounds;
+  foot: FootSounds;
   captions: CaptionFeed;
   /** The captions showing now, with arrows from the listener's view (plan 15 §5). */
   captionsNow(): CaptionView[];
@@ -95,6 +99,8 @@ export interface GameAudio {
   setListener(pose: () => ListenerPose): void;
   /** The combat core's shots and the targets' captains, once they're attached (piece G). */
   setCombatSource(source: CombatSource): void;
+  /** What the sounds ashore read each frame: undefined while you're not on your feet. */
+  setFootSource(source: FootSource): void;
   /** A new zone's fog signals, harbors and harbor work sites (Phase 3 piece A). */
   setZone(zone: {
     stations: readonly SignalStation[];
@@ -104,6 +110,9 @@ export interface GameAudio {
   setVolume(id: VolumeId, volume: number): void;
   setMuted(muted: boolean): void;
 }
+
+/** The on-foot frame without what the audio adds itself (the listener and its clock). */
+export type FootSource = () => Omit<FootFrame, 'listener' | 'nowS'> | undefined;
 
 /** What the combat audio reads each frame from the combat core and the targets. */
 export interface CombatSource {
@@ -160,6 +169,7 @@ export async function createGameAudio(options: GameAudioOptions): Promise<GameAu
         LAW_AUDIO_BUNDLE,
         COMBAT_AUDIO_BUNDLE,
         COMBAT_MUSIC_BUNDLE,
+        FOOT_AUDIO_BUNDLE,
       ],
       baseUrl,
     ),
@@ -180,6 +190,8 @@ export async function createGameAudio(options: GameAudioOptions): Promise<GameAu
   law.captions = captions;
   const combat = new CombatSounds(mixer, bank);
   combat.captions = captions;
+  const foot = new FootSounds(mixer, bank);
+  foot.captions = captions;
   const records = new Map(SHIP_RECORDS.map((r) => [r.id, r]));
   const whistleShips: WhistleShip[] = [];
   const players: Partial<Record<Exclude<MusicMood, 'quiet'>, MusicPlayer>> = {};
@@ -319,6 +331,7 @@ export async function createGameAudio(options: GameAudioOptions): Promise<GameAu
     pursuedBy = pursued ? by : pursuedBy === by ? undefined : pursuedBy;
   });
   let combatSource: CombatSource | undefined;
+  let footSource: FootSource | undefined;
   const targetViews: { phase: string; distanceM: number }[] = [];
 
   const isPlayer = (shipId: string | undefined): boolean => {
@@ -343,6 +356,7 @@ export async function createGameAudio(options: GameAudioOptions): Promise<GameAu
   });
 
   let active = false;
+  let outside = false;
   let wasLoading = false;
   let mood: MusicMood = 'quiet';
   let nowS = 0;
@@ -351,6 +365,77 @@ export async function createGameAudio(options: GameAudioOptions): Promise<GameAu
   const towardShore = { x: 0, z: 0 };
   let harbors = options.harbors ?? [];
   const persist = (): void => saveAudioSettings(settings, storage);
+
+  /** A frame on foot: the world's weather and signals from where you stand, then the foot. */
+  const updateAshore = (
+    f: Omit<FootFrame, 'listener' | 'nowS'>,
+    frameSeconds: number,
+    gameSeconds: number,
+    shipHeading: number,
+  ): void => {
+    const at = f.player;
+    const pose = listener?.() ?? {
+      at: { x: at.x, y: at.y + 1.7, z: at.z },
+      forward: { x: Math.sin(shipHeading), y: 0, z: -Math.cos(shipHeading) },
+    };
+    placeListener(ctx, pose.at, pose.forward);
+    lastPose = pose;
+    const terrain = game.terrain;
+    if (terrain) terrain.shoreNormalAt(at.x, at.z, towardShore);
+    let harborDistanceM = Infinity;
+    for (const h of harbors) {
+      harborDistanceM = Math.min(harborDistanceM, Math.hypot(h.x - at.x, h.z - at.z));
+    }
+    const fogVisibilityM = game.weather.fogVisibilityAt(gameSeconds);
+    const storm01 = game.weather.stormAt(gameSeconds);
+    // Under a roof the rain is on the shingles, not on you.
+    const rain01 = f.rain01 * (f.inside ? 0.45 : 1);
+    world.update(
+      {
+        listener: pose.at,
+        ship: { x: at.x, z: at.z },
+        nowS,
+        windKn: f.windKn,
+        rain01,
+        storm01,
+        fogVisibilityM,
+        fogBanks: game.weather.fogBanks(gameSeconds),
+        sunElevationDeg: f.sunElevationDeg,
+        month0: f.month0,
+        // On the shore itself: the lake breaks a few meters off, wherever you stand.
+        shoreDistanceM: f.place === 'district' ? 30 : 15,
+        towardShore: { x: -towardShore.x, z: -towardShore.z },
+        harborDistanceM,
+      },
+      frameSeconds,
+    );
+    const { hour } = dayAndHour(gameSeconds);
+    harbor.update(
+      {
+        listener: pose.at,
+        hour,
+        month0: f.month0,
+        rain01,
+        storm01,
+        damping: fogMix(fogVisibilityM, f.windKn).damping,
+      },
+      frameSeconds,
+    );
+    foot.update({ ...f, listener: pose.at, nowS }, frameSeconds);
+    mood = musicMood({
+      sunElevationDeg: f.sunElevationDeg,
+      fogVisibilityM,
+      windKn: f.windKn,
+      rain01,
+      storm01,
+    });
+    // No open-water tune in town or with the watch stirring; it plays on a wild shore.
+    music.update(
+      frameSeconds,
+      f.place === 'district' || foot.tense ? 'quiet' : mood,
+      world.signalHeard,
+    );
+  };
 
   return {
     mixer,
@@ -365,9 +450,10 @@ export async function createGameAudio(options: GameAudioOptions): Promise<GameAu
     trade,
     law,
     combat,
+    foot,
     captions,
     captionsNow() {
-      if (!lastPose || !active) return [];
+      if (!lastPose || !outside) return [];
       return captions.visible(nowS, lastPose.at, lastPose.forward);
     },
     portScreen(open) {
@@ -387,21 +473,32 @@ export async function createGameAudio(options: GameAudioOptions): Promise<GameAu
       law.flush(nowS, options.region?.(), game.state.jail != null);
       const player = game.world.with('playerControlled', 'transform', 'sailing').first;
       const sailingNow = mode === 'sailing' && player !== undefined;
+      // Ashore (piece I): the weather, the gulls and the fog signals go on over you.
+      const ashore = mode === 'onFoot' && player !== undefined ? footSource?.() : undefined;
       if (sailingNow !== active) {
         active = sailingNow;
         sailing.setActive(active);
-        world.setActive(active);
-        music.setActive(active);
         if (!active) {
           law.stop();
           combat.stop();
           lawShipViews.length = 0;
         }
       }
-      if (!player || !sailingNow || ctx.state !== 'running') return;
+      const outsideNow = sailingNow || ashore !== undefined;
+      if (outsideNow !== outside) {
+        outside = outsideNow;
+        world.setActive(outside);
+        music.setActive(outside);
+      }
+      foot.setActive(ashore !== undefined);
+      if (!player || !outsideNow || ctx.state !== 'running') return;
 
       const { state, cls } = player.sailing;
       const gameSeconds = game.state.environment.clock.gameSeconds;
+      if (ashore) {
+        updateAshore(ashore, frameSeconds, gameSeconds, state.heading);
+        return;
+      }
       const wind = game.weather.windAt({ x: state.x, z: state.z }, gameSeconds);
       sailing.update(
         {
@@ -557,6 +654,9 @@ export async function createGameAudio(options: GameAudioOptions): Promise<GameAu
     },
     setCombatSource(source) {
       combatSource = source;
+    },
+    setFootSource(source) {
+      footSource = source;
     },
     setZone(zone) {
       world.setStations(zone.stations);

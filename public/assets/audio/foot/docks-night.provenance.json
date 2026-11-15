@@ -1,0 +1,19 @@
+{
+  "source": "procedural",
+  "tool": "tools/audio/synth.ts (tools/audio/lib/synth.ts)",
+  "author": "Great Lakes Pirate contributors",
+  "reference": "Low-passed and band-passed noise under slow value-noise swells, sine drips, far stick-slip creaks",
+  "date": "2026-11-15",
+  "license": "CC BY 4.0",
+  "attribution": "Great Lakes Pirate contributors",
+  "modifications": [],
+  "description": "The docks at night: the lake lapping at the piles, a hull easing on her lines",
+  "durationS": 14.5,
+  "pipeline": [
+    "decoded to mono 48000 Hz",
+    "loop seam crossfaded over 1.5 s",
+    "RMS-normalized toward -24 dB (-1.6 dB)",
+    "Opus 64 kbps mono in Ogg (ffmpeg libopus)"
+  ],
+  "inputHash": "b07f689244590966"
+}

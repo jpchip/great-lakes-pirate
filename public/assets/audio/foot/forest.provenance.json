@@ -1,0 +1,19 @@
+{
+  "source": "procedural",
+  "tool": "tools/audio/synth.ts (tools/audio/lib/synth.ts)",
+  "author": "Great Lakes Pirate contributors",
+  "reference": "Band-passed and low-passed noise under slow value-noise gusts",
+  "date": "2026-11-15",
+  "license": "CC BY 4.0",
+  "attribution": "Great Lakes Pirate contributors",
+  "modifications": [],
+  "description": "The island's woods: wind moving through leaves and needles, coming and going",
+  "durationS": 16,
+  "pipeline": [
+    "decoded to mono 48000 Hz",
+    "loop seam crossfaded over 2 s",
+    "RMS-normalized toward -24 dB (-7.8 dB)",
+    "Opus 64 kbps mono in Ogg (ffmpeg libopus)"
+  ],
+  "inputHash": "35b6cd9ad3419bb6"
+}

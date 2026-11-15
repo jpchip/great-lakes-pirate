@@ -1,0 +1,11 @@
+{
+  "id": "sfx.foot.step-dirt-1",
+  "name": "step-dirt-1",
+  "description": "A footstep on dirt or sand: a soft thump and a scuff (variant 1)",
+  "kind": "oneshot",
+  "bus": "sfx",
+  "bundles": [
+    "foot-audio"
+  ],
+  "source": "source.flac"
+}

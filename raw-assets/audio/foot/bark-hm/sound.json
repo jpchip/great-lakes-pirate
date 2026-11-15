@@ -1,0 +1,11 @@
+{
+  "id": "voice.foot.bark-hm",
+  "name": "bark-hm",
+  "description": "A guard grown suspicious: a short questioning hum",
+  "kind": "oneshot",
+  "bus": "voice",
+  "bundles": [
+    "foot-audio"
+  ],
+  "source": "source.flac"
+}

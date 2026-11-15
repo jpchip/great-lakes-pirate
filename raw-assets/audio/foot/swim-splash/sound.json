@@ -1,0 +1,11 @@
+{
+  "id": "sfx.foot.swim-splash",
+  "name": "swim-splash",
+  "description": "Going into the lake: the slap, the water closing over, drips",
+  "kind": "oneshot",
+  "bus": "sfx",
+  "bundles": [
+    "foot-audio"
+  ],
+  "source": "source.flac"
+}

@@ -1,0 +1,11 @@
+{
+  "id": "sfx.foot.rope",
+  "name": "rope",
+  "description": "A man tied up: rope drawn through and hauled tight, twice",
+  "kind": "oneshot",
+  "bus": "sfx",
+  "bundles": [
+    "foot-audio"
+  ],
+  "source": "source.flac"
+}
