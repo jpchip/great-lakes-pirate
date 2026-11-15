@@ -4,6 +4,7 @@ import { beforeAll, describe, expect, it } from 'vitest';
 import { attachIslandAshore } from '../src/gameplay/island-ashore';
 import { buildAshoreScene, type AshoreScene } from '../src/gameplay/onfoot/ashore-scene';
 import { createIslandPosse, ISLAND_NAV_CELL_M } from '../src/gameplay/island-posse';
+import { createCharacter } from '../src/gameplay/onfoot/controller';
 import { layoutHarbors } from '../src/sim/harbors';
 import { placeZoneIslands, type PlacedIsland } from '../src/sim/islands/on-foot';
 import type { GridField } from '../src/sim/terrain/grid-field';
@@ -102,5 +103,23 @@ describe('the marshal posse on Stockton', () => {
       );
     }
     expect(ISLAND_NAV_CELL_M).toBeGreaterThan(0);
+  });
+
+  it.skipIf(!baked)('a marshal who sees you gives chase, and that is danger (§20.3 #11)', () => {
+    const posse = createIslandPosse({ scene, placed, tier: 4, seed: 's', conditions });
+    const marshal = posse?.stealth.guards[0];
+    if (!posse || !marshal) throw new Error('no posse');
+    expect(posse.pursued).toBe(false);
+    // Stand in front of him in daylight.
+    const m = marshal.body.position;
+    const x = m.x + Math.sin(marshal.body.heading) * 4;
+    const z = m.z - Math.cos(marshal.body.heading) * 4;
+    const me = createCharacter({ x, y: scene.ground.heightAt(x, z), z });
+    let pursued = false;
+    for (let t = 0; t < 60 * 20 && !pursued && !posse.captured; t++) {
+      posse.step(1 / 60, me, true);
+      pursued = posse.pursued;
+    }
+    expect(pursued).toBe(true);
   });
 });

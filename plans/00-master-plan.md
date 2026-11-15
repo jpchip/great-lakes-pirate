@@ -260,7 +260,7 @@ Each of these gets its own plan doc. Summaries capture decisions plus remaining 
 | 4 | **Trade & Economy** | The day loop works | Markets, cargo, gold, ship upgrades v1, save/load, the Stockton stash and the island smuggler. **Built as 0.4.0** ([05 §16–25](05-ports-economy-trading.md)) |
 | 5 | **Law, Fame & Wanted** | Heat has teeth | Cutters, lighthouse detection, Fame/Wanted meters, jail, port law, newspapers v1, the sailing speed pass. **Built as 0.5.0** ([06 §14](06-fame-wanted-law-lighthouses.md)) |
 | 6 | **Piracy & Combat** | At-sea crime | Freighter AI, cannons, boarding/surrender, sinking, fences, the law's answer to piracy, abandon ship, wrecks. **Built as 0.6.0** ([07 §14](07-combat-boarding-targets.md)) |
-| 7 | **On Foot: Docks & Islands** | The night loop + island exploration | On-foot mode, one docks district (**Bayfield**, with the lockup for jail and jailbreaks), stealth AI, theft, one fully walkable island |
+| 7 | **On Foot: Docks & Islands** | The night loop + island exploration | On-foot mode and the rowboat, the captain's body, one docks district (**Bayfield**, with the lockup for jail and jailbreaks), stealth AI, theft, the walkable saloon and back room, the whiskey trick, one fully walkable island (Stockton). **Built as 0.7.0** ([08 §20](08-docks-district-stealth.md)) |
 | 8 | **Hideouts** | Base loop | Grid building, crafting, storage, two MVP hideouts (seven sites by Beta) |
 | 9 | **Seasons & Secrets** | Depth | Full season cycle (winter rules), island secrets, wrecking, events, newspapers, permadeath polish |
 | 10 | **Expand the Lakes** | More world | Lake Michigan (Seavey's home waters), then Huron, Erie, Ontario, and the Soo Locks (before 1.0; decided 2026-10-23) |
@@ -420,6 +420,7 @@ All planned documents are drafted and their open questions answered. Next:
 ---
 
 ## Changelog
+- v0.10: Phase 7's roadmap row gains the rowboat, the captain's body, the walkable back room and the whiskey trick (08 §20) and is marked built as 0.7.0.
 - v0.9: Phase 6's roadmap row gains the law's answer, abandon ship and wrecks (07 §14) and is marked built as 0.6.0.
 - v0.8: Phase 5's roadmap row gains port law, newspapers v1 and the speed pass (06 §14) and is marked built as 0.5.0.
 - v0.7: Phase 4's roadmap row gains the Stockton stash and the island smuggler (05 §16) and is marked built as 0.4.0.

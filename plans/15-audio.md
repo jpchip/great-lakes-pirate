@@ -430,6 +430,7 @@ All resolved.
 ---
 
 ## Changelog
+- v1.4: The Phase 7 playtest's listen is on the laptop route ([08 §20.8](08-docks-district-stealth.md)); the decoded audio is at 4.96 MB of the 5 MB budget, a decision for Jared there.
 - v1.3: Phase 7 piece I built (§20): footsteps at the gameplay radius, the burglar's kit, the watch's voices and whistle, the stealth layer and the spotted stinger, the docks at night, the saloon and the island's woods.
 - v1.2: The Phase 6 playtest's listen is on the laptop route (§19).
 - v1.1: Phase 6 piece G built (§19): the guns near and far, the round in flight, impacts in water, wood and canvas, the boiler, the grapple and the boarding vignette, her crew as she strikes with a stinger, and the chase layer.

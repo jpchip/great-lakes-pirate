@@ -284,7 +284,7 @@ This is a lot for one developer, which is why the pipeline is automated, kits ar
 | 1 | Placeholder-plus ship, water and sky look, sail meshes and shader |
 | 2 | Terrain shader (sandstone, beach, forest), vegetation plus impostors (built, §17), the lighthouse kit (built, §18), lighting LUTs (built, [04 §25](04-water-weather-seasons.md)) |
 | 4–6 | NPC ships, character base plus animations, props |
-| 7 | Docks-district kit, characters' period variants |
+| 7 | Docks-district kit, characters' period variants. **Built as 0.7.0:** the kit is 56 parametric pieces in `data/kit.json` (`src/sim/district/kit.ts`, `src/render/district/kit-meshes.ts`), instanced and merged per block, laid out in `data/districts/bayfield.json` with the dev placement editor on `district.html` and baked to ground and a navmesh by `npm run district:bake`; lamps are emissive with fake pools. The characters are §20. In the game Bayfield at night draws 61–179 calls with twelve guards ([08 §20.8](08-docks-district-stealth.md)) |
 | 8 | Hideout grid pieces (all materials), crafting stations |
 | 9 | POI kits, caves, animals, curios, season palettes, aurora and VFX polish |
 | 11 | Art polish pass, consistency review |
@@ -446,6 +446,7 @@ Plan 08 §20 piece B. Every on-foot character, the player and the NPCs, is one C
 **Open:** the look is Jared's call. The outfit is a belted work tunic, so the "jacket" reads as a longer tunic in the coat color rather than a reefer; lapels and buttons, or a period coat model, would fix it. The female outfit is a bodice over trousers, not a skirt.
 
 ## Changelog
+- v1.2: Phase 7 as built (§13): the docks kit and where Bayfield's draw calls stand.
 - v1.1: Phase 7 piece B (§20): the CC0 humanoid, its pipeline, palette regions, code-built hats and props, 37 retargeted clips, LODs and animation LOD.
 - v1.0: The T2 schooner from the hull generator (§5): `rigScale`, deck layouts and the yawl boat.
 - v0.9: Phase 3 piece H (§19): five NPC classes from the parametric generator, the hull generator opened up to lakers, lit windows, running lights by the 1900 rules, funnel smoke, wakes, the NPC contact sheet and `?npcs`. Palette v1 gains the NPC colors.

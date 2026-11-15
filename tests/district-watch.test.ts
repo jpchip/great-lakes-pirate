@@ -141,6 +141,9 @@ describe.skipIf(!baked)('the watch in Bayfield', () => {
       watch.step(1 / 60, me);
       total += watch.stealth.lastStepMs;
     }
+    console.log(
+      `perception, ${watch.stealth.guards.length} guards: ${(total / 600).toFixed(3)} ms a tick`,
+    );
     expect(total / 600).toBeLessThan(1);
   });
 
