@@ -892,6 +892,38 @@ body[data-mode='chart'] .chart-layer {
   bottom: 302px;
 }
 
+/* A jailbreak's standing line (Phase 7 piece G), top center; ONE CHANCE before the rope. */
+.foot-banner {
+  position: absolute;
+  top: 52px;
+  left: 50%;
+  transform: translateX(-50%);
+  max-width: 60vw;
+  padding: 5px 12px;
+  font-size: 14px;
+  text-align: center;
+  background: var(--enamel);
+  border: 1px solid rgba(184, 137, 46, 0.6);
+  border-radius: 3px;
+}
+
+.foot-banner strong {
+  display: block;
+  letter-spacing: 0.12em;
+}
+
+.foot-banner.one-chance {
+  border: 2px solid var(--signal-red);
+  color: #ffd9d2;
+}
+
+.jail-banner {
+  margin: 4px 0;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  color: var(--signal-red);
+}
+
 /* On foot (Phase 7 piece A): the F prompt sits low over the center, under the captain. */
 .foot-prompt {
   bottom: 120px;

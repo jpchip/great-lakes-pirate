@@ -587,6 +587,18 @@ describe('stones, the pistol and the rifle (plan 08 §6; piece E part two)', () 
       hasWeapon: (id) => id === 'weapon.rifle',
     });
     expect(owned.count(rifle)).toBe(Infinity);
+    const jailed = createTools(
+      stealth,
+      { purse: 50, stores: {} },
+      d,
+      Rng.fromSeed('t'),
+      gameTools(),
+      {
+        hasWeapon: () => true,
+        emptyHanded: () => true,
+      },
+    );
+    for (const t of gameTools().belt) expect(jailed.count(t)).toBe(0);
   });
 
   it('arms full of a crate: no blows, drinks or shots', () => {

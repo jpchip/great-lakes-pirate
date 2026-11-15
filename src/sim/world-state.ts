@@ -17,6 +17,7 @@ import { defaultShipState } from './shipyard/shipyard';
 import {
   createLawState,
   fameSchema,
+  jailDebtSchema,
   jailSchema,
   profilesSchema,
   reportsSchema,
@@ -546,6 +547,8 @@ export const worldStateSchema = z.object({
   profiles: profilesSchema,
   reports: reportsSchema,
   jail: jailSchema,
+  /** Money promised to a jailer on a jailbreak (Phase 7 piece G), until it's settled. */
+  jailDebt: jailDebtSchema.optional(),
   /**
    * The law's ships (Phase 5 piece C): the *Morrill*'s leg and sorties, and the tier-5
    * tug's. Absent in a save from before piece C: she starts lying at Duluth.

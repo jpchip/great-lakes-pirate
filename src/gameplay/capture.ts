@@ -15,15 +15,25 @@ import { formatCents } from '../sim/economy/knowledge';
 import { siteDef } from '../sim/hideouts/stash';
 import { tierDef, wantedTier } from '../sim/law/defs';
 import {
+  beginBreakout,
+  breakoutDawn,
+  breakoutRefusal,
+  breakoutStart,
   canPayFine,
+  escapeJail,
   gameJail,
   imprison,
   imprisonMinor,
   minorArrest,
+  owePromise,
   payFine,
+  promiseCents,
+  recapture,
   release,
   sendWord,
+  settleDebt,
   settleImpound,
+  standDown,
   strongboxes,
   wordCost,
   wordRefusal,
@@ -33,6 +43,8 @@ import {
 import { regionAtChart } from '../sim/law/regions';
 import { dateText } from '../sim/run/run-end';
 import type { JailActions, JailSnapshot, ReleaseSnapshot } from '../ui/jail/model';
+import type { JailbreakStart } from './ashore';
+import type { JailbreakEvent } from './onfoot/jailbreak';
 
 /**
  * Capture, jail and release in the running game (plan 06 §8, plan 12 §8.1; Phase 5 piece
@@ -41,6 +53,12 @@ import type { JailActions, JailSnapshot, ReleaseSnapshot } from '../ui/jail/mode
  * at tier 5) with the jail screen up. Serving the sentence or bail sent for by word runs
  * the clock on as a batch (the world ticks: prices, traffic, decay), then the release
  * screen tells what changed, and the ship is back alongside the lockup's pier.
+ *
+ * Phase 7 piece G: the jailbreak. From the cell (or the one chance before the rope) the
+ * clock runs on to that night and `breakOut` puts you on foot in the lockup, your ship at
+ * its pier. Aboard and away (`jailbroke`) you're free with the jailbreak on your name;
+ * taken again (`recaptured`) or still out at dawn, the sentence grows, or the rope. A
+ * promise made to the jailer is a debt that comes due on the world clock.
  */
 
 export type CaptureEvent = GameEvents['PlayerCaptured'];
@@ -65,6 +83,14 @@ export interface CaptureOptions {
   /** The run is over (the rope). */
   endRun(cause: 'executed'): Promise<void>;
   save(): Promise<void>;
+  /**
+   * Starts the jailbreak on foot (piece G): the ship put alongside the lockup's pier and
+   * you in the cell. A refusal if it can't be played here, else none. Absent, no jailbreak.
+   */
+  breakOut?(start: JailbreakStart): Promise<string | undefined>;
+  /** Off your feet behind a fade with a line (dawn in the lockup). */
+  offFeet?(title: string, line: string): Promise<void>;
+  notice?(text: string): void;
 }
 
 export interface CaptureControl {
@@ -75,6 +101,14 @@ export interface CaptureControl {
   takeNow(e?: CaptureEvent): void;
   /** Shows the jail screen for a run loaded in jail. */
   resume(): void;
+  /** A jailbreak is under way on foot. */
+  readonly breakingOut: boolean;
+  /** What the lockup's scene reports as the attempt goes. */
+  jailbreakEvent(e: JailbreakEvent): void;
+  /** Aboard your ship and away: free, with the jailbreak on your name. */
+  jailbroke(): void;
+  /** A guard has you again (you're already off your feet). */
+  recaptured(): void;
   actions: JailActions;
   dispose(): void;
 }
@@ -87,10 +121,11 @@ const WORD_REFUSALS: Record<WordRefusal, string> = {
   short: "There isn't enough in the strongbox for bail, the ship and the messenger.",
 };
 
-const JAILBREAK_NOT_YET =
-  'No way out of the lockup yet: the jailbreak comes with the docks district in a later version.';
-const GALLOWS_NOT_YET =
-  'ONE CHANCE: the jailbreak before the hanging comes with the docks district in a later version. Not yet.';
+const NO_BREAKOUT_HERE = 'There is no breaking out of this lockup.';
+const BREAKOUT_MINOR = "A night for a fine isn't worth breaking out of.";
+const ONE_CHANCE =
+  'Tonight, in irons, with nothing in your pockets: past the jailer, another constable and the marshal come for the hanging, and down to your ship at the city dock before dawn. Fail, and you hang.';
+const CHANCE_SPENT = 'You had your one chance.';
 
 function byName(by: string): string {
   if (by === 'npc.watchman') return 'a night watchman';
@@ -124,6 +159,12 @@ export function attachCapture(opts: CaptureOptions): CaptureControl {
   let pending: CaptureEvent | undefined;
   let open = false;
   let released: ReleaseSnapshot | undefined;
+  /** A jailbreak under way on foot, and the dawn that ends it. */
+  let breaking: { dawnAt: number } | undefined;
+  /** The fade into the cell is under way. */
+  let starting = false;
+  /** How the last attempt from this cell ended, for the jail screen. */
+  let breakoutNote: string | undefined;
 
   /** One world tick, as the sailing mode runs it. */
   const tick = (): void => {
@@ -161,7 +202,12 @@ export function attachCapture(opts: CaptureOptions): CaptureControl {
         lockup: lockupName(),
         taken: taken(j),
         confiscated: confiscated(j),
-        jailbreak: GALLOWS_NOT_YET,
+        jailbreak: !opts.breakOut
+          ? NO_BREAKOUT_HERE
+          : breakoutRefusal(j) === 'spent'
+            ? CHANCE_SPENT
+            : ONE_CHANCE,
+        canBreakOut: !!opts.breakOut && !breakoutRefusal(j),
       };
     }
     const refusal = wordRefusal(jail, state, undefined);
@@ -187,7 +233,13 @@ export function attachCapture(opts: CaptureOptions): CaptureControl {
       })),
       wordSent: j.word ? `Word is on its way: out ${dateText(j.word.arrivesAt)}` : undefined,
       wordRefusal: refusal && refusal !== 'execution' ? WORD_REFUSALS[refusal] : undefined,
-      jailbreak: JAILBREAK_NOT_YET,
+      jailbreak: !opts.breakOut
+        ? NO_BREAKOUT_HERE
+        : j.minor
+          ? BREAKOUT_MINOR
+          : `Tonight, with nothing in your pockets: out of the cell, past the jailer, and down to your ship at the city dock before dawn. Away, you're free, with a jailbreak on your name and the ship out of the impound. Caught, it's ${weeks(jail.jailbreak.recaptureWeeks)} more.`,
+      canBreakOut: !!opts.breakOut && !breakoutRefusal(j),
+      ...(breakoutNote ? { breakoutNote } : {}),
     };
   };
 
@@ -235,6 +287,7 @@ export function attachCapture(opts: CaptureOptions): CaptureControl {
       ? imprisonMinor(defs, jail, state, input, now())
       : imprison(defs, jail, state, input, now());
     opts.economy.syncLoad();
+    breakoutNote = undefined;
     ctx.events.emit('Jailed', {
       region: j.region,
       port: j.port,
@@ -322,9 +375,49 @@ export function attachCapture(opts: CaptureOptions): CaptureControl {
     return lines;
   };
 
+  /** Back to the jail screen after an attempt, with how it went. */
+  const backInTheCell = (note: string): void => {
+    breaking = undefined;
+    breakoutNote = note;
+    released = undefined;
+    setOpen(true);
+    refresh();
+    void opts.save();
+  };
+
+  /** Lost: the sentence grows, or at tier 5 the rope. */
+  const lost = (how: string): void => {
+    const j = state.jail;
+    if (!j) return;
+    breaking = undefined;
+    const r = recapture(jail, state);
+    const execution = r === 'execution';
+    ctx.events.emit('JailbreakFailed', {
+      port: j.port,
+      execution,
+      weeks: execution ? 0 : r.weeks,
+    });
+    if (execution) {
+      void opts.endRun('executed');
+      return;
+    }
+    backInTheCell(`${how} ${weeks(r.weeks)} added to your sentence.`);
+  };
+
   const offs = [
     ctx.events.on('PlayerCaptured', (e) => {
       if (!state.jail && !pending) pending = e;
+    }),
+    // The jailer's money comes due (piece G): from the purse, or he talks.
+    ctx.events.on('WorldTick', () => {
+      const settled = settleDebt(defs, jail, state, now());
+      if (!settled) return;
+      for (const e of settled.events) emitLaw(ctx, e);
+      opts.notice?.(
+        settled.shortCents > 0
+          ? `The jailer's ${formatCents(settled.shortCents + settled.paidCents)} came due and you were ${formatCents(settled.shortCents)} short: he has talked.`
+          : `The jailer's man finds you: ${formatCents(settled.paidCents)} paid, as promised.`,
+      );
     }),
   ];
 
@@ -345,7 +438,38 @@ export function attachCapture(opts: CaptureOptions): CaptureControl {
       letOut();
     },
     jailbreak() {
-      refresh();
+      const j = state.jail;
+      if (!j || released || breaking || starting) return;
+      if (!opts.breakOut || breakoutRefusal(j)) {
+        refresh();
+        return;
+      }
+      starting = true;
+      beginBreakout(j);
+      // Wait for the night: the world goes on meanwhile.
+      runOnTo(breakoutStart(jail, now()));
+      const start: JailbreakStart = {
+        execution: j.execution,
+        promiseCents: promiseCents(jail, j),
+        dawnAt: breakoutDawn(jail, now()),
+      };
+      ctx.events.emit('JailbreakStarted', { port: j.port, execution: j.execution });
+      opts.show(undefined);
+      // Saved as begun: a reload from here on finds the attempt lost.
+      void opts
+        .save()
+        .then(() => opts.breakOut?.(start))
+        .then((refused) => {
+          starting = false;
+          if (refused !== undefined) {
+            standDown(state);
+            j.breakout.attempts = Math.max(0, j.breakout.attempts - 1);
+            backInTheCell(refused);
+            return;
+          }
+          breaking = { dawnAt: start.dawnAt };
+          setOpen(false);
+        });
     },
     hang() {
       if (!state.jail?.execution) return;
@@ -368,9 +492,81 @@ export function attachCapture(opts: CaptureOptions): CaptureControl {
     },
     takeNow,
     resume() {
-      if (!state.jail) return;
+      const j = state.jail;
+      if (!j) return;
+      // Loaded in the middle of an attempt: it's lost. The one chance is simply spent.
+      if (j.breakout.active) {
+        if (j.execution) standDown(state);
+        else {
+          const r = recapture(jail, state);
+          if (r !== 'execution') {
+            breakoutNote = `The jailbreak came to nothing. ${weeks(r.weeks)} added to your sentence.`;
+          }
+        }
+      }
       setOpen(true);
       refresh();
+    },
+    get breakingOut() {
+      return breaking !== undefined;
+    },
+    jailbreakEvent(e) {
+      const j = state.jail;
+      if (!breaking || !j) return;
+      if (e.type === 'Promised') {
+        owePromise(jail, state, e.cents, now());
+        return;
+      }
+      if (e.type !== 'Dawn') return;
+      const tried = e.tried;
+      const execution = j.execution;
+      const line = execution
+        ? 'Dawn, and the rope'
+        : tried
+          ? 'Dawn: the empty cell is found, and the town is turned out for you'
+          : 'Dawn, and nothing tried';
+      void (opts.offFeet?.('Dawn', line) ?? Promise.resolve()).then(() => {
+        if (!breaking) return;
+        if (tried || execution) {
+          lost('Dawn found you out of your cell.');
+          return;
+        }
+        standDown(state);
+        backInTheCell('Dawn came, and you had tried nothing. No harm done.');
+      });
+    },
+    jailbroke() {
+      if (!breaking || !state.jail) return;
+      const { dawnAt } = breaking;
+      breaking = undefined;
+      breakoutNote = undefined;
+      const was = escapeJail(state);
+      // Nobody saw you go: the empty cell is found at dawn, and it can only be you.
+      law.commit({
+        crime: 'crime.jailbreak',
+        region: jail.lockup.region,
+        port: jail.lockup.port,
+        witnesses: [
+          {
+            id: 'evidence.lockup',
+            kind: 'constable',
+            name: `the jailer at ${lockupName()}`,
+            identification: 'person',
+            reportAt: Math.max(dawnAt, now()),
+          },
+        ],
+      });
+      ctx.events.emit('JailbreakSucceeded', {
+        port: was.port,
+        region: jail.lockup.region,
+        execution: was.execution,
+      });
+      opts.notice?.("You're out. Cast off: the empty cell is found at dawn.");
+      void opts.save();
+    },
+    recaptured() {
+      if (!breaking) return;
+      lost('Recaptured.');
     },
     actions,
     dispose: () => offs.forEach((off) => off()),

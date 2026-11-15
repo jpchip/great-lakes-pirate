@@ -234,6 +234,13 @@ export interface GameEvents {
   Jailed: { region: string; port: string; tier: number; sentenceWeeks: number; execution: boolean };
   BailSent: { hideout: string; cents: number };
   Released: { how: 'served' | 'bail'; region: string; weeks: number };
+  /**
+   * The jailbreak (plan 08 §9; Phase 7 piece G): begun from the cell, made (aboard your
+   * ship and away), or lost (recaptured, or dawn found you out of your cell).
+   */
+  JailbreakStarted: { port: string; execution: boolean };
+  JailbreakSucceeded: { port: string; region: string; execution: boolean };
+  JailbreakFailed: { port: string; execution: boolean; weeks: number };
   RunEnded: { cause: 'executed' | 'abandoned' | 'killed' | 'drowned' | 'fell' };
   /**
    * Abandon ship (Phase 6 piece F, plan 07 §14.6 decision 2): your ship foundered and you

@@ -77,5 +77,49 @@ export const jailFileSchema = z.object({
     /** Wages at the yard toward what's still owed, cents a game day (a week). */
     workCentsPerDay: z.number().int().positive(),
   }),
+  /**
+   * The jailbreak (plan 08 §9; Phase 7 piece G): the lockup's cell played on foot at night
+   * with nothing in your pockets. Seconds are real seconds unless they say otherwise.
+   */
+  jailbreak: z.object({
+    /** The attempt starts at this hour of the night, and is over at `dawnHour`. */
+    startHour: z.number().min(0).max(24),
+    dawnHour: z.number().min(0).max(24),
+    /** The layout's door of the cell you're held in, and its lock's tier. */
+    cellDoor: z.string().min(1),
+    cellLock: z.number().int().min(1).max(3),
+    /** Recaptured: this many weeks more. */
+    recaptureWeeks: z.number().int().positive(),
+    /** The jailer's round: at his desk, a look into the cells, then by the bars with his back turned. */
+    jailer: z.object({
+      deskWaitS: z.number().positive(),
+      lookS: z.number().positive(),
+      barsWaitS: z.number().positive(),
+    }),
+    /** His keys off his belt through the bars while he isn't looking. */
+    keys: z.object({ liftS: z.number().positive(), reachM: z.number().positive() }),
+    /** Banging on the bars: how far it carries, and how soon you can again. */
+    bang: z.object({ radiusM: z.number().positive(), cooldownS: z.number().nonnegative() }),
+    /**
+     * A promise of stashed money: taken at `maxTier` or below, for `cents` by the tier you
+     * were taken at, due in `dueDays` game days. What isn't paid then is `heat` in the
+     * lockup's region.
+     */
+    promise: z.object({
+      maxTier: z.number().int().min(0),
+      cents: z.array(z.number().int().positive()).min(1),
+      dueDays: z.number().positive(),
+      heat: z.number().nonnegative(),
+      talkM: z.number().positive(),
+    }),
+    /** Tier 5: in irons, which take this long to slip. */
+    irons: z.object({ slipS: z.number().positive() }),
+    /** Tier 5: more of the law in the lockup. */
+    execution: z.object({
+      constables: z.number().int().nonnegative(),
+      marshals: z.number().int().nonnegative(),
+    }),
+  }),
 });
+export type JailbreakRules = JailFile['jailbreak'];
 export type JailFile = z.infer<typeof jailFileSchema>;

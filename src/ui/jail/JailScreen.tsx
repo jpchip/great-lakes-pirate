@@ -1,15 +1,13 @@
-import { useState } from 'preact/hooks';
 import type { JailActions, JailSnapshot } from './model';
 
 /**
  * The jail screens (plan 13 §12 Phase 5, plan 12 §8.1; piece D), on logbook paper like the
  * other screens. The cell: what was taken, the sentence and when you're out, bail by
- * sending word to a strongbox, and the jailbreak (not yet). At tier 5 the gallows: the one
- * jailbreak would be the only way out, and it isn't built, so the end comes. The release:
- * how you got out and "While you were inside...".
+ * sending word to a strongbox, and the jailbreak that night (Phase 7 piece G). At tier 5
+ * the gallows: the ONE CHANCE jailbreak is the only way out, and once had there's only the
+ * rope. The release: how you got out and "While you were inside...".
  */
 export function JailScreen({ jail, actions }: { jail: JailSnapshot; actions: JailActions }) {
-  const [tried, setTried] = useState(false);
   if (jail.kind === 'released') {
     return (
       <div class="menu-backdrop jail-backdrop" data-testid="jail-screen" data-kind="released">
@@ -68,18 +66,26 @@ export function JailScreen({ jail, actions }: { jail: JailSnapshot; actions: Jai
             ))}
           </ul>
           <div class="jail-option jail-break">
+            {jail.canBreakOut && (
+              <p class="jail-banner" data-testid="jail-one-chance">
+                ONE CHANCE
+              </p>
+            )}
+            <p
+              class={jail.canBreakOut ? 'jail-note' : 'jail-note bad'}
+              data-testid="jail-break-note"
+            >
+              {jail.jailbreak}
+            </p>
             <button
               type="button"
               class="menu-button"
               data-testid="jail-break"
-              onClick={() => {
-                setTried(true);
-                actions.jailbreak();
-              }}
+              disabled={!jail.canBreakOut}
+              onClick={actions.jailbreak}
             >
-              Attempt a jailbreak
+              Attempt the jailbreak
             </button>
-            {tried && <p class="jail-note bad">{jail.jailbreak}</p>}
           </div>
           <footer class="menu-footer">
             <button
@@ -166,18 +172,24 @@ export function JailScreen({ jail, actions }: { jail: JailSnapshot; actions: Jai
         )}
 
         <div class="jail-option jail-break">
+          <h3 class="jail-heading">Break out</h3>
+          {jail.breakoutNote && (
+            <p class="jail-note bad" data-testid="jail-break-last">
+              {jail.breakoutNote}
+            </p>
+          )}
+          <p class="jail-note" data-testid="jail-break-note">
+            {jail.jailbreak}
+          </p>
           <button
             type="button"
             class="menu-button"
             data-testid="jail-break"
-            onClick={() => {
-              setTried(true);
-              actions.jailbreak();
-            }}
+            disabled={!jail.canBreakOut}
+            onClick={actions.jailbreak}
           >
-            Attempt a jailbreak
+            Attempt a jailbreak tonight
           </button>
-          {tried && <p class="jail-note">{jail.jailbreak}</p>}
         </div>
 
         <footer class="menu-footer">
