@@ -109,7 +109,13 @@ export function createFootLaw(
   /** Conduct right now (the reason only). */
   conductNow: () => ConductReason | undefined,
   /** The locks and loot (part two), and the game clock its evidence is dated by. */
-  heist?: { heist: Heist; now(): number; buildingName(id: string): string | undefined },
+  heist?: {
+    heist: Heist;
+    now(): number;
+    buildingName(id: string): string | undefined;
+    /** Who finds this one robbed, if not its owner at dawn (a moored ship's crew; piece F). */
+    evidence?(id: string, gameSeconds: number): Witness | undefined;
+  },
 ): FootLaw {
   const events: LawEvent[] = [];
   const incidents = new Map<string, string>();
@@ -293,7 +299,11 @@ export function createFootLaw(
     incident(
       key,
       'crime.burglary',
-      [evidenceWitness(building, `whoever opens up the ${name}`, heist.now()), ...extra],
+      [
+        heist.evidence?.(building, heist.now()) ??
+          evidenceWitness(building, `whoever opens up the ${name}`, heist.now()),
+        ...extra,
+      ],
       details,
       owner,
     );

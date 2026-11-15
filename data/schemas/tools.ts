@@ -68,6 +68,29 @@ export const toolsFileSchema = z
       wary: z.number().min(0).max(1),
       /** Game minutes from the drink to asleep on his feet: the least and the most. */
       passOutMin: z.tuple([z.number().positive(), z.number().positive()]),
+      /**
+       * The whiskey trick on a moored ship's crew (plan 08 §6.2; piece F): when they drink in
+       * the saloon, what it costs in bottles, and what's to be had aboard after.
+       */
+      trick: z.object({
+        /** The hours her crew is in the saloon, `[from, to]`; `to` below `from` is past midnight. */
+        saloonHours: z.tuple([z.number().min(0).max(24), z.number().min(0).max(24)]),
+        /** A bottle for every this many hands, at most `maxBottles`. */
+        crewPerBottle: z.number().positive(),
+        maxBottles: z.number().int().positive(),
+        /** The Saloon Keeper's perk: a bottle goes twice as far and works `perkSpeed` times as fast. */
+        perk: z.string(),
+        perkSpeed: z.number().positive(),
+        /** Game hours after dawn a crew that drank finds its tongue: the late report. */
+        lateReportH: z.number().nonnegative(),
+        /** The most crates of each good you can get out of her hold from the pier. */
+        holdCrates: z.number().int().positive(),
+        /** The cabin door's lock tier, and what's in the captain's box a hand of her crew. */
+        cabinLock: z.number().int().min(1).max(3),
+        cabinCashPerHandCents: z.tuple([z.number().int().min(0), z.number().int().min(0)]),
+        /** Chance her papers are worth reading (a sailing: a rumor). */
+        cabinPapers: z.number().min(0).max(1),
+      }),
     }),
     conduct: z.object({
       /**

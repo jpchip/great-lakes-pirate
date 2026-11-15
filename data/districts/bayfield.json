@@ -2007,6 +2007,8 @@
     { "id": "crowd.2", "kind": "crowd", "x": 72, "z": 5, "headingDeg": 0 },
     { "id": "crowd.3", "kind": "crowd", "x": -40, "z": 4, "headingDeg": 0 },
     { "id": "crowd.4", "kind": "crowd", "x": -41, "z": -40, "headingDeg": 0 },
+    { "id": "crew.0", "kind": "crew", "x": 22, "z": 11, "headingDeg": 180, "ref": "saloon" },
+    { "id": "crew.1", "kind": "crew", "x": 22.5, "z": 14.5, "headingDeg": 0, "ref": "saloon" },
     {
       "id": "shop.saloon_bar",
       "kind": "shop",
