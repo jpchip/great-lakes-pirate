@@ -1,0 +1,11 @@
+{
+  "id": "sfx.foot.whistle",
+  "name": "police-whistle",
+  "description": "A constable's pea whistle: two long shrill blasts",
+  "kind": "oneshot",
+  "bus": "sfx",
+  "bundles": [
+    "foot-audio"
+  ],
+  "source": "source.flac"
+}

@@ -1,0 +1,11 @@
+{
+  "id": "voice.foot.bark-mutter",
+  "name": "bark-mutter",
+  "description": "A guard searching: a low grumble",
+  "kind": "oneshot",
+  "bus": "voice",
+  "bundles": [
+    "foot-audio"
+  ],
+  "source": "source.flac"
+}

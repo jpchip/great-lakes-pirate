@@ -61,6 +61,46 @@ import {
   type WantedStingerName,
 } from './lib/synth-law.ts';
 import {
+  BARKS,
+  SALOON_TUNE,
+  SALOON_TUNE_S,
+  STEP_GROUNDS,
+  STEP_VARIANTS,
+  TENSION,
+  TENSION_LOOP_S,
+  barsBang,
+  bottle,
+  coshBlow,
+  crateDown,
+  crateLift,
+  crickets,
+  crowbar,
+  docksNight,
+  doorCreak,
+  footstep,
+  forestWind,
+  guardBark,
+  keys,
+  knifeBlow,
+  landing,
+  lockClick,
+  lockOpen,
+  lockPick,
+  pickSnap,
+  policeWhistle,
+  ropeTie,
+  saloonRoom,
+  saloonTune,
+  shiver,
+  spottedStinger,
+  stoneLand,
+  swimSplash,
+  swimStroke,
+  tensionLoop,
+  type BarkName,
+  type StepGround,
+} from './lib/synth-foot.ts';
+import {
   CHASE,
   CHASE_LOOP_S,
   ballSplash,
@@ -91,6 +131,7 @@ const TODAY_J2 = '2026-11-01';
 const TODAY_P4J = '2026-11-01';
 const TODAY_P5H = '2026-11-07';
 const TODAY_P6G = '2026-11-09';
+const TODAY_P7I = '2026-11-15';
 /** Render only this category (e.g. `ships`), leaving the other sources untouched. */
 const ONLY = process.argv[2];
 
@@ -403,6 +444,7 @@ function main(): void {
   );
   renderLaw();
   renderCombat();
+  renderFoot();
 }
 
 function renderLaw(): void {
@@ -685,6 +727,295 @@ function renderCombat(): void {
       'combat-music',
     );
   }
+}
+
+/** Phase 7 piece I: the captain ashore (plan 15 §4.5, §11 Phase 7). */
+function renderFoot(): void {
+  const foot = (
+    id: string,
+    name: string,
+    description: string,
+    samples: Float32Array,
+    how: string,
+    bus: SoundHints['bus'] = 'sfx',
+    loopCrossfadeS?: number,
+  ): void =>
+    writeSound(
+      'foot',
+      {
+        id,
+        name,
+        description,
+        kind: loopCrossfadeS === undefined ? 'oneshot' : 'loop',
+        bus,
+        ...(loopCrossfadeS === undefined ? {} : { loopCrossfadeS }),
+        bundles: ['foot-audio'],
+      },
+      samples,
+      how,
+      TODAY_P7I,
+    );
+  const grounds: Record<StepGround, [string, string]> = {
+    wood: [
+      'A footstep on planks: a hollow knock, heel and toe',
+      'Two pitch-dropping sine knocks and a band-passed noise resonance',
+    ],
+    dirt: [
+      'A footstep on dirt or sand: a soft thump and a scuff',
+      'Low-passed noise thumps and a short band-passed scuff',
+    ],
+    gravel: [
+      'A footstep on gravel: a thump under a scatter of stones',
+      'A low-passed noise thump and sixteen short band-passed noise grains',
+    ],
+    grass: [
+      'A footstep in grass: a swish and a soft thump',
+      'Band-passed noise under a hump, a low-passed noise thump',
+    ],
+    stone: [
+      'A footstep on stone: a hard tap, heel and toe',
+      'Short band-passed noise clicks and a damped low sine',
+    ],
+    snow: [
+      'A footstep in snow: a squeaking crunch',
+      'Band-passed noise broken up by fast value noise, a low-passed thump',
+    ],
+  };
+  for (const ground of STEP_GROUNDS) {
+    for (let v = 1; v <= STEP_VARIANTS; v++) {
+      foot(
+        `sfx.foot.step-${ground}-${v}`,
+        `step-${ground}-${v}`,
+        `${grounds[ground][0]} (variant ${v})`,
+        footstep(ground, v, RATE),
+        grounds[ground][1],
+      );
+    }
+  }
+  foot(
+    'sfx.foot.land',
+    'land',
+    'Landing from a height: both boots and the breath knocked out',
+    landing(RATE),
+    'Two pitch-dropping sine thuds, low-passed and band-passed noise',
+  );
+  foot(
+    'sfx.foot.swim-splash',
+    'swim-splash',
+    'Going into the lake: the slap, the water closing over, drips',
+    swimSplash(RATE),
+    'Band-passed and low-passed noise bursts, rising sine drips',
+  );
+  for (const v of [1, 2]) {
+    foot(
+      `sfx.foot.swim-stroke-${v}`,
+      `swim-stroke-${v}`,
+      `A swimming stroke: an arm through the water and the water running off (variant ${v})`,
+      swimStroke(v, RATE),
+      'Band-passed noise under a hump, low-passed noise, rising sine drips',
+    );
+  }
+  foot(
+    'voice.foot.shiver',
+    'shiver',
+    'A shivering breath in cold water: in through the teeth in jerks, and out',
+    shiver(RATE),
+    'Band-passed noise gated at 13 Hz on the way in, smooth on the way out',
+    'voice',
+  );
+  foot(
+    'sfx.foot.lock-pick',
+    'lock-pick',
+    'A pick and a tension wrench at work in a lock: small scrapes and ticks',
+    lockPick(RATE),
+    'Short damped high sines and band-passed noise rasps at random',
+  );
+  foot(
+    'sfx.foot.lock-click',
+    'lock-click',
+    'A pin set too hard: the click that carries',
+    lockClick(RATE),
+    'A band-passed noise click and two damped sines',
+  );
+  foot(
+    'sfx.foot.lock-open',
+    'lock-open',
+    'A lock giving: the bolt drawn and the hasp dropping',
+    lockOpen(RATE),
+    'The lock click, a wooden thud and a short struck-plate clang',
+  );
+  foot(
+    'sfx.foot.pick-snap',
+    'pick-snap',
+    'A lockpick snapping in the lock',
+    pickSnap(RATE),
+    'A band-passed noise crack and damped high sines',
+  );
+  foot(
+    'sfx.foot.crowbar',
+    'crowbar',
+    'A lock forced with the crowbar: the wood groaning, the hasp tearing out, the lock on the floor',
+    crowbar(RATE),
+    'Stick-slip band-passed noise knocks, a noise crack, thuds and struck-plate clangs',
+  );
+  foot(
+    'sfx.foot.door',
+    'door',
+    'A door swung on dry hinges',
+    doorCreak(RATE),
+    'A wandering sawtooth through two band-pass resonances, a soft thud',
+  );
+  foot(
+    'sfx.foot.crate-lift',
+    'crate-lift',
+    'A crate taken up: it scrapes off the stack and its boards take the strain',
+    crateLift(RATE),
+    'Band-passed noise scrape, stick-slip knocks, a thud',
+  );
+  foot(
+    'sfx.foot.crate-down',
+    'crate-down',
+    'A crate set down: a heavy wooden knock and what is inside settling',
+    crateDown(RATE),
+    'Pitch-dropping sine thuds and band-passed noise',
+  );
+  foot(
+    'sfx.foot.rope',
+    'rope',
+    'A man tied up: rope drawn through and hauled tight, twice',
+    ropeTie(RATE),
+    'Band-passed noise draws and stick-slip knocks',
+  );
+  foot(
+    'sfx.foot.cosh',
+    'cosh',
+    'The cosh: a dull crack, the breath going out of him, and he folds',
+    coshBlow(RATE),
+    'A thud and a band-passed noise crack, a low-passed formant grunt, a low thud',
+  );
+  foot(
+    'sfx.foot.knife',
+    'knife',
+    'The knife: steel out, a short blow, a breath, a fall',
+    knifeBlow(RATE),
+    'Band-passed noise, a damped sine, low-passed noise, a low-passed formant breath, a thud',
+  );
+  foot(
+    'sfx.foot.bottle',
+    'bottle',
+    'A bottle of whiskey passed over: the cork, and a long pull at it',
+    bottle(RATE),
+    'Stick-slip squeak, a damped 620 Hz sine pop, rising sine glugs',
+  );
+  foot(
+    'sfx.foot.stone',
+    'stone',
+    'A thrown stone coming down: it cracks on something and skitters',
+    stoneLand(RATE),
+    'Band-passed noise clicks and damped sines at shortening gaps',
+  );
+  foot(
+    'sfx.foot.keys',
+    'keys',
+    'A ring of keys lifted or turned',
+    keys(RATE),
+    'Fourteen damped high sines at random',
+  );
+  foot(
+    'sfx.foot.bars',
+    'bars',
+    'Cell bars rattled and banged: iron ringing in a small room',
+    barsBang(RATE),
+    'Struck-plate clangs and thuds, Freeverb-style reverb',
+  );
+  const barks: Record<BarkName, string> = {
+    hm: 'A guard grown suspicious: a short questioning hum',
+    who: 'A guard challenging: two rising syllables, no words',
+    hey: 'A guard raising the alarm: a sharp shout and a second, harder',
+    mutter: 'A guard searching: a low grumble',
+    giveup: 'A guard letting it go: a falling grunt',
+  };
+  for (const name of BARKS) {
+    foot(
+      `voice.foot.bark-${name}`,
+      `bark-${name}`,
+      barks[name],
+      guardBark(name, RATE),
+      'Formant-synthesized syllables (no words)',
+      'voice',
+    );
+  }
+  foot(
+    'sfx.foot.whistle',
+    'police-whistle',
+    "A constable's pea whistle: two long shrill blasts",
+    policeWhistle(RATE),
+    'A 2.85 kHz tone chopped at 41 Hz by the pea, band-passed air noise, a little reverb',
+  );
+  foot(
+    'music.foot.tension',
+    'tension',
+    `The stealth layer (${TENSION.beats} beats at ${TENSION.bpm}, ${TENSION_LOOP_S.toFixed(2)} s, looped): a low open fifth on bowed strings, a heartbeat on a muffled drum, one high held note now and then`,
+    tensionLoop(RATE),
+    'Original; synthesized fiddle drone and low-passed frame drum, Freeverb-style reverb, the tail folded onto the head for a seamless loop',
+    // Encoded as a bed (64 kbps) to keep the download small; it plays on the music bus.
+    'ambience',
+    0,
+  );
+  foot(
+    'music.stinger.spotted',
+    'stinger-spotted',
+    'Seen by the watch: a drum stroke, a diminished stab on the concertina, the line climbing',
+    spottedStinger(RATE),
+    'Original motif; synthesized frame drum, concertina and fiddle drone, Freeverb-style reverb',
+    'music',
+  );
+  foot(
+    'amb.foot.docks-night',
+    'docks-night',
+    'The docks at night: the lake lapping at the piles, a hull easing on her lines',
+    docksNight(RATE),
+    'Low-passed and band-passed noise under slow value-noise swells, sine drips, far stick-slip creaks',
+    'ambience',
+    1.5,
+  );
+  foot(
+    'amb.foot.saloon-room',
+    'saloon-room',
+    "The saloon's room: men talking low, a laugh, glasses, a chair",
+    saloonRoom(RATE),
+    'Formant-synthesized syllables in eight voices (no words), damped sine pings, low-passed, reverb',
+    'ambience',
+    0,
+  );
+  foot(
+    'music.foot.saloon',
+    'saloon-tune',
+    `"The Booth Street Polka" (${SALOON_TUNE.bars} bars in G at ${SALOON_TUNE.bpm}, ${SALOON_TUNE_S.toFixed(2)} s, looped): the saloon's concertina over a vamping guitar`,
+    saloonTune(RATE),
+    'Original tune; synthesized concertina and plucked guitar, a little reverb, the tail folded onto the head for a seamless loop',
+    // Encoded as a bed (64 kbps) to keep the download small; it plays on the music bus.
+    'ambience',
+    0,
+  );
+  foot(
+    'amb.foot.forest',
+    'forest',
+    "The island's woods: wind moving through leaves and needles, coming and going",
+    forestWind(RATE),
+    'Band-passed and low-passed noise under slow value-noise gusts',
+    'ambience',
+    2,
+  );
+  foot(
+    'amb.foot.crickets',
+    'crickets',
+    'Crickets on a summer night: three of them, each at its own pitch and pace',
+    crickets(RATE),
+    'Three pulsed sines (3.9 to 4.75 kHz), three pulses to a chirp, a whole number of chirps to the loop',
+    'ambience',
+    0,
+  );
 }
 
 main();

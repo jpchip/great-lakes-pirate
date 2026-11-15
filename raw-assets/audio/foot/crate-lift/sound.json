@@ -1,0 +1,11 @@
+{
+  "id": "sfx.foot.crate-lift",
+  "name": "crate-lift",
+  "description": "A crate taken up: it scrapes off the stack and its boards take the strain",
+  "kind": "oneshot",
+  "bus": "sfx",
+  "bundles": [
+    "foot-audio"
+  ],
+  "source": "source.flac"
+}

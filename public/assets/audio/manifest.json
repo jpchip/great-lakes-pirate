@@ -425,6 +425,231 @@
       "type": "audio",
       "url": "combat/swivel.ogg",
       "bytes": 9187
+    },
+    "voice.foot.bark-giveup": {
+      "type": "audio",
+      "url": "foot/bark-giveup.ogg",
+      "bytes": 8995
+    },
+    "voice.foot.bark-hey": {
+      "type": "audio",
+      "url": "foot/bark-hey.ogg",
+      "bytes": 11078
+    },
+    "voice.foot.bark-hm": {
+      "type": "audio",
+      "url": "foot/bark-hm.ogg",
+      "bytes": 5511
+    },
+    "voice.foot.bark-mutter": {
+      "type": "audio",
+      "url": "foot/bark-mutter.ogg",
+      "bytes": 12530
+    },
+    "voice.foot.bark-who": {
+      "type": "audio",
+      "url": "foot/bark-who.ogg",
+      "bytes": 10829
+    },
+    "sfx.foot.bars": {
+      "type": "audio",
+      "url": "foot/bars.ogg",
+      "bytes": 20039
+    },
+    "sfx.foot.bottle": {
+      "type": "audio",
+      "url": "foot/bottle.ogg",
+      "bytes": 20104
+    },
+    "sfx.foot.cosh": {
+      "type": "audio",
+      "url": "foot/cosh.ogg",
+      "bytes": 14089
+    },
+    "sfx.foot.crate-down": {
+      "type": "audio",
+      "url": "foot/crate-down.ogg",
+      "bytes": 8934
+    },
+    "sfx.foot.crate-lift": {
+      "type": "audio",
+      "url": "foot/crate-lift.ogg",
+      "bytes": 8645
+    },
+    "amb.foot.crickets": {
+      "type": "audio",
+      "url": "foot/crickets.ogg",
+      "bytes": 92607
+    },
+    "sfx.foot.crowbar": {
+      "type": "audio",
+      "url": "foot/crowbar.ogg",
+      "bytes": 18226
+    },
+    "amb.foot.docks-night": {
+      "type": "audio",
+      "url": "foot/docks-night.ogg",
+      "bytes": 106907
+    },
+    "sfx.foot.door": {
+      "type": "audio",
+      "url": "foot/door.ogg",
+      "bytes": 14064
+    },
+    "amb.foot.forest": {
+      "type": "audio",
+      "url": "foot/forest.ogg",
+      "bytes": 113891
+    },
+    "sfx.foot.keys": {
+      "type": "audio",
+      "url": "foot/keys.ogg",
+      "bytes": 7251
+    },
+    "sfx.foot.knife": {
+      "type": "audio",
+      "url": "foot/knife.ogg",
+      "bytes": 11050
+    },
+    "sfx.foot.land": {
+      "type": "audio",
+      "url": "foot/land.ogg",
+      "bytes": 5683
+    },
+    "sfx.foot.lock-click": {
+      "type": "audio",
+      "url": "foot/lock-click.ogg",
+      "bytes": 3848
+    },
+    "sfx.foot.lock-open": {
+      "type": "audio",
+      "url": "foot/lock-open.ogg",
+      "bytes": 10600
+    },
+    "sfx.foot.lock-pick": {
+      "type": "audio",
+      "url": "foot/lock-pick.ogg",
+      "bytes": 15258
+    },
+    "sfx.foot.pick-snap": {
+      "type": "audio",
+      "url": "foot/pick-snap.ogg",
+      "bytes": 4434
+    },
+    "sfx.foot.whistle": {
+      "type": "audio",
+      "url": "foot/police-whistle.ogg",
+      "bytes": 17859
+    },
+    "sfx.foot.rope": {
+      "type": "audio",
+      "url": "foot/rope.ogg",
+      "bytes": 13972
+    },
+    "amb.foot.saloon-room": {
+      "type": "audio",
+      "url": "foot/saloon-room.ogg",
+      "bytes": 118708
+    },
+    "music.foot.saloon": {
+      "type": "audio",
+      "url": "foot/saloon-tune.ogg",
+      "bytes": 396905
+    },
+    "voice.foot.shiver": {
+      "type": "audio",
+      "url": "foot/shiver.ogg",
+      "bytes": 11874
+    },
+    "sfx.foot.step-dirt-1": {
+      "type": "audio",
+      "url": "foot/step-dirt-1.ogg",
+      "bytes": 4965
+    },
+    "sfx.foot.step-dirt-2": {
+      "type": "audio",
+      "url": "foot/step-dirt-2.ogg",
+      "bytes": 4959
+    },
+    "sfx.foot.step-grass-1": {
+      "type": "audio",
+      "url": "foot/step-grass-1.ogg",
+      "bytes": 5050
+    },
+    "sfx.foot.step-grass-2": {
+      "type": "audio",
+      "url": "foot/step-grass-2.ogg",
+      "bytes": 4718
+    },
+    "sfx.foot.step-gravel-1": {
+      "type": "audio",
+      "url": "foot/step-gravel-1.ogg",
+      "bytes": 5016
+    },
+    "sfx.foot.step-gravel-2": {
+      "type": "audio",
+      "url": "foot/step-gravel-2.ogg",
+      "bytes": 5201
+    },
+    "sfx.foot.step-snow-1": {
+      "type": "audio",
+      "url": "foot/step-snow-1.ogg",
+      "bytes": 4254
+    },
+    "sfx.foot.step-snow-2": {
+      "type": "audio",
+      "url": "foot/step-snow-2.ogg",
+      "bytes": 4244
+    },
+    "sfx.foot.step-stone-1": {
+      "type": "audio",
+      "url": "foot/step-stone-1.ogg",
+      "bytes": 6093
+    },
+    "sfx.foot.step-stone-2": {
+      "type": "audio",
+      "url": "foot/step-stone-2.ogg",
+      "bytes": 6007
+    },
+    "sfx.foot.step-wood-1": {
+      "type": "audio",
+      "url": "foot/step-wood-1.ogg",
+      "bytes": 4204
+    },
+    "sfx.foot.step-wood-2": {
+      "type": "audio",
+      "url": "foot/step-wood-2.ogg",
+      "bytes": 4238
+    },
+    "music.stinger.spotted": {
+      "type": "audio",
+      "url": "foot/stinger-spotted.ogg",
+      "bytes": 45743
+    },
+    "sfx.foot.stone": {
+      "type": "audio",
+      "url": "foot/stone.ogg",
+      "bytes": 10494
+    },
+    "sfx.foot.swim-splash": {
+      "type": "audio",
+      "url": "foot/swim-splash.ogg",
+      "bytes": 9710
+    },
+    "sfx.foot.swim-stroke-1": {
+      "type": "audio",
+      "url": "foot/swim-stroke-1.ogg",
+      "bytes": 7842
+    },
+    "sfx.foot.swim-stroke-2": {
+      "type": "audio",
+      "url": "foot/swim-stroke-2.ogg",
+      "bytes": 7826
+    },
+    "music.foot.tension": {
+      "type": "audio",
+      "url": "foot/tension.ogg",
+      "bytes": 153560
     }
   },
   "bundles": {
@@ -532,6 +757,53 @@
     "combat-music": [
       "music.chase.drums",
       "music.chase.fiddle"
+    ],
+    "foot-audio": [
+      "voice.foot.bark-giveup",
+      "voice.foot.bark-hey",
+      "voice.foot.bark-hm",
+      "voice.foot.bark-mutter",
+      "voice.foot.bark-who",
+      "sfx.foot.bars",
+      "sfx.foot.bottle",
+      "sfx.foot.cosh",
+      "sfx.foot.crate-down",
+      "sfx.foot.crate-lift",
+      "amb.foot.crickets",
+      "sfx.foot.crowbar",
+      "amb.foot.docks-night",
+      "sfx.foot.door",
+      "amb.foot.forest",
+      "sfx.foot.keys",
+      "sfx.foot.knife",
+      "sfx.foot.land",
+      "sfx.foot.lock-click",
+      "sfx.foot.lock-open",
+      "sfx.foot.lock-pick",
+      "sfx.foot.pick-snap",
+      "sfx.foot.whistle",
+      "sfx.foot.rope",
+      "amb.foot.saloon-room",
+      "music.foot.saloon",
+      "voice.foot.shiver",
+      "sfx.foot.step-dirt-1",
+      "sfx.foot.step-dirt-2",
+      "sfx.foot.step-grass-1",
+      "sfx.foot.step-grass-2",
+      "sfx.foot.step-gravel-1",
+      "sfx.foot.step-gravel-2",
+      "sfx.foot.step-snow-1",
+      "sfx.foot.step-snow-2",
+      "sfx.foot.step-stone-1",
+      "sfx.foot.step-stone-2",
+      "sfx.foot.step-wood-1",
+      "sfx.foot.step-wood-2",
+      "music.stinger.spotted",
+      "sfx.foot.stone",
+      "sfx.foot.swim-splash",
+      "sfx.foot.swim-stroke-1",
+      "sfx.foot.swim-stroke-2",
+      "music.foot.tension"
     ]
   }
 }

@@ -1,0 +1,12 @@
+{
+  "id": "amb.foot.crickets",
+  "name": "crickets",
+  "description": "Crickets on a summer night: three of them, each at its own pitch and pace",
+  "kind": "loop",
+  "bus": "ambience",
+  "loopCrossfadeS": 0,
+  "bundles": [
+    "foot-audio"
+  ],
+  "source": "source.flac"
+}

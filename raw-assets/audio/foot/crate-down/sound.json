@@ -1,0 +1,11 @@
+{
+  "id": "sfx.foot.crate-down",
+  "name": "crate-down",
+  "description": "A crate set down: a heavy wooden knock and what is inside settling",
+  "kind": "oneshot",
+  "bus": "sfx",
+  "bundles": [
+    "foot-audio"
+  ],
+  "source": "source.flac"
+}

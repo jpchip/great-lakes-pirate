@@ -1,0 +1,11 @@
+{
+  "id": "sfx.foot.keys",
+  "name": "keys",
+  "description": "A ring of keys lifted or turned",
+  "kind": "oneshot",
+  "bus": "sfx",
+  "bundles": [
+    "foot-audio"
+  ],
+  "source": "source.flac"
+}

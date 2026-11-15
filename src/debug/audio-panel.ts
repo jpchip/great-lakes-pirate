@@ -126,6 +126,14 @@ export function createAudioPanel(options: AudioPanelOptions): { update(): void }
       audio.combat.forceChase(v === 'game' ? undefined : (Number(v) as 0 | 1 | 2)),
     );
 
+  // Phase 7 piece I: the sounds ashore, by ear.
+  const footIds = [...audio.bank.keys()]
+    .filter((id) => /\.(foot|stinger\.spotted)/.test(id))
+    .sort();
+  const footPick = { sound: footIds[0] ?? '' };
+  events.add(footPick, 'sound', footIds).name('Ashore: sound');
+  events.add({ play: () => audio.foot.audition(footPick.sound) }, 'play').name('Ashore: play it');
+
   const status = {
     context: '',
     music: '',

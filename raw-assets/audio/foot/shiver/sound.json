@@ -1,0 +1,11 @@
+{
+  "id": "voice.foot.shiver",
+  "name": "shiver",
+  "description": "A shivering breath in cold water: in through the teeth in jerks, and out",
+  "kind": "oneshot",
+  "bus": "voice",
+  "bundles": [
+    "foot-audio"
+  ],
+  "source": "source.flac"
+}

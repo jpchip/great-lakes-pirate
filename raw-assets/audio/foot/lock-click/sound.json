@@ -1,0 +1,11 @@
+{
+  "id": "sfx.foot.lock-click",
+  "name": "lock-click",
+  "description": "A pin set too hard: the click that carries",
+  "kind": "oneshot",
+  "bus": "sfx",
+  "bundles": [
+    "foot-audio"
+  ],
+  "source": "source.flac"
+}

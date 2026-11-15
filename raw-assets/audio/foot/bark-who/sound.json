@@ -1,0 +1,11 @@
+{
+  "id": "voice.foot.bark-who",
+  "name": "bark-who",
+  "description": "A guard challenging: two rising syllables, no words",
+  "kind": "oneshot",
+  "bus": "voice",
+  "bundles": [
+    "foot-audio"
+  ],
+  "source": "source.flac"
+}

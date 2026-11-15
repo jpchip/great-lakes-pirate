@@ -1,0 +1,12 @@
+{
+  "id": "music.foot.tension",
+  "name": "tension",
+  "description": "The stealth layer (12 beats at 54, 13.33 s, looped): a low open fifth on bowed strings, a heartbeat on a muffled drum, one high held note now and then",
+  "kind": "loop",
+  "bus": "ambience",
+  "loopCrossfadeS": 0,
+  "bundles": [
+    "foot-audio"
+  ],
+  "source": "source.flac"
+}

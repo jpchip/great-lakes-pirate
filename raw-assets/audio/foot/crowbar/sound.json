@@ -1,0 +1,11 @@
+{
+  "id": "sfx.foot.crowbar",
+  "name": "crowbar",
+  "description": "A lock forced with the crowbar: the wood groaning, the hasp tearing out, the lock on the floor",
+  "kind": "oneshot",
+  "bus": "sfx",
+  "bundles": [
+    "foot-audio"
+  ],
+  "source": "source.flac"
+}

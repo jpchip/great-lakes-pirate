@@ -1,0 +1,11 @@
+{
+  "id": "voice.foot.bark-hey",
+  "name": "bark-hey",
+  "description": "A guard raising the alarm: a sharp shout and a second, harder",
+  "kind": "oneshot",
+  "bus": "voice",
+  "bundles": [
+    "foot-audio"
+  ],
+  "source": "source.flac"
+}

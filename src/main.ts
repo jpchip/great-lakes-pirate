@@ -28,6 +28,7 @@ import { loadRun, type LoadedRun } from './core/save/load';
 import { RunSaver } from './core/save/run-saver';
 import { AssetLoader, EMPTY_MANIFEST } from './core/assets';
 import { createGameAudio, type GameAudio } from './audio/game-audio';
+import { sunAt } from './sim/weather/celestial';
 import type { SignalStation } from './audio/world-audio';
 import { cloneTransform, createGameWorld, type Entity } from './gameplay/ecs';
 import { createSchooner } from './gameplay/schooner';
@@ -879,6 +880,18 @@ async function boot(): Promise<void> {
     if (combatCue && d['combatCue'] !== combatCue) d['combatCue'] = combatCue;
     const chase = String(a.combat.chase);
     if (d['chase'] !== chase) d['chase'] = chase;
+    // Ashore (Phase 7 piece I).
+    const steps = String(a.foot.levels.steps);
+    if (d['footSteps'] !== steps) d['footSteps'] = steps;
+    const step = a.foot.levels.lastStep;
+    if (step && d['footStep'] !== step) d['footStep'] = step;
+    const footCue = a.foot.levels.last;
+    if (footCue && d['footCue'] !== footCue) d['footCue'] = footCue;
+    const beds = Object.entries(a.foot.levels.beds)
+      .filter(([, g]) => g > 0.01)
+      .map(([id]) => id)
+      .join(' ');
+    if (d['footBeds'] !== beds) d['footBeds'] = beds;
   };
 
   let changingZone = false;
@@ -2754,7 +2767,7 @@ async function boot(): Promise<void> {
       const region = (): string => law.region() ?? '';
       const fameTiers = Math.max(1, law.defs.fame.tiers.length - 1);
       const tier = wantedTier(law.defs, state.wanted[region()]?.heat ?? 0);
-      return createIslandPosse({
+      const posse = createIslandPosse({
         scene,
         placed,
         tier,
@@ -2771,7 +2784,19 @@ async function boot(): Promise<void> {
           };
         },
       });
+      // The marshals' voices (piece I).
+      posse?.stealth.on((e) => audio?.foot.stealth(e));
+      return posse;
     },
+    // Your own footsteps and landings, heard (piece I).
+    ...(audio
+      ? {
+          sounds: {
+            step: (surface, gait, radiusM) => audio.foot.step(surface, gait, radiusM),
+            landed: (speed, inWater) => audio.foot.landed(speed, inWater),
+          },
+        }
+      : {}),
     // Bayfield's district (Phase 7): only for a harbor in the zone you're in.
     districtFrame: (def) => {
       const h = findHarbor(def.harbor);
@@ -2788,7 +2813,7 @@ async function boot(): Promise<void> {
         containers: {},
         doors: {},
       });
-      return createWatch({
+      const watch = createWatch({
         model: landing.model,
         nav: landing.nav,
         tier: tierNow(),
@@ -2817,7 +2842,10 @@ async function boot(): Promise<void> {
                 execution: jailbreak.execution,
                 promiseCents: jailbreak.promiseCents,
                 dawnAt: jailbreak.dawnAt,
-                on: (e) => capture.jailbreakEvent(e),
+                on: (e) => {
+                  audio?.foot.jail(e);
+                  capture.jailbreakEvent(e);
+                },
               },
             }
           : {}),
@@ -2870,6 +2898,17 @@ async function boot(): Promise<void> {
           },
         },
       });
+      // The watch's voices, the kit and the loot, heard (piece I).
+      if (audio) {
+        watch.on((e) => audio.foot.stealth(e));
+        watch.onHeist((e) => audio.foot.heist(e));
+        watch.onTool((e) => {
+          if (e.type !== 'StoneThrown') return audio.foot.tool(e);
+          const at = landing.frame.toZone(e.x, e.z);
+          audio.foot.tool(e, { x: at.x, y: e.y, z: at.z });
+        });
+      }
+      return watch;
     },
     // Taken on foot: to the lockup as the Morrill would take you at sea (Phase 5's jail).
     captured: (by, conduct) => {
@@ -2896,6 +2935,19 @@ async function boot(): Promise<void> {
         if (scene) scene.foot = next;
       },
     },
+  });
+  // What the sounds ashore read each frame (piece I): where you stand, and the sky over it.
+  audio?.setFootSource(() => {
+    const at = ashore.sound();
+    if (!at) return undefined;
+    const t = state.environment.clock.gameSeconds;
+    return {
+      ...at,
+      sunElevationDeg: (sunAt(t).elevationRad * 180) / Math.PI,
+      month0: calendarDate(t).getUTCMonth(),
+      windKn: ctx.weather.windAt(at.player, t).speedKn,
+      rain01: ctx.weather.rainAt(t),
+    };
   });
   ashoreRef.current = ashore;
   goAshoreRef.current = () => goAshore();
