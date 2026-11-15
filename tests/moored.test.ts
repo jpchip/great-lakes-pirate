@@ -421,6 +421,15 @@ describe.skipIf(!baked)('the whiskey trick (§6.2)', () => {
     s.step(6);
     expect(s.sailor()?.state).toBe('unconscious');
     expect(s.watch.pursued).toBe(false);
+
+    // He sleeps the night through (a blow's two hours would have had him up by now)...
+    s.clock.t = EVENING + 6 * 3600;
+    s.step();
+    expect(s.sailor()?.state).toBe('unconscious');
+    // ...and wakes with the dawn.
+    s.clock.t = nextDawn(EVENING) + 60;
+    s.step();
+    expect(s.sailor()?.state).not.toBe('unconscious');
   });
 
   it('is reported late and vaguely: a friendly fellow with whiskey', () => {
@@ -459,6 +468,9 @@ describe.skipIf(!baked)('the whiskey trick (§6.2)', () => {
     const later = scene({ at: EVENING + 3600, crews });
     later.step();
     expect(later.sailor()?.state).toBe('unconscious');
+    const small = scene({ at: EVENING + 7 * 3600, crews });
+    small.step();
+    expect(small.sailor()?.state).toBe('unconscious');
     const tomorrow = scene({ at: EVENING + 86400, crews });
     tomorrow.step();
     expect(tomorrow.sailor()?.state).toBe('patrol');

@@ -17,7 +17,7 @@ import {
   planDistrictWatch,
   type SuspectContext,
 } from './district-guards';
-import { createFootLaw, type FootLaw, type FootLawHooks } from './foot-law';
+import { createFootLaw, nextDawn, type FootLaw, type FootLawHooks } from './foot-law';
 import { gameNpcs, rosterForTier, type NpcDefs } from './guards';
 import { ambientLight01, LampSet } from './light';
 import type { NavQuery } from './nav';
@@ -291,7 +291,7 @@ export function createWatch(opts: WatchOptions): Watch {
     for (const s of moored) {
       const r = drunkTonight(s, t0);
       if (r && stealth.guard(s.watch)) {
-        stealth.makeDrunk(s.watch, t0, Math.max(0, r.passOutAt - t0));
+        stealth.makeDrunk(s.watch, t0, Math.max(0, r.passOutAt - t0), nextDawn(r.passOutAt));
       }
     }
   }
@@ -444,7 +444,9 @@ export function createWatch(opts: WatchOptions): Watch {
       const rng = Rng.fromSeed(`${opts.seed}:trick:${ship.key}:${nightOf(t)}`);
       const passOutS = (rng.range(lo, hi) * 60) / (perk() ? trick.perkSpeed : 1);
       record[ship.key] = { night: nightOf(t), passOutAt: t + passOutS };
-      if (stealth.guard(ship.watch)) stealth.makeDrunk(ship.watch, t, passOutS);
+      if (stealth.guard(ship.watch)) {
+        stealth.makeDrunk(ship.watch, t, passOutS, nextDawn(t + passOutS));
+      }
       return `They drink your health, and a bottle goes aboard ${shipWords(ship)} for the man on watch`;
     },
     params: (base) => heist?.params(base) ?? base,

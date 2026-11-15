@@ -57,7 +57,8 @@ const go = (page: Page, x: number, z: number) =>
 test('stand her crew whiskey, and her hold is yours while the watch sleeps', async ({ page }) => {
   test.setTimeout(180_000);
   const errors = collectErrors(page);
-  await page.goto('/?renderer=null&debug&play');
+  // A seed whose traffic has the supply tug Wren, laden, at the fish pier this evening.
+  await page.goto('/?renderer=null&debug&play&seed=glp-2');
   await page.waitForFunction(() => '__glpFoot' in window);
   await foot(page, (f) => {
     f.hour(20);
@@ -94,6 +95,10 @@ test('stand her crew whiskey, and her hold is yours while the watch sleeps', asy
   // Within the hour he's asleep at her gangway.
   await foot(page, (f) => f.hour(21.5));
   await expect.poll(watchState, { timeout: 15_000 }).toBe('unconscious');
+  // And he sleeps the night through: still out at three in the morning.
+  await foot(page, (f) => f.hour(27));
+  await page.waitForTimeout(1000);
+  expect(await watchState()).toBe('unconscious');
 
   // Her hold, from the pier beside her.
   expect(await go(page, ship.hold.x, ship.hold.z)).toBe(true);
