@@ -330,6 +330,10 @@ export interface LedgerHoldRow {
 
 export interface LedgerSnapshot {
   dateText: string;
+  /** On-board cash, cents; set when the journal opens at sea. */
+  purseCents?: number | undefined;
+  /** Stashed hideout cash, cents; journal only when non-zero. */
+  stashedCents?: number | undefined;
   /** What's in the hold, with CU used and capacity. */
   hold: { rows: LedgerHoldRow[]; usedCu: number; capacity: number };
   /** Ports whose prices you know, nearest in time first. */
