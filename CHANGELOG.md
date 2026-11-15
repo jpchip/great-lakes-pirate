@@ -4,6 +4,10 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ## [Unreleased]
 
+### Added
+
+- **Money on the journal:** opening the ledger at the helm (J) shows your purse in the header, and stashed cash when you have any, beside the date — the same wording as on the port screen.
+
 ### Changed
 
 - **Go ashore only where it is built:** G, the HUD, and the port screen offer going ashore only at the Bayfield waterfront district (fish pier and city dock) and at anchor off Stockton Island. Other berths and anchorages keep trading and the port screen, but not the broken zone stand-in ashore. Abandoning ship near land is unchanged.

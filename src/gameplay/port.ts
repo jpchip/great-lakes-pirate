@@ -442,6 +442,9 @@ export function attachPorts(opts: PortControlOptions): PortControl {
         { cargo: ctx.state.player.cargo, capacity: economy.capacity },
       );
       if (opts.law) ledger.law = opts.law.ledger();
+      ledger.purseCents = ctx.state.player.purse;
+      const stashed = stashedCash(ctx.state.hideouts);
+      if (stashed) ledger.stashedCents = stashed;
       opts.showJournal(ledger);
       opts.onOpen(true);
     },
