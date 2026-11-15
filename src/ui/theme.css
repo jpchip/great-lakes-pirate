@@ -422,6 +422,11 @@
   justify-content: space-between;
 }
 
+.menu-header.journal-header {
+  flex-wrap: wrap;
+  gap: 4px 12px;
+}
+
 .menu-header h2 {
   margin: 0 0 8px;
   font-size: 24px;

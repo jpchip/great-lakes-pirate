@@ -27,7 +27,12 @@ import {
 import { unitPrices } from '../src/sim/economy/market';
 import { HARBORS, pierPort, pierSite } from '../src/sim/harbors';
 import { parseWorldState, createWorldState } from '../src/sim/world-state';
-import { ledgerSnapshot, portSnapshot, type PortSnapshot } from '../src/ui/port/model';
+import {
+  ledgerSnapshot,
+  portSnapshot,
+  type LedgerSnapshot,
+  type PortSnapshot,
+} from '../src/ui/port/model';
 
 /** Phase 4 piece B: the port screen, trade, price knowledge, the chandlery and the ledger. */
 
@@ -344,6 +349,35 @@ describe('docking at a port (piece B)', () => {
     expect(ports.openPort).toBeUndefined();
     expect(opens).toEqual([true, false]);
     expect(castOffs()).toBe(1);
+  });
+
+  it('puts your purse and stashed cash in the journal snapshot', () => {
+    const state = createWorldState('journal-purse');
+    state.player.purse = 12_340;
+    const stash = state.hideouts?.['hideout.stockton'];
+    if (stash) stash.storage.cash = 5_000;
+    const ctx = { state, events: new EventBus<GameEvents>() } as unknown as GameContext;
+    const { hazards } = createSchooner(0, 0, 0);
+    const economy = attachEconomy(ctx, hazards);
+    const journals: (LedgerSnapshot | undefined)[] = [];
+    const ports = attachPorts({
+      ctx,
+      economy,
+      hazards,
+      berthPier: (id) => id,
+      showPort: () => undefined,
+      showJournal: (s) => journals.push(s),
+      onOpen: () => undefined,
+      castOff: () => undefined,
+    });
+    ports.openJournal();
+    expect(journals.at(-1)).toMatchObject({ purseCents: 12_340, stashedCents: 5_000 });
+    ports.closeJournal();
+    if (stash) stash.storage.cash = 0;
+    state.player.purse = 100;
+    ports.openJournal();
+    expect(journals.at(-1)).toMatchObject({ purseCents: 100 });
+    expect(journals.at(-1)?.stashedCents).toBeUndefined();
   });
 
   it('opens the journal at the helm, never over the port screen', () => {

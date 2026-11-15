@@ -60,7 +60,7 @@ import { createCombatFx, type CombatFx } from './combat-fx';
 import type { ArcPreview } from '../sim/combat/aim';
 import { createWindCues, type WindCues } from './water/wind-cues';
 import { createFootView, type FootFrame } from './onfoot/foot-view';
-import { createDistrictView, type DistrictView } from './district/district-view';
+import { createDistrictView, createLampPools, type DistrictView } from './district/district-view';
 import type { DistrictModel } from '../gameplay/district/district';
 
 const HORIZON = new THREE.Color(0xb7c6cf);
@@ -420,7 +420,16 @@ export async function createTestScene(
   });
 
   const cameraRig = new CameraRig(camera, renderer.renderer.domElement);
-  const footView = createFootView(lighting);
+  // Shared with the district view, so a figure under a saloon lantern comes up as warm as
+  // the floor they stand on, not a silhouette in a lit room (plan 08 §14).
+  const lampPools = createLampPools();
+  const clearLampPools = (): void => {
+    for (let i = 0; i < lampPools.uPoolPosition.value.length; i++) {
+      lampPools.uPoolPosition.value[i]?.set(0, -1e4, 0, 1);
+      lampPools.uPoolColor.value[i]?.setRGB(0, 0, 0);
+    }
+  };
+  const footView = createFootView(lighting, lampPools);
   scene.add(footView.group);
   let foot: FootFrame | undefined;
   /**
@@ -443,10 +452,12 @@ export async function createTestScene(
       districtView.view.dispose();
       harborKit(districtView.harbor, true);
       districtView = undefined;
+      // Don't keep the last district's lamplight on a figure who just walked out of it.
+      clearLampPools();
     }
     if (!d) return;
     if (!districtView) {
-      const view = createDistrictView(d.model, lighting);
+      const view = createDistrictView(d.model, lighting, 'toon', lampPools);
       const water = view.group.getObjectByName('water');
       if (water) view.group.remove(water);
       // Local x along the shore and z inland, turned and set down on the zone.

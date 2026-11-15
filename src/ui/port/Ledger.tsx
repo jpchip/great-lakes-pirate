@@ -537,9 +537,28 @@ export function Journal({
       data-sailing={sailingOn === undefined ? 'held' : sailingOn ? 'on' : 'held'}
     >
       <div class="menu port" role="dialog" aria-modal="true" aria-label="Journal">
-        <header class="menu-header">
+        <header class="menu-header journal-header">
           <h2>Ledger</h2>
-          <span class="menu-paused">{ledger.dateText}</span>
+          <span class="port-purse">
+            {ledger.purseCents !== undefined && (
+              <>
+                Purse{' '}
+                <strong class="hud-num" data-testid="journal-purse">
+                  {formatCents(ledger.purseCents)}
+                </strong>
+              </>
+            )}
+            {ledger.stashedCents ? (
+              <span class="port-dim" data-testid="journal-stashed">
+                {' '}
+                · Stashed {formatCents(ledger.stashedCents)}
+              </span>
+            ) : null}
+            <span class="menu-paused">
+              {ledger.purseCents !== undefined ? ' · ' : ''}
+              {ledger.dateText}
+            </span>
+          </span>
         </header>
         {extra}
         <Ledger ledger={ledger} />
