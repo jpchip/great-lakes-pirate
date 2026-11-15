@@ -3200,6 +3200,40 @@ async function boot(): Promise<void> {
       save: () => saveControls.saveNow(),
     };
     (window as unknown as { __glpFoot: typeof hook }).__glpFoot = hook;
+    // `?ashore=bayfield` ties up at the fish pier and goes ashore; `?ashore=stockton` anchors
+    // off the quarry and lands on the island. The dev jump menu uses both (plan 08 §20.8).
+    const jumpTo = params.get('ashore');
+    if (jumpTo === 'bayfield' || jumpTo === 'stockton') {
+      const wait = (ms: number) => new Promise((done) => setTimeout(done, ms));
+      void (async () => {
+        for (let tries = 0; tries < 120; tries++) {
+          await wait(500);
+          if (jumpTo === 'bayfield') {
+            if (!hook.dock('bayfield_fish')) continue;
+          } else {
+            const derrick = hook.island().pieces.find((p) => p.kind === 'derrick');
+            if (!derrick) continue;
+            hook.place(derrick.x + 60, derrick.z, 0);
+            hook.anchor();
+          }
+          await wait(1000);
+          const why = await hook.land();
+          if (why) console.warn(`Going ashore: ${why}`);
+          if (jumpTo === 'stockton') {
+            // Landed in the boat at anchor: row her in and step onto the quarry's wharf.
+            const derrick = hook.island().pieces.find((p) => p.kind === 'derrick');
+            if (derrick) {
+              await wait(1500);
+              hook.teleport(derrick.x + 2, derrick.z);
+              await wait(1000);
+              hook.stepAshore();
+            }
+          }
+          return;
+        }
+        console.warn(`Going ashore to ${jumpTo} timed out`);
+      })();
+    }
   }
   /** G at the helm or on the port screen: ashore, or why not. */
   const goAshore = (): void => {
