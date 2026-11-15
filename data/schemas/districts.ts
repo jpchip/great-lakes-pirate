@@ -165,11 +165,12 @@ export type DistrictBuildingDef = z.infer<typeof districtBuildingSchema>;
 /**
  * Named spots for the systems that come after the kit: where you step ashore, where a
  * ship is moored, guard posts and patrol points (piece D), loot (piece E), the exits, and
- * the counters you trade at on foot (piece F's `shop` marks, in the building of their `ref`).
+ * the counters you trade at on foot (piece F's `shop` marks, in the building of their `ref`)
+ * and the saloon tables a moored ship's crew drinks at (`crew`).
  */
 export const districtMarkSchema = z.object({
   id: z.string().regex(/^[a-z0-9_.]+$/),
-  kind: z.enum(['gangway', 'berth', 'post', 'patrol', 'loot', 'exit', 'crowd', 'shop']),
+  kind: z.enum(['gangway', 'berth', 'post', 'patrol', 'loot', 'exit', 'crowd', 'shop', 'crew']),
   x: z.number(),
   z: z.number(),
   /** Degrees clockwise from north (-z). */

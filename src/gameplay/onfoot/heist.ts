@@ -132,6 +132,11 @@ export interface HeistOptions {
   hooks: HeistHooks;
   seed: string;
   defs?: HeistDefs;
+  /**
+   * Containers that aren't the layout's (piece F: a moored ship's hold and cabin, reached
+   * from the pier beside her), with their own tables and a `live` test.
+   */
+  extra?: readonly HeistContainer[];
 }
 
 /** What the heist knows each tick. */
@@ -187,6 +192,8 @@ export interface HeistContainer {
   x: number;
   y: number;
   z: number;
+  /** Still there to be robbed (a moored ship that hasn't sailed); absent, always. */
+  live?(): boolean;
 }
 
 export interface ContainerContents {
@@ -301,6 +308,10 @@ export function createHeist(opts: HeistOptions): Heist {
       });
     }
   }
+
+  containers.push(...(opts.extra ?? []));
+  const here = (): readonly HeistContainer[] =>
+    opts.extra?.length ? containers.filter((c) => c.live?.() ?? true) : containers;
 
   let carrying: Crate | undefined;
   const dropped: (Crate & { x: number; y: number; z: number })[] = [];
@@ -448,7 +459,7 @@ export function createHeist(opts: HeistOptions): Heist {
         done01: 0,
       };
     }
-    const box = near(containers, p, HEIST_REACH_M);
+    const box = near(here(), p, HEIST_REACH_M);
     if (box) {
       const c = contents(box, t);
       if (c.locked)

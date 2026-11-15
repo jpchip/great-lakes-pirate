@@ -100,7 +100,19 @@
       "npc.marshal": 0
     },
     "wary": 0.4,
-    "passOutMin": [20, 45]
+    "passOutMin": [20, 45],
+    "trick": {
+      "saloonHours": [16, 1],
+      "crewPerBottle": 4,
+      "maxBottles": 3,
+      "perk": "perk.whiskey_trick",
+      "perkSpeed": 2,
+      "lateReportH": 8,
+      "holdCrates": 6,
+      "cabinLock": 1,
+      "cabinCashPerHandCents": [150, 450],
+      "cabinPapers": 0.6
+    }
   },
   "conduct": {
     "hours": {

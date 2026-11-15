@@ -2758,6 +2758,10 @@ async function boot(): Promise<void> {
       const region = (): string => law.region() ?? '';
       const tierNow = (): number => wantedTier(law.defs, state.wanted[region()]?.heat ?? 0);
       const fameTiers = Math.max(1, law.defs.fame.tiers.length - 1);
+      const districtWorld = ((state.districts ??= {})[landing.def.id] ??= {
+        containers: {},
+        doors: {},
+      });
       return createWatch({
         model: landing.model,
         nav: landing.nav,
@@ -2789,10 +2793,31 @@ async function boot(): Promise<void> {
           region,
           port: landing.def.port,
         },
+        // Piece F: the traffic's ships lying at the district's piers, each with a deck watch.
+        moored: {
+          ships: traffic.berthed().map((s) => {
+            const at = landing.frame.toLocal(s.pose);
+            return {
+              id: s.id,
+              name: s.name,
+              className: s.className,
+              owner: s.owner,
+              crew: s.crew,
+              cargo: s.cargo,
+              x: at.x,
+              z: at.z,
+              heading: landing.frame.headingToLocal(s.pose.heading),
+              lengthM: s.lengthM,
+              beamM: s.beamM,
+            };
+          }),
+          present: (id) => traffic.shown.get(id)?.berthed ?? false,
+          crews: (districtWorld.crews ??= {}),
+        },
         // Part two: the district's locks and loot, remembered in the save.
         heist: {
           targets: landing.def.targets,
-          world: ((state.districts ??= {})[landing.def.id] ??= { containers: {}, doors: {} }),
+          world: districtWorld,
           hooks: {
             stowPoints: () => ashoreRef.current?.stowPoints() ?? [],
             stow: (crate) => stowCrate(crate, region()),
@@ -2946,6 +2971,30 @@ async function boot(): Promise<void> {
           gem: document.body.dataset['gem'],
         };
       },
+      /** The ships moored in the district (piece F): gangway, hold and cabin, local meters. */
+      moored: () =>
+        (ashore.watch?.moored ?? []).map((s) => ({
+          id: s.id,
+          key: s.key,
+          name: s.name,
+          crew: s.crew,
+          cargo: s.cargo,
+          at: { x: s.x, z: s.z, heading: s.heading },
+          gangway: s.gangway,
+          hold: s.hold,
+          cabin: s.cabin,
+          watch: s.watch,
+          alongside: ashore.watch?.alongside(s) ?? false,
+        })),
+      /** The crews in the saloon now, with their table (local meters) and their price. */
+      crews: () =>
+        (ashore.watch?.crews() ?? []).map((c) => ({
+          ship: c.ship.key,
+          x: c.mark.x,
+          z: c.mark.z,
+          bottles: c.bottles,
+          stood: c.stood,
+        })),
       /** Puts you at district-local (x, z), on the floor there, facing a local heading (deg). */
       teleportLocal: (x: number, z: number, headingDeg?: number, pitch?: number) => {
         const d = ashore.district;

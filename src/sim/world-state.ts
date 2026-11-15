@@ -426,6 +426,13 @@ export const districtWorldSchema = z.object({
     z.string(),
     z.object({ how: z.enum(['picked', 'forced']), night: z.number().int() }),
   ),
+  /**
+   * Moored ships' crews stood whiskey (plan 08 §6.2; piece F), by `ship.<id>`: the night
+   * it was, and when her deck watch is asleep by. Optional: absent in saves before it.
+   */
+  crews: z
+    .record(z.string(), z.object({ night: z.number().int(), passOutAt: z.number() }))
+    .optional(),
 });
 export type DistrictWorld = z.infer<typeof districtWorldSchema>;
 

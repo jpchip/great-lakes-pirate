@@ -75,6 +75,22 @@ export interface NearShip {
   distanceM: number;
 }
 
+/** A ship lying alongside a pier in the zone, for the docks on foot (Phase 7 piece F). */
+export interface BerthedShip {
+  id: string;
+  name: string;
+  /** "Fish tug", from her class. */
+  className: string;
+  owner: string | undefined;
+  crew: number;
+  /** What's in her hold now. */
+  cargo: { good: string; qty: number }[];
+  /** Where she lies, zone meters, and her drawn hull. */
+  pose: { x: number; z: number; heading: number };
+  lengthM: number;
+  beamM: number;
+}
+
 export interface GameTraffic {
   readonly contacts: readonly Contact[];
   readonly defs: TrafficDefs;
@@ -97,6 +113,8 @@ export interface GameTraffic {
    * traffic holds changed.
    */
   step(playerBerthId: string | undefined): boolean;
+  /** The ships lying at the zone's piers now, consorts left out. */
+  berthed(): BerthedShip[];
   /** The nearest NPC ship entity within `rangeM` of a point (zone or arena). */
   nearest(at: { x: number; z: number }, rangeM: number): NearShip | undefined;
   manifest(contactId: string): Manifest | undefined;
@@ -368,6 +386,25 @@ export function attachTraffic(
       zone = next;
     },
     step,
+    berthed() {
+      const out: BerthedShip[] = [];
+      for (const [id, s] of shown) {
+        const t = s.entity.transform;
+        if (!s.berthed || !t || id !== s.contact.id) continue;
+        const m = manifest(id);
+        out.push({
+          id,
+          name: s.contact.name,
+          className: s.record.name,
+          owner: m?.owner,
+          crew: m?.crew ?? 1,
+          cargo: (m?.cargo ?? []).map((c) => ({ good: c.good, qty: c.qty })),
+          pose: { x: t.position.x, z: t.position.z, heading: t.heading },
+          ...drawnSize(s.record),
+        });
+      }
+      return out;
+    },
     hold(id) {
       const s = shown.get(id);
       if (!s || s.berthed) return undefined;

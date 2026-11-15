@@ -125,6 +125,8 @@ export interface Guard {
   recruit: { at: XZ; inS: number } | undefined;
   /** Game seconds: when an unconscious guard wakes, a drunk passes out, a bribe wears off. */
   untilGame: number;
+  /** Game seconds a drunk sleeps to at least, once he's out (a crew's bottle lasts the night). */
+  sleepUntil: number;
   /** A downed guard someone has found. */
   found: boolean;
   /** Why they're down: a blow (they wake and report it) or drink (they wake sheepish). */
@@ -262,7 +264,13 @@ export interface Stealth {
   knockOut(id: string, gameSeconds: number, outGameS?: number): void;
   bind(id: string, gameSeconds: number): void;
   kill(id: string): void;
-  makeDrunk(id: string, gameSeconds: number, passOutInGameS: number): void;
+  /** Drunk now, out in `passOutInGameS`, and asleep till `sleepUntilGameS` at least if given. */
+  makeDrunk(
+    id: string,
+    gameSeconds: number,
+    passOutInGameS: number,
+    sleepUntilGameS?: number,
+  ): void;
   bribe(id: string, untilGameSeconds: number): void;
   /**
    * The player just did something nobody could mistake (a blow, a knife): every guard
@@ -354,6 +362,7 @@ export function createStealth(
       searchAt: undefined,
       recruit: undefined,
       untilGame: 0,
+      sleepUntil: 0,
       found: false,
       downBy: undefined,
       grabS: 0,
@@ -670,7 +679,9 @@ export function createStealth(
     const dead = o.state === 'dead';
     const drunk = !dead && o.downBy === 'drink' && o.state === 'unconscious';
     emit({ type: 'BodyFound', npc: o.id, finder: finder.id, dead, drunk });
-    if (!dead) o.untilGame = Math.min(o.untilGame, nowGame + FOUND_WAKE_GAME_S);
+    // A man out on a crew's bottle (`sleepUntil`) can't be shaken awake before his time.
+    const deadDrunk = drunk && o.sleepUntil > nowGame;
+    if (!dead && !deadDrunk) o.untilGame = Math.min(o.untilGame, nowGame + FOUND_WAKE_GAME_S);
     // Asleep on watch with a bottle: a shake and a curse, no alarm.
     if (drunk) return;
     if (o.state === 'bound') o.state = 'unconscious';
@@ -940,7 +951,7 @@ export function createStealth(
         turnTo(g, g.body.heading + Math.sin(g.stateS) * 0.4, dt, 0.6);
         if (nowGame >= g.untilGame) {
           setState(g, 'unconscious');
-          g.untilGame = nowGame + KNOCKOUT_GAME_S;
+          g.untilGame = Math.max(nowGame + KNOCKOUT_GAME_S, g.sleepUntil);
           g.found = false;
           g.downBy = 'drink';
         }
@@ -1112,11 +1123,12 @@ export function createStealth(
       g.found = false;
       g.witnessed = false;
     },
-    makeDrunk(id, gameSeconds, passOutInGameS) {
+    makeDrunk(id, gameSeconds, passOutInGameS, sleepUntilGameS = 0) {
       const g = guardOrThrow(id);
       if (isDown(g.state)) return;
       setState(g, 'drunk');
       g.untilGame = gameSeconds + passOutInGameS;
+      g.sleepUntil = sleepUntilGameS;
     },
     bribe(id, untilGameSeconds) {
       const g = guardOrThrow(id);

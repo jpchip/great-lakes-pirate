@@ -17,7 +17,7 @@ import {
   planDistrictWatch,
   type SuspectContext,
 } from './district-guards';
-import { createFootLaw, type FootLaw, type FootLawHooks } from './foot-law';
+import { createFootLaw, nextDawn, type FootLaw, type FootLawHooks } from './foot-law';
 import { gameNpcs, rosterForTier, type NpcDefs } from './guards';
 import { ambientLight01, LampSet } from './light';
 import type { NavQuery } from './nav';
@@ -36,7 +36,29 @@ import { footToolsHud, type FootToolsSnapshot } from '../../ui/hud/foot-tools-mo
 import type { HeistTarget } from '../../../data/schemas/heist';
 import type { DistrictWorld } from '../../sim/world-state';
 import type { ControllerParams } from './controller';
-import { createHeist, type Heist, type HeistEvent, type HeistHooks } from './heist';
+import {
+  createHeist,
+  nightOf,
+  type Heist,
+  type HeistContainer,
+  type HeistEvent,
+  type HeistHooks,
+} from './heist';
+import {
+  bottlesFor,
+  cabinTable,
+  crewEvidence,
+  crewInSaloon,
+  crewTables,
+  deckWatch,
+  holdTable,
+  placeMoored,
+  shipWords,
+  type CrewDrunk,
+  type MooredInput,
+  type MooredShip,
+} from './moored';
+import type { DistrictMark } from '../../../data/schemas/districts';
 
 /**
  * The night watch in a district you've gone ashore in (plan 08 §5, §10; Phase 7): piece D's
@@ -88,6 +110,26 @@ export interface WatchOptions {
   hasWeapon?(id: string): boolean;
   /** The locks and loot (part two): the targets, the save's record and where crates go. */
   heist?: { targets: readonly HeistTarget[]; world: DistrictWorld; hooks: HeistHooks };
+  /**
+   * The ships lying at the district's piers when you landed (piece F, part two), in its
+   * local meters: each gets a deck watch, and a hold and cabin to rob. `present` says
+   * whether one is still alongside; `crews` is the save's record of crews stood whiskey.
+   */
+  moored?: {
+    ships: readonly MooredInput[];
+    present(id: string): boolean;
+    crews: Record<string, CrewDrunk>;
+  };
+}
+
+/** A moored ship's crew at its table in the saloon, for the prompt and the figures. */
+export interface CrewAtTable {
+  mark: DistrictMark;
+  ship: MooredShip;
+  /** Bottles they'd want. */
+  bottles: number;
+  /** They've had your whiskey tonight. */
+  stood: boolean;
 }
 
 export interface Watch {
@@ -126,6 +168,17 @@ export interface Watch {
   ): boolean;
   /** The locks and loot, with `heist`. */
   readonly heist: Heist | undefined;
+  /** The ships moored in the district this landing, still alongside or not. */
+  readonly moored: readonly MooredShip[];
+  /** Whether a moored ship is still alongside. */
+  alongside(ship: MooredShip): boolean;
+  /** The crews in the saloon at this hour: none once they've gone back aboard to sleep. */
+  crews(): CrewAtTable[];
+  /**
+   * Stands a crew whiskey (plan 08 §6.2): spends the bottles, and a bottle goes aboard for
+   * the deck watch, who's asleep within the hour. What came of it, in a line.
+   */
+  standCrew(ship: MooredShip): string;
   /** The controller's params with your arms full (a crate is slow). */
   params(base: ControllerParams): ControllerParams;
   onHeist(fn: (e: HeistEvent) => void): () => void;
@@ -149,6 +202,21 @@ export function createWatch(opts: WatchOptions): Watch {
   const { model, nav } = opts;
   const defs = opts.defs ?? gameNpcs();
   const plan = planDistrictWatch(model, nav);
+  // Moored ships (piece F): solid hulls, and a sailor at each gangway ahead of the tier's extras.
+  const moored = opts.moored ? placeMoored(model, nav, opts.moored.ships) : [];
+  const gone = new Set<string>();
+  for (const s of moored) {
+    model.colliders.add(s.hull);
+    plan.base.push(deckWatch(s));
+  }
+  const rules = gameTools().file;
+  const trick = rules.whiskey.trick;
+  const perk = (): boolean => opts.heist?.hooks.perk?.(trick.perk) ?? false;
+  const alongside = (s: MooredShip): boolean => !gone.has(s.id);
+  const drunkTonight = (s: MooredShip, t: number): CrewDrunk | undefined => {
+    const r = opts.moored?.crews[s.key];
+    return r && r.night === nightOf(t) ? r : undefined;
+  };
   const lamps = districtLamps(model);
   const lampSet = new LampSet(lamps);
   const stealth = createStealth(
@@ -195,8 +263,38 @@ export function createWatch(opts: WatchOptions): Watch {
           pockets: opts.pockets,
           hooks: opts.heist.hooks,
           seed: opts.seed,
+          extra: moored.flatMap((s): HeistContainer[] => [
+            {
+              mark: `${s.key}.hold`,
+              building: s.key,
+              owner: s.owner,
+              table: holdTable(s, rules),
+              lock: undefined,
+              ...s.hold,
+              live: () => alongside(s),
+            },
+            {
+              mark: `${s.key}.cabin`,
+              building: s.key,
+              owner: s.owner,
+              table: cabinTable(s, rules),
+              lock: trick.cabinLock,
+              ...s.cabin,
+              live: () => alongside(s),
+            },
+          ]),
         })
       : undefined;
+  // A crew stood whiskey earlier tonight (a reload ashore): the watch is drunk, or asleep.
+  {
+    const t0 = opts.conditions().gameSeconds;
+    for (const s of moored) {
+      const r = drunkTonight(s, t0);
+      if (r && stealth.guard(s.watch)) {
+        stealth.makeDrunk(s.watch, t0, Math.max(0, r.passOutAt - t0), nextDawn(r.passOutAt));
+      }
+    }
+  }
   const footLaw = opts.law
     ? createFootLaw(
         stealth,
@@ -212,7 +310,14 @@ export function createWatch(opts: WatchOptions): Watch {
         heist && {
           heist,
           now: () => opts.conditions().gameSeconds,
-          buildingName: (id) => model.layout.buildings.find((b) => b.id === id)?.name,
+          buildingName: (id) =>
+            moored.find((s) => s.key === id)?.name ??
+            model.layout.buildings.find((b) => b.id === id)?.name,
+          // A ship's burglary is her crew's to report: late and vague if they drank.
+          evidence: (id, t) => {
+            const s = moored.find((k) => k.key === id);
+            return s && crewEvidence(s, t, drunkTonight(s, t) !== undefined, rules);
+          },
         },
       )
     : undefined;
@@ -258,6 +363,13 @@ export function createWatch(opts: WatchOptions): Watch {
       const p = player.position;
       const { hour } = dayAndHour(c.gameSeconds);
       const carrying = tools?.carrying !== undefined;
+      // A ship that's sailed is gone for this landing: no hull, no hold.
+      for (const s of moored) {
+        if (!gone.has(s.id) && opts.moored && !opts.moored.present(s.id)) {
+          gone.add(s.id);
+          s.hull.disabled = true;
+        }
+      }
       heist?.step({ player, gameSeconds: c.gameSeconds });
       lastConduct = judge(conductMap, {
         at: p,
@@ -299,6 +411,44 @@ export function createWatch(opts: WatchOptions): Watch {
     },
     offer: (player) => tools?.offer(toolContext(player)),
     heist,
+    moored,
+    alongside,
+    crews() {
+      const t = opts.conditions().gameSeconds;
+      if (!crewInSaloon(dayAndHour(t).hour, rules)) return [];
+      return crewTables(model.marks, moored)
+        .filter(({ ship }) => {
+          const r = drunkTonight(ship, t);
+          return alongside(ship) && !(r && t >= r.passOutAt);
+        })
+        .map(({ mark, ship }) => ({
+          mark,
+          ship,
+          bottles: bottlesFor(ship.crew, rules, perk()),
+          stood: drunkTonight(ship, t) !== undefined,
+        }));
+    },
+    standCrew(ship) {
+      const t = opts.conditions().gameSeconds;
+      const pockets = opts.pockets;
+      const record = opts.moored?.crews;
+      if (!pockets || !record || !alongside(ship)) return 'Not now';
+      if (drunkTonight(ship, t)) return "They've had your whiskey already";
+      const need = bottlesFor(ship.crew, rules, perk());
+      const have = pockets.stores['store.whiskey'] ?? 0;
+      if (have < need) {
+        return `They'd want ${need} bottle${need === 1 ? '' : 's'}: you've ${have || 'none'}`;
+      }
+      pockets.stores['store.whiskey'] = have - need;
+      const [lo, hi] = rules.whiskey.passOutMin;
+      const rng = Rng.fromSeed(`${opts.seed}:trick:${ship.key}:${nightOf(t)}`);
+      const passOutS = (rng.range(lo, hi) * 60) / (perk() ? trick.perkSpeed : 1);
+      record[ship.key] = { night: nightOf(t), passOutAt: t + passOutS };
+      if (stealth.guard(ship.watch)) {
+        stealth.makeDrunk(ship.watch, t, passOutS, nextDawn(t + passOutS));
+      }
+      return `They drink your health, and a bottle goes aboard ${shipWords(ship)} for the man on watch`;
+    },
     params: (base) => heist?.params(base) ?? base,
     onHeist: (fn) => heist?.on(fn) ?? (() => undefined),
     interact(dt, player, down, pressed, otherPrompt = false) {

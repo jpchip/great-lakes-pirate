@@ -55,6 +55,7 @@ import { FollowCamera, ROWING_CAMERA, roofOver } from './onfoot/camera';
 import { footprintDistance, type Collider, type Push } from './onfoot/colliders';
 import type { Watch } from './onfoot/watch';
 import { keeperSpot, keeperType } from './onfoot/shops';
+import { crewFigures, shipWords } from './onfoot/moored';
 import type { FootToolsSnapshot } from '../ui/hud/foot-tools-model';
 import type { StealthReadout } from './onfoot/stealth';
 import {
@@ -738,6 +739,20 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
         if (found) return found;
       }
     }
+    // A moored ship's crew at its table in the saloon (piece F): stand them whiskey.
+    if (district && watch && c.grounded && !c.swimming && !watch.pursued) {
+      const inside = district.model.buildingAt(c.position.x, c.position.y, c.position.z)?.def.id;
+      for (const crew of watch.crews()) {
+        const { mark, ship } = crew;
+        if (crew.stood || (mark.ref !== undefined && mark.ref !== inside)) continue;
+        if (Math.hypot(c.position.x - mark.x, c.position.z - mark.z) > SHOP_REACH_M) continue;
+        const n = crew.bottles;
+        return {
+          text: `Stand ${shipWords(ship)}'s crew whiskey (${n} bottle${n === 1 ? '' : 's'})`,
+          act: () => deps.notice(watch?.standCrew(ship) ?? 'Not now'),
+        };
+      }
+    }
     const top = ladderTopNear(c, scene);
     if (top !== undefined) {
       return { text: 'Climb down', act: () => scene && climbDownLadder(c, scene, top) };
@@ -750,9 +765,27 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
    * shopkeepers, and the fence at his table after dark. Figures only, zone meters.
    */
   const keepers = (): GuardFrame[] => {
-    if (!district || !deps.shop) return [];
+    if (!district) return [];
     const m = district.model;
     const out: GuardFrame[] = [];
+    // A moored ship's hands round their table in the saloon, of an evening.
+    for (const crew of watch?.crews() ?? []) {
+      for (const f of crewFigures(crew.mark, crew.ship)) {
+        const w = toZone(f.x, f.z);
+        out.push({
+          id: f.id,
+          type: 'npc.sailor',
+          state: crew.stood ? 'drunk' : 'idle',
+          x: w.x,
+          y: m.floorAt(f.x, f.z),
+          z: w.z,
+          heading: headingToZone(f.heading),
+          crouching: false,
+          lantern: false,
+        });
+      }
+    }
+    if (!deps.shop) return out;
     for (const mark of m.marks) {
       if (mark.kind !== 'shop' || !deps.shop(district, mark)) continue;
       const spot = keeperSpot(mark);
