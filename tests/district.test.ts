@@ -300,9 +300,7 @@ describe('Bayfield', () => {
   it.skipIf(!baked)('lights the saloon enough to see by, bar to back room', () => {
     const model = buildDistrict(layout, decodeGround(new Uint8Array(readFileSync(groundPath))));
     // The saloon's own lamps: the public room's two posts and the back room's hook.
-    const saloonLamps = model.lamps.filter(
-      (l) => l.x > 10 && l.x < 26 && l.z > 8 && l.z < 22,
-    );
+    const saloonLamps = model.lamps.filter((l) => l.x > 10 && l.x < 26 && l.z > 8 && l.z < 22);
     expect(saloonLamps.length).toBeGreaterThanOrEqual(3);
     // The bar, both crew seats and the back-room table all stand under a lamp, not on its
     // fringe, so the room reads lit rather than a black box with one bright window.
