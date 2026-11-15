@@ -297,6 +297,24 @@ describe('Bayfield', () => {
     expect((performance.now() - t0) / 300).toBeLessThan(2);
   });
 
+  it.skipIf(!baked)('lights the saloon enough to see by, bar to back room', () => {
+    const model = buildDistrict(layout, decodeGround(new Uint8Array(readFileSync(groundPath))));
+    // The saloon's own lamps: the public room's two posts and the back room's hook.
+    const saloonLamps = model.lamps.filter(
+      (l) => l.x > 10 && l.x < 26 && l.z > 8 && l.z < 22,
+    );
+    expect(saloonLamps.length).toBeGreaterThanOrEqual(3);
+    // The bar, both crew seats and the back-room table all stand under a lamp, not on its
+    // fringe, so the room reads lit rather than a black box with one bright window.
+    for (const id of ['shop.saloon_bar', 'crew.0', 'crew.1', 'shop.back_room']) {
+      const m = model.mark(id);
+      const nearest = Math.min(
+        ...saloonLamps.map((l) => Math.hypot(l.x - m.x, l.z - m.z) / l.radiusM),
+      );
+      expect(nearest, id).toBeLessThan(0.75);
+    }
+  });
+
   it.skipIf(!baked)('keeps the waterfront walkable from the gangway to the street', () => {
     const model = buildDistrict(layout, decodeGround(new Uint8Array(readFileSync(groundPath))));
     // Off the fish pier, inland (heading π is inland, +z), past the warehouse.

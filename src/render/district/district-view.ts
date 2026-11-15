@@ -65,10 +65,15 @@ export function createDistrictView(
   model: DistrictModel,
   lighting: StyleLighting,
   style: StyleId = 'toon',
+  /**
+   * The lamp pool uniforms, shared with whoever else should light by them (the on-foot
+   * figures, `foot-view.ts`). Defaults to a fresh set so callers that only draw the
+   * district (the dev page) are unchanged.
+   */
+  pools: LampPoolUniforms = createLampPools(),
 ): DistrictView {
   const group = new THREE.Group();
   group.name = `district:${model.layout.id}`;
-  const pools = createLampPools();
   const body = createStylizedMaterial(style, lighting, { vertexColors: true, pools });
   const lit = createStylizedMaterial(style, lighting, { vertexColors: true });
   const groundMat = createStylizedMaterial(style, lighting, { vertexColors: true, pools });

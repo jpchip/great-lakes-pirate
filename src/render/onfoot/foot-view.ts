@@ -5,7 +5,12 @@ import { DEFAULT_CONTROLLER } from '../../gameplay/onfoot/controller';
 import { ROWBOAT } from '../../sim/ashore/rowboat';
 import { PALETTE } from '../style/palette';
 import { box, frustum, merged, part, place } from '../style/parts';
-import { createStylizedMaterial, type StyleLighting } from '../style/stylized-material';
+import { createLampPools } from '../district/district-view';
+import {
+  createStylizedMaterial,
+  type LampPoolUniforms,
+  type StyleLighting,
+} from '../style/stylized-material';
 
 /**
  * The captain on foot and the ship's boat (Phase 7 piece A). The captain is a capsule
@@ -159,10 +164,18 @@ function boatGeometry(): THREE.BufferGeometry {
   return merged(parts);
 }
 
-export function createFootView(lighting: StyleLighting): FootView {
+export function createFootView(
+  lighting: StyleLighting,
+  /**
+   * The lamp pool uniforms, shared with the district view so a figure under a saloon
+   * lantern comes up as warm as the floor under them (plan 08 §14). Defaults to a fresh,
+   * unlit set for callers that draw the captain without a district (none today).
+   */
+  pools: LampPoolUniforms = createLampPools(),
+): FootView {
   const group = new THREE.Group();
   group.name = 'on-foot';
-  const material = createStylizedMaterial('toon', lighting, { vertexColors: true });
+  const material = createStylizedMaterial('toon', lighting, { vertexColors: true, pools });
   const standGeo = captainGeometry(DEFAULT_CONTROLLER.standHeight);
   const crouchGeo = captainGeometry(DEFAULT_CONTROLLER.crouchHeight);
   const captain = new THREE.Mesh(standGeo, material);
