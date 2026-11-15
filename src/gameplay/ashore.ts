@@ -115,7 +115,13 @@ export interface AshoreDeps {
    */
   districtFrame?(def: DistrictDef): DistrictFrame | undefined;
   /** The night watch for a district you've landed in (piece D's guards), if any. */
-  watch?(landing: DistrictLanding, onCaptured: (by: string) => void): Watch | undefined;
+  watch?(
+    landing: DistrictLanding,
+    onCaptured: (by: string) => void,
+    jailbreak?: JailbreakStart,
+  ): Watch | undefined;
+  /** Out of the lockup and aboard your ship (piece G): you're off your feet at the helm. */
+  jailbroke?(): void;
   /**
    * A guard took you on foot: `by` is their npc type, `conduct` what you were taken for
    * (a `ConductReason`, if anything was amiss). You're already off your feet.
@@ -147,6 +153,16 @@ export interface AshoreDeps {
   view?: (SailingView & { foot: FootFrame | undefined }) | undefined;
 }
 
+/** A jailbreak begun (piece G): what the lockup's night is made with. */
+export interface JailbreakStart {
+  /** Tier 5's one chance. */
+  execution: boolean;
+  /** What the jailer would take as a promise, cents, if he'd hear one. */
+  promiseCents: number | undefined;
+  /** Game seconds the attempt is over. */
+  dawnAt: number;
+}
+
 /** Where F would act, and what it would do. */
 interface Prompt {
   text: string;
@@ -169,6 +185,13 @@ export interface GameAshore {
   landingHere(): boolean;
   /** G: ashore from a berth, or into the boat at anchor. The refusal, if not. */
   goAshore(): Promise<string | undefined>;
+  /**
+   * Into the lockup's cell for a jailbreak (piece G), the ship lying impounded at her
+   * berth: the refusal if there's no district to play it in.
+   */
+  breakOut(start: JailbreakStart): Promise<string | undefined>;
+  /** A jailbreak is under way: no save keeps you ashore, and the gangway is the way out. */
+  readonly jailbreak: JailbreakStart | undefined;
   /** Back aboard, however you are: ends ashore at the helm. */
   goAboard(): Promise<void>;
   /** From a beached boat onto the beach. */
@@ -229,6 +252,8 @@ export interface FootHudSnapshot {
   inBoat: boolean;
   swimming: boolean;
   gait: string;
+  /** A jailbreak under way (piece G): the line that stands on the HUD. */
+  banner: { text: string; oneChance: boolean } | undefined;
 }
 
 /** You can reach the gangway, the boat or a ladder from this far. */
@@ -274,6 +299,8 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
   let watch: Watch | undefined;
   /** Taken by a guard: the fade to the lockup is under way. */
   let taken = false;
+  /** The jailbreak this landing is (piece G), if it is one. */
+  let jailbreak: JailbreakStart | undefined;
   /** The walkable island the scene is built on, if any. */
   let sceneIsland: string | undefined;
   /** The marshal posse on the island the scene is built on, if any. */
@@ -355,12 +382,13 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
   };
 
   /** Into a district: its scene, and its watch on duty. */
-  const enterDistrict = (landing: DistrictLanding): void => {
+  const enterDistrict = (landing: DistrictLanding, breaking?: JailbreakStart): void => {
     posse = undefined;
     district = landing;
     scene = landing.scene;
     taken = false;
-    watch = deps.watch?.(landing, (by) => takenBy(by));
+    jailbreak = breaking;
+    watch = deps.watch?.(landing, (by) => takenBy(by), breaking);
   };
 
   /** A guard has you: off your feet behind the fade, and the jail takes it from there. */
@@ -374,7 +402,8 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
           ? 'The marshal'
           : 'The constable';
     const conduct = watch?.arrestReason();
-    void deps.fade('Taken', `${who} takes you in hand`, () => {
+    const line = jailbreak ? `${who} has you: back to the cell` : `${who} takes you in hand`;
+    void deps.fade(jailbreak ? 'Recaptured' : 'Taken', line, () => {
       leave();
       deps.captured?.(by, conduct);
     });
@@ -519,6 +548,71 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
     return undefined;
   };
 
+  const breakOut = async (start: JailbreakStart): Promise<string | undefined> => {
+    if (active) return 'Already ashore';
+    if (busy) return 'Not now';
+    const h = hazards().state;
+    const pier = h.mooring === 'docked' ? pierOf(h.berthId) : undefined;
+    if (!pier) return 'The ship is not at her pier';
+    busy = true;
+    try {
+      const landing = await districtLanding(pier);
+      if (!landing) return NO_WALKABLE_ASHORE;
+      let refused: string | undefined;
+      await deps.fade(
+        start.execution ? 'One chance' : 'The lockup, that night',
+        start.execution
+          ? 'In irons, the night before the rope'
+          : 'The jailer on his round, and your ship at the city dock',
+        () => {
+          from = 'berth';
+          berthId = h.berthId;
+          anchor = undefined;
+          district = undefined;
+          watch = undefined;
+          inBoat = false;
+          enterDistrict(landing, start);
+          const cell = (watch as Watch | undefined)?.jailbreak?.cell;
+          if (!cell) {
+            refused = 'There is no cell to break out of here';
+            district = undefined;
+            scene = undefined;
+            watch = undefined;
+            jailbreak = undefined;
+            from = undefined;
+            berthId = undefined;
+            return;
+          }
+          const at = cell.spawn;
+          placeCharacter(
+            character,
+            { x: at.x, y: landing.model.floorAt(at.x, at.z), z: at.z },
+            at.heading,
+          );
+          copyPrevious();
+          enter();
+        },
+      );
+      return refused;
+    } finally {
+      busy = false;
+    }
+  };
+
+  /** Aboard and away from the lockup's pier: the jailbreak is made. */
+  const makeBreak = async (): Promise<void> => {
+    if (!active || busy) return;
+    busy = true;
+    try {
+      await deps.fade('Aboard', 'Up the side, and cast off before the alarm', () => {
+        leave();
+        deps.jailbroke?.();
+      });
+    } finally {
+      busy = false;
+    }
+  };
+
   /** The boat over the side nearer the shore, pointing at it, and you at the oars. */
   const overTheSide = (): void => {
     const p = shipPose();
@@ -570,6 +664,7 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
     scene = undefined;
     district = undefined;
     watch = undefined;
+    jailbreak = undefined;
     inBoat = false;
     boat = undefined;
     boatState = 'stowed';
@@ -710,11 +805,13 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
           Math.hypot(c.position.x - g.x, c.position.z - g.z) < REACH_M &&
           Math.abs(c.position.y - g.y) < 1
         ) {
+          if (jailbreak) return { text: 'Go aboard and cast off', act: () => void makeBreak() };
           return { text: 'Go aboard', act: () => void goAboard() };
         }
       }
     }
     if (c.swimming && toHull(c.position.x, c.position.z) < DEFAULT_CONTROLLER.radius + 1.2) {
+      if (jailbreak) return { text: 'Climb aboard and cast off', act: () => void makeBreak() };
       return { text: 'Climb aboard', act: () => void goAboard() };
     }
     if (boat && Math.hypot(c.position.x - boat.x, c.position.z - boat.z) < REACH_M + 0.8) {
@@ -1133,6 +1230,16 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
         inBoat,
         swimming,
         gait: inBoat ? 'rowing' : character.gait,
+        banner: jailbreak
+          ? {
+              oneChance: jailbreak.execution,
+              text: watch?.jailbreak?.inIrons
+                ? 'Slip the irons, get past the jailer, and reach your ship at the city dock before dawn'
+                : watch?.jailbreak?.inCell
+                  ? 'Get out of the cell, and reach your ship at the city dock before dawn'
+                  : 'Reach your ship at the city dock before dawn',
+            }
+          : undefined,
       };
     },
     record(s) {
@@ -1140,7 +1247,8 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
         boat && boatState !== 'stowed'
           ? { state: boatState, pose: { x: boat.x, z: boat.z, heading: boat.heading } }
           : { state: 'stowed' };
-      if (!active || !from) {
+      // A jailbreak isn't kept: a reload finds you in the lockup, the attempt lost.
+      if (!active || !from || jailbreak) {
         s.player.ashore = null;
         return;
       }
@@ -1199,6 +1307,10 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
     },
     get pursued() {
       return active && !!watch?.pursued;
+    },
+    breakOut,
+    get jailbreak() {
+      return active ? jailbreak : undefined;
     },
     zoneAt() {
       const c = character.position;

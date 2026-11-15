@@ -1851,6 +1851,19 @@
       "ref": "packing_house"
     },
     { "id": "post.lockup", "kind": "post", "x": 43, "z": 31, "headingDeg": 0, "ref": "lockup" },
+    { "id": "jail.cell", "kind": "jail", "x": 39.5, "z": 43.5, "headingDeg": 0, "ref": "lockup" },
+    { "id": "jail.desk", "kind": "jail", "x": 44, "z": 37.8, "headingDeg": 0, "ref": "lockup" },
+    { "id": "jail.look", "kind": "jail", "x": 41.6, "z": 37.9, "headingDeg": 180, "ref": "lockup" },
+    { "id": "jail.bars", "kind": "jail", "x": 41.3, "z": 39.6, "headingDeg": 90, "ref": "lockup" },
+    {
+      "id": "jail.guard",
+      "kind": "jail",
+      "x": 47.5,
+      "z": 36.2,
+      "headingDeg": 225,
+      "ref": "lockup"
+    },
+    { "id": "jail.marshal", "kind": "jail", "x": 43, "z": 28.5, "headingDeg": 0, "ref": "lockup" },
     {
       "id": "post.dock_warehouse",
       "kind": "post",

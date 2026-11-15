@@ -101,6 +101,8 @@ export interface ToolOptions {
   hasWeapon?(id: string): boolean;
   /** Your arms are full (a crate, `heist.ts`): no blows, drinks, shots or lifting a man. */
   handsFull?(): boolean;
+  /** They took everything off you (a jailbreak): nothing on the belt is to hand. */
+  emptyHanded?(): boolean;
 }
 
 /** The world around the tools each tick. */
@@ -209,13 +211,15 @@ export function createTools(
   const refusedDrink = new Set<string>();
 
   const count = (t: ToolDef): number =>
-    t.store
-      ? (pockets.stores[t.store] ?? 0)
-      : t.weapon
-        ? opts.hasWeapon?.(t.weapon)
-          ? Infinity
-          : 0
-        : Infinity;
+    opts.emptyHanded?.()
+      ? 0
+      : t.store
+        ? (pockets.stores[t.store] ?? 0)
+        : t.weapon
+          ? opts.hasWeapon?.(t.weapon)
+            ? Infinity
+            : 0
+          : Infinity;
   const handsFull = (): boolean => opts.handsFull?.() ?? false;
   const spend = (t: ToolDef): void => {
     if (t.store) pockets.stores[t.store] = Math.max(0, (pockets.stores[t.store] ?? 0) - 1);

@@ -166,11 +166,24 @@ export type DistrictBuildingDef = z.infer<typeof districtBuildingSchema>;
  * Named spots for the systems that come after the kit: where you step ashore, where a
  * ship is moored, guard posts and patrol points (piece D), loot (piece E), the exits, and
  * the counters you trade at on foot (piece F's `shop` marks, in the building of their `ref`)
- * and the saloon tables a moored ship's crew drinks at (`crew`).
+ * and the saloon tables a moored ship's crew drinks at (`crew`). Piece G's `jail` marks set
+ * the lockup's scene: `jail.cell` where you're held, the jailer's `jail.desk`, `jail.look`
+ * and `jail.bars`, and the tier-5 `jail.guard` and `jail.marshal`.
  */
 export const districtMarkSchema = z.object({
   id: z.string().regex(/^[a-z0-9_.]+$/),
-  kind: z.enum(['gangway', 'berth', 'post', 'patrol', 'loot', 'exit', 'crowd', 'shop', 'crew']),
+  kind: z.enum([
+    'gangway',
+    'berth',
+    'post',
+    'patrol',
+    'loot',
+    'exit',
+    'crowd',
+    'shop',
+    'crew',
+    'jail',
+  ]),
   x: z.number(),
   z: z.number(),
   /** Degrees clockwise from north (-z). */

@@ -99,9 +99,9 @@ test('captured below tier 5: cargo and cash taken, the sentence served, the ship
   await page.keyboard.press('Escape');
   await expect(page.getByTestId('jail-screen')).toBeVisible();
 
-  // The jailbreak isn't built yet.
-  await page.getByTestId('jail-break').click();
-  await expect(screen).toContainText('later version');
+  // The jailbreak is on offer (jailbreak.spec.ts plays it).
+  await expect(page.getByTestId('jail-break')).toBeEnabled();
+  await expect(page.getByTestId('jail-break-note')).toContainText('before dawn');
 
   await page.getByTestId('jail-serve').click();
   await expect(screen).toHaveAttribute('data-kind', 'released');
@@ -174,8 +174,8 @@ test('captured at tier 5: the gallows, the end screen, and the run is gone', asy
   await takenAt(page, APOSTLES, 5);
   const screen = page.getByTestId('jail-screen');
   await expect(screen).toHaveAttribute('data-kind', 'gallows');
-  await page.getByTestId('jail-break').click();
-  await expect(screen).toContainText('ONE CHANCE');
+  await expect(page.getByTestId('jail-one-chance')).toHaveText('ONE CHANCE');
+  await expect(page.getByTestId('jail-break')).toBeEnabled();
   await page.getByTestId('jail-hang').click();
 
   await expect(page.getByTestId('end-screen')).toHaveAttribute('data-cause', 'executed');

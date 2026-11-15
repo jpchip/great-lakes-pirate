@@ -1,10 +1,10 @@
 import jailJson from '../../../data/jail.json';
 import { jailFileSchema, type JailFile } from '../../../data/schemas/jail';
-import { SECONDS_PER_GAME_DAY } from '../../core/time';
+import { dayAndHour, SECONDS_PER_GAME_DAY } from '../../core/time';
 import { Rng } from '../../core/rng';
 import { siteDef } from '../hideouts/stash';
 import type { WorldState } from '../world-state';
-import { setHeat } from './law';
+import { regionWanted, setHeat } from './law';
 import { tierDef, wantedTier, type LawDefs } from './defs';
 import type { LawEvent } from './law';
 import type { JailState } from './state';
@@ -110,6 +110,7 @@ export function imprison(
     minor: false,
     confiscated: { cargo, cashCents },
     workOffDays: 0,
+    breakout: { attempts: 0, active: false },
   };
   state.jail = jailed;
   return jailed;
@@ -176,6 +177,7 @@ export function imprisonMinor(
     minor: true,
     confiscated: { cargo: [], cashCents: 0 },
     workOffDays: 0,
+    breakout: { attempts: 0, active: false },
   };
   state.jail = jailed;
   return jailed;
@@ -303,4 +305,116 @@ export function release(defs: LawDefs, jail: JailFile, state: WorldState, now: n
     heatAfter: state.wanted[jailed.region]?.heat ?? 0,
     events,
   };
+}
+
+/**
+ * The jailbreak (plan 08 §9; Phase 7 piece G). An alternative to serving time or bail at
+ * tiers 0–4, and the one chance before the rope at tier 5: the lockup's cell on foot, at
+ * night, with nothing. Out and aboard your impounded ship you're free, with the jailbreak
+ * on your name; recaptured, the sentence grows (or, at tier 5, the rope).
+ */
+
+export type BreakoutRefusal = 'minor' | 'spent';
+
+/** Why there's no breaking out: a night for a fine isn't worth it; the one chance is used. */
+export function breakoutRefusal(jailed: Jailed): BreakoutRefusal | undefined {
+  if (jailed.minor) return 'minor';
+  if (jailed.execution && jailed.breakout.attempts > 0) return 'spent';
+  return undefined;
+}
+
+/** When tonight's attempt starts: now if it's already the small hours, else `startHour`. */
+export function breakoutStart(jail: JailFile, now: number): number {
+  const { startHour, dawnHour } = jail.jailbreak;
+  const { day, hour } = dayAndHour(now);
+  if (hour >= startHour || hour < dawnHour - 2) return now;
+  return day * SECONDS_PER_GAME_DAY + startHour * 3600;
+}
+
+/** The dawn that ends an attempt begun at `start`. */
+export function breakoutDawn(jail: JailFile, start: number): number {
+  const { dawnHour } = jail.jailbreak;
+  const { day, hour } = dayAndHour(start);
+  return (hour < dawnHour ? day : day + 1) * SECONDS_PER_GAME_DAY + dawnHour * 3600;
+}
+
+/** Marks an attempt begun (saved at once: a reload mid-attempt finds it and counts it lost). */
+export function beginBreakout(jailed: Jailed): void {
+  jailed.breakout = { attempts: jailed.breakout.attempts + 1, active: true };
+}
+
+/** What a jailer would take as a promise to look away, or undefined if he won't hear it. */
+export function promiseCents(jail: JailFile, jailed: Jailed): number | undefined {
+  const rule = jail.jailbreak.promise;
+  if (jailed.execution || jailed.tier > rule.maxTier) return undefined;
+  return rule.cents[Math.min(jailed.tier, rule.cents.length - 1)];
+}
+
+/** The promise made: a debt on top of any you already owe him. */
+export function owePromise(jail: JailFile, state: WorldState, cents: number, now: number): void {
+  state.jailDebt = {
+    cents: (state.jailDebt?.cents ?? 0) + cents,
+    dueAt: now + jail.jailbreak.promise.dueDays * SECONDS_PER_GAME_DAY,
+    region: jail.lockup.region,
+  };
+}
+
+/** Out: no sentence, no bail, the ship taken back from the impound. Returns what you left. */
+export function escapeJail(state: WorldState): Jailed {
+  const jailed = state.jail;
+  if (!jailed) throw new Error('Not in jail');
+  state.jail = null;
+  return jailed;
+}
+
+/** Recaptured: the weeks added, or `execution` when it was the one chance. */
+export function recapture(jail: JailFile, state: WorldState): { weeks: number } | 'execution' {
+  const jailed = state.jail;
+  if (!jailed) throw new Error('Not in jail');
+  jailed.breakout.active = false;
+  if (jailed.execution) return 'execution';
+  const weeks = jail.jailbreak.recaptureWeeks;
+  jailed.sentenceWeeks += weeks;
+  jailed.releaseAt += weeks * SECONDS_PER_GAME_DAY;
+  return { weeks };
+}
+
+/** An attempt that came to nothing (dawn found you in your cell): no more time for it. */
+export function standDown(state: WorldState): void {
+  if (state.jail) state.jail.breakout.active = false;
+}
+
+export interface DebtSettled {
+  paidCents: number;
+  /** What the purse couldn't cover: it became heat. */
+  shortCents: number;
+  events: LawEvent[];
+}
+
+/**
+ * The jailer's money comes due: out of the purse, and whatever's short is his word to the
+ * constables, as heat in the lockup's region. Undefined while nothing is due.
+ */
+export function settleDebt(
+  defs: LawDefs,
+  jail: JailFile,
+  state: WorldState,
+  now: number,
+): DebtSettled | undefined {
+  const debt = state.jailDebt;
+  if (!debt || now < debt.dueAt) return undefined;
+  const paidCents = Math.min(state.player.purse, debt.cents);
+  state.player.purse -= paidCents;
+  const shortCents = debt.cents - paidCents;
+  delete state.jailDebt;
+  const events =
+    shortCents > 0
+      ? setHeat(
+          defs,
+          state,
+          debt.region,
+          regionWanted(state, debt.region).heat + jail.jailbreak.promise.heat,
+        )
+      : [];
+  return { paidCents, shortCents, events };
 }

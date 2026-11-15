@@ -169,8 +169,23 @@ export const jailSchema = z
       .optional(),
     /** Days added to work off an impound fee nobody could pay. */
     workOffDays: z.number().int().nonnegative().default(0),
+    /**
+     * The jailbreak (Phase 7 piece G): how many times you've tried from this cell, and
+     * whether one is under way (a run loaded mid-attempt counts it as failed).
+     */
+    breakout: z
+      .object({ attempts: z.number().int().nonnegative(), active: z.boolean() })
+      .default({ attempts: 0, active: false }),
   })
   .nullable();
+
+/** Money promised to a jailer for looking away (plan 08 §9): pay it by `dueAt`, or it's heat. */
+export const jailDebtSchema = z.object({
+  cents: z.number().int().positive(),
+  dueAt: z.number(),
+  region: z.string(),
+});
+export type JailDebt = z.infer<typeof jailDebtSchema>;
 export type JailState = z.infer<typeof jailSchema>;
 
 export interface LawState {

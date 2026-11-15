@@ -38,6 +38,7 @@ import type { DistrictWorld } from '../../sim/world-state';
 import type { ControllerParams } from './controller';
 import {
   createHeist,
+  gameHeist,
   nightOf,
   type Heist,
   type HeistContainer,
@@ -59,6 +60,8 @@ import {
   type MooredShip,
 } from './moored';
 import type { DistrictMark } from '../../../data/schemas/districts';
+import type { JailbreakRules } from '../../../data/schemas/jail';
+import { createJailbreak, jailGuards, type Jailbreak, type JailbreakEvent } from './jailbreak';
 
 /**
  * The night watch in a district you've gone ashore in (plan 08 §5, §10; Phase 7): piece D's
@@ -120,6 +123,19 @@ export interface WatchOptions {
     present(id: string): boolean;
     crews: Record<string, CrewDrunk>;
   };
+  /**
+   * A jailbreak (piece G): you start in the lockup's cell, the jailer is on his round, and
+   * out of the cell anyone who sees you knows what you are. `on` hears how it goes.
+   */
+  jailbreak?: {
+    rules: JailbreakRules;
+    /** Tier 5's one chance: irons, more of the law, no promises. */
+    execution: boolean;
+    promiseCents: number | undefined;
+    /** Game seconds the attempt is over. */
+    dawnAt: number;
+    on(e: JailbreakEvent): void;
+  };
 }
 
 /** A moored ship's crew at its table in the saloon, for the prompt and the figures. */
@@ -168,6 +184,8 @@ export interface Watch {
   ): boolean;
   /** The locks and loot, with `heist`. */
   readonly heist: Heist | undefined;
+  /** The jailbreak under way, if this landing is one (piece G). */
+  readonly jailbreak: Jailbreak | undefined;
   /** The ships moored in the district this landing, still alongside or not. */
   readonly moored: readonly MooredShip[];
   /** Whether a moored ship is still alongside. */
@@ -198,6 +216,9 @@ export function skyAt(gameSeconds: number, cloud01: number): SkyLight {
   };
 }
 
+/** Nothing amiss: the conduct before the first step, and in the cell. */
+const QUIET: Conduct = { suspect: false, reason: undefined, words: '', area: undefined };
+
 export function createWatch(opts: WatchOptions): Watch {
   const { model, nav } = opts;
   const defs = opts.defs ?? gameNpcs();
@@ -208,6 +229,10 @@ export function createWatch(opts: WatchOptions): Watch {
   for (const s of moored) {
     model.colliders.add(s.hull);
     plan.base.push(deckWatch(s));
+  }
+  // The lockup's own guards on the night of a jailbreak (piece G).
+  if (opts.jailbreak) {
+    plan.base.push(...jailGuards(model, opts.jailbreak.rules, opts.jailbreak.execution));
   }
   const rules = gameTools().file;
   const trick = rules.whiskey.trick;
@@ -249,6 +274,7 @@ export function createWatch(opts: WatchOptions): Watch {
         {
           ...(opts.hasWeapon ? { hasWeapon: opts.hasWeapon } : {}),
           handsFull: () => heist?.carrying !== undefined,
+          ...(opts.jailbreak ? { emptyHanded: () => true } : {}),
         },
       )
     : undefined;
@@ -285,6 +311,21 @@ export function createWatch(opts: WatchOptions): Watch {
           ]),
         })
       : undefined;
+  const jailbreak = opts.jailbreak
+    ? createJailbreak({
+        model,
+        stealth,
+        rules: opts.jailbreak.rules,
+        locks: gameHeist().locks,
+        execution: opts.jailbreak.execution,
+        promiseCents: opts.jailbreak.promiseCents,
+        bootPick: opts.heist?.hooks.perk?.(gameHeist().locks.bootPick.perk) ?? false,
+        dawnAt: opts.jailbreak.dawnAt,
+        rng: Rng.fromSeed(`${opts.seed}:jailbreak:${opts.jailbreak.dawnAt}`),
+        ...(opts.heist?.hooks.notice ? { notice: opts.heist.hooks.notice } : {}),
+      })
+    : undefined;
+  if (jailbreak && opts.jailbreak) jailbreak.on(opts.jailbreak.on);
   // A crew stood whiskey earlier tonight (a reload ashore): the watch is drunk, or asleep.
   {
     const t0 = opts.conditions().gameSeconds;
@@ -371,6 +412,7 @@ export function createWatch(opts: WatchOptions): Watch {
         }
       }
       heist?.step({ player, gameSeconds: c.gameSeconds });
+      jailbreak?.step({ player, gameSeconds: c.gameSeconds }, dt);
       lastConduct = judge(conductMap, {
         at: p,
         gait: player.gait,
@@ -392,9 +434,11 @@ export function createWatch(opts: WatchOptions): Watch {
         rain01: c.rain01,
         gameSeconds: c.gameSeconds,
         carrying: carrying || heist?.carrying !== undefined,
-        suspect: forced ?? lastConduct.suspect,
+        // A prisoner in his cell is where he should be, whatever he's wanted for; out of it
+        // he's an escaped man to anyone who sees him.
+        suspect: forced ?? jailbreak?.suspect() ?? lastConduct.suspect,
         fame01: c.fame01,
-        wantedTier: c.wantedTier,
+        wantedTier: jailbreak?.inCell ? 0 : c.wantedTier,
       });
       tools?.step(toolContext(player));
     },
@@ -411,6 +455,7 @@ export function createWatch(opts: WatchOptions): Watch {
     },
     offer: (player) => tools?.offer(toolContext(player)),
     heist,
+    jailbreak,
     moored,
     alongside,
     crews() {
@@ -449,10 +494,26 @@ export function createWatch(opts: WatchOptions): Watch {
       }
       return `They drink your health, and a bottle goes aboard ${shipWords(ship)} for the man on watch`;
     },
-    params: (base) => heist?.params(base) ?? base,
+    params: (base) => {
+      const laden = heist?.params(base) ?? base;
+      return jailbreak?.params(laden) ?? laden;
+    },
     onHeist: (fn) => heist?.on(fn) ?? (() => undefined),
     interact(dt, player, down, pressed, otherPrompt = false) {
-      if (!tools || stealth.captured) return false;
+      if (stealth.captured) return false;
+      // In the cell F is the jailbreak's: the irons, his keys, the door, the bars.
+      if (
+        jailbreak?.interact(
+          { player, gameSeconds: opts.conditions().gameSeconds },
+          dt,
+          down,
+          pressed,
+        )
+      ) {
+        holdS = -1;
+        return true;
+      }
+      if (!tools) return false;
       let o = tools.offer(toolContext(player));
       // A man in reach first; then a lock, a crate or the gangway; a throw last of all.
       if (!o || tools.lowPriority(o)) {
@@ -490,9 +551,22 @@ export function createWatch(opts: WatchOptions): Watch {
       if (o && tools.lowPriority(o) && (h || otherPrompt)) o = undefined;
       const hold01 = o && o.holdS > 0 && holdS >= 0 ? holdS / o.holdS : 0;
       const crate = heist?.carrying;
+      const j = jailbreak?.offer(at);
+      if (j) {
+        return footToolsHud(tools, QUIET, undefined, 0, opts.pockets.purse, {
+          prompt: {
+            key: 'F',
+            label: j.label,
+            ok: j.ok,
+            why: j.why ?? '',
+            hold01: j.holdS > 0 ? Math.max(j.done01, jailbreak?.hold01() ?? 0) : 0,
+          },
+          load: '',
+        });
+      }
       return footToolsHud(
         tools,
-        lastConduct ?? { suspect: false, reason: undefined, words: '', area: undefined },
+        lastConduct ?? QUIET,
         o,
         hold01,
         opts.pockets.purse,

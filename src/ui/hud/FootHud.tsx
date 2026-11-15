@@ -21,6 +21,8 @@ export interface FootHudView {
   inBoat: boolean;
   /** Clicks lock the mouse for looking; until then the hint says so. */
   mouseLocked: boolean;
+  /** A jailbreak's standing line (piece G): what to do, and "ONE CHANCE" before the rope. */
+  banner?: { text: string; oneChance: boolean } | undefined;
 }
 
 function ColdChip({ cold }: { cold: NonNullable<FootHudView['cold']> }) {
@@ -66,6 +68,16 @@ export function FootHud({
         >
           {h.prompt} <span class="hud-key">F</span>
         </button>
+      )}
+      {h.banner && (
+        <div
+          class={`foot-banner${h.banner.oneChance ? ' one-chance' : ''}`}
+          data-testid="foot-banner"
+          role="status"
+        >
+          {h.banner.oneChance && <strong>ONE CHANCE</strong>}
+          <span>{h.banner.text}</span>
+        </div>
       )}
       {mode !== 'off' && (
         <>

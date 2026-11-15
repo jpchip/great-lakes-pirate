@@ -102,6 +102,20 @@ export function attachRecord(ctx: GameContext, defs: LawDefs): () => void {
     ev.on('BailSent', (e) =>
       write(`Sent word for bail: ${formatCents(e.cents)} from the strongbox.`),
     ),
+    ev.on('JailbreakSucceeded', (e) =>
+      write(
+        e.execution
+          ? `Broke out of ${port(e.port)}'s lockup the night before the rope.`
+          : `Broke out of ${port(e.port)}'s lockup.`,
+      ),
+    ),
+    ev.on('JailbreakFailed', (e) => {
+      if (!e.execution) {
+        write(
+          `Recaptured breaking out at ${port(e.port)}: ${e.weeks} week${e.weeks === 1 ? '' : 's'} more.`,
+        );
+      }
+    }),
     ev.on('Released', (e) =>
       write(
         e.how === 'bail'

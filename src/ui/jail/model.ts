@@ -1,6 +1,6 @@
 /**
  * What the jail screens show (plan 13 §12 Phase 5 "jail screens", plan 12 §8.1; piece D):
- * the cell (what was taken, the sentence, bail by sending word, the jailbreak not yet), the
+ * the cell (what was taken, the sentence, bail by sending word, the jailbreak), the
  * gallows at tier 5, and the release with "While you were inside...".
  */
 
@@ -37,8 +37,11 @@ export interface CellSnapshot {
   wordSent: string | undefined;
   /** Why "send word" can't be done, if it can't. */
   wordRefusal: string | undefined;
-  /** What the jailbreak stub says. */
+  /** What a jailbreak would be, or why there's none to try. */
   jailbreak: string;
+  canBreakOut: boolean;
+  /** How the last attempt ended, if there was one. */
+  breakoutNote?: string;
 }
 
 export interface GallowsSnapshot {
@@ -46,7 +49,9 @@ export interface GallowsSnapshot {
   lockup: string;
   taken: string;
   confiscated: string[];
+  /** The one chance, or that it's been had. */
   jailbreak: string;
+  canBreakOut: boolean;
 }
 
 export interface ReleaseSnapshot {
@@ -72,7 +77,7 @@ export interface JailActions {
   serve(): void;
   /** Send word to a hideout for bail. */
   sendWord(hideout: string): void;
-  /** The jailbreak: not yet (Phase 7). */
+  /** The jailbreak (Phase 7 piece G): tonight, from the cell. */
   jailbreak(): void;
   /** At the gallows: the end. */
   hang(): void;

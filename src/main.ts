@@ -2262,10 +2262,12 @@ async function boot(): Promise<void> {
         input.context = 'menu';
       } else {
         machine.removeOverlay('jail');
-        input.context = machine.mode === 'chart' ? 'chart' : 'sailing';
+        // Out of the jail screen into the cell (a jailbreak), or back to the helm.
+        input.context =
+          machine.mode === 'chart' ? 'chart' : machine.mode === 'onFoot' ? 'onFoot' : 'sailing';
         input.endTick();
       }
-      if (cameraRig) cameraRig.suspended = open;
+      if (cameraRig) cameraRig.suspended = open || machine.mode === 'onFoot';
       hudClock = HUD_INTERVAL_S;
     },
     afterSkip: () => ctx.weather.tick(state.environment.clock.gameSeconds, shipPose(), ctx.sea),
@@ -2273,6 +2275,25 @@ async function boot(): Promise<void> {
     backAboard,
     endRun: (cause) => endTheRun(cause),
     save: () => saveControls.saveNow(),
+    // The jailbreak (Phase 7 piece G): the ship lies impounded at the lockup's pier, tied
+    // up with nobody aboard, and you're put in the cell on foot.
+    breakOut: async (start) => {
+      const a = ashoreRef.current;
+      if (!a) return 'Not now';
+      await dockAt(lockup.port, lockup.pier);
+      const h = hazards.state;
+      if (!h.berthId) return 'Your ship is not at the city dock';
+      h.mooring = 'docked';
+      h.mooringS = 0;
+      Object.assign(sailing.state, { speed: 0, sailLevel: 0, sailSetting: 0 });
+      ports.markDocked(h.berthId);
+      return a.breakOut(start);
+    },
+    offFeet: (title, line) =>
+      ashoreRef.current?.active
+        ? ashoreFade(title, line, () => ashoreRef.current?.leave())
+        : Promise.resolve(),
+    notice: (text) => showNotice(text),
   });
   captureRef.current = capture;
   endRef.current = endTheRun;
@@ -2379,6 +2400,9 @@ async function boot(): Promise<void> {
       pending: () => capture.pending,
       state: () => state.jail,
       serve: () => capture.actions.serve(),
+      breakOut: () => capture.actions.jailbreak(),
+      breakingOut: () => capture.breakingOut,
+      debt: () => state.jailDebt,
       sendWord: (hideout = 'hideout.stockton') => capture.actions.sendWord(hideout),
       hang: () => capture.actions.hang(),
       leave: () => capture.actions.leave(),
@@ -2571,7 +2595,9 @@ async function boot(): Promise<void> {
     } finally {
       changingZone = false;
       ui.setLoading(undefined);
-      input.context = machine.mode === 'onFoot' ? 'onFoot' : 'sailing';
+      // Recaptured on a jailbreak, the jail screen is already up behind the fade.
+      input.context =
+        machine.mode === 'onFoot' ? 'onFoot' : captureRef.current?.open ? 'menu' : 'sailing';
       input.endTick();
       machine.removeOverlay('loading');
       document.body.dataset['zoneLoad'] = 'done';
@@ -2753,7 +2779,7 @@ async function boot(): Promise<void> {
       return districtFrame(def, districtFootprint(def, manifestFrame(zone.manifest)));
     },
     // The night watch on its navmesh (piece D's guards), sized by the region's Wanted tier.
-    watch: (landing, onCaptured) => {
+    watch: (landing, onCaptured, jailbreak) => {
       if (!landing.nav) return undefined;
       const region = (): string => law.region() ?? '';
       const tierNow = (): number => wantedTier(law.defs, state.wanted[region()]?.heat ?? 0);
@@ -2781,7 +2807,20 @@ async function boot(): Promise<void> {
         onCaptured,
         suspect: () => suspectOverride.value,
         // Piece E: the tool belt spends your purse and stores; its crimes go to the law.
-        pockets: state.player,
+        // Out of a cell you've nothing on you: your stores are aboard the impounded ship.
+        pockets: jailbreak ? { purse: 0, stores: {} } : state.player,
+        // Piece G: the lockup's night, and what comes of it to the jail.
+        ...(jailbreak
+          ? {
+              jailbreak: {
+                rules: gameJail().jailbreak,
+                execution: jailbreak.execution,
+                promiseCents: jailbreak.promiseCents,
+                dawnAt: jailbreak.dawnAt,
+                on: (e) => capture.jailbreakEvent(e),
+              },
+            }
+          : {}),
         hasWeapon: (id) => !!state.player.ship?.weapons.some((w) => w.weapon === id),
         law: {
           commit: (input) => law.commit(input),
@@ -2834,6 +2873,11 @@ async function boot(): Promise<void> {
     },
     // Taken on foot: to the lockup as the Morrill would take you at sea (Phase 5's jail).
     captured: (by, conduct) => {
+      // Taken again on a jailbreak: back to the cell, or the rope.
+      if (capture.breakingOut) {
+        capture.recaptured();
+        return;
+      }
       ctx.events.emit('PlayerCaptured', {
         by: by === 'npc.watchman' || by === 'npc.marshal' ? by : 'npc.constable',
         region: law.region() ?? '',
@@ -2842,6 +2886,7 @@ async function boot(): Promise<void> {
         ...(conduct ? { conduct } : {}),
       });
     },
+    jailbroke: () => capture.jailbroke(),
     view: scene && {
       render: (alpha, seaTime, frameSeconds) => view?.render(alpha, seaTime, frameSeconds),
       get foot() {
@@ -2970,6 +3015,28 @@ async function boot(): Promise<void> {
           guards: w?.readout().guards.map((g) => ({ ...g })) ?? [],
           gem: document.body.dataset['gem'],
         };
+      },
+      /** The jailbreak under way (piece G): the cell, the door and the jailer, local meters. */
+      jailbreak: () => {
+        const j = ashore.watch?.jailbreak;
+        const g = ashore.watch?.stealth.guard('constable.jailer');
+        return (
+          j && {
+            inCell: j.inCell,
+            doorOpen: j.doorOpen,
+            hasKeys: j.hasKeys,
+            inIrons: j.inIrons,
+            left: j.left,
+            cell: { ...j.cell.spawn, door: { x: j.cell.door.x, z: j.cell.door.z } },
+            jailer: g && {
+              state: g.state,
+              x: g.body.position.x,
+              z: g.body.position.z,
+              waitS: g.waitS,
+            },
+            banner: ashore.hud().banner,
+          }
+        );
       },
       /** The ships moored in the district (piece F): gangway, hold and cabin, local meters. */
       moored: () =>
@@ -3885,6 +3952,7 @@ async function boot(): Promise<void> {
           notice: notice?.text,
           inBoat: body.inBoat,
           mouseLocked: footLook.locked,
+          banner: body.banner,
         });
         document.body.dataset['ashore'] = body.inBoat
           ? 'boat'
