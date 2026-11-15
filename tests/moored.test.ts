@@ -461,6 +461,24 @@ describe.skipIf(!baked)('the whiskey trick (§6.2)', () => {
     expect(fast).toBeCloseTo(slow / 2, 5);
   });
 
+  it("isn't shaken awake by the next ship's watch across the pier", () => {
+    const s = scene({ at: EVENING, bottles: 2, ships: [WREN, LUND] });
+    s.watch.standCrew(s.ship());
+    s.clock.t = EVENING + 3600;
+    s.step();
+    expect(s.sailor()?.state).toBe('unconscious');
+    // The other watch has him in plain sight for a good while.
+    const found: string[] = [];
+    s.watch.stealth.on((e) => {
+      if (e.type === 'BodyFound') found.push(e.npc);
+    });
+    s.step(20);
+    expect(found).toEqual([s.ship().watch]);
+    s.clock.t = EVENING + 3 * 3600;
+    s.step();
+    expect(s.sailor()?.state).toBe('unconscious');
+  });
+
   it('is remembered through a reload ashore, and forgotten the next night', () => {
     const first = scene({ at: EVENING, bottles: 2 });
     first.watch.standCrew(first.ship());

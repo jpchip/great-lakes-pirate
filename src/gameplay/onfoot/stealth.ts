@@ -679,7 +679,9 @@ export function createStealth(
     const dead = o.state === 'dead';
     const drunk = !dead && o.downBy === 'drink' && o.state === 'unconscious';
     emit({ type: 'BodyFound', npc: o.id, finder: finder.id, dead, drunk });
-    if (!dead) o.untilGame = Math.min(o.untilGame, nowGame + FOUND_WAKE_GAME_S);
+    // A man out on a crew's bottle (`sleepUntil`) can't be shaken awake before his time.
+    const deadDrunk = drunk && o.sleepUntil > nowGame;
+    if (!dead && !deadDrunk) o.untilGame = Math.min(o.untilGame, nowGame + FOUND_WAKE_GAME_S);
     // Asleep on watch with a bottle: a shake and a curse, no alarm.
     if (drunk) return;
     if (o.state === 'bound') o.state = 'unconscious';
