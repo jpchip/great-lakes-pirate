@@ -149,9 +149,17 @@ export function districtLamps(model: DistrictModel): Lamp[] {
 /** Gas lamps are lit when the sky's own light falls below this (as the guards' lanterns). */
 export const LAMPS_LIT_BELOW = 0.3;
 
+/**
+ * Lights the lamps after dark. A doused one stays dark until it's relit (`stealth.ts`), and
+ * dawn puts every lamp out and forgets which were doused: the lamplighter's round at dusk
+ * lights them all again.
+ */
 export function lightLamps(lamps: readonly Lamp[], ambient01: number): void {
   const lit = ambient01 < LAMPS_LIT_BELOW;
-  for (const l of lamps) l.lit = lit;
+  for (const l of lamps) {
+    if (!lit) l.doused = false;
+    l.lit = lit && !l.doused;
+  }
 }
 
 /** Buildings anyone may be in: shops in hours, the saloon into the night. */

@@ -52,6 +52,7 @@ import {
   type AshoreScene,
 } from './onfoot/ashore-scene';
 import { FollowCamera, ROWING_CAMERA, roofOver } from './onfoot/camera';
+import { createLean, leaning, resetLean, stepLean, type Lean } from './onfoot/lean';
 import { footprintDistance, type Collider, type Push } from './onfoot/colliders';
 import type { Watch } from './onfoot/watch';
 import { keeperSpot, keeperType } from './onfoot/shops';
@@ -201,6 +202,8 @@ export interface GameAshore {
   readonly active: boolean;
   readonly inBoat: boolean;
   readonly character: CharacterState;
+  /** Leaning (Q/E): how far, and the head's offset in the scene's meters. */
+  readonly lean: Readonly<Lean>;
   readonly boat: RowboatState | undefined;
   readonly boatState: RowboatSave['state'];
   readonly scene: AshoreScene | undefined;
@@ -304,6 +307,8 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
   const input = ctx.input;
   const state = ctx.state;
   const character = createCharacter({ x: 0, y: 0, z: 0 });
+  // Q/E: the head and the camera out to one side, the feet where they are (plan 08 §3.1).
+  const lean = createLean();
   const previous: Transform = { position: { x: 0, y: 0, z: 0 }, heading: 0 };
   const walkCamera = new FollowCamera();
   const rowCamera = new FollowCamera(ROWING_CAMERA);
@@ -988,6 +993,7 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
     const ahead = (input.isDown('MoveForward') ? 1 : 0) - (input.isDown('MoveBack') ? 1 : 0);
     const side = (input.isDown('MoveRight') ? 1 : 0) - (input.isDown('MoveLeft') ? 1 : 0);
     if (inBoat && boat) {
+      resetLean(lean);
       boatPrev = { x: boat.x, z: boat.z, heading: boat.heading };
       stepRowboat(boat, { pull: ahead, turn: side }, rowEnv, dt);
       if (swamped(deps.hsAt(boat.x, boat.z))) {
@@ -1035,6 +1041,18 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
         scene,
         dt,
         watch ? watch.params(DEFAULT_CONTROLLER) : DEFAULT_CONTROLLER,
+      );
+      // Q/E: lean round a corner, standing still with your hands free.
+      stepLean(
+        lean,
+        (input.isDown('LeanRight') ? 1 : 0) - (input.isDown('LeanLeft') ? 1 : 0),
+        character,
+        ahead !== 0 || side !== 0,
+        !watch?.heist?.carrying && !watch?.tools?.carrying,
+        walkCamera.yaw,
+        scene,
+        character.crouching ? DEFAULT_CONTROLLER.crouchHeight : DEFAULT_CONTROLLER.standHeight,
+        dt,
       );
       // The edge of what's built: the rest of the shore is for another day.
       const b = scene.bounds;
@@ -1104,11 +1122,12 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
     }
 
     // The night watch looks and listens after you've moved (plan 08 §4–5).
-    if (watch && !taken) watch.step(dt, character);
+    const leanNow = leaning(lean) ? { x: lean.offsetX, z: lean.offsetZ } : undefined;
+    if (watch && !taken) watch.step(dt, character, leanNow);
     // The marshal posse on the island (piece H): wanted men are hunted on the island.
     if (posse && !taken && !inBoat && scene) {
       const p = character.position;
-      posse.step(dt, character, true, scene.surfaceAt?.(p.x, p.z));
+      posse.step(dt, character, true, scene.surfaceAt?.(p.x, p.z), leanNow);
       if (posse.captured) takenBy('npc.marshal');
     }
     if (!active || taken) return;
@@ -1203,7 +1222,9 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
         !inBoat &&
         (district ? !!district.model.buildingAt(x, head - 0.3, z) : roofOver(scene, x, head, z));
       underRoof = indoors;
-      cam.update(feet, character.crouching || character.swimming, scene, frameSeconds, indoors);
+      // Leaning, the camera's pivot goes out with your head.
+      const pivot = inBoat ? feet : { x: x + lean.offsetX, y, z: z + lean.offsetZ };
+      cam.update(pivot, character.crouching || character.swimming, scene, frameSeconds, indoors);
       // The scene's frame out to the zone's, where the world is drawn.
       const out = (p: { x: number; y: number; z: number }): { x: number; y: number; z: number } => {
         const q = toZone(p.x, p.z);
@@ -1217,6 +1238,7 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
           model: district.model,
           frame: district.frame,
           focus: { x, y: head, z },
+          doused: watch ? watch.lamps.flatMap((l, k) => (l.doused ? [k] : [])) : [],
         },
         guards: [
           ...keepers(),
@@ -1251,6 +1273,11 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
           crouching: character.crouching,
           swimming: character.swimming,
           visible: !inBoat,
+          // The head's offset in the zone's frame, for the lean of the figure.
+          lean: (() => {
+            const h = out({ x: x + lean.offsetX, y, z: z + lean.offsetZ });
+            return { x: h.x - at.x, z: h.z - at.z };
+          })(),
         },
         boat: boatFrame,
         shipGone: from === 'wreck',
@@ -1268,6 +1295,7 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
       return inBoat;
     },
     character,
+    lean,
     get boat() {
       return boat;
     },

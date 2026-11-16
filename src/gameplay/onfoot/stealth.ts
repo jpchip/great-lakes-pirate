@@ -32,6 +32,7 @@ import {
   fogOnFoot01,
   look,
   meterRate,
+  viewZone,
   recognitionRate,
   SUSPICIOUS,
   type Figure,
@@ -137,6 +138,10 @@ export interface Guard {
   lookInS: number;
   /** Progress check while walking, for getting unstuck. */
   stuck: { x: number; z: number; s: number };
+  /** A doused lamp they've seen and are going to light again (state `distracted`). */
+  relight: Lamp | undefined;
+  /** Seconds spent at the lamp, relighting it. */
+  relightS: number;
 }
 
 export type StealthEvent =
@@ -152,6 +157,7 @@ export type StealthEvent =
     }
   | { type: 'BodyFound'; npc: string; finder: string; dead: boolean; drunk: boolean }
   | { type: 'GuardWoke'; npc: string; identified: boolean; drank: boolean }
+  | { type: 'LampRelit'; npc: string; x: number; z: number }
   | { type: 'Captured'; npc: string; by: string };
 
 /** What the district gives the guards. */
@@ -188,6 +194,8 @@ export interface StealthInputs {
   fame01: number;
   /** The region's Wanted tier: from 2, a guard who knows your face raises the alarm. */
   wantedTier: number;
+  /** Leaning (Q/E): the head's offset from the feet, meters (`lean.ts`). */
+  lean?: { x: number; z: number };
 }
 
 /** Looks a second (each guard; staggered). */
@@ -219,6 +227,14 @@ export const BOUND_GAME_S = 6 * 3600;
 const FOUND_WAKE_GAME_S = 60;
 /** Night lanterns are lit below this sky light. */
 const LANTERN_BELOW = 0.3;
+/**
+ * A doused lamp (plan 08 §6, "guards notice and relight"): seen inside this range, in their
+ * sight and with nothing in the way, a guard on his round goes over and lights it again.
+ */
+export const NOTICE_DOUSED_M = 25;
+/** Close enough to the post to light it, meters, and seconds it takes. */
+export const RELIGHT_REACH_M = 2.2;
+export const RELIGHT_S = 3;
 
 export interface GuardReadout {
   id: string;
@@ -368,6 +384,8 @@ export function createStealth(
       grabS: 0,
       lookInS: k / Math.max(1, spawns.length) / LOOK_HZ,
       stuck: { x: start.x, z: start.z, s: 0 },
+      relight: undefined,
+      relightS: 0,
     };
   });
   const byId = new Map(guards.map((g) => [g.id, g]));
@@ -416,8 +434,18 @@ export function createStealth(
   };
   let prevSwimming = false;
 
+  /** Doused lamps a guard is already on his way to light. */
+  const claimed = new Set<Lamp>();
+  const dropRelight = (g: Guard): void => {
+    if (!g.relight) return;
+    claimed.delete(g.relight);
+    g.relight = undefined;
+    g.relightS = 0;
+  };
+
   const setState = (g: Guard, to: GuardState): void => {
     if (g.state === to) return;
+    if (to !== 'distracted') dropRelight(g);
     const from = g.state;
     g.state = to;
     g.stateS = 0;
@@ -539,6 +567,7 @@ export function createStealth(
         return;
       case 'distraction':
         if (g.state === 'patrol' || g.state === 'return' || g.state === 'distracted') {
+          dropRelight(g);
           g.stimulus = at;
           setState(g, 'distracted');
           goTo(g, at);
@@ -583,6 +612,7 @@ export function createStealth(
       swimming: p.swimming,
       carrying: inputs.carrying ?? false,
       height: p.crouching ? params.crouchHeight : params.standHeight,
+      ...(inputs.lean ? { leanX: inputs.lean.x, leanZ: inputs.lean.z } : {}),
     };
   };
 
@@ -672,6 +702,68 @@ export function createStealth(
       if (!seen.seen || seen.closeness01 < BODY_CLOSENESS) continue;
       findBody(g, o);
     }
+
+    if (!g.relight && (g.state === 'patrol' || g.state === 'return')) noticeDoused(g);
+  };
+
+  const lampAt: P3 = { x: 0, y: 0, z: 0 };
+  /** A doused lamp in sight: he goes over to light it (plan 08 §6). Sailors keep their post. */
+  const noticeDoused = (g: Guard): void => {
+    if (g.type.witness === 'sailor') return;
+    const pos = g.body.position;
+    eye.x = pos.x;
+    eye.y = pos.y + EYE_M;
+    eye.z = pos.z;
+    for (const l of world.lamps.lamps) {
+      if (!l.doused || claimed.has(l)) continue;
+      if (dist(pos, l) > NOTICE_DOUSED_M) continue;
+      if (viewZone(g.body.heading, eye, l, g.type.sight) === 'none') continue;
+      // Sight to the lamp's head, from just this side of its own post.
+      const d = Math.max(0.01, dist(pos, l));
+      lampAt.x = l.x + ((pos.x - l.x) / d) * 0.4;
+      lampAt.y = l.y - 0.2;
+      lampAt.z = l.z + ((pos.z - l.z) / d) * 0.4;
+      if (lineBlocked(world.zone.colliders, eye, lampAt, world.zone.ground, 1)) continue;
+      claimed.add(l);
+      g.relight = l;
+      g.relightS = 0;
+      g.stimulus = { x: l.x, z: l.z };
+      // A light out where one should be: uneasy, not yet suspicious.
+      g.meter = Math.max(g.meter, SUSPICIOUS * 0.5);
+      setState(g, 'distracted');
+      // To the foot of the post: x and z only, or the flame's height reads as a floor.
+      goTo(g, { x: l.x, z: l.z });
+      return;
+    }
+  };
+
+  /** On his way to a doused lamp, then a few seconds at the post lighting it. */
+  const relighting = (g: Guard, l: Lamp, dt: number): void => {
+    if (!l.doused) {
+      // Lit already (dawn, or another hand): back to the round.
+      dropRelight(g);
+      setState(g, 'return');
+      return;
+    }
+    if (dist(g.body.position, l) > RELIGHT_REACH_M) {
+      if (walk(g, dt, false)) {
+        // Arrived as near as the paths go, and still out of reach: leave it be.
+        dropRelight(g);
+        setState(g, 'return');
+      }
+      return;
+    }
+    g.path = undefined;
+    stand(g, dt);
+    turnTo(g, headingTo(g.body.position, l), dt, 4);
+    g.relightS += dt;
+    if (g.relightS < RELIGHT_S) return;
+    l.doused = false;
+    l.lit = true;
+    dropRelight(g);
+    emit({ type: 'LampRelit', npc: g.id, x: l.x, z: l.z });
+    // Then a look round, as after any distraction, before going back to the round.
+    g.stateS = 0;
   };
 
   const findBody = (finder: Guard, o: Guard): void => {
@@ -923,6 +1015,10 @@ export function createStealth(
         return;
       }
       case 'distracted': {
+        if (g.relight) {
+          relighting(g, g.relight, dt);
+          return;
+        }
         const at = g.stimulus ?? g.body.position;
         if (walk(g, dt, false)) {
           stand(g, dt);
@@ -1029,7 +1125,10 @@ export function createStealth(
       if (inputs.playerLantern?.lit) carried.push(inputs.playerLantern);
 
       const p = inputs.player.position;
-      lastLight = lightAt(p.x, p.y, p.z, ambient, world.lamps, carried);
+      // Leaning out of a shadow puts your head in whatever light is there.
+      const lx = inputs.lean?.x ?? 0;
+      const lz = inputs.lean?.z ?? 0;
+      lastLight = lightAt(p.x + lx, p.y, p.z + lz, ambient, world.lamps, carried);
       lastExposure = exposure(lastLight.level01, figureOf(inputs));
       if (!captured) playerSounds(inputs);
 
