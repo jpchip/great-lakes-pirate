@@ -40,7 +40,7 @@ function hasAll(have: Goods, need: Goods): boolean {
 }
 
 /** Takes `qty` of a good from the sources, clean stacks before hot ones. */
-function take(sources: Hold[], good: string, qty: number): void {
+export function takeMaterials(sources: Hold[], good: string, qty: number): void {
   let left = qty;
   for (const hold of sources) {
     const order = hold
@@ -137,7 +137,7 @@ export function runWorkSession(
       if (!stands(standing, site, p.piece).ok) continue;
       for (const [g, n] of Object.entries(cost)) {
         have[g] = (have[g] ?? 0) - n;
-        take(sources, g, n);
+        takeMaterials(sources, g, n);
       }
       addGoods(used, cost);
       grid.setBuilt(p.uid, true);

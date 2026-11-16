@@ -322,12 +322,29 @@ export const hideoutsSchema = z.record(
     storage: z.object({
       goods: z.array(cargoStackSchema),
       cash: z.number().int().nonnegative(),
+      /**
+       * Things made at its stations, by id (Phase 8 piece E): kits, picks, crates,
+       * barrels, the false-light rig, upgrades for the slipway. Absent: none.
+       */
+      things: z.record(z.string(), z.number().int().nonnegative()).optional(),
     }),
     /**
      * Its pieces, packed (plan 09 §10, §12; Phase 8 piece A, save v10): a v9 run's Stockton
      * prefab migrates to the starter shack with the same 40 CU and strongbox.
      */
     layout: packedLayoutSchema,
+    /**
+     * The still's loaded batches (plan 09 §7.3, §12 `stations{id: {queue}}`; piece E), by
+     * station id. Absent: nothing loaded, so no version bump.
+     */
+    stations: z
+      .record(
+        z.string(),
+        z.object({
+          queue: z.array(z.object({ recipe: z.string(), readyAt: z.number() })),
+        }),
+      )
+      .optional(),
   }),
 );
 

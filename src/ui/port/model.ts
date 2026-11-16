@@ -25,6 +25,7 @@ import {
   storeItems,
   storeOffered,
   storePriceCents,
+  storeMax,
   storeRoom,
   type ShipStores,
 } from '../../sim/economy/chandlery';
@@ -916,8 +917,11 @@ export function portSnapshot(src: PortSources): PortSnapshot {
             blurb: item.blurb,
             priceCents: price,
             have: trader.stores[item.id] ?? 0,
-            max: item.max,
-            maxBuy: Math.min(storeRoom(trader.stores, item), Math.floor(trader.purse / price)),
+            max: storeMax(item, src.ship?.state.upgrades),
+            maxBuy: Math.min(
+              storeRoom(trader.stores, item, src.ship?.state.upgrades),
+              Math.floor(trader.purse / price),
+            ),
           };
         })
     : [];

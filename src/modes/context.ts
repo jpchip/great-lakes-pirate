@@ -126,6 +126,25 @@ export interface GameEvents {
     qty?: number;
     cents?: number;
   };
+  /**
+   * Something made at a hideout's station (plan 09 §12 `ItemCrafted`; Phase 8 piece E):
+   * an active station's batches, or a still loaded (its goods come with
+   * `ProductionCompleted`).
+   */
+  ItemCrafted: {
+    hideout: string;
+    recipe: string;
+    batches: number;
+    goods: Record<string, number>;
+    things: Record<string, number>;
+  };
+  /** A passive station's batch ran off into the hideout's storage (plan 09 §7.3). */
+  ProductionCompleted: {
+    hideout: string;
+    station: string;
+    recipe: string;
+    goods: Record<string, number>;
+  };
   /** The captain let the clock run on at anchor or alongside (piece E). */
   LayAtAnchor: { until: LieUntil; seconds: number };
   /**

@@ -2144,6 +2144,168 @@ body[data-mode='chart'] .chart-layer {
   flex-wrap: wrap;
 }
 
+/* The workshop: crafting at a hideout's stations (Phase 8 piece E). */
+.craft-body {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.craft-stations {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 130px;
+}
+
+.craft-station {
+  flex: 1;
+  min-width: 0;
+  max-height: min(52vh, 520px);
+  overflow-y: auto;
+}
+
+.craft-recipes {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.craft-recipe {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  column-gap: 14px;
+  padding: 5px 0 6px;
+  border-bottom: 1px solid rgba(43, 33, 24, 0.12);
+}
+
+.craft-recipe.unable .craft-recipe-head strong {
+  opacity: 0.6;
+}
+
+.craft-recipe-head {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.craft-blurb {
+  margin: 2px 0;
+  font-size: 13px;
+}
+
+.craft-inputs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px 10px;
+  margin: 2px 0;
+  font-size: 13px;
+}
+
+.craft-inputs .short {
+  color: var(--signal-red);
+}
+
+.craft-arrow {
+  opacity: 0.6;
+}
+
+.craft-out {
+  font-weight: 600;
+}
+
+.craft-recipe > :not(.craft-make) {
+  grid-column: 1;
+}
+
+.craft-make {
+  grid-column: 2;
+  grid-row: 1 / span 3;
+  align-self: center;
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  max-width: 220px;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.craft-make input {
+  width: 56px;
+}
+
+.craft-queue {
+  margin: 4px 0 6px;
+  padding: 4px 8px;
+  background: rgba(43, 33, 24, 0.06);
+  font-size: 13px;
+}
+
+.craft-queue ul {
+  margin: 2px 0 0;
+  padding-left: 18px;
+}
+
+.craft-things {
+  margin-top: 10px;
+  padding-top: 6px;
+  border-top: 1px solid var(--paper-dark);
+}
+
+.craft-things h3 {
+  margin: 0 0 4px;
+  font-size: 15px;
+}
+
+.craft-things ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 18px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.craft-things li {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  padding: 2px 8px;
+  background: rgba(43, 33, 24, 0.06);
+}
+
+.craft-lockers {
+  margin: 6px 0 0;
+  font-size: 13px;
+}
+
+.stash-row-buttons {
+  display: flex;
+  gap: 4px;
+}
+
+@media (max-width: 640px) {
+  .craft-body {
+    flex-direction: column;
+  }
+
+  .craft-stations {
+    flex-direction: row;
+    flex-wrap: wrap;
+  }
+
+  .craft-things ul {
+    flex-direction: column;
+  }
+
+  .craft-make {
+    grid-column: 1;
+    grid-row: auto;
+    justify-content: flex-start;
+  }
+}
+
 .menu.lie {
   width: min(640px, calc(100vw - 32px));
 }

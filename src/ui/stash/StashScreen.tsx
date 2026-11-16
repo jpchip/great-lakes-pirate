@@ -2,7 +2,7 @@ import { useEffect, useState } from 'preact/hooks';
 import { formatCents } from '../../sim/economy/knowledge';
 import { LIE_CHOICES, type LieUntil } from '../../sim/hideouts/lie-at-anchor';
 import type { StashActions } from '../../gameplay/stash';
-import type { StashRow, StashSnapshot } from './model';
+import type { RecipeRow, StashRow, StashSnapshot, StationRow, WorkshopSnapshot } from './model';
 
 /**
  * The stash screen (plan 13 §5 "Storage transfer", plan 09 §3; Phase 4 piece E): opens
@@ -49,6 +49,7 @@ function Column({
   empty,
   onPick,
   testid,
+  onRecrate,
 }: {
   title: string;
   rows: StashRow[];
@@ -58,6 +59,7 @@ function Column({
   empty: string;
   onPick(row: StashRow, side: Side, e: MouseEvent): void;
   testid: string;
+  onRecrate?: ((row: StashRow) => void) | undefined;
 }) {
   return (
     <section class="stash-column" data-testid={testid}>
@@ -76,17 +78,31 @@ function Column({
               <span>
                 {r.hot && <Ember />} {r.name}
                 {r.contract && <small class="port-dim"> (contract)</small>}
+                {r.recrated && <small class="port-dim"> (re-crated)</small>}
               </span>
               <span class="hud-num">{r.qty} CU</span>
-              <button
-                type="button"
-                class="port-mini"
-                data-testid={`${side === 'in' ? 'stash' : 'take'}-${r.index}`}
-                title={`${side === 'in' ? 'Stash' : 'Take aboard'} (shift-click: all, ctrl-click: one)`}
-                onClick={(e) => onPick(r, side, e)}
-              >
-                {side === 'in' ? 'Stash →' : '← Take'}
-              </button>
+              <span class="stash-row-buttons">
+                {onRecrate && r.recrate > 0 && (
+                  <button
+                    type="button"
+                    class="port-mini"
+                    data-testid={`recrate-${r.index}`}
+                    title={`Re-crate ${r.recrate} CU in plain crates at the cooperage: the company's marks come off`}
+                    onClick={() => onRecrate(r)}
+                  >
+                    Re-crate
+                  </button>
+                )}
+                <button
+                  type="button"
+                  class="port-mini"
+                  data-testid={`${side === 'in' ? 'stash' : 'take'}-${r.index}`}
+                  title={`${side === 'in' ? 'Stash' : 'Take aboard'} (shift-click: all, ctrl-click: one)`}
+                  onClick={(e) => onPick(r, side, e)}
+                >
+                  {side === 'in' ? 'Stash →' : '← Take'}
+                </button>
+              </span>
             </li>
           ))}
         </ul>
@@ -202,6 +218,220 @@ function Cash({
   );
 }
 
+function Recipe({
+  recipe,
+  passive,
+  actions,
+  setMessage,
+}: {
+  recipe: RecipeRow;
+  passive: boolean;
+  actions: StashActions;
+  setMessage(m: string | undefined): void;
+}) {
+  const [n, setN] = useState(1);
+  const batches = Math.max(1, Math.min(n, Math.max(1, recipe.max)));
+  if (recipe.recrate) {
+    return (
+      <li class="craft-recipe" data-testid={`recipe-${recipe.id}`}>
+        <div class="craft-recipe-head">
+          <strong>{recipe.name}</strong>
+          <span class="port-dim">{recipe.timeText} a load</span>
+        </div>
+        <p class="craft-blurb">{recipe.blurb}</p>
+        <p class="craft-inputs port-dim">
+          A crate a load ({recipe.inputs[0]?.have ?? 0} here). Use Re-crate on a stolen lot in the
+          shed.
+        </p>
+      </li>
+    );
+  }
+  return (
+    <li
+      class={`craft-recipe${recipe.max > 0 ? '' : ' unable'}`}
+      data-testid={`recipe-${recipe.id}`}
+    >
+      <div class="craft-recipe-head">
+        <strong>{recipe.name}</strong>
+        <span class="port-dim">{passive ? `${recipe.timeText} a batch` : recipe.timeText}</span>
+      </div>
+      <p class="craft-blurb">{recipe.blurb}</p>
+      <p class="craft-inputs">
+        {recipe.inputs.map((i) => (
+          <span key={i.name} class={i.have >= i.need ? 'have' : 'short'}>
+            {i.need}
+            {i.unit ? ` ${i.unit}` : ' ×'} {i.name} <small class="hud-num">({i.have})</small>
+          </span>
+        ))}
+        {recipe.water && <span class="have">water</span>}
+        <span class="craft-arrow">→</span>
+        <span class="craft-out">{recipe.outputText}</span>
+      </p>
+      <div class="craft-make">
+        {recipe.max > 1 && (
+          <input
+            type="number"
+            min={1}
+            max={recipe.max}
+            value={batches}
+            aria-label="Batches"
+            data-testid={`batches-${recipe.id}`}
+            onInput={(e) => setN(Number((e.currentTarget as HTMLInputElement).value) || 1)}
+          />
+        )}
+        <button
+          type="button"
+          class="menu-button"
+          data-testid={`make-${recipe.id}`}
+          disabled={recipe.max <= 0}
+          title={recipe.refusal}
+          onClick={() => setMessage(actions.craft(recipe.id, batches))}
+        >
+          {passive ? 'Load the still' : 'Make'}
+        </button>
+        {recipe.max <= 0 && recipe.refusal && <small class="port-dim">{recipe.refusal}</small>}
+      </div>
+    </li>
+  );
+}
+
+function Station({
+  station,
+  actions,
+  setMessage,
+}: {
+  station: StationRow;
+  actions: StashActions;
+  setMessage(m: string | undefined): void;
+}) {
+  return (
+    <section class="craft-station" data-testid={`station-${station.id}`}>
+      <p class="port-dim craft-blurb">{station.blurb}</p>
+      {station.passive && (
+        <div class="craft-queue" data-testid="still-queue">
+          <strong>
+            In the still ({station.queue.length} / {station.queueMax})
+          </strong>
+          {station.queue.length === 0 ? (
+            <span class="port-dim"> Nothing loaded.</span>
+          ) : (
+            <ul>
+              {station.queue.map((b, i) => (
+                <li key={i}>
+                  {b.name}: {b.readyText}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+      <ul class="craft-recipes">
+        {station.recipes.map((r) => (
+          <Recipe
+            key={r.id}
+            recipe={r}
+            passive={station.passive}
+            actions={actions}
+            setMessage={setMessage}
+          />
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+/** The workshop (plan 09 §7, plan 13 §12; Phase 8 piece E): the stations built here. */
+function Workshop({
+  workshop,
+  actions,
+  setMessage,
+}: {
+  workshop: WorkshopSnapshot;
+  actions: StashActions;
+  setMessage(m: string | undefined): void;
+}) {
+  const [tab, setTab] = useState<string | undefined>(undefined);
+  const shown = workshop.stations.find((s) => s.id === tab) ?? workshop.stations[0];
+  return (
+    <div class="craft" data-testid="workshop">
+      {workshop.stations.length === 0 ? (
+        <p class="port-dim">
+          No workstations here yet. Build a workbench, smithy, cooperage or distillery, and what you
+          can make with them shows here.
+        </p>
+      ) : (
+        <div class="craft-body">
+          <nav class="craft-stations">
+            {workshop.stations.map((s) => (
+              <button
+                type="button"
+                key={s.id}
+                class={`menu-tab${shown?.id === s.id ? ' active' : ''}`}
+                data-testid={`station-tab-${s.id}`}
+                onClick={() => setTab(s.id)}
+              >
+                {s.name}
+                {s.passive && s.queue.length > 0 && <small> ({s.queue.length})</small>}
+              </button>
+            ))}
+          </nav>
+          {shown && <Station station={shown} actions={actions} setMessage={setMessage} />}
+        </div>
+      )}
+      <section class="craft-things" data-testid="workshop-things">
+        <h3>Made and kept here</h3>
+        {workshop.things.length === 0 ? (
+          <p class="port-dim">Nothing yet.</p>
+        ) : (
+          <ul>
+            {workshop.things.map((t) => (
+              <li key={t.id} data-testid="thing-row" data-thing={t.id}>
+                <span>{t.name}</span>
+                <span class="hud-num">{t.qty}</span>
+                {t.store ? (
+                  <button
+                    type="button"
+                    class="port-mini"
+                    data-testid={`take-thing-${t.id}`}
+                    title={`Into the lockers (${t.aboard} aboard); shift-click: one`}
+                    onClick={(e) => setMessage(actions.takeThing(t.id, e.shiftKey ? 1 : t.qty))}
+                  >
+                    ← Aboard
+                  </button>
+                ) : (
+                  <small class="port-dim">
+                    {t.id.startsWith('upgrade.') ? 'for the slipway' : 'kept here'}
+                  </small>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+        {workshop.lockers.length > 0 && (
+          <p class="port-dim craft-lockers">
+            In the lockers:{' '}
+            {workshop.lockers.map((t, i) => (
+              <span key={t.id}>
+                {i > 0 && ', '}
+                {t.qty} {t.name}{' '}
+                <button
+                  type="button"
+                  class="port-mini"
+                  data-testid={`leave-thing-${t.id}`}
+                  title="Leave one here"
+                  onClick={() => setMessage(actions.stashThing(t.id, 1))}
+                >
+                  leave one
+                </button>
+              </span>
+            ))}
+          </p>
+        )}
+      </section>
+    </div>
+  );
+}
+
 export function LieButtons({
   refusal,
   lie,
@@ -235,6 +465,7 @@ export function LieButtons({
 
 export function StashScreen({ stash, actions }: { stash: StashSnapshot; actions: StashActions }) {
   const [message, setMessage] = useState<string | undefined>(undefined);
+  const [view, setView] = useState<'storage' | 'workshop'>('storage');
   const [sel, setSel] = useState<{ good: string; index: number; side: Side } | undefined>();
   const list = sel?.side === 'in' ? stash.hold : stash.stash;
   const row = sel && (list.find((r) => r.index === sel.index && r.good === sel.good) ?? undefined);
@@ -253,34 +484,61 @@ export function StashScreen({ stash, actions }: { stash: StashSnapshot; actions:
         <header class="menu-header">
           <h2>{stash.siteName}</h2>
         </header>
+        <nav class="menu-tabs">
+          {(
+            [
+              ['storage', 'Storage'],
+              ['workshop', 'Workshop'],
+            ] as const
+          ).map(([id, label]) => (
+            <button
+              type="button"
+              key={id}
+              class={`menu-tab${view === id ? ' active' : ''}`}
+              data-testid={`stash-tab-${id}`}
+              onClick={() => {
+                setView(id);
+                setMessage(undefined);
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </nav>
         {message && (
           <p class="port-message" role="status" data-testid="stash-message">
             {message}
           </p>
         )}
-        <div class="port-body stash-body">
-          <Column
-            title="Hold"
-            rows={stash.hold}
-            used={stash.holdUsed}
-            capacity={stash.holdCapacity}
-            side="in"
-            empty="Empty."
-            onPick={pick}
-            testid="stash-hold"
-          />
-          <Column
-            title="Shed"
-            rows={stash.stash}
-            used={stash.stashUsed}
-            capacity={stash.stashCapacity}
-            side="out"
-            empty="Nothing stored."
-            onPick={pick}
-            testid="stash-store"
-          />
-        </div>
-        {row && sel && (
+        {view === 'workshop' && (
+          <Workshop workshop={stash.workshop} actions={actions} setMessage={setMessage} />
+        )}
+        {view === 'storage' && (
+          <div class="port-body stash-body">
+            <Column
+              title="Hold"
+              rows={stash.hold}
+              used={stash.holdUsed}
+              capacity={stash.holdCapacity}
+              side="in"
+              empty="Empty."
+              onPick={pick}
+              testid="stash-hold"
+            />
+            <Column
+              title="Shed"
+              rows={stash.stash}
+              used={stash.stashUsed}
+              capacity={stash.stashCapacity}
+              side="out"
+              empty="Nothing stored."
+              onPick={pick}
+              testid="stash-store"
+              onRecrate={(r) => setMessage(actions.craft('recipe.recrate', r.recrate, r.index))}
+            />
+          </div>
+        )}
+        {view === 'storage' && row && sel && (
           <MovePanel
             row={row}
             side={sel.side}
@@ -291,7 +549,7 @@ export function StashScreen({ stash, actions }: { stash: StashSnapshot; actions:
             }}
           />
         )}
-        <Cash stash={stash} actions={actions} setMessage={setMessage} />
+        {view === 'storage' && <Cash stash={stash} actions={actions} setMessage={setMessage} />}
         <footer class="menu-footer port-footer">
           <LieButtons refusal={stash.lieRefusal} lie={actions.lie} setMessage={setMessage} />
           <button
