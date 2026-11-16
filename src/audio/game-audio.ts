@@ -246,17 +246,20 @@ export async function createGameAudio(options: GameAudioOptions): Promise<GameAu
     if (running()) law.released();
     else law.dropPending();
   });
-  game.events.on('CutterHailed', (e) => {
-    const ship = lawShip(e.by);
-    if (ship && running()) law.hailed(ship, e);
-  });
-  game.events.on('CutterFired', (e) => {
-    const ship = lawShip(e.by);
-    if (ship && running()) law.fired(ship, e);
-  });
-  game.events.on('PursuitChanged', ({ pursued, by }) => {
+  // Her ships are seen once a sailing frame. A hail, a gun or her bell that comes before the
+  // first of those (the law can notice you the moment the arena is up, or the audio has only
+  // just started) waits for it rather than going unheard.
+  const lawWaiting: { by: string; play: (ship: LawShipView) => void }[] = [];
+  const onLawShip = (by: string, play: (ship: LawShipView) => void): void => {
+    if (!running()) return;
     const ship = lawShip(by);
-    if (pursued && ship && running()) law.pursuit(ship);
+    if (ship) play(ship);
+    else lawWaiting.push({ by, play });
+  };
+  game.events.on('CutterHailed', (e) => onLawShip(e.by, (ship) => law.hailed(ship, e)));
+  game.events.on('CutterFired', (e) => onLawShip(e.by, (ship) => law.fired(ship, e)));
+  game.events.on('PursuitChanged', ({ pursued, by }) => {
+    if (pursued) onLawShip(by, (ship) => law.pursuit(ship));
   });
 
   // Combat (Phase 6 piece G). The law's own guns stay with the law's sounds (piece H's
@@ -482,6 +485,7 @@ export async function createGameAudio(options: GameAudioOptions): Promise<GameAu
           law.stop();
           combat.stop();
           lawShipViews.length = 0;
+          lawWaiting.length = 0;
         }
       }
       const outsideNow = sailingNow || ashore !== undefined;
@@ -614,6 +618,10 @@ export async function createGameAudio(options: GameAudioOptions): Promise<GameAu
         },
         frameSeconds,
       );
+      for (const w of lawWaiting.splice(0)) {
+        const ship = lawShip(w.by);
+        if (ship) w.play(ship);
+      }
 
       targetViews.length = 0;
       for (const c of combatSource?.captains() ?? []) {
