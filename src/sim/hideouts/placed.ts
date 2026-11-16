@@ -13,8 +13,10 @@ import { cellGround } from './validity';
  * - Props: x, z as placed; `yawDeg` clockwise from above (90 turns -z toward +x).
  *
  * y is the walking surface for bases, the foot for edges and objects, and the eave for
- * roofs (a roof on level L sits on level L-1's walls), plus `riseM` for roof cells in
- * from the eave. `extendM` is how far a foundation, piling, pier or slipway reaches down
+ * roofs (a roof on level L sits on level L-1's walls) and chimneys, plus `riseM` for roof
+ * cells in from the eave and for the gables beside them. A sloped gable's high end is its
+ * local +x, so it's spelled from whichever side of its edge gives the rot that points up
+ * the roof (rot 1 rising toward +z, rot 3 toward -z). `extendM` is how far a foundation, piling, pier or slipway reaches down
  * to the ground or lake bed under it. Pieces on bare ground stand at the ground.
  */
 export interface PlacedRender {
@@ -92,6 +94,9 @@ export function placedRender(grid: BuildGrid, site: BuildSite): PlacedRender[] {
         } else if (p.level === 0 && (def.layer === 'base' || def.placement === 'water')) {
           const low = Math.min(...cells.map((c) => cellGround(site, c.col, c.row).min));
           base.extendM = Math.max(0, site.baseM - low);
+        } else if (def.id === 'build.chimney') {
+          // The stack is drawn from the eave of the level it stands on up (piece B).
+          base.y = (p.level + 1) * LEVEL_M;
         } else if (p.level === 0 && !cells.every((c) => grid.floorAt(c.col, c.row, 0))) {
           base.y = cellGround(site, p.col, p.row).mid - site.baseM;
         }
@@ -110,6 +115,25 @@ export function placedRender(grid: BuildGrid, site: BuildSite): PlacedRender[] {
           if (!grid.floorAt(p.col, p.row, 0) && !grid.floorAt(other.col, other.row, 0)) {
             base.y = site.ground(base.x, base.z) - site.baseM;
           }
+        }
+        if (def.onRoof) {
+          // A gable rises with the roof beside it (piece B stacks courses down to the eave).
+          const n = p.rot & 3;
+          const sides = [
+            { col: p.col, row: p.row },
+            {
+              col: p.col + (n === 1 ? 1 : n === 3 ? -1 : 0),
+              row: p.row + (n === 2 ? 1 : n === 0 ? -1 : 0),
+            },
+          ];
+          let steps = 0;
+          for (const c of sides) {
+            const roof = grid.baseAt(c.col, c.row, p.level);
+            if (roof && structure(roof.piece.id).placement === 'roof') {
+              steps = Math.max(steps, roofSteps(grid, roof.piece));
+            }
+          }
+          if (steps > 0) base.riseM = steps * ROOF_RISE_M;
         }
         break;
       }

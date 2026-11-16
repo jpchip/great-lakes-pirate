@@ -444,6 +444,19 @@ describe('placing for the renderer and colliders', () => {
         true,
       );
     expect(placedRender(r, flat).map((p) => p.riseM ?? 0)).toEqual([0, 1.2, 0]);
+    // Gables beside it rise with it; a chimney's stack starts at the eave.
+    r.add(P('wall_gable_peak', 0, 1, { level: 1, rot: 3 }), true);
+    r.add(P('wall_gable', 0, 0, { level: 1, rot: 3 }), true);
+    r.add(P('chimney', 4, 4), true);
+    expect(
+      placedRender(r, flat)
+        .slice(3)
+        .map((p) => [p.riseM ?? 0, p.y]),
+    ).toEqual([
+      [1.2, 3],
+      [0, 3],
+      [0, 3],
+    ]);
   });
 
   it('blocks walls, leaves a doorway, and walks on floors', () => {
