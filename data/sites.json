@@ -15,9 +15,17 @@
       "inlandM": -70,
       "radiusM": 90
     },
-    "storage": {
-      "goodsCu": 40,
-      "strongbox": true
+    "build": {
+      "alongM": -12,
+      "inlandM": 20,
+      "cols": 16,
+      "rows": 12,
+      "baseM": 2
+    },
+    "starter": {
+      "id": "starter.shack",
+      "col": 6,
+      "row": 4
     },
     "startFor": ["deckhand", "fisherman", "saloon_keeper", "ex_navy", "poacher"],
     "blurb": "A fisherman's shack left empty when the brownstone quarry closed, in a bay sheltered from the northwest. Nobody comes out here but the fish tugs."
@@ -37,10 +45,6 @@
       "alongM": 0,
       "inlandM": -140,
       "radiusM": 80
-    },
-    "storage": {
-      "goodsCu": 40,
-      "strongbox": true
     },
     "startFor": ["lumberjack"],
     "blurb": "Siskiwit Timber's camp behind Bark Point, cut out and left the winter before last: a dock, a tool shed, the office and what's left of the bunkhouse. Nobody comes by but the odd fish tug."

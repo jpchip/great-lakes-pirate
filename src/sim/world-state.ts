@@ -2,6 +2,7 @@ import { wrecksSchema } from './wrecks';
 import { z } from 'zod';
 import { lawShipsSchema } from './law/patrol';
 import { RUMOR_KINDS } from '../../data/schemas/rumors';
+import { packedLayoutSchema } from '../../data/schemas/structures';
 import { createClockState } from '../core/time';
 import { Rng } from '../core/rng';
 import { APOSTLES_ID } from './terrain/zones';
@@ -310,7 +311,7 @@ export const contrabandStateSchema = z.object({
 /**
  * Hideouts and what's stored in them (plan 09 §12 `hideouts[id]`; Phase 4 piece E): the
  * site, when it was claimed, and its storage of goods (stacks as in the hold, hot and
- * contract flags kept) and cash in the strongbox. Absent in a save from before piece E:
+ * contract flags kept), cash in the strongbox, and its pieces. Absent in a save from before piece E:
  * the background's starting hideout is given on load, empty, so no version bump.
  */
 export const hideoutsSchema = z.record(
@@ -322,6 +323,11 @@ export const hideoutsSchema = z.record(
       goods: z.array(cargoStackSchema),
       cash: z.number().int().nonnegative(),
     }),
+    /**
+     * Its pieces, packed (plan 09 §10, §12; Phase 8 piece A, save v10): a v9 run's Stockton
+     * prefab migrates to the starter shack with the same 40 CU and strongbox.
+     */
+    layout: packedLayoutSchema,
   }),
 );
 

@@ -323,6 +323,7 @@ Per-cell grid updates dominate. Everything else (480 markets, 200 ships) costs u
 ---
 
 ## Changelog
+- v1.5: Phase 8 piece A: save v10 adds each hideout's packed `layout` (palette plus `built` and `planned` arrays of 7 numbers a piece); v9 migrates every hideout to its site's starter shack with its goods and cash kept (§12).
 - v1.4: Phase 7: save v9 and its optional slices, the danger rule ashore and a burglar's season's save size (§12).
 - v1.3: Phase 6 playtest: save v8's optional slices listed and a month of piracy's save size (§12).
 - v1.2: Phase 6 piece A: save v8 with the ship's guns and loose powder (§12).

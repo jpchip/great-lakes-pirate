@@ -1,3 +1,6 @@
+import sitesJson from '../../../../data/sites.json';
+import startersJson from '../../../../data/starters.json';
+import structuresJson from '../../../../data/structures.json';
 import { Rng, type RngState } from '../../rng';
 
 /**
@@ -13,7 +16,7 @@ import { Rng, type RngState } from '../../rng';
 export type SavePayload = Record<string, unknown>;
 export type Migration = (state: SavePayload) => SavePayload;
 
-export const CURRENT_SAVE_VERSION = 9;
+export const CURRENT_SAVE_VERSION = 10;
 
 /** Hours of weather a migrated save catches up on at load, like a new run's spin-up. */
 const WEATHER_SPIN_UP_HOURS = 48;
@@ -155,6 +158,58 @@ function addAshore(state: SavePayload): SavePayload {
   };
 }
 
+interface PackedJson {
+  palette: string[];
+  built: number[];
+  planned: number[];
+}
+
+/** A site's starter layout laid at its corner cell, from the data files as plain JSON. */
+function starterFor(siteId: string): PackedJson {
+  const sites = sitesJson as { id: string; starter?: { id: string; col: number; row: number } }[];
+  const starters = startersJson as { id: string; layout: PackedJson }[];
+  const props = new Set(
+    (structuresJson as { id: string; placement: string }[])
+      .filter((s) => s.placement === 'prop')
+      .map((s) => s.id),
+  );
+  const at = sites.find((s) => s.id === siteId)?.starter ?? { id: 'starter.shack', col: 1, row: 1 };
+  const layout = starters.find((s) => s.id === at.id)?.layout;
+  if (!layout) return { palette: [], built: [], planned: [] };
+  const shift = (a: number[]): number[] => {
+    const out = [...a];
+    for (let i = 0; i + 7 <= out.length; i += 7) {
+      const k = props.has(layout.palette[out[i] ?? -1] ?? '') ? 8 : 1; // props step 0.25 m
+      out[i + 1] = (out[i + 1] ?? 0) + at.col * k;
+      out[i + 2] = (out[i + 2] ?? 0) + at.row * k;
+    }
+    return out;
+  };
+  return {
+    palette: [...layout.palette],
+    built: shift(layout.built),
+    planned: shift(layout.planned),
+  };
+}
+
+/**
+ * v9 → v10 (plan 09 §16.4, Phase 8 piece A): hideouts become grid pieces. Phase 4's Stockton
+ * stash was a fixed prefab (a shack, a 40 CU storage shed and a strongbox); each hideout a
+ * run has gets its site's pre-built starter (data/starters.json), whose shelving holds the
+ * same 40 CU and whose strongbox keeps the cash, so nothing stored is lost. The starter is
+ * read from the data at migration time, so a migrated run gets the shack a new run would.
+ */
+function addHideoutPieces(state: SavePayload): SavePayload {
+  const hideouts = state['hideouts'] as
+    Record<string, SavePayload & { siteId: string }> | undefined;
+  if (!hideouts) return state;
+  const out: Record<string, SavePayload> = {};
+  for (const [id, h] of Object.entries(hideouts)) {
+    out[id] = { ...h, layout: h['layout'] ?? starterFor(h.siteId) };
+  }
+  return { ...state, hideouts: out };
+}
+
 export const migrations: Readonly<Record<number, Migration>> = {
   1: addWeather,
   2: addLocation,
@@ -164,4 +219,5 @@ export const migrations: Readonly<Record<number, Migration>> = {
   6: addLaw,
   7: addWeapons,
   8: addAshore,
+  9: addHideoutPieces,
 };
