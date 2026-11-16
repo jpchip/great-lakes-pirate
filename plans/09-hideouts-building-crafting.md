@@ -337,7 +337,7 @@ Phase 8 is the **Hideouts** build (version 0.8.0, the MVP/Alpha by [17 §7](17-t
 
 The scope comes from §13 above and the Phase 8 rows of the other plans, plus what earlier phases left for it: the Stockton stash prefab that this phase replaces in place ([05 §16](05-ports-economy-trading.md), §2 above), the Siskiwit Bay zone and its hideout pad ([03 §20.5](03-world-scale-chart-travel.md)), the second smuggler who lies in Siskiwit Bay ([07 §14.6.1](07-combat-boarding-targets.md)), the Lumberjack's starting site ([05 §16](05-ports-economy-trading.md), [12 §2.2](12-sandbox-events-character-failure.md)), laying low and pursuit ending at a hideout ([06 §3.3, §5.4](06-fame-wanted-law-lighthouses.md)), crafted upgrades, drydock installs and shipless shipbuilding ([10 §13](10-ship-upgrades-customization.md)), the build and crafting UI ([13 §12](13-ui-ux.md)), the hideout kit and stations ([14 §13](14-art-direction-asset-pipeline.md)), build and craft sounds ([15 §11](15-audio.md)), the hideout save slices ([16 §12](16-save-persistence.md)), and Phase 7's open calls ([08 §20.8.3](08-docks-district-stealth.md)).
 
-This section is the phase's scope as proposed. Its exit criteria (§16.3) become the phase's acceptance checklist once Jared approves it, and the playtest piece checks them.
+This section is the phase's scope, with both decisions in §16.6 taken by Jared on 2026-11-16 as recommended. Its exit criteria (§16.3) are the phase's acceptance checklist, and the playtest piece checks them.
 
 ### 16.1 What Phases 4–7 change or put at risk
 
@@ -371,9 +371,9 @@ This section is the phase's scope as proposed. Its exit criteria (§16.3) become
 | Hideout life | Sleeping in a bunk at a hideout lays low (faster decay in its region) and autosaves; reaching a hideout's anchorage ends a pursuit; each site's concealment shown, with being spotted adding the site to the rumors about you; brownstone salvage at the Stockton quarry and lumber at the logging camp | §3, §6.2, §8, 06 §3.3, §5.4 |
 | Audio | Build sounds (saw, hammer, stone set, piece placed, refused, deconstructed), the work session's bed, the stations at work (forge, cooperage, still), and the UI set; the decoded budget raised to 8 MB | 15 §11, 08 §20.8.3 |
 | Saves | `hideouts[id].pieces` packed as §10 says, `stations{}` with their queues, discovered sites; save v10 with a v9 migration that rebuilds the Stockton prefab as pieces; dirty-slice saving if the hideout slices make autosaves slow | §12, 16 §12 |
-| Ambitions | By decision 1 | 12 §4.1 |
+| Ambitions | Pinning up to three goals, about twelve of them, with marks in the ledger (decision 1) | 12 §4.1 |
 
-**Out of scope:** the other five sites (after the MVP, §2.1); the sail loft, smokehouse, powder room and cartography table (Phase 9 with venison, clues and maps); wrecking with the false light (Phase 9; the rig is crafted now and used then); copycat rivals noticing hideouts (Phase 9, 12 §7); winter shelter and ice roads (Phase 9's winter); the island posse that searches (Phase 9); events and letters (decision 1); the Ashland, Duluth and Superior districts (8+ in 08 §2.2, left for after the MVP by §16.5); T2 shipbuilding (10 decides; §16.5 keeps it T1); and §14's cuts #1–5 by decision 2.
+**Out of scope:** the other five sites (after the MVP, §2.1); the sail loft, smokehouse, powder room and cartography table (Phase 9 with venison, clues and maps); wrecking with the false light (Phase 9; the rig is crafted now and used then); copycat rivals noticing hideouts (Phase 9, 12 §7); winter shelter and ice roads (Phase 9's winter); the island posse that searches (Phase 9); events and letters (Phase 9, decision 1); the Ashland, Duluth and Superior districts (8+ in 08 §2.2, left for after the MVP by §16.5); T2 shipbuilding (10 decides; §16.5 keeps it T1); and §14's cuts #1–5 by decision 2.
 
 ### 16.3 Exit criteria
 
@@ -402,7 +402,7 @@ Ten pieces, each sized to be one thread. Four can start at once (A, B, D and H).
 
 | Stage | Pieces |
 |---|---|
-| 1, start now | A the grid engine, B the hideout kit, D Siskiwit Bay, H Ambitions (by decision 1) |
+| 1, start now | A the grid engine, B the hideout kit, D Siskiwit Bay, H Ambitions |
 | 2 | C build mode and Stockton (after A, B), E crafting (after A) |
 | 3 | F hideout life (after A, C), G the slipway (after A, E), I build and craft audio (after C, E) |
 | 4 | J playtest and 0.8.0 |
@@ -416,7 +416,7 @@ Ten pieces, each sized to be one thread. Four can start at once (A, B, D and H).
 | E | Crafting | `stations.json`, `recipes.json`; crafting at a station from this hideout's storage, over game time like a work session; the workbench, smithy, cooperage and distillery recipes of §16.2; passive production while away (the still's queue and weekly cap, run by the clock on load and after time skips); re-crating hot goods; the false-light rig stored as an item; two crafted upgrades (§16.5) for the slipway to install; the crafting panel | A | — |
 | F | Hideout life | Sleep in a bunk: lay low (a decay factor for the hideout's region while asleep there), wake at an hour, autosave on sleeping and on leaving; pursuit ends when you reach a hideout's anchorage (06 §5.4: pursuers break off, the chart lock lifts); concealment per site from its base, pieces, lamps, smoke and a ship at anchor, shown in the build palette; being spotted by a passing ship adds the site to the rumors and the cutter's patrol; salvage at the Stockton quarry (brownstone) and the logging camp (lumber), a limited stock a season | A, C | — |
 | G | The slipway | The slipway and its depth and slope rules; full repairs from materials and a session; installing crafted upgrades; building a T1 when shipless (§16.5), with a new ship profile; the abandon-ship flow offering the hideout when you have a slipway | A, E | — |
-| H | Ambitions | By decision 1: `ambitions.json` with about twelve goals across the categories that can be met in the MVP (wealth across hideouts, infamy, trade, seamanship, builder), pinning up to three on the HUD and in the journal, the marks in the ledger, a small reward and a newspaper line | — | — |
+| H | Ambitions | `ambitions.json` with about twelve goals across the categories that can be met in the MVP (wealth across hideouts, infamy, trade, seamanship, builder), pinning up to three on the HUD and in the journal, the marks in the ledger, a small reward and a newspaper line | — | — |
 | I | Build and craft audio | Saw, hammer, stone set, placed, refused and deconstructed; the work session's bed; forge, cooperage and still; the UI set; the decoded budget raised to 8 MB in plan 15 and its pipeline test. Every file in `CREDITS.md` | C, E | Listen by ear |
 | J | Phase 8 playtest | The §16.3 scenarios, the benches, plans updated, tag 0.8.0 | All | Playtest, sign-off |
 
@@ -437,11 +437,11 @@ Ten pieces, each sized to be one thread. Four can start at once (A, B, D and H).
 
 ### 16.6 Decisions for Jared
 
-1. **Do events, letters and Ambitions come in Phase 8?** Plan 12 §11 puts the event system's first ten events, letters and Ambitions in Phase 8; the master plan's roadmap puts events in Phase 9, and the MVP definition lists neither.
+1. **Do events, letters and Ambitions come in Phase 8?** **Decided 2026-11-16: Ambitions now, events and letters in Phase 9** (Jared). Plan 12 §11 puts the event system's first ten events, letters and Ambitions in Phase 8; the master plan's roadmap puts events in Phase 9, and the MVP definition lists neither.
    - **Ambitions now, events and letters in Phase 9 (recommended):** Ambitions give the Alpha's sandbox its goals (and the builder ones need hideouts), and they're one small piece (H). The event system is mostly content and belongs with Phase 9's full catalog, the Hollister feud and the rivals.
    - **All three now, as plan 12 says:** a second large piece in Phase 8, about ten events across the rumor, paper and letter channels.
    - **None now:** Phase 8 stays hideouts only; Ambitions and events both go to Phase 9.
-2. **How much of the builder goes into 0.8.0?** §13 lists the whole build mode; §14's cut list names what can go.
+2. **How much of the builder goes into 0.8.0?** **Decided 2026-11-16: the core with drag and undo; cuts #1–5 left for later** (Jared). §13 lists the whole build mode; §14's cut list names what can go.
    - **The core with drag and undo, cuts #1–5 left for later (recommended):** placement, rotation, drag, deconstruct, eyedropper, undo, two levels and four stations; blueprints, the paint tool, the third level, the powder room and the lookout's traffic reveal come after the Alpha. This is enough for criterion 1 and keeps Phase 8 to about Phase 7's size.
    - **All of §13 plus blueprints and paint:** the full builder in 0.8.0. More expressive, a longer phase.
    - **The bare minimum:** single placement without drag (cut #6 too). Fastest, but criterion 1 gets hard.
@@ -459,7 +459,7 @@ Ten pieces, each sized to be one thread. Four can start at once (A, B, D and H).
 
 ## Changelog
 - v0.6: Phase 8 piece A built the grid engine as pure sim in `src/sim/hideouts/` (grid, validity, edit, work, placed): `data/structures.json` (63 pieces, piece B's `build.*` ids, material variants with costs in existing goods), `data/starters.json` (the starter shack: a 4×3 plank room on timber foundations with a gable roof, 5 shelving = 40 CU, a strongbox, a bunk and a stove; the short pier waits for piece C, which places it against the real shore), validity with a reason for every refusal, the support graph (upper floors and roofs carried by walls or posts below, spanning two cells), removal with dependents and the 75% refund, undo/redo, the work session (crew ×1/0.7/0.5, October ×1.25, November–April ×1.5), render placement for piece B and colliders, and save v10 (each hideout's `layout`, packed 7 numbers a piece). Sites gain optional `build` bounds and `starter`; storage capacity and the strongbox now come from built pieces. Stockton's bounds are a first guess for piece C to fit in the walked scene.
-- v0.5: Phase 8 scope (§16), as proposed 2026-11-16: what Phases 4–7 change, deliverables, exit criteria, ten work pieces, smaller calls and two decisions.
+- v0.5: Phase 8 scope (§16), as proposed 2026-11-16: what Phases 4–7 change, deliverables, exit criteria, ten work pieces, smaller calls and two decisions. Both decisions taken the same day: Ambitions in Phase 8 with events and letters in Phase 9, and the core builder with drag and undo (§14 cuts #1–5 later).
 - v0.4: Phase 4 piece E (plan 05 §19) built the Stockton Island stash as a fixed prefab: `data/sites.json` with its first site, the `hideouts` save slice of §12, storage transfer for goods and cash, and lying at anchor. Phase 8 replaces the prefab in place and keeps its contents.
 - v0.3: Gap review: MVP = 2 sites, mainland build pads, pre-built starting hideouts, MVP starting sites by background, hideouts end pursuit.
 - v0.2: Decisions: hideouts completely safe, no gathering (sawpit removed), passive production, shipless shipbuilding (§7.4), seven fixed sites.
