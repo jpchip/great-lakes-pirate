@@ -420,6 +420,8 @@ Ten pieces, each sized to be one thread. Four can start at once (A, B, D and H).
 | I | Build and craft audio | Saw, hammer, stone set, placed, refused and deconstructed; the work session's bed; forge, cooperage and still; the UI set; the decoded budget raised to 8 MB in plan 15 and its pipeline test. Every file in `CREDITS.md` | C, E | Listen by ear |
 | J | Phase 8 playtest | The §16.3 scenarios, the benches, plans updated, tag 0.8.0 | All | Playtest, sign-off |
 
+**Piece B built (2026-11-16):** the kit is 63 pieces in `src/render/hideout/pieces.ts`, one per id in `data/structures.json`, each built once per material with its lamp glass marked by a `glow` vertex attribute (the stylized material's `glow` option), so glass and body are one geometry. `src/render/hideout/hideout-view.ts` draws a hideout from piece A's render input (`placedRender`): one `InstancedMesh` per piece and material, a placement or removal writing one slot (swap-with-last), foundations, pilings and pier posts reaching down by `extendM`, gable ends up a wide roof standing on wall courses stacked down to the eave by `riseM`, lamps fed to the shader's pools, and a merged proxy (each piece's bounding box in its average color, roofs as slabs, glass still glowing) rebuilt 400 ms after the last edit and shown beyond 140 m. `bench.hideout` on a 1,500-piece compound that uses nearly every piece and material: 77 draw calls up close, 1 for the proxy, 259k triangles near and 21k far, placing a piece ≤ 0.4 ms, removing ≤ 0.1 ms, a proxy rebuild 17 ms (SwiftShader; the laptop's frame times are still to take). A hideout that uses every piece in every material would pass 80 calls; real hideouts use far fewer kinds. Edges at rot 3 (the -x side) turn a sloped gable the wrong way, so a gable's rot follows the roof's rise, not its side, and its outside detail may face in.
+
 ### 16.5 Smaller calls assumed (Jared can override)
 
 - **Materials are existing goods.** Lumber, brownstone, hardware (iron, nails and fittings), rope and canvas, kerosene, salt, powder and shot, and grain. Tar and pitch count as rope and canvas, glass as dry goods, and water comes from a well or rain barrel piece. No new goods, so markets and prices don't move.
@@ -458,6 +460,7 @@ Ten pieces, each sized to be one thread. Four can start at once (A, B, D and H).
 ---
 
 ## Changelog
+- v0.6: Phase 8 piece B built: the hideout kit, its instanced view and proxy, and `bench.hideout` (§16.4).
 - v0.5: Phase 8 scope (§16), as proposed 2026-11-16: what Phases 4–7 change, deliverables, exit criteria, ten work pieces, smaller calls and two decisions.
 - v0.4: Phase 4 piece E (plan 05 §19) built the Stockton Island stash as a fixed prefab: `data/sites.json` with its first site, the `hideouts` save slice of §12, storage transfer for goods and cash, and lying at anchor. Phase 8 replaces the prefab in place and keeps its contents.
 - v0.3: Gap review: MVP = 2 sites, mainland build pads, pre-built starting hideouts, MVP starting sites by background, hideouts end pursuit.

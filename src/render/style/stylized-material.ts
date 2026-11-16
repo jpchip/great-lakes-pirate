@@ -105,8 +105,15 @@ uniform vec3 uColor;
 varying vec3 vWorldPos;
 varying vec3 vWorldNormal;
 varying vec3 vColor;
+#ifdef USE_GLOW
+  attribute float glow;
+  varying float vGlow;
+#endif
 
 void main() {
+  #ifdef USE_GLOW
+    vGlow = glow;
+  #endif
   #ifdef USE_INSTANCING
     mat4 placed = modelMatrix * instanceMatrix;
   #else
@@ -220,6 +227,13 @@ const fragmentShader = /* glsl */ `
 ${STYLE_LIGHT_GLSL}
 ${DITHER_GLSL}
 uniform vec3 uEmissive;
+#ifdef USE_GLOW
+  // Per-vertex glass (the hideout kit's lanterns and windows): its own color dimmed by
+  // uGlowDim by day and lit by uGlow at night, so one mesh carries body and lamp glass.
+  uniform vec3 uGlow;
+  uniform float uGlowDim;
+  varying float vGlow;
+#endif
 
 varying vec3 vWorldPos;
 varying vec3 vWorldNormal;
@@ -248,6 +262,9 @@ void main() {
   #endif
 
   vec3 color = vColor * light + uRimColor * rim + uEmissive;
+  #ifdef USE_GLOW
+    color = mix(color, vColor * (light * uGlowDim + uGlow), vGlow);
+  #endif
   gl_FragColor = vec4(color, 1.0);
   #include <tonemapping_fragment>
   #include <colorspace_fragment>
@@ -272,6 +289,11 @@ export interface StylizedMaterialOptions {
    * each frame by the district view. The arrays' length is the number of slots.
    */
   pools?: LampPoolUniforms;
+  /**
+   * Read a per-vertex `glow` attribute (0 or 1): those vertices are glass that dims by
+   * day (`uGlowDim`) and glows by `uGlow` at night (the hideout kit, plan 09 §10).
+   */
+  glow?: boolean;
 }
 
 export interface LampPoolUniforms {
@@ -283,6 +305,8 @@ export type StylizedMaterial = THREE.ShaderMaterial & {
   uniforms: StyleLightingUniforms & {
     uColor: THREE.IUniform<THREE.Color>;
     uEmissive: THREE.IUniform<THREE.Color>;
+    uGlow?: THREE.IUniform<THREE.Color>;
+    uGlowDim?: THREE.IUniform<number>;
   };
 };
 
@@ -300,11 +324,15 @@ export function createStylizedMaterial(
       uEmissive: { value: new THREE.Color(options.emissive ?? 0x000000) },
       ...(options.fade ? { uFadeStart: options.fade.start, uFadeEnd: options.fade.end } : {}),
       ...(options.pools ?? {}),
+      ...(options.glow
+        ? { uGlow: { value: new THREE.Color(0, 0, 0) }, uGlowDim: { value: 1 } }
+        : {}),
     },
     defines: {
       ...(style === 'flat' ? { STYLE_FLAT: '' } : { STYLE_TOON: '' }),
       ...(options.fade ? { USE_DISTANCE_FADE: '' } : {}),
       ...(options.pools ? { LAMP_POOLS: options.pools.uPoolPosition.value.length } : {}),
+      ...(options.glow ? { USE_GLOW: '' } : {}),
     },
     vertexShader,
     fragmentShader,

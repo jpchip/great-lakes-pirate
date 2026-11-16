@@ -285,7 +285,7 @@ This is a lot for one developer, which is why the pipeline is automated, kits ar
 | 2 | Terrain shader (sandstone, beach, forest), vegetation plus impostors (built, §17), the lighthouse kit (built, §18), lighting LUTs (built, [04 §25](04-water-weather-seasons.md)) |
 | 4–6 | NPC ships, character base plus animations, props |
 | 7 | Docks-district kit, characters' period variants. **Built as 0.7.0:** the kit is 56 parametric pieces in `data/kit.json` (`src/sim/district/kit.ts`, `src/render/district/kit-meshes.ts`), instanced and merged per block, laid out in `data/districts/bayfield.json` with the dev placement editor on `district.html` and baked to ground and a navmesh by `npm run district:bake`; lamps are emissive with fake pools. The characters are §20. In the game Bayfield at night draws 61–179 calls with twelve guards ([08 §20.8](08-docks-district-stealth.md)) |
-| 8 | Hideout grid pieces (all materials), crafting stations |
+| 8 | Hideout grid pieces (all materials), crafting stations. **Built in Phase 8 piece B:** 63 procedural pieces in log, plank, brownstone and tarpaper walls and shingle, plank, tarpaper and turf roofs (`src/render/hideout/pieces.ts`), one instanced mesh per piece and material with glass as a glow attribute, and a merged proxy for the distant view ([09 §16.4](09-hideouts-building-crafting.md)) |
 | 9 | POI kits, caves, animals, curios, season palettes, aurora and VFX polish |
 | 11 | Art polish pass, consistency review |
 

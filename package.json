@@ -34,7 +34,8 @@
     "bench:combat": "vitest run --config bench/combat/vitest.config.ts",
     "district:bake": "vitest run --config tools/district/vitest.config.ts",
     "bench:docks": "playwright test --config bench/docks/playwright.config.ts",
-    "bench:island": "playwright test --config bench/island/playwright.config.ts"
+    "bench:island": "playwright test --config bench/island/playwright.config.ts",
+    "bench:hideout": "playwright test --config bench/hideout/playwright.config.ts"
   },
   "dependencies": {
     "@preact/signals": "2.11.3",

@@ -4,6 +4,10 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ## [Unreleased]
 
+### Added
+
+- **The hideout kit (Phase 8 piece B):** 63 buildable pieces drawn as procedural low-poly geometry in the docks kit's style, every id in piece A's `data/structures.json`: foundations, low foundations, steps and pilings that reach down to the ground or lake bed; plank and flagstone floors and a trapdoor; walls, half walls, door and window frames and gable ends in log, plank (clapboard), brownstone and tarpaper; plank and iron-strapped doors, shutters and glazed windows; slope, ridge, lean-to, hip, flat and dormer roofs in cedar shingle, plank, tarpaper and turf, and a brownstone chimney; stairs and ladders; pier straight, corner and T, the pier ladder, mooring posts and the slipway; palisade, rail fence, gate, brush screen and path stones; the crate stack, barrel rack, shelving, warehouse bay, hidden cellar vault and strongbox; the bunk, stove, fireplace, well, rain barrel and three lanterns; the workbench, smithy, cooperage and distillery; and a table, chair, sea chest, rug, nets, anchor, ship's wheel and figurehead. Each piece and material is one instanced mesh with its lamp glass in it, so a 1,500-piece hideout draws in 77 calls up close (budget 80) and its merged proxy in one from the ship. `/hideout.html` shows the catalog or a compound of any size, and `npm run bench:hideout` measures it ([plan 09 §10](plans/09-hideouts-building-crafting.md)).
+
 ## [0.7.2] - 2026-11-16
 
 ### Added
