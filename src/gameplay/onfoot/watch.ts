@@ -1,3 +1,4 @@
+import { createCrowd, type CrowdFigure } from './crowd';
 import { Rng } from '../../core/rng';
 import { dayAndHour } from '../../core/time';
 import type { SkyLight } from '../../sim/law/perception';
@@ -195,6 +196,8 @@ export interface Watch {
   alongside(ship: MooredShip): boolean;
   /** The crews in the saloon at this hour: none once they've gone back aboard to sleep. */
   crews(): CrewAtTable[];
+  /** The daytime crowd on the waterfront (0.7.1): none once the sun is down. */
+  crowd(): CrowdFigure[];
   /**
    * Stands a crew whiskey (plan 08 §6.2): spends the bottles, and a bottle goes aboard for
    * the deck watch, who's asleep within the hour. What came of it, in a line.
@@ -232,6 +235,7 @@ export function createWatch(opts: WatchOptions): Watch {
   const { model, nav } = opts;
   const defs = opts.defs ?? gameNpcs();
   const plan = planDistrictWatch(model, nav);
+  const crowd = createCrowd(model, nav, opts.seed);
   // Moored ships (piece F): solid hulls, and a sailor at each gangway ahead of the tier's extras.
   const moored = opts.moored ? placeMoored(model, nav, opts.moored.ships) : [];
   const gone = new Set<string>();
@@ -428,6 +432,7 @@ export function createWatch(opts: WatchOptions): Watch {
     },
     step(dt, player, lean) {
       const c = opts.conditions();
+      crowd?.step(dt);
       const sky = skyAt(c.gameSeconds, c.cloud01);
       lightLamps(lamps, ambientLight01(sky, fogOnFoot01(c.fogM)));
       const p = player.position;
@@ -488,6 +493,9 @@ export function createWatch(opts: WatchOptions): Watch {
     jailbreak,
     moored,
     alongside,
+    crowd() {
+      return crowd?.figures(opts.conditions().gameSeconds) ?? [];
+    },
     crews() {
       const t = opts.conditions().gameSeconds;
       if (!crewInSaloon(dayAndHour(t).hour, rules)) return [];
