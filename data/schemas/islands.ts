@@ -39,35 +39,45 @@ export const islandOnFootSchema = z.object({
   caches: z.array(islandCacheSchema).default([]),
 });
 
-export const islandSchema = z.object({
-  id: idOf('island'),
-  name: z.string().min(1),
-  zone: idOf('zone'),
-  /** A point on the island (OpenStreetMap via Nominatim, looked up once). */
-  at: geoSchema,
-  /**
-   * Hand-edit layer: a clip box for an island the elevation data joins to the mainland
-   * (Long Island). The island is the land inside the box.
-   */
-  clip: geoBoundsSchema.optional(),
-  /**
-   * Hand-edit layer: an island too small for the elevation data (Gull Island), raised
-   * by the bake as a rounded rock centered on `at`. Sizes in game meters.
-   */
-  rock: z
-    .object({
-      lengthM: z.number().positive(),
-      widthM: z.number().positive(),
-      /** Direction of the long axis, degrees clockwise from north. */
-      bearingDeg: z.number().min(0).max(360),
-      heightM: z.number().positive(),
-    })
-    .optional(),
-  /** Plan 11 §2's tier: hero islands are walked end to end. */
-  tier: z.enum(['hero', 'standard', 'minor']).optional(),
-  /** What there is to find on foot, where the island is walkable (Phase 7: Stockton). */
-  onFoot: islandOnFootSchema.optional(),
-});
+export const islandSchema = z
+  .object({
+    id: idOf('island'),
+    name: z.string().min(1),
+    zone: idOf('zone'),
+    /** A point on the island (OpenStreetMap via Nominatim, looked up once). */
+    at: geoSchema,
+    /**
+     * Hand-edit layer: a clip box for an island the elevation data joins to the mainland
+     * (Long Island). The island is the land inside the box.
+     */
+    clip: geoBoundsSchema.optional(),
+    /**
+     * A walkable pad on the mainland, not an island (plan 09 §2.1, decided 2026-10-22: the
+     * one exception to the mainland not being walkable). The bake cuts 1 m tiles for the
+     * land inside `clip`, which it needs, and the game walks them as it walks an island's;
+     * the chart doesn't name it and no island posse lands on it. Phase 8: the Siskiwit Bay
+     * logging camp.
+     */
+    mainland: z.boolean().optional(),
+    /**
+     * Hand-edit layer: an island too small for the elevation data (Gull Island), raised
+     * by the bake as a rounded rock centered on `at`. Sizes in game meters.
+     */
+    rock: z
+      .object({
+        lengthM: z.number().positive(),
+        widthM: z.number().positive(),
+        /** Direction of the long axis, degrees clockwise from north. */
+        bearingDeg: z.number().min(0).max(360),
+        heightM: z.number().positive(),
+      })
+      .optional(),
+    /** Plan 11 §2's tier: hero islands are walked end to end. */
+    tier: z.enum(['hero', 'standard', 'minor']).optional(),
+    /** What there is to find on foot, where the island is walkable (Phase 7: Stockton). */
+    onFoot: islandOnFootSchema.optional(),
+  })
+  .refine((i) => !i.mainland || !!i.clip, 'A mainland pad needs a clip box: its extent');
 
 export const islandsFileSchema = z.array(islandSchema);
 export type IslandDef = z.infer<typeof islandSchema>;

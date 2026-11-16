@@ -3,6 +3,7 @@ import { startingPort } from '../../sim/character/new-run';
 import { gameEconomy } from '../../sim/economy/defs';
 import { formatCents } from '../../sim/economy/knowledge';
 import { findZoneDef } from '../../sim/terrain/zones';
+import { hideoutPlace } from '../../sim/hideouts/stash';
 import type { WorldState } from '../../sim/world-state';
 import { clockLabel, weekLabel } from '../hud/model';
 
@@ -64,7 +65,7 @@ export function backgroundCards(): BackgroundCard[] {
       .map((c) => `${c.qty} CU ${(goods.get(c.good)?.name ?? c.good).toLowerCase()}`)
       .join(', '),
     port: startingPort(b.key).portName,
-    hideout: b.hideout === 'hideout.stockton' ? 'Stockton Island' : b.hideout,
+    hideout: hideoutPlace(b.hideout) ?? b.hideout,
     harderStart: b.harderStart,
     perks: b.perks.map((p) => ({
       name: p.name,

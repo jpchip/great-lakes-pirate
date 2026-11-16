@@ -1,6 +1,7 @@
 import { SECONDS_PER_GAME_DAY } from '../../core/time';
 import { gameEconomy, portInfo } from '../economy/defs';
 import { HARBORS, harborZoneId, pierPort } from '../harbors';
+import { hideoutPlace, startingHideouts } from '../hideouts/stash';
 import { sunAt } from '../weather/celestial';
 import { createWorldState, type WorldState } from '../world-state';
 import { allPortraits, backgroundDef, type BackgroundKey } from './backgrounds';
@@ -84,7 +85,7 @@ export function firstWeekContext(key: BackgroundKey): FirstWeekContext {
     portName: startingPort(key).portName,
     cargoGood,
     cargoName: gameEconomy().goods.get(cargoGood)?.name ?? 'cargo',
-    hideoutName: def.hideout === 'hideout.stockton' ? 'Stockton Island' : 'your hideout',
+    hideoutName: hideoutPlace(def.hideout) ?? 'your hideout',
   };
 }
 
@@ -109,6 +110,8 @@ export function createNewRun(input: NewRunSetup): WorldState {
   state.player.purse = def.purseCents;
   state.player.cargo = def.cargo.map((c) => ({ good: c.good, qty: c.qty }));
   state.player.location = { mode: 'zone', zoneId: startingPort(setup.background).zoneId };
+  // The background's own starting hideout (Phase 8 piece D: the Lumberjack's is Siskiwit).
+  state.hideouts = startingHideouts(setup.background, state.environment.clock.gameSeconds);
   state.firstWeek = createFirstWeek();
   recordFishPrices(state, gameEconomy());
   return state;

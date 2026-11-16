@@ -27,6 +27,15 @@ export const poiPieceKindSchema = z.enum([
    * tread rises more than 0.3 m. `heightM` is ignored; the rise comes from the ground.
    */
   'steps',
+  /**
+   * Phase 8, the Siskiwit logging camp: a deck of peeled logs, lying along the piece's
+   * depth and stacked to its height. Solid: vault a low one, climb a high one.
+   */
+  'logs',
+  /** Sawn lumber in stickered piles, boards along the depth. Solid, like logs. */
+  'lumber',
+  /** A log wall standing without its roof (the bunkhouse ruins): solid, unroofed. */
+  'wall',
 ]);
 
 export const poiPieceSchema = z.object({

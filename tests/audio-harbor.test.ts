@@ -102,7 +102,7 @@ describe('harbor work rules (Phase 4 piece J)', () => {
     expect(ore.y).toBe(20);
   });
 
-  it('gives every working port something to hear (La Pointe, Red Cliff and the Stockton stash stay quiet)', () => {
+  it('gives every working port something to hear (La Pointe, Red Cliff and the hideouts stay quiet)', () => {
     const working = HARBORS.filter((h) => !h.piers.every((p) => p.kind === 'canal'));
     const quiet = working.filter(
       (h) =>
@@ -110,11 +110,13 @@ describe('harbor work rules (Phase 4 piece J)', () => {
         !h.piers.some((p) => (PIER_WORK[p.kind] ?? []).length > 0),
     );
     // Stockton is the stash bay (piece E): a shack and a strongbox, no work to hear. Red Cliff
-    // is a landing of sheds, a store and houses, with no mill or yard to hear.
+    // is a landing of sheds, a store and houses, with no mill or yard to hear. The Siskiwit
+    // logging camp (Phase 8 piece D) was cut out and left: nobody works there.
     expect(quiet.map((h) => h.id)).toEqual([
       'harbor.la_pointe',
       'harbor.stockton',
       'harbor.red_cliff',
+      'harbor.siskiwit',
     ]);
   });
 

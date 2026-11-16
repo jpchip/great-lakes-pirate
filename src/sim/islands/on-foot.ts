@@ -69,6 +69,8 @@ export interface PlacedCache {
 export interface PlacedIsland {
   id: string;
   name: string;
+  /** A walkable pad on the mainland (the Siskiwit logging camp), not an island. */
+  mainland?: boolean;
   pieces: PlacedPoiPiece[];
   ladders: PlacedPoiLadder[];
   caches: PlacedCache[];
@@ -293,7 +295,15 @@ export function placeIsland(
     }),
   }));
 
-  return { id: def.id, name: def.name, pieces, ladders, caches, clearings };
+  return {
+    id: def.id,
+    name: def.name,
+    ...(def.mainland ? { mainland: true } : {}),
+    pieces,
+    ladders,
+    caches,
+    clearings,
+  };
 }
 
 /** Every walkable island of a zone placed, given the manifest's tile corners. */

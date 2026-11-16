@@ -434,83 +434,88 @@ const zoneDir = (id: string): string | undefined => {
     : undefined;
 };
 
-describe.each(['apostles', 'twin_ports', 'two_harbors'])('ships in the %s zone', (id) => {
-  const dir = zoneDir(id);
-  let zone: LoadedZone;
-  let tz: TrafficZone;
-  beforeAll(async () => {
-    if (!dir) return;
-    zone = await loadZoneTerrain(async (p) => new Uint8Array(readFileSync(join(dir, p))));
-    const frame = manifestFrame(zone.manifest);
-    tz = {
-      frame,
-      toWorld: (p) => toWorldChart(geo, p),
-      terrain: zone.terrain,
-      harbors: layoutHarbors(frame, zone.terrain, zone.manifest.zone),
-    };
-  });
+describe.each(['apostles', 'twin_ports', 'two_harbors', 'siskiwit'])(
+  'ships in the %s zone',
+  (id) => {
+    const dir = zoneDir(id);
+    let zone: LoadedZone;
+    let tz: TrafficZone;
+    beforeAll(async () => {
+      if (!dir) return;
+      zone = await loadZoneTerrain(async (p) => new Uint8Array(readFileSync(join(dir, p))));
+      const frame = manifestFrame(zone.manifest);
+      tz = {
+        frame,
+        toWorld: (p) => toWorldChart(geo, p),
+        terrain: zone.terrain,
+        harbors: layoutHarbors(frame, zone.terrain, zone.manifest.zone),
+      };
+    });
 
-  it.skipIf(!dir)('sail lanes deep enough for them nearly everywhere the zone covers', () => {
-    const ships = fleet('run-14');
-    let inZone = 0;
-    let deep = 0;
-    for (let t = 10 * DAY; t < 25 * DAY; t += 900) {
-      stepContacts(ships, t);
-      for (const c of ships) {
-        if (c.inPort) continue;
-        const p = chartToZone(toWorldChart(geo, c.pos), tz.frame);
-        if (!zone.terrain.contains(p.x, p.z)) continue;
-        inZone++;
-        const r = must(SHIP_RECORDS.find((x) => x.id === c.classId));
-        if (zone.terrain.depthAt(p.x, p.z) >= r.draftFullM + 0.5) deep++;
-      }
-    }
-    expect(inZone).toBeGreaterThan(50);
-    expect(deep / inZone).toBeGreaterThan(0.9);
-  });
-
-  it.skipIf(!dir)('find a berth for each class that calls at a port here', () => {
-    for (const lane of graph.lanes) {
-      for (const node of [lane.from, lane.to]) {
-        const port = graph.nodes.get(node)?.port;
-        const harbor = port ? harborForPort(tz.harbors, port) : undefined;
-        if (!harbor) continue;
-        for (const entry of lane.fleet) {
-          const record = must(SHIP_RECORDS.find((r) => r.id === entry.classId));
-          const b = assignBerths(harbor, [{ id: 'x', record }], zone.terrain);
-          expect(b.get('x'), `${record.id} at ${harbor.def.id}`).toBeDefined();
+    it.skipIf(!dir)('sail lanes deep enough for them nearly everywhere the zone covers', () => {
+      const ships = fleet('run-14');
+      let inZone = 0;
+      let deep = 0;
+      for (let t = 10 * DAY; t < 25 * DAY; t += 900) {
+        stepContacts(ships, t);
+        for (const c of ships) {
+          if (c.inPort) continue;
+          const p = chartToZone(toWorldChart(geo, c.pos), tz.frame);
+          if (!zone.terrain.contains(p.x, p.z)) continue;
+          inZone++;
+          const r = must(SHIP_RECORDS.find((x) => x.id === c.classId));
+          if (zone.terrain.depthAt(p.x, p.z) >= r.draftFullM + 0.5) deep++;
         }
       }
-    }
-  });
+      expect(inZone).toBeGreaterThan(50);
+      expect(deep / inZone).toBeGreaterThan(0.9);
+    });
 
-  it.skipIf(!dir)(
-    'materialize and collapse as the clock runs, keeping the city dock’s north side free',
-    () => {
-      const ctx = testContext();
-      const ships = fleet('run-15');
-      const traffic = attachTraffic(ctx, ships);
-      traffic.setZone(tz);
-      let most = 0;
-      let berthed = 0;
-      for (let t = 12 * DAY; t < 15 * DAY; t += 1800) {
-        ctx.state.environment.clock.gameSeconds = t;
-        traffic.step(undefined);
-        most = Math.max(most, traffic.shown.size);
-        for (const s of traffic.shown.values()) if (s.berthed) berthed++;
-        for (const key of traffic.takenSides) {
-          const city = tz.harbors.flatMap((h) => h.piers).find((p) => p.kind === 'city');
-          expect(key).not.toBe(`${city?.id}|-1`);
+    it.skipIf(!dir)('find a berth for each class that calls at a port here', () => {
+      for (const lane of graph.lanes) {
+        for (const node of [lane.from, lane.to]) {
+          const port = graph.nodes.get(node)?.port;
+          const harbor = port ? harborForPort(tz.harbors, port) : undefined;
+          if (!harbor) continue;
+          for (const entry of lane.fleet) {
+            const record = must(SHIP_RECORDS.find((r) => r.id === entry.classId));
+            const b = assignBerths(harbor, [{ id: 'x', record }], zone.terrain);
+            expect(b.get('x'), `${record.id} at ${harbor.def.id}`).toBeDefined();
+          }
         }
-        expect(ctx.world.entities.length).toBe(traffic.shown.size);
       }
-      expect(most).toBeGreaterThan(0);
-      expect(berthed).toBeGreaterThan(0);
-      traffic.setZone(undefined);
-      expect(ctx.world.entities.length).toBe(0);
-    },
-  );
-});
+    });
+
+    it.skipIf(!dir)(
+      'materialize and collapse as the clock runs, keeping the city dock’s north side free',
+      () => {
+        const ctx = testContext();
+        const ships = fleet('run-15');
+        const traffic = attachTraffic(ctx, ships);
+        traffic.setZone(tz);
+        let most = 0;
+        let berthed = 0;
+        for (let t = 12 * DAY; t < 15 * DAY; t += 1800) {
+          ctx.state.environment.clock.gameSeconds = t;
+          traffic.step(undefined);
+          most = Math.max(most, traffic.shown.size);
+          for (const s of traffic.shown.values()) if (s.berthed) berthed++;
+          for (const key of traffic.takenSides) {
+            const city = tz.harbors.flatMap((h) => h.piers).find((p) => p.kind === 'city');
+            expect(key).not.toBe(`${city?.id}|-1`);
+          }
+          expect(ctx.world.entities.length).toBe(traffic.shown.size);
+        }
+        expect(most).toBeGreaterThan(0);
+        // Siskiwit Bay has no port to berth at, only the camp's dock (Phase 8 piece D).
+        if (id === 'siskiwit') expect(berthed).toBe(0);
+        else expect(berthed).toBeGreaterThan(0);
+        traffic.setZone(undefined);
+        expect(ctx.world.entities.length).toBe(0);
+      },
+    );
+  },
+);
 
 describe('berths', () => {
   it('reads a pier side from a player berth id', () => {

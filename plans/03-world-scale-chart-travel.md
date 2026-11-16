@@ -708,7 +708,7 @@ Eleven pieces, each sized to be one thread. Four can start at once (A, B, C, H).
 - **The cutter is sighted but never forces an encounter** until Phase 5's Wanted, so Phase 3 has no unwinnable chases.
 - **NPC ships are visual and on their courses only.** Hails, cargo and surrender wait for Phases 4 and 6.
 - **No fog of war yet.** The whole western lake is charted until discoveries exist (Phase 9).
-- **Siskiwit Bay stays a chart area you pass through.** Its zone is baked with its hideout pad in Phase 8, when the logging-camp hideout needs it; cut list #4 stays available.
+- **Siskiwit Bay stays a chart area you pass through.** Its zone is baked with its hideout pad in Phase 8, when the logging-camp hideout needs it; cut list #4 stays available. *Built in Phase 8 piece D (09 §16.8).*
 
 ### 20.6 Decisions for Jared
 
