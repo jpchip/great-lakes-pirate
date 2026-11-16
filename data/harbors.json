@@ -498,38 +498,7 @@
         "deckM": 1.3
       }
     ],
-    "buildings": [
-      {
-        "kind": "shack",
-        "name": "The shack",
-        "alongM": -26,
-        "inlandM": 24,
-        "widthM": 5,
-        "depthM": 4,
-        "heightM": 2.8,
-        "yawDeg": 8
-      },
-      {
-        "kind": "strongbox",
-        "name": "Strongbox",
-        "alongM": -18,
-        "inlandM": 21,
-        "widthM": 1.4,
-        "depthM": 1,
-        "heightM": 0.9,
-        "yawDeg": 8
-      },
-      {
-        "kind": "storageShed",
-        "name": "Storage shed",
-        "alongM": 22,
-        "inlandM": 26,
-        "widthM": 7,
-        "depthM": 5,
-        "heightM": 3.2,
-        "yawDeg": -6
-      }
-    ],
+    "buildings": [],
     "town": {
       "houses": 0,
       "alongM": [-40, 40],
@@ -1008,38 +977,7 @@
         "deckM": 1.4
       }
     ],
-    "buildings": [
-      {
-        "kind": "shack",
-        "name": "The camp office",
-        "alongM": -22,
-        "inlandM": 22,
-        "widthM": 5,
-        "depthM": 4,
-        "heightM": 2.8,
-        "yawDeg": 4
-      },
-      {
-        "kind": "strongbox",
-        "name": "Strongbox",
-        "alongM": -15,
-        "inlandM": 19,
-        "widthM": 1.4,
-        "depthM": 1,
-        "heightM": 0.9,
-        "yawDeg": 4
-      },
-      {
-        "kind": "storageShed",
-        "name": "Tool shed",
-        "alongM": 20,
-        "inlandM": 24,
-        "widthM": 7,
-        "depthM": 5,
-        "heightM": 3.2,
-        "yawDeg": -5
-      }
-    ],
+    "buildings": [],
     "town": {
       "houses": 0,
       "alongM": [-40, 40],

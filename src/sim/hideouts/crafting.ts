@@ -436,7 +436,7 @@ export function stashThing(
 
 /**
  * A layout with a built workshop beside the starter shack: a timber floor of 4 × 2 cells
- * at cols 7–10, rows 1–2, the four stations on it, and a well at col 11 (dev hooks and
+ * at cols 14–17, rows 1–2, the four stations on it, and a well at col 18 (dev hooks and
  * tests; players build theirs in build mode). Pieces already in those cells are kept.
  */
 export function withWorkshop(layout: PackedLayout): PackedLayout {
@@ -446,11 +446,11 @@ export function withWorkshop(layout: PackedLayout): PackedLayout {
     if (slotsOf(piece).some((k) => grid.inSlot(k))) return;
     grid.add(piece, true);
   };
-  for (let c = 7; c <= 10; c++) for (let r = 1; r <= 2; r++) at('build.foundation', c, r);
-  at('build.workbench', 7, 1);
-  at('build.smithy', 9, 1);
-  at('build.cooperage', 7, 2);
-  at('build.distillery', 9, 2);
-  at('build.well', 11, 1);
+  for (let c = 14; c <= 17; c++) for (let r = 1; r <= 2; r++) at('build.foundation', c, r);
+  at('build.workbench', 14, 1);
+  at('build.smithy', 16, 1);
+  at('build.cooperage', 14, 2);
+  at('build.distillery', 16, 2);
+  at('build.well', 18, 1);
   return packGrid(grid);
 }

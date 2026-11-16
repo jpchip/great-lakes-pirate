@@ -76,9 +76,7 @@ describe('walkableAt', () => {
       grid: () => ({ x0: 0, z0: 0, step: 4 }),
       islands: () => [placed],
       ground: (id) => (id === 'island.stockton' ? field : undefined),
-      harbors: () => [],
       runSeed: () => 0,
-      openStash: () => false,
       notice: () => {},
     });
     expect(island.walkableAt({ x: x0 + 50, z: z0 + 50 })).toBe(true);

@@ -164,31 +164,57 @@ interface PackedJson {
   planned: number[];
 }
 
-/** A site's starter layout laid at its corner cell, from the data files as plain JSON. */
+/**
+ * A site's starter layout laid at its corner cell, and its short pier at its own (Phase 8
+ * piece C), from the data files as plain JSON: what `starterLayout` gives a new claim.
+ */
 function starterFor(siteId: string): PackedJson {
-  const sites = sitesJson as { id: string; starter?: { id: string; col: number; row: number } }[];
+  type At = { id: string; col: number; row: number };
+  const sites = sitesJson as { id: string; starter?: At; pier?: At }[];
   const starters = startersJson as { id: string; layout: PackedJson }[];
   const props = new Set(
     (structuresJson as { id: string; placement: string }[])
       .filter((s) => s.placement === 'prop')
       .map((s) => s.id),
   );
-  const at = sites.find((s) => s.id === siteId)?.starter ?? { id: 'starter.shack', col: 1, row: 1 };
-  const layout = starters.find((s) => s.id === at.id)?.layout;
-  if (!layout) return { palette: [], built: [], planned: [] };
-  const shift = (a: number[]): number[] => {
+  const site = sites.find((s) => s.id === siteId);
+  const laid = (at: At): PackedJson => {
+    const layout = starters.find((s) => s.id === at.id)?.layout;
+    if (!layout) return { palette: [], built: [], planned: [] };
+    const shift = (a: number[]): number[] => {
+      const out = [...a];
+      for (let i = 0; i + 7 <= out.length; i += 7) {
+        const k = props.has(layout.palette[out[i] ?? -1] ?? '') ? 8 : 1; // props step 0.25 m
+        out[i + 1] = (out[i + 1] ?? 0) + at.col * k;
+        out[i + 2] = (out[i + 2] ?? 0) + at.row * k;
+      }
+      return out;
+    };
+    return {
+      palette: [...layout.palette],
+      built: shift(layout.built),
+      planned: shift(layout.planned),
+    };
+  };
+  const shack = laid(site?.starter ?? { id: 'starter.shack', col: 1, row: 1 });
+  if (!site?.pier) return shack;
+  // The pier's pieces after the shack's, the palette shared (grid.ts `mergeLayouts`).
+  const pier = laid(site.pier);
+  const palette = [...shack.palette];
+  const remap = (a: number[]): number[] => {
     const out = [...a];
     for (let i = 0; i + 7 <= out.length; i += 7) {
-      const k = props.has(layout.palette[out[i] ?? -1] ?? '') ? 8 : 1; // props step 0.25 m
-      out[i + 1] = (out[i + 1] ?? 0) + at.col * k;
-      out[i + 2] = (out[i + 2] ?? 0) + at.row * k;
+      const id = pier.palette[out[i] ?? -1] ?? '';
+      let k = palette.indexOf(id);
+      if (k < 0) k = palette.push(id) - 1;
+      out[i] = k;
     }
     return out;
   };
   return {
-    palette: [...layout.palette],
-    built: shift(layout.built),
-    planned: shift(layout.planned),
+    palette,
+    built: [...shack.built, ...remap(pier.built)],
+    planned: [...shack.planned, ...remap(pier.planned)],
   };
 }
 

@@ -5,11 +5,9 @@ import { attachIslandAshore } from '../src/gameplay/island-ashore';
 import { buildAshoreScene, type AshoreScene } from '../src/gameplay/onfoot/ashore-scene';
 import { createIslandPosse, ISLAND_NAV_CELL_M } from '../src/gameplay/island-posse';
 import { createCharacter } from '../src/gameplay/onfoot/controller';
-import { layoutHarbors } from '../src/sim/harbors';
 import { placeZoneIslands, type PlacedIsland } from '../src/sim/islands/on-foot';
 import type { GridField } from '../src/sim/terrain/grid-field';
 import { loadIslandGround, loadZoneTerrain, type LoadedZone } from '../src/sim/terrain/load';
-import { manifestFrame } from '../src/sim/terrain/zones';
 import { createWorldState } from '../src/sim/world-state';
 
 /**
@@ -52,7 +50,6 @@ describe('the marshal posse on Stockton', () => {
     if (!s) throw new Error('Stockton not placed');
     placed = s;
     const state = createWorldState('posse-test');
-    const harbors = layoutHarbors(manifestFrame(zone.manifest), zone.terrain, zone.manifest.zone);
     const island = attachIslandAshore({
       state,
       heightAt: (x, z) => zone.terrain.heightAt(x, z),
@@ -63,9 +60,7 @@ describe('the marshal posse on Stockton', () => {
       }),
       islands: () => [placed],
       ground: (id) => (id === 'island.stockton' ? field : undefined),
-      harbors: () => harbors,
       runSeed: () => 7,
-      openStash: () => true,
       notice: () => undefined,
     });
     const derrick = placed.pieces.find((p) => p.kind === 'derrick');

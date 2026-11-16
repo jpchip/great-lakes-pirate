@@ -244,6 +244,21 @@ export interface GameAshore {
   resume(saved: AshoreState): void;
   /** For the dev hooks: where to put you, zone meters. */
   teleport(x: number, z: number, y?: number): void;
+  /**
+   * Rebuilds the walked scene where you are (Phase 8 piece C): a hideout's pieces were
+   * built or taken down, so its solids changed. Nothing in a district.
+   */
+  refreshScene(): void;
+  /**
+   * The build camera (Phase 8 piece C): while set, the view looks from where it says
+   * (zone meters) instead of from behind you.
+   */
+  cameraOverride:
+    | (() => {
+        position: { x: number; y: number; z: number };
+        target: { x: number; y: number; z: number };
+      })
+    | undefined;
   /** For the dev hooks and screenshots: face a zone bearing, the camera behind you. */
   face(bearing: number, pitch?: number): void;
   /** The docks district you're walking, if this landing has one (Bayfield). */
@@ -335,6 +350,7 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
   let underRoof = false;
   /** The docks district this landing walks (local meters), or none (zone meters). */
   let district: DistrictLanding | undefined;
+  let cameraOverride: GameAshore['cameraOverride'];
   let watch: Watch | undefined;
   /** Taken by a guard: the fade to the lockup is under way. */
   let taken = false;
@@ -1232,7 +1248,7 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
       };
       const at = out({ x, y, z });
       view.foot = {
-        camera: { position: out(cam.position), target: out(cam.target) },
+        camera: cameraOverride?.() ?? { position: out(cam.position), target: out(cam.target) },
         district: district && {
           harbor: district.def.harbor,
           model: district.model,
@@ -1381,6 +1397,13 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
       }
       teleportZone(x, z, y);
     },
+    refreshScene,
+    get cameraOverride() {
+      return cameraOverride;
+    },
+    set cameraOverride(fn) {
+      cameraOverride = fn;
+    },
     face(bearing, pitch) {
       const h = headingToScene(bearing);
       character.heading = h;
@@ -1514,6 +1537,12 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
     }
     copyPrevious();
     enter();
+  }
+
+  function refreshScene(): void {
+    if (!active || district || !scene) return;
+    const at = inBoat && boat ? boat : character.position;
+    scene = build({ x: at.x, z: at.z }) ?? scene;
   }
 
   function teleportZone(x: number, z: number, y?: number): void {
