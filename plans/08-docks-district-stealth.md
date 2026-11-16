@@ -592,6 +592,7 @@ Piece E's stretch (§20.4 row E, §20.5), which missed 0.7.0 (§20.8 "Scope that
 ---
 
 ## Changelog
+- v0.15.1: 0.7.2 (2026-11-16), from Jared's play of 0.7.1: `render/district/signs.ts` hangs a painted board (a canvas texture, one material per building) over each building's first door, on the wall that door is set in and clear of its battens. It says the building's `name`, or else its use by kind. A false front's blank board (kit-meshes `roofGeometry`) gets the words instead. The salt sacks at (-27, 0) and the net reel at (-74, 0) moved off the track to z = 2, and the navmesh was rebaked. Parked at Jared's call: a soft disc on the ground that follows the player by day, cause not yet found.
 - v0.15: Lean, peek and putting out lamps (§20.9): §17's cuts #2 and #3 taken back.
 - v0.14: Piece K (2026-11-16, 0.7.1): the daytime crowd. `crowd.ts` puts three townsfolk and dockhands at each `crowd` mark of the district, strolling on the navmesh by day and gone at dusk; they are scenery, outside the stealth layer and perception, and drawn as the watch's figures (§2.3). Together with the dev Ashore jump, the crowd is the last of the 0.7.0 playtest's open calls.
 - v0.13.1: Jared's decision on piece J's first call (2026-11-15): 0.7.0 is tagged as it stands and the daytime crowd comes next as 0.7.1. The dev Jump to menu gains an Ashore folder: Bayfield (the fish pier, on foot) and Stockton (anchored off the quarry, landed on the wharf), through `?ashore=bayfield|stockton`.

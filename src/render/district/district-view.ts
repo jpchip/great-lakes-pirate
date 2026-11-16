@@ -1,6 +1,7 @@
 import * as THREE from 'three';
 import type { DistrictModel, PlacedPiece } from '../../gameplay/district/district';
 import { kitPiece } from '../../sim/district/kit';
+import { buildingSigns } from './signs';
 import { PALETTE } from '../style/palette';
 import { merged, place } from '../style/parts';
 import {
@@ -144,6 +145,14 @@ export function createDistrictView(
     roofs.set(b.def.id, addMesh(merged(sink.body), body, `roof:${b.def.id}`));
   }
 
+  // --- Signs over the doors (0.7.2): each building says what it is ---------------------
+  const sign = buildingSigns(model);
+  for (const m of sign.meshes) {
+    group.add(m);
+    meshes++;
+    triangles += 2;
+  }
+
   for (const child of group.children) child.updateMatrix();
 
   // --- Per frame ------------------------------------------------------------------------
@@ -239,6 +248,7 @@ export function createDistrictView(
       for (const geo of geometries) geo.dispose();
       body.dispose();
       lit.dispose();
+      sign.dispose();
       groundMat.dispose();
       waterMat.dispose();
     },
