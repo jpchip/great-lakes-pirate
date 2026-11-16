@@ -11,6 +11,7 @@ import {
   scheduleRumor,
   tellRumor,
   type RumorWorld,
+  type SpottedTalk,
   type SaloonTerms,
 } from '../sim/rumors/rumors';
 import type { SmugglerSpot } from '../sim/rumors/sources';
@@ -40,6 +41,8 @@ export interface RumorControlOptions {
   economy: EconomyDefs;
   traffic?: { defs: TrafficDefs; contacts: readonly Contact[] } | undefined;
   smugglerAnchorage?: (() => SmugglerSpot | undefined) | undefined;
+  /** Your hideouts seen this week (Phase 8 piece F). */
+  spotted?: (() => readonly SpottedTalk[]) | undefined;
 }
 
 export function attachRumors(opts: RumorControlOptions): RumorControl {
@@ -53,6 +56,7 @@ export function attachRumors(opts: RumorControlOptions): RumorControl {
     traffic: opts.traffic,
     weather: { state: ctx.state.environment.weather, geo: westernSuperiorChart() },
     smugglerAnchorage: opts.smugglerAnchorage,
+    spotted: opts.spotted,
   });
 
   const offHail = ctx.events.on('ShipHailed', ({ shipId, news }) => {

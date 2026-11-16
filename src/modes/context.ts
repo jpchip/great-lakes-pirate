@@ -129,6 +129,16 @@ export interface GameEvents {
   /** The captain let the clock run on at anchor or alongside (piece E). */
   LayAtAnchor: { until: LieUntil; seconds: number };
   /**
+   * Hideout life (plan 09 §3, §8, §12; Phase 8 piece F): the captain slept in a bunk at a
+   * hideout, laying low in its region; a hideout was seen by a passing ship or a pursuer
+   * who watched you reach it; a load of salvage was carried into a hideout's stores or the
+   * hold; a pursuit ended at a hideout's anchorage.
+   */
+  SleptAtHideout: { hideout: string; region: string; seconds: number };
+  HideoutSpotted: { hideout: string; by: string };
+  SalvageTaken: { hideout: string; good: string; qty: number; to: 'stores' | 'hold' };
+  PursuitEndedAtHideout: { hideout: string; by: string };
+  /**
    * The shipyard (plan 10 §11, Phase 4 piece G): a new hull bought with the old one traded
    * in, an upgrade fitted or taken out, and repairs at a yard, a chandlery or with a kit.
    */

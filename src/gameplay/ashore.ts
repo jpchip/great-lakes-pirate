@@ -870,6 +870,9 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
       return { text: 'Climb aboard', act: () => void goAboard() };
     }
     if (boat && Math.hypot(c.position.x - boat.x, c.position.z - boat.z) < REACH_M + 0.8) {
+      // A load of salvage in your arms goes in the boat first (Phase 8 piece F).
+      const load = !district && !c.swimming ? deps.island?.boatPrompt() : undefined;
+      if (load) return load;
       if (boatState === 'beached' && !c.swimming) return { text: 'Shove off', act: shoveOff };
       if (boatState !== 'beached') return { text: 'Climb into the boat', act: climbIn };
     }
@@ -1050,13 +1053,15 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
           right: side,
           run: input.isDown('Sprint'),
           // Arms full of a crate, you can't stoop (plan 08 §7).
-          crouch: input.isDown('Crouch') && !watch?.heist?.carrying,
+          crouch: input.isDown('Crouch') && !watch?.heist?.carrying && !deps.island?.carrying(),
           jump: input.pressed('Jump'),
         },
         walkCamera.yaw,
         scene,
         dt,
-        watch ? watch.params(DEFAULT_CONTROLLER) : DEFAULT_CONTROLLER,
+        watch
+          ? watch.params(DEFAULT_CONTROLLER)
+          : (deps.island?.params(DEFAULT_CONTROLLER) ?? DEFAULT_CONTROLLER),
       );
       // Q/E: lean round a corner, standing still with your hands free.
       stepLean(

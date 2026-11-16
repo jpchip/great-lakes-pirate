@@ -328,6 +328,13 @@ export const hideoutsSchema = z.record(
      * prefab migrates to the starter shack with the same 40 CU and strongbox.
      */
     layout: packedLayoutSchema,
+    /**
+     * Seen there by a passing ship or a pursuer (plan 09 §8; Phase 8 piece F): talked of,
+     * and the cutter leans that way, for a week. Optional, so no version bump.
+     */
+    spotted: z.object({ at: z.number(), by: z.string(), ship: z.string() }).optional(),
+    /** Salvage taken from the site's ruins this season (plan 09 §6.2; piece F). */
+    salvage: z.object({ season: z.string(), taken: z.number().int().nonnegative() }).optional(),
   }),
 );
 

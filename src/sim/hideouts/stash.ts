@@ -50,6 +50,10 @@ export interface HideoutState {
   storage: { goods: CargoStack[]; cash: number };
   /** Its pieces, built and planned, packed (Phase 8 piece A; save v10). */
   layout: PackedLayout;
+  /** Last seen there by a passing ship or a pursuer (plan 09 §8; Phase 8 piece F). */
+  spotted?: { at: number; by: string; ship: string } | undefined;
+  /** Salvage taken from the site's ruins this season (plan 09 §6.2; piece F). */
+  salvage?: { season: string; taken: number } | undefined;
 }
 
 /** Bounds for a site that doesn't give its own yet (piece D's Siskiwit, until it does). */

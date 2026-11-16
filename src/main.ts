@@ -43,7 +43,7 @@ import { smugglerAnchorage } from './sim/economy/smuggler';
 import { attachContracts, contractsOf } from './gameplay/contracts';
 import { attachSmugglers, type SmugglerControl } from './gameplay/smuggler';
 import { attachStash, type StashControl } from './gameplay/stash';
-import { siteDef } from './sim/hideouts/stash';
+import { siteDef, SITES } from './sim/hideouts/stash';
 import { LIE_REFUSALS, type LieUntil } from './sim/hideouts/lie-at-anchor';
 import { attachShipyard } from './gameplay/shipyard';
 import { BASE_INSTRUMENTS, type Instruments } from './sim/shipyard/fit';
@@ -105,6 +105,7 @@ import { zoneClearings } from './sim/terrain/clearings';
 import { plantTile, TREE_CELL_M } from './sim/terrain/vegetation';
 import { attachBuildMode } from './gameplay/build-mode';
 import { attachHideouts } from './gameplay/hideouts';
+import { attachHideoutLife, type HideoutLife } from './gameplay/hideout-life';
 import { siteToZone } from './sim/hideouts/site-frame';
 import { mountBuildPanel, type BuildPanelUi } from './ui/build/BuildPanel';
 import { attachIslandAshore } from './gameplay/island-ashore';
@@ -171,6 +172,7 @@ import { attachAbandon, type Abandon } from './gameplay/abandon';
 import { attachBoarding, type GameBoarding } from './gameplay/boarding';
 import { holdCu } from './sim/traffic/cargo';
 import { SHIP_RECORDS, serviceSpeedKn } from './sim/sailing/ships';
+import { CUTTER_CLASS_ID } from './sim/law/observers';
 import { advanceGameTime } from './core/time';
 import { knotsToMs } from './core/coords';
 import { fitRefusal } from './sim/combat/armament';
@@ -1115,6 +1117,9 @@ async function boot(): Promise<void> {
   const smugglerRef: { current: SmugglerControl | undefined } = { current: undefined };
   // The Stockton stash and lying at anchor (Phase 4 piece E); attached with the ports.
   const stashRef: { current: StashControl | undefined } = { current: undefined };
+  // Hideout life (Phase 8 piece F): sleep, refuge, spotting and salvage; attached with the
+  // hideouts below, read earlier by the law at sea and the saloons.
+  const lifeRef: { current: HideoutLife | undefined } = { current: undefined };
   const captainRef: { current: ReturnType<typeof attachCaptain> | undefined } = {
     current: undefined,
   };
@@ -1272,6 +1277,7 @@ async function boot(): Promise<void> {
     economy: economy.defs,
     traffic,
     smugglerAnchorage: () => smugglerAnchorage(),
+    spotted: () => lifeRef.current?.spottedTalk() ?? [],
   });
   // The papers (Phase 5 piece F): headlines from the bus's news, Fame from the printing, the
   // newsstand in port, storm signals, and the tier-5 front page once per region.
@@ -1531,6 +1537,7 @@ async function boot(): Promise<void> {
         hunting: arena.encounter.hunting,
       },
     zoneShips: () => [...traffic.shown.values()].map((s) => s.entity),
+    refuge: () => lifeRef.current?.refuge(),
     hold: (id) => traffic.hold(id),
     zoneLand: () => {
       const t = ctx.terrain;
@@ -2693,6 +2700,8 @@ async function boot(): Promise<void> {
       stash.open(id);
       return stash.openHideout === id;
     },
+    sleep: (id) => lifeRef.current?.openSleep(id),
+    carrying: () => lifeRef.current?.carrying(),
     notice: (text) => showNotice(text),
   });
   const islandAshore = attachIslandAshore({
@@ -2705,9 +2714,114 @@ async function boot(): Promise<void> {
     islands: () => zoneIslands().placed,
     ground: (id) => zone?.islandGrounds?.get(id),
     hideouts,
+    salvage: {
+      prompt: (at) => lifeRef.current?.salvagePrompt(at),
+      boatPrompt: () => lifeRef.current?.boatPrompt(),
+      params: (base) => lifeRef.current?.params(base) ?? base,
+      get load() {
+        return lifeRef.current?.load;
+      },
+    },
     runSeed: () => state.environment.weather.noiseSeed,
     notice: (text) => showNotice(text),
   });
+  // Hideout life (Phase 8 piece F): the bunk, the refuge at the anchorage, being spotted
+  // and the ruins' salvage.
+  let contextBeforeSleep: InputContext = 'onFoot';
+  const life = attachHideoutLife({
+    ctx,
+    law,
+    hideouts,
+    zone: () =>
+      zone && !arena && !inArenaSpace
+        ? { id: zoneData.id, frame: manifestFrame(zone.manifest) }
+        : undefined,
+    shipPose: () => (zone && !arena && !inArenaSpace ? shipPose() : undefined),
+    mooredAt: () => stash.hideoutHere,
+    *shipsUnderWay() {
+      for (const [id, s] of traffic.shown) {
+        const t = s.entity.transform;
+        if (s.berthed || !t) continue;
+        const contact = traffic.contacts.find((c) => c.id === id);
+        const cls = SHIP_RECORDS.find((r) => r.id === s.entity.npc?.classId);
+        const name =
+          s.entity.npc?.classId === CUTTER_CLASS_ID
+            ? 'the Morrill'
+            : `the ${(cls?.name ?? 'ship').toLowerCase()} ${contact?.name ?? ''}`.trim();
+        yield { id, x: t.position.x, z: t.position.z, name };
+      }
+    },
+    standing: () => {
+      const a = ashoreRef.current;
+      if (!a?.active || a.inBoat) return undefined;
+      const p = a.zoneAt();
+      return { x: p.x, y: p.y, z: p.z };
+    },
+    islandPieces: () => zoneIslands().placed.flatMap((i) => i.pieces),
+    blocked: () => {
+      if (run.inDanger || ashoreRef.current?.pursued || pursuitOn.size > 0)
+        return 'Not with the law on your tail';
+      return undefined;
+    },
+    hold: () => ({ cargo: state.player.cargo, capacity: economy.capacity }),
+    showSleep: (view) => ui.setSleep(view),
+    onOpen(open) {
+      if (open) {
+        machine.pushOverlay('trade');
+        contextBeforeSleep = input.context;
+        input.context = 'menu';
+      } else {
+        machine.removeOverlay('trade');
+        input.context = contextBeforeSleep;
+        input.endTick();
+      }
+      document.body.dataset['sleep'] = open ? 'open' : 'closed';
+      hudClock = HUD_INTERVAL_S;
+    },
+    notice: (text) => showNotice(text),
+    save: () => void saveControls.saveNow(),
+    changed: () => {
+      economy.syncLoad();
+      hudClock = HUD_INTERVAL_S;
+    },
+  });
+  lifeRef.current = life;
+  ui.attachSleep(life.actions);
+  if (import.meta.env.DEV || params.has('debug')) {
+    (window as unknown as Record<string, unknown>)['__glpLife'] = {
+      /** Opens the bunk's choice at a hideout, wherever you are. */
+      openSleep: (id = 'hideout.stockton') => life.openSleep(id),
+      sleep: (until: 'dawn' | 'noon' | 'dusk' | 'eight' = 'dawn') => life.actions.sleep(until),
+      sleepOpen: () => life.sleepOpen,
+      refuge: () => life.refuge(),
+      concealment: (id = 'hideout.stockton') => life.concealment(id),
+      spotted: (id = 'hideout.stockton') => life.spotted(id),
+      talk: () => life.spottedTalk(),
+      /** Marks a hideout seen, as a passing ship would. */
+      spot: (id = 'hideout.stockton', by = 'the tug Sophia') =>
+        ctx.events.emit('HideoutSpotted', { hideout: id, by }),
+      load: () => life.load,
+      hold: () => state.player.cargo.map((c) => ({ good: c.good, qty: c.qty })),
+      bunk: () => hideouts.bunk(),
+      /** The salvage piles in the zone: where to stand to lift a load. */
+      piles: () =>
+        zoneIslands()
+          .placed.flatMap((i) => i.pieces)
+          .filter((p) =>
+            SITES.some((s) => s.salvage?.poi === p.poi && s.salvage.kinds.includes(p.kind)),
+          )
+          .map((p) => ({
+            x: p.x,
+            z: p.z,
+            y: p.minY,
+            kind: p.kind,
+            widthM: p.widthM,
+            depthM: p.depthM,
+            bearing: p.bearing,
+          })),
+      heat: (region: string) => state.wanted[region]?.heat ?? 0,
+    };
+  }
   const plantsIn = (b: {
     minX: number;
     minZ: number;
@@ -3045,6 +3159,19 @@ async function boot(): Promise<void> {
     save: () => saveControls.saveNow(),
     notice: (text) => showNotice(text),
     panel: (snapshot) => buildPanel?.set(snapshot),
+    concealmentNow: (id) => {
+      const t = state.environment.clock.gameSeconds;
+      const seen = life.spotted(id);
+      // A game day is a calendar week: say it in the calendar's days.
+      const days = seen ? Math.floor(((t - seen.at) / SECONDS_PER_GAME_DAY) * 7) : 0;
+      return {
+        night: sunAt(t).elevationRad < 0,
+        shipHere: stash.hideoutHere === id || life.refuge() === id,
+        spotted: seen
+          ? `${seen.by}, ${days <= 0 ? 'today' : days === 1 ? 'yesterday' : `${days} days ago`}`
+          : undefined,
+      };
+    },
     changed: () => {
       economy.syncLoad();
       hudClock = HUD_INTERVAL_S;
@@ -4141,6 +4268,8 @@ async function boot(): Promise<void> {
           !!ashoreRef.current?.pursued) &&
         !run.over;
       if (hunted !== run.inDanger) setDanger(hunted);
+      // Hideout life (Phase 8 piece F): being spotted, the save on leaving, a load left.
+      if (!run.over && !changingZone) life.step(dt);
       // A capture is taken once the arena it happened in is gone (piece C raises it there).
       if (capture.pending && !arena && !inArenaSpace && !changingZone && !run.over) {
         takeCapture();

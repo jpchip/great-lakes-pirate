@@ -1,4 +1,5 @@
 import type { GameContext } from '../modes/context';
+import { recentlySpotted } from '../sim/hideouts/life';
 import type { Chart } from '../core/coords';
 import type { ArenaLand } from '../sim/arena/land';
 import { createHelm, steerShips, type SteeredShip, type Traffic } from '../sim/arena/steering';
@@ -102,6 +103,11 @@ export interface LawAtSeaDeps {
   splash?(x: number, z: number): void;
   /** At least this tier, whatever the region's (the `?cutter=hunt` dev flag). */
   devTier?(): number;
+  /**
+   * The hideout whose anchorage the player's ship is in, if any (Phase 8 piece F): any
+   * pursuit ends there (plan 06 §5.4).
+   */
+  refuge?(): string | undefined;
   /**
    * The combat core (Phase 6 piece F): the Morrill's rounds fly on its ballistics. Without
    * it, her fire is Phase 5's dice roll.
@@ -381,6 +387,16 @@ export function attachLawAtSea(deps: LawAtSeaDeps): LawAtSea {
         );
         break;
       case 'gaveUp':
+        if (a.why === 'hideout') {
+          const hideout = deps.refuge?.() ?? '';
+          deps.notice(`${name} breaks off: you're home.`);
+          ctx.events.emit('PursuitEndedAtHideout', { hideout, by });
+          // She watched you go in: the place is known (06 §5.4, 09 §8).
+          const h = hideout ? ctx.state.hideouts?.[hideout] : undefined;
+          if (a.sawIt && h && !recentlySpotted(h, ctx.state.environment.clock.gameSeconds))
+            ctx.events.emit('HideoutSpotted', { hideout, by });
+          break;
+        }
         deps.notice(
           a.why === 'shallows'
             ? `${name} won't risk her keel in the shallows: she stands off and gives it up.`
@@ -477,6 +493,7 @@ export function attachLawAtSea(deps: LawAtSeaDeps): LawAtSea {
             playerShoal: playerShoal(p.x, p.z),
             rigging01,
             ...(e.id === TUG_ID ? { boardsUnderKn: TUG_BOARDS_UNDER_KN } : {}),
+            ...(!arena && deps.refuge?.() ? { refuge: true } : {}),
           },
           dt,
           () => ctx.rng.next(),

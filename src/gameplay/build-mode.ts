@@ -15,7 +15,8 @@ import {
   type Held,
 } from '../sim/hideouts/build-tools';
 import { addGoods, EditLog, pieceCost, type Goods } from '../sim/hideouts/edit';
-import type { BuildGrid, Piece } from '../sim/hideouts/grid';
+import { BuildGrid, type Piece } from '../sim/hideouts/grid';
+import { concealmentOf, type ConcealmentNow } from '../sim/hideouts/life';
 import { placedRender, type PlacedRender } from '../sim/hideouts/placed';
 import { siteToZone, zoneToSite } from '../sim/hideouts/site-frame';
 import {
@@ -74,6 +75,11 @@ export interface BuildModeDeps {
   panel(snapshot: BuildPanelSnapshot | undefined): void;
   /** Storage, the hold or the clock changed under the HUD. */
   changed?(): void;
+  /**
+   * The moment for a site's concealment (Phase 8 piece F): after dark, your ship lying
+   * there, and who spotted it this week ("the tug Sophia, 2 days ago").
+   */
+  concealmentNow?(hideoutId: string): ConcealmentNow & { spotted?: string | undefined };
 }
 
 export interface BuildMode {
@@ -441,6 +447,28 @@ export function attachBuildMode(deps: BuildModeDeps): BuildMode {
     });
   };
 
+  /** The site's concealment now, and once the ghosts are up (plan 09 §8; piece F). */
+  const concealmentView = (): BuildPanelSnapshot['concealment'] => {
+    if (!site || !grid || !deps.concealmentNow) return undefined;
+    const at = deps.concealmentNow(site.hideoutId);
+    const c = concealmentOf(site.site, grid, at);
+    const pct = (v: number): number => Math.round(v * 100);
+    let planned: { value: number; word: string } | undefined;
+    if (grid.planned().length > 0) {
+      const all = new BuildGrid();
+      for (const p of grid.all()) all.add(p.piece, true);
+      const after = concealmentOf(site.site, all, at);
+      if (after.value !== c.value) planned = { value: pct(after.value), word: after.word };
+    }
+    return {
+      value: pct(c.value),
+      word: c.word,
+      parts: c.parts.map((p) => ({ label: p.label, delta: pct(p.delta) })),
+      ...(planned ? { planned } : {}),
+      ...(at.spotted ? { spotted: at.spotted } : {}),
+    };
+  };
+
   const snapshot = (): BuildPanelSnapshot | undefined => {
     if (!site || !grid) return undefined;
     const onHand = materialsOnHand(sources());
@@ -473,6 +501,7 @@ export function attachBuildMode(deps: BuildModeDeps): BuildMode {
         .map(([g, qty]) => ({ name: deps.goodName(g), qty }))
         .sort((a, b) => a.name.localeCompare(b.name)),
       fromHold: !!deps.shipHold(site.hideoutId),
+      concealment: concealmentView(),
       canUndo: log.canUndo,
       canRedo: log.canRedo,
       message,

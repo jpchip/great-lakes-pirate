@@ -33,6 +33,14 @@
       "id": "starter.pier",
       "col": 10,
       "row": 1
+    },
+    "salvage": {
+      "good": "good.brownstone",
+      "name": "dressed brownstone",
+      "perSeason": 20,
+      "loadCu": 4,
+      "poi": "stockton_quarry",
+      "kinds": ["block"]
     }
   },
   {
@@ -69,6 +77,14 @@
       "row": 0
     },
     "startFor": ["lumberjack"],
-    "blurb": "Siskiwit Timber's camp behind Bark Point, cut out and left the winter before last: a dock, a tool shed, the office and what's left of the bunkhouse. Nobody comes by but the odd fish tug."
+    "blurb": "Siskiwit Timber's camp behind Bark Point, cut out and left the winter before last: a dock, a tool shed, the office and what's left of the bunkhouse. Nobody comes by but the odd fish tug.",
+    "salvage": {
+      "good": "good.lumber",
+      "name": "sawn lumber",
+      "perSeason": 20,
+      "loadCu": 4,
+      "poi": "siskiwit_camp",
+      "kinds": ["lumber"]
+    }
   }
 ]
