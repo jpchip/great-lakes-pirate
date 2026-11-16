@@ -1817,11 +1817,21 @@ body[data-mode='chart'] .chart-layer {
 }
 
 /* The First Week tracker (plan 12 §3): a small enamel card under the clock and barometer. */
-.first-week-tracker {
+/* The First Week's tracker and the pinned Ambitions, stacked down the left (plan 13 §4.1),
+   under the clock, the barometer, the lantern and the eye. */
+.hud-trackers {
   position: absolute;
-  top: 94px;
+  top: 150px;
   left: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
   max-width: 280px;
+  pointer-events: none;
+}
+
+.first-week-tracker,
+.ambitions-tracker {
   padding: 6px 10px 8px;
   font-size: 13px;
   background: var(--enamel);
@@ -3231,4 +3241,165 @@ body[data-mode='chart'] .chart-layer {
   .board-sides {
     flex-direction: column;
   }
+}
+
+/* Ambitions (plan 12 §4.1; Phase 8 piece H): the pinned goals on the HUD, the journal's
+   page, and the themed marks in the ledger. */
+.ambitions-hud-list {
+  margin: 2px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ambitions-hud-list li {
+  margin: 4px 0;
+}
+
+.ambition-hud-name {
+  font-size: 14px;
+}
+
+.ambition-just-done {
+  margin: 2px 0;
+  font-size: 13px;
+  color: var(--brass-light);
+}
+
+.ambition-meter {
+  position: relative;
+  display: block;
+  height: 5px;
+  margin: 2px 0 1px;
+  background: rgba(241, 231, 204, 0.18);
+  border: 1px solid rgba(184, 137, 46, 0.6);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.ambition-meter-fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--brass-light);
+}
+
+.ambitions-page .ambition-meter {
+  display: inline-block;
+  width: 120px;
+  margin: 0 8px 0 0;
+  vertical-align: middle;
+  background: var(--paper-dark);
+  border-color: var(--brass);
+}
+
+.ambitions-page .ambition-meter-fill {
+  background: var(--lake-teal);
+}
+
+.ambition-list,
+.ambition-marks {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ambition-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: center;
+  padding: 5px 6px;
+  border-bottom: 1px dotted rgba(43, 33, 24, 0.25);
+}
+
+.ambition-row.pinned {
+  background: rgba(184, 137, 46, 0.14);
+}
+
+.ambition-row-progress {
+  display: block;
+  margin-top: 2px;
+}
+
+.ambition-pin {
+  min-width: 64px;
+}
+
+.ambition-warn {
+  color: var(--signal-red);
+}
+
+.ambition-mark {
+  display: grid;
+  grid-template-columns: auto 1fr auto;
+  gap: 10px;
+  align-items: center;
+  margin: 6px 0;
+}
+
+.ambition-mark-text small {
+  display: block;
+}
+
+/* Each category's mark, in the ledger's ink: a stamp, a seal, a clipping... */
+.ambition-stamp {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 96px;
+  min-height: 34px;
+  padding: 3px 6px;
+  font: 10px var(--serif);
+  font-variant: small-caps;
+  letter-spacing: 0.08em;
+  line-height: 1.1;
+  text-align: center;
+  color: var(--ink);
+  background: var(--paper);
+  border: 1.5px solid var(--ink);
+  transform: rotate(-3deg);
+}
+
+.mark-wealth .ambition-stamp {
+  color: #2f5a3a;
+  border: 1.5px double #2f5a3a;
+  border-width: 3px;
+}
+
+.mark-infamy .ambition-stamp {
+  font: bold 13px var(--serif);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--signal-red);
+  background: #efe6cf;
+  border: 1px dashed var(--ink);
+  transform: rotate(2deg);
+}
+
+.mark-trade .ambition-stamp {
+  width: 58px;
+  height: 58px;
+  margin: 0 19px;
+  border-radius: 50%;
+  color: #6b2a2a;
+  border: 2px solid #6b2a2a;
+  box-shadow:
+    inset 0 0 0 3px var(--paper),
+    inset 0 0 0 4px #6b2a2a;
+  transform: rotate(-8deg);
+}
+
+.mark-seamanship .ambition-stamp {
+  color: var(--lake-teal);
+  border-color: var(--lake-teal);
+  border-radius: 3px;
+}
+
+.mark-builder .ambition-stamp {
+  color: #3d4a6b;
+  border-color: #3d4a6b;
+  background-image:
+    linear-gradient(rgba(61, 74, 107, 0.15) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(61, 74, 107, 0.15) 1px, transparent 1px);
+  background-size: 8px 8px;
+  transform: rotate(1deg);
 }

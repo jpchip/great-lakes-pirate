@@ -44,10 +44,10 @@
       "zone": "zone.siskiwit",
       "region": "region.south_shore_west",
       "at": {
-        "lat": 46.874,
-        "lon": -91.13
+        "lat": 46.85777,
+        "lon": -91.18288
       },
-      "headingDeg": 300
+      "headingDeg": 340
     },
     "darkSunDeg": -6,
     "sells": [

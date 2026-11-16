@@ -1,6 +1,11 @@
 import type { EconomyDefs } from '../../sim/economy/defs';
 import { holdUsed, type CargoStack } from '../../sim/economy/hold';
-import { siteDef, storageCapacity, type HideoutState } from '../../sim/hideouts/stash';
+import {
+  hasStrongbox,
+  siteDef,
+  storageCapacity,
+  type HideoutState,
+} from '../../sim/hideouts/stash';
 import { weekLabel } from '../hud/model';
 
 /**
@@ -66,7 +71,7 @@ export function stashSnapshot(opts: {
     dateText: weekLabel(opts.gameSeconds),
     purseCents: player.purse,
     cashCents: h.storage.cash,
-    strongbox: !!site?.storage.strongbox,
+    strongbox: hasStrongbox(h),
     hold: rows(defs, player.cargo),
     holdUsed: holdUsed(player.cargo),
     holdCapacity: opts.holdCapacity,

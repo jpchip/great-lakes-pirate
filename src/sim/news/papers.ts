@@ -76,6 +76,7 @@ export interface StoryInput {
   port?: string | undefined;
   ident: Identification;
   crime?: string | undefined;
+  ambition?: string | undefined;
   goods?: { good: string; qty: number }[] | undefined;
   tier?: number | undefined;
   heat?: number | undefined;
@@ -93,9 +94,13 @@ export function named(ident: Identification): boolean {
 }
 
 /** The story's template set, or undefined for a crime the papers have no lines for. */
-export function storyDef(defs: NewsDefs, s: Pick<Story, 'kind' | 'crime'>): StoryDef | undefined {
+export function storyDef(
+  defs: NewsDefs,
+  s: Pick<Story, 'kind' | 'crime' | 'ambition'>,
+): StoryDef | undefined {
   const st = defs.file.stories;
   if (s.kind === 'crime') return s.crime ? st.crime[s.crime] : undefined;
+  if (s.kind === 'ambition') return s.ambition ? st.ambition[s.ambition] : undefined;
   return st[s.kind];
 }
 
@@ -125,6 +130,7 @@ export function addStory(defs: NewsDefs, news: NewsState, input: StoryInput): St
     ...(input.port ? { port: input.port } : {}),
     ident: input.ident,
     ...(input.crime ? { crime: input.crime } : {}),
+    ...(input.ambition ? { ambition: input.ambition } : {}),
     ...(input.goods ? { goods: input.goods } : {}),
     ...(input.tier !== undefined ? { tier: input.tier } : {}),
     ...(input.victim ? { victim: input.victim } : {}),

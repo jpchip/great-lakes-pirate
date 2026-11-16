@@ -1,0 +1,1605 @@
+[
+  {
+    "id": "build.foundation",
+    "name": "Foundation",
+    "category": "foundation",
+    "placement": "cell",
+    "layer": "base",
+    "stand": "base",
+    "heightM": 0.6,
+    "collider": "floor",
+    "variants": [
+      {
+        "material": "timber",
+        "cost": {
+          "good.lumber": 4
+        }
+      },
+      {
+        "material": "brownstone",
+        "cost": {
+          "good.brownstone": 4
+        }
+      }
+    ],
+    "buildHours": 3,
+    "reachM": 3,
+    "maxLevel": 0
+  },
+  {
+    "id": "build.foundation_half",
+    "name": "Half foundation",
+    "category": "foundation",
+    "placement": "cell",
+    "layer": "base",
+    "stand": "base",
+    "heightM": 0.3,
+    "collider": "floor",
+    "variants": [
+      {
+        "material": "timber",
+        "cost": {
+          "good.lumber": 2
+        }
+      },
+      {
+        "material": "brownstone",
+        "cost": {
+          "good.brownstone": 2
+        }
+      }
+    ],
+    "buildHours": 2,
+    "reachM": 1.5,
+    "maxLevel": 0
+  },
+  {
+    "id": "build.foundation_stairs",
+    "name": "Foundation steps",
+    "category": "foundation",
+    "placement": "cell",
+    "layer": "base",
+    "stand": "base",
+    "heightM": 0.6,
+    "collider": "floor",
+    "variants": [
+      {
+        "material": "timber",
+        "cost": {
+          "good.lumber": 3
+        }
+      },
+      {
+        "material": "brownstone",
+        "cost": {
+          "good.brownstone": 3
+        }
+      }
+    ],
+    "buildHours": 2,
+    "reachM": 1.5,
+    "maxLevel": 0
+  },
+  {
+    "id": "build.piling",
+    "name": "Piling",
+    "category": "foundation",
+    "placement": "cell",
+    "layer": "base",
+    "stand": "base",
+    "heightM": 0.6,
+    "collider": "floor",
+    "variants": [
+      {
+        "material": "timber",
+        "cost": {
+          "good.lumber": 3,
+          "good.hardware": 1
+        }
+      }
+    ],
+    "buildHours": 3,
+    "reachM": 6,
+    "wet": true,
+    "maxLevel": 0
+  },
+  {
+    "id": "build.floor",
+    "name": "Floor",
+    "category": "floor",
+    "placement": "cell",
+    "layer": "base",
+    "stand": "base",
+    "heightM": 0.1,
+    "collider": "floor",
+    "variants": [
+      {
+        "material": "plank",
+        "cost": {
+          "good.lumber": 2
+        }
+      },
+      {
+        "material": "flagstone",
+        "cost": {
+          "good.brownstone": 2
+        }
+      }
+    ],
+    "buildHours": 1,
+    "reachM": 0.6
+  },
+  {
+    "id": "build.trapdoor",
+    "name": "Trapdoor",
+    "category": "floor",
+    "placement": "cell",
+    "layer": "base",
+    "stand": "base",
+    "heightM": 0.1,
+    "collider": "floor",
+    "variants": [
+      {
+        "material": "plank",
+        "cost": {
+          "good.lumber": 2,
+          "good.hardware": 1
+        }
+      }
+    ],
+    "buildHours": 1.5,
+    "reachM": 0.6
+  },
+  {
+    "id": "build.wall",
+    "name": "Wall",
+    "category": "wall",
+    "placement": "edge",
+    "stand": "onFloor",
+    "heightM": 2.9,
+    "collider": "wall",
+    "variants": [
+      {
+        "material": "log",
+        "cost": {
+          "good.lumber": 3
+        }
+      },
+      {
+        "material": "plank",
+        "cost": {
+          "good.lumber": 2,
+          "good.hardware": 1
+        }
+      },
+      {
+        "material": "brownstone",
+        "cost": {
+          "good.brownstone": 3
+        }
+      },
+      {
+        "material": "tarpaper",
+        "cost": {
+          "good.lumber": 1,
+          "good.rope_canvas": 1
+        }
+      }
+    ],
+    "buildHours": 2,
+    "carries": true
+  },
+  {
+    "id": "build.wall_half",
+    "name": "Half wall",
+    "category": "wall",
+    "placement": "edge",
+    "stand": "onFloor",
+    "heightM": 1.1,
+    "collider": "rail",
+    "variants": [
+      {
+        "material": "log",
+        "cost": {
+          "good.lumber": 2
+        }
+      },
+      {
+        "material": "plank",
+        "cost": {
+          "good.lumber": 1,
+          "good.hardware": 1
+        }
+      },
+      {
+        "material": "brownstone",
+        "cost": {
+          "good.brownstone": 2
+        }
+      },
+      {
+        "material": "tarpaper",
+        "cost": {
+          "good.lumber": 1,
+          "good.rope_canvas": 1
+        }
+      }
+    ],
+    "buildHours": 1
+  },
+  {
+    "id": "build.wall_door",
+    "name": "Wall with door frame",
+    "category": "wall",
+    "placement": "edge",
+    "stand": "onFloor",
+    "heightM": 2.9,
+    "collider": "door",
+    "variants": [
+      {
+        "material": "log",
+        "cost": {
+          "good.lumber": 3
+        }
+      },
+      {
+        "material": "plank",
+        "cost": {
+          "good.lumber": 2,
+          "good.hardware": 1
+        }
+      },
+      {
+        "material": "brownstone",
+        "cost": {
+          "good.brownstone": 3
+        }
+      },
+      {
+        "material": "tarpaper",
+        "cost": {
+          "good.lumber": 1,
+          "good.rope_canvas": 1
+        }
+      }
+    ],
+    "buildHours": 2,
+    "carries": true
+  },
+  {
+    "id": "build.wall_window",
+    "name": "Wall with window frame",
+    "category": "wall",
+    "placement": "edge",
+    "stand": "onFloor",
+    "heightM": 2.9,
+    "collider": "window",
+    "variants": [
+      {
+        "material": "log",
+        "cost": {
+          "good.lumber": 3
+        }
+      },
+      {
+        "material": "plank",
+        "cost": {
+          "good.lumber": 2,
+          "good.hardware": 1
+        }
+      },
+      {
+        "material": "brownstone",
+        "cost": {
+          "good.brownstone": 3
+        }
+      },
+      {
+        "material": "tarpaper",
+        "cost": {
+          "good.lumber": 1,
+          "good.rope_canvas": 1
+        }
+      }
+    ],
+    "buildHours": 2,
+    "carries": true
+  },
+  {
+    "id": "build.wall_gable",
+    "name": "Gable wall",
+    "category": "wall",
+    "placement": "edge",
+    "stand": "onFloor",
+    "heightM": 1.2,
+    "collider": "none",
+    "variants": [
+      {
+        "material": "log",
+        "cost": {
+          "good.lumber": 3
+        }
+      },
+      {
+        "material": "plank",
+        "cost": {
+          "good.lumber": 2,
+          "good.hardware": 1
+        }
+      },
+      {
+        "material": "brownstone",
+        "cost": {
+          "good.brownstone": 3
+        }
+      },
+      {
+        "material": "tarpaper",
+        "cost": {
+          "good.lumber": 1,
+          "good.rope_canvas": 1
+        }
+      }
+    ],
+    "buildHours": 1.5,
+    "onRoof": true
+  },
+  {
+    "id": "build.wall_gable_peak",
+    "name": "Gable peak",
+    "category": "wall",
+    "placement": "edge",
+    "stand": "onFloor",
+    "heightM": 1.2,
+    "collider": "none",
+    "variants": [
+      {
+        "material": "log",
+        "cost": {
+          "good.lumber": 3
+        }
+      },
+      {
+        "material": "plank",
+        "cost": {
+          "good.lumber": 2,
+          "good.hardware": 1
+        }
+      },
+      {
+        "material": "brownstone",
+        "cost": {
+          "good.brownstone": 3
+        }
+      },
+      {
+        "material": "tarpaper",
+        "cost": {
+          "good.lumber": 1,
+          "good.rope_canvas": 1
+        }
+      }
+    ],
+    "buildHours": 1,
+    "onRoof": true
+  },
+  {
+    "id": "build.corner_post",
+    "name": "Post",
+    "category": "wall",
+    "placement": "edge",
+    "stand": "onFloor",
+    "heightM": 2.9,
+    "collider": "post",
+    "variants": [
+      {
+        "material": "timber",
+        "cost": {
+          "good.lumber": 1
+        }
+      }
+    ],
+    "buildHours": 0.5,
+    "carries": true,
+    "groundOk": true
+  },
+  {
+    "id": "build.door_plank",
+    "name": "Plank door",
+    "category": "fitting",
+    "placement": "edge",
+    "stand": "onFloor",
+    "heightM": 2.2,
+    "collider": "door",
+    "variants": [
+      {
+        "material": "plank",
+        "cost": {
+          "good.lumber": 1,
+          "good.hardware": 1
+        }
+      }
+    ],
+    "buildHours": 1,
+    "fitsIn": ["build.wall_door"]
+  },
+  {
+    "id": "build.door_iron",
+    "name": "Iron-strapped door",
+    "category": "fitting",
+    "placement": "edge",
+    "stand": "onFloor",
+    "heightM": 2.2,
+    "collider": "door",
+    "variants": [
+      {
+        "material": "iron",
+        "cost": {
+          "good.lumber": 1,
+          "good.hardware": 2
+        }
+      }
+    ],
+    "buildHours": 1.5,
+    "fitsIn": ["build.wall_door"]
+  },
+  {
+    "id": "build.shutters",
+    "name": "Shutters",
+    "category": "fitting",
+    "placement": "edge",
+    "stand": "onFloor",
+    "heightM": 1.2,
+    "collider": "none",
+    "variants": [
+      {
+        "material": "plank",
+        "cost": {
+          "good.lumber": 1
+        }
+      }
+    ],
+    "buildHours": 0.5,
+    "fitsIn": ["build.wall_window"],
+    "functions": {
+      "concealment": 0.02
+    }
+  },
+  {
+    "id": "build.window_glazed",
+    "name": "Glazed window",
+    "category": "fitting",
+    "placement": "edge",
+    "stand": "onFloor",
+    "heightM": 1.2,
+    "collider": "none",
+    "variants": [
+      {
+        "material": "plank",
+        "cost": {
+          "good.dry_goods": 1,
+          "good.lumber": 1
+        }
+      }
+    ],
+    "buildHours": 1,
+    "fitsIn": ["build.wall_window"]
+  },
+  {
+    "id": "build.roof_slope",
+    "name": "Roof slope",
+    "category": "roof",
+    "placement": "roof",
+    "stand": "carried",
+    "heightM": 1.2,
+    "collider": "none",
+    "variants": [
+      {
+        "material": "shingle",
+        "cost": {
+          "good.lumber": 2
+        }
+      },
+      {
+        "material": "plank",
+        "cost": {
+          "good.lumber": 2
+        }
+      },
+      {
+        "material": "tarpaper",
+        "cost": {
+          "good.lumber": 1,
+          "good.rope_canvas": 1
+        }
+      },
+      {
+        "material": "turf",
+        "cost": {
+          "good.lumber": 2
+        }
+      }
+    ],
+    "buildHours": 1.5
+  },
+  {
+    "id": "build.roof_ridge",
+    "name": "Roof ridge",
+    "category": "roof",
+    "placement": "roof",
+    "stand": "carried",
+    "heightM": 1.2,
+    "collider": "none",
+    "variants": [
+      {
+        "material": "shingle",
+        "cost": {
+          "good.lumber": 2
+        }
+      },
+      {
+        "material": "plank",
+        "cost": {
+          "good.lumber": 2
+        }
+      },
+      {
+        "material": "tarpaper",
+        "cost": {
+          "good.lumber": 1,
+          "good.rope_canvas": 1
+        }
+      },
+      {
+        "material": "turf",
+        "cost": {
+          "good.lumber": 2
+        }
+      }
+    ],
+    "buildHours": 1.5
+  },
+  {
+    "id": "build.roof_corner",
+    "name": "Roof corner",
+    "category": "roof",
+    "placement": "roof",
+    "stand": "carried",
+    "heightM": 1.2,
+    "collider": "none",
+    "variants": [
+      {
+        "material": "shingle",
+        "cost": {
+          "good.lumber": 2
+        }
+      },
+      {
+        "material": "plank",
+        "cost": {
+          "good.lumber": 2
+        }
+      },
+      {
+        "material": "tarpaper",
+        "cost": {
+          "good.lumber": 1,
+          "good.rope_canvas": 1
+        }
+      },
+      {
+        "material": "turf",
+        "cost": {
+          "good.lumber": 2
+        }
+      }
+    ],
+    "buildHours": 1.5
+  },
+  {
+    "id": "build.roof_lean",
+    "name": "Lean-to roof",
+    "category": "roof",
+    "placement": "roof",
+    "stand": "carried",
+    "heightM": 1.2,
+    "collider": "none",
+    "variants": [
+      {
+        "material": "shingle",
+        "cost": {
+          "good.lumber": 2
+        }
+      },
+      {
+        "material": "plank",
+        "cost": {
+          "good.lumber": 2
+        }
+      },
+      {
+        "material": "tarpaper",
+        "cost": {
+          "good.lumber": 1,
+          "good.rope_canvas": 1
+        }
+      },
+      {
+        "material": "turf",
+        "cost": {
+          "good.lumber": 2
+        }
+      }
+    ],
+    "buildHours": 1.5
+  },
+  {
+    "id": "build.roof_flat",
+    "name": "Flat roof",
+    "category": "roof",
+    "placement": "roof",
+    "stand": "carried",
+    "heightM": 1.2,
+    "collider": "none",
+    "variants": [
+      {
+        "material": "shingle",
+        "cost": {
+          "good.lumber": 2
+        }
+      },
+      {
+        "material": "plank",
+        "cost": {
+          "good.lumber": 2
+        }
+      },
+      {
+        "material": "tarpaper",
+        "cost": {
+          "good.lumber": 1,
+          "good.rope_canvas": 1
+        }
+      },
+      {
+        "material": "turf",
+        "cost": {
+          "good.lumber": 2
+        }
+      }
+    ],
+    "buildHours": 1.5
+  },
+  {
+    "id": "build.dormer",
+    "name": "Dormer",
+    "category": "roof",
+    "placement": "roof",
+    "stand": "carried",
+    "heightM": 1.2,
+    "collider": "none",
+    "variants": [
+      {
+        "material": "shingle",
+        "cost": {
+          "good.lumber": 2
+        }
+      },
+      {
+        "material": "plank",
+        "cost": {
+          "good.lumber": 2
+        }
+      },
+      {
+        "material": "tarpaper",
+        "cost": {
+          "good.lumber": 1,
+          "good.rope_canvas": 1
+        }
+      },
+      {
+        "material": "turf",
+        "cost": {
+          "good.lumber": 2
+        }
+      }
+    ],
+    "buildHours": 1.5
+  },
+  {
+    "id": "build.chimney",
+    "name": "Chimney",
+    "category": "living",
+    "placement": "cell",
+    "layer": "object",
+    "stand": "onFloor",
+    "heightM": 4.5,
+    "collider": "solid",
+    "variants": [
+      {
+        "material": "brownstone",
+        "cost": {
+          "good.brownstone": 2
+        }
+      }
+    ],
+    "buildHours": 2
+  },
+  {
+    "id": "build.stairs",
+    "name": "Stairs",
+    "category": "stairs",
+    "placement": "cell",
+    "layer": "object",
+    "stand": "onFloor",
+    "footprint": [1, 2],
+    "heightM": 3,
+    "collider": "solid",
+    "variants": [
+      {
+        "material": "plank",
+        "cost": {
+          "good.lumber": 3
+        }
+      }
+    ],
+    "buildHours": 2,
+    "maxLevel": 0
+  },
+  {
+    "id": "build.ladder",
+    "name": "Ladder",
+    "category": "stairs",
+    "placement": "edge",
+    "stand": "onFloor",
+    "heightM": 3,
+    "collider": "none",
+    "variants": [
+      {
+        "material": "timber",
+        "cost": {
+          "good.lumber": 1
+        }
+      }
+    ],
+    "buildHours": 0.5,
+    "groundOk": true
+  },
+  {
+    "id": "build.pier",
+    "name": "Pier",
+    "category": "water",
+    "placement": "water",
+    "layer": "base",
+    "stand": "water",
+    "heightM": 0.3,
+    "collider": "deck",
+    "variants": [
+      {
+        "material": "timber",
+        "cost": {
+          "good.lumber": 3
+        }
+      }
+    ],
+    "buildHours": 3,
+    "water": {
+      "minDepthM": 0.3,
+      "maxDepthM": 6
+    },
+    "maxLevel": 0
+  },
+  {
+    "id": "build.pier_corner",
+    "name": "Pier corner",
+    "category": "water",
+    "placement": "water",
+    "layer": "base",
+    "stand": "water",
+    "heightM": 0.3,
+    "collider": "deck",
+    "variants": [
+      {
+        "material": "timber",
+        "cost": {
+          "good.lumber": 3
+        }
+      }
+    ],
+    "buildHours": 3,
+    "water": {
+      "minDepthM": 0.3,
+      "maxDepthM": 6
+    },
+    "maxLevel": 0
+  },
+  {
+    "id": "build.pier_t",
+    "name": "Pier T",
+    "category": "water",
+    "placement": "water",
+    "layer": "base",
+    "stand": "water",
+    "heightM": 0.3,
+    "collider": "deck",
+    "variants": [
+      {
+        "material": "timber",
+        "cost": {
+          "good.lumber": 3
+        }
+      }
+    ],
+    "buildHours": 3,
+    "water": {
+      "minDepthM": 0.3,
+      "maxDepthM": 6
+    },
+    "maxLevel": 0
+  },
+  {
+    "id": "build.pier_ladder",
+    "name": "Pier ladder",
+    "category": "water",
+    "placement": "edge",
+    "stand": "onFloor",
+    "heightM": 2,
+    "collider": "none",
+    "variants": [
+      {
+        "material": "timber",
+        "cost": {
+          "good.lumber": 1
+        }
+      }
+    ],
+    "buildHours": 0.5,
+    "maxLevel": 0
+  },
+  {
+    "id": "build.mooring_post",
+    "name": "Mooring post",
+    "category": "water",
+    "placement": "cell",
+    "layer": "object",
+    "stand": "onFloor",
+    "heightM": 1.2,
+    "collider": "post",
+    "variants": [
+      {
+        "material": "timber",
+        "cost": {
+          "good.lumber": 1,
+          "good.rope_canvas": 1
+        }
+      }
+    ],
+    "buildHours": 1,
+    "maxLevel": 0,
+    "functions": {
+      "mooring": true
+    }
+  },
+  {
+    "id": "build.slipway",
+    "name": "Slipway",
+    "category": "water",
+    "placement": "water",
+    "layer": "base",
+    "stand": "water",
+    "footprint": [2, 4],
+    "heightM": 0.5,
+    "collider": "deck",
+    "variants": [
+      {
+        "material": "timber",
+        "cost": {
+          "good.lumber": 20,
+          "good.hardware": 4
+        }
+      }
+    ],
+    "buildHours": 24,
+    "water": {
+      "minDepthM": 1.5,
+      "maxDepthM": 4,
+      "shore": true
+    },
+    "maxLevel": 0,
+    "functions": {
+      "slipway": true
+    }
+  },
+  {
+    "id": "build.palisade",
+    "name": "Palisade",
+    "category": "fence",
+    "placement": "edge",
+    "stand": "onFloor",
+    "heightM": 2.6,
+    "collider": "fence",
+    "variants": [
+      {
+        "material": "log",
+        "cost": {
+          "good.lumber": 2
+        }
+      }
+    ],
+    "buildHours": 1.5,
+    "groundOk": true
+  },
+  {
+    "id": "build.rail_fence",
+    "name": "Rail fence",
+    "category": "fence",
+    "placement": "edge",
+    "stand": "onFloor",
+    "heightM": 1.1,
+    "collider": "rail",
+    "variants": [
+      {
+        "material": "timber",
+        "cost": {
+          "good.lumber": 1
+        }
+      }
+    ],
+    "buildHours": 0.5,
+    "groundOk": true
+  },
+  {
+    "id": "build.gate",
+    "name": "Gate",
+    "category": "fence",
+    "placement": "edge",
+    "stand": "onFloor",
+    "heightM": 1.2,
+    "collider": "door",
+    "variants": [
+      {
+        "material": "timber",
+        "cost": {
+          "good.lumber": 1,
+          "good.hardware": 1
+        }
+      }
+    ],
+    "buildHours": 1,
+    "groundOk": true
+  },
+  {
+    "id": "build.brush_screen",
+    "name": "Brush screen",
+    "category": "fence",
+    "placement": "edge",
+    "stand": "onFloor",
+    "heightM": 2.2,
+    "collider": "fence",
+    "variants": [
+      {
+        "material": "cloth",
+        "cost": {
+          "good.rope_canvas": 1
+        }
+      }
+    ],
+    "buildHours": 0.5,
+    "groundOk": true,
+    "functions": {
+      "concealment": 0.03
+    }
+  },
+  {
+    "id": "build.path_stones",
+    "name": "Path stones",
+    "category": "fence",
+    "placement": "cell",
+    "layer": "object",
+    "stand": "onFloor",
+    "heightM": 0.05,
+    "collider": "flat",
+    "variants": [
+      {
+        "material": "brownstone",
+        "cost": {
+          "good.brownstone": 1
+        }
+      }
+    ],
+    "buildHours": 0.5,
+    "groundOk": true,
+    "maxLevel": 0
+  },
+  {
+    "id": "build.crate_stack",
+    "name": "Crate stack",
+    "category": "storage",
+    "placement": "cell",
+    "layer": "object",
+    "stand": "onFloor",
+    "heightM": 1.4,
+    "collider": "solid",
+    "variants": [
+      {
+        "material": "timber",
+        "cost": {
+          "good.lumber": 1
+        }
+      }
+    ],
+    "buildHours": 0.5,
+    "functions": {
+      "storageCu": 5
+    }
+  },
+  {
+    "id": "build.barrel_rack",
+    "name": "Barrel rack",
+    "category": "storage",
+    "placement": "cell",
+    "layer": "object",
+    "stand": "onFloor",
+    "heightM": 1.6,
+    "collider": "solid",
+    "variants": [
+      {
+        "material": "timber",
+        "cost": {
+          "good.lumber": 2,
+          "good.hardware": 1
+        }
+      }
+    ],
+    "buildHours": 1,
+    "functions": {
+      "storageCu": 6
+    }
+  },
+  {
+    "id": "build.shelving",
+    "name": "Shelving",
+    "category": "storage",
+    "placement": "cell",
+    "layer": "object",
+    "stand": "onFloor",
+    "heightM": 2.2,
+    "collider": "solid",
+    "variants": [
+      {
+        "material": "plank",
+        "cost": {
+          "good.lumber": 2
+        }
+      }
+    ],
+    "buildHours": 1,
+    "functions": {
+      "storageCu": 8
+    }
+  },
+  {
+    "id": "build.warehouse_bay",
+    "name": "Warehouse bay",
+    "category": "storage",
+    "placement": "cell",
+    "layer": "object",
+    "stand": "onFloor",
+    "footprint": [2, 2],
+    "heightM": 2.4,
+    "collider": "solid",
+    "variants": [
+      {
+        "material": "timber",
+        "cost": {
+          "good.lumber": 6,
+          "good.hardware": 2
+        }
+      }
+    ],
+    "buildHours": 4,
+    "functions": {
+      "storageCu": 25
+    }
+  },
+  {
+    "id": "build.cellar_vault",
+    "name": "Hidden cellar vault",
+    "category": "storage",
+    "placement": "cell",
+    "layer": "object",
+    "stand": "onFloor",
+    "heightM": 0.1,
+    "collider": "flat",
+    "variants": [
+      {
+        "material": "brownstone",
+        "cost": {
+          "good.brownstone": 6,
+          "good.hardware": 2
+        }
+      }
+    ],
+    "buildHours": 8,
+    "maxLevel": 0,
+    "functions": {
+      "storageCu": 40,
+      "concealment": 0.02
+    }
+  },
+  {
+    "id": "build.strongbox",
+    "name": "Strongbox",
+    "category": "storage",
+    "placement": "cell",
+    "layer": "object",
+    "stand": "onFloor",
+    "heightM": 0.7,
+    "collider": "solid",
+    "variants": [
+      {
+        "material": "iron",
+        "cost": {
+          "good.hardware": 2
+        }
+      }
+    ],
+    "buildHours": 1,
+    "functions": {
+      "strongbox": true
+    }
+  },
+  {
+    "id": "build.bunk",
+    "name": "Bunk",
+    "category": "living",
+    "placement": "cell",
+    "layer": "object",
+    "stand": "onFloor",
+    "heightM": 1.6,
+    "collider": "solid",
+    "variants": [
+      {
+        "material": "timber",
+        "cost": {
+          "good.lumber": 2,
+          "good.dry_goods": 1
+        }
+      }
+    ],
+    "buildHours": 1,
+    "functions": {
+      "bed": true
+    }
+  },
+  {
+    "id": "build.stove",
+    "name": "Stove",
+    "category": "living",
+    "placement": "cell",
+    "layer": "object",
+    "stand": "onFloor",
+    "heightM": 1.0,
+    "collider": "solid",
+    "variants": [
+      {
+        "material": "iron",
+        "cost": {
+          "good.hardware": 3
+        }
+      }
+    ],
+    "buildHours": 1,
+    "functions": {
+      "warmth": true,
+      "smoke": true,
+      "concealment": -0.03
+    }
+  },
+  {
+    "id": "build.fireplace",
+    "name": "Fireplace",
+    "category": "living",
+    "placement": "cell",
+    "layer": "object",
+    "stand": "onFloor",
+    "heightM": 2.0,
+    "collider": "solid",
+    "variants": [
+      {
+        "material": "brownstone",
+        "cost": {
+          "good.brownstone": 4
+        }
+      }
+    ],
+    "buildHours": 3,
+    "functions": {
+      "warmth": true,
+      "smoke": true,
+      "light": true,
+      "concealment": -0.04
+    }
+  },
+  {
+    "id": "build.well",
+    "name": "Well",
+    "category": "living",
+    "placement": "cell",
+    "layer": "object",
+    "stand": "onFloor",
+    "heightM": 1.0,
+    "collider": "solid",
+    "variants": [
+      {
+        "material": "brownstone",
+        "cost": {
+          "good.brownstone": 2,
+          "good.hardware": 1
+        }
+      }
+    ],
+    "buildHours": 4,
+    "groundOk": true,
+    "maxLevel": 0
+  },
+  {
+    "id": "build.rain_barrel",
+    "name": "Rain barrel",
+    "category": "living",
+    "placement": "prop",
+    "stand": "onFloor",
+    "sizeM": [0.8, 0.8],
+    "heightM": 1.0,
+    "collider": "solid",
+    "variants": [
+      {
+        "material": "timber",
+        "cost": {
+          "good.lumber": 1
+        }
+      }
+    ],
+    "buildHours": 0.5,
+    "groundOk": true
+  },
+  {
+    "id": "build.lantern",
+    "name": "Lantern",
+    "category": "light",
+    "placement": "prop",
+    "stand": "onFloor",
+    "sizeM": [0.4, 0.4],
+    "heightM": 0.5,
+    "collider": "none",
+    "variants": [
+      {
+        "material": "iron",
+        "cost": {
+          "good.hardware": 1,
+          "good.kerosene": 1
+        }
+      }
+    ],
+    "buildHours": 0.25,
+    "groundOk": true,
+    "functions": {
+      "light": true,
+      "concealment": -0.03
+    }
+  },
+  {
+    "id": "build.lantern_wall",
+    "name": "Wall lantern",
+    "category": "light",
+    "placement": "prop",
+    "stand": "onFloor",
+    "sizeM": [0.3, 0.3],
+    "heightM": 0.5,
+    "collider": "none",
+    "variants": [
+      {
+        "material": "iron",
+        "cost": {
+          "good.hardware": 1,
+          "good.kerosene": 1
+        }
+      }
+    ],
+    "buildHours": 0.25,
+    "functions": {
+      "light": true,
+      "concealment": -0.03
+    }
+  },
+  {
+    "id": "build.signal_lantern",
+    "name": "Signal lantern",
+    "category": "light",
+    "placement": "prop",
+    "stand": "onFloor",
+    "sizeM": [0.5, 0.5],
+    "heightM": 3,
+    "collider": "post",
+    "variants": [
+      {
+        "material": "iron",
+        "cost": {
+          "good.hardware": 1,
+          "good.kerosene": 1,
+          "good.lumber": 1
+        }
+      }
+    ],
+    "buildHours": 1,
+    "groundOk": true,
+    "functions": {
+      "light": true,
+      "concealment": -0.05
+    }
+  },
+  {
+    "id": "build.workbench",
+    "name": "Workbench",
+    "category": "station",
+    "placement": "cell",
+    "layer": "object",
+    "stand": "onFloor",
+    "footprint": [2, 1],
+    "heightM": 1.4,
+    "collider": "solid",
+    "variants": [
+      {
+        "material": "timber",
+        "cost": {
+          "good.lumber": 3,
+          "good.hardware": 1
+        }
+      }
+    ],
+    "buildHours": 2,
+    "functions": {
+      "station": "station.workbench"
+    }
+  },
+  {
+    "id": "build.smithy",
+    "name": "Smithy",
+    "category": "station",
+    "placement": "cell",
+    "layer": "object",
+    "stand": "onFloor",
+    "footprint": [2, 1],
+    "heightM": 1.4,
+    "collider": "solid",
+    "variants": [
+      {
+        "material": "brownstone",
+        "cost": {
+          "good.brownstone": 3,
+          "good.hardware": 3
+        }
+      }
+    ],
+    "buildHours": 4,
+    "functions": {
+      "station": "station.smithy",
+      "smoke": true,
+      "light": true,
+      "concealment": -0.03
+    }
+  },
+  {
+    "id": "build.cooperage",
+    "name": "Cooperage",
+    "category": "station",
+    "placement": "cell",
+    "layer": "object",
+    "stand": "onFloor",
+    "footprint": [2, 1],
+    "heightM": 1.4,
+    "collider": "solid",
+    "variants": [
+      {
+        "material": "timber",
+        "cost": {
+          "good.lumber": 3,
+          "good.hardware": 2
+        }
+      }
+    ],
+    "buildHours": 3,
+    "functions": {
+      "station": "station.cooperage"
+    }
+  },
+  {
+    "id": "build.distillery",
+    "name": "Distillery",
+    "category": "station",
+    "placement": "cell",
+    "layer": "object",
+    "stand": "onFloor",
+    "footprint": [2, 1],
+    "heightM": 1.4,
+    "collider": "solid",
+    "variants": [
+      {
+        "material": "iron",
+        "cost": {
+          "good.hardware": 4,
+          "good.lumber": 2
+        }
+      }
+    ],
+    "buildHours": 4,
+    "functions": {
+      "station": "station.distillery",
+      "smoke": true,
+      "concealment": -0.02
+    }
+  },
+  {
+    "id": "build.table",
+    "name": "Table",
+    "category": "decor",
+    "placement": "prop",
+    "stand": "onFloor",
+    "sizeM": [1.4, 0.8],
+    "heightM": 1.0,
+    "collider": "solid",
+    "variants": [
+      {
+        "material": "plank",
+        "cost": {
+          "good.lumber": 1
+        }
+      }
+    ],
+    "buildHours": 0.25,
+    "groundOk": false
+  },
+  {
+    "id": "build.chair",
+    "name": "Chair",
+    "category": "decor",
+    "placement": "prop",
+    "stand": "onFloor",
+    "sizeM": [0.5, 0.5],
+    "heightM": 1.0,
+    "collider": "solid",
+    "variants": [
+      {
+        "material": "plank",
+        "cost": {
+          "good.lumber": 1
+        }
+      }
+    ],
+    "buildHours": 0.25,
+    "groundOk": false
+  },
+  {
+    "id": "build.chest",
+    "name": "Sea chest",
+    "category": "decor",
+    "placement": "prop",
+    "stand": "onFloor",
+    "sizeM": [0.9, 0.5],
+    "heightM": 1.0,
+    "collider": "solid",
+    "variants": [
+      {
+        "material": "timber",
+        "cost": {
+          "good.lumber": 1,
+          "good.hardware": 1
+        }
+      }
+    ],
+    "buildHours": 0.25,
+    "groundOk": false
+  },
+  {
+    "id": "build.rug",
+    "name": "Rug",
+    "category": "decor",
+    "placement": "prop",
+    "stand": "onFloor",
+    "sizeM": [1.8, 1.2],
+    "heightM": 1.0,
+    "collider": "none",
+    "variants": [
+      {
+        "material": "cloth",
+        "cost": {
+          "good.dry_goods": 1
+        }
+      }
+    ],
+    "buildHours": 0.25,
+    "groundOk": false
+  },
+  {
+    "id": "build.nets",
+    "name": "Hung nets",
+    "category": "decor",
+    "placement": "prop",
+    "stand": "onFloor",
+    "sizeM": [1.5, 0.3],
+    "heightM": 1.0,
+    "collider": "none",
+    "variants": [
+      {
+        "material": "cloth",
+        "cost": {
+          "good.rope_canvas": 1
+        }
+      }
+    ],
+    "buildHours": 0.25,
+    "groundOk": true
+  },
+  {
+    "id": "build.anchor",
+    "name": "Anchor",
+    "category": "decor",
+    "placement": "prop",
+    "stand": "onFloor",
+    "sizeM": [1.2, 0.6],
+    "heightM": 1.0,
+    "collider": "solid",
+    "variants": [
+      {
+        "material": "iron",
+        "cost": {
+          "good.hardware": 2
+        }
+      }
+    ],
+    "buildHours": 0.25,
+    "groundOk": true
+  },
+  {
+    "id": "build.ships_wheel",
+    "name": "Ship's wheel",
+    "category": "decor",
+    "placement": "prop",
+    "stand": "onFloor",
+    "sizeM": [1.2, 0.4],
+    "heightM": 1.0,
+    "collider": "none",
+    "variants": [
+      {
+        "material": "timber",
+        "cost": {
+          "good.lumber": 1,
+          "good.hardware": 1
+        }
+      }
+    ],
+    "buildHours": 0.25,
+    "groundOk": false
+  },
+  {
+    "id": "build.figurehead",
+    "name": "Figurehead",
+    "category": "decor",
+    "placement": "prop",
+    "stand": "onFloor",
+    "sizeM": [0.8, 1.6],
+    "heightM": 1.0,
+    "collider": "solid",
+    "variants": [
+      {
+        "material": "timber",
+        "cost": {
+          "good.lumber": 2
+        }
+      }
+    ],
+    "buildHours": 0.25,
+    "groundOk": true
+  }
+]

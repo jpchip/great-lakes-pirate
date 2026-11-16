@@ -1,5 +1,6 @@
 import sitesJson from '../../../data/sites.json';
 import { sitesFileSchema, type SiteDef } from '../../../data/schemas/sites';
+import type { PackedLayout } from '../../../data/schemas/structures';
 import type { Zone, ZoneFrame } from '../../core/coords';
 import {
   addToHold,
@@ -11,11 +12,15 @@ import {
 } from '../economy/hold';
 import { footprintPoint } from '../harbors';
 import { setPieceFootprint, zoneDef } from '../terrain/zones';
+import { gridHasStrongbox, gridStorageCu } from './edit';
+import { emptyLayout, offsetLayout, unpackGrid } from './grid';
+import { starter } from './structures';
 
 /**
- * Hideouts and their storage (plan 09 §2–3, §12; plan 05 §2; Phase 4 piece E). Phase 4 has
- * one: the Stockton Island stash at Presque Isle bay, every background's starting hideout,
- * pre-built with a strongbox and a storage shed (09 §2.2) and so claimed from the start.
+ * Hideouts and their storage (plan 09 §2–3, §12; plan 05 §2; Phase 4 piece E). A starting
+ * hideout comes pre-built (09 §2.2), so it's claimed from the start; since Phase 8 piece A
+ * it's a layout of grid pieces (data/starters.json), and its storage capacity and strongbox
+ * come from the pieces built there.
  * Goods and cash stored there are safe: they're not in the hold, so they don't load the
  * ship, can't be lost with her, and nothing that searches the ship will find them.
  *
@@ -37,17 +42,38 @@ export function hideoutIdOf(siteId: string): string {
   return `hideout.${siteId.replace(/^site\./, '')}`;
 }
 
-/** What one hideout holds (plan 09 §12 `hideouts[id]`, Phase 4's slice of it). */
+/** What one hideout holds (plan 09 §12 `hideouts[id]`). */
 export interface HideoutState {
   siteId: string;
   /** Game seconds of the claim; a starting hideout is claimed at the run's start. */
   claimedAt: number;
   storage: { goods: CargoStack[]; cash: number };
+  /** Its pieces, built and planned, packed (Phase 8 piece A; save v10). */
+  layout: PackedLayout;
+}
+
+/** Bounds for a site that doesn't give its own yet (piece D's Siskiwit, until it does). */
+const DEFAULT_BUILD = { alongM: 0, inlandM: 20, cols: 12, rows: 10, baseM: 2 };
+
+/** A site's build bounds (plan 09 §2.1). */
+export function siteBuild(site: SiteDef): NonNullable<SiteDef['build']> {
+  return site.build ?? DEFAULT_BUILD;
+}
+
+/** The pieces a new claim of a site starts with: its starter laid at its corner cell. */
+export function starterLayout(siteId: string): PackedLayout {
+  const site = siteDef(siteId);
+  if (!site) return emptyLayout();
+  const s = site.starter ?? { id: 'starter.shack', col: 1, row: 1 };
+  return offsetLayout(starter(s.id).layout, s.col, s.row);
 }
 
 export type Hideouts = Record<string, HideoutState>;
 
-/** The hideouts a background starts with (plan 12 §2.2; Phase 4: Stockton for all). */
+/**
+ * The hideouts a background starts with (plan 12 §2.2): in the MVP the Lumberjack starts
+ * at the Siskiwit logging camp and everyone else at Stockton (Phase 8 piece D).
+ */
 export function startingHideouts(background: string, gameSeconds: number): Hideouts {
   const out: Hideouts = {};
   for (const s of SITES) {
@@ -56,6 +82,7 @@ export function startingHideouts(background: string, gameSeconds: number): Hideo
       siteId: s.id,
       claimedAt: gameSeconds,
       storage: { goods: [], cash: 0 },
+      layout: starterLayout(s.id),
     };
   }
   return out;
@@ -63,21 +90,33 @@ export function startingHideouts(background: string, gameSeconds: number): Hideo
 
 /**
  * Gives a run its starting hideouts if it has none: a new run, a 0.3.0 run migrated
- * through v5, or a save from before piece E. Hideouts it has are left as they are.
+ * through v5, or a save from before piece E. A run that has any keeps exactly what it has
+ * (plan 09 §16.5): a Lumberjack from 0.7.x keeps Stockton and doesn't get Siskiwit.
  */
 export function syncHideouts(
   hideouts: Hideouts | undefined,
   background: string,
   gameSeconds: number,
 ): Hideouts {
+  if (hideouts && Object.keys(hideouts).length > 0) return hideouts;
   const out = hideouts ?? {};
-  for (const [id, h] of Object.entries(startingHideouts(background, gameSeconds))) out[id] ??= h;
+  Object.assign(out, startingHideouts(background, gameSeconds));
   return out;
 }
 
-/** CU of goods a hideout can hold (its storage pieces, plan 09 §5.4). */
+/** Where a hideout is, for the menu and the First Week: `hideout.stockton` → "Stockton Island". */
+export function hideoutPlace(hideoutId: string): string | undefined {
+  return SITES.find((s) => hideoutIdOf(s.id) === hideoutId)?.place;
+}
+
+/** CU of goods a hideout can hold: its built storage pieces (plan 09 §5.4). */
 export function storageCapacity(h: HideoutState): number {
-  return siteDef(h.siteId)?.storage.goodsCu ?? 0;
+  return gridStorageCu(unpackGrid(h.layout));
+}
+
+/** Whether a hideout has a built strongbox, so it can hold cash (plan 09 §5.4). */
+export function hasStrongbox(h: HideoutState): boolean {
+  return gridHasStrongbox(unpackGrid(h.layout));
 }
 
 /** Cash stashed across every hideout, cents (plan 05 §2: cash on hand vs. stashed). */
@@ -127,7 +166,7 @@ export function takeGoods(
 /** Puts `cents` of the purse in the strongbox. */
 export function stashCash(player: { purse: number }, h: HideoutState, cents: number): StashResult {
   if (!Number.isInteger(cents) || cents <= 0) return { ok: false, reason: 'badQty' };
-  if (!siteDef(h.siteId)?.storage.strongbox) return { ok: false, reason: 'noStrongbox' };
+  if (!hasStrongbox(h)) return { ok: false, reason: 'noStrongbox' };
   if (player.purse < cents) return { ok: false, reason: 'noMoney' };
   player.purse -= cents;
   h.storage.cash += cents;

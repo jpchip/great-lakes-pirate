@@ -1,4 +1,5 @@
 import type { z } from 'zod';
+import { ambitionsFileSchema } from './ambitions';
 import { backgroundsFileSchema, portraitsFileSchema } from './backgrounds';
 import { boardingRulesSchema } from './boarding';
 import { chartFileSchema } from './chart';
@@ -34,12 +35,14 @@ import { shipsFileSchema } from './ships';
 import { sitesFileSchema } from './sites';
 import { smugglersFileSchema } from './smuggler';
 import { storesFileSchema } from './stores';
+import { startersFileSchema, structuresFileSchema } from './structures';
 import { toolsFileSchema } from './tools';
 import { upgradesFileSchema } from './upgrades';
 import { zonesFileSchema } from './zones';
 
 /** Every data/*.json file and the schema that validates it. */
 export const dataFileSchemas: Readonly<Record<string, z.ZodType>> = {
+  'ambitions.json': ambitionsFileSchema,
   'ammo.json': ammoFileSchema,
   'backgrounds.json': backgroundsFileSchema,
   'boarding.json': boardingRulesSchema,
@@ -75,7 +78,9 @@ export const dataFileSchemas: Readonly<Record<string, z.ZodType>> = {
   'smuggler.json': smugglersFileSchema,
   'fences.json': fencesFileSchema,
   'guns.json': gunsFileSchema,
+  'starters.json': startersFileSchema,
   'stores.json': storesFileSchema,
+  'structures.json': structuresFileSchema,
   'tools.json': toolsFileSchema,
   'upgrades.json': upgradesFileSchema,
   'wanted_tiers.json': wantedTiersFileSchema,

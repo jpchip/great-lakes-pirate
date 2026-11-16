@@ -1,0 +1,138 @@
+{
+  "maxPinned": 3,
+  "marks": {
+    "wealth": { "name": "A bank draft", "legend": "Pay to the bearer" },
+    "infamy": { "name": "A WANTED clipping", "legend": "Wanted" },
+    "trade": { "name": "A freight agent's seal", "legend": "Received in good order" },
+    "seamanship": { "name": "A pilot's chit", "legend": "Safe in harbor" },
+    "builder": { "name": "A surveyor's plat", "legend": "Surveyed and entered" }
+  },
+  "ambitions": [
+    {
+      "id": "ambition.nest_egg",
+      "category": "wealth",
+      "name": "A nest egg",
+      "text": "Hold $1,000 in cash across your hideouts",
+      "goal": { "kind": "hideoutCash", "cents": 100000 },
+      "reward": { "cents": 2500 },
+      "logbook": "A thousand dollars put by in the strongbox."
+    },
+    {
+      "id": "ambition.money_in_the_bank",
+      "category": "wealth",
+      "name": "Money in the strongbox",
+      "text": "Hold $10,000 in cash across your hideouts",
+      "goal": { "kind": "hideoutCash", "cents": 1000000 },
+      "reward": { "cents": 10000 },
+      "logbook": "Ten thousand dollars put by. Nobody on the lake knows where."
+    },
+    {
+      "id": "ambition.a_fortune",
+      "category": "wealth",
+      "name": "A fortune",
+      "text": "Hold $50,000 in cash across your hideouts",
+      "goal": { "kind": "hideoutCash", "cents": 5000000 },
+      "reward": { "cents": 25000 },
+      "logbook": "Fifty thousand dollars put by: a fortune, and every cent of it hidden."
+    },
+    {
+      "id": "ambition.infamous",
+      "category": "infamy",
+      "name": "Infamous",
+      "text": "Reach Fame tier 3, Infamous",
+      "goal": { "kind": "fameTier", "tier": 3 },
+      "reward": { "cents": 5000 },
+      "logbook": "Infamous now. The waterfront knows the name."
+    },
+    {
+      "id": "ambition.legendary",
+      "category": "infamy",
+      "name": "A legend of the lake",
+      "text": "Reach Fame tier 4, Legendary",
+      "goal": { "kind": "fameTier", "tier": 4 },
+      "reward": { "cents": 15000 },
+      "logbook": "A legend of the lake. They tell it in every saloon from Duluth to the Soo."
+    },
+    {
+      "id": "ambition.slipped_the_morrill",
+      "category": "infamy",
+      "name": "Slipped the Morrill",
+      "text": "Escape the revenue cutter Morrill three times",
+      "goal": { "kind": "counter", "counter": "morrillEscapes", "target": 3 },
+      "reward": { "cents": 5000, "fame": 10 },
+      "logbook": "Slipped the Morrill a third time. Her captain will be hearing about it."
+    },
+    {
+      "id": "ambition.most_wanted_at_large",
+      "category": "infamy",
+      "name": "At large",
+      "text": "Be Most Wanted in a region and stay free for a week",
+      "goal": { "kind": "mostWantedDays", "days": 1 },
+      "reward": { "cents": 7500, "fame": 15 },
+      "logbook": "A week Most Wanted, and still free."
+    },
+    {
+      "id": "ambition.on_time_25",
+      "category": "trade",
+      "name": "As good as your word",
+      "text": "Deliver 25 freight contracts on time",
+      "goal": { "kind": "counter", "counter": "contractsOnTime", "target": 25 },
+      "reward": { "cents": 10000 },
+      "logbook": "Twenty-five cargoes delivered on time. The agents ask for you by name."
+    },
+    {
+      "id": "ambition.friend_of_three_ports",
+      "category": "trade",
+      "name": "Friend of the house",
+      "text": "Be a friend of the house (Standing 90) in three ports",
+      "goal": { "kind": "portStanding", "min": 90, "ports": 3 },
+      "reward": { "cents": 7500 },
+      "logbook": "A friend of the house in three ports."
+    },
+    {
+      "id": "ambition.smart_passages",
+      "category": "seamanship",
+      "name": "Smart passages",
+      "text": "Deliver three contracts in record time (half the time allowed)",
+      "goal": { "kind": "counter", "counter": "recordRuns", "target": 3 },
+      "reward": { "cents": 5000 },
+      "logbook": "A third cargo in record time. The shippers talk of nothing else."
+    },
+    {
+      "id": "ambition.november_gale",
+      "category": "seamanship",
+      "name": "The gales of November",
+      "text": "Make port through a November gale, the storm signal flying",
+      "goal": { "kind": "counter", "counter": "novemberGales", "target": 1 },
+      "reward": { "cents": 5000 },
+      "logbook": "Came in through a November gale with the storm signal flying."
+    },
+    {
+      "id": "ambition.two_hideouts",
+      "category": "builder",
+      "name": "Two hideouts",
+      "text": "Hold both hideout sites, Stockton Island and Siskiwit Bay",
+      "goal": { "kind": "hideouts", "count": 2 },
+      "reward": { "cents": 5000 },
+      "logbook": "Two hideouts on the lake now, and the law knows of neither."
+    },
+    {
+      "id": "ambition.a_proper_place",
+      "category": "builder",
+      "name": "A proper place",
+      "text": "Raise a hideout of 500 pieces or more",
+      "goal": { "kind": "hideoutPieces", "count": 500 },
+      "reward": { "cents": 10000 },
+      "logbook": "Five hundred pieces at one hideout: a proper place, not a shack."
+    },
+    {
+      "id": "ambition.built_her_ourselves",
+      "category": "builder",
+      "name": "Built her ourselves",
+      "text": "Build a schooner on your own slipway and launch her",
+      "goal": { "kind": "counter", "counter": "slipwayLaunches", "target": 1 },
+      "reward": { "cents": 5000 },
+      "logbook": "Launched a schooner off our own slipway."
+    }
+  ]
+}

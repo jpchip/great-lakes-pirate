@@ -17,6 +17,8 @@ export const siteSchema = z.object({
   name: z.string().min(1),
   /** The short name the chart and the HUD use. */
   shortName: z.string().min(1),
+  /** Where it is, as the menu and the First Week name it: "Stockton Island". */
+  place: z.string().min(1),
   zone: idOf('zone'),
   island: idOf('island').optional(),
   setPiece: idOf('setpiece'),
@@ -35,11 +37,38 @@ export const siteSchema = z.object({
     inlandM: z.number(),
     radiusM: z.number().positive(),
   }),
-  /** What the prefab stores: CU of goods (the storage shed), and cash (the strongbox). */
-  storage: z.object({
-    goodsCu: z.number().int().positive(),
-    strongbox: z.boolean(),
-  }),
+  /**
+   * What Phase 4's prefab stored. Superseded by the hideout's pieces (plan 09 §5.4; Phase 8
+   * piece A): capacity and the strongbox come from what's built. Kept so older data loads.
+   */
+  storage: z
+    .object({
+      goodsCu: z.number().int().positive(),
+      strongbox: z.boolean(),
+    })
+    .optional(),
+  /**
+   * The build bounds (plan 09 §2.1, §4.3; Phase 8 piece A): the corner in the set piece's
+   * frame, the size in 2 m cells, and level 0's floor height above the lake. Build mode
+   * (piece C) places it in the walked scene.
+   */
+  build: z
+    .object({
+      alongM: z.number(),
+      inlandM: z.number(),
+      cols: z.number().int().positive(),
+      rows: z.number().int().positive(),
+      baseM: z.number(),
+    })
+    .optional(),
+  /** The pre-built hideout a claim starts with (plan 09 §2.2) and its corner cell. */
+  starter: z
+    .object({
+      id: idOf('starter'),
+      col: z.number().int().nonnegative(),
+      row: z.number().int().nonnegative(),
+    })
+    .optional(),
   /** Plan 12 §2.2's starting hideout for these backgrounds (Phase 4: all of them). */
   startFor: z.array(z.string()),
   blurb: z.string().min(1),

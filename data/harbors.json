@@ -991,5 +991,61 @@
       "maxStepM": 4.5,
       "seed": 1856
     }
+  },
+  {
+    "id": "harbor.siskiwit",
+    "name": "Siskiwit logging camp",
+    "setPiece": "setpiece.siskiwit",
+    "piers": [
+      {
+        "id": "pier.siskiwit_dock",
+        "name": "Camp dock",
+        "kind": "landing",
+        "alongM": 0,
+        "inlandM": 12,
+        "lengthM": 60,
+        "widthM": 4,
+        "deckM": 1.4
+      }
+    ],
+    "buildings": [
+      {
+        "kind": "shack",
+        "name": "The camp office",
+        "alongM": -22,
+        "inlandM": 22,
+        "widthM": 5,
+        "depthM": 4,
+        "heightM": 2.8,
+        "yawDeg": 4
+      },
+      {
+        "kind": "strongbox",
+        "name": "Strongbox",
+        "alongM": -15,
+        "inlandM": 19,
+        "widthM": 1.4,
+        "depthM": 1,
+        "heightM": 0.9,
+        "yawDeg": 4
+      },
+      {
+        "kind": "storageShed",
+        "name": "Tool shed",
+        "alongM": 20,
+        "inlandM": 24,
+        "widthM": 7,
+        "depthM": 5,
+        "heightM": 3.2,
+        "yawDeg": -5
+      }
+    ],
+    "town": {
+      "houses": 0,
+      "alongM": [-40, 40],
+      "inlandM": [10, 40],
+      "maxGroundM": 6,
+      "seed": 1898
+    }
   }
 ]
