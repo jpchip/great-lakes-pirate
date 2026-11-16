@@ -9,10 +9,13 @@ All notable changes to this project are recorded here. The format follows [Keep 
 ### Added
 
 - **Signs on Bayfield's buildings:** every building with a door has a painted board over it that says what it is. Named buildings show their name, such as the Lake Superior Saloon, the Halvorsen Chandlery and Booth & Sons General Store. The rest show their use, such as Dwelling, Lockup or Ice house. On the false-fronted shops the name is painted on the dark board that was already there.
+- **Lean and peek:** on foot, standing still with your hands free, Q and E lean left and right of where you look. Your head and the camera go out up to 0.6 m (less if a wall's in the way) while your feet stay put, so you can look round a corner or a stack of crates. A guard on the far side sees your head and not much else, and fills his meter about a third as fast as for all of you. Lean out of a shadow into a lamp's pool, though, and you're lit. Moving or carrying straightens you up ([plan 08 §20.9](plans/08-docks-district-stealth.md)).
+- **Putting out a lamp:** after dark, hold F at the foot of a lit street lamp to turn its gas down (1.5 s), or at a lantern to blow it out (0.8 s). Its light is gone from the light gem, the guards' sight and the street. It makes a little noise, and a guard who sees you do it grows wary and comes to look. A guard on his round who sees a lamp out within 25 m walks over and lights it again after a few seconds, then looks round before going back to his round. At dawn every lamp goes out, and at dusk they're all lit again. On a clear night under a bright moon the lamps aren't lit at all, so there's nothing to put out. `__glpFoot.lamps()`, `douse(k)` and `lean()` read and drive them.
 
 ### Fixed
 
 - **Cargo on the rails:** a stack of salt sacks and a net reel on Bayfield's waterfront sat on the rail track. Both now stand beside it.
+- **The mouse in a counter's screen:** after looking about on foot, opening a shop, the bar, the back room or the journal now hands the mouse back at once; before, it stayed captured until you pressed Esc. Click the scene to look about again.
 
 ## [0.7.1] - 2026-11-16
 

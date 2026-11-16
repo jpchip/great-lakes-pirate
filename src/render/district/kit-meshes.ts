@@ -649,3 +649,29 @@ export function propGeometry(p: PlacedPiece, out: KitSink): void {
   out.body.push(...body);
   out.lit.push(...lit);
 }
+
+/** Dark glass, for a lamp that's been put out. */
+const DOUSED_GLASS = 0x2a2721;
+
+/**
+ * A put-out lamp's glass (plan 08 §6): a dark copy a hair larger than the lit glass of
+ * `propGeometry`, drawn over it, so the merged lit block needn't be rebuilt. In the prop's
+ * own frame (the caller places it as the prop is placed). Undefined for a piece with no glass.
+ */
+export function dousedGlassGeometry(
+  pieceId: string,
+  heightM: number,
+): THREE.BufferGeometry | undefined {
+  const h = heightM;
+  const k = 1.08;
+  switch (pieceId) {
+    case 'kit.gas_lamp':
+      return frustum(0.18 * k, 0.12 * k, 0.42 * k, 4, 0, h - 0.5 - 0.42 * 0.04, 0, DOUSED_GLASS);
+    case 'kit.lantern_hook':
+      return box(0.16 * k, 0.24 * k, 0.16 * k, 0, h - 0.4 - 0.01, -0.08, DOUSED_GLASS);
+    case 'kit.lantern_post':
+      return box(0.18 * k, 0.26 * k, 0.18 * k, 0.3, h - 0.62 - 0.01, 0, DOUSED_GLASS);
+    default:
+      return undefined;
+  }
+}

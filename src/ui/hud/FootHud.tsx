@@ -104,7 +104,7 @@ export function FootHud({
           <div class="foot-keys hud-dim" data-testid="foot-keys">
             {h.inBoat
               ? 'W/S pull or back water · A/D turn'
-              : 'WASD move · Shift run · C crouch · Space hop, vault or climb'}
+              : 'WASD move · Shift run · C crouch · Q/E lean · Space hop, vault or climb'}
             {!h.mouseLocked && ' · click to look'}
           </div>
         </>

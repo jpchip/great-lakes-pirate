@@ -87,7 +87,13 @@ export interface IslandPosse {
   readonly captured: boolean;
   /** A marshal is after you: danger, as in the district (no autosave, the chart locked). */
   readonly pursued: boolean;
-  step(dt: number, player: CharacterState, suspect: boolean, surface?: Surface): void;
+  step(
+    dt: number,
+    player: CharacterState,
+    suspect: boolean,
+    surface?: Surface,
+    lean?: { x: number; z: number },
+  ): void;
 }
 
 export function createIslandPosse(opts: IslandPosseOptions): IslandPosse | undefined {
@@ -131,7 +137,7 @@ export function createIslandPosse(opts: IslandPosseOptions): IslandPosse | undef
     get pursued() {
       return stealth.guards.some((g) => g.state === 'alerted' && g.type.pursues);
     },
-    step(dt, player, suspect, surface) {
+    step(dt, player, suspect, surface, lean) {
       const c = opts.conditions();
       stealth.step(dt, {
         player,
@@ -145,6 +151,7 @@ export function createIslandPosse(opts: IslandPosseOptions): IslandPosse | undef
         suspect,
         fame01: c.fame01,
         wantedTier: c.wantedTier,
+        ...(lean ? { lean } : {}),
       });
     },
   };
