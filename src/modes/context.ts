@@ -266,6 +266,28 @@ export interface GameEvents {
     aboutYou: boolean;
   };
   NewspaperBought: { port: string; paper: string; cents: number };
+  /**
+   * A feat the papers print (Phase 8 piece H raises it from the papers for Ambitions): an
+   * escape from a law ship that gave chase (`by`), a record run, making port through a gale
+   * with the storm signal up, or the first boat in after the ice.
+   */
+  FeatAccomplished: {
+    kind: 'escape' | 'recordRun' | 'galeRun' | 'firstBoat';
+    region: string;
+    port?: string;
+    by?: string;
+  };
+  /**
+   * Ambitions (plan 12 §4.1; Phase 8 piece H): one pinned or unpinned in the journal, and
+   * one done (its reward paid: cash to the purse and Fame) with the papers to hear of it.
+   */
+  AmbitionPinned: { id: string; pinned: boolean };
+  AmbitionCompleted: { id: string; category: string; cents: number; fame: number };
+  /**
+   * A schooner built at a hideout's slipway and launched (Phase 8 piece G raises it; the
+   * builder Ambition counts it).
+   */
+  ShipLaunched: { from: 'slipway'; hideout: string; classId: string };
   PaperCried: { port: string; paper: string; headline: string; aboutYou: boolean };
   /**
    * Targets and their will (plan 07 §5, §8.2; Phase 6 piece C). `TargetStateChanged` is

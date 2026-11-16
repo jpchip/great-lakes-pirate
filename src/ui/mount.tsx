@@ -31,6 +31,8 @@ import type { StashSnapshot } from './stash/model';
 import type { StashActions } from '../gameplay/stash';
 import { FirstWeekPage, FirstWeekTracker } from './hud/FirstWeek';
 import type { FirstWeekSnapshot } from '../gameplay/captain';
+import { AmbitionsContext, AmbitionsTracker, type AmbitionActions } from './hud/Ambitions';
+import type { AmbitionsSnapshot } from '../gameplay/ambitions';
 import { JailScreen } from './jail/JailScreen';
 import type { JailActions, JailSnapshot } from './jail/model';
 import { EndScreen } from './end/EndScreen';
@@ -67,6 +69,8 @@ export interface GameUiOptions {
   setFirstWeekHidden?: ((hidden: boolean) => void) | undefined;
   /** Clear the finished First Week mark from the journal. */
   clearFirstWeek?: (() => void) | undefined;
+  /** Pinning Ambitions, clearing their marks and folding the HUD's list (Phase 8 piece H). */
+  ambitions?: AmbitionActions | undefined;
   /** The port screen's buttons and the journal's (Phase 4 piece B). */
   port?: (PortActions & { closeJournal(): void; openDocked(): void }) | undefined;
   /** Alongside the island smuggler (Phase 4 piece H). */
@@ -125,6 +129,8 @@ export interface GameUi {
   setLie(open: boolean, docked?: boolean): void;
   /** The First Week checklist (Phase 4 piece C); undefined for a run without one. */
   setFirstWeek(snapshot: FirstWeekSnapshot | undefined): void;
+  /** Ambitions (Phase 8 piece H): the HUD's pinned list and the ledger's page. */
+  setAmbitions(snapshot: AmbitionsSnapshot | undefined): void;
   /** The jail, bail and release screens (piece D); undefined closes them. */
   setJail(snapshot: JailSnapshot | undefined): void;
   /** The run is over: the front page and summary over everything. */
@@ -154,6 +160,7 @@ export function mountGameUi({
   stash: stashActions,
   setFirstWeekHidden = () => undefined,
   clearFirstWeek = () => undefined,
+  ambitions: ambitionActions,
   jail: jailActions,
   onAbandon,
   onEndMenu = () => window.location.assign(window.location.pathname),
@@ -173,6 +180,12 @@ export function mountGameUi({
   const lie = signal(false);
   const lieDocked = signal(false);
   const firstWeek = signal<FirstWeekSnapshot | undefined>(undefined);
+  const ambitions = signal<AmbitionsSnapshot | undefined>(undefined);
+  const ambitionsContext = computed(() =>
+    ambitions.value && ambitionActions
+      ? { ambitions: ambitions.value, actions: ambitionActions }
+      : undefined,
+  );
   const port = signal<PortSnapshot | undefined>(undefined);
   const portTab = signal<PortTab>('market');
   const journal = signal<LedgerSnapshot | undefined>(undefined);
@@ -268,8 +281,20 @@ export function mountGameUi({
   });
 
   function App() {
+    // The trackers on the left (the First Week, then the pinned Ambitions) show at the helm
+    // and on foot, never over a screen.
+    const trackersShown =
+      !menuOpen.value &&
+      !port.value &&
+      !journal.value &&
+      !smuggler.value &&
+      !boarding.value &&
+      !stash.value &&
+      !lie.value &&
+      !chart.value;
+    const weekShown = !!firstWeek.value && !firstWeek.value.complete && !firstWeek.value.hidden;
     return (
-      <>
+      <AmbitionsContext.Provider value={ambitionsContext.value}>
         <Hud
           hud={hud}
           density={density}
@@ -323,19 +348,16 @@ export function mountGameUi({
             }
           />
         )}
-        {firstWeek.value &&
-          !firstWeek.value.complete &&
-          !firstWeek.value.hidden &&
-          !menuOpen.value &&
-          !port.value &&
-          !journal.value &&
-          !smuggler.value &&
-          !boarding.value &&
-          !stash.value &&
-          !lie.value &&
-          !chart.value && (
-            <FirstWeekTracker week={firstWeek.value} setHidden={setFirstWeekHidden} />
-          )}
+        {trackersShown && (weekShown || ambitions.value) && (
+          <div class="hud-trackers">
+            {weekShown && firstWeek.value && (
+              <FirstWeekTracker week={firstWeek.value} setHidden={setFirstWeekHidden} />
+            )}
+            {ambitions.value && ambitionActions && (
+              <AmbitionsTracker ambitions={ambitions.value} setFolded={ambitionActions.setFolded} />
+            )}
+          </div>
+        )}
         {!menuOpen.value &&
           !port.value &&
           !journal.value &&
@@ -382,7 +404,7 @@ export function mountGameUi({
         )}
         <LoadingScreen screen={loading} />
         {ended.value && <EndScreen run={ended.value} onMenu={onEndMenu} />}
-      </>
+      </AmbitionsContext.Provider>
     );
   }
 
@@ -459,6 +481,9 @@ export function mountGameUi({
     },
     setFirstWeek(snapshot) {
       firstWeek.value = snapshot;
+    },
+    setAmbitions(snapshot) {
+      ambitions.value = snapshot;
     },
     setPortTab(tab) {
       portTab.value = tab;

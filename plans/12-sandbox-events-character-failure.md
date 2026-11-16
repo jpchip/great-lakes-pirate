@@ -96,6 +96,8 @@ Perks are modest. They shape the early game and playstyle but never decide a run
 | **Explorer** | Complete all legends; set foot on all 22 islands; salvage a deep wreck |
 | **Seavey homages** | *Moon-Cusser:* wreck a ship with a false light · *The Nellie Johnson:* loot a crew drunk on your whiskey · *Venison King:* sell 50 CU of venison · *Won It at Poker:* win a cargo in a card game (§5.3) |
 
+**As built (Phase 8 piece H, 2026-11-16):** `data/ambitions.json` holds 14 goals that the MVP can meet: three of wealth (cash across your hideouts: $1,000, $10,000, $50,000), four of infamy (Fame tier 3 and 4, escape the *Morrill* three times, a week at large while Most Wanted), two of trade (25 contracts on time, Standing 90 in three ports), two of seamanship (three record runs, making port through a November gale with the storm signal up) and three builder goals (both hideout sites, a hideout of 500 pieces, a schooner launched from your slipway). The journal's ledger has an **Ambitions** tab to pin up to three; the pinned ones sit on the HUD under the First Week, with a meter each, and fold to a line. A goal met is done whether pinned or not: it pays its reward (cash, some Fame), writes a logbook line, leaves its category's mark in the ledger (a bank draft, a WANTED clipping, a freight agent's seal, a pilot's chit, a surveyor's plat), clearable, and the papers print a story for it (`stories.ambition` in `newspapers.json`). Counters come from the bus by name: `ContractCompleted`, the papers' new `FeatAccomplished` (escape, record run, gale run, first boat), and `ShipLaunched` for piece G to raise. The builder goals read `hideouts[id].pieces` as an array (piece A). The "Duluth → Bayfield in a set time" example became the record-run goal, which the papers already judge; ice-out, winter and the explorer and Seavey goals wait for Phase 9's content. Saved as an optional `ambitions` slice, so no version bump.
+
 ### 4.2 Voluntary endings (decided)
 There's no win condition, but a run can end on your terms:
 - **Retire:** available when you hold enough wealth and no region is at tier 3+. You choose a retirement (a farm in Peshtigo, a saloon in Duluth, a quiet island cabin). Epilogue newspaper plus run summary.
@@ -282,6 +284,7 @@ All resolved.
 ---
 
 ## Changelog
+- v0.10: Ambitions as built (§4.1; Phase 8 piece H): 14 goals, pinning up to three on the HUD, themed marks in the ledger, rewards and the papers' stories.
 - v0.9: Phase 7 as built (§11): the First Week's sixth step, the on-foot perks, minor arrests and the jailbreak.
 - v0.8: Ambitions shown as themed logbook marks in the journal; the First Week collapses to one clearable mark (Jared, 2026-11-08).
 - v0.7: Bail brings the region down to tier 1, as time served does (Jared, 2026-11-08).

@@ -1,4 +1,5 @@
 import { WantedIcon } from '../hud/Wanted';
+import { AmbitionsPage, useAmbitions } from '../hud/Ambitions';
 import type { LedgerLawSnapshot } from './harbor-model';
 import type { ComponentChildren } from 'preact';
 import { useState } from 'preact/hooks';
@@ -20,7 +21,7 @@ import {
  * are, so color is never the only signal (plan 13 §2.2).
  */
 
-type LedgerTab = 'hold' | 'byPort' | 'byGood' | 'contracts' | 'rumors' | 'standing';
+type LedgerTab = 'hold' | 'byPort' | 'byGood' | 'contracts' | 'rumors' | 'standing' | 'ambitions';
 
 const TABS: [LedgerTab, string][] = [
   ['hold', 'Hold'],
@@ -29,6 +30,7 @@ const TABS: [LedgerTab, string][] = [
   ['contracts', 'Contracts'],
   ['rumors', 'Rumors'],
   ['standing', 'Standing & law'],
+  ['ambitions', 'Ambitions'],
 ];
 
 /** One rumor: what was said, who said it and how far to trust it. */
@@ -477,10 +479,13 @@ function LawPage({ law }: { law: LedgerLawSnapshot }) {
 export function Ledger({ ledger, here }: { ledger: LedgerSnapshot; here?: string | undefined }) {
   // At sea the hold is what you came to look at; in port it's already beside the market.
   const [tab, setTab] = useState<LedgerTab>(here ? 'byPort' : 'hold');
+  // The Ambitions page needs the game's buttons (Phase 8 piece H): absent, no tab.
+  const ambitions = useAmbitions();
+  const tabs = ambitions ? TABS : TABS.filter(([id]) => id !== 'ambitions');
   return (
     <div class="ledger" data-testid="ledger">
       <nav class="ledger-tabs">
-        {TABS.map(([id, label]) => (
+        {tabs.map(([id, label]) => (
           <button
             type="button"
             key={id}
@@ -508,6 +513,9 @@ export function Ledger({ ledger, here }: { ledger: LedgerSnapshot; here?: string
         ))}
       {tab === 'standing' && ledger.law && <LawPage law={ledger.law} />}
       {tab === 'standing' && <Standing ledger={ledger} />}
+      {tab === 'ambitions' && ambitions && (
+        <AmbitionsPage ambitions={ambitions.ambitions} actions={ambitions.actions} />
+      )}
     </div>
   );
 }

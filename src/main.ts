@@ -148,6 +148,7 @@ import {
 import { createNewRun, startingPort } from './sim/character/new-run';
 import { withSailingPerks } from './sim/character/perks';
 import { attachCaptain } from './gameplay/captain';
+import { attachAmbitions } from './gameplay/ambitions';
 import { attachLaw, devWitness } from './gameplay/law';
 import { attachPortLaw } from './gameplay/port-law';
 import { attachPapers } from './gameplay/papers';
@@ -1113,6 +1114,10 @@ async function boot(): Promise<void> {
   const captainRef: { current: ReturnType<typeof attachCaptain> | undefined } = {
     current: undefined,
   };
+  // Ambitions (Phase 8 piece H); attached with the captain.
+  const ambitionsRef: { current: ReturnType<typeof attachAmbitions> | undefined } = {
+    current: undefined,
+  };
   // Jail and the run's end (piece D); attached once the ports are up.
   const captureRef: { current: ReturnType<typeof attachCapture> | undefined } = {
     current: undefined,
@@ -1196,6 +1201,12 @@ async function boot(): Promise<void> {
     },
     setFirstWeekHidden: (hidden) => captainRef.current?.setHidden(hidden),
     clearFirstWeek: () => captainRef.current?.clearFirstWeek(),
+    ambitions: {
+      pin: (id) => void ambitionsRef.current?.pin(id),
+      unpin: (id) => ambitionsRef.current?.unpin(id),
+      clearMark: (id) => ambitionsRef.current?.clearMark(id),
+      setFolded: (folded) => ambitionsRef.current?.setFolded(folded),
+    },
     jail: {
       serve: () => captureRef.current?.actions.serve(),
       sendWord: (hideout) => captureRef.current?.actions.sendWord(hideout),
@@ -2176,6 +2187,31 @@ async function boot(): Promise<void> {
   }
   // The Fisherman's fish prices and the First Week checklist (piece C).
   captainRef.current = attachCaptain(ctx, economy.defs, (week) => ui.setFirstWeek(week));
+  // Ambitions (Phase 8 piece H): pinned on the HUD, marks in the ledger, a line in the papers.
+  ambitionsRef.current = attachAmbitions(ctx, law.defs, (snapshot) => ui.setAmbitions(snapshot));
+  if (import.meta.env.DEV || params.has('debug')) {
+    const amb = ambitionsRef.current;
+    const hook = {
+      /** The snapshot the HUD and the ledger show. */
+      snapshot: () => amb.snapshot(),
+      pin: (id: string) => amb.pin(id),
+      unpin: (id: string) => amb.unpin(id),
+      /** Moves a counter (`morrillEscapes`, `contractsOnTime`...) and checks. */
+      count(counter: string, by = 1) {
+        amb.state.counters[counter] = (amb.state.counters[counter] ?? 0) + by;
+        return amb.check().map((d) => d.id);
+      },
+      /** Puts cash in the first hideout's strongbox and checks. */
+      stash(cents: number) {
+        const h = Object.values(ctx.state.hideouts ?? {})[0];
+        if (h) h.storage.cash += cents;
+        return amb.check().map((d) => d.id);
+      },
+      check: () => amb.check().map((d) => d.id),
+      state: () => amb.state,
+    };
+    (window as unknown as { __glpAmbitions: typeof hook }).__glpAmbitions = hook;
+  }
   if (import.meta.env.DEV || params.has('debug')) {
     const hook = {
       /** Opens a port's screen wherever the ship is. */

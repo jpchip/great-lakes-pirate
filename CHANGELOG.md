@@ -4,6 +4,14 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ## [Unreleased]
 
+### Added
+
+- **Ambitions (Phase 8 piece H):** fourteen optional goals in the journal's new Ambitions tab, across wealth, infamy, trade, seamanship and building ([plan 12 §4.1](plans/12-sandbox-events-character-failure.md)). Pin up to three to follow them on the HUD, each with a meter, under the First Week's checklist; the list folds to its heading. A goal met pays a small reward (cash, and Fame for the infamous ones), writes a line in the logbook, leaves a themed mark in the ledger (a bank draft, a WANTED clipping, a freight agent's seal, a pilot's chit or a surveyor's plat) that you can clear, and gets a story in the papers. `__glpAmbitions` reads and drives them.
+
+### Changed
+
+- The First Week's tracker sits lower on the left, under the lantern and the eye, so it no longer covers them.
+
 ## [0.7.2] - 2026-11-16
 
 ### Added
