@@ -422,6 +422,29 @@ Ten pieces, each sized to be one thread. Four can start at once (A, B, D and H).
 
 **Piece B built (2026-11-16):** the kit is 63 pieces in `src/render/hideout/pieces.ts`, one per id in `data/structures.json`, each built once per material with its lamp glass marked by a `glow` vertex attribute (the stylized material's `glow` option), so glass and body are one geometry. `src/render/hideout/hideout-view.ts` draws a hideout from piece A's render input (`placedRender`): one `InstancedMesh` per piece and material, a placement or removal writing one slot (swap-with-last), foundations, pilings and pier posts reaching down by `extendM`, gable ends up a wide roof standing on wall courses stacked down to the eave by `riseM`, lamps fed to the shader's pools, and a merged proxy (each piece's bounding box in its average color, roofs as slabs, glass still glowing) rebuilt 400 ms after the last edit and shown beyond 140 m. `bench.hideout` on a 1,500-piece compound that uses nearly every piece and material: 77 draw calls up close, 1 for the proxy, 259k triangles near and 21k far, placing a piece ≤ 0.4 ms, removing ≤ 0.1 ms, a proxy rebuild 17 ms (SwiftShader; the laptop's frame times are still to take). A hideout that uses every piece in every material would pass 80 calls; real hideouts use far fewer kinds. Edges at rot 3 (the -x side) turn a sloped gable the wrong way, so a gable's rot follows the roof's rise, not its side, and its outside detail may face in.
 
+**Piece E built (2026-11-16):** crafting is pure sim in `src/sim/hideouts/crafting.ts` over `data/stations.json` (the four stations, each a piece whose `functions.station` names it; the distillery passive with a queue of 4), `data/recipes.json` (13 recipes) and `data/items.json` (crate, barrel, false-light rig). A recipe needs its station **built** (ghosts don't count) and, for the still, a built well or rain barrel (`functions.water`). Goods come from the hideout's storage first, then the hold of a ship moored there, never contract cargo, as a build session's do; crates and barrels come from the storage. What's made goes into that hideout's storage: goods need its room, **things** (stores, items, upgrades) take no CU and are kept in `storage.things`. An active station's batches take `hours × crew factor` (no season: it's indoor work) and the screen runs the clock on by them; the still's batches are chained from when they're loaded, a game day (a week) each, and `settleProduction` moves every batch whose time has come into storage on load and each world tick, so a voyage of any length brings back at most one batch a week, and a batch that doesn't fit waits in the still. Kits, picks and crowbars go aboard into the lockers from the Workshop tab (`takeThing`, up to the locker limit) and are the chandlery's stores, so they patch, pick and pry as bought ones do; shot is the same kegs of `good.powder_shot` every kind is fired from. The save keeps `storage.things` and `stations` as optional fields of `hideouts[id]` (no version bump). Recipes and choices made in the piece:
+
+| Station | Recipe | Inputs | Time | Makes |
+|---|---|---|---|---|
+| Workbench | Patch kits | 1 lumber, 1 rope & canvas | 1 h | 4 patch kits |
+| | Mend kits | 1 rope & canvas | 1 h | 3 mend kits |
+| | Crates | 1 lumber | 1 h | 4 crates |
+| | False-light rig | 1 hardware, 1 kerosene, 1 lumber | 2 h | the rig (an item for Phase 9) |
+| | Repair stores | 3 lumber, 1 hardware, 1 rope & canvas | 6 h | the upgrade |
+| Smithy | Powder and shot | 1 hardware, 1 coal | 2 h | 1 CU powder & shot (10 charges) |
+| | Lockpicks | 1 hardware | 1 h | 6 lockpicks |
+| | Crowbars | 1 hardware | 1 h | 2 crowbars |
+| | Improved carriages | 3 hardware, 2 lumber | 8 h | the upgrade |
+| Cooperage | Barrels | 2 lumber, 1 hardware | 2 h | 8 barrels |
+| | Salt fish | 2 fresh fish, 1 salt, 2 barrels | 2 h | 3 CU salted fish |
+| | Re-crate | 1 crate a CU of a hot lot | 30 min a CU | the lot unmarked |
+| Distillery | Untaxed whiskey | 3 grain, 4 barrels, water | a week | 4 CU untaxed whiskey |
+
+- **One shot recipe, not three.** Plan 07 fires round, chain and grape from the same kegs of powder and shot, so the smithy makes kegs; §7.2's three rows would all make the same good.
+- **Re-crating takes the marks off, not the theft:** the lot keeps its region, heat and date but loses its owner and its traceability goes to 0, which lowers what merchants and a search make of it (plan 05 §6.1). A lot already re-crated can't be done again.
+- **Repair stores** are a new utility upgrade (`upgrade.repair_stores`, `kitsMax: 4`, sold nowhere: `sources: ["hideout"]`), and improved carriages gain the `hideout` source. The yard's and chandlery's fitting lists exclude `hideout`; piece G installs them at the slipway. The chandlery already honors the extra kit room.
+- **The panel lives in the stash screen** (a Storage and a Workshop tab) rather than at each station on foot, so it works from the anchorage and the dock today and doesn't depend on piece C. Piece C can open the same screen on the Workshop tab with F at a station.
+
 ### 16.5 Smaller calls assumed (Jared can override)
 
 - **Materials are existing goods.** Lumber, brownstone, hardware (iron, nails and fittings), rope and canvas, kerosene, salt, powder and shot, and grain. Tar and pitch count as rope and canvas, glass as dry goods, and water comes from a well or rain barrel piece. No new goods, so markets and prices don't move.
@@ -480,6 +503,7 @@ Screenshots are in the project files (`siskiwit-bay/`).
 ---
 
 ## Changelog
+- v0.9: Phase 8 piece E built crafting (§16.4): stations, recipes and items data, crafting from a hideout's storage over game time, the still's passive production capped at a batch a week, re-crating, the false-light rig, two crafted upgrades, and the Workshop tab.
 - v0.8: Phase 8 piece B built: the hideout kit, its instanced view and proxy, and `bench.hideout` (§16.4).
 - v0.7: Phase 8 piece A built the grid engine as pure sim in `src/sim/hideouts/` (grid, validity, edit, work, placed): `data/structures.json` (63 pieces, piece B's `build.*` ids, material variants with costs in existing goods), `data/starters.json` (the starter shack: a 4×3 plank room on timber foundations with a gable roof, 5 shelving = 40 CU, a strongbox, a bunk and a stove; the short pier waits for piece C, which places it against the real shore), validity with a reason for every refusal, the support graph (upper floors and roofs carried by walls or posts below, spanning two cells), removal with dependents and the 75% refund, undo/redo, the work session (crew ×1/0.7/0.5, October ×1.25, November–April ×1.5), render placement for piece B and colliders, and save v10 (each hideout's `layout`, packed 7 numbers a piece). Sites gain optional `build` bounds and `starter`; storage capacity and the strongbox now come from built pieces. Stockton's bounds are a first guess for piece C to fit in the walked scene.
 - v0.6: Phase 8 piece D (§16.8): Siskiwit Bay baked, the logging camp and its mainland pad, the Lumberjack's start, the *Gannet* switched on.

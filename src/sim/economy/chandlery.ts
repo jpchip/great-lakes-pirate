@@ -1,5 +1,6 @@
 import storesJson from '../../../data/stores.json';
 import { storesFileSchema, type StoreItem } from '../../../data/schemas/stores';
+import { upgradeDef } from '../shipyard/fit';
 import type { EconomyDefs } from './defs';
 
 /**
@@ -41,15 +42,37 @@ export function storeOffered(item: StoreItem, fameTier: number): boolean {
 export type StoreResult =
   { ok: true; item: string; qty: number; totalCents: number } | { ok: false; reason: StoreRefusal };
 
+/** The kits that repair stores make more room for (plan 10 §5.7; Phase 8 piece E). */
+export const KIT_STORES: readonly string[] = ['store.patch_kit', 'store.mend_kit'];
+
+/**
+ * The most of an item the lockers hold: its limit, plus the room repair stores add for
+ * each kind of kit (`kitsMax`) when she has them fitted.
+ */
+export function storeMax(item: StoreItem, upgrades: readonly string[] = []): number {
+  if (!KIT_STORES.includes(item.id)) return item.max;
+  let extra = 0;
+  for (const id of upgrades) extra += upgradeDef(id)?.effects.kitsMax ?? 0;
+  return item.max + extra;
+}
+
 /** How many more of an item fit in the lockers. */
-export function storeRoom(stores: ShipStores, item: StoreItem): number {
-  return Math.max(0, item.max - (stores[item.id] ?? 0));
+export function storeRoom(
+  stores: ShipStores,
+  item: StoreItem,
+  upgrades: readonly string[] = [],
+): number {
+  return Math.max(0, storeMax(item, upgrades) - (stores[item.id] ?? 0));
 }
 
 /** Buys `qty` of a store: all or nothing. */
 export function buyStores(
   defs: EconomyDefs,
-  trader: { purse: number; stores: ShipStores },
+  trader: {
+    purse: number;
+    stores: ShipStores;
+    ship?: { upgrades: readonly string[] } | undefined;
+  },
   portId: string,
   itemId: string,
   qty: number,
@@ -60,7 +83,9 @@ export function buyStores(
   const item = storeItems().find((s) => s.id === itemId);
   if (!item) return { ok: false, reason: 'unknown' };
   if (!storeOffered(item, fameTier)) return { ok: false, reason: 'notKnown' };
-  if (storeRoom(trader.stores, item) < qty) return { ok: false, reason: 'full' };
+  if (storeRoom(trader.stores, item, trader.ship?.upgrades) < qty) {
+    return { ok: false, reason: 'full' };
+  }
   const total = storePriceCents(defs, portId, item) * qty;
   if (total > trader.purse) return { ok: false, reason: 'noMoney' };
   trader.purse -= total;

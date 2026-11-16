@@ -43,6 +43,7 @@ import { smugglerAnchorage } from './sim/economy/smuggler';
 import { attachContracts, contractsOf } from './gameplay/contracts';
 import { attachSmugglers, type SmugglerControl } from './gameplay/smuggler';
 import { attachStash, type StashControl } from './gameplay/stash';
+import { withWorkshop } from './sim/hideouts/crafting';
 import { siteDef } from './sim/hideouts/stash';
 import { LIE_REFUSALS, type LieUntil } from './sim/hideouts/lie-at-anchor';
 import { attachShipyard } from './gameplay/shipyard';
@@ -167,7 +168,7 @@ import { attachAbandon, type Abandon } from './gameplay/abandon';
 import { attachBoarding, type GameBoarding } from './gameplay/boarding';
 import { holdCu } from './sim/traffic/cargo';
 import { SHIP_RECORDS, serviceSpeedKn } from './sim/sailing/ships';
-import { advanceGameTime } from './core/time';
+import { advanceGameTime, WORLD_TICK_GAME_SECONDS } from './core/time';
 import { knotsToMs } from './core/coords';
 import { fitRefusal } from './sim/combat/armament';
 import { addToHold, holdFree } from './sim/economy/hold';
@@ -1185,6 +1186,10 @@ async function boot(): Promise<void> {
       stashCash: (cents) => stashRef.current?.actions.stashCash(cents),
       takeCash: (cents) => stashRef.current?.actions.takeCash(cents),
       lie: (until) => stashRef.current?.actions.lie(until),
+      craft: (recipe, batches, stackIndex) =>
+        stashRef.current?.actions.craft(recipe, batches, stackIndex),
+      takeThing: (id, qty) => stashRef.current?.actions.takeThing(id, qty),
+      stashThing: (id, qty) => stashRef.current?.actions.stashThing(id, qty),
       close: () => stashRef.current?.actions.close(),
       castOff: () => stashRef.current?.actions.castOff(),
     },
@@ -2167,6 +2172,7 @@ async function boot(): Promise<void> {
       showNotice(text);
       void saveControls.saveNow();
     },
+    onProduced: (text) => showNotice(text),
   });
   stashRef.current = stash;
   if (import.meta.env.DEV || params.has('debug')) {
@@ -2184,6 +2190,53 @@ async function boot(): Promise<void> {
       refusal: () => stash.lieRefusal(),
     };
     (window as unknown as { __glpStash: typeof hook }).__glpStash = hook;
+    // Crafting (Phase 8 piece E): `__glpCraft.workshop()` raises the four stations and a
+    // well beside a hideout's shack, `give('good.lumber', 10)` stores materials there,
+    // `craft('recipe.patch_kits', 2)` works at the open hideout, `skip(hours)` runs the clock.
+    const craftHook = {
+      workshop: (id = 'hideout.stockton') => {
+        const h = state.hideouts?.[id];
+        if (h) h.layout = withWorkshop(h.layout);
+        if (stash.openHideout === id) stash.open(id);
+        return !!h;
+      },
+      give: (good: string, qty: number, id = 'hideout.stockton', hot = false) => {
+        const h = state.hideouts?.[id];
+        if (!h) return false;
+        const at = state.environment.clock.gameSeconds;
+        addToHold(h.storage.goods, {
+          good,
+          qty,
+          ...(hot
+            ? {
+                hot: {
+                  region: 'region.apostles',
+                  heat: 1,
+                  traceability: 0.8,
+                  since: at,
+                  owner: 'company.northern_range',
+                },
+              }
+            : {}),
+        });
+        if (stash.openHideout === id) stash.open(id);
+        return true;
+      },
+      craft: (recipe: string, batches = 1, stackIndex?: number) =>
+        stash.actions.craft(recipe, batches, stackIndex),
+      take: (thing: string, qty: number) => stash.actions.takeThing(thing, qty),
+      skip: (hours: number) => {
+        const clock = state.environment.clock;
+        const ticks = Math.max(1, Math.round((hours * 3600) / WORLD_TICK_GAME_SECONDS));
+        for (let k = 0; k < ticks; k++) {
+          const n = advanceGameTime(clock, WORLD_TICK_GAME_SECONDS);
+          for (let i = 0; i < n; i++)
+            ctx.events.emit('WorldTick', { gameSeconds: clock.gameSeconds });
+        }
+      },
+      hideout: (id = 'hideout.stockton') => state.hideouts?.[id],
+    };
+    (window as unknown as { __glpCraft: typeof craftHook }).__glpCraft = craftHook;
   }
   // The Fisherman's fish prices and the First Week checklist (piece C).
   captainRef.current = attachCaptain(ctx, economy.defs, (week) => ui.setFirstWeek(week));

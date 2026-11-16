@@ -353,7 +353,8 @@ export function buyHull(
 }
 
 /** Where the work is done: the shipyard, the chandlery, or the shady shipwright's back room. */
-export type FitSource = UpgradeSource;
+// A hideout's crafted upgrades are installed at its slipway (Phase 8 piece G), not here.
+export type FitSource = Exclude<UpgradeSource, 'hideout'>;
 
 /** What `UpgradeInstalled` and `UpgradeRemoved` carry (plan 10 §11). */
 export interface UpgradeEvent {

@@ -1,0 +1,27 @@
+[
+  {
+    "id": "station.workbench",
+    "name": "Workbench",
+    "piece": "build.workbench",
+    "blurb": "Saw, plane and vise: repair kits, crates, the false-light rig and the ship's repair lockers."
+  },
+  {
+    "id": "station.smithy",
+    "name": "Smithy",
+    "piece": "build.smithy",
+    "blurb": "A forge and an anvil: shot, lockpicks, crowbars and gun carriages."
+  },
+  {
+    "id": "station.cooperage",
+    "name": "Cooperage",
+    "piece": "build.cooperage",
+    "blurb": "Staves, hoops and a fire to bend them: barrels, salt fish, and fresh crates for goods that carry a company's marks."
+  },
+  {
+    "id": "station.distillery",
+    "name": "Distillery",
+    "piece": "build.distillery",
+    "blurb": "A copper pot still. Load it with mash and leave it: it works while you're away, a batch a week.",
+    "passive": { "queueMax": 4 }
+  }
+]
