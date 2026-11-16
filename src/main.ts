@@ -1345,6 +1345,9 @@ async function boot(): Promise<void> {
     showJournal: (snapshot) => ui.setJournal(snapshot),
     onOpen(open) {
       if (open) {
+        // Looking about on foot holds the pointer: a counter's screen or the journal needs it
+        // back at once, not after an Esc (a click on the scene takes it again after).
+        if (document.pointerLockElement) document.exitPointerLock();
         const journal = !ports.openPort;
         machine.pushOverlay(journal ? 'journal' : 'trade', !(journal && sailOnAllowed()));
         ui.setJournalSailing(journal && sailOnOffered() ? sailOnAllowed() : undefined);

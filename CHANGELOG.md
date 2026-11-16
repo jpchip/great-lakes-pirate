@@ -4,6 +4,10 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ## [Unreleased]
 
+### Fixed
+
+- **The mouse in a counter's screen:** after looking about on foot, opening a shop, the bar, the back room or the journal now hands the mouse back at once; before, it stayed captured until you pressed Esc. Click the scene to look about again.
+
 ### Added
 
 - **Lean and peek:** on foot, standing still with your hands free, Q and E lean left and right of where you look. Your head and the camera go out up to 0.6 m (less if a wall's in the way) while your feet stay put, so you can look round a corner or a stack of crates. A guard on the far side sees your head and not much else, and fills his meter about a third as fast as for all of you. Lean out of a shadow into a lamp's pool, though, and you're lit. Moving or carrying straightens you up ([plan 08 §20.9](plans/08-docks-district-stealth.md)).
