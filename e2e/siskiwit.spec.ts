@@ -17,7 +17,6 @@ function collectErrors(page: Page): string[] {
 
 interface Hooks {
   __glpFoot: {
-    dock(key: string): boolean;
     teleport(x: number, z: number, y?: number): void;
     interact(): void;
     state(): {
@@ -72,21 +71,5 @@ test('Siskiwit Bay: a Lumberjack lands at the logging camp and opens the stash',
   await expect(page.locator('body')).toHaveAttribute('data-stash', 'hideout.siskiwit');
   h = await hooks(page);
   expect(h.state.active).toBe(true);
-  expect(errors).toEqual([]);
-});
-
-test('Siskiwit Bay: docked at the camp dock, Go ashore rows her onto the pad', async ({ page }) => {
-  test.setTimeout(180_000);
-  const errors = collectErrors(page);
-  await page.goto('/?renderer=null&debug&play&newrun=lumberjack&zone=zone.siskiwit');
-  await page.waitForFunction(() => '__glpFoot' in window);
-  await expect(page.locator('body')).toHaveAttribute('data-zone', 'zone.siskiwit');
-  const docked = await page.evaluate(() => (window as unknown as Hooks).__glpFoot.dock('siskiwit'));
-  expect(docked).toBe(true);
-  const ashore = page.getByTestId('hud-ashore');
-  await expect(ashore).toBeVisible({ timeout: 60_000 });
-  await expect(ashore).toContainText('Go ashore');
-  await ashore.click();
-  await expect.poll(async () => (await hooks(page)).state.inBoat, { timeout: 60_000 }).toBe(true);
   expect(errors).toEqual([]);
 });

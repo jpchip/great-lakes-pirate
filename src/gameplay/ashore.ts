@@ -510,13 +510,9 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
       if (!pier) return false;
       const harbor = deps.harbors().find((l) => l.piers.includes(pier));
       const def = harbor && districtForHarbor(harbor.def.id);
-      if (def && deps.districtFrame && deps.districtFrame(def)) {
-        return districtBerthPiers(def).has(pier.id);
-      }
-      // No district at this harbor (the logging camp): the boat goes over the side from the
-      // berth and rows to the pad, if there is walkable land where she would be launched.
-      if (def) return false;
-      return !!deps.island?.walkableAt(boatLaunchAt());
+      if (!def || !deps.districtFrame) return false;
+      if (!deps.districtFrame(def)) return false;
+      return districtBerthPiers(def).has(pier.id);
     }
     if (h.mooring !== 'free' || h.anchor !== 'down' || h.dragging) return false;
     const at = boatLaunchAt();
@@ -561,17 +557,7 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
         const pier = pierOf(h.berthId) as PlacedPier;
         const landing = await districtLanding(pier);
         if (!landing) {
-          // No district here: over the side from the berth, to row ashore.
-          await deps.fade('Into the boat', 'The boat goes over the side from the berth', () => {
-            from = 'berth';
-            berthId = h.berthId;
-            anchor = undefined;
-            district = undefined;
-            watch = undefined;
-            overTheSide();
-          });
-          await deps.save();
-          return undefined;
+          return NO_WALKABLE_ASHORE;
         }
         await deps.fade('Ashore', `Down the gangway onto the ${pier.name}`, () => {
           from = 'berth';
