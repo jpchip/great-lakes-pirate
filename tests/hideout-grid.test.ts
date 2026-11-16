@@ -485,7 +485,8 @@ describe('packing (plan 09 §10) and the save (plan 16; save v10)', () => {
   });
 
   it('lays the starter shack piece by piece as the rules allow, with 40 CU and a strongbox', () => {
-    for (const s of STARTERS) {
+    // The short pier (piece C) needs a real shore: tests/build-mode.test.ts lays it.
+    for (const s of STARTERS.filter((x) => x.id !== 'starter.pier')) {
       const g = new BuildGrid();
       const pieces = unpackGrid(s.layout)
         .all()

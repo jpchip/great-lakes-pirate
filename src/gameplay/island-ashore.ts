@@ -1,7 +1,6 @@
 import type { WorldState } from '../sim/world-state';
 import type { GridField } from '../sim/terrain/grid-field';
-import type { HarborLayout } from '../sim/harbors';
-import { hideoutIdOf, SITES } from '../sim/hideouts/stash';
+import type { Hideouts } from './hideouts';
 import { rollCache, type PlacedIsland, type PlacedPoiPiece } from '../sim/islands/on-foot';
 import { bearingBox, type AshoreGround } from './onfoot/ashore-scene';
 import type { Collider } from './onfoot/colliders';
@@ -9,9 +8,9 @@ import type { Ladder } from './onfoot/controller';
 
 /**
  * Walking a hero island (plan 08 §20.4 piece H; plan 11 §3): Stockton built whole on its
- * baked 1 m tiles, its quarry solid, its cache cairns to search, and the stash's strongbox
- * opened where it stands. Off the island's tiles the ground is the zone's 4 m terrain, as
- * every other landing's is.
+ * baked 1 m tiles, its quarry solid, its cache cairns to search, and the hideout's pieces
+ * standing where they're built, its storage opened at them (Phase 8 piece C). Off the
+ * island's tiles the ground is the zone's 4 m terrain, as every other landing's is.
  */
 
 /** The island's scene: what `buildAshoreScene` takes for it. */
@@ -39,11 +38,13 @@ export interface IslandAshoreDeps {
   islands(): readonly PlacedIsland[];
   /** An island's 1 m tiles, once loaded: just its extent now the ground is the 4 m terrain. */
   ground(id: string): GridField | undefined;
-  harbors(): readonly HarborLayout[];
+  /**
+   * The run's hideouts on this zone (Phase 8 piece C): their built pieces are solid, and F
+   * at a storage piece or the strongbox opens the hideout's storage.
+   */
+  hideouts?: Pick<Hideouts, 'prompt' | 'strongbox' | 'colliders'>;
   /** The run's seed for what's hidden where (the weather's noise seed). */
   runSeed(): number;
-  /** Opens a hideout's storage screen; false if it can't open now. */
-  openStash(hideoutId: string): boolean;
   notice(text: string): void;
   /** Cash found: the logbook line and the stats. */
   found?(cacheId: string, cents: number): void;
@@ -143,6 +144,7 @@ export function attachIslandAshore(deps: IslandAshoreDeps): IslandAshore {
     const grid = deps.grid() ?? { x0: field.x0, z0: field.z0, step: field.step };
     const extra: Collider[] = [];
     for (const p of island.pieces) extra.push(...pieceColliders(p));
+    if (deps.hideouts) extra.push(...deps.hideouts.colliders());
     return {
       island: island.id,
       // Walked ground is the zone's 4 m terrain everywhere now, the same heights the mesh,
@@ -196,20 +198,6 @@ export function attachIslandAshore(deps: IslandAshoreDeps): IslandAshore {
     deps.notice(cache.def.found.replace('{cash}', `$${(roll.cents / 100).toFixed(2)}`));
   };
 
-  /** The stash strongboxes standing in the zone, with their hideouts. */
-  const strongboxes = (): { x: number; y: number; z: number; hideout: string }[] => {
-    const out: { x: number; y: number; z: number; hideout: string }[] = [];
-    for (const layout of deps.harbors()) {
-      const site = SITES.find((s) => s.setPiece === layout.def.setPiece);
-      if (!site) continue;
-      const hideout = hideoutIdOf(site.id);
-      for (const b of layout.buildings) {
-        if (b.kind === 'strongbox') out.push({ x: b.x, y: b.floorM, z: b.z, hideout });
-      }
-    }
-    return out;
-  };
-
   const prompt = (at: { x: number; y: number; z: number }): IslandPrompt | undefined => {
     for (const island of deps.islands()) {
       for (const cache of island.caches) {
@@ -224,18 +212,7 @@ export function attachIslandAshore(deps: IslandAshoreDeps): IslandAshore {
         }
       }
     }
-    for (const box of strongboxes()) {
-      if (!state.hideouts?.[box.hideout]) continue;
-      if (Math.hypot(at.x - box.x, at.z - box.z) > REACH_M) continue;
-      if (Math.abs(at.y - box.y) > 1.6) continue;
-      return {
-        text: 'Open the stash',
-        act: () => {
-          if (!deps.openStash(box.hideout)) deps.notice('Not now');
-        },
-      };
-    }
-    return undefined;
+    return deps.hideouts?.prompt(at);
   };
 
   return {
@@ -256,8 +233,7 @@ export function attachIslandAshore(deps: IslandAshoreDeps): IslandAshore {
       };
     },
     strongbox() {
-      const box = strongboxes().find((b) => !!state.hideouts?.[b.hideout]);
-      return box && { ...box };
+      return deps.hideouts?.strongbox();
     },
   };
 }

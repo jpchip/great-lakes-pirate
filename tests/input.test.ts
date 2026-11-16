@@ -36,6 +36,7 @@ describe('InputMapper', () => {
       sailing: { Fire: ['KeyZ'] },
       onFoot: {},
       chart: {},
+      build: {},
     });
     input.attach(target);
     input.context = 'sailing';

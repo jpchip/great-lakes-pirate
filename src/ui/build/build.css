@@ -1,0 +1,237 @@
+/* The build mode's panel (plan 13 §12; Phase 8 piece C): logbook paper on the left, an
+   enamel bar along the bottom, and a tag by the cursor. The canvas stays clickable
+   around them. */
+
+.build-ui {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  font-family: var(--serif);
+}
+
+.build-ui button {
+  font: inherit;
+  cursor: pointer;
+}
+
+.build-palette {
+  pointer-events: auto;
+  position: absolute;
+  left: 12px;
+  top: 12px;
+  bottom: 76px;
+  width: 300px;
+  display: flex;
+  flex-direction: column;
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--paper-dark);
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+.build-palette header {
+  padding: 8px 10px 4px;
+  border-bottom: 1px solid var(--paper-dark);
+}
+
+.build-palette h2 {
+  margin: 0;
+  font-size: 20px;
+}
+
+.build-palette header small {
+  color: #6b5a44;
+}
+
+.build-cats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  padding: 6px 8px;
+  border-bottom: 1px solid var(--paper-dark);
+}
+
+.build-cats button,
+.build-top button,
+.build-variants button {
+  color: var(--ink);
+  background: var(--paper-dark);
+  border: 1px solid #b9a273;
+  padding: 2px 6px;
+  font-size: 12px;
+}
+
+.build-cats button.on,
+.build-top button.on,
+.build-variants button.on {
+  color: var(--paper);
+  background: var(--ink);
+  border-color: var(--ink);
+}
+
+.build-pieces {
+  list-style: none;
+  margin: 0;
+  padding: 4px 8px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.build-pieces li {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 4px 0;
+  border-bottom: 1px dotted #c7b086;
+}
+
+.build-pieces li.on .build-piece-name {
+  font-weight: bold;
+}
+
+.build-variants {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 3px;
+}
+
+.build-variants button {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  text-transform: capitalize;
+}
+
+.build-variants button small {
+  font-size: 10px;
+  opacity: 0.8;
+  text-transform: none;
+}
+
+.build-variants button.short:not(.on) {
+  opacity: 0.55;
+}
+
+.build-onhand {
+  border-top: 1px solid var(--paper-dark);
+  padding: 4px 10px 8px;
+  max-height: 30%;
+  overflow-y: auto;
+}
+
+.build-onhand h3 {
+  margin: 2px 0;
+  font-size: 13px;
+}
+
+.build-onhand ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  font-size: 13px;
+}
+
+.build-onhand li {
+  display: flex;
+  justify-content: space-between;
+}
+
+.build-top {
+  pointer-events: auto;
+  position: absolute;
+  top: 12px;
+  left: 330px;
+  display: flex;
+  gap: 4px;
+  align-items: center;
+  padding: 4px 6px;
+  background: var(--enamel);
+  color: var(--hud-text);
+}
+
+.build-level {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+  font-size: 13px;
+  margin: 0 6px;
+}
+
+.build-keys {
+  position: absolute;
+  right: 12px;
+  top: 12px;
+  margin: 0;
+  padding: 6px 10px;
+  font-size: 12px;
+  background: var(--enamel);
+  color: var(--hud-text);
+}
+
+.build-keys div {
+  display: flex;
+  gap: 8px;
+}
+
+.build-keys dt {
+  min-width: 78px;
+  color: var(--brass-light);
+}
+
+.build-keys dd {
+  margin: 0;
+}
+
+.build-cursor {
+  position: absolute;
+  padding: 2px 6px;
+  font-size: 13px;
+  white-space: nowrap;
+  background: var(--enamel);
+  border-left: 3px solid #5fe08a;
+}
+
+.build-cursor.bad {
+  border-left-color: var(--signal-red);
+  color: #ffd7cf;
+}
+
+.build-queue {
+  pointer-events: auto;
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 12px;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 6px 12px;
+  background: var(--enamel);
+  color: var(--hud-text);
+}
+
+.build-needs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  flex: 1;
+}
+
+.build-needs .short {
+  color: #ff9d8c;
+}
+
+.build-go {
+  margin-left: auto;
+  padding: 6px 18px !important;
+  font-size: 16px !important;
+  color: var(--ink);
+  background: var(--brass-light);
+  border: 1px solid var(--brass);
+}
+
+.build-go:disabled {
+  opacity: 0.5;
+  cursor: default;
+}

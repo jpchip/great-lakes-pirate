@@ -13,7 +13,7 @@ import {
 import { footprintPoint } from '../harbors';
 import { setPieceFootprint, zoneDef } from '../terrain/zones';
 import { gridHasStrongbox, gridStorageCu } from './edit';
-import { emptyLayout, offsetLayout, unpackGrid } from './grid';
+import { emptyLayout, mergeLayouts, offsetLayout, unpackGrid } from './grid';
 import { starter } from './structures';
 
 /**
@@ -60,12 +60,18 @@ export function siteBuild(site: SiteDef): NonNullable<SiteDef['build']> {
   return site.build ?? DEFAULT_BUILD;
 }
 
-/** The pieces a new claim of a site starts with: its starter laid at its corner cell. */
+/**
+ * The pieces a new claim of a site starts with: its starter laid at its corner cell, and
+ * its short pier (piece C) at its own, both built.
+ */
 export function starterLayout(siteId: string): PackedLayout {
   const site = siteDef(siteId);
   if (!site) return emptyLayout();
   const s = site.starter ?? { id: 'starter.shack', col: 1, row: 1 };
-  return offsetLayout(starter(s.id).layout, s.col, s.row);
+  const shack = offsetLayout(starter(s.id).layout, s.col, s.row);
+  if (!site.pier) return shack;
+  const pier = offsetLayout(starter(site.pier.id).layout, site.pier.col, site.pier.row);
+  return mergeLayouts(shack, pier);
 }
 
 export type Hideouts = Record<string, HideoutState>;

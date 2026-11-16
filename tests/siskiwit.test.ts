@@ -6,6 +6,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { beforeAll, describe, expect, it } from 'vitest';
 import { ChartProjection, chartToZone, type Zone } from '../src/core/coords';
+import { attachHideouts } from '../src/gameplay/hideouts';
 import { attachIslandAshore } from '../src/gameplay/island-ashore';
 import { createNewRun, firstWeekContext } from '../src/sim/character/new-run';
 import { allBackgrounds } from '../src/sim/character/backgrounds';
@@ -168,11 +169,8 @@ describe('the Siskiwit Bay zone (Phase 8 piece D)', () => {
     expect(berths.length).toBeGreaterThan(0);
     for (const b of berths)
       expect(zone.terrain.heightAt(b.pose.x, b.pose.z), b.id).toBeLessThan(-3);
-    expect(camp?.buildings.map((b) => b.kind).sort()).toEqual([
-      'shack',
-      'storageShed',
-      'strongbox',
-    ]);
+    // The prefab office, tool shed and strongbox gave way to the grid's pieces (piece C).
+    expect(camp?.buildings.map((b) => b.kind)).toEqual([]);
   });
 
   it.skipIf(!baked)('lays the Gannet to her anchor in the bay, deep and reachable', () => {
@@ -197,12 +195,10 @@ describe('the logging camp pad on foot (Phase 8 piece D)', () => {
   let zone: LoadedZone;
   let placed: PlacedIsland[];
   let field: GridField | undefined;
-  let layouts: HarborLayout[];
 
   beforeAll(async () => {
     if (!baked) return;
     zone = await loadZoneTerrain(read);
-    layouts = layoutHarbors(manifestFrame(zone.manifest), zone.terrain, 'zone.siskiwit');
     placed = placeZoneIslands('zone.siskiwit', zone.manifest.islands ?? [], (x, z) =>
       zone.terrain.heightAt(x, z),
     );
@@ -250,12 +246,17 @@ describe('the logging camp pad on foot (Phase 8 piece D)', () => {
         }),
         islands: () => placed,
         ground: (id) => (id === 'island.siskiwit_camp' ? field : undefined),
-        harbors: () => layouts,
+        hideouts: attachHideouts({
+          state,
+          zone: () => ({ id: 'zone.siskiwit', frame: manifestFrame(zone.manifest) }),
+          heightAt: (x, z) => zone.terrain.heightAt(x, z),
+          openStash: (id) => {
+            opened.push(id);
+            return true;
+          },
+          notice: () => undefined,
+        }),
         runSeed: () => 7,
-        openStash: (id) => {
-          opened.push(id);
-          return true;
-        },
         notice: () => undefined,
       });
       return { island, opened };

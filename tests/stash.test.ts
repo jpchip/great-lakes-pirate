@@ -381,13 +381,12 @@ describe('the stash on the baked Apostles (piece E)', () => {
     expect(zone.terrain.shelterAt(a.x, a.z, nw)).toBeGreaterThan(0.3);
   });
 
-  it.skipIf(!baked)('stands the shack, strongbox and shed on dry ground by the landing', () => {
+  it.skipIf(!baked)('keeps the landing; the prefab shack, strongbox and shed are gone', () => {
+    // Phase 8 piece C: the hideout's grid pieces stand there now (tests/build-mode.test.ts).
     const l = layoutHarbors(manifestFrame(zone.manifest), zone.terrain).find(
       (x) => x.def.id === 'harbor.stockton',
     );
-    expect(l?.buildings.map((b) => b.kind)).toEqual(['shack', 'strongbox', 'storageShed']);
-    for (const b of l?.buildings ?? [])
-      expect(zone.terrain.heightAt(b.x, b.z)).toBeGreaterThan(0.5);
+    expect(l?.buildings.map((b) => b.kind)).toEqual([]);
     expect(l?.piers.map((p) => p.site)).toEqual(['site.stockton']);
   });
 });
