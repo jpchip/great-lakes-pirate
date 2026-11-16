@@ -1363,7 +1363,7 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
       return pier ? [gangway(pier)] : [];
     },
     get pursued() {
-      return active && !!watch?.pursued;
+      return active && (!!watch?.pursued || !!posse?.pursued);
     },
     breakOut,
     get jailbreak() {

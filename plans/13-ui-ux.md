@@ -1,6 +1,6 @@
 # 13 — UI / UX
 
-Status: DRAFT v0.9 (decisions made; Phases 1, 3, 4, 5 and 6 UI built)
+Status: DRAFT v0.10 (decisions made; Phases 1, 3, 4, 5, 6 and 7 UI built)
 Parent: [00-master-plan.md](00-master-plan.md)
 Inputs: [01](01-tech-architecture.md) (Preact DOM overlay, input action map, budgets), the HUD and screen needs of every system plan (02–12), master plan (mouse and keyboard only, stylized art, period flavor, sepia/newsprint UI idea)
 Feeds: 14 (UI art assets, fonts), 15 (UI sounds), 17 (usability testing)
@@ -257,6 +257,8 @@ UI and settings preferences are stored **outside the run save** (a separate Inde
 
 **Phase 6 as built (2026-11-08 to 11-09, [07 §14.8–14.14](07-combat-boarding-targets.md)).** Tab at the helm is aim mode: the camera goes to the gun, a dotted arc and a splash ring lay the shot on the water (cut short at night and in fog), and the aim HUD at the bottom shows the gun, its shot, reach, the barrel's tilt on the roll, powder, a load ring per mount and "Steering locked" on a T1. The target card names the ship within sight with her class, range, her captain's phase and nerve with the latest reason, hull, rig and engine, crew killed and wounded, colors struck and hawser. A struck ship flies a white flag (made bigger and self-lit in the playtest). F alongside opens the boarding panel: strength against defense, Intimidate, Fight and Withdraw, each with its odds and, at bad odds, the death chance before you commit; then her hold against yours with the cash box and valuables first, a quick grab and the clock; then the four aftermath cards with each one's report time and the boat's death chance. The port screen has a Back room tab after dark (the fence and the shady shipwright). The logbook is the combat log. Foundering shows "She's going down: F abandon ship" and a landing screen. The chart and ledger list wrecks; the ledger's Standing & law page lists company grudges. All checked by unit and e2e tests; their looks, and the full-screen WANTED page opening mid-fight when you fire on the cutter (07 §14.14.3), are Jared's.
 
+**Phase 7 as built (2026-11-10 to 11-15, [08 §20](08-docks-district-stealth.md)).** Ashore, the bottom of the screen carries the stealth HUD: the light gem with its word (Hidden, In shadow, Lit, Exposed) and the noise ring with its word (Silent, Quiet, Loud, Very loud), and beside them what a guard would make of you if he saw you ("Suspicious if seen: Trespassing"). An eye stands over each guard who has noticed something, filling as his meter does and changing as he grows suspicious, searches or gives chase, and pins to the screen's edge when he's out of view; "Pursued!" replaces the words while he's after you. At night the top of the screen counts down to dawn. Prompts sit above the gem with their key, and a ring that fills for the held ones (picking, forcing, lifting, binding); a prompt that can't be done says why. The tool belt (1–5) shows the cosh, rope, knife, whiskey and purse, the pistol and rifle when you have them, and what you're carrying; health is at the bottom left with the cold-water warning. A banner under the clock names the jailbreak's state. Sounds off screen are captioned with who spoke ("Constable: \"Hey! Stop!\""). At a counter the port screen opens on that shop's one tab with **Leave** for **Cast off**, the fence's table opens the back room, and the jail screen's **Break out** starts the lockup. M ashore opens the chart to look at only. Not built: the lean and peek hints (leaning and peeking aren't in).
+
 ## 13. Cut List
 1. 3D preview in character creation (use 2D portraits).
 2. Player-written journal notes.
@@ -283,6 +285,7 @@ All resolved.
 ---
 
 ## Changelog
+- v0.10: Phase 7: the stealth HUD (gem, ring, conduct, eyes, dawn countdown), prompts with hold rings, the tool belt, shop counters, the jailbreak banner and the look-only chart (§12).
 - v0.9: Phase 6: aim mode and the aim HUD, the target card, the white flag, the boarding panel, looting and the aftermath, the back room, abandon ship, wrecks and grudges in the ledger (§12).
 - v0.8: Phase 5: the Wanted chip and report eye, the detection eye and lantern chip, the chart's law marks, the Harbor and Papers tabs, jail and release, the tier-5 front page and the end of the run (§12).
 - v0.7: Phase 4 pieces E–K: freight, saloon, shipyard, stash and smuggler screens, the ledger's pages, and sailing on with the journal open (§12).

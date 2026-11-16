@@ -1,6 +1,6 @@
 # 11 — Exploration, Islands & Secrets
 
-Status: DRAFT v0.3 (decisions made; gap review applied)
+Status: DRAFT v0.4 (decisions made; gap review applied; Phase 7's hero island built in 0.7.0)
 Parent: [00-master-plan.md](00-master-plan.md)
 Inputs:
 - Master plan: islands fully walkable, mainland not; secrets on islands; hunting and poaching; lighthouse raids on foot
@@ -262,7 +262,7 @@ Island lighthouses use the **lighthouse station kit** (tower with a climbable in
 ---
 
 ## 15. Phasing
-- **Phase 7:** one fully walkable hero island (Stockton or Hermit), the on-foot controller shared with the docks, a quarry POI, a cache, going ashore by rowboat.
+- **Phase 7:** one fully walkable hero island (Stockton or Hermit), the on-foot controller shared with the docks, a quarry POI, a cache, going ashore by rowboat. **Built as 0.7.0** ([08 §20](08-docks-district-stealth.md), pieces A and H): Stockton, walked end to end on the zone's ground within its baked 1 m extent, with trunks and shore rocks to walk round; the brownstone quarry on the south shore (spoil wharf with steps and a ladder, two cut faces, a derrick, dressed blocks, the office); one cache under one of three cairns, the cairn and the cash seeded by the run and saved in `caches[id]`; the Phase 4 stash opened on foot; the rowboat from the anchored ship (not launched in seas over 1.1 m, swamped over 1.6 m); a marshal posse at tier 4+. Space scrambles a steep bank up to about 2.6 m. Nobody lives there and there's no wildlife, hunting or cold exposure yet (Phase 9).
 - **Phase 9 (Seasons & Secrets):** all 22 islands at their tiers, lighthouse stations on foot, sea caves (and winter ice caves), wreck salvage (shallow), hunting and trapping, wildlife, the clue → map flow, 6 legends, seeded caches, the journal, cold exposure.
 - **Phase 9 or first post-MVP update:** the diving suit and deep-wreck salvage. More legends and mirages after that.
 
@@ -296,6 +296,7 @@ All resolved.
 ---
 
 ## Changelog
+- v0.4: Phase 7 as built (§15): Stockton on foot, the quarry, the seeded cache, the rowboat and the posse.
 - v0.3: Gap review: minor islets stay walkable (cut removed), islands load as their own scenes.
 - v0.2: Decisions: poaching and trapping, wildlife hazards (bears, wolves), a purchasable diving suit for deep wrecks (with design), cold exposure, 6 legends plus seeded caches.
 - v0.1: Initial exploration plan: island catalog and tiers (22 Apostles), POI kits, on-foot traversal and hazards, hunting and trapping, sea and ice caves, wreck sources and salvage, secret types, clue sources and the map flow, 6 legends, seeded variety, lighthouse stations on foot, discovery and journal, rewards and balance, pipeline and budgets, data/state, phasing.

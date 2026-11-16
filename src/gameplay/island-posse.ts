@@ -85,6 +85,8 @@ export interface IslandPosse {
   readonly stealth: Stealth;
   /** A marshal has you: the fade to the lockup is the caller's. */
   readonly captured: boolean;
+  /** A marshal is after you: danger, as in the district (no autosave, the chart locked). */
+  readonly pursued: boolean;
   step(dt: number, player: CharacterState, suspect: boolean, surface?: Surface): void;
 }
 
@@ -125,6 +127,9 @@ export function createIslandPosse(opts: IslandPosseOptions): IslandPosse | undef
     stealth,
     get captured() {
       return stealth.captured;
+    },
+    get pursued() {
+      return stealth.guards.some((g) => g.state === 'alerted' && g.type.pursues);
     },
     step(dt, player, suspect, surface) {
       const c = opts.conditions();

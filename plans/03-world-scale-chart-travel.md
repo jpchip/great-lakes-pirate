@@ -92,6 +92,7 @@ To keep the clock honest: `v₃ᴅ = v_game × R / C`
 
 - Faster ships or a good wind raise `v_game`, and v₃ᴅ follows automatically. The arcade sailing model in plan 02 works in **game knots** and converts at the boundary.
 - **On foot, the clock slows down (decided).** **R_foot = 6** (confirmed in S7) (1 real minute = 6 game minutes), so a 10-minute docks heist ≈ 1 game hour, and a full night (~6–9 game hours) gives ~60–90 real minutes of on-foot time. Plan 08 can still retune it.
+- **Going ashore as built (Phase 7, 0.7.0, [08 §20](08-docks-district-stealth.md)).** G at a berth, or **Go ashore** on the port screen, loads the district or the island as its own scene behind the transition and keeps the zone; the clock runs at R_foot = 6 (`R_ON_FOOT`) the whole time you're on your feet, in the boat or in the cell. It's offered only where something is built: Bayfield's fish pier and city dock (the district) and at anchor off Stockton (the rowboat, then the island on its baked 1 m tiles). M ashore opens the chart to look at, with no plotting. The district's five-to-ten-minute heist is about an hour of the night, as planned.
   - The switch happens on "Go ashore" and "Return aboard," with a small HUD clock-speed indicator.
   - Abstract world simulation keeps ticking at the slower rate (ships move less while you're ashore), which stays consistent because R only changes how fast game time passes.
 - **"Wait/sleep"** (at a hideout, in port, or moored) fast-forwards the clock, for example to dusk or dawn.
@@ -1129,6 +1130,7 @@ The synthesized chart audio and the guessed 1900 light colors are accepted for n
 ---
 
 ## Changelog
+- v0.24: Going ashore as built in Phase 7 (§3.3): where it's offered, R_foot = 6 in the game, the look-only chart on foot.
 - v0.24: Phase 3 piece K (§29): the exit criteria checked, passed and signed off 2026-11-01; a transition bench and the stream bench on the new zones; arena water accepted at 3.2 ms; the 0.3.0 release.
 - v0.23: Phase 3 piece E (§28): weather on the chart. The sim drives the chart's wind and runs on its world tick; isobars, fronts, rain, fog banks, squalls and wind arrows drawn; a weather card with the glass, an outlook, weather on the course and forecasts to 24 h with rings of doubt; squalls and fog banks met from the sim, hiding and slowing the ship, and met in arenas where the sim has them; a calm floor of about 3 kn under the chart speed; piece F's stand-in squall retired.
 - v0.22: Phase 3 piece I (§27): the Duluth Ship Canal and Superior Entry piers at 1:1, docks at Duluth, Superior and Two Harbors (with its 1:1 ore dock), grain elevators, the Superior shipyard, the 1900 lights including dark Minnesota Point, and each zone laying out only its own harbors and lights.

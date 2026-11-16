@@ -423,6 +423,7 @@ All resolved.
 
 ### Still to do
 
+1. **Jailbreak sounds, to revisit later** (Jared, 2026-11-15, after the first escape): the sounds during a jailbreak came out odd. Not urgent; look at them once the crowd and the 0.7.1 work are done.
 1. **A listen in the game** (row I: "Listen by ear"): none of this has been heard by a person. The balance of footsteps against the beds, the voices' reach, the layer's thresholds and whether the synthesized steps read as their grounds are for the Phase 7 playtest.
 2. **Not built from §4.5:** ice and puddles underfoot, bears, wolves and deer, teeth chattering and gusts as warmth drops (Phase 9 with the islands' wildlife and winter), the rowboat's oars, occlusion and reverb by room.
 3. **Music:** the layer, the stinger and the polka are synthesized placeholders (§16 item 1).
@@ -430,6 +431,7 @@ All resolved.
 ---
 
 ## Changelog
+- v1.4: The Phase 7 playtest's listen is on the laptop route ([08 §20.8](08-docks-district-stealth.md)); the decoded audio is at 4.96 MB of the 5 MB budget, a decision for Jared there.
 - v1.3: Phase 7 piece I built (§20): footsteps at the gameplay radius, the burglar's kit, the watch's voices and whistle, the stealth layer and the spotted stinger, the docks at night, the saloon and the island's woods.
 - v1.2: The Phase 6 playtest's listen is on the laptop route (§19).
 - v1.1: Phase 6 piece G built (§19): the guns near and far, the round in flight, impacts in water, wood and canvas, the boiler, the grapple and the boarding vignette, her crew as she strikes with a stinger, and the chase layer.

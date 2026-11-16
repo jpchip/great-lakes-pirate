@@ -1,6 +1,6 @@
 # 06 — Fame, Wanted, Law Enforcement & Lighthouses
 
-Status: DRAFT v1.3 (decisions made; gap review applied; Phase 5 built, pieces A–H, and checked in the container for 0.5.0)
+Status: DRAFT v1.3 (decisions made; gap review applied; Phase 5 built, pieces A–H, and checked in the container for 0.5.0; the watch on foot and the jailbreak built in 0.7.0)
 Parent: [00-master-plan.md](00-master-plan.md)
 Inputs: master plan decisions (separate Fame/Wanted, regional Wanted, execution only at the top tier, jail/bail/jailbreak, Fame fades, sparse patrols), [R1 §2.1–2.2](R1-western-superior-1900-research.md) (lights, the *Morrill*), [R1a](R1a-western-superior-gazetteer.md) (regions), [02](02-arcade-sailing.md) (dark running, shallows), [03](03-world-scale-chart-travel.md) (no chart escape), [04](04-water-weather-seasons.md) (visibility, moon, storms), [05](05-ports-economy-trading.md) (hot goods, grudges, Standing)
 Feeds: 07 (lethality, surrender), 08 (docks guards, perception), 11 (lighthouse raids), 12 (capture, jail, execution, newspapers), 13 (HUD indicators)
@@ -409,6 +409,7 @@ Nine pieces, each sized to be one thread. Three can start at once (A, B and G). 
 - **No harbor launches in Phase 5.** §5.2 puts them in Duluth, Superior and Ashland; the cutter is the law at sea for now, and launches come with those docks districts in Phase 7.
 - **Heat spread stays in** (§3.4, against cut list item 4). It's small once the papers exist, and criterion 3 needs it.
 - **Marshals, constables on foot and the jailbreak are stubbed** until Phase 7. Port law is the harbor master's tab and the docking check.
+- **Built in Phase 7 (0.7.0, [08 §20](08-docks-district-stealth.md)).** Bayfield has its watch on foot: constables who report what they see at once, watchmen who run to the lockup for one, and from tier 4 marshals in the district and a posse of one or two on Stockton. Crimes ashore (trespass, burglary, assault, killing, the jailbreak) go through the same pipeline with the guard who saw you as witness; unseen theft is reported at dawn from the evidence as done by "someone", and a knocked-out guard wakes and reports. A capture on foot is Phase 5's jail (a fine for the small things at tiers 0–1). The jail screen's **Break out** is the lockup scenario of [08 §9](08-docks-district-stealth.md): once from each cell, +60 heat out, a longer sentence if retaken, and at tier 5 one chance in irons before the rope. A promise to the jailer is `jailDebt`, due in a week or it's heat. Harbor launches and the other ports' lockups wait for their districts (8+ and 9+), and lighthouse raids for Phase 9.
 - **Running dark is not itself a crime** (the 1900 rules of the road did require lights, but a ticket for it would punish the stealth the game is built on). It only lowers what watchers see and raises the risk of collision in traffic, with a warning when a ship is close.
 - **The cutter only shoots rigging,** and never sinks you unless you fire on her, which you can't until Phase 6.
 - **Jail time is game days skipped,** so a three-week sentence passes while the world ticks (prices, traffic, decay), shown on the release screen.
@@ -610,6 +611,7 @@ So by day the T1 on auto-trim outruns her only from outside 800 m; once she's fi
 ---
 
 ## Changelog
+- v1.4: Phase 7 as built (§14.6): the watch on foot, crimes ashore, minor arrests, the jailbreak and the jailer's debt; launches and lighthouse raids still to come.
 - v1.4: A slower cutter, a chase she gives up, and her sent away from the lockup port (§14.14.6, Jared's playtest).
 - v1.3: Bail clears heat to tier 1, as time served does (Jared's decision, §14.14.3 item 1).
 - v1.2: The arena's edge opens while you pull away from the cutter (§14.14.5, Jared's decision).

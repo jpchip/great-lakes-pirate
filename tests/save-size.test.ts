@@ -212,3 +212,77 @@ describe('a Phase 6 run save size', () => {
     expect(envelope.payload.length).toBeLessThan(30_000);
   });
 });
+
+// Phase 7 criterion 11 (plan 08 §20.3): a burglar's season on top of a new run. Every
+// district plan 08 §2.2 names with every container emptied and every door forced, each
+// moored crew stood whiskey, a cache on every island searched, a promise owed to a jailer,
+// and the save made ashore with the boat on a beach, mid-jailbreak.
+describe('a Phase 7 run save size', () => {
+  it('compresses under 15 KB with five districts robbed bare', () => {
+    const state = createNewRun({
+      name: 'Ole Haugen',
+      shipName: 'Lizzie Bell',
+      background: 'poacher',
+      portrait: allPortraits()[0]?.id ?? 'portrait.weathered',
+      seed: 'size-check',
+    });
+    const now = state.environment.clock.gameSeconds;
+    const goods = ['good.fish', 'good.furs', 'good.dry_goods', 'good.whiskey'];
+    state.districts = {};
+    for (const d of ['bayfield', 'duluth', 'superior', 'ashland', 'two_harbors']) {
+      const containers: Record<string, unknown> = {};
+      for (let i = 0; i < 40; i++) {
+        containers[`loot.${d}.${i}`] = {
+          taken: Object.fromEntries(goods.map((g, k) => [g, 1 + ((i + k) % 5)])),
+          cash: i % 3 === 0,
+          documents: i % 7 === 0,
+          opened: i % 4 === 0,
+          restockAt: now + (3 + (i % 9)) * SECONDS_PER_GAME_DAY + i * 617,
+        };
+      }
+      const doors: Record<string, unknown> = {};
+      for (let i = 0; i < 24; i++) {
+        doors[`building_${d}_${i}.door${i % 2}`] = {
+          how: i % 2 ? 'forced' : 'picked',
+          night: 160 + i,
+        };
+      }
+      const crews: Record<string, unknown> = {};
+      for (let i = 0; i < 6; i++) {
+        crews[`ship.${d}.moored.${i}`] = { night: 160 + i, passOutAt: now + i * 3600 + 1234 };
+      }
+      state.districts[d] = { containers, doors, crews } as NonNullable<
+        typeof state.districts
+      >[string];
+    }
+    state.caches = Object.fromEntries(
+      Array.from({ length: 22 }, (_, i) => [
+        `cache.island_${i}`,
+        { searched: [0, 1, 2, 3].slice(0, 1 + (i % 4)), looted: i % 2 === 0 },
+      ]),
+    );
+    state.jailDebt = {
+      cents: 12_500,
+      dueAt: now + 14 * SECONDS_PER_GAME_DAY,
+      region: 'region.apostles',
+    };
+    state.player.ashore = {
+      from: 'anchor',
+      at: { x: 1234.56, y: 2.31, z: -987.65, heading: 1.57 },
+      inBoat: false,
+      anchor: { x: 1180.2, z: -1040.8 },
+    };
+    state.player.rowboat = {
+      state: 'beached',
+      pose: { x: 1201.4, z: -1002.2, heading: 0.4 },
+    } as typeof state.player.rowboat;
+    const decoded = decodeSave(encodeSave(state, header)).state as typeof state;
+    expect(decoded.player.ashore?.from).toBe('anchor');
+    expect(Object.keys(decoded.districts ?? {}).length).toBe(5);
+    const envelope = encodeSave(state, header);
+    console.log(
+      `five districts robbed: ${(envelope.payload.length / 1024).toFixed(1)} KB compressed`,
+    );
+    expect(envelope.payload.length).toBeLessThan(15_000);
+  });
+});

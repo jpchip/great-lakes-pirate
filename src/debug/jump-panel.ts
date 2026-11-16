@@ -35,6 +35,7 @@ export const PLACE_SWITCHES = [
   'heading',
   'cutter',
   'npcs',
+  'ashore',
 ] as const;
 
 /** The place switches that put the ship somewhere new (the rest, like `ship`, leave her be). */
@@ -48,6 +49,7 @@ const SHIP_PLACING_SWITCHES = [
   'encounter',
   'at',
   'npcs',
+  'ashore',
 ] as const;
 
 /**
@@ -161,6 +163,10 @@ export function createJumpPanel(options: JumpPanelOptions): void {
   for (const light of LIGHTHOUSES) {
     button(lights, light.name, () => lightJump(light, mode.light));
   }
+
+  const ashore = root.addFolder('Ashore').close();
+  button(ashore, 'Bayfield (fish pier, on foot)', { ashore: 'bayfield' });
+  button(ashore, 'Stockton (anchored off the quarry, landed)', { ashore: 'stockton' });
 
   const encounters = root.addFolder('Encounters').close();
   for (const id of DEV_ENCOUNTERS) button(encounters, id, { encounter: id });
