@@ -17,6 +17,8 @@ export const siteSchema = z.object({
   name: z.string().min(1),
   /** The short name the chart and the HUD use. */
   shortName: z.string().min(1),
+  /** Where it is, as the menu and the First Week name it: "Stockton Island". */
+  place: z.string().min(1),
   zone: idOf('zone'),
   island: idOf('island').optional(),
   setPiece: idOf('setpiece'),
@@ -40,7 +42,10 @@ export const siteSchema = z.object({
     goodsCu: z.number().int().positive(),
     strongbox: z.boolean(),
   }),
-  /** Plan 12 §2.2's starting hideout for these backgrounds (Phase 4: all of them). */
+  /**
+   * Plan 12 §2.2's starting hideout for these backgrounds (Phase 8: the Lumberjack at
+   * Siskiwit, everyone else at Stockton). Must agree with `backgrounds.json`'s `hideout`.
+   */
   startFor: z.array(z.string()),
   blurb: z.string().min(1),
 });

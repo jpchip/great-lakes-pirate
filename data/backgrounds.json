@@ -54,7 +54,7 @@
     "purseCents": 12000,
     "cargo": [{ "good": "good.lumber", "qty": 12 }],
     "startPier": "pier.washburn_lumber",
-    "hideout": "hideout.stockton",
+    "hideout": "hideout.siskiwit",
     "harderStart": false,
     "perks": [
       {

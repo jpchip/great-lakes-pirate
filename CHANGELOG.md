@@ -4,6 +4,19 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ## [Unreleased]
 
+### Added
+
+- **Siskiwit Bay (Phase 8 piece D):** the bay west of the Apostles is a zone you can sail into, no longer just a patch of chart you pass through. It's baked from the NOAA and USGS data like the other zones (3 × 3 tiles, Bark Point and the bay behind it), with arrivals from the open lake to the north and from the Apostles to the east ([plan 09 §16.4](plans/09-hideouts-building-crafting.md)).
+- **The Siskiwit logging camp:** Siskiwit Timber's camp on the flat west shore of the bay, cut out and left: a 60 m plank dock you can tie up at, the camp office, a tool shed, a strongbox, the bunkhouse's roofless log walls, two log decks and the stickered lumber piles. Anchor off the dock and row ashore: the camp is a small walkable pad on the mainland, the one place the mainland can be walked. The chart marks it as Siskiwit Camp.
+- **The Lumberjack starts at Siskiwit:** a new Lumberjack's hideout is the logging camp instead of Stockton, with its strongbox and 40 CU of storage, opened at the strongbox on foot or from the anchorage. The menu and the First Week name it. A Lumberjack already under way keeps Stockton.
+- **The Gannet:** the second smuggler, a pound-net tug, lies to her anchor off the camp dock after dark, as the _Whippoorwill_ does in Oak Island's lee.
+- **Jump to, Ashore (dev):** Siskiwit Bay, anchored off the camp and landed on the beach by the dock (also `?ashore=siskiwit`). `?harbor=siskiwit` starts off the dock's end.
+
+### Known limitations
+
+- The camp's buildings are fixed props until the grid builder replaces them (pieces A and C). On a run that hasn't claimed the camp, the strongbox is just a box.
+- No marshal posse lands at the camp: the island posse is only for islands.
+
 ## [0.7.2] - 2026-11-16
 
 ### Added

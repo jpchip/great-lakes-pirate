@@ -103,5 +103,106 @@
         "yawDeg": 4
       }
     ]
+  },
+  {
+    "id": "poi.logging_camp",
+    "name": "Logging camp",
+    "clear": {
+      "rightM": [-55, 40],
+      "outM": [-16, 20]
+    },
+    "pieces": [
+      {
+        "kind": "wall",
+        "right": -44.5,
+        "out": -8.5,
+        "widthM": 5,
+        "depthM": 0.4,
+        "heightM": 2.1
+      },
+      {
+        "kind": "wall",
+        "right": -36.5,
+        "out": -8.5,
+        "widthM": 7,
+        "depthM": 0.4,
+        "heightM": 1.2
+      },
+      {
+        "kind": "wall",
+        "right": -45,
+        "out": -1.5,
+        "widthM": 4,
+        "depthM": 0.4,
+        "heightM": 1.5
+      },
+      {
+        "kind": "wall",
+        "right": -35.5,
+        "out": -1.5,
+        "widthM": 5,
+        "depthM": 0.4,
+        "heightM": 0.9
+      },
+      {
+        "kind": "wall",
+        "right": -47,
+        "out": -5,
+        "widthM": 0.4,
+        "depthM": 7,
+        "heightM": 2.4
+      },
+      {
+        "kind": "wall",
+        "right": -33,
+        "out": -5,
+        "widthM": 0.4,
+        "depthM": 7,
+        "heightM": 0.9
+      },
+      {
+        "kind": "logs",
+        "right": -39,
+        "out": -4.5,
+        "widthM": 2.5,
+        "depthM": 6,
+        "heightM": 0.7,
+        "yawDeg": 70
+      },
+      {
+        "kind": "logs",
+        "right": 12,
+        "out": 6,
+        "widthM": 5,
+        "depthM": 8,
+        "heightM": 1.3
+      },
+      {
+        "kind": "logs",
+        "right": 18,
+        "out": -1,
+        "widthM": 4,
+        "depthM": 7,
+        "heightM": 2.2,
+        "yawDeg": 6
+      },
+      {
+        "kind": "lumber",
+        "right": 30,
+        "out": -5,
+        "widthM": 3,
+        "depthM": 6,
+        "heightM": 1.5
+      },
+      {
+        "kind": "lumber",
+        "right": 34.5,
+        "out": -2,
+        "widthM": 3,
+        "depthM": 5,
+        "heightM": 0.9,
+        "yawDeg": 8
+      }
+    ]
   }
 ]

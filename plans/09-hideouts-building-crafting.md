@@ -455,9 +455,30 @@ Ten pieces, each sized to be one thread. Four can start at once (A, B, D and H).
 - Plan 17 wants a tracking issue per phase with the acceptance checklist; §16.3 can become it once approved.
 - Phase 7's laptop playtest (08 §20.8.2) is still open, and Phase 8 doesn't depend on it.
 
+### 16.8 Piece D: Siskiwit Bay (2026-11-16)
+
+**Result:** built. `zone.siskiwit` is baked and wired in, the logging camp stands on its flattened shore with a walkable mainland pad, new Lumberjacks start there, and the *Gannet* is in the world. Bake report: [`tools/geo/reports/siskiwit.md`](../tools/geo/reports/siskiwit.md).
+
+| Piece | Where | Notes |
+|---|---|---|
+| Zone | `data/zones.json`, `public/world/siskiwit/` | 3 × 3 tiles (3.07 km game, 24.6 km real) centered at 46.87° N 91.267° W, the Two Harbors settings, 679 KB. Its east edge stops at 91.103° W, just west of the Apostles bake (91.102° W), so the two never overlap; that leaves Cornucopia itself on the Apostles' edge and puts Bark Point and the bay behind it in this zone. Entries north of Bark Point (from Duluth and the North Shore) and off the bay's mouth (from the Apostles), both under 1 km from the camp and heading for it |
+| Camp set piece | `setpiece.siskiwit` | On the flat west shore of the bay behind Bark Point, facing north-east (45°), ground flattened to 1.6 m. A first try on the shore further north sat over a slough, so the camp moved 50 m south onto solid ground |
+| Dock and buildings | `harbor.siskiwit` in `harbors.json` | A 60 m plank landing with berths deep enough for the T1, the camp office (shack), a strongbox and a tool shed (storage shed): the prefab the grid builder replaces, as at Stockton |
+| Ruins and timber | `poi.logging_camp` in `pois.json`; new POI kinds `wall`, `logs`, `lumber` | The 14 × 7 m bunkhouse as six roofless log walls and its fallen roof timbers, two log decks by the dock, two stickered lumber piles. Solid on foot (vault the low ones, climb the high ones), drawn in the islands' one merged mesh |
+| Mainland pad | `island.siskiwit_camp` in `islands.json` with `mainland: true` and a clip box | The island machinery walks it: the bake cuts its 1 m tiles from the clip box, landings from the anchorage build its scene. The chart bake doesn't name it and no island posse lands on it |
+| Site | `site.siskiwit` in `sites.json` | Abandoned, concealment 0.7, region South Shore West, anchorage 140 m off the shore, 40 CU and a strongbox. Sites gain a `place` ("Siskiwit Bay") for the menu and the First Week |
+| Lumberjack | `backgrounds.json`, `stash.ts`, `new-run.ts` | A new run now gets its own background's starting hideouts (it always got the deckhand's). A loaded run that has any hideout keeps exactly those (§16.5) |
+| Smuggler | `smuggler.json` | The *Gannet*'s anchorage moved to 46.8578° N 91.1829° W, 15 m deep and about 200 m off the dock: 07 §14.6.1's 46.874° N 91.13° W is in the eastern bay, 250 m from the zone's edge. She's in the world because her zone now is |
+| Chart | `chart.json` | The Siskiwit Bay stop (`port.cornucopia`, now `port.siskiwit`) moved from 91.103° W, which fell between the two zones, to the camp |
+| Dev | `?ashore=siskiwit`, Jump to › Ashore, `?harbor=siskiwit` | |
+| Tests | `tests/siskiwit.test.ts`, `e2e/siskiwit.spec.ts`; traffic, stash, back-room, harbor audio | Zone size and no overlap, spawn and entries, flattened ground, deep berths, the anchorage and the *Gannet* reachable, the pad's pieces on dry ground, landing and the stash for the Lumberjack only, the Lumberjack's start and an old Lumberjack keeping Stockton; the e2e lands a new Lumberjack and opens the stash |
+
+Screenshots are in the project files (`siskiwit-bay/`).
+
 ---
 
 ## Changelog
+- v0.6: Phase 8 piece D (§16.8): Siskiwit Bay baked, the logging camp and its mainland pad, the Lumberjack's start, the *Gannet* switched on.
 - v0.5: Phase 8 scope (§16), as proposed 2026-11-16: what Phases 4–7 change, deliverables, exit criteria, ten work pieces, smaller calls and two decisions.
 - v0.4: Phase 4 piece E (plan 05 §19) built the Stockton Island stash as a fixed prefab: `data/sites.json` with its first site, the `hideouts` save slice of §12, storage transfer for goods and cash, and lying at anchor. Phase 8 replaces the prefab in place and keeps its contents.
 - v0.3: Gap review: MVP = 2 sites, mainland build pads, pre-built starting hideouts, MVP starting sites by background, hideouts end pursuit.

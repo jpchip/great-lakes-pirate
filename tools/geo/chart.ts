@@ -138,13 +138,17 @@ lap(
   `coast simplified (${simplified.rings.reduce((s, r) => s + r.length, 0)} points, ${tightened} rings tightened)`,
 );
 
-// Name islands from data/islands.json; the rest stay unnamed.
+// Name islands from data/islands.json; the rest stay unnamed. A mainland pad (the Siskiwit
+// logging camp) is walked like an island but isn't one.
 const islandData = [
-  ...(JSON.parse(readFileSync(join(ROOT, 'data', 'islands.json'), 'utf8')) as {
-    id: string;
-    name: string;
-    at: { lat: number; lon: number };
-  }[]),
+  ...(
+    JSON.parse(readFileSync(join(ROOT, 'data', 'islands.json'), 'utf8')) as {
+      id: string;
+      name: string;
+      at: { lat: number; lon: number };
+      mainland?: boolean;
+    }[]
+  ).filter((i) => !i.mainland),
   ...CHART_ONLY_ISLANDS,
 ];
 interface BakedIsland {
