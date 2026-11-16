@@ -22,8 +22,10 @@ export type UpgradeCategory = (typeof UPGRADE_CATEGORIES)[number];
 /**
  * Where an upgrade is sold and fitted (plan 10 §6). `backRoom` is the shady shipwright,
  * after dark in a port's back room (Phase 6 piece E): guns are never sold openly.
+ * `hideout` is crafted at a hideout's station (plan 10 §6; Phase 8 piece E) and installed
+ * at its slipway (piece G).
  */
-export const UPGRADE_SOURCES = ['shipyard', 'chandlery', 'backRoom'] as const;
+export const UPGRADE_SOURCES = ['shipyard', 'chandlery', 'backRoom', 'hideout'] as const;
 export type UpgradeSource = (typeof UPGRADE_SOURCES)[number];
 
 /** What an upgrade does: each field is optional, and absent means no change. */
@@ -63,6 +65,8 @@ export const upgradeEffectsSchema = z.object({
   gunRangeMul: z.number().positive().optional(),
   reloadMul: z.number().positive().optional(),
   spreadMul: z.number().positive().optional(),
+  /** Repair stores: room in the lockers for this many more of each kit (plan 10 §5.7). */
+  kitsMax: z.number().int().positive().optional(),
   /** Hidden gun ports: she looks unarmed to targets (not to the law's ship profile). */
   looksUnarmed: z.boolean().optional(),
 });

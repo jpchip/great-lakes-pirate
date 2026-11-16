@@ -81,6 +81,8 @@ export const structureFunctionsSchema = z
     smoke: z.boolean().optional(),
     /** Keeps the place warm in winter (plan 09 §3). */
     warmth: z.boolean().optional(),
+    /** Water for the still (a well or a rain barrel; piece E). */
+    water: z.boolean().optional(),
     /** Somewhere to sleep and lay low (piece F). */
     bed: z.boolean().optional(),
     /** A ship can make fast here (plan 09 §4.3 mooring). */

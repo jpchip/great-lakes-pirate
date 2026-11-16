@@ -47,13 +47,24 @@ export interface HideoutState {
   siteId: string;
   /** Game seconds of the claim; a starting hideout is claimed at the run's start. */
   claimedAt: number;
-  storage: { goods: CargoStack[]; cash: number };
+  /**
+   * Goods (CU), cash, and things made at its stations that take no CU (kits, picks,
+   * crates and barrels, upgrades waiting for a slipway; Phase 8 piece E), by id.
+   */
+  storage: { goods: CargoStack[]; cash: number; things?: Record<string, number> | undefined };
   /** Its pieces, built and planned, packed (Phase 8 piece A; save v10). */
   layout: PackedLayout;
   /** Last seen there by a passing ship or a pursuer (plan 09 §8; Phase 8 piece F). */
   spotted?: { at: number; by: string; ship: string } | undefined;
   /** Salvage taken from the site's ruins this season (plan 09 §6.2; piece F). */
   salvage?: { season: string; taken: number } | undefined;
+  /** Batches loaded in its passive stations (the still), by station id (piece E). */
+  stations?: Record<string, StationState> | undefined;
+}
+
+/** A passive station's batches, oldest first: each is ready at `readyAt` (game seconds). */
+export interface StationState {
+  queue: { recipe: string; readyAt: number }[];
 }
 
 /** Bounds for a site that doesn't give its own yet (piece D's Siskiwit, until it does). */

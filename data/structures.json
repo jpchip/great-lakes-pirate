@@ -1242,7 +1242,10 @@
     ],
     "buildHours": 4,
     "groundOk": true,
-    "maxLevel": 0
+    "maxLevel": 0,
+    "functions": {
+      "water": true
+    }
   },
   {
     "id": "build.rain_barrel",
@@ -1262,7 +1265,10 @@
       }
     ],
     "buildHours": 0.5,
-    "groundOk": true
+    "groundOk": true,
+    "functions": {
+      "water": true
+    }
   },
   {
     "id": "build.lantern",

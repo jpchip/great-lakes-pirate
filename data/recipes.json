@@ -1,0 +1,120 @@
+[
+  {
+    "id": "recipe.patch_kits",
+    "name": "Patch kits",
+    "station": "station.workbench",
+    "blurb": "Planks cut to size, oakum and a pot of pitch: four kits to stop a leak at sea.",
+    "hours": 1,
+    "inputs": { "goods": { "good.lumber": 1, "good.rope_canvas": 1 } },
+    "output": { "things": { "store.patch_kit": 4 } }
+  },
+  {
+    "id": "recipe.mend_kits",
+    "name": "Mend kits",
+    "station": "station.workbench",
+    "blurb": "Canvas cut into patches, twine and spare line: three kits to mend torn rigging at sea.",
+    "hours": 1,
+    "inputs": { "goods": { "good.rope_canvas": 1 } },
+    "output": { "things": { "store.mend_kit": 3 } }
+  },
+  {
+    "id": "recipe.crates",
+    "name": "Crates",
+    "station": "station.workbench",
+    "blurb": "A load of lumber knocked into four plain crates.",
+    "hours": 1,
+    "inputs": { "goods": { "good.lumber": 1 } },
+    "output": { "things": { "item.crate": 4 } }
+  },
+  {
+    "id": "recipe.false_light",
+    "name": "False-light rig",
+    "station": "station.workbench",
+    "blurb": "A lantern on a pole with colored glass, kerosene for a night's burning.",
+    "hours": 2,
+    "inputs": { "goods": { "good.hardware": 1, "good.kerosene": 1, "good.lumber": 1 } },
+    "output": { "things": { "item.false_light": 1 } }
+  },
+  {
+    "id": "recipe.repair_stores",
+    "name": "Repair stores",
+    "station": "station.workbench",
+    "blurb": "Lockers built in under the cabin sole: room for four more of each kit. Install it at a slipway.",
+    "hours": 6,
+    "inputs": { "goods": { "good.lumber": 3, "good.hardware": 1, "good.rope_canvas": 1 } },
+    "output": { "things": { "upgrade.repair_stores": 1 } }
+  },
+  {
+    "id": "recipe.shot",
+    "name": "Powder and shot",
+    "station": "station.smithy",
+    "blurb": "Scrap iron cast into ball and cut into chain and grape, made up in cartridges: a keg of ten charges, for any kind you fire.",
+    "hours": 2,
+    "inputs": { "goods": { "good.hardware": 1, "good.coal": 1 } },
+    "output": { "goods": { "good.powder_shot": 1 } }
+  },
+  {
+    "id": "recipe.lockpicks",
+    "name": "Lockpicks",
+    "station": "station.smithy",
+    "blurb": "Spring steel filed into six picks and a tension wrench.",
+    "hours": 1,
+    "inputs": { "goods": { "good.hardware": 1 } },
+    "output": { "things": { "store.lockpicks": 6 } }
+  },
+  {
+    "id": "recipe.crowbars",
+    "name": "Crowbars",
+    "station": "station.smithy",
+    "blurb": "Two pry bars drawn out of bar iron on the anvil.",
+    "hours": 1,
+    "inputs": { "goods": { "good.hardware": 1 } },
+    "output": { "things": { "store.crowbar": 2 } }
+  },
+  {
+    "id": "recipe.improved_carriages",
+    "name": "Improved carriages",
+    "station": "station.smithy",
+    "blurb": "Iron-shod carriages with better tackle: the guns reload a fifth faster. Install them at a slipway.",
+    "hours": 8,
+    "inputs": { "goods": { "good.hardware": 3, "good.lumber": 2 } },
+    "output": { "things": { "upgrade.improved_carriages": 1 } }
+  },
+  {
+    "id": "recipe.barrels",
+    "name": "Barrels",
+    "station": "station.cooperage",
+    "blurb": "Staves split and hooped into eight tight barrels.",
+    "hours": 2,
+    "inputs": { "goods": { "good.lumber": 2, "good.hardware": 1 } },
+    "output": { "things": { "item.barrel": 8 } }
+  },
+  {
+    "id": "recipe.salt_fish",
+    "name": "Salt fish",
+    "station": "station.cooperage",
+    "blurb": "Fresh fish split, salted down and packed in barrels: it keeps all winter.",
+    "hours": 2,
+    "inputs": { "goods": { "good.fresh_fish": 2, "good.salt": 1 }, "things": { "item.barrel": 2 } },
+    "output": { "goods": { "good.salted_fish": 3 } }
+  },
+  {
+    "id": "recipe.recrate",
+    "name": "Re-crate stolen goods",
+    "station": "station.cooperage",
+    "blurb": "A load of hot goods unpacked and packed again in a plain crate: the company's marks are gone, though the theft is still remembered.",
+    "hours": 0.5,
+    "inputs": { "things": { "item.crate": 1 } },
+    "output": {},
+    "recrate": true
+  },
+  {
+    "id": "recipe.whiskey",
+    "name": "Untaxed whiskey",
+    "station": "station.distillery",
+    "blurb": "Wheat mashed with well water, run through the still and casked: four loads of whiskey no revenue man has seen. A batch takes a week.",
+    "hours": 24,
+    "inputs": { "goods": { "good.grain": 3 }, "things": { "item.barrel": 4 }, "water": true },
+    "output": { "goods": { "good.untaxed_whiskey": 4 } }
+  }
+]

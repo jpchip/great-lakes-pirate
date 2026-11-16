@@ -3,6 +3,18 @@ import { advanceGameTime, dayAndHour, WORLD_TICK_GAME_SECONDS } from '../core/ti
 import type { GameContext } from '../modes/context';
 import { pierSite } from '../sim/harbors';
 import {
+  CRAFT_REFUSALS,
+  craft,
+  recipeDef,
+  settleProduction,
+  stationDef,
+  stashThing,
+  takeThing,
+  THING_REFUSALS,
+  thingName,
+} from '../sim/hideouts/crafting';
+import { sailShipRecord } from '../sim/sailing/ships';
+import {
   LIE_REFUSALS,
   lieAtAnchor,
   lieRefusal,
@@ -13,6 +25,8 @@ import {
 import {
   hideoutIdOf,
   siteAnchoredAt,
+  siteDef,
+  type HideoutState,
   stashCash,
   stashGoods,
   takeCash,
@@ -20,7 +34,8 @@ import {
   type StashRefusal,
   type StashResult,
 } from '../sim/hideouts/stash';
-import { stashSnapshot, type StashSnapshot } from '../ui/stash/model';
+import { spanText, stashSnapshot, type StashSnapshot } from '../ui/stash/model';
+import type { Hold } from '../sim/economy/hold';
 import type { GameEconomy } from './economy';
 import type { ShipHazards } from './hazards';
 
@@ -40,6 +55,14 @@ export interface StashActions {
   stashCash(cents: number): string | undefined;
   takeCash(cents: number): string | undefined;
   lie(until: LieUntil): string | undefined;
+  /**
+   * Makes `batches` of a recipe at a station here (Phase 8 piece E): the clock runs on
+   * while the work is done, or the still is loaded. Re-crating names the hot lot.
+   */
+  craft(recipe: string, batches: number, stackIndex?: number): string | undefined;
+  /** Takes stores made here aboard into the lockers, or leaves some from the lockers. */
+  takeThing(id: string, qty: number): string | undefined;
+  stashThing(id: string, qty: number): string | undefined;
   close(): void;
   castOff(): void;
 }
@@ -83,8 +106,10 @@ export interface StashControlOptions {
   showLie(refusal: string | undefined | null): void;
   onOpen(open: boolean): void;
   castOff(): void;
-  /** After a lie: the notice to show, and a save. */
+  /** After a lie or a spell of work: the notice to show, and a save. */
   afterLie(text: string): void;
+  /** A still's batch ran off at a hideout: the notice to show. */
+  onProduced?(text: string): void;
 }
 
 const REFUSALS: Record<StashRefusal, string> = {
@@ -150,6 +175,33 @@ export function attachStash(opts: StashControlOptions): StashControl {
     return r && LIE_REFUSALS[r];
   };
 
+  /** The crew's tier, by the hull's (plan 09 §6.3: the invisible crew comes with her). */
+  const crewTier = (): number => {
+    const ship = ctx.state.player.ship;
+    return ship ? (sailShipRecord(ship.classId).tier ?? 1) : 1;
+  };
+  /** Materials for work here: the storage, then the hold when she's moored here. */
+  const sources = (id: string, h: HideoutState): Hold[] =>
+    hideoutHere() === id ? [h.storage.goods, ctx.state.player.cargo] : [h.storage.goods];
+
+  /** Runs every hideout's still on to now; what ran off goes into its storage. */
+  const settleAll = (): void => {
+    for (const [id, h] of Object.entries(hideouts())) {
+      for (const done of settleProduction(h, now())) {
+        ctx.events.emit('ProductionCompleted', {
+          hideout: id,
+          station: done.station,
+          recipe: done.recipe,
+          goods: done.goods,
+        });
+        const name = recipeDef(done.recipe)?.name ?? done.recipe;
+        const place = siteDef(h.siteId)?.place ?? 'the hideout';
+        opts.onProduced?.(`A batch of ${name.toLowerCase()} has run off at ${place}.`);
+        if (id === openHideout) refresh();
+      }
+    }
+  };
+
   const refresh = (): void => {
     if (!openHideout) return;
     const h = hideouts()[openHideout];
@@ -163,6 +215,9 @@ export function attachStash(opts: StashControlOptions): StashControl {
         holdCapacity: economy.capacity,
         gameSeconds: now(),
         lieRefusal: refusalText(),
+        sources: sources(openHideout, h),
+        stores: ctx.state.player.stores,
+        crewTier: crewTier(),
       }),
     );
   };
@@ -202,6 +257,9 @@ export function attachStash(opts: StashControlOptions): StashControl {
     if (shipId === 'ship.player') dockedHideout = undefined;
   });
   const offZone = ctx.events.on('ZoneExited', () => (dockedHideout = undefined));
+  // The still works on while you're away (plan 09 §7.3): settled on load and every tick.
+  const offTick = ctx.events.on('WorldTick', () => settleAll());
+  settleAll();
 
   const settle = (direction: 'in' | 'out', r: StashResult): string | undefined => {
     if (!r.ok) return REFUSALS[r.reason];
@@ -295,6 +353,65 @@ export function attachStash(opts: StashControlOptions): StashControl {
         return settle('out', takeCash(ctx.state.player, h, cents));
       },
       lie,
+      craft(recipeId, batches, stackIndex) {
+        const id = openHideout;
+        const h = current();
+        if (!id || !h) return 'The shed is shut.';
+        const r = craft(h, recipeId, batches, sources(id, h), {
+          crewTier: crewTier(),
+          gameSeconds: now(),
+          stackIndex,
+        });
+        if (!r.ok) return CRAFT_REFUSALS[r.reason];
+        ctx.events.emit('ItemCrafted', {
+          hideout: id,
+          recipe: r.recipe,
+          batches: r.batches,
+          goods: r.goods,
+          things: r.things,
+        });
+        economy.syncLoad();
+        const def = recipeDef(r.recipe);
+        const name = def?.name.toLowerCase() ?? r.recipe;
+        let text: string;
+        if (r.seconds > 0) {
+          const ticks = Math.max(1, Math.round(r.seconds / WORLD_TICK_GAME_SECONDS));
+          for (let k = 0; k < ticks; k++) tick();
+          ctx.weather.tick(now(), opts.shipPose(), ctx.sea);
+          const made = [
+            ...Object.entries(r.goods).map(
+              ([g, n]) => `${n} CU of ${economy.defs.goods.get(g)?.name ?? g}`,
+            ),
+            ...Object.entries(r.things).map(([t, n]) => `${n} × ${thingName(t)}`),
+          ];
+          const span = spanText(r.seconds);
+          const at = (def && stationDef(def.station)?.name.toLowerCase()) ?? 'bench';
+          text = def?.recrate
+            ? `You re-crated ${r.batches} CU in plain crates (${span}).`
+            : `You worked ${span} at the ${at}: ${made.join(', ')}.`;
+        } else {
+          text = `You loaded the still with ${r.batches} batch${r.batches > 1 ? 'es' : ''} of ${name}.`;
+        }
+        refresh();
+        opts.afterLie(text);
+        return undefined;
+      },
+      takeThing(thingId, qty) {
+        const h = current();
+        if (!h) return 'The shed is shut.';
+        const r = takeThing(h, ctx.state.player, thingId, qty);
+        if (!r.ok) return THING_REFUSALS[r.reason];
+        refresh();
+        return undefined;
+      },
+      stashThing(thingId, qty) {
+        const h = current();
+        if (!h) return 'The shed is shut.';
+        const r = stashThing(h, ctx.state.player, thingId, qty);
+        if (!r.ok) return THING_REFUSALS[r.reason];
+        refresh();
+        return undefined;
+      },
       close() {
         close();
         closeLie();
@@ -308,6 +425,7 @@ export function attachStash(opts: StashControlOptions): StashControl {
       offDocked();
       offCastOff();
       offZone();
+      offTick();
     },
   };
 }

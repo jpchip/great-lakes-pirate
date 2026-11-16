@@ -27,6 +27,19 @@
     }
   },
   {
+    "id": "upgrade.repair_stores",
+    "name": "Repair stores",
+    "category": "utility",
+    "blurb": "Lockers built in under the cabin sole: room for four more patch kits and four more mend kits, without using the hold.",
+    "priceCents": 3000,
+    "sources": ["hideout"],
+    "installHours": 4,
+    "transferable": false,
+    "effects": {
+      "kitsMax": 4
+    }
+  },
+  {
     "id": "upgrade.quality_canvas",
     "name": "Quality canvas",
     "category": "rigging",
@@ -182,7 +195,7 @@
     "category": "weaponMods",
     "blurb": "Iron-trucked carriages and better tackle: the guns reload a fifth faster.",
     "priceCents": 5500,
-    "sources": ["backRoom"],
+    "sources": ["backRoom", "hideout"],
     "installHours": 6,
     "transferable": true,
     "effects": {

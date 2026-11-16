@@ -322,6 +322,11 @@ export const hideoutsSchema = z.record(
     storage: z.object({
       goods: z.array(cargoStackSchema),
       cash: z.number().int().nonnegative(),
+      /**
+       * Things made at its stations, by id (Phase 8 piece E): kits, picks, crates,
+       * barrels, the false-light rig, upgrades for the slipway. Absent: none.
+       */
+      things: z.record(z.string(), z.number().int().nonnegative()).optional(),
     }),
     /**
      * Its pieces, packed (plan 09 §10, §12; Phase 8 piece A, save v10): a v9 run's Stockton
@@ -335,6 +340,18 @@ export const hideoutsSchema = z.record(
     spotted: z.object({ at: z.number(), by: z.string(), ship: z.string() }).optional(),
     /** Salvage taken from the site's ruins this season (plan 09 §6.2; piece F). */
     salvage: z.object({ season: z.string(), taken: z.number().int().nonnegative() }).optional(),
+    /**
+     * The still's loaded batches (plan 09 §7.3, §12 `stations{id: {queue}}`; piece E), by
+     * station id. Absent: nothing loaded, so no version bump.
+     */
+    stations: z
+      .record(
+        z.string(),
+        z.object({
+          queue: z.array(z.object({ recipe: z.string(), readyAt: z.number() })),
+        }),
+      )
+      .optional(),
   }),
 );
 
