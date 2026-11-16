@@ -63,6 +63,7 @@ export const structureCategorySchema = z.enum([
   'light',
   'decor',
 ]);
+export type StructureCategory = z.infer<typeof structureCategorySchema>;
 
 export const structureFunctionsSchema = z
   .object({

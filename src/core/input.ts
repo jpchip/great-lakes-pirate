@@ -6,7 +6,7 @@
  * Keys use KeyboardEvent.code (layout-independent); mouse buttons are `Mouse0`…`Mouse4`.
  */
 
-export type InputContext = 'menu' | 'sailing' | 'onFoot' | 'chart';
+export type InputContext = 'menu' | 'sailing' | 'onFoot' | 'chart' | 'build';
 
 export type Action =
   | 'Pause'
@@ -55,7 +55,9 @@ export type Action =
   | 'Tool9'
   // Lean and peek on foot (plan 08 §3.1: Q/E).
   | 'LeanLeft'
-  | 'LeanRight';
+  | 'LeanRight'
+  // Build mode at a hideout (plan 09 §9; Phase 8 piece C).
+  | 'Build';
 
 export type Bindings = Record<InputContext, Partial<Record<Action, readonly string[]>>>;
 
@@ -126,6 +128,7 @@ export const DEFAULT_BINDINGS: Bindings = {
     Tool9: ['Digit9'],
     LeanLeft: ['KeyQ'],
     LeanRight: ['KeyE'],
+    Build: ['KeyB'],
   },
   // Phase 3 piece D. Clicks plot on the chart canvas itself; M goes back to the helm and
   // follows the sailing binding when that is rebound. Backspace takes the last waypoint off.
@@ -136,6 +139,9 @@ export const DEFAULT_BINDINGS: Bindings = {
     Cancel: ['Backspace'],
     Journal: ['KeyJ'],
   },
+  // Phase 8 piece C: B on foot opens build mode at a hideout; build mode reads its own keys
+  // and the mouse (gameplay/build-mode.ts), so nothing else here acts while it's open.
+  build: {},
 };
 
 /**

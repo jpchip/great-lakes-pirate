@@ -465,7 +465,7 @@ Ten pieces, each sized to be one thread. Four can start at once (A, B, D and H).
 |---|---|---|
 | Zone | `data/zones.json`, `public/world/siskiwit/` | 3 × 3 tiles (3.07 km game, 24.6 km real) centered at 46.87° N 91.267° W, the Two Harbors settings, 679 KB. Its east edge stops at 91.103° W, just west of the Apostles bake (91.102° W), so the two never overlap; that leaves Cornucopia itself on the Apostles' edge and puts Bark Point and the bay behind it in this zone. Entries north of Bark Point (from Duluth and the North Shore) and off the bay's mouth (from the Apostles), both under 1 km from the camp and heading for it |
 | Camp set piece | `setpiece.siskiwit` | On the flat west shore of the bay behind Bark Point, facing north-east (45°), ground flattened to 1.6 m. A first try on the shore further north sat over a slough, so the camp moved 50 m south onto solid ground |
-| Dock and buildings | `harbor.siskiwit` in `harbors.json` | A 60 m plank landing with berths deep enough for the T1, the camp office (shack), a strongbox and a tool shed (storage shed): the prefab the grid builder replaces, as at Stockton |
+| Dock and buildings | `harbor.siskiwit` in `harbors.json` | A 60 m plank landing with berths deep enough for the T1, the camp office (shack), a strongbox and a tool shed (storage shed): the prefab the grid builder replaces, as at Stockton (piece C did, §16.9) |
 | Ruins and timber | `poi.logging_camp` in `pois.json`; new POI kinds `wall`, `logs`, `lumber` | The 14 × 7 m bunkhouse as six roofless log walls and its fallen roof timbers, two log decks by the dock, two stickered lumber piles. Solid on foot (vault the low ones, climb the high ones), drawn in the islands' one merged mesh |
 | Mainland pad | `island.siskiwit_camp` in `islands.json` with `mainland: true` and a clip box | The island machinery walks it: the bake cuts its 1 m tiles from the clip box, landings from the anchorage build its scene. The chart bake doesn't name it and no island posse lands on it |
 | Site | `site.siskiwit` in `sites.json` | Abandoned, concealment 0.7, region South Shore West, anchorage 140 m off the shore, 40 CU and a strongbox. Sites gain a `place` ("Siskiwit Bay") for the menu and the First Week |
@@ -477,9 +477,28 @@ Ten pieces, each sized to be one thread. Four can start at once (A, B, D and H).
 
 Screenshots are in the project files (`siskiwit-bay/`).
 
+### 16.9 Piece C: build mode and Stockton (2026-11-16)
+
+**Result:** built. Press B on foot inside a claimed hideout's bounds to build; the prefab shack, strongbox and shed are gone from both harbors, and the grid's pre-built shack and a short pier stand in their place.
+
+| Piece | Where | Notes |
+|---|---|---|
+| Build bounds | `data/sites.json` (`build`, `starter`, `pier`) | Stockton: 20 × 24 cells (40 × 48 m) on Presque Isle bay's flattened shore, west of the landing pier and clear of it by 4 m, base 2 m, the seaward rows over water for piers. Siskiwit: 20 × 22 cells beside the camp dock, base 2 m, short of the ruins inland. Both checked on the baked ground |
+| Pre-built shack and pier | `data/starters.json` (`starter.shack`, new `starter.pier`), `stash.ts`, the v9 migration | The shack is piece A's 4 × 3 plank room (5 shelving = 40 CU, strongbox, bunk, stove), set back from the shore at col 9 row 9. The pier is a 1 × 7 strip running out from the shore: four pier sections with a mooring post at the end, two pilings and steps up from the beach. Starters merge, so a new run and a migrated save get the same layout. **The layout is Jared's call** (screenshots in `hideout-build/`) |
+| Site frame | `src/sim/hideouts/site-frame.ts` | The bounds set down on the zone from the site's footprint: site ↔ zone meters, yaw, the ground under each cell for auto-height foundations |
+| Walked scene | `src/gameplay/hideouts.ts`, `island-ashore.ts` | Each claimed site in the loaded zone, its grid unpacked once per saved layout; built pieces as box colliders (doors open, low solids vaultable, stone or wood underfoot); F at the strongbox ("Open the stash") or a storage piece ("Open the stores") |
+| Rendering | `src/render/hideout/site-views.ts` | Per site a built view and a planned view (blue ghosts) under the site's frame; the overlay draws the cursor ghost (green or red), pieces marked for removal, the level's grid and the bounds. The nearest site within 250 m lights the lamp pools |
+| Build mode | `src/gameplay/build-mode.ts`, `src/sim/hideouts/build-tools.ts`, mode `build` | An orbit camera over the site (WASD pans, right-drag orbits, wheel zooms); click to place, drag for lines of walls and fences or rectangles of floors and roofs (up to 200); R rotates and turns walls to face the other way, Shift+R turns props 15°; X deconstructs (dependents too, 75% refunded into storage), Q eyedrops, Ctrl+Z/Y undo and redo, Tab the grid, PgUp/PgDn the level (levels above are cut away; roofs show while roofing), Enter builds, B or Esc back on foot. Build runs the work session from storage (and the hold, if the ship's moored here) and passes the game time it takes |
+| Panel | `src/ui/build/` | Logbook paper on the left: categories, each piece's variants with their cost and how many you can afford, what's on hand. The top bar (Place, Deconstruct, level, Grid, Undo, Redo, Done), a key list, the cursor's reason tag, and the queue (planned, work time, what's short) with Build |
+| Dev | `__glpBuild` | open, close, state, aim, click, drag, key, select, tool, build, give, sites, toZone, colliders, drawn |
+| Tests | `tests/build-mode.test.ts`, `e2e/build-mode.spec.ts` | The tools, the frame's round trip, the starters placeable piece by piece on both sites' baked ground, the bounds clear of the landing, a roofed storehouse built from materials and walked on; the e2e opens build mode at Stockton, plans and builds a storehouse, undoes, takes a wall down and opens the stash |
+
+Pieces F (after A and C) and I (after C and E) can start once this lands; E needs only A and can start now.
+
 ---
 
 ## Changelog
+- v0.9: Phase 8 piece C built (§16.9): build mode, Stockton's and Siskiwit's build bounds in the walked scene, the pre-built shack and a short pier replacing the prefabs.
 - v0.8: Phase 8 piece B built: the hideout kit, its instanced view and proxy, and `bench.hideout` (§16.4).
 - v0.7: Phase 8 piece A built the grid engine as pure sim in `src/sim/hideouts/` (grid, validity, edit, work, placed): `data/structures.json` (63 pieces, piece B's `build.*` ids, material variants with costs in existing goods), `data/starters.json` (the starter shack: a 4×3 plank room on timber foundations with a gable roof, 5 shelving = 40 CU, a strongbox, a bunk and a stove; the short pier waits for piece C, which places it against the real shore), validity with a reason for every refusal, the support graph (upper floors and roofs carried by walls or posts below, spanning two cells), removal with dependents and the 75% refund, undo/redo, the work session (crew ×1/0.7/0.5, October ×1.25, November–April ×1.5), render placement for piece B and colliders, and save v10 (each hideout's `layout`, packed 7 numbers a piece). Sites gain optional `build` bounds and `starter`; storage capacity and the strongbox now come from built pieces. Stockton's bounds are a first guess for piece C to fit in the walked scene.
 - v0.6: Phase 8 piece D (§16.8): Siskiwit Bay baked, the logging camp and its mainland pad, the Lumberjack's start, the *Gannet* switched on.

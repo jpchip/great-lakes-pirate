@@ -61,6 +61,7 @@ import type { ArcPreview } from '../sim/combat/aim';
 import { createWindCues, type WindCues } from './water/wind-cues';
 import { createFootView, type FootFrame } from './onfoot/foot-view';
 import { createDistrictView, createLampPools, type DistrictView } from './district/district-view';
+import { createHideoutSitesView, type HideoutSitesView } from './hideout/site-views';
 import type { DistrictModel } from '../gameplay/district/district';
 
 const HORIZON = new THREE.Color(0xb7c6cf);
@@ -120,6 +121,8 @@ export interface TestScene {
    * and the boat are drawn, instead of the sailing camera following the ship.
    */
   foot: FootFrame | undefined;
+  /** The hideouts in the zone and build mode's overlay (Phase 8 piece C); main syncs them. */
+  readonly hideouts: HideoutSitesView;
 }
 
 export interface SceneArena {
@@ -431,6 +434,8 @@ export async function createTestScene(
   };
   const footView = createFootView(lighting, lampPools);
   scene.add(footView.group);
+  const hideouts = createHideoutSitesView(lighting, lampPools);
+  scene.add(hideouts.group);
   let foot: FootFrame | undefined;
   /**
    * The docks district you're walking (Phase 7): its kit drawn in its own frame and placed
@@ -557,6 +562,7 @@ export async function createTestScene(
     get beamSeconds() {
       return now;
     },
+    hideouts,
     get foot() {
       return foot;
     },
@@ -677,6 +683,8 @@ export async function createTestScene(
         if (Number.isFinite(v)) f.density = Math.max(f.density, fogDensity(v));
       }
       layer?.harbors.update(environment.sunElevationDeg);
+      // A district has the lamp pools while you walk it; elsewhere the nearest hideout does.
+      hideouts.update(camera.position, lampLevel(environment.sunElevationDeg), !districtView);
       layer?.lighthouses.update(now, camera.position, environment.sunElevationDeg, f?.density ?? 0);
       // The schooner's lamps: as bright as the lights ashore once it's dark, a glint by day.
       for (const [e, lights] of lamps) {

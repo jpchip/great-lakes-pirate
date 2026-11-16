@@ -1,8 +1,8 @@
-import { Vector3 } from 'three';
+import { Raycaster, Vector2, Vector3 } from 'three';
 import { zoneToChart } from './core/coords';
 import { SECONDS_PER_GAME_DAY, dayAndHour, parseTimeWarp } from './core/time';
 import { EventBus } from './core/events';
-import { DEFAULT_BINDINGS, InputMapper, type InputContext } from './core/input';
+import { codeLabel, DEFAULT_BINDINGS, InputMapper, type InputContext } from './core/input';
 import { createLoop } from './core/loop';
 import { Rng } from './core/rng';
 import {
@@ -97,12 +97,16 @@ import { createTestScene } from './render/test-scene';
 import { createSailingState } from './sim/sailing/controller';
 import type { ZoneFrame } from './core/coords';
 import { createHazardState, mooringBerths, type MooringBerth } from './sim/sailing/hazards';
-import { PLAYER_SHIP_IDS } from './sim/sailing/ships';
+import { PLAYER_SHIP_IDS, sailShipRecord } from './sim/sailing/ships';
 import { httpBytes, loadIslandGround, loadZoneTerrain, type LoadedZone } from './sim/terrain/load';
 import type { GridField } from './sim/terrain/grid-field';
 import { placeZoneIslands, walkableIslands, type PlacedIsland } from './sim/islands/on-foot';
 import { zoneClearings } from './sim/terrain/clearings';
 import { plantTile, TREE_CELL_M } from './sim/terrain/vegetation';
+import { attachBuildMode } from './gameplay/build-mode';
+import { attachHideouts } from './gameplay/hideouts';
+import { siteToZone } from './sim/hideouts/site-frame';
+import { mountBuildPanel, type BuildPanelUi } from './ui/build/BuildPanel';
 import { attachIslandAshore } from './gameplay/island-ashore';
 import { createIslandPosse } from './gameplay/island-posse';
 import { TEST_BAY, type Dock, type Pose } from './sim/terrain/test-bay';
@@ -2678,6 +2682,19 @@ async function boot(): Promise<void> {
     }
     return hit;
   };
+  // The run's hideouts on this zone (Phase 8 piece C): drawn where they're built, solid on
+  // foot, their storage opened at their shelves and strongbox, and edited in build mode.
+  const hideouts = attachHideouts({
+    state,
+    zone: () =>
+      zone && !arena ? { id: zoneData.id, frame: manifestFrame(zone.manifest) } : undefined,
+    heightAt: (x, z) => ctx.terrain?.heightAt(x, z) ?? -100,
+    openStash: (id) => {
+      stash.open(id);
+      return stash.openHideout === id;
+    },
+    notice: (text) => showNotice(text),
+  });
   const islandAshore = attachIslandAshore({
     state,
     heightAt: (x, z) => ctx.terrain?.heightAt(x, z) ?? -100,
@@ -2687,12 +2704,8 @@ async function boot(): Promise<void> {
     },
     islands: () => zoneIslands().placed,
     ground: (id) => zone?.islandGrounds?.get(id),
-    harbors: () => harborLayouts,
+    hideouts,
     runSeed: () => state.environment.weather.noiseSeed,
-    openStash: (id) => {
-      stash.open(id);
-      return stash.openHideout === id;
-    },
     notice: (text) => showNotice(text),
   });
   const plantsIn = (b: {
@@ -2993,6 +3006,138 @@ async function boot(): Promise<void> {
   goAshoreRef.current = () => goAshore();
   ashoreOfferedRef.current = () => ashore.landingHere();
   machine.register(ashore.mode);
+  // Build mode (Phase 8 piece C): B on foot in a hideout's bounds. Its panel has its own
+  // root over the canvas; the ray for the cursor comes from the camera last drawn.
+  const buildRoot = uiRoot.appendChild(document.createElement('div'));
+  buildRoot.className = 'build-root';
+  const rayCaster = new Raycaster();
+  const rayNdc = new Vector2();
+  // eslint-disable-next-line prefer-const -- the panel and the mode need each other
+  let buildPanel: BuildPanelUi | undefined;
+  const buildMode = attachBuildMode({
+    ctx,
+    hideouts,
+    ashore,
+    canvas: () => renderer?.renderer.domElement,
+    ray: (x, y) => {
+      const canvas = renderer?.renderer.domElement;
+      if (!scene || !canvas) return undefined;
+      const r = canvas.getBoundingClientRect();
+      rayNdc.set(((x - r.left) / r.width) * 2 - 1, -((y - r.top) / r.height) * 2 + 1);
+      rayCaster.setFromCamera(rayNdc, scene.camera);
+      const { origin, direction } = rayCaster.ray;
+      return {
+        origin: { x: origin.x, y: origin.y, z: origin.z },
+        dir: { x: direction.x, y: direction.y, z: direction.z },
+      };
+    },
+    view: () => scene?.hideouts,
+    transition: (to) => machine.transition(to),
+    shipHold: (id) => (stash.hideoutHere === id ? state.player.cargo : undefined),
+    crewTier: () =>
+      sailShipRecord(state.player.ship?.classId ?? defaultShipState().classId).tier ?? 1,
+    goodName: (good) => economy.defs.goods.get(good)?.name ?? good,
+    blocked: () => {
+      if (ashore.pursued || run.inDanger) return 'Not with the law on your tail';
+      if (machine.overlayOpen) return 'Not now';
+      return undefined;
+    },
+    save: () => saveControls.saveNow(),
+    notice: (text) => showNotice(text),
+    panel: (snapshot) => buildPanel?.set(snapshot),
+    changed: () => {
+      economy.syncLoad();
+      hudClock = HUD_INTERVAL_S;
+    },
+  });
+  buildPanel = mountBuildPanel(buildRoot, buildMode.actions);
+  machine.register(buildMode.mode);
+  // A hideout's pieces built or taken down change what you walk on.
+  hideouts.onChange(() => {
+    if (!buildMode.active) ashore.refreshScene();
+  });
+  let hideoutHinted: string | undefined;
+  /** The hideouts drawn as the save has them, re-synced when they or the zone change. */
+  let hideoutsDrawn = '';
+  const syncHideoutsView = (): void => {
+    if (!scene) return;
+    const cut = buildMode.cut();
+    const key = `${hideouts.version}|${zone ? zoneData.id : '-'}|${arena ? 'a' : ''}|${JSON.stringify(cut ?? '')}`;
+    if (key === hideoutsDrawn) return;
+    hideoutsDrawn = key;
+    scene.hideouts.sync(hideouts.draw(cut));
+  };
+  if (import.meta.env.DEV || params.has('debug')) {
+    /**
+     * Build mode's dev hooks (Phase 8 piece C): `open()` as B would, `aim(x, z)` puts the
+     * cursor at site meters on the level edited, `press()`/`release()` are the left mouse,
+     * `key('KeyX')` a key, `select(id, variant)` the palette, `give({...})` materials into
+     * the hideout's storage, `build()` the Build button, and `site()` where it all is.
+     */
+    const hook = {
+      open: () => buildMode.open(),
+      close: () => buildMode.close(),
+      state: () => {
+        const st = buildMode.dev.state();
+        const id = buildMode.hideoutId;
+        return (
+          st && {
+            ...st,
+            storage: id ? (state.hideouts?.[id]?.storage.goods ?? []).map((g) => ({ ...g })) : [],
+            gameSeconds: state.environment.clock.gameSeconds,
+          }
+        );
+      },
+      aim: (x: number, z: number) => buildMode.dev.aim(x, z),
+      press: () => buildMode.dev.press(),
+      release: () => buildMode.dev.release(),
+      click: (x: number, z: number) => {
+        buildMode.dev.aim(x, z);
+        buildMode.dev.press();
+        buildMode.dev.release();
+      },
+      drag: (from: [number, number], to: [number, number]) => {
+        buildMode.dev.aim(from[0], from[1]);
+        buildMode.dev.press();
+        buildMode.dev.aim(to[0], to[1]);
+        buildMode.dev.release();
+      },
+      key: (code: string, mods?: { ctrl?: boolean; shift?: boolean }) =>
+        buildMode.dev.key(code, mods),
+      select: (id: string, variant = 0) => buildMode.actions.piece(id, variant),
+      tool: (t: 'place' | 'remove') => buildMode.actions.tool(t),
+      build: () => buildMode.actions.build(),
+      give: (goods: Record<string, number>, hideoutId?: string) => {
+        const id = hideoutId ?? buildMode.hideoutId ?? hideouts.sites()[0]?.hideoutId;
+        const h = id ? state.hideouts?.[id] : undefined;
+        if (!h) return false;
+        for (const [good, qty] of Object.entries(goods)) addToHold(h.storage.goods, { good, qty });
+        return true;
+      },
+      /** The claimed sites in this zone: bounds, frame and what's built there. */
+      sites: () =>
+        hideouts.sites().map((x) => ({
+          hideout: x.hideoutId,
+          cols: x.frame.cols,
+          rows: x.frame.rows,
+          baseM: x.frame.baseM,
+          origin: x.frame.origin,
+          along: x.frame.along,
+          inland: x.frame.inland,
+          built: x.grid.built().length,
+          planned: x.grid.planned().length,
+          ids: [...new Set(x.grid.built().map((p) => p.piece.id))],
+        })),
+      /** A site point (meters from the bounds' corner) in zone meters. */
+      toZone: (hideoutId: string, x: number, z: number) => {
+        const x0 = hideouts.site(hideoutId);
+        return x0 && siteToZone(x0.frame, x, z);
+      },
+      colliders: () => hideouts.colliders().length,
+      drawn: () => scene?.hideouts.counts(),
+    };
+    (window as unknown as { __glpBuild: typeof hook }).__glpBuild = hook;
+  }
   if (import.meta.env.DEV || params.has('debug')) {
     /**
      * `__glpFoot.dock('bayfield_city')` ties up at a pier as F would, `anchor()` lets go
@@ -3334,7 +3479,7 @@ async function boot(): Promise<void> {
   };
   machine.onTransition((_, to) => {
     document.body.dataset['ashore'] =
-      to === 'onFoot' ? (ashore.inBoat ? 'boat' : 'foot') : 'aboard';
+      to === 'onFoot' ? (ashore.inBoat ? 'boat' : 'foot') : to === 'build' ? 'foot' : 'aboard';
   });
   /**
    * Leaves the zone and enters `id` with the ship at `pose`, behind the fade to fog
@@ -4015,6 +4160,11 @@ async function boot(): Promise<void> {
         const refused = chartTravel.openLookAshore();
         if (refused) showNotice(refused);
       }
+      if (sameContext && input.context === 'onFoot' && input.pressed('Build')) {
+        const refused = buildMode.open();
+        if (refused) showNotice(refused);
+      }
+      syncHideoutsView();
       // The traffic sails on the clock: in the zone, every tick (Phase 4 piece D), and
       // behind a look at the chart while the ship sails on.
       const inZone =
@@ -4116,6 +4266,14 @@ async function boot(): Promise<void> {
       }
       if (hudClock >= HUD_INTERVAL_S && machine.mode === 'onFoot') {
         hudClock = 0;
+        // Walking into your hideout's bounds, once each time: how to build there.
+        const inSite =
+          ashore.active && !ashore.inBoat ? hideouts.siteAt(ashore.zoneAt())?.hideoutId : undefined;
+        if (inSite && inSite !== hideoutHinted) {
+          const key = codeLabel(input.bindings.onFoot.Build?.[0] ?? 'KeyB');
+          showNotice(`Your hideout: ${key} to build`);
+        }
+        hideoutHinted = inSite;
         ui.setHud(undefined);
         ui.setCaptions([]);
         const now = state.environment.clock.gameSeconds;
@@ -4165,6 +4323,13 @@ async function boot(): Promise<void> {
           delete document.body.dataset['gem'];
           delete document.body.dataset['danger'];
         }
+      } else if (hudClock >= HUD_INTERVAL_S && machine.mode === 'build') {
+        // Build mode has its own panel (Phase 8 piece C).
+        hudClock = 0;
+        ui.setFootHud(undefined);
+        ui.setStealthHud(undefined);
+        ui.setHud(undefined);
+        ui.setCaptions([]);
       } else if (hudClock >= HUD_INTERVAL_S && machine.mode === 'chart') {
         hudClock = 0;
         ui.setFootHud(undefined);

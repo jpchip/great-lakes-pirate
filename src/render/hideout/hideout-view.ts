@@ -59,6 +59,11 @@ export interface HideoutViewOptions {
   proxyBeyondM?: number;
   /** The proxy is rebuilt this long after the last edit, milliseconds. */
   proxyDebounceMs?: number;
+  /**
+   * Draws every piece in this material instead of the kit's (piece C's ghosts: a flat,
+   * see-through tint, the piece's `paint` its color). No glow, pools or proxy then.
+   */
+  material?: THREE.Material;
 }
 
 export interface HideoutLamp {
@@ -94,8 +99,17 @@ export interface HideoutView {
   rebuildProxy(): void;
   readonly proxyDirty: boolean;
   lamps(): readonly HideoutLamp[];
-  /** Per frame: the camera picks near or far; `night` 0–1 lights the glass and pools. */
-  update(camera: THREE.Vector3, night: number, focus?: THREE.Vector3, nowMs?: number): void;
+  /**
+   * Per frame: the camera picks near or far; `night` 0–1 lights the glass and pools.
+   * `lightPools` false leaves the shared lamp pools alone (another view has them).
+   */
+  update(
+    camera: THREE.Vector3,
+    night: number,
+    focus?: THREE.Vector3,
+    nowMs?: number,
+    lightPools?: boolean,
+  ): void;
   dispose(): void;
 }
 
@@ -150,13 +164,15 @@ export function createHideoutView(
   const near = new THREE.Group();
   near.name = 'hideout:near';
   group.add(near);
-  const material: StylizedMaterial = createStylizedMaterial(options.style ?? 'toon', lighting, {
-    vertexColors: true,
-    glow: true,
-    ...(options.pools ? { pools: options.pools } : {}),
-  });
-  material.name = 'hideout-kit';
-  const proxyBeyond = options.proxyBeyondM ?? 140;
+  const material: StylizedMaterial | THREE.Material =
+    options.material ??
+    createStylizedMaterial(options.style ?? 'toon', lighting, {
+      vertexColors: true,
+      glow: true,
+      ...(options.pools ? { pools: options.pools } : {}),
+    });
+  if (!options.material) material.name = 'hideout-kit';
+  const proxyBeyond = options.material ? Infinity : (options.proxyBeyondM ?? 140);
   const debounce = options.proxyDebounceMs ?? 400;
 
   const batches = new Map<string, Batch>();
@@ -478,9 +494,10 @@ export function createHideoutView(
       if (lampsDirty) collectLamps();
       return lampList;
     },
-    update(camera, night, focus, nowMs = performance.now()) {
+    update(camera, night, focus, nowMs = performance.now(), lightPools = true) {
       if (boundsDirty) updateBounds();
-      if (proxyDirty && nowMs - lastEdit >= debounce) rebuildProxy();
+      if (proxyDirty && nowMs - lastEdit >= debounce && Number.isFinite(proxyBeyond))
+        rebuildProxy();
       // Near or far, with a little hysteresis so it doesn't flicker at the line.
       group.updateWorldMatrix(true, false);
       camLocal.copy(camera);
@@ -493,12 +510,12 @@ export function createHideoutView(
       near.visible = !far;
       if (proxy) proxy.visible = far;
 
-      const u = material.uniforms;
-      u.uGlow?.value.copy(glowColor.setScalar(1.15 * night));
-      if (u.uGlowDim) u.uGlowDim.value = 0.32 + 0.68 * night;
+      const u = (material as Partial<StylizedMaterial>).uniforms;
+      u?.uGlow?.value.copy(glowColor.setScalar(1.15 * night));
+      if (u?.uGlowDim) u.uGlowDim.value = 0.32 + 0.68 * night;
 
       const pools = options.pools;
-      if (!pools) return;
+      if (!pools || !lightPools) return;
       const lamps = this.lamps();
       const f = focus ?? camera;
       camLocal.copy(f);
@@ -533,7 +550,7 @@ export function createHideoutView(
       }
       for (const g of proxies.values()) g.dispose();
       proxy?.geometry.dispose();
-      material.dispose();
+      if (!options.material) material.dispose();
     },
   };
 }

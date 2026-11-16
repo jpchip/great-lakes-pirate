@@ -325,3 +325,26 @@ export function offsetLayout(layout: PackedLayout, dCol: number, dRow: number): 
     planned: shift(layout.planned),
   };
 }
+
+/** Two layouts as one: the second's pieces after the first's, the palette shared. */
+export function mergeLayouts(a: PackedLayout, b: PackedLayout): PackedLayout {
+  const palette = [...a.palette];
+  const remap = (list: readonly number[]): number[] => {
+    const out = [...list];
+    for (let i = 0; i + STRIDE <= out.length; i += STRIDE) {
+      const id = b.palette[out[i] ?? -1] ?? '';
+      let k = palette.indexOf(id);
+      if (k < 0) {
+        k = palette.length;
+        palette.push(id);
+      }
+      out[i] = k;
+    }
+    return out;
+  };
+  return {
+    palette,
+    built: [...a.built, ...remap(b.built)],
+    planned: [...a.planned, ...remap(b.planned)],
+  };
+}

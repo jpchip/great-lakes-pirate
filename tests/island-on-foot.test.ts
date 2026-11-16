@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { beforeAll, describe, expect, it } from 'vitest';
+import { attachHideouts } from '../src/gameplay/hideouts';
 import { attachIslandAshore, pieceColliders } from '../src/gameplay/island-ashore';
 import { buildAshoreScene, plantColliders } from '../src/gameplay/onfoot/ashore-scene';
 import type { Collider } from '../src/gameplay/onfoot/colliders';
@@ -227,7 +228,6 @@ describe('Stockton on its baked tiles', () => {
   it.skipIf(!baked)('walks it: on the wharf, cairns to search, and the stash to open', () => {
     const state = createWorldState('island-test');
     const frame = manifestFrame(zone.manifest);
-    const harbors = layoutHarbors(frame, zone.terrain, zone.manifest.zone);
     const notices: string[] = [];
     const opened: string[] = [];
     const island = attachIslandAshore({
@@ -240,12 +240,17 @@ describe('Stockton on its baked tiles', () => {
       }),
       islands: () => [placed],
       ground: (id) => (id === 'island.stockton' ? field : undefined),
-      harbors: () => harbors,
+      hideouts: attachHideouts({
+        state,
+        zone: () => ({ id: 'zone.apostles', frame }),
+        heightAt: (x, z) => zone.terrain.heightAt(x, z),
+        openStash: (id) => {
+          opened.push(id);
+          return true;
+        },
+        notice: (t) => notices.push(t),
+      }),
       runSeed: () => 7,
-      openStash: (id) => {
-        opened.push(id);
-        return true;
-      },
       notice: (t) => notices.push(t),
     });
     const derrick = placed.pieces.find((p) => p.kind === 'derrick');

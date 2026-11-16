@@ -69,6 +69,18 @@ export const siteSchema = z.object({
       row: z.number().int().nonnegative(),
     })
     .optional(),
+  /**
+   * The short pier a claim starts with (plan 09 §16.5; Phase 8 piece C), a starter laid at
+   * its corner cell: set against the real shore, so it runs from the beach into water deep
+   * enough to moor at.
+   */
+  pier: z
+    .object({
+      id: idOf('starter'),
+      col: z.number().int().nonnegative(),
+      row: z.number().int().nonnegative(),
+    })
+    .optional(),
   /** Plan 12 §2.2's starting hideout for these backgrounds (Phase 4: all of them). */
   startFor: z.array(z.string()),
   blurb: z.string().min(1),
