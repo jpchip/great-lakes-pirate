@@ -337,7 +337,7 @@ Phase 8 is the **Hideouts** build (version 0.8.0, the MVP/Alpha by [17 §7](17-t
 
 The scope comes from §13 above and the Phase 8 rows of the other plans, plus what earlier phases left for it: the Stockton stash prefab that this phase replaces in place ([05 §16](05-ports-economy-trading.md), §2 above), the Siskiwit Bay zone and its hideout pad ([03 §20.5](03-world-scale-chart-travel.md)), the second smuggler who lies in Siskiwit Bay ([07 §14.6.1](07-combat-boarding-targets.md)), the Lumberjack's starting site ([05 §16](05-ports-economy-trading.md), [12 §2.2](12-sandbox-events-character-failure.md)), laying low and pursuit ending at a hideout ([06 §3.3, §5.4](06-fame-wanted-law-lighthouses.md)), crafted upgrades, drydock installs and shipless shipbuilding ([10 §13](10-ship-upgrades-customization.md)), the build and crafting UI ([13 §12](13-ui-ux.md)), the hideout kit and stations ([14 §13](14-art-direction-asset-pipeline.md)), build and craft sounds ([15 §11](15-audio.md)), the hideout save slices ([16 §12](16-save-persistence.md)), and Phase 7's open calls ([08 §20.8.3](08-docks-district-stealth.md)).
 
-This section is the phase's scope as proposed. Its exit criteria (§16.3) become the phase's acceptance checklist once Jared approves it, and the playtest piece checks them.
+This section is the phase's scope, with both decisions in §16.6 taken by Jared on 2026-11-16 as recommended. Its exit criteria (§16.3) are the phase's acceptance checklist, and the playtest piece checks them.
 
 ### 16.1 What Phases 4–7 change or put at risk
 
@@ -441,7 +441,7 @@ Ten pieces, each sized to be one thread. Four can start at once (A, B, D and H).
    - **Ambitions now, events and letters in Phase 9 (recommended):** Ambitions give the Alpha's sandbox its goals (and the builder ones need hideouts), and they're one small piece (H). The event system is mostly content and belongs with Phase 9's full catalog, the Hollister feud and the rivals.
    - **All three now, as plan 12 says:** a second large piece in Phase 8, about ten events across the rumor, paper and letter channels.
    - **None now:** Phase 8 stays hideouts only; Ambitions and events both go to Phase 9.
-2. **How much of the builder goes into 0.8.0?** §13 lists the whole build mode; §14's cut list names what can go.
+2. **How much of the builder goes into 0.8.0?** **Decided 2026-11-16: the core with drag and undo; cuts #1–5 left for later** (Jared). §13 lists the whole build mode; §14's cut list names what can go.
    - **The core with drag and undo, cuts #1–5 left for later (recommended):** placement, rotation, drag, deconstruct, eyedropper, undo, two levels and four stations; blueprints, the paint tool, the third level, the powder room and the lookout's traffic reveal come after the Alpha. This is enough for criterion 1 and keeps Phase 8 to about Phase 7's size.
    - **All of §13 plus blueprints and paint:** the full builder in 0.8.0. More expressive, a longer phase.
    - **The bare minimum:** single placement without drag (cut #6 too). Fastest, but criterion 1 gets hard.
@@ -458,7 +458,7 @@ Ten pieces, each sized to be one thread. Four can start at once (A, B, D and H).
 ---
 
 ## Changelog
-- v0.5: Phase 8 scope (§16), as proposed 2026-11-16: what Phases 4–7 change, deliverables, exit criteria, ten work pieces, smaller calls and two decisions. Decision 1 taken the same day: Ambitions in Phase 8, events and letters in Phase 9.
+- v0.5: Phase 8 scope (§16), as proposed 2026-11-16: what Phases 4–7 change, deliverables, exit criteria, ten work pieces, smaller calls and two decisions. Both decisions taken the same day: Ambitions in Phase 8 with events and letters in Phase 9, and the core builder with drag and undo (§14 cuts #1–5 later).
 - v0.4: Phase 4 piece E (plan 05 §19) built the Stockton Island stash as a fixed prefab: `data/sites.json` with its first site, the `hideouts` save slice of §12, storage transfer for goods and cash, and lying at anchor. Phase 8 replaces the prefab in place and keeps its contents.
 - v0.3: Gap review: MVP = 2 sites, mainland build pads, pre-built starting hideouts, MVP starting sites by background, hideouts end pursuit.
 - v0.2: Decisions: hideouts completely safe, no gathering (sawpit removed), passive production, shipless shipbuilding (§7.4), seven fixed sites.
