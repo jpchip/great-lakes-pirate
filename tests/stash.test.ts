@@ -12,6 +12,8 @@ import {
   siteAnchorage,
   siteAnchoredAt,
   siteDef,
+  starterLayout,
+  storageCapacity,
   stashCash,
   stashedCash,
   stashGoods,
@@ -41,6 +43,7 @@ const fresh = (): HideoutState => ({
   siteId: 'site.stockton',
   claimedAt: 0,
   storage: { goods: [], cash: 0 },
+  layout: starterLayout('site.stockton'),
 });
 const HOT = { region: 'region.apostles', heat: 0.8, traceability: 0.6, since: 100 };
 
@@ -115,9 +118,9 @@ describe('the Stockton stash (piece E)', () => {
     expect(stashGoods(hold, h, 0, 0)).toEqual({ ok: false, reason: 'badQty' });
   });
 
-  it('holds 40 CU in the shed', () => {
+  it('holds 40 CU on the starter shack’s shelves', () => {
     const h = fresh();
-    expect(siteDef('site.stockton')?.storage.goodsCu).toBe(40);
+    expect(storageCapacity(h)).toBe(40);
     const hold = [{ good: 'good.iron_ore', qty: 50 }];
     expect(stashGoods(hold, h, 0, 50)).toEqual({ ok: true, good: 'good.iron_ore', qty: 40 });
     expect(stashGoods(hold, h, 0, 1)).toEqual({ ok: false, reason: 'noRoomStash' });

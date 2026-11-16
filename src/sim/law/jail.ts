@@ -2,7 +2,7 @@ import jailJson from '../../../data/jail.json';
 import { jailFileSchema, type JailFile } from '../../../data/schemas/jail';
 import { dayAndHour, SECONDS_PER_GAME_DAY } from '../../core/time';
 import { Rng } from '../../core/rng';
-import { siteDef } from '../hideouts/stash';
+import { hasStrongbox } from '../hideouts/stash';
 import type { WorldState } from '../world-state';
 import { regionWanted, setHeat } from './law';
 import { tierDef, wantedTier, type LawDefs } from './defs';
@@ -191,7 +191,7 @@ export interface Strongbox {
 
 export function strongboxes(state: WorldState): Strongbox[] {
   return Object.entries(state.hideouts ?? {})
-    .filter(([, h]) => siteDef(h.siteId)?.storage.strongbox)
+    .filter(([, h]) => hasStrongbox(h))
     .map(([id, h]) => ({ id, cash: h.storage.cash }));
 }
 

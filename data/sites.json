@@ -9,8 +9,23 @@
     "wantedRegion": "region.apostles",
     "concealment": 0.6,
     "claim": "abandoned",
-    "anchorage": { "alongM": 0, "inlandM": -70, "radiusM": 90 },
-    "storage": { "goodsCu": 40, "strongbox": true },
+    "anchorage": {
+      "alongM": 0,
+      "inlandM": -70,
+      "radiusM": 90
+    },
+    "build": {
+      "alongM": -12,
+      "inlandM": 20,
+      "cols": 16,
+      "rows": 12,
+      "baseM": 2
+    },
+    "starter": {
+      "id": "starter.shack",
+      "col": 6,
+      "row": 4
+    },
     "startFor": ["deckhand", "fisherman", "lumberjack", "saloon_keeper", "ex_navy", "poacher"],
     "blurb": "A fisherman's shack left empty when the brownstone quarry closed, in a bay sheltered from the northwest. Nobody comes out here but the fish tugs."
   }
