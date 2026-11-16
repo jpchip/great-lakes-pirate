@@ -3013,7 +3013,10 @@ async function boot(): Promise<void> {
         h.anchorZ = p.z - Math.cos(p.heading) * shipRecord.lengthM * 0.45;
       },
       dock(key: string) {
-        const berth = allBerths.find((b) => b.dockId.includes(key));
+        // A free side first: one the traffic holds isn't among the sailing berths, so the
+        // next frame would cast her off it again (as `dockAt` does).
+        const mine = (b: MooringBerth): boolean => b.dockId.includes(key);
+        const berth = freeBerths().find(mine) ?? allBerths.find(mine);
         if (!berth) return false;
         placeShip(berth.pose);
         const h = hazards.state;
