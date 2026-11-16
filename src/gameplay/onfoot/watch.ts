@@ -562,8 +562,9 @@ export function createWatch(opts: WatchOptions): Watch {
           heist.interact(at, dt, down, pressed);
           return true;
         }
-        // A lit lamp in reach: hold F to put it out.
-        const d = offerDouse(player);
+        // A lit lamp in reach: hold F to put it out. A counter, a door or a man to talk to
+        // keeps F, so a lantern over the bar doesn't stand between you and a drink.
+        const d = otherPrompt ? undefined : offerDouse(player);
         if (d) {
           holdS = -1;
           if (pressed) douseS = 0;
@@ -602,7 +603,7 @@ export function createWatch(opts: WatchOptions): Watch {
       let o = tools.offer(toolContext(player));
       const at = { player, gameSeconds: opts.conditions().gameSeconds };
       const h = !o || tools.lowPriority(o) ? heist?.offer(at) : undefined;
-      const d = !h && (!o || tools.lowPriority(o)) ? offerDouse(player) : undefined;
+      const d = !h && !otherPrompt && (!o || tools.lowPriority(o)) ? offerDouse(player) : undefined;
       if (o && tools.lowPriority(o) && (h || d || otherPrompt)) o = undefined;
       const hold01 = o && o.holdS > 0 && holdS >= 0 ? holdS / o.holdS : 0;
       const crate = heist?.carrying;
