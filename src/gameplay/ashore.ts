@@ -916,6 +916,21 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
         });
       }
     }
+    // The daytime crowd (0.7.1): townsfolk and dockhands who walk by, and never see you.
+    for (const f of watch?.crowd() ?? []) {
+      const w = toZone(f.x, f.z);
+      out.push({
+        id: f.id,
+        type: f.type,
+        state: 'idle',
+        x: w.x,
+        y: f.y,
+        z: w.z,
+        heading: headingToZone(f.heading),
+        crouching: false,
+        lantern: false,
+      });
+    }
     if (!deps.shop) return out;
     for (const mark of m.marks) {
       if (mark.kind !== 'shop' || !deps.shop(district, mark)) continue;
