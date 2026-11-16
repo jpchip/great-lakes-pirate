@@ -20,7 +20,9 @@ import {
 } from './district-guards';
 import { createFootLaw, nextDawn, type FootLaw, type FootLawHooks } from './foot-law';
 import { gameNpcs, rosterForTier, type NpcDefs } from './guards';
-import { ambientLight01, LampSet } from './light';
+import { ambientLight01, LampSet, type Lamp } from './light';
+import { douse, douseOffer, type DouseOffer } from './douse';
+import { isDown } from './stealth';
 import type { NavQuery } from './nav';
 import { fogOnFoot01 } from './perception';
 import { createStealth, type Stealth, type StealthEvent, type StealthReadout } from './stealth';
@@ -156,7 +158,8 @@ export interface Watch {
   readonly pursued: boolean;
   /** A guard is searching for you. */
   readonly searched: boolean;
-  step(dt: number, player: CharacterState): void;
+  /** `lean`: the head's offset while leaning (Q/E), meters. */
+  step(dt: number, player: CharacterState, lean?: { x: number; z: number }): void;
   readout(): StealthReadout;
   on(fn: (e: StealthEvent) => void): () => void;
   /** The tool belt, if there are pockets. */
@@ -206,6 +209,12 @@ export interface Watch {
   /** The belt, the conduct line and the prompt for the HUD (`otherPrompt`: as `interact`). */
   toolsHud(player: CharacterState, otherPrompt?: boolean): FootToolsSnapshot | undefined;
   onTool(fn: (e: ToolEvent) => void): () => void;
+  /** The district's lamps as the guards see them, in the model's order (doused or not). */
+  readonly lamps: readonly Lamp[];
+  /** What F would put out from here, if a lit lamp is in reach (plan 08 §6). */
+  douseOffer(player: CharacterState): DouseOffer | undefined;
+  /** Puts a lamp out as F would (the dev hook): the noise, and any guard watching grows wary. */
+  douseLamp(k: number, player: CharacterState): void;
 }
 
 export function skyAt(gameSeconds: number, cloud01: number): SkyLight {
@@ -367,6 +376,26 @@ export function createWatch(opts: WatchOptions): Watch {
       )
     : undefined;
   let holdS = -1;
+  let douseS = -1;
+  const offerDouse = (player: CharacterState): DouseOffer | undefined =>
+    jailbreak?.inCell || heist?.carrying || tools?.carrying
+      ? undefined
+      : douseOffer(lamps, model.lamps, player.position);
+  const putOut = (k: number, player: CharacterState): void => {
+    const l = lamps[k];
+    if (!l) return;
+    douse(l);
+    stealth.noiseAt('douse', {
+      x: l.x,
+      y: player.position.y,
+      z: l.z,
+    });
+    // Seen at it, you're someone up to something: they come over to look.
+    for (const g of stealth.guards) {
+      if (isDown(g.state) || g.state === 'bribed' || !g.glimpse?.seen) continue;
+      stealth.wary(g.id);
+    }
+  };
   const toolContext = (player: CharacterState): ToolContext => {
     const c = opts.conditions();
     return {
@@ -401,7 +430,7 @@ export function createWatch(opts: WatchOptions): Watch {
     get searched() {
       return stealth.guards.some((g) => g.state === 'search');
     },
-    step(dt, player) {
+    step(dt, player, lean) {
       const c = opts.conditions();
       crowd?.step(dt);
       const sky = skyAt(c.gameSeconds, c.cloud01);
@@ -444,6 +473,7 @@ export function createWatch(opts: WatchOptions): Watch {
         suspect: forced ?? jailbreak?.suspect() ?? lastConduct.suspect,
         fame01: c.fame01,
         wantedTier: jailbreak?.inCell ? 0 : c.wantedTier,
+        ...(lean ? { lean } : {}),
       });
       tools?.step(toolContext(player));
     },
@@ -528,9 +558,25 @@ export function createWatch(opts: WatchOptions): Watch {
         const at = { player, gameSeconds: opts.conditions().gameSeconds };
         if (heist?.offer(at)) {
           holdS = -1;
+          douseS = -1;
           heist.interact(at, dt, down, pressed);
           return true;
         }
+        // A lit lamp in reach: hold F to put it out.
+        const d = offerDouse(player);
+        if (d) {
+          holdS = -1;
+          if (pressed) douseS = 0;
+          else if (douseS >= 0) {
+            if (!down) douseS = -1;
+            else if ((douseS += dt) >= d.holdS) {
+              putOut(d.lamp, player);
+              douseS = -1;
+            }
+          }
+          return true;
+        }
+        douseS = -1;
         if (o && otherPrompt) o = undefined;
       }
       if (!o) {
@@ -556,7 +602,8 @@ export function createWatch(opts: WatchOptions): Watch {
       let o = tools.offer(toolContext(player));
       const at = { player, gameSeconds: opts.conditions().gameSeconds };
       const h = !o || tools.lowPriority(o) ? heist?.offer(at) : undefined;
-      if (o && tools.lowPriority(o) && (h || otherPrompt)) o = undefined;
+      const d = !h && (!o || tools.lowPriority(o)) ? offerDouse(player) : undefined;
+      if (o && tools.lowPriority(o) && (h || d || otherPrompt)) o = undefined;
       const hold01 = o && o.holdS > 0 && holdS >= 0 ? holdS / o.holdS : 0;
       const crate = heist?.carrying;
       const j = jailbreak?.offer(at);
@@ -579,13 +626,21 @@ export function createWatch(opts: WatchOptions): Watch {
         hold01,
         opts.pockets.purse,
         heist && {
-          prompt: h && {
-            key: 'F',
-            label: h.label,
-            ok: h.ok,
-            why: h.why ?? '',
-            hold01: h.holdS > 0 ? heist.hold01(at) : 0,
-          },
+          prompt: h
+            ? {
+                key: 'F',
+                label: h.label,
+                ok: h.ok,
+                why: h.why ?? '',
+                hold01: h.holdS > 0 ? heist.hold01(at) : 0,
+              }
+            : d && {
+                key: 'F',
+                label: d.label,
+                ok: true,
+                why: '',
+                hold01: douseS >= 0 ? Math.min(1, douseS / d.holdS) : 0,
+              },
           load: crate
             ? `Carrying a crate of ${crate.good.replace(/^good\./, '').replace(/_/g, ' ')}`
             : '',
@@ -593,5 +648,8 @@ export function createWatch(opts: WatchOptions): Watch {
       );
     },
     onTool: (fn) => tools?.on(fn) ?? (() => undefined),
+    lamps,
+    douseOffer: offerDouse,
+    douseLamp: putOut,
   };
 }

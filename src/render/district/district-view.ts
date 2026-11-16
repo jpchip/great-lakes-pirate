@@ -3,7 +3,7 @@ import type { DistrictModel, PlacedPiece } from '../../gameplay/district/distric
 import { kitPiece } from '../../sim/district/kit';
 import { buildingSigns } from './signs';
 import { PALETTE } from '../style/palette';
-import { merged } from '../style/parts';
+import { merged, place } from '../style/parts';
 import {
   createStylizedMaterial,
   type LampPoolUniforms,
@@ -13,6 +13,7 @@ import {
 } from '../style/stylized-material';
 import {
   cellGeometry,
+  dousedGlassGeometry,
   edgeGeometry,
   PAINTS,
   pileGeometry,
@@ -45,9 +46,10 @@ export interface DistrictView {
   readonly meshes: number;
   /**
    * Per frame: `focus` is the player (pools near them, the roof they're under fades);
-   * `night` is 0 by day to 1 at night (lamps lit, windows glowing).
+   * `night` is 0 by day to 1 at night (lamps lit, windows glowing); `doused` are lamps put
+   * out (indexes into `model.lamps`): no pool, and dark glass over theirs.
    */
-  update(focus: THREE.Vector3, night: number): void;
+  update(focus: THREE.Vector3, night: number, doused?: readonly number[]): void;
   /** The building whose roof is faded, if any. */
   readonly inside: string | undefined;
   dispose(): void;
@@ -162,6 +164,35 @@ export function createDistrictView(
   const dist = new Float64Array(model.lamps.length);
   let inside: string | undefined;
   const lampAt = new THREE.Vector3();
+  // The put-out lamps' dark glass: one small mesh, rebuilt only when the set changes.
+  const lampProps = model.lamps.map((l) =>
+    model.props.find((p) => p.piece.id === l.piece && p.x === l.x && p.z === l.z),
+  );
+  const out = new Set<number>();
+  let outKey = '';
+  let shades: THREE.Mesh | undefined;
+  const syncShades = (doused: readonly number[]): void => {
+    const key = doused.join(',');
+    if (key === outKey) return;
+    outKey = key;
+    out.clear();
+    for (const k of doused) out.add(k);
+    if (shades) {
+      group.remove(shades);
+      shades.geometry.dispose();
+      shades = undefined;
+    }
+    const parts: THREE.BufferGeometry[] = [];
+    for (const k of doused) {
+      const p = lampProps[k];
+      const g = p && dousedGlassGeometry(p.piece.id, p.piece.heightM);
+      if (p && g) parts.push(place(g, p.x, p.y, p.z, p.heading));
+    }
+    if (parts.length === 0) return;
+    shades = new THREE.Mesh(merged(parts), body);
+    shades.name = 'doused-lamps';
+    group.add(shades);
+  };
   return {
     group,
     get triangles() {
@@ -173,12 +204,13 @@ export function createDistrictView(
     get inside() {
       return inside;
     },
-    update(focus, night) {
-      // The nearest lamps become the pools.
+    update(focus, night, doused = []) {
+      syncShades(night > 0 ? doused : []);
+      // The nearest lit lamps become the pools.
       for (let k = 0; k < model.lamps.length; k++) {
         const l = model.lamps[k];
         if (!l) continue;
-        dist[k] = (l.x - focus.x) ** 2 + (l.z - focus.z) ** 2;
+        dist[k] = out.has(k) ? 1e18 : (l.x - focus.x) ** 2 + (l.z - focus.z) ** 2;
       }
       order.sort((a, b) => (dist[a] ?? 0) - (dist[b] ?? 0));
       for (let s = 0; s < POOL_SLOTS; s++) {
@@ -187,7 +219,7 @@ export function createDistrictView(
         const color = pools.uPoolColor.value[s];
         if (!pos || !color) continue;
         const l = k === undefined ? undefined : model.lamps[k];
-        if (!l || k === undefined || night <= 0) {
+        if (!l || k === undefined || night <= 0 || out.has(k)) {
           color.setRGB(0, 0, 0);
           continue;
         }
@@ -212,6 +244,7 @@ export function createDistrictView(
       }
     },
     dispose() {
+      shades?.geometry.dispose();
       for (const geo of geometries) geo.dispose();
       body.dispose();
       lit.dispose();

@@ -1345,6 +1345,9 @@ async function boot(): Promise<void> {
     showJournal: (snapshot) => ui.setJournal(snapshot),
     onOpen(open) {
       if (open) {
+        // Looking about on foot holds the pointer: a counter's screen or the journal needs it
+        // back at once, not after an Esc (a click on the scene takes it again after).
+        if (document.pointerLockElement) document.exitPointerLock();
         const journal = !ports.openPort;
         machine.pushOverlay(journal ? 'journal' : 'trade', !(journal && sailOnAllowed()));
         ui.setJournalSailing(journal && sailOnOffered() ? sailOnAllowed() : undefined);
@@ -3151,6 +3154,26 @@ async function boot(): Promise<void> {
         state.player.stores['store.rope'] = 2;
         state.player.stores['store.whiskey'] = 3;
       },
+      /** The district's lamps, local meters: lit, or put out (plan 08 §6). */
+      lamps: () =>
+        (ashore.watch?.lamps ?? []).map((l, k) => ({
+          k,
+          piece: ashore.district?.model.lamps[k]?.piece,
+          x: l.x,
+          y: l.y,
+          z: l.z,
+          lit: l.lit,
+          doused: l.doused ?? false,
+        })),
+      /** Puts out lamp `k` as F would (the noise, and the watch grows wary if it saw). */
+      douse: (k: number) => {
+        const w = ashore.watch;
+        if (!w?.lamps[k]?.lit) return false;
+        w.douseLamp(k, ashore.character);
+        return true;
+      },
+      /** Leaning (Q/E): how far (−1 left … 1 right) and the head's offset, local meters. */
+      lean: () => ({ ...ashore.lean }),
       /** Part two: picks, a crowbar and the pistol, as if from the chandlery. */
       restockBurglar: () => {
         state.player.stores['store.lockpicks'] = 4;

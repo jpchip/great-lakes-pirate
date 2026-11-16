@@ -22,6 +22,8 @@ export type NoiseKind =
   | 'distraction'
   | 'glass'
   | 'blow'
+  // A lamp turned down or blown out (plan 08 §6: low).
+  | 'douse'
   | 'shout'
   | 'whistle'
   | 'gunshot';
@@ -84,6 +86,7 @@ export const EVENT_NOISE_M: Record<Exclude<NoiseKind, 'footstep' | 'landing'>, n
   glass: 14,
   // A cosh on a skull or a scuffle (piece E).
   blow: 3,
+  douse: 2.5,
   shout: 22,
   whistle: 40,
   gunshot: 150,

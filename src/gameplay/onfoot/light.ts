@@ -19,6 +19,11 @@ export interface Lamp {
   /** 0–1 at the foot of the lamp. */
   intensity: number;
   lit: boolean;
+  /**
+   * Put out by the player (plan 08 §6, "Extinguish lamp"): dark until a guard relights it
+   * or the lamps go out at dawn. Only the district's fixed lamps are ever doused.
+   */
+  doused?: boolean;
 }
 
 /** Starlight alone, on a moonless clear night. */
