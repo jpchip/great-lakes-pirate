@@ -57,6 +57,13 @@ export interface Figure {
   carrying: boolean;
   /** Standing height right now, meters (the controller's stand or crouch height). */
   height: number;
+  /**
+   * Leaning (Q/E, `lean.ts`): the head's offset from the feet, meters. The head's sight
+   * line goes to it, the chest's halfway, the hips' stay over the feet, so a man peeking
+   * round a corner shows a guard his head and not much else.
+   */
+  leanX?: number;
+  leanZ?: number;
 }
 
 /** What the light gem shows, 0–1+: the light on you × movement × posture. */
@@ -136,9 +143,13 @@ export function backlit(eye: P3, f: Figure, lamps: LampSet, carried: readonly La
 
 const sample: P3 = { x: 0, y: 0, z: 0 };
 
+/** How far along the lean each sight line's point goes: the head all of it, the hips none. */
+const LEAN_SHARE = [1, 0.5, 0] as const;
+
 /**
  * How much of the figure the eye can see, 0–1: three sight lines (head, chest, hips),
- * each blocked one hiding a third (plan 08 §4.1 cover, "a few raycasts").
+ * each blocked one hiding a third (plan 08 §4.1 cover, "a few raycasts"). A leaning
+ * figure's head and chest are out to the side (`Figure.leanX`).
  */
 export function coverSeen(
   colliders: ColliderSet,
@@ -148,10 +159,14 @@ export function coverSeen(
 ): number {
   const h = f.swimming ? 0.3 : f.height;
   let seen = 0;
-  for (const share of [0.92, 0.7, 0.5]) {
-    sample.x = f.x;
-    sample.y = f.y + h * share;
-    sample.z = f.z;
+  const lx = f.leanX ?? 0;
+  const lz = f.leanZ ?? 0;
+  const heights = [0.92, 0.7, 0.5] as const;
+  for (let k = 0; k < 3; k++) {
+    const out = LEAN_SHARE[k] ?? 0;
+    sample.x = f.x + lx * out;
+    sample.y = f.y + h * (heights[k] ?? 0.5);
+    sample.z = f.z + lz * out;
     if (!lineBlocked(colliders, eye, sample, ground, ground ? 1 : 0)) seen++;
   }
   return seen / 3;

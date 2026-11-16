@@ -34,6 +34,8 @@ export interface FootFrame {
     /** Hidden while you sit in the boat (the boat draws you), or aboard. */
     visible: boolean;
     swimming: boolean;
+    /** Leaning (Q/E): where the head is from the feet, zone meters; the figure tips toward it. */
+    lean?: { x: number; z: number };
   };
   boat:
     | {
@@ -59,6 +61,8 @@ export interface FootFrame {
         model: DistrictModel;
         frame: DistrictFrame;
         focus: { x: number; y: number; z: number };
+        /** Lamps put out (indexes into `model.lamps`): no pool, dark glass. */
+        doused?: readonly number[];
       }
     | undefined;
   /** The watch, zone meters (Phase 7 piece D's guards). */
@@ -238,6 +242,10 @@ export function createFootView(
     for (const [id, m] of guardMeshes) if (!seen.has(id)) m.body.visible = false;
   };
 
+  const UP = new THREE.Vector3(0, 1, 0);
+  const yawQ = new THREE.Quaternion();
+  const tiltQ = new THREE.Quaternion();
+  const tiltAxis = new THREE.Vector3();
   return {
     group,
     update(frame, waterY) {
@@ -249,7 +257,19 @@ export function createFootView(
       captain.geometry = c.crouching || c.swimming ? crouchGeo : standGeo;
       captain.position.set(c.x, c.y, c.z);
       // Heading is clockwise from north; three.js yaw is counter-clockwise.
-      captain.rotation.y = -c.heading;
+      yawQ.setFromAxisAngle(UP, -c.heading);
+      // Leaning tips the figure about its feet toward the head's offset.
+      const lx = c.lean?.x ?? 0;
+      const lz = c.lean?.z ?? 0;
+      const m = Math.hypot(lx, lz);
+      if (m > 1e-3) {
+        const h = c.crouching ? DEFAULT_CONTROLLER.crouchHeight : DEFAULT_CONTROLLER.standHeight;
+        tiltAxis.set(lz / m, 0, -lx / m);
+        tiltQ.setFromAxisAngle(tiltAxis, Math.asin(Math.min(0.6, m / h)));
+        captain.quaternion.multiplyQuaternions(tiltQ, yawQ);
+      } else {
+        captain.quaternion.copy(yawQ);
+      }
       const b = frame.boat;
       boat.visible = !!b;
       if (b) {

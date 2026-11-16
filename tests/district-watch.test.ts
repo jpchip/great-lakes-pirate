@@ -259,4 +259,32 @@ describe.skipIf(!baked)('the watch in Bayfield', () => {
     // Nobody near: F goes back to the ashore prompts.
     expect(watch.interact(1 / 60, street, true, true)).toBe(false);
   });
+
+  it('a street lamp put out is seen from the packing house and lit again (plan 08 §6)', () => {
+    const { model, nav } = load();
+    const watch = createWatch({
+      model,
+      nav,
+      tier: 0,
+      seed: 'douse',
+      conditions: conditions(NIGHT, { cloud01: 1 }),
+      onCaptured: () => undefined,
+    });
+    const me = createCharacter({ x: 85, y: model.floorAt(85, -60), z: -60 });
+    watch.step(1 / 60, me);
+    // The gas lamp at the packing house's corner on Front Street.
+    const k = model.lamps.findIndex((l) => l.x === -20 && l.z === 6);
+    const lamp = watch.lamps[k];
+    expect(lamp?.lit).toBe(true);
+    watch.douseLamp(k, me);
+    expect(lamp?.lit).toBe(false);
+    const relit: string[] = [];
+    watch.on((e) => {
+      if (e.type === 'LampRelit') relit.push(e.npc);
+    });
+    for (let t = 0; t < 120 && relit.length === 0; t += 1 / 60) watch.step(1 / 60, me);
+    expect(relit).toEqual(['watchman.packing_house']);
+    expect(lamp?.lit).toBe(true);
+    expect(lamp?.doused).toBe(false);
+  });
 });

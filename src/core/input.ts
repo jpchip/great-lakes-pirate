@@ -52,7 +52,10 @@ export type Action =
   | 'Tool6'
   | 'Tool7'
   | 'Tool8'
-  | 'Tool9';
+  | 'Tool9'
+  // Lean and peek on foot (plan 08 §3.1: Q/E).
+  | 'LeanLeft'
+  | 'LeanRight';
 
 export type Bindings = Record<InputContext, Partial<Record<Action, readonly string[]>>>;
 
@@ -121,6 +124,8 @@ export const DEFAULT_BINDINGS: Bindings = {
     Tool7: ['Digit7'],
     Tool8: ['Digit8'],
     Tool9: ['Digit9'],
+    LeanLeft: ['KeyQ'],
+    LeanRight: ['KeyE'],
   },
   // Phase 3 piece D. Clicks plot on the chart canvas itself; M goes back to the helm and
   // follows the sailing binding when that is rebound. Backspace takes the last waypoint off.
