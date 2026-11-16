@@ -3,6 +3,7 @@
     "id": "site.stockton",
     "name": "Presque Isle bay, Stockton Island",
     "shortName": "Stockton Stash",
+    "place": "Stockton Island",
     "zone": "zone.apostles",
     "island": "island.stockton",
     "setPiece": "setpiece.stockton",
@@ -26,7 +27,26 @@
       "col": 6,
       "row": 4
     },
-    "startFor": ["deckhand", "fisherman", "lumberjack", "saloon_keeper", "ex_navy", "poacher"],
+    "startFor": ["deckhand", "fisherman", "saloon_keeper", "ex_navy", "poacher"],
     "blurb": "A fisherman's shack left empty when the brownstone quarry closed, in a bay sheltered from the northwest. Nobody comes out here but the fish tugs."
+  },
+  {
+    "id": "site.siskiwit",
+    "name": "The logging camp, Siskiwit Bay",
+    "shortName": "Siskiwit Camp",
+    "place": "Siskiwit Bay",
+    "zone": "zone.siskiwit",
+    "island": "island.siskiwit_camp",
+    "setPiece": "setpiece.siskiwit",
+    "wantedRegion": "region.south_shore_west",
+    "concealment": 0.7,
+    "claim": "abandoned",
+    "anchorage": {
+      "alongM": 0,
+      "inlandM": -140,
+      "radiusM": 80
+    },
+    "startFor": ["lumberjack"],
+    "blurb": "Siskiwit Timber's camp behind Bark Point, cut out and left the winter before last: a dock, a tool shed, the office and what's left of the bunkhouse. Nobody comes by but the odd fish tug."
   }
 ]

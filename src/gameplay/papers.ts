@@ -355,6 +355,19 @@ export function attachPapers(opts: PapersOptions): GamePapers {
       pursuit.lostAt = e.pursued ? undefined : now();
     }),
     ev.on('PlayerCaptured', () => (pursuit = undefined)),
+    // An Ambition done (Phase 8 piece H): the papers hear of it where you are.
+    ev.on('AmbitionCompleted', (e) => {
+      const region = law.region() ?? defs.file.papers[0]?.region;
+      if (!region) return;
+      add({
+        kind: 'ambition',
+        key: `ambition:${e.id}`,
+        at: now(),
+        region,
+        ambition: e.id,
+        ident: 'person',
+      });
+    }),
     ev.on('ContractCompleted', (e) => {
       if (e.late || e.acceptedAt === undefined || e.dueAt === undefined) return;
       const at = now();
@@ -370,6 +383,7 @@ export function attachPapers(opts: PapersOptions): GamePapers {
         port: e.to,
         ident: 'person',
       });
+      ctx.events.emit('FeatAccomplished', { kind: 'recordRun', region, port: e.to });
     }),
     ev.on('PortVisited', ({ port }) => {
       const at = now();
@@ -382,6 +396,7 @@ export function attachPapers(opts: PapersOptions): GamePapers {
       if (s.firstBoatYear !== year && f.iceOutMonths.includes(date.getUTCMonth())) {
         s.firstBoatYear = year;
         add({ kind: 'firstBoat', key: `firstBoat:${year}`, at, region, port, ident: 'person' });
+        ctx.events.emit('FeatAccomplished', { kind: 'firstBoat', region, port });
       }
       const p = geo.ports.find((x) => x.id === port);
       const w = ctx.state.environment.weather;
@@ -390,14 +405,11 @@ export function attachPapers(opts: PapersOptions): GamePapers {
         portStormSignal(w, geo, port, at) &&
         chartWindAt(w, geo, p.pos, at).speedKn >= f.galeKn
       ) {
-        add({
-          kind: 'galeRun',
-          key: `gale:${port}:${dayAndHour(at).day}`,
-          at,
-          region,
-          port,
-          ident: 'person',
-        });
+        const key = `gale:${port}:${dayAndHour(at).day}`;
+        // Once a day a port: a second visit the same day isn't a second gale weathered.
+        const again = s.stories.some((st) => st.key === key);
+        add({ kind: 'galeRun', key, at, region, port, ident: 'person' });
+        if (!again) ctx.events.emit('FeatAccomplished', { kind: 'galeRun', region, port });
       }
     }),
     ev.on('WorldTick', () => {
@@ -409,6 +421,11 @@ export function attachPapers(opts: PapersOptions): GamePapers {
           at: pursuit.lostAt,
           region: pursuit.region,
           ident: 'ship',
+        });
+        ctx.events.emit('FeatAccomplished', {
+          kind: 'escape',
+          region: pursuit.region,
+          by: 'law.morrill',
         });
         pursuit = undefined;
       }

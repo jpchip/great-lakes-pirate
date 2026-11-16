@@ -47,6 +47,7 @@ export const STORY_KINDS = [
   'recordRun',
   'firstBoat',
   'galeRun',
+  'ambition',
 ] as const;
 export type StoryKind = (typeof STORY_KINDS)[number];
 
@@ -123,6 +124,8 @@ export const newspapersFileSchema = z.object({
     recordRun: storySchema,
     firstBoat: storySchema,
     galeRun: storySchema,
+    /** An Ambition done (Phase 8 piece H), by its id. */
+    ambition: z.record(idOf('ambition'), storySchema),
   }),
   /** The cutter sightings column, by what she's about. */
   cutter: z.record(z.string(), z.string().min(1)),

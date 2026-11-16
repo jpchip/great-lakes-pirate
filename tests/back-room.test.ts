@@ -444,11 +444,11 @@ describe('more than one smuggler (plan 07 §14.6.1)', () => {
     expect(siskiwit?.anchorage.region).toBe('region.south_shore_west');
   });
 
-  it('keeps her out of the world until her zone is built', () => {
+  it('puts her in the world now her zone is built (Phase 8 piece D)', () => {
     expect(smugglerInWorld(gameSmuggler())).toBe(true);
     if (!siskiwit) throw new Error('no Siskiwit smuggler');
-    expect(smugglerInWorld(siskiwit)).toBe(false);
-    expect(smugglersInWorld().map((s) => s.id)).toEqual(['smuggler.island']);
+    expect(smugglerInWorld(siskiwit)).toBe(true);
+    expect(smugglersInWorld().map((s) => s.id)).toEqual(['smuggler.island', 'smuggler.siskiwit']);
   });
 
   it('keeps each boat its own cash, stock, trust and known anchorage, through a save', () => {

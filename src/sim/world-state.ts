@@ -14,6 +14,7 @@ import { CONTRACT_KINDS, CONTRACT_TIERS } from '../../data/schemas/contracts';
 import { freshContrabandState } from './economy/smuggler';
 import { startingHideouts, syncHideouts } from './hideouts/stash';
 import { firstWeekSchema } from './character/first-week';
+import { ambitionsStateSchema } from './character/ambitions';
 import { defaultShipState } from './shipyard/shipyard';
 import {
   createLawState,
@@ -544,6 +545,12 @@ export const worldStateSchema = z.object({
    * character creation has one; absent otherwise, so no save version bump.
    */
   firstWeek: firstWeekSchema.optional(),
+  /**
+   * Ambitions (plan 12 §4.1 `ambitions {pinned[], completed[]}`; Phase 8 piece H): what's
+   * pinned and done, the marks cleared, and the counters. Optional: absent, a run has none
+   * pinned and starts counting on load, so no version bump.
+   */
+  ambitions: ambitionsStateSchema.optional(),
   /**
    * The law (plan 06 §10; Phase 5 piece A, save v7): Wanted by region, Fame, the ship's
    * profile, reports in progress and jail. A 0.4.0 run migrates Clean everywhere.

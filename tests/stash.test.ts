@@ -48,13 +48,23 @@ const fresh = (): HideoutState => ({
 const HOT = { region: 'region.apostles', heat: 0.8, traceability: 0.6, since: 100 };
 
 describe('the Stockton stash (piece E)', () => {
-  it('is every background’s starting hideout, claimed and empty', () => {
-    expect(SITES.map((s) => s.id)).toEqual(['site.stockton']);
+  it('is every background’s starting hideout but the Lumberjack’s, claimed and empty', () => {
+    expect(SITES.map((s) => s.id)).toEqual(['site.stockton', 'site.siskiwit']);
     for (const b of BACKGROUNDS) {
+      if (b === 'lumberjack') continue;
       expect(startingHideouts(b, 50)).toEqual({
         'hideout.stockton': { ...fresh(), claimedAt: 50 },
       });
     }
+    // Phase 8 piece D: the Lumberjack starts at the Siskiwit Bay logging camp instead.
+    expect(startingHideouts('lumberjack', 50)).toEqual({
+      'hideout.siskiwit': {
+        ...fresh(),
+        siteId: 'site.siskiwit',
+        claimedAt: 50,
+        layout: starterLayout('site.siskiwit'),
+      },
+    });
     const run = createWorldState('stash');
     expect(run.hideouts?.['hideout.stockton']?.storage).toEqual({ goods: [], cash: 0 });
     expect(pierSite('pier.stockton_landing')).toBe('site.stockton');

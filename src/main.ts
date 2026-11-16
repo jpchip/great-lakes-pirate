@@ -148,6 +148,7 @@ import {
 import { createNewRun, startingPort } from './sim/character/new-run';
 import { withSailingPerks } from './sim/character/perks';
 import { attachCaptain } from './gameplay/captain';
+import { attachAmbitions } from './gameplay/ambitions';
 import { attachLaw, devWitness } from './gameplay/law';
 import { attachPortLaw } from './gameplay/port-law';
 import { attachPapers } from './gameplay/papers';
@@ -1113,6 +1114,10 @@ async function boot(): Promise<void> {
   const captainRef: { current: ReturnType<typeof attachCaptain> | undefined } = {
     current: undefined,
   };
+  // Ambitions (Phase 8 piece H); attached with the captain.
+  const ambitionsRef: { current: ReturnType<typeof attachAmbitions> | undefined } = {
+    current: undefined,
+  };
   // Jail and the run's end (piece D); attached once the ports are up.
   const captureRef: { current: ReturnType<typeof attachCapture> | undefined } = {
     current: undefined,
@@ -1196,6 +1201,12 @@ async function boot(): Promise<void> {
     },
     setFirstWeekHidden: (hidden) => captainRef.current?.setHidden(hidden),
     clearFirstWeek: () => captainRef.current?.clearFirstWeek(),
+    ambitions: {
+      pin: (id) => void ambitionsRef.current?.pin(id),
+      unpin: (id) => ambitionsRef.current?.unpin(id),
+      clearMark: (id) => ambitionsRef.current?.clearMark(id),
+      setFolded: (folded) => ambitionsRef.current?.setFolded(folded),
+    },
     jail: {
       serve: () => captureRef.current?.actions.serve(),
       sendWord: (hideout) => captureRef.current?.actions.sendWord(hideout),
@@ -2176,6 +2187,31 @@ async function boot(): Promise<void> {
   }
   // The Fisherman's fish prices and the First Week checklist (piece C).
   captainRef.current = attachCaptain(ctx, economy.defs, (week) => ui.setFirstWeek(week));
+  // Ambitions (Phase 8 piece H): pinned on the HUD, marks in the ledger, a line in the papers.
+  ambitionsRef.current = attachAmbitions(ctx, law.defs, (snapshot) => ui.setAmbitions(snapshot));
+  if (import.meta.env.DEV || params.has('debug')) {
+    const amb = ambitionsRef.current;
+    const hook = {
+      /** The snapshot the HUD and the ledger show. */
+      snapshot: () => amb.snapshot(),
+      pin: (id: string) => amb.pin(id),
+      unpin: (id: string) => amb.unpin(id),
+      /** Moves a counter (`morrillEscapes`, `contractsOnTime`...) and checks. */
+      count(counter: string, by = 1) {
+        amb.state.counters[counter] = (amb.state.counters[counter] ?? 0) + by;
+        return amb.check().map((d) => d.id);
+      },
+      /** Puts cash in the first hideout's strongbox and checks. */
+      stash(cents: number) {
+        const h = Object.values(ctx.state.hideouts ?? {})[0];
+        if (h) h.storage.cash += cents;
+        return amb.check().map((d) => d.id);
+      },
+      check: () => amb.check().map((d) => d.id),
+      state: () => amb.state,
+    };
+    (window as unknown as { __glpAmbitions: typeof hook }).__glpAmbitions = hook;
+  }
   if (import.meta.env.DEV || params.has('debug')) {
     const hook = {
       /** Opens a port's screen wherever the ship is. */
@@ -2763,10 +2799,11 @@ async function boot(): Promise<void> {
     },
     island: islandAshore,
     plants: plantsIn,
-    // The marshal posse on a walkable island at Wanted tier 4 and up (plan 08 §20.4 piece H).
+    // The marshal posse on a walkable island at Wanted tier 4 and up (plan 08 §20.4 piece H);
+    // none lands on the mainland's logging camp pad (Phase 8 piece D).
     posse: (island, scene) => {
       const placed = zoneIslands().placed.find((p) => p.id === island);
-      if (!placed) return undefined;
+      if (!placed || placed.mainland) return undefined;
       const region = (): string => law.region() ?? '';
       const fameTiers = Math.max(1, law.defs.fame.tiers.length - 1);
       const tier = wantedTier(law.defs, state.wanted[region()]?.heat ?? 0);
@@ -2977,7 +3014,10 @@ async function boot(): Promise<void> {
         h.anchorZ = p.z - Math.cos(p.heading) * shipRecord.lengthM * 0.45;
       },
       dock(key: string) {
-        const berth = allBerths.find((b) => b.dockId.includes(key));
+        // A free side first: one the traffic holds isn't among the sailing berths, so the
+        // next frame would cast her off it again (as `dockAt` does).
+        const mine = (b: MooringBerth): boolean => b.dockId.includes(key);
+        const berth = freeBerths().find(mine) ?? allBerths.find(mine);
         if (!berth) return false;
         placeShip(berth.pose);
         const h = hazards.state;
@@ -3224,15 +3264,30 @@ async function boot(): Promise<void> {
     };
     (window as unknown as { __glpFoot: typeof hook }).__glpFoot = hook;
     // `?ashore=bayfield` ties up at the fish pier and goes ashore; `?ashore=stockton` anchors
-    // off the quarry and lands on the island. The dev jump menu uses both (plan 08 §20.8).
+    // off the quarry and lands on the island; `?ashore=siskiwit` anchors off the logging
+    // camp's dock and lands on its mainland pad (Phase 8 piece D). The dev jump menu uses
+    // them (plan 08 §20.8).
     const jumpTo = params.get('ashore');
-    if (jumpTo === 'bayfield' || jumpTo === 'stockton') {
+    if (jumpTo === 'bayfield' || jumpTo === 'stockton' || jumpTo === 'siskiwit') {
       const wait = (ms: number) => new Promise((done) => setTimeout(done, ms));
+      const campDock = () =>
+        harborLayouts.flatMap((l) => l.piers).find((p) => p.id === 'pier.siskiwit_dock');
       void (async () => {
         for (let tries = 0; tries < 120; tries++) {
           await wait(500);
           if (jumpTo === 'bayfield') {
             if (!hook.dock('bayfield_fish')) continue;
+          } else if (jumpTo === 'siskiwit') {
+            const dock = campDock();
+            if (!dock) continue;
+            // Off the dock's end, broadside to it, where the site's anchorage is.
+            const out = dock.lengthM + 50;
+            hook.place(
+              dock.root.x + Math.sin(dock.bearing) * out,
+              dock.root.z - Math.cos(dock.bearing) * out,
+              ((dock.bearing * 180) / Math.PI + 90) % 360,
+            );
+            hook.anchor();
           } else {
             const derrick = hook.island().pieces.find((p) => p.kind === 'derrick');
             if (!derrick) continue;
@@ -3248,6 +3303,20 @@ async function boot(): Promise<void> {
             if (derrick) {
               await wait(1500);
               hook.teleport(derrick.x + 2, derrick.z);
+              await wait(1000);
+              hook.stepAshore();
+            }
+          } else if (jumpTo === 'siskiwit') {
+            // Row her in beside the dock and run her up on the beach.
+            const dock = campDock();
+            if (dock) {
+              await wait(1500);
+              const rx = Math.cos(dock.bearing);
+              const rz = Math.sin(dock.bearing);
+              hook.teleport(
+                dock.root.x + rx * 6 + Math.sin(dock.bearing) * 2,
+                dock.root.z + rz * 6 - Math.cos(dock.bearing) * 2,
+              );
               await wait(1000);
               hook.stepAshore();
             }

@@ -245,5 +245,33 @@
       "west": -90.82,
       "east": -90.625
     }
+  },
+  {
+    "id": "island.siskiwit_camp",
+    "name": "Siskiwit logging camp",
+    "zone": "zone.siskiwit",
+    "at": {
+      "lat": 46.85101,
+      "lon": -91.2079
+    },
+    "clip": {
+      "south": 46.83978,
+      "north": 46.85417,
+      "west": -91.21376,
+      "east": -91.19033
+    },
+    "mainland": true,
+    "onFoot": {
+      "pois": [
+        {
+          "id": "siskiwit_camp",
+          "poi": "poi.logging_camp",
+          "x": 154,
+          "z": 184,
+          "facingDeg": 45
+        }
+      ],
+      "caches": []
+    }
   }
 ]

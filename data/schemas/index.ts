@@ -1,4 +1,5 @@
 import type { z } from 'zod';
+import { ambitionsFileSchema } from './ambitions';
 import { backgroundsFileSchema, portraitsFileSchema } from './backgrounds';
 import { boardingRulesSchema } from './boarding';
 import { chartFileSchema } from './chart';
@@ -41,6 +42,7 @@ import { zonesFileSchema } from './zones';
 
 /** Every data/*.json file and the schema that validates it. */
 export const dataFileSchemas: Readonly<Record<string, z.ZodType>> = {
+  'ambitions.json': ambitionsFileSchema,
   'ammo.json': ammoFileSchema,
   'backgrounds.json': backgroundsFileSchema,
   'boarding.json': boardingRulesSchema,

@@ -25,6 +25,8 @@ export const storySchema = z.object({
   /** How well the paper can name you: as the best witness did. */
   ident: z.enum(IDENTIFICATIONS),
   crime: z.string().optional(),
+  /** An Ambition done (Phase 8 piece H): its id. */
+  ambition: z.string().optional(),
   goods: z.array(z.object({ good: z.string(), qty: z.number().positive() })).optional(),
   tier: z.number().int().optional(),
   /** A crime at sea (Phase 6 piece F): "the fish tug Ada Bell", her owners, the dead, cash taken. */

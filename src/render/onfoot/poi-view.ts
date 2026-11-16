@@ -7,7 +7,8 @@ import { createStylizedMaterial, type StyleLighting } from '../style/stylized-ma
 /**
  * The walkable islands' points of interest drawn (plan 11 §3.1 POI kits; plan 08 §20.4
  * piece H): Stockton's brownstone quarry, its spoil wharf, cut ledges, block piles,
- * derrick and office shack, and the cache cairns. Every island of the zone in one merged,
+ * derrick and office shack, and the cache cairns; and (Phase 8 piece D) the Siskiwit
+ * logging camp's bunkhouse ruins, log decks and lumber piles on its mainland pad. Every island of the zone in one merged,
  * toon-lit mesh: a draw call, seen from the deck as well as on foot.
  */
 
@@ -22,6 +23,12 @@ const BOARDS = 0x8a7458;
 const ROOF = 0x4a4038;
 const ROPE = 0xb9a77f;
 const CAIRN_STONE = 0x8d8576;
+/** Peeled pine logs gone gray, and their sawn ends. */
+const LOG = 0x7d6d58;
+const LOG_END = 0xb39a72;
+/** Sawn boards weathered on the pile, and the stickers between the courses. */
+const LUMBER = 0xa08b68;
+const STICKER = 0x5a4632;
 
 /** A piece's own frame: its center on its foot, turned to its bearing. */
 function orient(g: THREE.BufferGeometry, p: PlacedPoiPiece, y: number): THREE.BufferGeometry {
@@ -92,6 +99,74 @@ function stepsGeometry(p: PlacedPoiPiece): THREE.BufferGeometry[] {
   return [orient(box(p.widthM, h, p.depthM, 0, 0, 0, PALETTE.sandstoneDark), p, p.minY)];
 }
 
+/**
+ * A log deck: logs lying along the piece's depth, stacked in courses that step in as they
+ * rise, so the pile is a low pyramid to its height. Hexagonal logs keep it cheap.
+ */
+function logsGeometry(p: PlacedPoiPiece): THREE.BufferGeometry[] {
+  const out: THREE.BufferGeometry[] = [];
+  const h = p.maxY - p.minY - 0.3;
+  const d = 0.5;
+  const courses = Math.max(1, Math.round(h / (d * 0.87)));
+  for (let c = 0; c < courses; c++) {
+    const n = Math.max(1, Math.floor(p.widthM / d) - c);
+    const y = 0.3 + d / 2 + c * d * 0.87;
+    for (let k = 0; k < n; k++) {
+      const x = (k - (n - 1) / 2) * d;
+      // Logs never quite line up: a hand's width in or out, by a hash of where they lie.
+      const jog = (((k * 7 + c * 13) % 5) - 2) * 0.08;
+      const len = p.depthM - Math.abs(jog) * 2;
+      const log = part(new THREE.CylinderGeometry(d / 2, d / 2, len, 6, 1), LOG);
+      log.rotateX(Math.PI / 2);
+      log.translate(x, y, jog);
+      out.push(orient(log, p, p.minY));
+      for (const s of [-1, 1]) {
+        const end = part(new THREE.CircleGeometry(d / 2 - 0.04, 6), LOG_END);
+        end.rotateY(s > 0 ? 0 : Math.PI);
+        end.translate(x, y, jog + s * (len / 2 + 0.01));
+        out.push(orient(end, p, p.minY));
+      }
+    }
+  }
+  return out;
+}
+
+/** Sawn lumber: courses of boards with dark stickers between them, on two skids. */
+function lumberGeometry(p: PlacedPoiPiece): THREE.BufferGeometry[] {
+  const out: THREE.BufferGeometry[] = [];
+  const top = p.maxY - p.minY;
+  for (const s of [-1, 1]) {
+    out.push(box(p.widthM + 0.2, 0.25, 0.25, 0, 0.3, s * (p.depthM / 2 - 0.6), STICKER));
+  }
+  const course = 0.32;
+  let y = 0.55;
+  while (y + course <= top + 1e-3) {
+    out.push(box(p.widthM, course - 0.06, p.depthM, 0, y, 0, LUMBER));
+    for (const s of [-1, 0, 1]) {
+      out.push(
+        box(p.widthM + 0.06, 0.06, 0.12, 0, y + course - 0.06, s * (p.depthM / 2 - 0.6), STICKER),
+      );
+    }
+    y += course;
+  }
+  return out.map((g) => orient(g, p, p.minY));
+}
+
+/** A log wall without its roof: courses of logs, the top one ragged where it fell in. */
+function wallGeometry(p: PlacedPoiPiece): THREE.BufferGeometry[] {
+  const out: THREE.BufferGeometry[] = [];
+  const h = p.maxY - p.minY;
+  const course = 0.3;
+  const n = Math.max(1, Math.round(h / course));
+  for (let k = 0; k < n; k++) {
+    const color = k % 2 ? LOG : TIMBER;
+    // Corner notching: alternate courses run a little past the ends.
+    const over = k % 2 ? 0.25 : 0;
+    out.push(box(p.widthM + over, course, p.depthM, 0, k * course, 0, color));
+  }
+  return out.map((g) => orient(g, p, p.minY));
+}
+
 function cairnGeometry(p: PlacedPoiPiece): THREE.BufferGeometry[] {
   const out: THREE.BufferGeometry[] = [];
   const stones: [number, number, number, number][] = [
@@ -120,6 +195,9 @@ export function islandPiecesGeometry(islands: readonly PlacedIsland[]): THREE.Bu
       else if (p.kind === 'shack') parts.push(...shackGeometry(p));
       else if (p.kind === 'block') parts.push(...blockGeometry(p));
       else if (p.kind === 'steps') parts.push(...stepsGeometry(p));
+      else if (p.kind === 'logs') parts.push(...logsGeometry(p));
+      else if (p.kind === 'lumber') parts.push(...lumberGeometry(p));
+      else if (p.kind === 'wall') parts.push(...wallGeometry(p));
       else parts.push(...cairnGeometry(p));
     }
   }

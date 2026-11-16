@@ -17,6 +17,8 @@ export const siteSchema = z.object({
   name: z.string().min(1),
   /** The short name the chart and the HUD use. */
   shortName: z.string().min(1),
+  /** Where it is, as the menu and the First Week name it: "Stockton Island". */
+  place: z.string().min(1),
   zone: idOf('zone'),
   island: idOf('island').optional(),
   setPiece: idOf('setpiece'),

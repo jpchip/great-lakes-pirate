@@ -70,7 +70,10 @@ export function starterLayout(siteId: string): PackedLayout {
 
 export type Hideouts = Record<string, HideoutState>;
 
-/** The hideouts a background starts with (plan 12 §2.2; Phase 4: Stockton for all). */
+/**
+ * The hideouts a background starts with (plan 12 §2.2): in the MVP the Lumberjack starts
+ * at the Siskiwit logging camp and everyone else at Stockton (Phase 8 piece D).
+ */
 export function startingHideouts(background: string, gameSeconds: number): Hideouts {
   const out: Hideouts = {};
   for (const s of SITES) {
@@ -87,16 +90,23 @@ export function startingHideouts(background: string, gameSeconds: number): Hideo
 
 /**
  * Gives a run its starting hideouts if it has none: a new run, a 0.3.0 run migrated
- * through v5, or a save from before piece E. Hideouts it has are left as they are.
+ * through v5, or a save from before piece E. A run that has any keeps exactly what it has
+ * (plan 09 §16.5): a Lumberjack from 0.7.x keeps Stockton and doesn't get Siskiwit.
  */
 export function syncHideouts(
   hideouts: Hideouts | undefined,
   background: string,
   gameSeconds: number,
 ): Hideouts {
+  if (hideouts && Object.keys(hideouts).length > 0) return hideouts;
   const out = hideouts ?? {};
-  for (const [id, h] of Object.entries(startingHideouts(background, gameSeconds))) out[id] ??= h;
+  Object.assign(out, startingHideouts(background, gameSeconds));
   return out;
+}
+
+/** Where a hideout is, for the menu and the First Week: `hideout.stockton` → "Stockton Island". */
+export function hideoutPlace(hideoutId: string): string | undefined {
+  return SITES.find((s) => hideoutIdOf(s.id) === hideoutId)?.place;
 }
 
 /** CU of goods a hideout can hold: its built storage pieces (plan 09 §5.4). */

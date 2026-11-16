@@ -388,5 +388,76 @@
         ]
       }
     ]
+  },
+  {
+    "id": "zone.siskiwit",
+    "name": "Siskiwit Bay",
+    "world": "world/siskiwit/",
+    "compression": 8,
+    "center": {
+      "lat": 46.87,
+      "lon": -91.267
+    },
+    "bake": {
+      "tilesX": 3,
+      "tilesY": 3,
+      "tileSamples": 256,
+      "sailingSampleM": 4,
+      "onFootSampleM": 1,
+      "windCellM": 32,
+      "lakeLevelM": 183.5,
+      "bathyDatumM": 183.2,
+      "landThresholdM": 0.5,
+      "landCurve": {
+        "kind": "soft-knee",
+        "kneeM": 20
+      },
+      "islandMarginM": 64
+    },
+    "edge": {
+      "fogFadeM": 600,
+      "edgeVisibilityM": 350,
+      "chartFromM": 1400
+    },
+    "spawn": {
+      "x": 450,
+      "z": -550,
+      "headingDeg": 172
+    },
+    "entries": [
+      {
+        "id": "entry.siskiwit_north",
+        "name": "North of Bark Point, from the open lake",
+        "toward": "Duluth, Two Harbors and the North Shore",
+        "x": 400,
+        "z": -650,
+        "headingDeg": 174
+      },
+      {
+        "id": "entry.siskiwit_east",
+        "name": "Off the mouth of Siskiwit Bay, from the east",
+        "toward": "the Apostle Islands",
+        "x": 900,
+        "z": -450,
+        "headingDeg": 203
+      }
+    ],
+    "setPieces": [
+      {
+        "id": "setpiece.siskiwit",
+        "name": "Siskiwit logging camp",
+        "site": "site.siskiwit",
+        "at": {
+          "lat": 46.84784,
+          "lon": -91.20077
+        },
+        "bearingDeg": 45,
+        "alongM": 140,
+        "inlandM": 80,
+        "seawardM": 60,
+        "groundM": 1.6,
+        "blendM": 30
+      }
+    ]
   }
 ]

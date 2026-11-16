@@ -532,6 +532,219 @@
           "body": "With the storm signal up and the sea breaking white across the entrance, {who} came into {port} under shortened sail and made fast without a scratch. Watchers on the dock gave a cheer."
         }
       ]
+    },
+    "ambition": {
+      "ambition.nest_egg": {
+        "fame": 3,
+        "weight": 1,
+        "feat": true,
+        "plain": [
+          {
+            "headline": "A CAPTAIN WHO SAVES",
+            "deck": "{WHO} Said to Have Money Put By",
+            "body": "Talk on the {town} waterfront has it that {who} has a tidy sum put by somewhere among the islands. Bankers in {region} have not seen a cent of it."
+          }
+        ]
+      },
+      "ambition.money_in_the_bank": {
+        "fame": 6,
+        "weight": 2,
+        "feat": true,
+        "plain": [
+          {
+            "headline": "WHERE DOES THE MONEY GO?",
+            "deck": "{WHO} Rumored to Be Worth Ten Thousand Dollars",
+            "body": "{who} is said to be worth ten thousand dollars and more, though no bank in {region} holds it. Old hands guess at a strongbox in the islands."
+          }
+        ],
+        "lurid": [
+          {
+            "headline": "{WHO}'S HIDDEN HOARD!",
+            "deck": "Ten Thousand in Gold, the Waterfront Swears",
+            "body": "Every loafer on the {town} waterfront has a theory about where {epithet} {who} keeps the money. None of them has found it, and none of them has stopped looking."
+          }
+        ]
+      },
+      "ambition.a_fortune": {
+        "fame": 12,
+        "weight": 4,
+        "feat": true,
+        "plain": [
+          {
+            "headline": "A FORTUNE AMONG THE ISLANDS",
+            "deck": "{WHO} Among the Richest Masters on the Lake",
+            "body": "It is said in {region} that {who} has put by a fortune of fifty thousand dollars, which would make the captain richer than half the shipowners in {town}. Where it is kept, nobody can say."
+          }
+        ],
+        "lurid": [
+          {
+            "headline": "PIRATE GOLD!",
+            "deck": "{WHO} Sits on Fifty Thousand, Hidden Who Knows Where",
+            "body": "The fortune of {epithet} {who} is the talk of the lake. Fifty thousand dollars, they say, and some say twice that, buried or banked or sunk in a strongbox among the Apostles."
+          }
+        ]
+      },
+      "ambition.infamous": {
+        "fame": 4,
+        "weight": 3,
+        "plain": [
+          {
+            "headline": "A NAME ON EVERY LIP",
+            "deck": "{WHO} the Talk of {region}",
+            "body": "There is hardly a saloon in {region} where the name of {who} has not come up this week. The authorities say they are watching."
+          }
+        ],
+        "lurid": [
+          {
+            "headline": "WHO IS {WHO}?",
+            "deck": "The Name Every Saloon on the Lake Is Whispering",
+            "body": "They say {epithet} {who} cannot be caught, cannot be outrun, and cannot be bribed, though the last is disputed. Every saloon on the lake has a story, and every story is bigger than the last."
+          }
+        ]
+      },
+      "ambition.legendary": {
+        "fame": 6,
+        "weight": 5,
+        "plain": [
+          {
+            "headline": "A LEGEND OF THE LAKE",
+            "deck": "{WHO} Spoken Of From Duluth to the Soo",
+            "body": "Not since the days of the timber pirates has a captain been talked of as {who} is talked of now. Mothers in {town} are said to use the name to frighten children."
+          }
+        ],
+        "lurid": [
+          {
+            "headline": "THE LEGEND OF {WHO}",
+            "deck": "Half the Lake Believes It, the Other Half Wants To",
+            "body": "Songs are sung about {epithet} {who} in the saloons of {town}, and the authorities in {region} would give a great deal to end them. The captain, so far, has given them nothing."
+          }
+        ]
+      },
+      "ambition.slipped_the_morrill": {
+        "fame": 8,
+        "weight": 6,
+        "plain": [
+          {
+            "headline": "THE MORRILL OUTRUN AGAIN",
+            "deck": "Third Time {WHO} Has Got Clear of the Cutter",
+            "body": "For the third time the revenue cutter Morrill has given chase to {who} and lost the vessel. Questions are being asked of her captain in {town}."
+          }
+        ],
+        "lurid": [
+          {
+            "headline": "THREE TIMES!",
+            "deck": "{WHO} Makes a Fool of the Revenue Service Once More",
+            "body": "The Morrill has now lost {epithet} {who} three times over, and the waterfront in {town} has begun to keep score. The revenue service declines to comment."
+          }
+        ]
+      },
+      "ambition.most_wanted_at_large": {
+        "fame": 10,
+        "weight": 7,
+        "plain": [
+          {
+            "headline": "STILL AT LARGE",
+            "deck": "{WHO} Free a Week With a Price on the Captain's Head",
+            "body": "A week has passed since the authorities in {region} declared {who} an outlaw, and the captain is still at large. Officers are said to be searching the islands."
+          }
+        ],
+        "lurid": [
+          {
+            "headline": "THE LAW HELPLESS!",
+            "deck": "A Week Outlawed and {WHO} Still Walks Free",
+            "body": "Seven days after {region} put a price on the head of {epithet} {who}, the captain has not been taken. {reward}, and no one has collected it."
+          }
+        ]
+      },
+      "ambition.on_time_25": {
+        "fame": 5,
+        "weight": 2,
+        "feat": true,
+        "plain": [
+          {
+            "headline": "AS GOOD AS THE CAPTAIN'S WORD",
+            "deck": "{WHO} Has Delivered Twenty-Five Cargoes on Time",
+            "body": "The freight agents of {region} report that {who} has now delivered twenty-five cargoes without once being late. Shippers in {town} speak well of the captain."
+          }
+        ]
+      },
+      "ambition.friend_of_three_ports": {
+        "fame": 5,
+        "weight": 2,
+        "feat": true,
+        "plain": [
+          {
+            "headline": "WELCOME IN EVERY PORT",
+            "deck": "{WHO} Counted a Friend by Merchants in Three Ports",
+            "body": "Merchants in three ports of the lake now count {who} among their best friends in the trade. There is talk of {town} being the next."
+          }
+        ]
+      },
+      "ambition.smart_passages": {
+        "fame": 5,
+        "weight": 2,
+        "feat": true,
+        "plain": [
+          {
+            "headline": "FASTEST SCHOONER ON THE LAKE",
+            "deck": "{WHO} Has Made Three Record Passages",
+            "body": "With a third cargo brought into {port} in record time, {who} has the shippers of {region} lining up. Old masters say it can't last."
+          }
+        ]
+      },
+      "ambition.november_gale": {
+        "fame": 6,
+        "weight": 3,
+        "feat": true,
+        "plain": [
+          {
+            "headline": "THE GALES OF NOVEMBER",
+            "deck": "{WHO} Comes In Through the Worst of It",
+            "body": "With a November gale blowing and the storm signal up, {who} brought the vessel into {port} when steamers twice the size were running for shelter. It was a thing to see."
+          }
+        ]
+      },
+      "ambition.two_hideouts": {
+        "fame": 3,
+        "weight": 1,
+        "plain": [
+          {
+            "headline": "TWO LAIRS IN THE ISLANDS?",
+            "deck": "{WHO} Said to Keep More Than One Hideout",
+            "body": "Fishermen in {region} say {who} keeps not one hideout but two, one among the Apostles and one on the mainland shore. The authorities have found neither."
+          }
+        ]
+      },
+      "ambition.a_proper_place": {
+        "fame": 4,
+        "weight": 2,
+        "plain": [
+          {
+            "headline": "A PIRATE'S TOWN",
+            "deck": "{WHO} Has Built a Settlement in the Wilds, Fishermen Say",
+            "body": "Fishermen passing the islands report buildings where none stood a year ago: storehouses, a pier, and smoke from a chimney. They say it is the work of {who}."
+          }
+        ],
+        "lurid": [
+          {
+            "headline": "A PIRATE CITY!",
+            "deck": "{WHO}'s Stronghold Grows by the Week",
+            "body": "Where there was wilderness, {epithet} {who} has raised a stronghold of storehouses and piers. Steamer captains give the place a wide berth."
+          }
+        ]
+      },
+      "ambition.built_her_ourselves": {
+        "fame": 5,
+        "weight": 3,
+        "feat": true,
+        "plain": [
+          {
+            "headline": "A SCHOONER BUILT IN THE WOODS",
+            "deck": "{WHO} Launches a Vessel Off a Slipway of the Captain's Own",
+            "body": "{who} has built and launched a schooner off a slipway in the wilds, without a shipyard or a yard bill. Shipwrights in {town} are not pleased."
+          }
+        ]
+      }
     }
   },
   "cutter": {
