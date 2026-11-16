@@ -4,6 +4,18 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ## [Unreleased]
 
+## [0.7.1] - 2026-11-16
+
+### Added
+
+- **The crowd by day (Phase 7 piece K):** Bayfield's waterfront is no longer empty by day. Fifteen townsfolk and dockhands, three at each crowd mark, stroll about the piers and the street on the navmesh while the sun is up, and go home at dusk. They're scenery: no guard perceives them, and they never raise a shout or a suspicion. They're drawn as the watch's figures, dressed as townsfolk and dockhands.
+- **Jump to, Ashore (dev):** the overlay's Jump to menu has an Ashore folder: Bayfield's fish pier on foot, and Stockton anchored off the quarry and landed on its wharf (also `?ashore=bayfield` and `?ashore=stockton`).
+
+### Known limitations
+
+- The crowd doesn't talk, buy or go into the buildings, and it's the same dozen-odd figures every day.
+- The jailbreak's sounds came out odd on the first try (noted for a later pass in [15 §20](plans/15-audio.md)).
+
 ## [0.7.0] - 2026-11-15
 
 The **On Foot: Docks & Islands** build (Phase 7): the captain leaves the ship. Tie up at Bayfield's fish pier on a dark night, walk past the packing house with the lamps behind you, pick the Hollister warehouse's padlock while the watchman's lantern swings away down the wharf, and carry a crate of salted fish back aboard before dawn. Stand a steamer's crew whiskey and rob her hold while her deck watch sleeps, sell the lot across the fence's table in the saloon's back room, and if a constable takes you, break out of the lockup. Or row ashore at Stockton Island and walk up to the old quarry.
@@ -271,7 +283,8 @@ The **Sailing Prototype** (Phase 1): one T1 schooner you can sail, tack, reef, g
 - Volume sliders are only in the dev overlay's Audio folder; the settings screen gets them later.
 - The S7 scale greybox and the S8 chart arena still use their Phase 0 stand-in helms; moving them onto the plan 02 controller is carried over to Phase 2.
 
-[Unreleased]: https://github.com/jpchip/great-lakes-pirate/compare/0.7.0...HEAD
+[Unreleased]: https://github.com/jpchip/great-lakes-pirate/compare/0.7.1...HEAD
+[0.7.1]: https://github.com/jpchip/great-lakes-pirate/compare/0.7.0...0.7.1
 [0.7.0]: https://github.com/jpchip/great-lakes-pirate/compare/0.6.0...0.7.0
 [0.6.0]: https://github.com/jpchip/great-lakes-pirate/compare/0.5.0...0.6.0
 [0.5.0]: https://github.com/jpchip/great-lakes-pirate/compare/0.4.0...0.5.0

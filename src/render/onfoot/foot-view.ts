@@ -126,6 +126,9 @@ const GUARD_LOOKS: Record<string, { coat: number; hat: number; front: number; ta
   // Behind the counters (piece F): a shopkeeper in shirtsleeves and an apron, the fence in black.
   'npc.shopkeeper': { coat: 0x7d7466, hat: 0x4a3f33, front: 0xe6e0d2, tall: false },
   'npc.fence': { coat: 0x26221f, hat: 0x26221f, front: 0x7a2f2a, tall: false },
+  // The daytime crowd (0.7.1): a townsman in a brown coat, a dockhand in a blue shirt and cap.
+  'npc.townsman': { coat: 0x5e4e3c, hat: 0x3a3028, front: 0x9c9284, tall: false },
+  'npc.dockhand': { coat: 0x3d5068, hat: 0x2a2d33, front: 0xb8b0a0, tall: false },
 };
 const LANTERN_GLOW = 0xffc46b;
 
