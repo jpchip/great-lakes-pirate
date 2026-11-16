@@ -2799,10 +2799,11 @@ async function boot(): Promise<void> {
     },
     island: islandAshore,
     plants: plantsIn,
-    // The marshal posse on a walkable island at Wanted tier 4 and up (plan 08 §20.4 piece H).
+    // The marshal posse on a walkable island at Wanted tier 4 and up (plan 08 §20.4 piece H);
+    // none lands on the mainland's logging camp pad (Phase 8 piece D).
     posse: (island, scene) => {
       const placed = zoneIslands().placed.find((p) => p.id === island);
-      if (!placed) return undefined;
+      if (!placed || placed.mainland) return undefined;
       const region = (): string => law.region() ?? '';
       const fameTiers = Math.max(1, law.defs.fame.tiers.length - 1);
       const tier = wantedTier(law.defs, state.wanted[region()]?.heat ?? 0);
@@ -3263,15 +3264,30 @@ async function boot(): Promise<void> {
     };
     (window as unknown as { __glpFoot: typeof hook }).__glpFoot = hook;
     // `?ashore=bayfield` ties up at the fish pier and goes ashore; `?ashore=stockton` anchors
-    // off the quarry and lands on the island. The dev jump menu uses both (plan 08 §20.8).
+    // off the quarry and lands on the island; `?ashore=siskiwit` anchors off the logging
+    // camp's dock and lands on its mainland pad (Phase 8 piece D). The dev jump menu uses
+    // them (plan 08 §20.8).
     const jumpTo = params.get('ashore');
-    if (jumpTo === 'bayfield' || jumpTo === 'stockton') {
+    if (jumpTo === 'bayfield' || jumpTo === 'stockton' || jumpTo === 'siskiwit') {
       const wait = (ms: number) => new Promise((done) => setTimeout(done, ms));
+      const campDock = () =>
+        harborLayouts.flatMap((l) => l.piers).find((p) => p.id === 'pier.siskiwit_dock');
       void (async () => {
         for (let tries = 0; tries < 120; tries++) {
           await wait(500);
           if (jumpTo === 'bayfield') {
             if (!hook.dock('bayfield_fish')) continue;
+          } else if (jumpTo === 'siskiwit') {
+            const dock = campDock();
+            if (!dock) continue;
+            // Off the dock's end, broadside to it, where the site's anchorage is.
+            const out = dock.lengthM + 50;
+            hook.place(
+              dock.root.x + Math.sin(dock.bearing) * out,
+              dock.root.z - Math.cos(dock.bearing) * out,
+              ((dock.bearing * 180) / Math.PI + 90) % 360,
+            );
+            hook.anchor();
           } else {
             const derrick = hook.island().pieces.find((p) => p.kind === 'derrick');
             if (!derrick) continue;
@@ -3287,6 +3303,20 @@ async function boot(): Promise<void> {
             if (derrick) {
               await wait(1500);
               hook.teleport(derrick.x + 2, derrick.z);
+              await wait(1000);
+              hook.stepAshore();
+            }
+          } else if (jumpTo === 'siskiwit') {
+            // Row her in beside the dock and run her up on the beach.
+            const dock = campDock();
+            if (dock) {
+              await wait(1500);
+              const rx = Math.cos(dock.bearing);
+              const rz = Math.sin(dock.bearing);
+              hook.teleport(
+                dock.root.x + rx * 6 + Math.sin(dock.bearing) * 2,
+                dock.root.z + rz * 6 - Math.cos(dock.bearing) * 2,
+              );
               await wait(1000);
               hook.stepAshore();
             }

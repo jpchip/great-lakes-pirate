@@ -100,6 +100,10 @@ export function pieceColliders(p: PlacedPoiPiece): Collider[] {
   const box = bearingBox(p.x, p.z, p.bearing, p.widthM, p.depthM, p.minY, p.maxY, 'stone');
   if (p.kind === 'shack') return [{ ...box, surface: 'wood' }];
   if (p.kind === 'block') return [{ ...box, spot: height <= 1.6 ? 'vault' : 'climb' }];
+  // The logging camp's log decks, lumber piles and roofless bunkhouse walls (Phase 8).
+  if (p.kind === 'logs' || p.kind === 'lumber' || p.kind === 'wall') {
+    return [{ ...box, surface: 'wood', spot: height <= 1.6 ? 'vault' : 'climb' }];
+  }
   if (p.kind === 'ledge') {
     // A ledge's `minY` sits 1 m under the lower of its top and the ground around it (so its
     // face never shows a gap underneath), which isn't its real rise: that's its top over

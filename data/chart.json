@@ -32,10 +32,10 @@
     "zone": "zone.two_harbors"
   },
   {
-    "id": "port.cornucopia",
+    "id": "port.siskiwit",
     "kind": "port",
     "name": "Siskiwit Bay",
-    "at": [-91.103, 46.864],
+    "at": [-91.203, 46.851],
     "zone": "zone.siskiwit"
   },
   {
