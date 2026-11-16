@@ -4,6 +4,16 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ## [Unreleased]
 
+## [0.7.2] - 2026-11-16
+
+### Added
+
+- **Signs on Bayfield's buildings:** every building with a door has a painted board over it that says what it is. Named buildings show their name, such as the Lake Superior Saloon, the Halvorsen Chandlery and Booth & Sons General Store. The rest show their use, such as Dwelling, Lockup or Ice house. On the false-fronted shops the name is painted on the dark board that was already there.
+
+### Fixed
+
+- **Cargo on the rails:** a stack of salt sacks and a net reel on Bayfield's waterfront sat on the rail track. Both now stand beside it.
+
 ## [0.7.1] - 2026-11-16
 
 ### Added

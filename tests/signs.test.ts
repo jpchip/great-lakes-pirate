@@ -74,6 +74,27 @@ describe('where a board hangs (0.7.2)', () => {
     expect(west.rotY).toBeCloseTo(-Math.PI / 2);
   });
 
+  it('stands clear of the wall face and its battens, not inside the wall', () => {
+    const south = signPlacement(building(), door({ z: 0, x: 5, alongX: true }));
+    const west = signPlacement(building(), door({ x: 0, z: 3, alongX: false }));
+    // The wall is 0.2 m thick on its line; battens and trim stand a little proud of it.
+    expect(south.z).toBeLessThan(-0.13);
+    expect(west.x).toBeLessThan(-0.13);
+  });
+
+  it('on a false front, paints the dark board that is already there', () => {
+    const b = building({
+      def: { id: 'b', kind: 'saloon', roof: 'falseFront' } as DistrictBuilding['def'],
+      eavesY: 6,
+    });
+    const p = signPlacement(b, door({ z: 0, x: 3, alongX: true }));
+    expect(p.x).toBe(5);
+    expect(p.z).toBeLessThan(-0.26);
+    expect(p.y).toBeCloseTo(4.9);
+    expect(p.y + p.heightM).toBeLessThanOrEqual(6 - 0.3);
+    expect(p.rotY).toBeCloseTo(Math.PI);
+  });
+
   it('stays under the eaves and is no wider than the wall', () => {
     const p = signPlacement(building({ eavesY: 2.6 }), door({ y: 0 }));
     expect(p.y + p.heightM).toBeLessThanOrEqual(2.6);

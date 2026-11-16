@@ -1,4 +1,5 @@
 import * as THREE from 'three';
+import { WALL_M } from '../../sim/district/kit';
 import type {
   DistrictBuilding,
   DistrictDoor,
@@ -44,11 +45,29 @@ export interface SignPlacement {
   heightM: number;
 }
 
+/**
+ * How far the board stands off the wall's center line: past the wall's own half thickness
+ * and the battens and trim on its face, so it isn't buried in the wall.
+ */
+export const SIGN_OFFSET_M = WALL_M / 2 + 0.06;
+
 /** Where a building's board goes: over the first door, on the wall that door is set in. */
 export function signPlacement(b: DistrictBuilding, door: DistrictDoor): SignPlacement {
   const cx = (b.minX + b.maxX) / 2;
   const cz = (b.minZ + b.maxZ) / 2;
   const heightM = 0.7;
+  if (b.def.roof === 'falseFront') {
+    // A false front already has a dark board on the street (north) side, 0.9 m tall and
+    // 0.12 m deep, its foot 1.2 m under the eaves (kit-meshes roofGeometry): paint on that.
+    return {
+      x: cx,
+      y: b.eavesY - 1.2 + 0.1,
+      z: b.minZ - 0.2 - 0.06 - 0.02,
+      rotY: Math.PI,
+      widthM: Math.min(b.maxX - b.minX - 1, 6) - 0.2,
+      heightM,
+    };
+  }
   // Over the door's lintel, but no higher than just under the eaves.
   const y = Math.min(door.y + 2.7, b.eavesY - heightM - 0.2);
   const wallLen = door.alongX ? b.maxX - b.minX : b.maxZ - b.minZ;
@@ -59,7 +78,7 @@ export function signPlacement(b: DistrictBuilding, door: DistrictDoor): SignPlac
     return {
       x: door.x,
       y,
-      z: door.z + out * 0.06,
+      z: door.z + out * SIGN_OFFSET_M,
       rotY: out > 0 ? 0 : Math.PI,
       widthM,
       heightM,
@@ -68,7 +87,7 @@ export function signPlacement(b: DistrictBuilding, door: DistrictDoor): SignPlac
   // An east or west wall: the board faces out along x.
   const out = door.x >= cx ? 1 : -1;
   return {
-    x: door.x + out * 0.06,
+    x: door.x + out * SIGN_OFFSET_M,
     y,
     z: door.z,
     rotY: out > 0 ? Math.PI / 2 : -Math.PI / 2,
