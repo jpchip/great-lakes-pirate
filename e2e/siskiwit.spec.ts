@@ -17,6 +17,7 @@ function collectErrors(page: Page): string[] {
 
 interface Hooks {
   __glpFoot: {
+    dock(key: string): boolean;
     teleport(x: number, z: number, y?: number): void;
     interact(): void;
     state(): {
@@ -71,5 +72,24 @@ test('Siskiwit Bay: a Lumberjack lands at the logging camp and opens the stash',
   await expect(page.locator('body')).toHaveAttribute('data-stash', 'hideout.siskiwit');
   h = await hooks(page);
   expect(h.state.active).toBe(true);
+  expect(errors).toEqual([]);
+});
+
+test('Siskiwit Bay: docked at the camp dock, the stash opens from the dock like Stockton', async ({
+  page,
+}) => {
+  test.setTimeout(180_000);
+  const errors = collectErrors(page);
+  await page.goto('/?renderer=null&debug&play&newrun=lumberjack&zone=zone.siskiwit');
+  await page.waitForFunction(() => '__glpFoot' in window);
+  await expect(page.locator('body')).toHaveAttribute('data-zone', 'zone.siskiwit');
+  // The port hook docks as F would, so the ShipDocked event opens the camp's stash.
+  const docked = await page.evaluate(() =>
+    (window as unknown as { __glpPort: { dock(key: string): boolean } }).__glpPort.dock('siskiwit'),
+  );
+  expect(docked).toBe(true);
+  await expect(page.locator('body')).toHaveAttribute('data-stash', 'hideout.siskiwit', {
+    timeout: 60_000,
+  });
   expect(errors).toEqual([]);
 });
