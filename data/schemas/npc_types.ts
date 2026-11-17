@@ -18,7 +18,7 @@ export const npcTypeSchema = z.object({
   id: idOf('npc'),
   name: z.string().min(1),
   /** Who they are to the law when they report (plan 06 §2.4). */
-  witness: z.enum(['watchman', 'constable', 'sailor']),
+  witness: z.enum(['watchman', 'constable', 'sailor', 'keeper']),
   /**
    * What they do once alerted: `report` files with the law there and then (a constable),
    * `fetch` runs for a constable first (a watchman), `shout` cries for help and keeps clear

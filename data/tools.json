@@ -85,7 +85,8 @@
       "npc.watchman": 500,
       "npc.constable": 1500,
       "npc.sailor": 200,
-      "npc.marshal": 5000
+      "npc.marshal": 5000,
+      "npc.keeper": 800
     },
     "perTier": 0.5,
     "knownFace": 0.5,
@@ -97,7 +98,8 @@
       "npc.watchman": 0.6,
       "npc.constable": 0.15,
       "npc.sailor": 0.9,
-      "npc.marshal": 0
+      "npc.marshal": 0,
+      "npc.keeper": 0.35
     },
     "wary": 0.4,
     "passOutMin": [20, 45],

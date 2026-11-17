@@ -1,0 +1,74 @@
+{
+  "rules": {
+    "relightMin": 40,
+    "restockDays": 14,
+    "replaceDays": 21,
+    "welcomeMaxTier": 1,
+    "groundsM": 45,
+    "climbS": 1.5,
+    "douseS": 3,
+    "lightS": 2,
+    "oilS": 2.5,
+    "houseS": 4,
+    "readS": 3,
+    "takeS": 1
+  },
+  "stations": [
+    {
+      "light": "light.raspberry",
+      "island": "island.raspberry",
+      "keepers": ["Francis Jacker", "Ole Halvorsen"],
+      "loyalty": 0.25,
+      "kerosene": 4,
+      "houseCashCents": [800, 2600]
+    },
+    {
+      "light": "light.sand",
+      "island": "island.sand",
+      "keepers": ["Charles Lederle", "Peter Nygaard"],
+      "loyalty": 0.3,
+      "kerosene": 4,
+      "houseCashCents": [600, 2200]
+    },
+    {
+      "light": "light.devils",
+      "island": "island.devils",
+      "keepers": ["Thomas Lamoreaux", "Anders Vik", "Joseph Brule"],
+      "loyalty": 0.45,
+      "kerosene": 3,
+      "houseCashCents": [400, 1500]
+    },
+    {
+      "light": "light.outer",
+      "island": "island.outer",
+      "keepers": ["John Irvine", "Edward Collins", "Nils Brekke"],
+      "loyalty": 0.2,
+      "kerosene": 6,
+      "houseCashCents": [1200, 3500]
+    },
+    {
+      "light": "light.michigan",
+      "island": "island.michigan",
+      "keepers": ["Roswell Pendleton", "August Lind", "Henry Bisonette"],
+      "loyalty": 0.3,
+      "kerosene": 5,
+      "houseCashCents": [1000, 3000]
+    },
+    {
+      "light": "light.lapointe",
+      "island": "island.long",
+      "keepers": ["Edward Robinson"],
+      "loyalty": 0.15,
+      "kerosene": 3,
+      "houseCashCents": [600, 2000]
+    },
+    {
+      "light": "light.chequamegon",
+      "island": "island.long",
+      "keepers": ["Martin Ahlgren", "Louis Denomie"],
+      "loyalty": 0.35,
+      "kerosene": 2,
+      "houseCashCents": [300, 1200]
+    }
+  ]
+}

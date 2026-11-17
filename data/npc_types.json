@@ -57,6 +57,21 @@
       "searchS": 90,
       "bribeChance": 0,
       "armed": "rifle"
+    },
+    {
+      "id": "npc.keeper",
+      "name": "Lighthouse keeper",
+      "witness": "keeper",
+      "onAlert": "report",
+      "pursues": false,
+      "sight": { "rangeM": 24, "fovDeg": 110, "peripheralDeg": 200 },
+      "hearing": 1,
+      "vigilance": { "day": 0.5, "night": 0.7 },
+      "speed": { "walk": 1.3, "run": 4.2 },
+      "lantern": { "radiusM": 6, "intensity": 0.8 },
+      "searchS": 25,
+      "bribeChance": 0.35,
+      "armed": "none"
     }
   ],
   "tiers": [

@@ -2,6 +2,7 @@ import type { WorldState } from '../sim/world-state';
 import type { GridField } from '../sim/terrain/grid-field';
 import type { Hideouts } from './hideouts';
 import { rollCache, type PlacedIsland, type PlacedPoiPiece } from '../sim/islands/on-foot';
+import type { PlacedSolid, PlacedStation } from '../sim/light-stations';
 import { bearingBox, type AshoreGround } from './onfoot/ashore-scene';
 import type { Collider } from './onfoot/colliders';
 import type { ControllerParams, Ladder } from './onfoot/controller';
@@ -20,6 +21,8 @@ export interface IslandScene {
   box: { minX: number; minZ: number; maxX: number; maxZ: number };
   extra: Collider[];
   ladders: Ladder[];
+  /** The lighthouse station this landing is at (plan 11 §18.4 piece H), if any. */
+  station?: PlacedStation;
 }
 
 export interface IslandPrompt {
@@ -53,6 +56,11 @@ export interface IslandAshoreDeps {
     params(base: ControllerParams): ControllerParams;
     readonly load: unknown;
   };
+  /**
+   * The lighthouse stations of this zone you can land at (piece H): each a walkable pad
+   * round its light, before the rest of its island walks (pieces Q and R).
+   */
+  stations?(): readonly PlacedStation[];
   /** The run's seed for what's hidden where (the weather's noise seed). */
   runSeed(): number;
   notice(text: string): void;
@@ -91,6 +99,10 @@ export interface IslandAshore {
 export const ISLAND_PAD_M = 160;
 /** A landing this far past the tiles still gets the island; further out, the stand-in. */
 const LAND_PAD_M = 80;
+/** A landing this close to a station's tower walks its pad (piece H). */
+export const STATION_LAND_M = 450;
+/** The pad round a station: this far each side of its tower. */
+export const STATION_PAD_M = 520;
 /** Reach to a cairn or the strongbox. */
 const REACH_M = 2.2;
 
@@ -131,6 +143,45 @@ export function pieceColliders(p: PlacedPoiPiece): Collider[] {
   return [box];
 }
 
+/** A station's solid as the controller's collider. */
+export function stationColliders(s: PlacedSolid): Collider[] {
+  if (s.shape === 'cyl') {
+    return [
+      {
+        kind: 'cylinder',
+        x: s.x,
+        z: s.z,
+        radius: s.w,
+        minY: s.minY,
+        maxY: s.maxY,
+        surface: s.part === 'gallery' ? 'wood' : 'stone',
+        ...(s.part === 'leg' ? { blocksSight: false } : {}),
+      },
+    ];
+  }
+  const b = bearingBox(s.x, s.z, s.bearing, s.w, s.d, s.minY, s.maxY, 'wood');
+  if (s.part === 'rail') return [{ ...b, blocksSight: false }];
+  return [b];
+}
+
+/** The station a landing here walks, if it's near one. */
+export function stationNear(
+  stations: readonly PlacedStation[],
+  x: number,
+  z: number,
+): PlacedStation | undefined {
+  let best: PlacedStation | undefined;
+  let bestD = STATION_LAND_M;
+  for (const s of stations) {
+    const d = Math.hypot(x - s.light.x, z - s.light.z);
+    if (d < bestD) {
+      bestD = d;
+      best = s;
+    }
+  }
+  return best;
+}
+
 export function attachIslandAshore(deps: IslandAshoreDeps): IslandAshore {
   const { state } = deps;
 
@@ -153,9 +204,37 @@ export function attachIslandAshore(deps: IslandAshoreDeps): IslandAshore {
     return undefined;
   };
 
+  const stationScene = (st: PlacedStation): IslandScene => {
+    const grid = deps.grid();
+    const extra: Collider[] = [];
+    for (const s of st.solids) extra.push(...stationColliders(s));
+    if (st.landing) extra.push(...stationColliders(st.landing));
+    return {
+      island: st.island,
+      ground: {
+        heightAt: deps.heightAt,
+        x0: grid?.x0 ?? st.light.x - STATION_PAD_M,
+        z0: grid?.z0 ?? st.light.z - STATION_PAD_M,
+        step: grid?.step ?? 4,
+      },
+      box: {
+        minX: st.light.x - STATION_PAD_M,
+        minZ: st.light.z - STATION_PAD_M,
+        maxX: st.light.x + STATION_PAD_M,
+        maxZ: st.light.z + STATION_PAD_M,
+      },
+      extra,
+      ladders: st.landingLadder ? [{ ...st.landingLadder }] : [],
+      station: st,
+    };
+  };
+
   const sceneFor = (at: { x: number; z: number }): IslandScene | undefined => {
     const hit = islandAt(at.x, at.z);
-    if (!hit) return undefined;
+    if (!hit) {
+      const st = stationNear(deps.stations?.() ?? [], at.x, at.z);
+      return st && stationScene(st);
+    }
     const { island, field } = hit;
     const grid = deps.grid() ?? { x0: field.x0, z0: field.z0, step: field.step };
     const extra: Collider[] = [];
@@ -232,7 +311,9 @@ export function attachIslandAshore(deps: IslandAshoreDeps): IslandAshore {
   };
 
   return {
-    walkableAt: (at) => islandAt(at.x, at.z) !== undefined,
+    walkableAt: (at) =>
+      islandAt(at.x, at.z) !== undefined ||
+      stationNear(deps.stations?.() ?? [], at.x, at.z) !== undefined,
     sceneFor,
     prompt,
     boatPrompt: () => deps.salvage?.boatPrompt(),

@@ -25,6 +25,7 @@ import {
 } from './law';
 import { jailFileSchema } from './jail';
 import { lighthousesFileSchema } from './lighthouses';
+import { lightStationsFileSchema } from './light_stations';
 import { marketsFileSchema } from './markets';
 import { newspapersFileSchema } from './newspapers';
 import { npcTypesFileSchema } from './npc_types';
@@ -64,6 +65,7 @@ export const dataFileSchemas: Readonly<Record<string, z.ZodType>> = {
   'kit.json': kitFileSchema,
   'law_actors.json': lawActorsFileSchema,
   'lighthouses.json': lighthousesFileSchema,
+  'light_stations.json': lightStationsFileSchema,
   'locks.json': locksFileSchema,
   'loot_tables.json': lootTablesFileSchema,
   'markets.json': marketsFileSchema,
