@@ -345,7 +345,7 @@ The scope comes from the Phase 9 rows of every plan: islands, lighthouse station
 | Salvage | Shallow wrecks (historical, seeded and gameplay-born, your own included) found by sight or sounding and worked with grapple and hook at anchor; recent cargo hot | §6 |
 | Hunting and wildlife | Deer on the larger islands, tracked, shot, dressed and carried; venison as contraband through the smokehouse; winter fur trapping; black bears and winter wolves that warn before they attack | §3.2, §4 |
 | Seven sites | The five other hideout sites (Hermit, Devils, Outer, Minnesota Point, the North Shore cove) with their pads and anchorages; each background starting at its own; claiming by building; Minnesota Point leased, or squatted with a chance of heat | 09 §2, 12 §2.2 |
-| Docks districts | By decision 2 | 08 §2.2 |
+| Docks districts | Duluth (decision 2): its waterfront, watch, jail and walkable back room | 08 §2.2 |
 | Audio | Saloon music and poker, the lighthouse station, ice, snow and winter wind, chattering teeth, islands and caves, wildlife, the ending music; within the 8 MB budget | 15 §11 |
 | Saves | `events`, `mail`, `rivals`, `feuds`, `ice`, `discovery`, `leads`, `legends`, `wrecks[].salvaged`, `traps`, `player.warmth`, `curios` and the new sites; the Hall of Captains outside the save; a 0.8.x save loading with everything at its start | 16 §12 |
 
@@ -414,7 +414,7 @@ Twenty-six pieces, each sized to be one thread, in three stages by decision 1. A
 | U | Salvage | Wrecks from the *Lucerne* and R1's list, seeded old wrecks, and the ones you and the lake made; finding by sight in clear water or the sounding spike; grapple and hook at anchor, a chance per attempt and the time it takes; old cargo clean, recent cargo hot; salvaging your own victims as suspicious | O | — |
 | V | Hunting and wildlife | `wildlife.json`; deer on Stockton, Madeline and Oak; tracking, the rifle, dressing and carrying a carcass; venison as contraband through the smokehouse and sold to camps and fences; bears and wolves on the Wander → Wary → Threaten → Attack or Flee FSM, scared by noise, shot, or kept off by fire; winter trap spots that fill over weeks; the Venison King Ambition | Q, G, K | — |
 | W | Seven sites | Hermit, Devils (the sea cave mooring and the clifftop pad), Outer (the fish camp) on their islands, Minnesota Point and the North Shore cove as mainland pads in their zones, each with build bounds, anchorage, concealment and a pre-built start; every background starting at its own; claiming by building; Minnesota Point's lease or squatting | Q, S | Pre-built layouts |
-| X | Districts | By decision 2: the district laid out with the editor from Sanborn maps, baked, its watch, its lockup holding that region's prisoners, its back room where it has one | — | Layout |
+| X | Duluth | By decision 2: Duluth's district laid out with the editor from Sanborn maps, baked, its watch, its lockup holding that region's prisoners, its back room where it has one | — | Layout |
 | Y | Islands audio | Island ambience by tier and season, caves, deer, bears and wolves, the grapple and a dig, the ending music | Q, S, V | Listen by ear |
 | Z | Playtest and 0.9.0 | The §18.3 scenarios, the benches, 17 §9's Beta checklist, the plans updated, tag 0.9.0 | All | Playtest, sign-off |
 
@@ -444,7 +444,7 @@ Twenty-six pieces, each sized to be one thread, in three stages by decision 1. A
    - **Three stages, each ending in a playtest, Beta at the end (recommended):** the sandbox's life first (events, rivals, the posse, stations, lighthouses and wrecking), then winter, then the islands and their secrets. Each stage is about one Phase 8, so there's something new to play at each stage's end, and stage 3 can be cut to fit.
    - **One phase, one playtest at the end:** as Phases 5–8 ran. Fewer stops, but nothing to play for a long time and a large final playtest.
    - **Beta after stages 1 and 2:** tag 0.9.0 with the sandbox and winter, and move the islands and secrets to a Phase 9.5 before the lakes. Beta comes much sooner, but plan 17's Beta definition (islands and legends) changes.
-2. **Which docks districts come in Phase 9?** Plan 17 says Beta has all of them; 08 §2.2 lists six more.
+2. **Which docks districts come in Phase 9?** **Decided 2026-11-17: Duluth only; Ashland, Washburn, Superior and Two Harbors after Beta, La Pointe with Madeline** (Jared). Plan 17 says Beta has all of them; 08 §2.2 lists six more.
    - **Duluth only, the rest after Beta (recommended):** the biggest port, the best fence, the Saloon Keeper's start, the Dark Light legend's town and a jail of its own. One piece, and the machinery is built. Ashland, Washburn, Superior and Two Harbors follow after Beta; La Pointe comes with Madeline.
    - **All six, as plan 17 says:** about four more pieces of layout and guards, and the longest stage 3.
    - **None:** Bayfield stays the only district at Beta, and Duluth's back room stays a port tab.
@@ -461,7 +461,7 @@ Twenty-six pieces, each sized to be one thread, in three stages by decision 1. A
 ---
 
 ## Changelog
-- v0.5: Phase 9 scope (§18), as proposed 2026-11-17: what Phases 4–8 change, deliverables, exit criteria, 26 work pieces in three stages, smaller calls and two decisions (staging, districts). Decision 1 taken the same day: three stages with a playtest each.
+- v0.5: Phase 9 scope (§18), as proposed 2026-11-17: what Phases 4–8 change, deliverables, exit criteria, 26 work pieces in three stages, smaller calls and two decisions (staging, districts). Both decisions taken the same day: three stages with a playtest each, and Duluth as the one new district.
 - v0.4: Phase 7 as built (§15): Stockton on foot, the quarry, the seeded cache, the rowboat and the posse.
 - v0.3: Gap review: minor islets stay walkable (cut removed), islands load as their own scenes.
 - v0.2: Decisions: poaching and trapping, wildlife hazards (bears, wolves), a purchasable diving suit for deep wrecks (with design), cold exposure, 6 legends plus seeded caches.
