@@ -473,11 +473,11 @@ Ten pieces, each sized to be one thread. Four can start at once (A, B, D and H).
 
 ### 16.7 Housekeeping found along the way
 
-- The master plan's Phase 8 row should gain Siskiwit Bay, crafting, the slipway, laying low and (by decision 1) Ambitions once this scope is approved, and its Phase 9 row should keep events.
+- ~~The master plan's Phase 8 row should gain Siskiwit Bay, crafting, the slipway, laying low and (by decision 1) Ambitions once this scope is approved, and its Phase 9 row should keep events.~~ Done 2026-11-17 (00 v0.11).
 - Plan 03 §20.5 says Siskiwit's zone is baked "in Phase 8"; plan 07 §14.6.1's second smuggler is already in `data/smuggler.json` and drops in with it (piece D).
-- Plan 12 §11's Phase 8 row and the master plan disagree on events (decision 1); whichever way it goes, one of them changes.
+- ~~Plan 12 §11's Phase 8 row and the master plan disagree on events (decision 1); whichever way it goes, one of them changes.~~ Done 2026-11-17: plan 12 §11 moves events and letters to Phase 9 (12 v0.11).
 - §7.4's open question for plan 10 (is T2 buildable on a slipway?) is answered "not in the MVP" by §16.5.
-- Plan 17 wants a tracking issue per phase with the acceptance checklist; §16.3 can become it once approved.
+- ~~Plan 17 wants a tracking issue per phase with the acceptance checklist; §16.3 can become it once approved.~~ Done 2026-11-17: [#136](https://github.com/jpchip/great-lakes-pirate/issues/136), which piece J ticks.
 - Phase 7's laptop playtest (08 §20.8.2) is still open, and Phase 8 doesn't depend on it.
 
 ### 16.8 Piece D: Siskiwit Bay (2026-11-16)
@@ -563,6 +563,7 @@ Calls made in the piece (Jared can override): repairs cost materials, not money,
 ---
 
 ## Changelog
+- v1.2: §16.7's housekeeping: the master plan's Phase 8 and 9 rows, plan 12 §11 on events, and the Phase 8 tracking issue (#136).
 - v1.1: Phase 8 piece I built (§16.11): build and craft audio and the UI set, the decoded audio budget at 8 MB.
 - v0.11: Phase 8 piece G built the slipway (§16.10): its slope rule, full repairs and crafted upgrades fitted on the ways, shipless after a sinking with a new schooner built there, and the abandon screen's choice.
 - v1.0: Phase 8 piece F built (§16.10): sleeping in a bunk lays low, pursuit ends at the anchorage, concealment in the palette, being spotted (talk and the cutter's lean), salvage at the quarry and the camp.
