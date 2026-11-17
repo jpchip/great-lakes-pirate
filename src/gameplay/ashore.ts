@@ -32,6 +32,7 @@ import type { AshoreState, RowboatSave, WorldState } from '../sim/world-state';
 import type { DistrictDef, DistrictMark } from '../../data/schemas/districts';
 import type { IslandAshore } from './island-ashore';
 import type { IslandPosse } from './island-posse';
+import type { XZ } from './onfoot/nav';
 import {
   districtBerthPiers,
   districtForHarbor,
@@ -137,8 +138,11 @@ export interface AshoreDeps {
    * 1 m tiles with its quarry, and F searches its cairns and opens the stash's strongbox.
    */
   island?: IslandAshore | undefined;
-  /** The marshal posse on a walkable island, at Wanted tier 4 and up (piece H). */
-  posse?(island: string, scene: AshoreScene): IslandPosse | undefined;
+  /**
+   * The marshal posse on a walkable island, at Wanted tier 4 and up (piece H): `boat` is
+   * where yours lies now (the rowboat, or the ship), scene meters, for them to land by.
+   */
+  posse?(island: string, scene: AshoreScene, boat: () => XZ): IslandPosse | undefined;
   /**
    * The trees and shore rocks the renderer plants over a rectangle (zone meters), and the
    * share the quality preset draws: they get trunks you walk around.
@@ -506,7 +510,13 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
       ladders: island?.ladders,
       plants: deps.plants?.(box),
     });
-    posse = island && deps.posse ? deps.posse(island.island, built) : undefined;
+    posse =
+      island && deps.posse
+        ? deps.posse(island.island, built, () => {
+            const at = boat ?? shipPose();
+            return { x: at.x, z: at.z };
+          })
+        : undefined;
     return built;
   };
 

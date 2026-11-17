@@ -112,6 +112,7 @@ import { siteToZone } from './sim/hideouts/site-frame';
 import { mountBuildPanel, type BuildPanelUi } from './ui/build/BuildPanel';
 import { attachIslandAshore } from './gameplay/island-ashore';
 import { createIslandPosse } from './gameplay/island-posse';
+import { recentlySpotted } from './sim/hideouts/life';
 import { TEST_BAY, type Dock, type Pose } from './sim/terrain/test-bay';
 import { findHarbor, harborZoneId, layoutHarbors, type HarborLayout } from './sim/harbors';
 import { workSites } from './audio/harbor-mix';
@@ -3109,19 +3110,21 @@ async function boot(): Promise<void> {
     },
     island: islandAshore,
     plants: plantsIn,
-    // The marshal posse on a walkable island at Wanted tier 4 and up (plan 08 §20.4 piece H);
-    // none lands on the mainland's logging camp pad (Phase 8 piece D).
-    posse: (island, scene) => {
+    // The marshal posse on a walkable island at Wanted tier 4 and up (plan 08 §20.4 piece H):
+    // they land by your boat, sweep out from it and break off at a hideout's bounds (Phase 9
+    // piece F). None lands on the mainland's logging camp pad (Phase 8 piece D).
+    posse: (island, scene, boat) => {
       const placed = zoneIslands().placed.find((p) => p.id === island);
       if (!placed || placed.mainland) return undefined;
       const region = (): string => law.region() ?? '';
       const fameTiers = Math.max(1, law.defs.fame.tiers.length - 1);
-      const tier = wantedTier(law.defs, state.wanted[region()]?.heat ?? 0);
       const posse = createIslandPosse({
         scene,
         placed,
-        tier,
         seed: trafficSeed,
+        boat,
+        // The island scene is in zone meters, as the hideouts are.
+        sanctuary: (at) => hideouts.siteAt(at)?.hideoutId,
         conditions: () => {
           const t = state.environment.clock.gameSeconds;
           return {
@@ -3135,7 +3138,34 @@ async function boot(): Promise<void> {
         },
       });
       // The marshals' voices (piece I).
-      posse?.stealth.on((e) => audio?.foot.stealth(e));
+      posse?.on((e) => audio?.foot.stealth(e));
+      posse?.onPosse((e) => {
+        switch (e.type) {
+          case 'PosseLanded':
+            showNotice(
+              e.count > 1
+                ? 'Marshals have put in by your boat. They are searching the island.'
+                : 'A marshal has put in by your boat. He is searching the island.',
+            );
+            return;
+          case 'PosseBrokeOff': {
+            showNotice("The marshals break off: you're home.");
+            ctx.events.emit('PursuitEndedAtHideout', { hideout: e.hideout, by: 'npc.marshal' });
+            // They watched you go in: the place is known (06 §5.4, 09 §8).
+            const h = state.hideouts?.[e.hideout];
+            if (e.sawIt && h && !recentlySpotted(h, state.environment.clock.gameSeconds)) {
+              ctx.events.emit('HideoutSpotted', { hideout: e.hideout, by: 'npc.marshal' });
+            }
+            return;
+          }
+          case 'PosseGaveUp':
+            showNotice('The marshals give up the search and head back to their boat.');
+            return;
+          case 'PosseLeft':
+            showNotice("The marshals' boat puts off.");
+            return;
+        }
+      });
       return posse;
     },
     // Your own footsteps and landings, heard (piece I).
@@ -3533,17 +3563,36 @@ async function boot(): Promise<void> {
         cache: islandAshore.cache('cache.stockton_quarry'),
         strongbox: islandAshore.strongbox(),
       }),
-      /** The marshal posse on the island you're on (piece H): its count and who it has. */
+      /**
+       * The marshal posse on the island you're on (piece H; Phase 9 piece F): how many the
+       * tier sends, where it's got to, where they landed, and the marshals ashore.
+       */
       posse: () => {
         const p = ashore.posse;
         return (
           p && {
             count: p.count,
+            phase: p.phase,
+            landing: p.landing,
+            clockS: p.clockS,
             captured: p.captured,
-            guards: p.stealth.guards.map((g) => ({ id: g.id, type: g.type.id, state: g.state })),
+            pursued: p.pursued,
+            guards: p.stealth.guards.map((g) => ({
+              id: g.id,
+              type: g.type.id,
+              state: g.state,
+              x: g.body.position.x,
+              y: g.body.position.y,
+              z: g.body.position.z,
+              heading: g.body.heading,
+            })),
           }
         );
       },
+      /** The posse lands now instead of when its time's up; false if none would. */
+      posseLand: () => ashore.posse?.land() ?? false,
+      /** The posse gives up now and walks back to its boat. */
+      posseGiveUp: () => ashore.posse?.giveUp(),
       /** The frame's draw calls and triangles, for bench.island (plan 17). */
       renderStats: () => {
         const r = renderer?.stats();

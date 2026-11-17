@@ -131,7 +131,9 @@ export function attachRecord(ctx: GameContext, defs: LawDefs): () => void {
     ),
     ev.on('PursuitEndedAtHideout', (e) =>
       write(
-        `Made ${place(e.hideout)} with ${e.by === 'law.morrill' ? 'the Morrill' : 'the tug'} astern; she broke off.`,
+        e.by === 'npc.marshal'
+          ? `Made ${place(e.hideout)} with the marshals close behind; they broke off.`
+          : `Made ${place(e.hideout)} with ${e.by === 'law.morrill' ? 'the Morrill' : 'the tug'} astern; she broke off.`,
       ),
     ),
     ev.on('HideoutSpotted', (e) => write(`Seen lying at ${place(e.hideout)}. There'll be talk.`)),
