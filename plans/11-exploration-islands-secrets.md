@@ -440,7 +440,7 @@ Twenty-six pieces, each sized to be one thread, in three stages by decision 1. A
 
 ### 18.6 Decisions for Jared
 
-1. **How should Phase 9 be staged?**
+1. **How should Phase 9 be staged?** **Decided 2026-11-17: three stages, each ending in a playtest, Beta at the end** (Jared).
    - **Three stages, each ending in a playtest, Beta at the end (recommended):** the sandbox's life first (events, rivals, the posse, stations, lighthouses and wrecking), then winter, then the islands and their secrets. Each stage is about one Phase 8, so there's something new to play at each stage's end, and stage 3 can be cut to fit.
    - **One phase, one playtest at the end:** as Phases 5–8 ran. Fewer stops, but nothing to play for a long time and a large final playtest.
    - **Beta after stages 1 and 2:** tag 0.9.0 with the sandbox and winter, and move the islands and secrets to a Phase 9.5 before the lakes. Beta comes much sooner, but plan 17's Beta definition (islands and legends) changes.
@@ -461,7 +461,7 @@ Twenty-six pieces, each sized to be one thread, in three stages by decision 1. A
 ---
 
 ## Changelog
-- v0.5: Phase 9 scope (§18), as proposed 2026-11-17: what Phases 4–8 change, deliverables, exit criteria, 26 work pieces in three stages, smaller calls and two decisions (staging, districts).
+- v0.5: Phase 9 scope (§18), as proposed 2026-11-17: what Phases 4–8 change, deliverables, exit criteria, 26 work pieces in three stages, smaller calls and two decisions (staging, districts). Decision 1 taken the same day: three stages with a playtest each.
 - v0.4: Phase 7 as built (§15): Stockton on foot, the quarry, the seeded cache, the rowboat and the posse.
 - v0.3: Gap review: minor islets stay walkable (cut removed), islands load as their own scenes.
 - v0.2: Decisions: poaching and trapping, wildlife hazards (bears, wolves), a purchasable diving suit for deep wrecks (with design), cold exposure, 6 legends plus seeded caches.
