@@ -33,6 +33,7 @@ import {
   remainingSeconds,
   restoreVoyage,
   saveVoyage,
+  type ChartShip,
   type SavedVoyage,
 } from '../sim/chart/voyage';
 import { recordChartPosition } from '../sim/location';
@@ -113,6 +114,8 @@ export interface ChartTravelHost {
    * with an aneroid (plan 04 §5.4, plan 10 §5.5; Phase 4 piece G). All leads without it.
    */
   forecastHours?: () => number;
+  /** Corrected charts (Phase 9 piece G): chart voyages run this much faster. */
+  chartSpeedMul?: () => number;
   /** Every hostile hunts and forces meetings, whatever the Wanted (`?cutter=hunt`, dev). */
   cutterHunts?: boolean;
   /**
@@ -226,6 +229,11 @@ export function createChartTravel(host: ChartTravelHost): ChartTravel {
     });
   const clock = ctx.state.environment.clock;
   const hour = (): number => dayAndHour(clock.gameSeconds).hour;
+  /** The ship as her charts let her sail: corrected charts find the better courses. */
+  const chartShip = (): ChartShip => {
+    const f = host.chartSpeedMul?.() ?? 1;
+    return f === 1 ? PROTOTYPE_SCHOONER : { cruiseKn: PROTOTYPE_SCHOONER.cruiseKn * f };
+  };
 
   const session: ChartSession = {
     geo,
@@ -335,6 +343,7 @@ export function createChartTravel(host: ChartTravelHost): ChartTravel {
     notice = undefined;
     session.position = onChart(pose, frame);
     session.heading = pose.heading;
+    session.ship = chartShip();
     // The chart's wind is the sim's (piece E), read where the ship is.
     readSky(session, clock.gameSeconds);
     session.lookout = host.lookout();
@@ -593,6 +602,7 @@ export function createChartTravel(host: ChartTravelHost): ChartTravel {
       departure = undefined;
       session.position = fromWorldChart(geo, location.chartPos);
       session.heading = location.heading;
+      session.ship = chartShip();
       placeTraffic(session.contacts, clock.gameSeconds);
       session.waypoints = [];
       session.course = undefined;

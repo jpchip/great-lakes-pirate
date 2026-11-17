@@ -4210,6 +4210,7 @@ async function boot(): Promise<void> {
     sailOn: () => sailOnAllowed(),
     sailTick: (dt) => sailingMode.update?.(dt),
     forecastHours: () => instruments.forecastHours,
+    chartSpeedMul: () => instruments.chartSpeedMul,
     // A look at the chart from on foot (plan 08 §20.4 follow-up): where you stand ashore,
     // and the rowboat if you left it, alongside the schooner.
     ashorePositions: () => ashoreRef.current?.chartPositions(),

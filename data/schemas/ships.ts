@@ -119,6 +119,11 @@ export const sailShipSchema = z.object({
   sweepsKn: z.number().nonnegative(),
   /** Turn rate at full rudder under sweeps alone, degrees per second. */
   sweepsTurnDegS: z.number().nonnegative(),
+  /**
+   * Speed multiplier at Full in light and moderate airs (topsails; Phase 9 piece G), fading
+   * to none between 14 and 18 knots. Set by a fitted upgrade, never in ships.json.
+   */
+  lightAirMul: z.number().positive().optional(),
 });
 
 export const steamShipSchema = z.object({

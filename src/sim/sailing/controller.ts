@@ -160,6 +160,21 @@ export function sailFactorAt(c: SailingClass, setting: number): number {
   return (c.sailFactors[lo] as number) * (1 - t) + (c.sailFactors[hi] as number) * t;
 }
 
+/** Topsails' light-air boost is full up to this wind, knots, and gone by `LIGHT_AIR_TO_KN`. */
+export const LIGHT_AIR_FULL_KN = 14;
+export const LIGHT_AIR_TO_KN = 18;
+
+/**
+ * The topsails' extra speed (plan 10 §5.2; Phase 9 piece G): set only at Full, so it grows
+ * as the sails go from Half to Full, and it helps in light and moderate airs, not a blow.
+ */
+export function lightAirFactorAt(c: SailingClass, setting: number, windKn: number): number {
+  if (c.lightAirMul === 1) return 1;
+  const atFull = clamp01(setting - (FULL_SAIL - 1));
+  const light = clamp01((LIGHT_AIR_TO_KN - windKn) / (LIGHT_AIR_TO_KN - LIGHT_AIR_FULL_KN));
+  return 1 + (c.lightAirMul - 1) * atFull * light;
+}
+
 /** Ideal sheet position for a wind angle: hauled in close-hauled, eased out running. */
 export function idealTrimAt(c: SailingClass, angle: number): number {
   return clamp01((Math.abs(angle) - c.noGo) / (Math.PI - c.noGo));
@@ -210,7 +225,7 @@ export function updateTargetSpeed(
   s.windAngle = rel;
   s.windKn = wind.speedKn * (1 + c.gustGain * clamp01(wind.gust01));
   s.inIrons = angle <= c.noGo;
-  s.sailFactor = sailFactorAt(c, s.sailSetting);
+  s.sailFactor = sailFactorAt(c, s.sailSetting) * lightAirFactorAt(c, s.sailSetting, s.windKn);
   s.polarFactor = sampleCurve(c.polar, angle);
   s.windFactor = sampleCurve(c.windStrength, s.windKn);
   s.idealTrim = idealTrimAt(c, angle);

@@ -560,9 +560,44 @@ Calls made in the piece (Jared can override): repairs cost materials, not money,
 
 **Not in piece I:** the slipway's sounds (piece G is in review), a listen by ear (piece J's playtest).
 
+### 16.13 Phase 9 piece G: four more stations (2026-11-17)
+
+**Result:** built, as [11 §18.4](11-exploration-islands-secrets.md)'s piece G (exit criterion 7). The sail loft, smokehouse, powder room and cartography table are kit pieces in the build palette's Stations, and each gets a tab in the Workshop when it stands at the hideout. Screenshots are in the project files (`new-stations/`).
+
+| Station | Recipe | Inputs | Time | Makes |
+|---|---|---|---|---|
+| Sail loft (4 lumber, 1 hardware, 1 rope & canvas) | Mend kits | 1 rope & canvas | 1 h | 5 mend kits (the bench gets 3) |
+| | Quality canvas | 4 rope & canvas, 1 hardware | 12 h | the upgrade (+5% speed) |
+| | Topsails | 3 rope & canvas, 1 lumber | 10 h | the upgrade (new) |
+| | Storm sails | 4 rope & canvas | 10 h | the upgrade (+4 kn before strain at Reefed and Half) |
+| | Dark-tanned sails | 4 rope & canvas, 1 lumber (bark), water | 16 h | the upgrade (new) |
+| | Muffled blocks | 2 rope & canvas, 1 hardware | 6 h | the upgrade (new) |
+| Smokehouse (5 lumber, 1 hardware; may stand on bare ground, smokes) | Smoked fish | 3 fresh fish, 1 lumber (hardwood), 2 barrels, water | a week, passive | 3 CU salted fish |
+| Powder room (4 brownstone, 2 hardware, 1 lumber) | Powder and shot by the keg | 3 hardware, 3 coal, **a smithy too** | 4 h | 4 CU powder & shot (the forge alone: 2 h a keg) |
+| Cartography table (2 lumber, 1 dry goods) | Corrected charts | 1 dry goods | 12 h | the upgrade (new) |
+
+| Upgrade | Slot | Effect | Where |
+|---|---|---|---|
+| Topsails | rigging | At Full, ×1.1 speed up to 14 kn of wind, fading out by 18 kn (`lightAirMul`, folded into the class and applied in `updateTargetSpeed`); seen ×1.1 further with all sail set (`sailSightMul`); Full strains from 16 kn, not 19 | `fit.ts`, `controller.ts`, `perception.ts` |
+| Dark-tanned sails | rigging | Seen ×0.75 as far in full dark, easing in through the twilight; nothing by day (`nightSightMul`) | `perception.ts` (`canvasFactor`), the zones' watchers and the cutter's chart lookout |
+| Muffled blocks | utility | Within 300 m in full dark a watcher's meter fills 35% slower (about half again as long), easing out by 500 m and at dawn (`quietFactor`, on the watcher's vigilance) | `perception.ts`, `detection.ts` |
+| Corrected charts | instruments | Chart voyages run 8% faster (`chartSpeedMul`, the chart session's cruise speed) | `fit.ts` `Instruments`, `chart-travel.ts` |
+
+Quality canvas and storm sails gain the `hideout` source and are still sold at the yard; the four new ones are made only at home and fit at the slipway like piece E's. Calls made in the piece (Jared can override):
+
+- **Smoked fish is salted fish.** §18.5 adds no goods, so the smokehouse cures fresh fish into the same good as the cooperage, with hardwood and well water instead of bought salt. Smoked venison waits for piece V.
+- **The powder room makes its own recipe and wants the smithy beside it** (a recipe's new `withStation`), rather than speeding the forge's; nothing explodes (§18.5).
+- **The table's charting is an instrument upgrade** until piece T gives it maps: plan 10 §5.5's updated charts, made at home.
+- **Topsails on a schooner that already sets gaff topsails** are bigger, lighter ones and a fisherman staysail; they share the T1's one rigging slot with every other suit, so on a T1 the loft's sails are a choice.
+- Muffled blocks go in utility (plan 10 has no stealth slot), so a T1 fits them beside any suit of sails.
+- A passive station names itself (`passive.vessel`, `passive.load`): "In the smokehouse", "Hang it in the smoke".
+
+**Not in piece G:** craft sounds for the four (they play the workbench's; piece J's ear), F at a station on foot (the stash screen's Workshop tab, as piece E), the topsails on the ship's model.
+
 ---
 
 ## Changelog
+- v0.12: Phase 9 piece G built the sail loft, smokehouse, powder room and cartography table (§16.13): their pieces and recipes, four new upgrades (topsails, dark-tanned sails, muffled blocks, corrected charts) and what they do.
 - v1.1: Phase 8 piece I built (§16.11): build and craft audio and the UI set, the decoded audio budget at 8 MB.
 - v0.11: Phase 8 piece G built the slipway (§16.10): its slope rule, full repairs and crafted upgrades fitted on the ways, shipless after a sinking with a new schooner built there, and the abandon screen's choice.
 - v1.0: Phase 8 piece F built (§16.10): sleeping in a bunk lays low, pursuit ends at the anchorage, concealment in the palette, being spotted (talk and the cutter's lean), salvage at the quarry and the camp.

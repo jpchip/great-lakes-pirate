@@ -99,6 +99,37 @@ export interface Target {
   /** Sail set, 0 furled … 1 full. */
   sails01: number;
   lanternLit: boolean;
+  /** Topsails (Phase 9 piece G): how much further she shows at full sail. Absent is 1. */
+  sailSightMul?: number;
+  /** Dark-tanned sails: how far she's seen in full dark, as a share. Absent is 1. */
+  nightSightMul?: number;
+  /** Muffled blocks: close in after dark, a watcher is slower to notice her. */
+  muffled?: boolean;
+}
+
+/** What her sails do to the hull range (topsails show, tanned canvas hides at night). */
+export function canvasFactor(target: Target, daylight: number): number {
+  const show = 1 + ((target.sailSightMul ?? 1) - 1) * clamp01(target.sails01);
+  const hide = 1 - (1 - (target.nightSightMul ?? 1)) * (1 - clamp01(daylight));
+  return show * hide;
+}
+
+/** Muffled blocks matter inside this range, fading out to `QUIET_TO_M`. */
+export const QUIET_FULL_M = 300;
+export const QUIET_TO_M = 500;
+/** How much a watcher's meter slows close in, in full dark, with her blocks muffled. */
+export const QUIET_SLOW = 0.35;
+
+/**
+ * Muffled blocks (plan 10 §5.6; Phase 9 piece G): on a still night a ship working close in
+ * is often heard before she's seen, the blocks creaking and the canvas slatting. Muffled,
+ * a watcher's meter fills up to 35% slower within 300 m in full dark, easing out by 500 m
+ * and at dawn. A multiplier on the watcher's vigilance for `stepMeter`.
+ */
+export function quietFactor(target: Target, daylight: number, distanceM: number): number {
+  if (!target.muffled) return 1;
+  const near = clamp01((QUIET_TO_M - distanceM) / (QUIET_TO_M - QUIET_FULL_M));
+  return 1 - QUIET_SLOW * near * (1 - clamp01(daylight));
 }
 
 /** The air between them. */
@@ -146,6 +177,7 @@ export function hullRangeM(
     ambientSightM(cond.sky) *
     tierFactor(target.tier) *
     sailFactor(target.sails01) *
+    canvasFactor(target, day) *
     silhouetteFactor(backdrop, day) *
     vantageFactor(obs.eyeM) *
     (obs.spyglass ? SPYGLASS : 1) *

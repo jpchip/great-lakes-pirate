@@ -37,6 +37,8 @@ export interface Instruments {
   lookRangeMul: number;
   /** Multiplier on a revenue search's odds of finding the goods (hidden compartments). */
   searchMul: number;
+  /** Chart voyages run this much faster (corrected charts; Phase 9 piece G). */
+  chartSpeedMul: number;
 }
 
 /** The plain barometer and spyglass every ship has. */
@@ -45,7 +47,39 @@ export const BASE_INSTRUMENTS: Readonly<Instruments> = {
   spyglassFovMul: 1,
   lookRangeMul: 1,
   searchMul: 1,
+  chartSpeedMul: 1,
 };
+
+/**
+ * What her sails and gear do to how she's seen and heard (plan 10 §5.2, §5.6; Phase 9
+ * piece G), for the perception module's `Target`.
+ */
+export interface Stealth {
+  /** How much further she's seen with all sail set (topsails). */
+  sailSightMul: number;
+  /** How far she's seen in full dark (dark-tanned sails). */
+  nightSightMul: number;
+  /** Muffled blocks: watchers close in at night are slower to notice her. */
+  muffled: boolean;
+}
+
+export const NO_STEALTH: Readonly<Stealth> = {
+  sailSightMul: 1,
+  nightSightMul: 1,
+  muffled: false,
+};
+
+export function stealthOf(upgrades: readonly string[] | undefined): Stealth {
+  const out: Stealth = { ...NO_STEALTH };
+  for (const id of upgrades ?? []) {
+    const e = upgradeDef(id)?.effects;
+    if (!e) continue;
+    out.sailSightMul *= e.sailSightMul ?? 1;
+    out.nightSightMul *= e.nightSightMul ?? 1;
+    out.muffled ||= !!e.muffled;
+  }
+  return out;
+}
 
 /**
  * The weapon mods' effect on her guns (plan 10 §5.4; Phase 6 piece E): the multipliers
@@ -120,6 +154,7 @@ export function fitShip(
   let sailChangeMul = 1;
   let anchorHoldMul = 1;
   let leakMul = 1;
+  let lightAirMul = 1;
   const safe = [0, 0, 0, 0];
   let shallowWarnDrafts = baseRules.shallowWarnDrafts;
   const instruments: Instruments = { ...BASE_INSTRUMENTS };
@@ -134,6 +169,7 @@ export function fitShip(
     sailChangeMul *= e.sailChangeMul ?? 1;
     anchorHoldMul *= e.anchorHoldMul ?? 1;
     leakMul *= e.leakMul ?? 1;
+    lightAirMul *= e.lightAirMul ?? 1;
     e.safeWindKn?.forEach((kn, i) => (safe[i] = (safe[i] ?? 0) + kn));
     if (e.shallowWarnDrafts) shallowWarnDrafts = Math.max(shallowWarnDrafts, e.shallowWarnDrafts);
     if (e.forecastHours)
@@ -141,6 +177,7 @@ export function fitShip(
     instruments.spyglassFovMul *= e.spyglassFovMul ?? 1;
     instruments.lookRangeMul *= e.lookRangeMul ?? 1;
     instruments.searchMul *= e.searchMul ?? 1;
+    instruments.chartSpeedMul *= e.chartSpeedMul ?? 1;
   }
   const record: SailShipRecord = {
     ...base,
@@ -149,6 +186,7 @@ export function fitShip(
     cargoCapacity: Math.floor(base.cargoCapacity * cargoMul),
     draftFullM: base.draftFullM + draftFullM,
     sailChangeTimeS: base.sailChangeTimeS * sailChangeMul,
+    ...(lightAirMul !== 1 ? { lightAirMul: (base.lightAirMul ?? 1) * lightAirMul } : {}),
   };
   const s = baseRules.safeWindKn;
   const rules: HazardRules = {

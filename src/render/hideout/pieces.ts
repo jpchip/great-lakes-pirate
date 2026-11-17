@@ -79,6 +79,9 @@ const WATER = 0x1f2f36;
 const BRUSH = [0x55603a, 0x4a5530, 0x6b6a3c] as const;
 const PAINT_WHITE = 0xe2dccb;
 const GILT = 0xc8a24a;
+const CANVAS = 0xd9cfb4;
+const CANVAS_DARK = 0x6a4a34;
+const PAPER = 0xe4dcc4;
 
 export type Placement = 'cell' | 'edge' | 'roof' | 'prop' | 'water';
 export type Category =
@@ -1419,6 +1422,208 @@ function catalog(): PieceDef[] {
         out.body.push(box(0.25, 0.05, 0.25, -0.35, 0.82, 0.8, s.light));
       },
       { lamp: { x: -0.4, y: 0.3, z: -0.6, radiusM: 3.5, color: FIRE } },
+    ),
+  );
+
+  // Phase 9's four stations (plan 09 §7.1; Phase 9 piece G).
+  defs.push(
+    prop(
+      'build.sail_loft',
+      'Sail loft',
+      'station',
+      ['timber'],
+      (s, out) => {
+        // A long cutting table with a sail spread on it, palms and a fid; behind it a rack
+        // of canvas bolts and coils of line, and a half-sewn sail hung from a spar.
+        out.body.push(box(3.3, 0.08, 1.1, 0, 0.74, -0.2, s.light));
+        for (const [x, z] of [
+          [-1.55, -0.68],
+          [1.55, -0.68],
+          [-1.55, 0.28],
+          [1.55, 0.28],
+          [0, -0.68],
+          [0, 0.28],
+        ] as const)
+          out.body.push(box(0.09, 0.74, 0.09, x, 0, z, s.dark));
+        out.body.push(box(3.1, 0.04, 0.9, 0, 0.18, -0.2, s.main));
+        // The canvas on the table, its edge hanging over the near side.
+        out.body.push(box(2.6, 0.015, 1.0, -0.2, 0.82, -0.2, CANVAS));
+        out.body.push(
+          prismXY(
+            [
+              [-1.5, 0.83],
+              [1.1, 0.83],
+              [0.7, 0.35],
+              [-1.3, 0.45],
+            ],
+            0.015,
+            -0.71,
+            CANVAS,
+          ),
+        );
+        for (let k = 0; k < 5; k++)
+          out.body.push(box(0.02, 0.018, 0.9, -1.2 + k * 0.5, 0.825, -0.2, ROPE));
+        out.body.push(box(0.14, 0.04, 0.1, 1.3, 0.82, -0.4, 0x5a3f2c));
+        out.body.push(frustum(0.005, 0.03, 0.25, 5, 1.35, 0.82, 0.05, s.light));
+        // The rack behind, with bolts of canvas and coils of line.
+        for (const x of [-1.5, 0, 1.5]) out.body.push(box(0.08, 1.3, 0.08, x, 0, 0.75, s.dark));
+        for (const y of [0.35, 0.85]) out.body.push(box(3.1, 0.05, 0.4, 0, y, 0.75, s.main));
+        for (let k = 0; k < 4; k++)
+          out.body.push(logX(0.12, 0.6, 8, -1.1 + k * 0.7, 0.52, 0.75, CANVAS));
+        for (const x of [-0.9, -0.3, 0.5]) out.body.push(cyl(0.17, 0.12, 8, x, 0.9, 0.75, ROPE));
+        out.body.push(cyl(0.12, 0.1, 8, 1.1, 0.9, 0.75, 0x6a5a3c));
+        // A spar on the rack's posts with a sail hanging half sewn.
+        out.body.push(logX(0.05, 3.2, 6, 0, 1.36, 0.85, s.light));
+        out.body.push(
+          prismXY(
+            [
+              [-1.2, 1.34],
+              [0.9, 1.34],
+              [0.5, 0.55],
+              [-1.0, 0.95],
+            ],
+            0.02,
+            0.98,
+            CANVAS_DARK,
+          ),
+        );
+      },
+      { footprint: [2, 1] },
+    ),
+  );
+  defs.push(
+    prop(
+      'build.smokehouse',
+      'Smokehouse',
+      'station',
+      ['plank'],
+      (s, out) => {
+        // A board-and-batten shed on a stone sill, a gable roof with a smoke vent at the
+        // ridge, a door, and the firebox outside its end with the flue running in.
+        out.body.push(box(3.1, 0.25, 1.7, -0.2, 0, 0, SHADES.flagstone.dark));
+        out.body.push(box(3.0, 1.6, 1.6, -0.2, 0.25, 0, s.main));
+        for (let x = -1.6; x <= 1.2; x += 0.35) {
+          out.body.push(box(0.06, 1.6, 0.03, x, 0.25, -0.81, s.dark));
+          out.body.push(box(0.06, 1.6, 0.03, x, 0.25, 0.81, s.dark));
+        }
+        out.body.push(box(0.8, 1.45, 0.04, -0.6, 0.25, -0.82, s.light));
+        out.body.push(box(0.06, 0.06, 0.05, -0.3, 0.95, -0.85, IRON));
+        for (const y of [0.45, 1.4]) out.body.push(box(0.6, 0.05, 0.03, -0.6, y, -0.85, IRON));
+        const roof = prismXY(
+          [
+            [-1.05, 0],
+            [1.05, 0],
+            [0, 0.75],
+          ],
+          3.3,
+          0,
+          SHADES.shingle.dark,
+        );
+        out.body.push(roof.rotateY(Math.PI / 2).translate(-0.2, 1.85, 0));
+        // The vent: a little roof raised over a gap at the ridge.
+        out.body.push(box(1.2, 0.18, 0.3, -0.2, 2.55, 0, 0x1c1a18));
+        out.body.push(box(1.3, 0.05, 0.5, -0.2, 2.73, 0, SHADES.shingle.main));
+        // The firebox: a stone box at the far end, glowing, with its flue into the shed.
+        out.body.push(box(0.6, 0.6, 0.8, 1.6, 0, 0, SHADES.brownstone.main));
+        out.body.push(box(0.62, 0.04, 0.82, 1.6, 0.6, 0, SHADES.brownstone.light));
+        out.lit.push(box(0.03, 0.22, 0.4, 1.91, 0.1, 0, FIRE));
+        out.body.push(box(0.3, 0.3, 0.3, 1.45, 0.6, 0, SHADES.brownstone.dark));
+        // Split hardwood stacked by it.
+        for (let k = 0; k < 3; k++)
+          for (let j = 0; j < 3 - k; j++)
+            out.body.push(
+              logX(0.07, 0.5, 5, 1.6, 0.07 + k * 0.13, 0.55 + j * 0.15 + k * 0.07, s.light),
+            );
+      },
+      { lamp: { x: 2.1, y: 0.3, z: 0, radiusM: 3, color: FIRE }, footprint: [2, 1] },
+    ),
+  );
+  defs.push(
+    prop(
+      'build.powder_room',
+      'Powder room',
+      'station',
+      ['brownstone'],
+      (s, out) => {
+        // A squat stone magazine with a slab roof and an iron-strapped door, kegs ranked
+        // before it and a copper-hooped keg open on a bench for the cartridges.
+        out.body.push(box(2.6, 1.5, 1.5, -0.3, 0, 0.2, s.main));
+        for (let y = 0.3; y < 1.5; y += 0.3)
+          out.body.push(box(2.62, 0.025, 1.52, -0.3, y, 0.2, s.light));
+        out.body.push(box(2.9, 0.18, 1.8, -0.3, 1.5, 0.2, SHADES.flagstone.main));
+        out.body.push(box(0.8, 1.2, 0.06, -0.3, 0, -0.56, SHADES.timber.dark));
+        for (const y of [0.2, 0.6, 1.0]) out.body.push(box(0.84, 0.07, 0.03, -0.3, y, -0.6, IRON));
+        out.body.push(box(0.1, 0.12, 0.04, -0.05, 0.62, -0.63, COPPER));
+        // A vent slit high in the end wall.
+        out.body.push(box(0.04, 0.12, 0.4, 1.0, 1.15, 0.2, 0x1c1a18));
+        // Kegs out front and the bench.
+        for (const [x, z] of [
+          [0.75, -0.5],
+          [1.15, -0.35],
+          [0.95, -0.85],
+        ] as const)
+          barrel(out.body, x, 0, z, 0.6);
+        out.body.push(box(0.9, 0.06, 0.4, -1.3, 0.6, -0.75, SHADES.timber.light));
+        for (const x of [-1.68, -0.92])
+          out.body.push(box(0.06, 0.6, 0.35, x, 0, -0.75, SHADES.timber.dark));
+        out.body.push(frustum(0.13, 0.15, 0.3, 8, -1.45, 0.66, -0.75, BARREL));
+        out.body.push(cyl(0.155, 0.04, 8, -1.45, 0.72, -0.75, COPPER));
+        out.body.push(box(0.3, 0.05, 0.16, -1.0, 0.66, -0.75, PAPER));
+      },
+      { footprint: [2, 1] },
+    ),
+  );
+  defs.push(
+    prop(
+      'build.cartography_table',
+      'Cartography table',
+      'station',
+      ['plank'],
+      (s, out) => {
+        // A drafting table with a sloped top, a chart pinned out on it with dividers and a
+        // parallel rule, a lamp at its head, and rolled charts in a rack below.
+        for (const [x, z] of [
+          [-0.65, -0.4],
+          [0.65, -0.4],
+        ] as const)
+          out.body.push(box(0.07, 0.8, 0.07, x, 0, z, s.dark));
+        for (const [x, z] of [
+          [-0.65, 0.4],
+          [0.65, 0.4],
+        ] as const)
+          out.body.push(box(0.07, 0.95, 0.07, x, 0, z, s.dark));
+        const top = box(1.5, 0.05, 0.95, 0, 0, 0, s.light);
+        out.body.push(top.rotateX(-0.16).translate(0, 0.86, 0));
+        const chart = box(1.2, 0.012, 0.75, 0, 0.05, 0, PAPER);
+        out.body.push(chart.rotateX(-0.16).translate(0, 0.86, 0));
+        for (const [x, z, w] of [
+          [-0.2, -0.1, 0.5],
+          [0.15, 0.12, 0.35],
+        ] as const)
+          out.body.push(box(w, 0.014, 0.012, x, 0.9 + z * 0.16, z, 0x4a6878).rotateX(0));
+        out.body.push(box(0.5, 0.02, 0.06, 0.2, 0.92, -0.22, 0x3a2a1e));
+        out.body.push(strut(v(-0.45, 0.92, 0.05), v(-0.3, 1.05, 0.0), 0.008, BRASS));
+        out.body.push(strut(v(-0.3, 1.05, 0.0), v(-0.18, 0.92, 0.08), 0.008, BRASS));
+        // The lamp at the head.
+        out.body.push(cyl(0.07, 0.04, 8, 0.6, 1.0, 0.32, BRASS));
+        out.body.push(cyl(0.015, 0.25, 6, 0.6, 1.0, 0.32, BRASS));
+        out.lit.push(frustum(0.05, 0.07, 0.14, 8, 0.6, 1.2, 0.32, LAMP));
+        // A shelf below with rolled charts.
+        out.body.push(box(1.3, 0.04, 0.7, 0, 0.25, 0, s.main));
+        for (let k = 0; k < 5; k++)
+          out.body.push(
+            logX(
+              0.045,
+              0.9,
+              6,
+              -0.1 + (k % 2) * 0.15,
+              0.32 + Math.floor(k / 2) * 0.08,
+              -0.2 + k * 0.1,
+              PAPER,
+            ),
+          );
+      },
+      { lamp: { x: 0.6, y: 1.25, z: 0.32, radiusM: 3, color: LAMP } },
     ),
   );
 

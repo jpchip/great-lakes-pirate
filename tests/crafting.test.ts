@@ -60,12 +60,16 @@ const lot = (good: string, qty: number, extra: Partial<CargoStack> = {}): CargoS
 const opts = { crewTier: 1, gameSeconds: 0 };
 
 describe('crafting data', () => {
-  it('has the four Phase 8 stations, each a piece that names it', () => {
+  it("has Phase 8's four stations and Phase 9's four, each a piece that names it", () => {
     expect(STATIONS.map((s) => s.id)).toEqual([
       'station.workbench',
       'station.smithy',
       'station.cooperage',
       'station.distillery',
+      'station.sail_loft',
+      'station.smokehouse',
+      'station.powder_room',
+      'station.cartography',
     ]);
     for (const st of STATIONS) expect(structure(st.piece).functions.station).toBe(st.id);
     const stationPieces = STRUCTURES.filter((s) => s.functions.station);
