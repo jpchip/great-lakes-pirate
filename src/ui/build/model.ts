@@ -50,6 +50,19 @@ export interface BuildPanelSnapshot {
   /** Materials on hand: the hideout's storage, and the hold if she's moored here. */
   onHand: { name: string; qty: number }[];
   fromHold: boolean;
+  /**
+   * The site's concealment, percent (plan 09 §8; Phase 8 piece F): now, what makes it up,
+   * what it'll be once the ghosts are built, and who saw the place this week.
+   */
+  concealment?:
+    | {
+        value: number;
+        word: string;
+        parts: { label: string; delta: number }[];
+        planned?: { value: number; word: string };
+        spotted?: string;
+      }
+    | undefined;
   canUndo: boolean;
   canRedo: boolean;
   /** The last thing that happened ("Built 12 pieces in 9 hours"). */

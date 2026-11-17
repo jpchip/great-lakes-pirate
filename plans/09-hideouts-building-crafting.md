@@ -518,7 +518,7 @@ Screenshots are in the project files (`siskiwit-bay/`).
 
 Pieces F (after A and C) and I (after C and E) can start once this lands; E needs only A and can start now.
 
-### 16.10 Piece G: the slipway (2026-11-17)
+### 16.11 Piece G: the slipway (2026-11-17)
 
 **Result:** built. Lay a slipway down the shore at a hideout and the Slipway tab of its screen hauls her out: full repairs from your own materials, and the repair stores and improved carriages made at the bench and forge fitted on the ways. Lose her, and the abandon screen offers the slipway beside the yard: set ashore there without a ship, you build a new schooner and go aboard her. Screenshots are in the project files (`slipway/`).
 
@@ -534,10 +534,31 @@ Pieces F (after A and C) and I (after C and E) can start once this lands; E need
 
 Calls made in the piece (Jared can override): repairs cost materials, not money, and are slower than a yard; the rescuer will set you ashore at the hideout (a castaway walks there); the hideout chosen is the one nearest the wreck; and a shipless captain can still give up and take the yard's hull from the Slipway tab, so nobody is stranded without materials.
 
+### 16.10 Piece F: hideout life (2026-11-16)
+
+**Result:** built. Sleep in a bunk to lay low, pursuit ends at a hideout's anchorage, each site's concealment shows in the build palette, being seen there gets talked about and draws the cutter, and the quarry and the logging camp give salvage a season.
+
+| Piece | Where | Notes |
+|---|---|---|
+| Rules | `src/sim/hideouts/life.ts` | Pure: sleep hours, concealment, spot range, spotted for a week, the salvage stock |
+| Sleep | `src/gameplay/hideout-life.ts`, `src/ui/hideout/SleepDialog.tsx`, `hideouts.ts` | F at a built bunk ("Sleep in the bunk") opens the choice: until dawn, noon or dusk, or eight hours. The clock runs on in world ticks with the law told you're lying low, then the game saves. Refused with the law on your tail |
+| Laying low | `tickLaw(..., layLow)`, `wanted_tiers.json` `decay.layLowFactor` | Asleep at a hideout, its region's heat decays 3× the away rate (12× the rate with you there awake). Tier 4's floor still holds: laying low is decay, not a reduction action (06 §3.3) |
+| Pursuit ends | `CutterSense.refuge`, `law-at-sea.ts` | In a claimed hideout's anchorage, the *Morrill* or the tug breaks off ("breaks off: you're home"), the chart lock lifts, and none starts while you lie there. A cutter you fired on breaks off too. If she had you in sight, the site is spotted (06 §5.4) |
+| Autosave on leaving | `hideout-life.ts` | Sailing out of a hideout's anchorage or casting off its pier saves |
+| Concealment | `concealmentOf` | The site's base, + screens and shutters (up to +0.15), − chimney and still smoke, − lamps after dark (smoke and lamps together at most −0.3), − 0.1 for your ship lying there, − the size past 60 pieces (up to −0.15), − 0.05 for an upper storey (roofs don't count). Words: well hidden ≥ 75%, hidden ≥ 50%, noticeable ≥ 30%, in plain sight. The build palette shows it, what it'll be once the ghosts are built, and who saw the place. Stockton's starter shack is 61% |
+| Spotted | `HideoutSpotted`, `hideouts[id].spotted` | With your ship at the site or you ashore in its bounds, a ship under way within `1600 m × (1 − c)²` (60% at night) of the anchorage or the site sees it: 256 m at Stockton by day. Once per 6 game hours. For a week (a game day), the saloons of its region and the next tell of it (new rumor kind `spotted`, "Talk of you"), and the *Morrill*'s sorties weigh its region +6 (`law_actors.json` `spottedPull`, about a Hunted region's pull). Nothing ever raids it |
+| Salvage | `sites.json` `salvage`, island prompts | F at the Stockton quarry's dressed blocks or the camp's lumber piles lifts a 4 CU load (20 CU a season, only from your own claim). Carrying slows you as a crate does, no crouching. F at your storage pieces stacks it in the stores; F at the rowboat puts it in the hold. Going aboard any other way leaves it on the pile. The Stockton quarry is about 480 m from the hideout, so the boat is the way to carry it there |
+| Save | `hideoutsSchema` | Optional `spotted` and `salvage` per hideout, no version bump |
+| Dev | `__glpLife` | openSleep, sleep, refuge, concealment, spotted, talk, spot, load, hold, bunk, piles, heat |
+| Tests | `tests/hideout-life.test.ts`, `e2e/hideout-life.spec.ts` | Sleep hours; lay-low decay against away and present, only its region, the tier-4 floor; the cutter breaking off, sawIt, hostile; concealment parts; spot range; spotted for a week; the lean; the talk by region; salvage stock and season; the save. The e2e sleeps at Stockton with heat, carries brownstone to the boat and to the stores, and sees the palette's spotted line |
+
+**Not in piece F:** the island posse on foot doesn't break off at the build bounds (it doesn't search yet; Phase 9). Carrying a load shows no crate in your arms. The refuge was checked in unit tests and not driven through a zone chase in the e2e. Screenshots are in the project files (`hideout-life/`).
+
 ---
 
 ## Changelog
 - v0.11: Phase 8 piece G built the slipway (§16.10): its slope rule, full repairs and crafted upgrades fitted on the ways, shipless after a sinking with a new schooner built there, and the abandon screen's choice.
+- v1.0: Phase 8 piece F built (§16.10): sleeping in a bunk lays low, pursuit ends at the anchorage, concealment in the palette, being spotted (talk and the cutter's lean), salvage at the quarry and the camp.
 - v0.9: Phase 8 piece C built (§16.9): build mode, Stockton's and Siskiwit's build bounds in the walked scene, the pre-built shack and a short pier replacing the prefabs.
 - v0.10: Phase 8 piece E built crafting (§16.4): stations, recipes and items data, crafting from a hideout's storage over game time, the still's passive production capped at a batch a week, re-crating, the false-light rig, two crafted upgrades, and the Workshop tab.
 - v0.8: Phase 8 piece B built: the hideout kit, its instanced view and proxy, and `bench.hideout` (§16.4).

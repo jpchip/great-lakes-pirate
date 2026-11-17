@@ -27,6 +27,8 @@ import type { SmugglerSnapshot } from './port/smuggler-model';
 import { BoardingScreen } from './boarding/BoardingScreen';
 import type { BoardingActions, BoardingSnapshot } from './boarding/model';
 import { LieDialog, StashScreen } from './stash/StashScreen';
+import { SleepDialog } from './hideout/SleepDialog';
+import type { SleepActions, SleepView } from '../gameplay/hideout-life';
 import type { StashSnapshot } from './stash/model';
 import type { StashActions } from '../gameplay/stash';
 import { FirstWeekPage, FirstWeekTracker } from './hud/FirstWeek';
@@ -127,6 +129,10 @@ export interface GameUi {
   setStash(snapshot: StashSnapshot | undefined): void;
   /** The lie-at-anchor choice: true opens it, false closes it; `docked` titles it alongside. */
   setLie(open: boolean, docked?: boolean): void;
+  /** The bunk's sleep choice (Phase 8 piece F); undefined closes it. */
+  setSleep(view: SleepView | undefined): void;
+  /** The sleep choice's buttons, once hideout life is attached. */
+  attachSleep(actions: SleepActions): void;
   /** The First Week checklist (Phase 4 piece C); undefined for a run without one. */
   setFirstWeek(snapshot: FirstWeekSnapshot | undefined): void;
   /** Ambitions (Phase 8 piece H): the HUD's pinned list and the ledger's page. */
@@ -178,6 +184,8 @@ export function mountGameUi({
   const boarding = signal<BoardingSnapshot | undefined>(undefined);
   const stash = signal<StashSnapshot | undefined>(undefined);
   const lie = signal(false);
+  const sleep = signal<SleepView | undefined>(undefined);
+  let sleepActions: SleepActions | undefined;
   const lieDocked = signal(false);
   const firstWeek = signal<FirstWeekSnapshot | undefined>(undefined);
   const ambitions = signal<AmbitionsSnapshot | undefined>(undefined);
@@ -243,6 +251,9 @@ export function mountGameUi({
     } else if (stash.value || lie.value) {
       e.preventDefault();
       stashActions?.close();
+    } else if (sleep.value) {
+      e.preventDefault();
+      sleepActions?.close();
     } else if (port.value) {
       e.preventDefault();
       portActions?.close();
@@ -291,6 +302,7 @@ export function mountGameUi({
       !boarding.value &&
       !stash.value &&
       !lie.value &&
+      !sleep.value &&
       !chart.value;
     const weekShown = !!firstWeek.value && !firstWeek.value.complete && !firstWeek.value.hidden;
     return (
@@ -327,6 +339,9 @@ export function mountGameUi({
         )}
         {stash.value && stashActions && !menuOpen.value && (
           <StashScreen stash={stash.value} actions={stashActions} />
+        )}
+        {sleep.value && sleepActions && !menuOpen.value && (
+          <SleepDialog view={sleep.value} actions={sleepActions} />
         )}
         {lie.value && stashActions && !menuOpen.value && (
           <LieDialog actions={stashActions} docked={lieDocked.value} />
@@ -366,7 +381,8 @@ export function mountGameUi({
           !stash.value &&
           !jail.value &&
           !ended.value &&
-          !lie.value && (
+          !lie.value &&
+          !sleep.value && (
             <button
               type="button"
               class="hud-menu-button"
@@ -462,6 +478,12 @@ export function mountGameUi({
     },
     setStash(snapshot) {
       stash.value = snapshot;
+    },
+    setSleep(view) {
+      sleep.value = view;
+    },
+    attachSleep(actions) {
+      sleepActions = actions;
     },
     setLie(open, docked) {
       lie.value = open;

@@ -79,6 +79,8 @@ export interface PatrolWorld {
   tier(region: string): number;
   /** A gale blows at a route node (or at her position while under way). */
   gale(at: { node?: string; lane?: string; alongM?: number }): boolean;
+  /** A hideout was spotted in this region this week (Phase 8 piece F): she leans that way. */
+  spotted?(region: string): boolean;
 }
 
 const HOUR = 3600;
@@ -124,10 +126,15 @@ export function beatWeight(
   defs: LawDefs,
   regions: readonly string[],
   tier: (r: string) => number,
+  spotted?: (r: string) => boolean,
 ): number {
   const c = defs.actors.cutter;
   let w = c.baseWeight;
-  for (const r of regions) w += c.pull[Math.min(tier(r), c.pull.length - 1)] ?? 0;
+  for (const r of regions) {
+    w += c.pull[Math.min(tier(r), c.pull.length - 1)] ?? 0;
+    // A hideout seen there this week: the talk draws her (plan 09 §8).
+    if (spotted?.(r)) w += c.spottedPull;
+  }
   return w;
 }
 
@@ -228,7 +235,7 @@ export function sortieWeights(
   const c = world.defs.actors.cutter;
   const out = c.beats.map((b) => ({
     lane: b.lane,
-    weight: beatWeight(world.defs, b.regions, world.tier),
+    weight: beatWeight(world.defs, b.regions, world.tier, world.spotted),
   }));
   const top = Math.max(0, ...world.defs.regions.map((r) => world.tier(r.id)));
   const awayLane = world.lanes.get(c.away.lane);

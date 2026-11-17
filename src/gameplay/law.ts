@@ -70,6 +70,11 @@ export interface GameLaw {
   locate: (() => string | undefined) | undefined;
   setHeat(region: string, heat: number): LawEvent[];
   setTier(region: string, tier: number): LawEvent[];
+  /**
+   * The region of the hideout the captain is asleep at (Phase 8 piece F): its heat cools
+   * faster while it's set. Set for the length of a sleep, then cleared.
+   */
+  layLow: string | undefined;
   dispose(): void;
 }
 
@@ -172,6 +177,7 @@ export function attachLaw(
       return raise(fileDue(defs, world(), now()));
     },
     locate: undefined,
+    layLow: undefined,
     region: () => law.locate?.() ?? playerRegion(defs, ctx.state),
     setHeat: (region, heat) => raise(setHeat(defs, ctx.state, region, heat)),
     setTier: (region, tier) => raise(setTier(defs, ctx.state, region, tier)),
@@ -240,7 +246,16 @@ export function attachLaw(
       raise(replaceShip(defs, ctx.state, e.classId, ctx.state.player.captain.shipName, now()));
     }),
     ctx.events.on('WorldTick', ({ gameSeconds }) => {
-      raise(tickLaw(defs, world(), gameSeconds, WORLD_TICK_GAME_SECONDS / 3600, law.region()));
+      raise(
+        tickLaw(
+          defs,
+          world(),
+          gameSeconds,
+          WORLD_TICK_GAME_SECONDS / 3600,
+          law.region(),
+          law.layLow,
+        ),
+      );
     }),
   ];
   // A report due while the game was closed lands on load.

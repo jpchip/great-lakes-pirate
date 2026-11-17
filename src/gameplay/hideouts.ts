@@ -62,6 +62,8 @@ export interface Hideouts {
   prompt(at: { x: number; y: number; z: number }): HideoutPrompt | undefined;
   /** For the dev hooks: the strongbox you'd open on foot, zone meters. */
   strongbox(): { x: number; y: number; z: number; hideout: string } | undefined;
+  /** For the dev hooks: a bunk you'd sleep in, zone meters (Phase 8 piece F). */
+  bunk(): { x: number; y: number; z: number; hideout: string } | undefined;
   /**
    * Every piece of every site, placed for the renderer. `cut` hides one site's levels above
    * the one edited, but for its roofs and gables when `roofs` (a roof's being placed).
@@ -83,8 +85,14 @@ export interface HideoutsDeps {
   zone(): { id: string; frame: ZoneFrame } | undefined;
   /** The zone's ground height, meters above the lake (negative under it). */
   heightAt(x: number, z: number): number;
-  /** Opens the hideout's screen; `tab` 'slipway' at the ways (Phase 8 piece G). */
   openStash(hideoutId: string, tab?: 'slipway'): boolean;
+  /** F at a built bunk (Phase 8 piece F): the sleep choice. */
+  sleep?(hideoutId: string): void;
+  /**
+   * Something in your arms to put in the stores (piece F's salvage): the prompt at a
+   * storage piece stacks it there instead of opening the stash.
+   */
+  carrying?(): { text: string; stow(hideoutId: string): void } | undefined;
   notice(text: string): void;
 }
 
@@ -92,6 +100,8 @@ export interface HideoutsDeps {
 const REACH_M = 2.2;
 /** Reach to the head of the ways: anywhere on its dry cell. */
 const WAYS_REACH_M = 2.5;
+/** The stash is what F usually means: the bunk takes it only when this much nearer. */
+const BUNK_HANDICAP_M = 0.8;
 
 export function attachHideouts(deps: HideoutsDeps): Hideouts {
   const { state } = deps;
@@ -147,41 +157,42 @@ export function attachHideouts(deps: HideoutsDeps): Hideouts {
     for (const l of listeners) l();
   };
 
-  /** A built piece's middle in zone meters, with its floor height. */
-  const stashPoints = (): {
+  type Point = {
     x: number;
     y: number;
     z: number;
     hideout: string;
     box: boolean;
+    bed: boolean;
     ways?: boolean;
-  }[] => {
-    const out: {
-      x: number;
-      y: number;
-      z: number;
-      hideout: string;
-      box: boolean;
-      ways?: boolean;
-    }[] = [];
+  };
+  /** Built storage pieces, strongboxes and bunks, and the head of each ways: zone meters. */
+  const stashPoints = (): Point[] => {
+    const out: Point[] = [];
     for (const s of sites()) {
       for (const r of placedRender(s.grid, s.build)) {
         if (!r.built) continue;
         const f = structure(r.id).functions;
-        if (!f.strongbox && !f.storageCu) continue;
+        if (!f.strongbox && !f.storageCu && !f.bed) continue;
         const p = siteToZone(s.frame, r.x, r.z);
-        out.push({ ...p, y: s.frame.baseM + r.y, hideout: s.hideoutId, box: !!f.strongbox });
+        out.push({
+          ...p,
+          y: s.frame.baseM + r.y,
+          hideout: s.hideoutId,
+          box: !!f.strongbox,
+          bed: !!f.bed && !f.storageCu && !f.strongbox,
+        });
       }
       // The head of the ways (piece G): the slipway's work is done from its dry end.
       const head = slipwayHead(s.grid, s.build);
       if (head) {
         const p = siteToZone(s.frame, head.x, head.z);
         const y = Math.max(0, deps.heightAt(p.x, p.z));
-        out.push({ ...p, y, hideout: s.hideoutId, box: false, ways: true });
+        out.push({ ...p, y, hideout: s.hideoutId, box: false, bed: false, ways: true });
       }
     }
-    // The strongbox first, so it's the one named when both are in reach.
-    return out.sort((a, b) => Number(b.box) - Number(a.box));
+    // The strongbox first, so it's the one named when both are in reach; bunks last.
+    return out.sort((a, b) => Number(b.box) - Number(a.box) || Number(a.bed) - Number(b.bed));
   };
 
   return {
@@ -229,30 +240,51 @@ export function attachHideouts(deps: HideoutsDeps): Hideouts {
       return out;
     },
     prompt(at) {
+      // The head of the ways: the slipway's work, from its dry end (Phase 8 piece G).
       for (const p of stashPoints()) {
-        if (p.ways) {
-          if (Math.hypot(at.x - p.x, at.z - p.z) > WAYS_REACH_M) continue;
-          if (Math.abs(at.y - p.y) > 2) continue;
-          return {
-            text: 'Work at the slipway',
-            act: () => {
-              if (!deps.openStash(p.hideout, 'slipway')) deps.notice('Not now');
-            },
-          };
-        }
-        if (Math.hypot(at.x - p.x, at.z - p.z) > REACH_M) continue;
-        if (Math.abs(at.y - p.y) > 1.6) continue;
+        if (!p.ways) continue;
+        if (Math.hypot(at.x - p.x, at.z - p.z) > WAYS_REACH_M) continue;
+        if (Math.abs(at.y - p.y) > 2) continue;
         return {
-          text: p.box ? 'Open the stash' : 'Open the stores',
+          text: 'Work at the slipway',
           act: () => {
-            if (!deps.openStash(p.hideout)) deps.notice('Not now');
+            if (!deps.openStash(p.hideout, 'slipway')) deps.notice('Not now');
           },
         };
       }
-      return undefined;
+      const load = deps.carrying?.();
+      const near = stashPoints().filter(
+        (p) =>
+          !p.ways && Math.hypot(at.x - p.x, at.z - p.z) <= REACH_M && Math.abs(at.y - p.y) <= 1.6,
+      );
+      if (load) {
+        const p = near.find((q) => !q.bed);
+        return p && { text: load.text, act: () => load.stow(p.hideout) };
+      }
+      // A bunk when it's clearly the nearest thing in reach (by a step); else the strongbox,
+      // then the stores.
+      const reach = (p: Point): number =>
+        Math.hypot(at.x - p.x, at.z - p.z) + (p.bed ? BUNK_HANDICAP_M : 0);
+      const nearest = [...near].sort((a, b) => reach(a) - reach(b))[0];
+      const sleep = deps.sleep;
+      if (nearest?.bed && sleep) {
+        return { text: 'Sleep in the bunk', act: () => sleep(nearest.hideout) };
+      }
+      const p = near.find((q) => !q.bed);
+      if (!p) return undefined;
+      return {
+        text: p.box ? 'Open the stash' : 'Open the stores',
+        act: () => {
+          if (!deps.openStash(p.hideout)) deps.notice('Not now');
+        },
+      };
     },
     strongbox() {
       const b = stashPoints().find((p) => p.box);
+      return b && { x: b.x, y: b.y, z: b.z, hideout: b.hideout };
+    },
+    bunk() {
+      const b = stashPoints().find((p) => p.bed);
       return b && { x: b.x, y: b.y, z: b.z, hideout: b.hideout };
     },
     draw(cut) {

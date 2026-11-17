@@ -150,6 +150,16 @@ const REFUSALS: Record<StashRefusal, string> = {
   noCash: "There isn't that much in the strongbox.",
 };
 
+/** One world tick, as the sailing mode runs it: the clock on, `WorldTick`, `DayChanged`. */
+export function runWorldTick(ctx: GameContext): void {
+  const clock = ctx.state.environment.clock;
+  const before = dayAndHour(clock.gameSeconds).day;
+  const n = advanceGameTime(clock, WORLD_TICK_GAME_SECONDS);
+  for (let i = 0; i < n; i++) ctx.events.emit('WorldTick', { gameSeconds: clock.gameSeconds });
+  const after = dayAndHour(clock.gameSeconds).day;
+  if (after !== before) ctx.events.emit('DayChanged', { day: after });
+}
+
 export function attachStash(opts: StashControlOptions): StashControl {
   const { ctx, economy, hazards } = opts;
   const now = (): number => ctx.state.environment.clock.gameSeconds;
@@ -309,15 +319,7 @@ export function attachStash(opts: StashControlOptions): StashControl {
   };
   const current = () => (openHideout ? hideouts()[openHideout] : undefined);
 
-  /** One world tick, as the sailing mode runs it. */
-  const tick = (): void => {
-    const clock = ctx.state.environment.clock;
-    const before = dayAndHour(clock.gameSeconds).day;
-    const n = advanceGameTime(clock, WORLD_TICK_GAME_SECONDS);
-    for (let i = 0; i < n; i++) ctx.events.emit('WorldTick', { gameSeconds: clock.gameSeconds });
-    const after = dayAndHour(clock.gameSeconds).day;
-    if (after !== before) ctx.events.emit('DayChanged', { day: after });
-  };
+  const tick = (): void => runWorldTick(ctx);
   /** The clock run on through a spell of work, world ticks and weather with it. */
   const runFor = (seconds: number): void => {
     const ticks = Math.max(1, Math.round(seconds / WORLD_TICK_GAME_SECONDS));

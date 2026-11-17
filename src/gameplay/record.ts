@@ -4,6 +4,7 @@ import { formatCents } from '../sim/economy/knowledge';
 import { portInfo } from '../sim/economy/defs';
 import { crimeDef, fameTier, fameTierName, tierDef, type LawDefs } from '../sim/law/defs';
 import { log, statsOf } from '../sim/run/record';
+import { hideoutPlace } from '../sim/hideouts/stash';
 
 /**
  * The run's record in the running game (plan 12 §9–10; Phase 5 piece D): the counters the
@@ -25,6 +26,7 @@ export function attachRecord(ctx: GameContext, defs: LawDefs): () => void {
   const good = (id: string): string => gameEconomy().goods.get(id)?.name ?? id;
   const port = (id: string): string => portInfo(id)?.name ?? id;
   const region = (id: string): string => defs.regionById.get(id)?.name ?? id;
+  const place = (hideout: string): string => hideoutPlace(hideout) ?? 'the hideout';
   const ev = ctx.events;
   const offs = [
     ev.on('PortVisited', (e) => write(`Made fast at ${port(e.port)}.`)),
@@ -122,6 +124,19 @@ export function attachRecord(ctx: GameContext, defs: LawDefs): () => void {
           ? 'Out on bail.'
           : `Out of the lockup after ${e.weeks} week${e.weeks === 1 ? '' : 's'}.`,
       ),
+    ),
+    // Hideout life (Phase 8 piece F).
+    ev.on('SleptAtHideout', (e) =>
+      write(`Lay low at ${place(e.hideout)} while ${region(e.region)} cooled.`),
+    ),
+    ev.on('PursuitEndedAtHideout', (e) =>
+      write(
+        `Made ${place(e.hideout)} with ${e.by === 'law.morrill' ? 'the Morrill' : 'the tug'} astern; she broke off.`,
+      ),
+    ),
+    ev.on('HideoutSpotted', (e) => write(`Seen lying at ${place(e.hideout)}. There'll be talk.`)),
+    ev.on('SalvageTaken', (e) =>
+      write(`Carried ${e.qty} CU of ${good(e.good).toLowerCase()} out of the ruins.`),
     ),
   ];
   return () => offs.forEach((off) => off());
