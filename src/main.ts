@@ -44,7 +44,8 @@ import { attachContracts, contractsOf } from './gameplay/contracts';
 import { attachSmugglers, type SmugglerControl } from './gameplay/smuggler';
 import { attachStash, type StashControl } from './gameplay/stash';
 import { withWorkshop } from './sim/hideouts/crafting';
-import { siteDef, SITES } from './sim/hideouts/stash';
+import { siteAnchorage, siteDef, siteGeo, SITES } from './sim/hideouts/stash';
+import { slipwayHead, withSlipway } from './sim/hideouts/slipway';
 import { LIE_REFUSALS, type LieUntil } from './sim/hideouts/lie-at-anchor';
 import { attachShipyard } from './gameplay/shipyard';
 import { BASE_INSTRUMENTS, type Instruments } from './sim/shipyard/fit';
@@ -1199,6 +1200,10 @@ async function boot(): Promise<void> {
         stashRef.current?.actions.craft(recipe, batches, stackIndex),
       takeThing: (id, qty) => stashRef.current?.actions.takeThing(id, qty),
       stashThing: (id, qty) => stashRef.current?.actions.stashThing(id, qty),
+      slipwayRepair: () => stashRef.current?.actions.slipwayRepair(),
+      slipwayInstall: (id) => stashRef.current?.actions.slipwayInstall(id),
+      buildShip: () => stashRef.current?.actions.buildShip(),
+      toYard: () => stashRef.current?.actions.toYard(),
       close: () => stashRef.current?.actions.close(),
       castOff: () => stashRef.current?.actions.castOff(),
     },
@@ -1228,6 +1233,7 @@ async function boot(): Promise<void> {
       hang: () => captureRef.current?.actions.hang(),
       leave: () =>
         abandonRef.current?.open ? abandonRef.current.leave() : captureRef.current?.actions.leave(),
+      leaveAlt: () => abandonRef.current?.leaveAlt(),
     },
     onAbandon: () => void endRef.current?.('abandoned'),
     onFrontPageClosed: () => frontPageRef.current?.(),
@@ -2184,6 +2190,9 @@ async function boot(): Promise<void> {
       void saveControls.saveNow();
     },
     onProduced: (text) => showNotice(text),
+    shipyard,
+    launched: (id) => launchedAt(id),
+    toYard: (id) => abandon.toYardFrom(id),
   });
   stashRef.current = stash;
   if (import.meta.env.DEV || params.has('debug')) {
@@ -2428,6 +2437,80 @@ async function boot(): Promise<void> {
     if (ashoreRef.current?.active) ashoreRef.current.leave();
     await dockAt(port, `pier.${port.replace(/^port\./, '')}_city`);
   };
+  /**
+   * Shipless (Phase 8 piece G): set ashore at a hideout with a slipway, her zone loaded if
+   * it must be. The ship's hull lies hidden at the site's anchorage, and you stand at the
+   * head of the ways, facing down them.
+   */
+  let landingHideout: string | undefined;
+  const landAtHideout = async (hideoutId: string): Promise<void> => {
+    const h = state.hideouts?.[hideoutId];
+    const site = h && siteDef(h.siteId);
+    if (!site) return;
+    if (arena) {
+      landingHideout = hideoutId;
+      leaveArena('caught');
+      return;
+    }
+    if (ashoreRef.current?.active) ashoreRef.current.leave();
+    if (machine.mode === 'chart') travelRef.current?.towed();
+    let hull: Pose | undefined;
+    const moor = (): void => {
+      if (!zone) return;
+      const a = siteAnchorage(site, manifestFrame(zone.manifest));
+      if (!a) return;
+      hull = { x: a.x, z: a.z, heading: 0 };
+      placeShip(hull);
+      Object.assign(sailing.state, { speed: 0, sailLevel: 0, sailSetting: 0 });
+      const hz = hazards.state;
+      hz.anchor = 'down';
+      hz.anchorX = a.x;
+      hz.anchorZ = a.z;
+    };
+    if (site.zone !== zoneData.id) {
+      await enterZone(site.zone, spawnPose(zoneDef(site.zone)), { kind: 'return' }, false, moor);
+    } else moor();
+    const s = hideouts.site(hideoutId);
+    const head = s && slipwayHead(s.grid, s.build);
+    const box = hideouts.strongbox();
+    let at: { x: number; z: number; heading: number } | undefined;
+    if (s && head) {
+      const p = siteToZone(s.frame, head.x, head.z);
+      const sea = siteToZone(s.frame, head.seaward.x, head.seaward.z);
+      // A couple of meters up the beach from the head, looking down the ways.
+      const len = Math.hypot(sea.x - p.x, sea.z - p.z) || 1;
+      at = {
+        x: p.x - ((sea.x - p.x) / len) * 2,
+        z: p.z - ((sea.z - p.z) / len) * 2,
+        heading: Math.atan2(sea.x - p.x, -(sea.z - p.z)),
+      };
+    } else if (box) at = { x: box.x + 2, z: box.z + 2, heading: 0 };
+    if (!at) return;
+    ashore.landShipless(at, hull && { x: hull.x, z: hull.z });
+    document.body.dataset['shipless'] = hideoutId;
+    await saveControls.saveNow();
+  };
+  /** Off the ways: aboard the new schooner at the hideout's anchorage (piece G). */
+  const launchedAt = (hideoutId: string): void => {
+    const h = state.hideouts?.[hideoutId];
+    const site = h && siteDef(h.siteId);
+    const a = site && zone ? siteAnchorage(site, manifestFrame(zone.manifest)) : undefined;
+    if (ashoreRef.current?.active) ashoreRef.current.leave();
+    if (a) {
+      const heading = shipPose().heading;
+      placeShip({ x: a.x, z: a.z, heading });
+      Object.assign(sailing.state, { speed: 0, sailLevel: 0, sailSetting: 0 });
+      // Her anchor out ahead of her, as when she's anchored by hand.
+      const hz = hazards.state;
+      hz.anchor = 'down';
+      hz.anchorX = a.x + Math.sin(heading) * shipRecord.lengthM * 0.45;
+      hz.anchorZ = a.z - Math.cos(heading) * shipRecord.lengthM * 0.45;
+    }
+    shipyard.refit();
+    economy.syncLoad();
+    document.body.dataset['shipless'] = 'no';
+    hudClock = HUD_INTERVAL_S;
+  };
   const abandon: Abandon = attachAbandon({
     ctx,
     law,
@@ -2473,8 +2556,50 @@ async function boot(): Promise<void> {
     notice: (text) => showNotice(text),
     // Near land in a sea she can live in, the boat takes you off to row for it (decision 2).
     castAway: () => !arena && !inArenaSpace && (ashoreRef.current?.castAway() ?? false),
+    landAtHideout: (id) => landAtHideout(id),
+    hideoutChart: (id) => {
+      const h = state.hideouts?.[id];
+      const site = h && siteDef(h.siteId);
+      const geo = site && siteGeo(site);
+      return geo ? westernSuperiorChart().projection.geoToChart(geo) : undefined;
+    },
   });
   abandonRef.current = abandon;
+  if (import.meta.env.DEV || params.has('debug')) {
+    // The slipway (Phase 8 piece G): `__glpSlipway.lay()` builds one at a hideout's spot on
+    // the shore, `shipless()` sets you ashore there without a ship as the abandon screen's
+    // choice does, and `repair()`, `fit(id)`, `build()` and `toYard()` work the open screen.
+    const slipHook = {
+      lay: (id = 'hideout.stockton') => {
+        const h = state.hideouts?.[id];
+        if (!h) return false;
+        h.layout = withSlipway(h.layout, h.siteId);
+        hideouts.invalidate();
+        if (stash.openHideout === id) stash.open(id);
+        return true;
+      },
+      shipless: async (id = 'hideout.stockton') => {
+        if (!state.hideouts?.[id]) return false;
+        state.player.shipless = { hideout: id, since: state.environment.clock.gameSeconds };
+        await landAtHideout(id);
+        return true;
+      },
+      open: (id = 'hideout.stockton') => stash.open(id, 'slipway'),
+      repair: () => stash.actions.slipwayRepair(),
+      fit: (upgrade: string) => stash.actions.slipwayInstall(upgrade),
+      build: () => stash.actions.buildShip(),
+      toYard: () => stash.actions.toYard(),
+      state: () => ({
+        shipless: state.player.shipless,
+        ship: state.player.ship,
+        profile: state.profiles.ship,
+        ashore: ashoreRef.current?.active ?? false,
+        from: ashoreRef.current?.from,
+        mode: machine.mode,
+      }),
+    };
+    (window as unknown as { __glpSlipway: typeof slipHook }).__glpSlipway = slipHook;
+  }
   if (import.meta.env.DEV || params.has('debug')) {
     // `__glpAbandon.founder()` holes her to nothing; `abandon()` presses F; `leave()` goes aboard.
     const hook = {
@@ -2749,8 +2874,8 @@ async function boot(): Promise<void> {
     zone: () =>
       zone && !arena ? { id: zoneData.id, frame: manifestFrame(zone.manifest) } : undefined,
     heightAt: (x, z) => ctx.terrain?.heightAt(x, z) ?? -100,
-    openStash: (id) => {
-      stash.open(id);
+    openStash: (id, tab) => {
+      stash.open(id, tab);
       return stash.openHideout === id;
     },
     sleep: (id) => lifeRef.current?.openSleep(id),
@@ -4370,6 +4495,11 @@ async function boot(): Promise<void> {
         landingPort = undefined;
         void dockAt(port, `pier.${port.replace(/^port\./, '')}_city`);
       }
+      if (landingHideout && !arena && !inArenaSpace && !changingZone && !run.over) {
+        const id = landingHideout;
+        landingHideout = undefined;
+        void landAtHideout(id);
+      }
       if (sameContext && input.context === 'sailing' && input.pressed('Hail')) {
         const near = traffic.nearest(shipPose(), HAIL_RANGE_M);
         if (near && smuggler.isSmuggler(near.id)) showNotice('She shows a lantern: come alongside');
@@ -4616,6 +4746,10 @@ async function boot(): Promise<void> {
     state.player.rowboat = { state: 'stowed' };
   }
   const savedAshore = state.player.ashore;
+  // Shipless at a hideout (piece G) but not saved on foot there: set ashore there again.
+  if (state.player.shipless && !savedAshore && !state.jail && !paramDef) {
+    void landAtHideout(state.player.shipless.hideout);
+  }
   if (savedAshore && machine.mode === 'sailing' && !state.jail && !paramDef) {
     const h = hazards.state;
     const berth = savedAshore.berthId

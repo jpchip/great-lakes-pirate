@@ -13,6 +13,7 @@ import {
   type SiteFrame,
 } from '../sim/hideouts/site-frame';
 import { hideoutIdOf, SITES, type HideoutState } from '../sim/hideouts/stash';
+import { slipwayHead } from '../sim/hideouts/slipway';
 import { structure } from '../sim/hideouts/structures';
 import type { WorldState } from '../sim/world-state';
 import type { Collider } from './onfoot/colliders';
@@ -84,7 +85,7 @@ export interface HideoutsDeps {
   zone(): { id: string; frame: ZoneFrame } | undefined;
   /** The zone's ground height, meters above the lake (negative under it). */
   heightAt(x: number, z: number): number;
-  openStash(hideoutId: string): boolean;
+  openStash(hideoutId: string, tab?: 'slipway'): boolean;
   /** F at a built bunk (Phase 8 piece F): the sleep choice. */
   sleep?(hideoutId: string): void;
   /**
@@ -97,6 +98,8 @@ export interface HideoutsDeps {
 
 /** Reach to a storage piece or the strongbox. */
 const REACH_M = 2.2;
+/** Reach to the head of the ways: anywhere on its dry cell. */
+const WAYS_REACH_M = 2.5;
 /** The stash is what F usually means: the bunk takes it only when this much nearer. */
 const BUNK_HANDICAP_M = 0.8;
 
@@ -154,8 +157,16 @@ export function attachHideouts(deps: HideoutsDeps): Hideouts {
     for (const l of listeners) l();
   };
 
-  type Point = { x: number; y: number; z: number; hideout: string; box: boolean; bed: boolean };
-  /** Built storage pieces, strongboxes and bunks: middles in zone meters, floor heights. */
+  type Point = {
+    x: number;
+    y: number;
+    z: number;
+    hideout: string;
+    box: boolean;
+    bed: boolean;
+    ways?: boolean;
+  };
+  /** Built storage pieces, strongboxes and bunks, and the head of each ways: zone meters. */
   const stashPoints = (): Point[] => {
     const out: Point[] = [];
     for (const s of sites()) {
@@ -171,6 +182,13 @@ export function attachHideouts(deps: HideoutsDeps): Hideouts {
           box: !!f.strongbox,
           bed: !!f.bed && !f.storageCu && !f.strongbox,
         });
+      }
+      // The head of the ways (piece G): the slipway's work is done from its dry end.
+      const head = slipwayHead(s.grid, s.build);
+      if (head) {
+        const p = siteToZone(s.frame, head.x, head.z);
+        const y = Math.max(0, deps.heightAt(p.x, p.z));
+        out.push({ ...p, y, hideout: s.hideoutId, box: false, bed: false, ways: true });
       }
     }
     // The strongbox first, so it's the one named when both are in reach; bunks last.
@@ -222,9 +240,22 @@ export function attachHideouts(deps: HideoutsDeps): Hideouts {
       return out;
     },
     prompt(at) {
+      // The head of the ways: the slipway's work, from its dry end (Phase 8 piece G).
+      for (const p of stashPoints()) {
+        if (!p.ways) continue;
+        if (Math.hypot(at.x - p.x, at.z - p.z) > WAYS_REACH_M) continue;
+        if (Math.abs(at.y - p.y) > 2) continue;
+        return {
+          text: 'Work at the slipway',
+          act: () => {
+            if (!deps.openStash(p.hideout, 'slipway')) deps.notice('Not now');
+          },
+        };
+      }
       const load = deps.carrying?.();
       const near = stashPoints().filter(
-        (p) => Math.hypot(at.x - p.x, at.z - p.z) <= REACH_M && Math.abs(at.y - p.y) <= 1.6,
+        (p) =>
+          !p.ways && Math.hypot(at.x - p.x, at.z - p.z) <= REACH_M && Math.abs(at.y - p.y) <= 1.6,
       );
       if (load) {
         const p = near.find((q) => !q.bed);

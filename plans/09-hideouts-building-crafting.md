@@ -518,6 +518,22 @@ Screenshots are in the project files (`siskiwit-bay/`).
 
 Pieces F (after A and C) and I (after C and E) can start once this lands; E needs only A and can start now.
 
+### 16.11 Piece G: the slipway (2026-11-17)
+
+**Result:** built. Lay a slipway down the shore at a hideout and the Slipway tab of its screen hauls her out: full repairs from your own materials, and the repair stores and improved carriages made at the bench and forge fitted on the ways. Lose her, and the abandon screen offers the slipway beside the yard: set ashore there without a ship, you build a new schooner and go aboard her. Screenshots are in the project files (`slipway/`).
+
+| Part | Where | Notes |
+|---|---|---|
+| Slope rule | `src/sim/hideouts/validity.ts` | Beyond §4.3's depth rule (dry head, 1.5–4 m at the foot), the ways run straight down the shore (`askew` if the ground differs over 0.8 m across them), fall steadily (`uneven` for a hump) and no cell drops over 1.5 m from the next (`tooSteep`). Both sites have room for one beside the shack and pier on the baked ground (Stockton 48 placements, Siskiwit 18) |
+| Sim | `src/sim/hideouts/slipway.ts` | All or nothing, from the hideout's storage and the hold of a ship moored there. **Repairs:** a whole hull costs 10 lumber, 2 hardware and 2 rope and canvas, a whole rig 4 rope and canvas, each scaled by what's missing and rounded up; 16 h and 8 h a whole pool, by crew and season (a yard takes 12.5 and 6.7 and a bill). Past the kits' 80%. **Installs:** a kept upgrade out of `storage.things` into her, its own install hours; slot and gun rules as at a yard, no Fame asked (it was made at home). **New schooner:** shipless only, 30 lumber, 6 hardware, 6 rope and canvas from the shed, 72 h solo (§16.5), bare and sound |
+| Shipless | `player.shipless` in the save (optional, no version bump), `src/gameplay/abandon.ts`, `ashore.ts` | With a built slipway at any hideout, the abandon screen (rescued or rowed ashore) names the yard's worn hull and the slipway's materials and asks where you'll go. Ashore at the hideout nearest the wreck you stand at the head of the ways, the hull hidden and anchored at the site's anchorage as a castaway's is. F there: "Work at the slipway". A reload while shipless lands you there again. "Make for the yard" from the tab still takes the yard's worn hull |
+| Launch | `src/gameplay/stash.ts`, `main.ts`, `law.ts` | `ShipLaunched` (Ambitions' slipway launch counts it), aboard at the anchorage; the law treats her as a new hull (06 §2.3): a new profile, the old ship's heat gone |
+| Screen | `src/ui/stash/` (a Slipway tab), `src/ui/jail/` (a second button) | The tab shows her condition, the repair's materials and time, the fittings waiting, or, shipless, laying her down. The stash screen's title now names its site (it said Stockton Stash everywhere) |
+| Dev | `__glpSlipway` | lay, shipless, open, repair, fit, build, toYard, state |
+| Tests | `tests/slipway.test.ts`, `e2e/slipway.spec.ts` | The slope refusals, room on both baked shores, repair costs and times, installs and their refusals, the new ship and its refusals, the nearest slipway, the save. The e2e repairs and fits at Stockton, then founders, takes the slipway on the abandon screen, builds a schooner ashore and checks the new profile (criterion 11) |
+
+Calls made in the piece (Jared can override): repairs cost materials, not money, and are slower than a yard; the rescuer will set you ashore at the hideout (a castaway walks there); the hideout chosen is the one nearest the wreck; and a shipless captain can still give up and take the yard's hull from the Slipway tab, so nobody is stranded without materials.
+
 ### 16.10 Piece F: hideout life (2026-11-16)
 
 **Result:** built. Sleep in a bunk to lay low, pursuit ends at a hideout's anchorage, each site's concealment shows in the build palette, being seen there gets talked about and draws the cutter, and the quarry and the logging camp give salvage a season.
@@ -541,6 +557,7 @@ Pieces F (after A and C) and I (after C and E) can start once this lands; E need
 ---
 
 ## Changelog
+- v0.11: Phase 8 piece G built the slipway (§16.10): its slope rule, full repairs and crafted upgrades fitted on the ways, shipless after a sinking with a new schooner built there, and the abandon screen's choice.
 - v1.0: Phase 8 piece F built (§16.10): sleeping in a bunk lays low, pursuit ends at the anchorage, concealment in the palette, being spotted (talk and the cutter's lean), salvage at the quarry and the camp.
 - v0.9: Phase 8 piece C built (§16.9): build mode, Stockton's and Siskiwit's build bounds in the walked scene, the pre-built shack and a short pier replacing the prefabs.
 - v0.10: Phase 8 piece E built crafting (§16.4): stations, recipes and items data, crafting from a hideout's storage over game time, the still's passive production capped at a batch a week, re-crating, the false-light rig, two crafted upgrades, and the Workshop tab.

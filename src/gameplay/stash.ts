@@ -15,6 +15,13 @@ import {
 } from '../sim/hideouts/crafting';
 import { sailShipRecord } from '../sim/sailing/ships';
 import {
+  buildShipAtSlipway,
+  installAtSlipway,
+  repairAtSlipway,
+  SLIPWAY_REFUSALS,
+} from '../sim/hideouts/slipway';
+import { upgradeDef } from '../sim/shipyard/fit';
+import {
   LIE_REFUSALS,
   lieAtAnchor,
   lieRefusal,
@@ -63,6 +70,15 @@ export interface StashActions {
   /** Takes stores made here aboard into the lockers, or leaves some from the lockers. */
   takeThing(id: string, qty: number): string | undefined;
   stashThing(id: string, qty: number): string | undefined;
+  /**
+   * The slipway (Phase 8 piece G): haul her out and make her sound, fit an upgrade kept
+   * here, or, shipless, build a new schooner. Each runs the clock on by the work.
+   */
+  slipwayRepair(): string | undefined;
+  slipwayInstall(upgrade: string): string | undefined;
+  buildShip(): string | undefined;
+  /** Shipless at a hideout: give it up and make for the nearest yard's worn hull. */
+  toYard(): void;
   close(): void;
   castOff(): void;
 }
@@ -79,8 +95,8 @@ export interface StashControl {
   readonly lastLieText: string | undefined;
   /** Opens the storage of the hideout the ship is moored at; false if none. */
   openHere(): boolean;
-  /** Opens a hideout's storage wherever the ship is (the dev hook). */
-  open(hideoutId: string): void;
+  /** Opens a hideout's storage wherever the ship is (the dev hook); `tab` picks the view. */
+  open(hideoutId: string, tab?: StashTab): void;
   close(): void;
   /** Why lying at anchor is refused now, or undefined. */
   lieRefusal(): LieRefusal | undefined;
@@ -110,7 +126,19 @@ export interface StashControlOptions {
   afterLie(text: string): void;
   /** A still's batch ran off at a hideout: the notice to show. */
   onProduced?(text: string): void;
+  /**
+   * The ship's condition and fit (Phase 8 piece G): `sync` writes the hazard state into
+   * `player.ship` before the slipway's sums, `refit` puts `player.ship` back on her after.
+   */
+  shipyard?: { sync(): void; refit(): void };
+  /** A new schooner is off the ways at a hideout: put the captain aboard her there. */
+  launched?(hideoutId: string): void;
+  /** Shipless at a hideout, making for the yard instead. */
+  toYard?(hideoutId: string): void;
 }
+
+/** Which view of the stash screen opens: the shed, the stations, or the slipway. */
+export type StashTab = 'storage' | 'workshop' | 'slipway';
 
 const REFUSALS: Record<StashRefusal, string> = {
   badQty: 'Choose how many.',
@@ -138,6 +166,7 @@ export function attachStash(opts: StashControlOptions): StashControl {
   const hideouts = () => (ctx.state.hideouts ??= {});
   let dockedHideout: string | undefined;
   let openHideout: string | undefined;
+  let openTab: StashTab | undefined;
   let lieOpen = false;
   let lastLieText: string | undefined;
   const moored = (): 'anchored' | 'docked' | 'no' => {
@@ -175,14 +204,19 @@ export function attachStash(opts: StashControlOptions): StashControl {
     return r && LIE_REFUSALS[r];
   };
 
+  /** Shipless (piece G): the captain's ship is gone and they're ashore at a hideout. */
+  const shipless = (): boolean => !!ctx.state.player.shipless;
   /** The crew's tier, by the hull's (plan 09 §6.3: the invisible crew comes with her). */
   const crewTier = (): number => {
     const ship = ctx.state.player.ship;
+    if (shipless()) return 1;
     return ship ? (sailShipRecord(ship.classId).tier ?? 1) : 1;
   };
+  /** Her ship is moored at this hideout, so the slipway can haul her out. */
+  const shipHere = (id: string): boolean => !shipless() && hideoutHere() === id;
   /** Materials for work here: the storage, then the hold when she's moored here. */
   const sources = (id: string, h: HideoutState): Hold[] =>
-    hideoutHere() === id ? [h.storage.goods, ctx.state.player.cargo] : [h.storage.goods];
+    shipHere(id) ? [h.storage.goods, ctx.state.player.cargo] : [h.storage.goods];
 
   /** Runs every hideout's still on to now; what ran off goes into its storage. */
   const settleAll = (): void => {
@@ -218,24 +252,33 @@ export function attachStash(opts: StashControlOptions): StashControl {
         sources: sources(openHideout, h),
         stores: ctx.state.player.stores,
         crewTier: crewTier(),
+        ship: ctx.state.player.ship,
+        shipName: ctx.state.player.captain.shipName,
+        shipless: shipless(),
+        shipHere: shipHere(openHideout),
+        tab: openTab,
       }),
     );
   };
 
-  const open = (id: string): void => {
+  const open = (id: string, tab?: StashTab): void => {
     if (!hideouts()[id]) return;
     const wasOpen = !!openHideout || lieOpen;
     if (lieOpen) {
       lieOpen = false;
       opts.showLie(null);
     }
+    // A fresh screen opens on the tab asked for; shipless, the slipway is what matters.
+    if (!wasOpen || tab) openTab = tab ?? (shipless() ? 'slipway' : undefined);
     openHideout = id;
+    opts.shipyard?.sync();
     refresh();
     if (!wasOpen) opts.onOpen(true);
   };
   const close = (): void => {
     if (!openHideout) return;
     openHideout = undefined;
+    openTab = undefined;
     opts.showStash(undefined);
     opts.onOpen(false);
   };
@@ -277,6 +320,24 @@ export function attachStash(opts: StashControlOptions): StashControl {
   const current = () => (openHideout ? hideouts()[openHideout] : undefined);
 
   const tick = (): void => runWorldTick(ctx);
+  /** The clock run on through a spell of work, world ticks and weather with it. */
+  const runFor = (seconds: number): void => {
+    const ticks = Math.max(1, Math.round(seconds / WORLD_TICK_GAME_SECONDS));
+    for (let k = 0; k < ticks; k++) tick();
+    ctx.weather.tick(now(), opts.shipPose(), ctx.sea);
+  };
+  const work = () => ({ crewTier: crewTier(), gameSeconds: now() });
+  /** Why the slipway can't take her: she's not here, or there's no ship. */
+  const haulRefusal = (id: string): string | undefined => {
+    if (shipless()) return SLIPWAY_REFUSALS.shipless;
+    if (!shipHere(id)) return 'Bring her into the anchorage or alongside first.';
+    return undefined;
+  };
+  const goodsText = (goods: Record<string, number>): string =>
+    Object.entries(goods)
+      .map(([g, n]) => `${n} ${economy.defs.goods.get(g)?.name.toLowerCase() ?? g}`)
+      .join(', ');
+
   const lie = (until: LieUntil): string | undefined => {
     const why = refusalText();
     if (why) return why;
@@ -412,13 +473,96 @@ export function attachStash(opts: StashControlOptions): StashControl {
         refresh();
         return undefined;
       },
+      slipwayRepair() {
+        const id = openHideout;
+        const h = current();
+        if (!id || !h) return 'The shed is shut.';
+        const why = haulRefusal(id);
+        if (why) return why;
+        opts.shipyard?.sync();
+        const ship = ctx.state.player.ship;
+        if (!ship) return SLIPWAY_REFUSALS.shipless;
+        const r = repairAtSlipway(h, ship, sources(id, h), work());
+        if (!r.ok) return SLIPWAY_REFUSALS[r.reason];
+        opts.shipyard?.refit();
+        economy.syncLoad();
+        runFor(r.event.seconds);
+        ctx.events.emit('ShipRepaired', {
+          port: id,
+          how: 'slipway',
+          hull01: 1,
+          rigging01: 1,
+          costCents: 0,
+          hours: r.event.seconds / 3600,
+        });
+        const text = `You hauled her out and worked ${spanText(r.event.seconds)} on the ways: she's sound (${goodsText(r.event.used)}).`;
+        refresh();
+        opts.afterLie(text);
+        return undefined;
+      },
+      slipwayInstall(upgrade) {
+        const id = openHideout;
+        const h = current();
+        if (!id || !h) return 'The shed is shut.';
+        const why = haulRefusal(id);
+        if (why) return why;
+        opts.shipyard?.sync();
+        const ship = ctx.state.player.ship;
+        if (!ship) return SLIPWAY_REFUSALS.shipless;
+        const r = installAtSlipway(h, ship, upgrade, work());
+        if (!r.ok) return SLIPWAY_REFUSALS[r.reason];
+        opts.shipyard?.refit();
+        runFor(r.event.seconds);
+        ctx.events.emit('UpgradeInstalled', {
+          port: id,
+          upgrade,
+          cents: 0,
+          hours: r.event.seconds / 3600,
+        });
+        const name = upgradeDef(upgrade)?.name.toLowerCase() ?? upgrade;
+        const text = `You fitted the ${name} on the ways (${spanText(r.event.seconds)}).`;
+        refresh();
+        opts.afterLie(text);
+        return undefined;
+      },
+      buildShip() {
+        const id = openHideout;
+        const h = current();
+        if (!id || !h) return 'The shed is shut.';
+        const r = buildShipAtSlipway(h, shipless(), [h.storage.goods], now());
+        if (!r.ok) return SLIPWAY_REFUSALS[r.reason];
+        runFor(r.event.seconds);
+        const player = ctx.state.player;
+        player.ship = r.event.ship;
+        delete player.shipless;
+        opts.shipyard?.refit();
+        ctx.events.emit('ShipLaunched', {
+          from: 'slipway',
+          hideout: id,
+          classId: r.event.ship.classId,
+        });
+        close();
+        opts.launched?.(id);
+        const place = siteDef(h.siteId)?.place ?? 'the hideout';
+        opts.afterLie(
+          `${spanText(r.event.seconds)} on the ways at ${place}, and she's launched: the ${player.captain.shipName}, a schooner of your own building.`,
+        );
+        return undefined;
+      },
+      toYard() {
+        const id = openHideout;
+        if (!id || !shipless()) return;
+        close();
+        opts.toYard?.(id);
+      },
       close() {
         close();
         closeLie();
       },
       castOff() {
         close();
-        opts.castOff();
+        // Shipless there's nothing to cast off: F just closes the screen.
+        if (!shipless()) opts.castOff();
       },
     },
     dispose() {

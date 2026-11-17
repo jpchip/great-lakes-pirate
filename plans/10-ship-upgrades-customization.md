@@ -361,7 +361,12 @@ The four instruments and the anchor move to a new hull; sails, planking, the hol
 
 ---
 
+## 18. Phase 8 Piece G: The Slipway (2026-11-17)
+
+Hideout repairs (§8) and shipless shipbuilding (§9) are built at a hideout's slipway; the details are in [09 §16.10](09-hideouts-building-crafting.md). In numbers: a full hull's repair is 10 lumber, 2 hardware and 2 rope and canvas (tar folded in) and 16 game hours solo, a rig 4 rope and canvas and 8 hours, scaled by what's missing; the crafted repair stores and improved carriages are fitted there in their install hours; and §9's T1 is 30 lumber, 6 hardware and 6 rope and canvas over three game days (09 §16.5's smaller numbers, not §9's ~40/10/8/8/4). A schooner launched there is a new hull to the law.
+
 ## Changelog
+- v0.6: Phase 8 piece G (§18): slipway repairs, installs of crafted upgrades and shipless shipbuilding.
 - v0.6: Phase 6 as built (§13): the shady shipwright's guns and weapon mods, powder at the chandlery, the worn hull after abandoning ship.
 - v0.5: Phase 4 piece G, second half (§17): the shipyard, trade-in, ten upgrades, repairs and kits, `player.ship` in the save.
 - v0.4: Phase 4 piece G, first half (§16): the T2 schooner's record, lines, deck layout, yawl boat and handling.
