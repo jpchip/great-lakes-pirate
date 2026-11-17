@@ -261,8 +261,8 @@ Each of these gets its own plan doc. Summaries capture decisions plus remaining 
 | 5 | **Law, Fame & Wanted** | Heat has teeth | Cutters, lighthouse detection, Fame/Wanted meters, jail, port law, newspapers v1, the sailing speed pass. **Built as 0.5.0** ([06 §14](06-fame-wanted-law-lighthouses.md)) |
 | 6 | **Piracy & Combat** | At-sea crime | Freighter AI, cannons, boarding/surrender, sinking, fences, the law's answer to piracy, abandon ship, wrecks. **Built as 0.6.0** ([07 §14](07-combat-boarding-targets.md)) |
 | 7 | **On Foot: Docks & Islands** | The night loop + island exploration | On-foot mode and the rowboat, the captain's body, one docks district (**Bayfield**, with the lockup for jail and jailbreaks), stealth AI, theft, the walkable saloon and back room, the whiskey trick, one fully walkable island (Stockton). **Built as 0.7.0** ([08 §20](08-docks-district-stealth.md)) |
-| 8 | **Hideouts** | Base loop | Grid building, crafting, storage, two MVP hideouts (seven sites by Beta) |
-| 9 | **Seasons & Secrets** | Depth | Full season cycle (winter rules), island secrets, wrecking, events, newspapers, permadeath polish |
+| 8 | **Hideouts** | Base loop | Grid building and build mode, storage, crafting (four stations, the still's passive production), the slipway (repairs, crafted upgrades, a new T1 when shipless), laying low and pursuit ending at a hideout, two MVP hideouts (Stockton and Siskiwit Bay, the Lumberjack's start; seven sites by Beta), Ambitions. Tracked in [#136](https://github.com/jpchip/great-lakes-pirate/issues/136) ([09 §16](09-hideouts-building-crafting.md)) |
+| 9 | **Seasons & Secrets** | Depth | Full season cycle (winter rules), island secrets, wrecking, the event system and letters, newspapers, permadeath polish |
 | 10 | **Expand the Lakes** | More world | Lake Michigan (Seavey's home waters), then Huron, Erie, Ontario, and the Soo Locks (before 1.0; decided 2026-10-23) |
 | 11 | **Polish & Release** | Ship it | Audio, UI polish, performance, tutorial, playtests |
 
@@ -416,10 +416,12 @@ All planned documents are drafted and their open questions answered. Next:
 | 2026-10-24 | Spike S7: C = 8, R = 24, R_foot = 6 and freighter display scale 0.85 confirmed by playtest (03 §15). |
 | 2026-10-25 | Ships are built by a procedural hull generator; Meshy is optional, for organic one-offs only (14 §5). |
 | 2026-10-25 | Spike S4: art style B (toon with per-object ink outlines) picked; costs nothing measurable on the baseline laptop (14 §3.4). |
+| 2026-11-16 | Ambitions come in Phase 8; the event system and letters wait for Phase 9 (09 §16.6, 12 §11). |
 
 ---
 
 ## Changelog
+- v0.11: Phase 8's roadmap row gains Siskiwit Bay, crafting, the slipway, laying low and Ambitions (09 §16) and links its tracking issue; Phase 9's row keeps the event system and letters, as 12 §11 now does.
 - v0.10: Phase 7's roadmap row gains the rowboat, the captain's body, the walkable back room and the whiskey trick (08 §20) and is marked built as 0.7.0.
 - v0.9: Phase 6's roadmap row gains the law's answer, abandon ship and wrecks (07 §14) and is marked built as 0.6.0.
 - v0.8: Phase 5's roadmap row gains port law, newspapers v1 and the speed pass (06 §14) and is marked built as 0.5.0.
