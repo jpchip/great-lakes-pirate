@@ -15,6 +15,22 @@ import {
 } from '../../sim/hideouts/crafting';
 import { materialsOnHand } from '../../sim/hideouts/work';
 import {
+  hasSlipway,
+  installRefusal,
+  installSeconds,
+  newShipRefusal,
+  newShipSeconds,
+  repairRefusal,
+  SLIPWAY,
+  SLIPWAY_REFUSALS,
+  slipwayRepairQuote,
+  upgradesKept,
+} from '../../sim/hideouts/slipway';
+import { sailShipRecord } from '../../sim/sailing/ships';
+import { upgradeDef } from '../../sim/shipyard/fit';
+import type { ShipState } from '../../sim/shipyard/shipyard';
+import type { StashTab } from '../../gameplay/stash';
+import {
   hasStrongbox,
   siteDef,
   storageCapacity,
@@ -97,6 +113,37 @@ export interface WorkshopSnapshot {
   water: boolean;
 }
 
+/** A kept upgrade the slipway could fit (piece G). */
+export interface SlipwayUpgradeRow {
+  id: string;
+  name: string;
+  blurb: string;
+  qty: number;
+  timeText: string;
+  /** Why it can't go in now, or undefined. */
+  refusal: string | undefined;
+}
+
+/** The slipway (plan 09 §7.4, plan 10 §8–9; Phase 8 piece G). */
+export interface SlipwaySnapshot {
+  /** A slipway is built here. */
+  built: boolean;
+  /** The captain has no ship (shipless at a hideout). */
+  shipless: boolean;
+  /** Her ship is moored here, so she can be hauled out. */
+  shipHere: boolean;
+  shipName: string;
+  className: string;
+  /** Her condition, whole percent. */
+  hull: number;
+  rigging: number;
+  /** Making her sound: the materials and the time, and why not if it can't be done. */
+  repair: { inputs: InputRow[]; timeText: string; refusal: string | undefined } | undefined;
+  upgrades: SlipwayUpgradeRow[];
+  /** Shipless: laying down a new schooner. */
+  newShip: { className: string; inputs: InputRow[]; timeText: string; refusal: string | undefined };
+}
+
 export interface StashSnapshot {
   hideout: string;
   siteName: string;
@@ -114,6 +161,9 @@ export interface StashSnapshot {
   /** Why lying at anchor is refused here, or undefined when it's allowed. */
   lieRefusal: string | undefined;
   workshop: WorkshopSnapshot;
+  slipway: SlipwaySnapshot;
+  /** The view to open on, when the screen is fresh. */
+  tab: StashTab | undefined;
 }
 
 function rows(
@@ -223,6 +273,78 @@ function workshop(opts: {
   return { stations, things: thingRows, lockers, water: hasWater(h) };
 }
 
+function inputRows(
+  defs: EconomyDefs,
+  need: Record<string, number>,
+  onHand: Record<string, number>,
+): InputRow[] {
+  return Object.entries(need).map(([g, n]) => ({
+    name: defs.goods.get(g)?.name ?? g,
+    need: n,
+    have: onHand[g] ?? 0,
+    unit: 'CU' as const,
+  }));
+}
+
+function slipway(opts: {
+  defs: EconomyDefs;
+  hideout: HideoutState;
+  sources: readonly Hold[];
+  ship: ShipState | undefined;
+  shipName: string;
+  shipless: boolean;
+  shipHere: boolean;
+  crewTier: number;
+  gameSeconds: number;
+}): SlipwaySnapshot {
+  const { defs, hideout: h, ship } = opts;
+  const onHand = materialsOnHand(opts.sources);
+  const work = { crewTier: opts.crewTier, gameSeconds: opts.gameSeconds };
+  const away = 'Bring her into the anchorage or alongside first.';
+  const hauled = !opts.shipless && !!ship;
+  let repair: SlipwaySnapshot['repair'];
+  if (hauled && ship) {
+    const q = slipwayRepairQuote(ship, work);
+    const why = repairRefusal(h, ship, opts.sources, work);
+    repair = {
+      inputs: inputRows(defs, q.goods, onHand),
+      timeText: q.seconds > 0 ? spanText(q.seconds) : '',
+      refusal: !opts.shipHere && why !== 'sound' ? away : why && SLIPWAY_REFUSALS[why],
+    };
+  }
+  const upgrades: SlipwayUpgradeRow[] = upgradesKept(h).map(([id, qty]) => {
+    const u = upgradeDef(id);
+    const why = installRefusal(h, hauled ? ship : undefined, id);
+    return {
+      id,
+      name: u?.name ?? id,
+      blurb: u?.blurb ?? '',
+      qty,
+      timeText: spanText(installSeconds(id, work)),
+      refusal: why ? SLIPWAY_REFUSALS[why] : opts.shipHere ? undefined : away,
+    };
+  });
+  const why = newShipRefusal(h, opts.shipless, [h.storage.goods]);
+  const newClass = sailShipRecord(SLIPWAY.newShip.classId);
+  return {
+    built: hasSlipway(h),
+    shipless: opts.shipless,
+    shipHere: opts.shipHere,
+    shipName: opts.shipName,
+    className: ship && !opts.shipless ? sailShipRecord(ship.classId).name : '',
+    hull: Math.round((ship?.hull01 ?? 0) * 100),
+    rigging: Math.round((ship?.rigging01 ?? 0) * 100),
+    repair,
+    upgrades,
+    newShip: {
+      className: newClass.name,
+      inputs: inputRows(defs, SLIPWAY.newShip.goods, materialsOnHand([h.storage.goods])),
+      timeText: spanText(newShipSeconds(opts.gameSeconds)),
+      refusal: why && SLIPWAY_REFUSALS[why],
+    },
+  };
+}
+
 export function stashSnapshot(opts: {
   defs: EconomyDefs;
   hideoutId: string;
@@ -235,6 +357,12 @@ export function stashSnapshot(opts: {
   sources?: readonly Hold[];
   stores?: ShipStores;
   crewTier?: number;
+  /** Piece G: her ship, whether there's one, and whether she's moored here. */
+  ship?: ShipState | undefined;
+  shipName?: string;
+  shipless?: boolean;
+  shipHere?: boolean;
+  tab?: StashTab | undefined;
 }): StashSnapshot {
   const { defs, hideout: h, player } = opts;
   const sources = opts.sources ?? [h.storage.goods];
@@ -242,7 +370,7 @@ export function stashSnapshot(opts: {
   const site = siteDef(h.siteId);
   return {
     hideout: opts.hideoutId,
-    siteName: 'Stockton Stash',
+    siteName: site?.shortName ?? 'Stash',
     blurb: site?.blurb ?? '',
     dateText: weekLabel(opts.gameSeconds),
     purseCents: player.purse,
@@ -265,5 +393,17 @@ export function stashSnapshot(opts: {
       crewTier: opts.crewTier ?? 1,
       gameSeconds: opts.gameSeconds,
     }),
+    slipway: slipway({
+      defs,
+      hideout: h,
+      sources,
+      ship: opts.ship,
+      shipName: opts.shipName ?? '',
+      shipless: !!opts.shipless,
+      shipHere: !!opts.shipHere,
+      crewTier: opts.crewTier ?? 1,
+      gameSeconds: opts.gameSeconds,
+    }),
+    tab: opts.tab,
   };
 }

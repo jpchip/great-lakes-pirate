@@ -2,7 +2,15 @@ import { useEffect, useState } from 'preact/hooks';
 import { formatCents } from '../../sim/economy/knowledge';
 import { LIE_CHOICES, type LieUntil } from '../../sim/hideouts/lie-at-anchor';
 import type { StashActions } from '../../gameplay/stash';
-import type { RecipeRow, StashRow, StashSnapshot, StationRow, WorkshopSnapshot } from './model';
+import type {
+  InputRow,
+  RecipeRow,
+  SlipwaySnapshot,
+  StashRow,
+  StashSnapshot,
+  StationRow,
+  WorkshopSnapshot,
+} from './model';
 
 /**
  * The stash screen (plan 13 §5 "Storage transfer", plan 09 §3; Phase 4 piece E): opens
@@ -432,6 +440,170 @@ function Workshop({
   );
 }
 
+function Inputs({ inputs }: { inputs: InputRow[] }) {
+  return (
+    <>
+      {inputs.map((i) => (
+        <span key={i.name} class={i.have >= i.need ? 'have' : 'short'}>
+          {i.need} {i.unit} {i.name} <small class="hud-num">({i.have})</small>
+        </span>
+      ))}
+    </>
+  );
+}
+
+/**
+ * The slipway (plan 09 §7.4, plan 10 §8–9; Phase 8 piece G): haul her out for full repairs
+ * and to fit what was made here, or, shipless, lay down a new schooner.
+ */
+function Slipway({
+  slipway: s,
+  actions,
+  setMessage,
+}: {
+  slipway: SlipwaySnapshot;
+  actions: StashActions;
+  setMessage(m: string | undefined): void;
+}) {
+  if (!s.built) {
+    return (
+      <div class="craft slipway" data-testid="slipway">
+        <p class="port-dim">
+          No slipway here yet. Lay one down in build mode (B, under Water) where the shore runs
+          straight down a steady slope into 1.5 to 4 m of water. On the ways you can make her sound
+          from your own materials, fit what you make at the bench and the forge, and, if you ever
+          lose her, build another.
+        </p>
+      </div>
+    );
+  }
+  if (s.shipless) {
+    const n = s.newShip;
+    return (
+      <div class="craft slipway" data-testid="slipway" data-shipless="true">
+        <p class="craft-blurb">
+          You have no ship. With the materials in the shed you can lay down a new{' '}
+          {n.className.toLowerCase()} on the ways and launch her yourself: she comes bare and sound,
+          and the gear kept here can go into her at once.
+        </p>
+        <section class="craft-recipe" data-testid="slipway-new-ship">
+          <div class="craft-recipe-head">
+            <strong>Build a {n.className.toLowerCase()}</strong>
+            <span class="port-dim">{n.timeText}, alone</span>
+          </div>
+          <p class="craft-inputs">
+            <Inputs inputs={n.inputs} />
+            <span class="craft-arrow">→</span>
+            <span class="craft-out">the {s.shipName}, launched</span>
+          </p>
+          <div class="craft-make">
+            <button
+              type="button"
+              class="menu-button primary"
+              data-testid="slipway-build-ship"
+              disabled={!!n.refusal}
+              title={n.refusal}
+              onClick={() => setMessage(actions.buildShip())}
+            >
+              Lay her down
+            </button>
+            {n.refusal && <small class="port-dim">{n.refusal}</small>}
+          </div>
+        </section>
+        <p class="port-dim craft-blurb">
+          Or give it up and make your way to the nearest yard, which will let you have a worn hull
+          on credit.{' '}
+          <button
+            type="button"
+            class="port-mini"
+            data-testid="slipway-to-yard"
+            onClick={() => actions.toYard()}
+          >
+            Make for the yard
+          </button>
+        </p>
+      </div>
+    );
+  }
+  const r = s.repair;
+  return (
+    <div class="craft slipway" data-testid="slipway" data-here={s.shipHere ? 'true' : 'false'}>
+      <p class="craft-blurb">
+        The {s.shipName}, {s.className.toLowerCase()}: hull{' '}
+        <strong class="hud-num" data-testid="slipway-hull">
+          {s.hull}%
+        </strong>
+        , rigging{' '}
+        <strong class="hud-num" data-testid="slipway-rigging">
+          {s.rigging}%
+        </strong>
+        .
+        {!s.shipHere &&
+          ' She has to be moored here, in the anchorage or alongside, to haul her out.'}
+      </p>
+      {r && (
+        <section class="craft-recipe" data-testid="slipway-repair">
+          <div class="craft-recipe-head">
+            <strong>Haul her out and make her sound</strong>
+            {r.timeText && <span class="port-dim">{r.timeText}</span>}
+          </div>
+          {r.inputs.length > 0 && (
+            <p class="craft-inputs">
+              <Inputs inputs={r.inputs} />
+              <span class="craft-arrow">→</span>
+              <span class="craft-out">hull and rigging 100%</span>
+            </p>
+          )}
+          <div class="craft-make">
+            <button
+              type="button"
+              class="menu-button"
+              data-testid="slipway-repair-go"
+              disabled={!!r.refusal}
+              title={r.refusal}
+              onClick={() => setMessage(actions.slipwayRepair())}
+            >
+              Repair
+            </button>
+            {r.refusal && <small class="port-dim">{r.refusal}</small>}
+          </div>
+        </section>
+      )}
+      <section class="craft-things" data-testid="slipway-upgrades">
+        <h3>Fittings made here</h3>
+        {s.upgrades.length === 0 ? (
+          <p class="port-dim">
+            None waiting. Repair stores come from the workbench and improved carriages from the
+            smithy.
+          </p>
+        ) : (
+          <ul>
+            {s.upgrades.map((u) => (
+              <li key={u.id} data-testid="slipway-upgrade" data-upgrade={u.id}>
+                <span title={u.blurb}>
+                  {u.name} {u.qty > 1 && <small class="hud-num">×{u.qty}</small>}
+                </span>
+                <span class="port-dim">{u.timeText}</span>
+                <button
+                  type="button"
+                  class="port-mini"
+                  data-testid={`slipway-fit-${u.id}`}
+                  disabled={!!u.refusal}
+                  title={u.refusal ?? u.blurb}
+                  onClick={() => setMessage(actions.slipwayInstall(u.id))}
+                >
+                  Fit
+                </button>
+                {u.refusal && <small class="port-dim">{u.refusal}</small>}
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
+    </div>
+  );
+}
+
 export function LieButtons({
   refusal,
   lie,
@@ -465,7 +637,12 @@ export function LieButtons({
 
 export function StashScreen({ stash, actions }: { stash: StashSnapshot; actions: StashActions }) {
   const [message, setMessage] = useState<string | undefined>(undefined);
-  const [view, setView] = useState<'storage' | 'workshop'>('storage');
+  const [view, setView] = useState<'storage' | 'workshop' | 'slipway'>(stash.tab ?? 'storage');
+  // Opened again on a tab (F at the slipway with the screen up): follow it.
+  useEffect(() => {
+    if (stash.tab) setView(stash.tab);
+  }, [stash.tab]);
+  const shipless = stash.slipway.shipless;
   const [sel, setSel] = useState<{ good: string; index: number; side: Side } | undefined>();
   const list = sel?.side === 'in' ? stash.hold : stash.stash;
   const row = sel && (list.find((r) => r.index === sel.index && r.good === sel.good) ?? undefined);
@@ -489,6 +666,7 @@ export function StashScreen({ stash, actions }: { stash: StashSnapshot; actions:
             [
               ['storage', 'Storage'],
               ['workshop', 'Workshop'],
+              ['slipway', 'Slipway'],
             ] as const
           ).map(([id, label]) => (
             <button
@@ -512,6 +690,9 @@ export function StashScreen({ stash, actions }: { stash: StashSnapshot; actions:
         )}
         {view === 'workshop' && (
           <Workshop workshop={stash.workshop} actions={actions} setMessage={setMessage} />
+        )}
+        {view === 'slipway' && (
+          <Slipway slipway={stash.slipway} actions={actions} setMessage={setMessage} />
         )}
         {view === 'storage' && (
           <div class="port-body stash-body">
@@ -551,22 +732,26 @@ export function StashScreen({ stash, actions }: { stash: StashSnapshot; actions:
         )}
         {view === 'storage' && <Cash stash={stash} actions={actions} setMessage={setMessage} />}
         <footer class="menu-footer port-footer">
-          <LieButtons refusal={stash.lieRefusal} lie={actions.lie} setMessage={setMessage} />
-          <button
-            type="button"
-            class="menu-button"
-            data-testid="stash-cast-off"
-            onClick={actions.castOff}
-          >
-            Cast off (F)
-          </button>
+          {!shipless && (
+            <LieButtons refusal={stash.lieRefusal} lie={actions.lie} setMessage={setMessage} />
+          )}
+          {!shipless && (
+            <button
+              type="button"
+              class="menu-button"
+              data-testid="stash-cast-off"
+              onClick={actions.castOff}
+            >
+              Cast off (F)
+            </button>
+          )}
           <button
             type="button"
             class="menu-button primary"
             data-testid="stash-close"
             onClick={actions.close}
           >
-            Back aboard (Esc)
+            {shipless ? 'Close (Esc)' : 'Back aboard (Esc)'}
           </button>
         </footer>
       </div>

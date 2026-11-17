@@ -234,6 +234,15 @@ export interface GameAshore {
    * nearest land. False if the boat can't be got away here.
    */
   castAway(): boolean;
+  /**
+   * Shipless (Phase 8 piece G): on foot at a zone point with no ship to go back to, as a
+   * castaway is, but already landed. `anchor` is where her hull lies hidden, kept for a
+   * reload. Leaving (a launch, the yard) goes back to the helm.
+   */
+  landShipless(
+    at: { x: number; z: number; heading: number },
+    anchor?: { x: number; z: number },
+  ): void;
   /** The F prompt now, for the HUD. */
   prompt(): string | undefined;
   /** The HUD's body readout. */
@@ -711,6 +720,27 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
         deps.notice('She is gone. Row for the shore.');
       });
     return true;
+  };
+
+  const landShipless = (
+    at: { x: number; z: number; heading: number },
+    hull?: { x: number; z: number },
+  ): void => {
+    from = 'wreck';
+    landedTold = true;
+    berthId = undefined;
+    anchor = hull ? { ...hull } : undefined;
+    district = undefined;
+    watch = undefined;
+    jailbreak = undefined;
+    inBoat = false;
+    boat = undefined;
+    boatState = 'stowed';
+    scene = build(at);
+    const ground = scene?.ground.heightAt(at.x, at.z) ?? deps.terrain()?.heightAt(at.x, at.z) ?? 0;
+    placeCharacter(character, { x: at.x, y: Math.max(ground, 0) + 0.6, z: at.z }, at.heading);
+    copyPrevious();
+    if (!active) enter();
   };
 
   const leave = (): void => {
@@ -1336,6 +1366,7 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
     stepAshore,
     castawayRefusal,
     castAway,
+    landShipless,
     leave,
     prompt: () => prompt?.text,
     hud(): FootHudSnapshot {

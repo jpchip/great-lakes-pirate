@@ -30,6 +30,16 @@ export function JailScreen({ jail, actions }: { jail: JailSnapshot; actions: Jai
           )}
           <p class="jail-ship">{jail.ship}</p>
           <footer class="menu-footer">
+            {jail.altLabel && (
+              <button
+                type="button"
+                class="menu-button"
+                data-testid="jail-leave-alt"
+                onClick={() => actions.leaveAlt?.()}
+              >
+                {jail.altLabel}
+              </button>
+            )}
             <button
               type="button"
               class="menu-button primary"
