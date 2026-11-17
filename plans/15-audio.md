@@ -1,6 +1,6 @@
 # 15 — Audio
 
-Status: DRAFT v1.3 (decisions made; Phase 1 sailing audio, Phase 2 weather and harbor audio, Phase 3 ship whistles and chart music, Phase 4 harbor work and trade sounds, Phase 5 law audio, Phase 6 combat audio and Phase 7 on-foot audio built and checked)
+Status: DRAFT v1.5 (decisions made; Phase 1 sailing audio, Phase 2 weather and harbor audio, Phase 3 ship whistles and chart music, Phase 4 harbor work and trade sounds, Phase 5 law audio, Phase 6 combat audio, Phase 7 on-foot audio and Phase 8 build and craft audio built and checked)
 Parent: [00-master-plan.md](00-master-plan.md)
 Inputs:
 - Master plan: AI-generated audio
@@ -167,7 +167,7 @@ Paper rustle (journal, chart unrolling), ledger pen scratch (trade), coin clinks
 | Ambience beds active | ≤ 4 (crossfaded) |
 | Music | Streamed (media element or chunked) and not fully decoded into memory; ≤ 2 tracks crossfading plus stems |
 | Decoded SFX memory | ≤ 40 MB |
-| Initial audio download | ≤ 5 MB (core UI, sailing, ambience); the rest streams per zone/mode |
+| Initial audio download | ≤ 8 MB decoded up front (raised from 5 MB in Phase 8, §21); the music streams on top |
 | Audio CPU | ≤ 0.5 ms main-thread per frame (Web Audio does mixing off-thread) |
 
 - **Format:** Opus in OGG/WebM (with a fallback only if a target browser needs it; [01 §4.9](01-tech-architecture.md)).
@@ -430,7 +430,35 @@ All resolved.
 
 ---
 
+## 21. Phase 8 Piece I: Build and Craft Audio (2026-11-17)
+
+**Scope** (plan 09 §16.4 row I; §4.6, §11 Phase 8 row): saw, hammer, stone set, placed, refused and deconstructed; the work session's bed; the forge, the cooperage and the still; the UI set; the decoded budget raised to 8 MB here and in the pipeline test; every file in `CREDITS.md`. Built the way §19 and §20 are: pure rules in `src/audio/hideout-mix.ts`, playback in `src/audio/hideout-audio.ts` (`HideoutSounds`, `UiCues`), wired in `game-audio.ts`, `build-mode.ts` and `main.ts`.
+
+| Part | Where | What it does |
+|---|---|---|
+| Build mode | `build-mode.ts` (`deps.sounds`, `BuildSounds`), `hideout-audio.ts` | Opening and closing build mode is the logbook's paper (the port screen's open and close); a new palette category turns a page. A piece laid out in the plan knocks, lower for stone and a touch higher for iron (`familyOf`: brownstone and flagstone are stone, cloth, tarpaper and turf soft, the rest wood); a placement, a removal or a Build that can't be done is a dull, muffled thud. Undo and redo knock softly. A built piece taken down is pried off (the bar, the boards groaning, a nail squealing out, the boards clattering onto the pile); a plan only cleared knocks. |
+| The work session | `hideout-mix.ts` (`workVignette`) | Build runs the clock on by hours or days in an instant, so it's heard as a vignette: the yard at work (a looped bed of saws and hammers a little way off) for 2.5 s, longer for longer work up to 7 s for a few days, and over it a beat about every 1.1 s for the pieces put up in order: a saw and a hammer in turn for wood, the stone set (and now and then a heavy hammer) for stone, a hammer pitched up for iron, a light hammer for tarpaper, cloth or turf. A stone wall sounds of stone, a plank room of saws and hammers. |
+| The stations | `hideout-mix.ts` (`craftCues`), `stash.ts` (`ItemCrafted` now carries `station` and `seconds`) | A craft plays its station: the smithy's forge (the bellows twice, heavy-tap-tap on the anvil three times, the quench), the cooper driving hoops round a barrel and sounding its head, the still loaded (mash poured, the copper cap seated, a match and the fire, the first bubbles), and at the workbench a saw, the plane and a hammer. Work of four hours or more plays the station a second time, softer. |
+| The still at work | `hideouts.ts` (`runningStills`), `FootFrame.stills`, `HideoutSounds.update` | Ashore, a built distillery with a batch still running simmers and drips where it stands (a looped bed placed at the pot, on the ambience bus): full beside it, duller and fainter further off, gone past 28 m. Off your feet it stops. |
+| Salvage | `game-audio.ts` (`SalvageTaken`) | A load of brownstone set down in the stores or the hold is the stone set, pitched down; lumber is the on-foot crate set down. |
+| The UI set | `UiCues` | Plan §4.6's rest: a contract taken (`ContractAccepted`) is a rubber stamp, a paper bought (`NewspaperBought`) is shaken open, price news heard (`RumorHeard` of kind `price`) comes over a telegraph sounder, a still's batch run off (`ProductionCompleted`) rings a soft hand bell, and an Ambition met or a contract delivered a counter bell twice. Bells come no closer than 2 s, so a night of batches rings once. On the UI bus, not placed. Paper, the ledger's pen and coins were already here (§17). |
+| Sounds | `tools/audio/lib/synth-hideout.ts`, `raw-assets/audio/hideout/`, `raw-assets/audio/ui/` | 13 files in bundle `hideout-audio` (318 KB) and 6 in `ui-audio` (71 KB), all decoded up front. Synthesized like the rest: the saw is high band-passed noise chopped at the rate the teeth cross the cut over the board's ring, push louder than pull; the hammer a crack, the nail's ring rising blow to blow and a thud, the last blow dull as the head seats; the anvil the harbor's struck-plate clang pitched up with a long ring; the still's bubbles short rising sines. The yard and the still are beds (64 kbps) looped with a 1 s crossfade. `node tools/audio/synth.ts hideout` and `... ui` render only these. |
+| Dev panel | `src/debug/audio-panel.ts` | Audio → Play → "Hideout: sound" picks any of them and plays it. `data-hideout-cue`, `data-hideout-still` and `data-ui-cue` on the body read what's sounding. |
+
+**Download:** the decoded bundles are now 5.22 MB; the budget is **8 MB** (plan 08 §20.8.3 decision 4's recommendation, taken as plan 09 §16.5 assumed it). The pipeline test holds the hideout bundle under 512 KB, the UI bundle under 128 KB and all the decoded bundles under 8 MB.
+
+**Checked:** the rules and the playback by unit tests (`tests/audio-hideout.test.ts`, 32: every material in `structures.json` heard as a family, the knock's pitch, the vignette's length and beats by material, every station in `stations.json` with a sound, the still's level, the build mode cues, the yard under Build, salvage, the bells' gap, and the synthesis finite and audible with the beds a crossfade longer than their loops), the bundles and credits by the pipeline tests, and in the game with Playwright (`e2e/hideout-audio.spec.ts`): at Stockton the build mode's paper, a wall on bare ground refused, foundations placed, Build's beats, a piece pried down and the paper closing; in the workshop the bench ending on the hammer, the cooperage, the still loaded and its bell a day later. An 80-second preview (`hideout-audio/preview-80s.mp3` in the project files, raised 4 dB overall) runs build mode opening, a page, three knocks, a refusal, an undo, a day of plank work and a day of stone, a piece pried down and a plan cleared, the paper closing; the workbench, the forge, the cooperage (a long job, twice) and the still loaded; walking up to a still at work; salvage set down; and the stamp, the paper, the telegraph and both bells, at the game's bus volumes.
+
+**Calls made here.** The work session is a vignette of a few seconds rather than a bed held while the clock runs, since Build passes the hours in one step. Build mode's own cues (knock, thud) are on the UI bus and the work on the SFX bus, so turning the Interface slider down leaves the building heard. The still at work is heard only on foot, not from the build camera or the deck. No bell for notices in general: most of the game's notices are refusals, and a bell on each would nag.
+
+### Still to do
+
+1. **A listen in the game** (row I: "Listen by ear"): none of this has been heard by a person. The yard's level under the beats, the knock against the thud, and whether the forge and the cooperage read as what they are, are for the Phase 8 playtest (piece J).
+2. **Not built from §4.6:** notification chimes per priority for the HUD's notices (only the two bells above), the chart unrolling.
+3. **The slipway (piece G):** a ship's launch and work on the ways have no sounds yet; they'd reuse the yard, the saw and the hammer.
+
 ## Changelog
+- v1.5: Phase 8 piece I built (§21): build mode's knock, thud and paper, the work session heard by material, a piece pried down, the forge, the cooperage, the still loaded and at work, salvage set down, and the UI set (stamp, newspaper, telegraph, page, two bells). The decoded budget raised to 8 MB (§8).
 - v1.4: The Phase 7 playtest's listen is on the laptop route ([08 §20.8](08-docks-district-stealth.md)); the decoded audio is at 4.96 MB of the 5 MB budget, a decision for Jared there.
 - v1.3: Phase 7 piece I built (§20): footsteps at the gameplay radius, the burglar's kit, the watch's voices and whistle, the stealth layer and the spotted stinger, the docks at night, the saloon and the island's woods.
 - v1.2: The Phase 6 playtest's listen is on the laptop route (§19).

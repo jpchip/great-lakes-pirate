@@ -120,6 +120,28 @@ import {
   struckStinger,
   swivelGun,
 } from './lib/synth-combat.ts';
+import {
+  STILL_LOOP_S,
+  WORK_LOOP_S,
+  chimeBright,
+  chimeSoft,
+  cooperage,
+  forge,
+  hammerNail,
+  handSaw,
+  newspaperShake,
+  pageTurn,
+  placeKnock,
+  planeStrokes,
+  pryDown,
+  refusedThud,
+  stampThunk,
+  stillAtWork,
+  stillLoad,
+  stoneSet,
+  telegraph,
+  workYard,
+} from './lib/synth-hideout.ts';
 
 const ROOT = resolve(fileURLToPath(import.meta.url), '..', '..', '..');
 const RAW = join(ROOT, 'raw-assets', 'audio');
@@ -132,6 +154,7 @@ const TODAY_P4J = '2026-11-01';
 const TODAY_P5H = '2026-11-07';
 const TODAY_P6G = '2026-11-09';
 const TODAY_P7I = '2026-11-15';
+const TODAY_P8I = '2026-11-17';
 /** Render only this category (e.g. `ships`), leaving the other sources untouched. */
 const ONLY = process.argv[2];
 
@@ -445,6 +468,7 @@ function main(): void {
   renderLaw();
   renderCombat();
   renderFoot();
+  renderHideout();
 }
 
 function renderLaw(): void {
@@ -1015,6 +1039,186 @@ function renderFoot(): void {
     'Three pulsed sines (3.9 to 4.75 kHz), three pulses to a chirp, a whole number of chirps to the loop',
     'ambience',
     0,
+  );
+}
+
+/** Phase 8 piece I: building and crafting at a hideout, and the UI set (plan 15 §4.6). */
+function renderHideout(): void {
+  const sound = (
+    category: 'hideout' | 'ui',
+    id: string,
+    name: string,
+    description: string,
+    samples: Float32Array,
+    how: string,
+    bus: SoundHints['bus'],
+    loopCrossfadeS?: number,
+  ): void =>
+    writeSound(
+      category,
+      {
+        id,
+        name,
+        description,
+        kind: loopCrossfadeS === undefined ? 'oneshot' : 'loop',
+        bus,
+        ...(loopCrossfadeS === undefined ? {} : { loopCrossfadeS }),
+        bundles: [category === 'ui' ? 'ui-audio' : 'hideout-audio'],
+      },
+      samples,
+      how,
+      TODAY_P8I,
+    );
+  const hideout = (
+    id: string,
+    name: string,
+    description: string,
+    samples: Float32Array,
+    how: string,
+    bus: SoundHints['bus'] = 'sfx',
+    loopCrossfadeS?: number,
+  ): void => sound('hideout', id, name, description, samples, how, bus, loopCrossfadeS);
+  const ui = (
+    id: string,
+    name: string,
+    description: string,
+    samples: Float32Array,
+    how: string,
+  ): void => sound('ui', id, name, description, samples, how, 'ui');
+
+  hideout(
+    'sfx.build.saw',
+    'saw',
+    'A hand saw through a board: four strokes, push and pull, and the offcut dropping',
+    handSaw(RATE),
+    'Band-passed noise chopped at the teeth rate over a 620 Hz body resonance, a noise crack and sine thuds',
+  );
+  for (const v of [1, 2]) {
+    hideout(
+      `sfx.build.hammer-${v}`,
+      `hammer-${v}`,
+      `Driving a nail: a tap to set it, blows ringing higher as it goes in, the last one seating it (variant ${v})`,
+      hammerNail(v, RATE),
+      'Band-passed noise cracks, damped sines rising blow to blow, pitch-dropping sine thuds',
+    );
+  }
+  hideout(
+    'sfx.build.stone',
+    'stone-set',
+    'A dressed stone set in mortar: it slides on the bed, settles, and a mallet taps it to the line',
+    stoneSet(RATE),
+    'Band-passed noise scrape with grit grains, a low sine thud, noise clicks and short damped sines',
+  );
+  hideout(
+    'sfx.build.plane',
+    'plane',
+    'A plane taking two shavings off a board',
+    planeStrokes(RATE),
+    'High band-passed noise under value-noise flutter, a 950 Hz rasp, small thuds',
+  );
+  hideout(
+    'sfx.build.pry',
+    'pry-down',
+    'A piece taken down: the bar bites, the boards groan, a nail squeals out, the boards clatter onto the pile',
+    pryDown(RATE),
+    'A struck-plate clang, stick-slip knocks, a wobbling rising sine squeal, noise cracks and sine thuds',
+  );
+  hideout(
+    'amb.build.work',
+    'work-yard',
+    `The yard at work, the work session's bed (${WORK_LOOP_S} s, looped): saws and hammers going in turn a little way off, a board thrown down, the open air`,
+    workYard(RATE),
+    'The saw and hammer generators low-passed and reverberated over low-passed noise air',
+    'ambience',
+    1,
+  );
+  hideout(
+    'sfx.craft.forge',
+    'forge',
+    'The smithy at work: the bellows on the fire, heavy-tap-tap on the anvil three times, the quench hissing',
+    forge(RATE),
+    'Low-passed noise fire and bellows, struck-plate anvil rings with damped sines, high band-passed noise hiss, sine bubbles, reverb',
+  );
+  hideout(
+    'sfx.craft.cooperage',
+    'cooperage',
+    'The cooperage at work: the hoop driver walked round a barrel under the mallet, and the head struck to sound it',
+    cooperage(RATE),
+    'Sine thuds under struck-plate clangs rising in pitch, a pitch-dropping sine boom',
+  );
+  hideout(
+    'sfx.craft.still-load',
+    'still-load',
+    'The still loaded: mash poured in, the copper cap seated, a match and the fire taking, the first bubbles',
+    stillLoad(RATE),
+    'Band-passed noise pour with rising-sine glugs, a struck-plate clang, a noise burst, low-passed noise fire',
+  );
+  hideout(
+    'amb.craft.still',
+    'still-at-work',
+    `A still at work (${STILL_LOOP_S} s, looped): the pot simmering, the fire under it, the run dripping into a jug`,
+    stillAtWork(RATE),
+    'Low-passed noise fire, rising-sine bubbles, damped sine plinks',
+    'ambience',
+    1,
+  );
+  hideout(
+    'ui.build.place',
+    'place-knock',
+    'A piece placed in the plan: a short wooden knock',
+    placeKnock(RATE),
+    'A pitch-dropping sine thud, band-passed noise and a short damped sine',
+    'ui',
+  );
+  hideout(
+    'ui.build.refused',
+    'refused-thud',
+    'A piece refused: a dull, muffled thud',
+    refusedThud(RATE),
+    'Two low pitch-dropping sine thuds, low-passed',
+    'ui',
+  );
+  ui(
+    'ui.stamp',
+    'stamp',
+    'A rubber stamp on a contract: the pad through paper onto the desk',
+    stampThunk(RATE),
+    'Sine thuds and band-passed noise',
+  );
+  ui(
+    'ui.newspaper',
+    'newspaper',
+    'A newspaper shaken open: crackling sheets and a snap',
+    newspaperShake(RATE),
+    'Band-passed noise sweeps under short high noise crackles, a noise snap',
+  );
+  ui(
+    'ui.telegraph',
+    'telegraph',
+    'A telegraph sounder taking a short message: brass clicks down and up',
+    telegraph(RATE),
+    'Band-passed noise clicks and damped sines on a dot-and-dash pattern',
+  );
+  ui(
+    'ui.page',
+    'page',
+    'A page of the logbook turned',
+    pageTurn(RATE),
+    'Band-passed noise sweep and a flick',
+  );
+  ui(
+    'ui.chime.soft',
+    'chime-soft',
+    'A small hand bell, once and soft',
+    chimeSoft(RATE),
+    'Five inharmonic hand-bell partials on 1.32 kHz',
+  );
+  ui(
+    'ui.chime.bright',
+    'chime-bright',
+    'A counter bell struck twice, the second a fourth higher',
+    chimeBright(RATE),
+    'Five inharmonic hand-bell partials on 1.18 and 1.57 kHz',
   );
 }
 

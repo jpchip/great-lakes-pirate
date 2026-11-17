@@ -65,6 +65,11 @@ export interface Hideouts {
   /** For the dev hooks: a bunk you'd sleep in, zone meters (Phase 8 piece F). */
   bunk(): { x: number; y: number; z: number; hideout: string } | undefined;
   /**
+   * Built stills with a batch loaded, zone meters at the pot (Phase 8 piece I: the still
+   * heard at work). Cheap to call each frame: the places are worked out once per change.
+   */
+  runningStills(): { x: number; y: number; z: number }[];
+  /**
    * Every piece of every site, placed for the renderer. `cut` hides one site's levels above
    * the one edited, but for its roofs and gables when `roofs` (a roof's being placed).
    */
@@ -195,9 +200,40 @@ export function attachHideouts(deps: HideoutsDeps): Hideouts {
     return out.sort((a, b) => Number(b.box) - Number(a.box) || Number(a.bed) - Number(b.bed));
   };
 
+  const STILL_PIECE = 'build.distillery';
+  const STILL_STATION = 'station.distillery';
+  let stillCache:
+    { key: string; at: { x: number; y: number; z: number; hideout: string }[] } | undefined;
+  const stillPlaces = (): { x: number; y: number; z: number; hideout: string }[] => {
+    const key = `${version}:${deps.zone()?.id ?? ''}:${Object.keys(state.hideouts ?? {}).length}`;
+    if (stillCache?.key === key) return stillCache.at;
+    const at: { x: number; y: number; z: number; hideout: string }[] = [];
+    for (const s of sites()) {
+      for (const r of placedRender(s.grid, s.build)) {
+        if (!r.built || r.id !== STILL_PIECE) continue;
+        const p = siteToZone(s.frame, r.x, r.z);
+        at.push({ ...p, y: s.frame.baseM + r.y + 1, hideout: s.hideoutId });
+      }
+    }
+    stillCache = { key, at };
+    return at;
+  };
+
   return {
     get version() {
       return version;
+    },
+    runningStills() {
+      const places = stillPlaces();
+      if (places.length === 0) return [];
+      const now = state.environment.clock.gameSeconds;
+      return places
+        .filter((p) =>
+          (state.hideouts?.[p.hideout]?.stations?.[STILL_STATION]?.queue ?? []).some(
+            (b) => b.readyAt > now,
+          ),
+        )
+        .map(({ x, y, z }) => ({ x, y, z }));
     },
     sites,
     site: (id) => sites().find((s) => s.hideoutId === id),

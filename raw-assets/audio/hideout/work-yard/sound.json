@@ -1,0 +1,12 @@
+{
+  "id": "amb.build.work",
+  "name": "work-yard",
+  "description": "The yard at work, the work session's bed (8 s, looped): saws and hammers going in turn a little way off, a board thrown down, the open air",
+  "kind": "loop",
+  "bus": "ambience",
+  "loopCrossfadeS": 1,
+  "bundles": [
+    "hideout-audio"
+  ],
+  "source": "source.flac"
+}

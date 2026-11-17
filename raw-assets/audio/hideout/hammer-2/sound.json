@@ -1,0 +1,11 @@
+{
+  "id": "sfx.build.hammer-2",
+  "name": "hammer-2",
+  "description": "Driving a nail: a tap to set it, blows ringing higher as it goes in, the last one seating it (variant 2)",
+  "kind": "oneshot",
+  "bus": "sfx",
+  "bundles": [
+    "hideout-audio"
+  ],
+  "source": "source.flac"
+}

@@ -1,0 +1,11 @@
+{
+  "id": "ui.build.place",
+  "name": "place-knock",
+  "description": "A piece placed in the plan: a short wooden knock",
+  "kind": "oneshot",
+  "bus": "ui",
+  "bundles": [
+    "hideout-audio"
+  ],
+  "source": "source.flac"
+}

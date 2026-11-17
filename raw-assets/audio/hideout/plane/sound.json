@@ -1,0 +1,11 @@
+{
+  "id": "sfx.build.plane",
+  "name": "plane",
+  "description": "A plane taking two shavings off a board",
+  "kind": "oneshot",
+  "bus": "sfx",
+  "bundles": [
+    "hideout-audio"
+  ],
+  "source": "source.flac"
+}

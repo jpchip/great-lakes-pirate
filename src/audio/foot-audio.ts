@@ -110,6 +110,8 @@ export interface FootFrame {
   saloon: { x: number; z: number; open: boolean; within: boolean } | undefined;
   /** F held on a lock with a pick: how far it's got, 0–1. Undefined otherwise. */
   picking: number | undefined;
+  /** Stills with a batch running in the zone, zone meters (Phase 8 piece I). */
+  stills?: readonly AudioPoint[];
 }
 
 type BedId = 'docks' | 'forest' | 'crickets' | 'room' | 'tune' | 'tension';

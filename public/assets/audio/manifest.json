@@ -650,6 +650,101 @@
       "type": "audio",
       "url": "foot/tension.ogg",
       "bytes": 153560
+    },
+    "sfx.craft.cooperage": {
+      "type": "audio",
+      "url": "hideout/cooperage.ogg",
+      "bytes": 44729
+    },
+    "sfx.craft.forge": {
+      "type": "audio",
+      "url": "hideout/forge.ogg",
+      "bytes": 45821
+    },
+    "sfx.build.hammer-1": {
+      "type": "audio",
+      "url": "hideout/hammer-1.ogg",
+      "bytes": 14768
+    },
+    "sfx.build.hammer-2": {
+      "type": "audio",
+      "url": "hideout/hammer-2.ogg",
+      "bytes": 17732
+    },
+    "ui.build.place": {
+      "type": "audio",
+      "url": "hideout/place-knock.ogg",
+      "bytes": 2044
+    },
+    "sfx.build.plane": {
+      "type": "audio",
+      "url": "hideout/plane.ogg",
+      "bytes": 14909
+    },
+    "sfx.build.pry": {
+      "type": "audio",
+      "url": "hideout/pry-down.ogg",
+      "bytes": 19957
+    },
+    "ui.build.refused": {
+      "type": "audio",
+      "url": "hideout/refused-thud.ogg",
+      "bytes": 2934
+    },
+    "sfx.build.saw": {
+      "type": "audio",
+      "url": "hideout/saw.ogg",
+      "bytes": 18434
+    },
+    "amb.craft.still": {
+      "type": "audio",
+      "url": "hideout/still-at-work.ogg",
+      "bytes": 39368
+    },
+    "sfx.craft.still-load": {
+      "type": "audio",
+      "url": "hideout/still-load.ogg",
+      "bytes": 33342
+    },
+    "sfx.build.stone": {
+      "type": "audio",
+      "url": "hideout/stone-set.ogg",
+      "bytes": 14552
+    },
+    "amb.build.work": {
+      "type": "audio",
+      "url": "hideout/work-yard.ogg",
+      "bytes": 57337
+    },
+    "ui.chime.bright": {
+      "type": "audio",
+      "url": "ui/chime-bright.ogg",
+      "bytes": 20337
+    },
+    "ui.chime.soft": {
+      "type": "audio",
+      "url": "ui/chime-soft.ogg",
+      "bytes": 18230
+    },
+    "ui.newspaper": {
+      "type": "audio",
+      "url": "ui/newspaper.ogg",
+      "bytes": 8904
+    },
+    "ui.page": {
+      "type": "audio",
+      "url": "ui/page.ogg",
+      "bytes": 3518
+    },
+    "ui.stamp": {
+      "type": "audio",
+      "url": "ui/stamp.ogg",
+      "bytes": 3450
+    },
+    "ui.telegraph": {
+      "type": "audio",
+      "url": "ui/telegraph.ogg",
+      "bytes": 17958
     }
   },
   "bundles": {
@@ -804,6 +899,29 @@
       "sfx.foot.swim-stroke-1",
       "sfx.foot.swim-stroke-2",
       "music.foot.tension"
+    ],
+    "hideout-audio": [
+      "sfx.craft.cooperage",
+      "sfx.craft.forge",
+      "sfx.build.hammer-1",
+      "sfx.build.hammer-2",
+      "ui.build.place",
+      "sfx.build.plane",
+      "sfx.build.pry",
+      "ui.build.refused",
+      "sfx.build.saw",
+      "amb.craft.still",
+      "sfx.craft.still-load",
+      "sfx.build.stone",
+      "amb.build.work"
+    ],
+    "ui-audio": [
+      "ui.chime.bright",
+      "ui.chime.soft",
+      "ui.newspaper",
+      "ui.page",
+      "ui.stamp",
+      "ui.telegraph"
     ]
   }
 }

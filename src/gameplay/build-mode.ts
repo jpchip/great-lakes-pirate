@@ -80,7 +80,25 @@ export interface BuildModeDeps {
    * there, and who spotted it this week ("the tug Sophia, 2 days ago").
    */
   concealmentNow?(hideoutId: string): ConcealmentNow & { spotted?: string | undefined };
+  /** The sounds of building (Phase 8 piece I); silent without. */
+  sounds?: BuildSounds;
 }
+
+/** What build mode asks the audio to play (Phase 8 piece I). Materials from `structures.json`. */
+export interface BuildSounds {
+  opened(): void;
+  closed(): void;
+  page(): void;
+  placed(materials: readonly string[]): void;
+  refused(): void;
+  removed(materials: readonly string[], built: boolean): void;
+  undone(): void;
+  built(materials: readonly string[], seconds: number): void;
+}
+
+/** A piece's material, from its variant. */
+const materialOf = (p: Piece): string =>
+  findStructure(p.id)?.variants[p.variant]?.material ?? 'timber';
 
 export interface BuildMode {
   readonly mode: Mode;
@@ -297,9 +315,11 @@ export function attachBuildMode(deps: BuildModeDeps): BuildMode {
     const r = log.placeMany(grid, site.build, list);
     if (r.placed.length === 0) {
       message = REFUSAL_TEXT[r.refused[0]?.reason ?? 'occupied'];
+      deps.sounds?.refused();
       rev++;
       return;
     }
+    deps.sounds?.placed(list.map(materialOf));
     message = `Planned ${r.placed.length} ${r.placed.length === 1 ? 'piece' : 'pieces'}`;
     commit();
   };
@@ -309,15 +329,24 @@ export function attachBuildMode(deps: BuildModeDeps): BuildMode {
     const target = pieceAt(grid, aim, level) ?? pieceAt(grid, aim, level + 1);
     if (!target) return;
     const storage = site.state.storage;
+    const going = [target.uid, ...dependentsOf(grid, site.build, [target.uid])].flatMap((u) => {
+      const p = grid?.get(u);
+      return p ? [p] : [];
+    });
     const r = log.remove(grid, site.build, target.uid, {
       withDependents: true,
       load: { goodsCu: holdUsed(storage.goods), cash: storage.cash },
     });
     if (!r.ok) {
       message = REFUSAL_TEXT[r.reason];
+      deps.sounds?.refused();
       rev++;
       return;
     }
+    deps.sounds?.removed(
+      going.map((p) => materialOf(p.piece)),
+      going.some((p) => p.built),
+    );
     for (const [good, qty] of Object.entries(r.refund)) addToHold(storage.goods, { good, qty });
     const back = goodsText(r.refund, deps.goodName);
     message = Object.keys(r.refund).length ? `Taken down: ${back} back in storage` : 'Plan cleared';
@@ -363,12 +392,14 @@ export function attachBuildMode(deps: BuildModeDeps): BuildMode {
   const undo = (): void => {
     if (grid && log.undo(grid)) {
       message = 'Undone';
+      deps.sounds?.undone();
       commit();
     }
   };
   const redo = (): void => {
     if (grid && log.redo(grid)) {
       message = 'Redone';
+      deps.sounds?.undone();
       commit();
     }
   };
@@ -400,9 +431,18 @@ export function attachBuildMode(deps: BuildModeDeps): BuildMode {
     });
     if (r.built.length === 0) {
       message = 'Nothing can be built yet: short of materials, or nothing to stand on';
+      deps.sounds?.refused();
       rev++;
       return;
     }
+    const builtGrid = grid;
+    deps.sounds?.built(
+      r.built.flatMap((uid) => {
+        const p = builtGrid.get(uid);
+        return p ? [materialOf(p.piece)] : [];
+      }),
+      r.seconds,
+    );
     passTime(r.seconds);
     // Built pieces are what they are now: undo can't take back the work.
     log.clear();
@@ -731,12 +771,14 @@ export function attachBuildMode(deps: BuildModeDeps): BuildMode {
     cam.dist = 30;
     rev++;
     deps.transition('build');
+    deps.sounds?.opened();
     return undefined;
   };
 
   const close = (): void => {
     if (!active) return;
     deps.transition('onFoot');
+    deps.sounds?.closed();
   };
 
   const mode: Mode = {
@@ -809,6 +851,7 @@ export function attachBuildMode(deps: BuildModeDeps): BuildMode {
     category(id) {
       const c = PALETTE_CATEGORIES.find((x) => x.id === id);
       if (!c) return;
+      if (c.id !== category) deps.sounds?.page();
       category = c.id;
       const first = piecesIn(c.id)[0];
       if (first) held = { id: first.id, variant: 0, rot: 0, flip: false };

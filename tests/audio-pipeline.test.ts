@@ -12,6 +12,12 @@ import { WORLD_SOUND } from '../src/audio/world-audio';
 import { FOOT_AUDIO_BUNDLE, FOOT_SOUND } from '../src/audio/foot-audio';
 import { STEP_GROUNDS, STEP_VARIANTS, stepSoundId } from '../src/audio/foot-mix';
 import { HARBOR_AUDIO_BUNDLE, HARBOR_SOUND } from '../src/audio/harbor-audio';
+import {
+  HIDEOUT_AUDIO_BUNDLE,
+  HIDEOUT_SOUND,
+  UI_AUDIO_BUNDLE,
+  UI_SOUND,
+} from '../src/audio/hideout-audio';
 import { PORT_AUDIO_BUNDLE, PORT_SOUND } from '../src/audio/port-audio';
 import { LAW_AUDIO_BUNDLE, LAW_SOUND, LAW_WHISTLE } from '../src/audio/law-audio';
 import {
@@ -255,13 +261,27 @@ describe('shipped sounds (plan 15 §3.2, §8)', () => {
     expect(bytes).toBeLessThanOrEqual(1.5 * 1024 * 1024);
   });
 
-  it('keeps the initial audio download within 5 MB, music streaming on top', () => {
+  it('has the build and craft sounds and the UI set, and nothing else (Phase 8 piece I)', () => {
+    const hideout = manifest.bundles[HIDEOUT_AUDIO_BUNDLE] ?? [];
+    const ids = Object.values(HIDEOUT_SOUND).flat();
+    for (const id of ids) expect(hideout, id).toContain(id);
+    expect([...hideout].sort()).toEqual([...ids].sort());
+    const ui = manifest.bundles[UI_AUDIO_BUNDLE] ?? [];
+    expect([...ui].sort()).toEqual(Object.values(UI_SOUND).sort());
+    const bytes = (b: readonly string[]): number =>
+      b.reduce((s, id) => s + (manifest.assets[id]?.bytes ?? 0), 0);
+    expect(bytes(hideout)).toBeLessThanOrEqual(512 * 1024);
+    expect(bytes(ui)).toBeLessThanOrEqual(128 * 1024);
+  });
+
+  it('keeps the decoded audio within 8 MB, music streaming on top', () => {
     const size = (bundle: string): number =>
       (manifest.bundles[bundle] ?? []).reduce(
         (sum, id) => sum + (manifest.assets[id]?.bytes ?? 0),
         0,
       );
-    // Plan 15 §8: what's decoded up front stays small; the music cues stream on demand.
+    // Plan 15 §8: what's decoded up front stays small (8 MB since Phase 8 piece I); the
+    // music cues stream on demand.
     const decoded = [
       SAILING_AUDIO_BUNDLE,
       WORLD_AUDIO_BUNDLE,
@@ -272,13 +292,16 @@ describe('shipped sounds (plan 15 §3.2, §8)', () => {
       COMBAT_AUDIO_BUNDLE,
       COMBAT_MUSIC_BUNDLE,
       FOOT_AUDIO_BUNDLE,
+      HIDEOUT_AUDIO_BUNDLE,
+      UI_AUDIO_BUNDLE,
     ];
     const streamed = [MUSIC_BUNDLE, CHART_MUSIC_BUNDLE];
     expect(size(SAILING_AUDIO_BUNDLE) + size(WORLD_AUDIO_BUNDLE)).toBeLessThanOrEqual(
       1.5 * 1024 * 1024,
     );
     const initial = decoded.reduce((sum, b) => sum + size(b), 0);
-    expect(initial).toBeLessThanOrEqual(5 * 1024 * 1024);
+    // Raised from 5 MB for Phase 8's building and crafting (plan 08 §20.8.3 decision 4).
+    expect(initial).toBeLessThanOrEqual(8 * 1024 * 1024);
     // Every sound is in one of those bundles, so nothing slips past the budget.
     const bundled = new Set([...decoded, ...streamed].flatMap((b) => manifest.bundles[b] ?? []));
     for (const id of Object.keys(manifest.assets)) expect(bundled, id).toContain(id);

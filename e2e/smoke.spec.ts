@@ -173,8 +173,9 @@ test('keeps sailing with the journal or a look at the chart open, and P holds th
 });
 
 // Plan 15 §8: the sailing (14), world (19, with the ships' whistles), chart (7: the
-// stingers and the fade to fog), harbor (5), port (7), law (13) and combat (15, and the
-// chase layer's 2 stems) sounds decode up front and audio starts on the first key.
+// stingers and the fade to fog), harbor (5), port (7), law (13), combat (15, and the
+// chase layer's 2 stems), on-foot (45), hideout (13) and UI (6) sounds decode up front and
+// audio starts on the first key.
 test('loads the sailing and world sounds and unlocks audio on the first key press', async ({
   page,
 }) => {
@@ -182,7 +183,7 @@ test('loads the sailing and world sounds and unlocks audio on the first key pres
   const body = page.locator('body');
   await page.goto('/?renderer=null&play');
   await expect(body).toHaveAttribute('data-mode', 'sailing');
-  await expect(body).toHaveAttribute('data-audio-bank', '127');
+  await expect(body).toHaveAttribute('data-audio-bank', '146');
   await page.keyboard.press('KeyW');
   await expect(body).toHaveAttribute('data-audio', 'running');
   expect(errors).toEqual([]);

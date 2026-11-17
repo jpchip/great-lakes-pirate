@@ -1,0 +1,11 @@
+{
+  "id": "ui.stamp",
+  "name": "stamp",
+  "description": "A rubber stamp on a contract: the pad through paper onto the desk",
+  "kind": "oneshot",
+  "bus": "ui",
+  "bundles": [
+    "ui-audio"
+  ],
+  "source": "source.flac"
+}

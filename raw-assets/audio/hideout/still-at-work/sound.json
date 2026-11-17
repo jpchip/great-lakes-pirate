@@ -1,0 +1,12 @@
+{
+  "id": "amb.craft.still",
+  "name": "still-at-work",
+  "description": "A still at work (6 s, looped): the pot simmering, the fire under it, the run dripping into a jug",
+  "kind": "loop",
+  "bus": "ambience",
+  "loopCrossfadeS": 1,
+  "bundles": [
+    "hideout-audio"
+  ],
+  "source": "source.flac"
+}

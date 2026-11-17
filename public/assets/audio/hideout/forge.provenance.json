@@ -1,0 +1,19 @@
+{
+  "source": "procedural",
+  "tool": "tools/audio/synth.ts (tools/audio/lib/synth.ts)",
+  "author": "Great Lakes Pirate contributors",
+  "reference": "Low-passed noise fire and bellows, struck-plate anvil rings with damped sines, high band-passed noise hiss, sine bubbles, reverb",
+  "date": "2026-11-17",
+  "license": "CC BY 4.0",
+  "attribution": "Great Lakes Pirate contributors",
+  "modifications": [],
+  "description": "The smithy at work: the bellows on the fire, heavy-tap-tap on the anvil three times, the quench hissing",
+  "durationS": 5.204,
+  "pipeline": [
+    "decoded to mono 48000 Hz",
+    "edge fades",
+    "peak-normalized toward -1 dB (-0.1 dB)",
+    "Opus 56 kbps mono in Ogg (ffmpeg libopus)"
+  ],
+  "inputHash": "4e9b6fac621e20c9"
+}

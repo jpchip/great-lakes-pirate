@@ -1,0 +1,11 @@
+{
+  "id": "sfx.craft.cooperage",
+  "name": "cooperage",
+  "description": "The cooperage at work: the hoop driver walked round a barrel under the mallet, and the head struck to sound it",
+  "kind": "oneshot",
+  "bus": "sfx",
+  "bundles": [
+    "hideout-audio"
+  ],
+  "source": "source.flac"
+}

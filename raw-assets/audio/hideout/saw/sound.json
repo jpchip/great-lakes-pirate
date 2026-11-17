@@ -1,0 +1,11 @@
+{
+  "id": "sfx.build.saw",
+  "name": "saw",
+  "description": "A hand saw through a board: four strokes, push and pull, and the offcut dropping",
+  "kind": "oneshot",
+  "bus": "sfx",
+  "bundles": [
+    "hideout-audio"
+  ],
+  "source": "source.flac"
+}

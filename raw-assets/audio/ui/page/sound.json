@@ -1,0 +1,11 @@
+{
+  "id": "ui.page",
+  "name": "page",
+  "description": "A page of the logbook turned",
+  "kind": "oneshot",
+  "bus": "ui",
+  "bundles": [
+    "ui-audio"
+  ],
+  "source": "source.flac"
+}

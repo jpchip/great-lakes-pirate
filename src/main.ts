@@ -896,6 +896,11 @@ async function boot(): Promise<void> {
     if (step && d['footStep'] !== step) d['footStep'] = step;
     const footCue = a.foot.levels.last;
     if (footCue && d['footCue'] !== footCue) d['footCue'] = footCue;
+    const hideoutCue = a.hideout.levels.last;
+    if (hideoutCue && d['hideoutCue'] !== hideoutCue) d['hideoutCue'] = hideoutCue;
+    const still = a.hideout.levels.still.toFixed(2);
+    if (d['hideoutStill'] !== still) d['hideoutStill'] = still;
+    if (a.ui.last && d['uiCue'] !== a.ui.last) d['uiCue'] = a.ui.last;
     const beds = Object.entries(a.foot.levels.beds)
       .filter(([, g]) => g > 0.01)
       .map(([id]) => id)
@@ -3292,6 +3297,7 @@ async function boot(): Promise<void> {
       month0: calendarDate(t).getUTCMonth(),
       windKn: ctx.weather.windAt(at.player, t).speedKn,
       rain01: ctx.weather.rainAt(t),
+      stills: hideouts.runningStills(),
     };
   });
   ashoreRef.current = ashore;
@@ -3324,6 +3330,7 @@ async function boot(): Promise<void> {
       };
     },
     view: () => scene?.hideouts,
+    ...(audio ? { sounds: audio.hideout } : {}),
     transition: (to) => machine.transition(to),
     shipHold: (id) => (stash.hideoutHere === id ? state.player.cargo : undefined),
     crewTier: () =>
