@@ -4,7 +4,10 @@ import { SECONDS_PER_GAME_DAY } from '../core/time';
 import type { GameContext } from '../modes/context';
 import { allPorts, gameEconomy, portInfo } from '../sim/economy/defs';
 import { formatCents } from '../sim/economy/knowledge';
+import { SLIPWAY, newShipSeconds, slipwayHideout } from '../sim/hideouts/slipway';
 import { siteDef } from '../sim/hideouts/stash';
+import { materialsOnHand } from '../sim/hideouts/work';
+import { spanText } from '../ui/stash/model';
 import { gameJail, strongboxes } from '../sim/law/jail';
 import { recognition } from '../sim/law/law';
 import { dateText } from '../sim/run/run-end';
@@ -65,6 +68,13 @@ export interface AbandonDeps {
    * (plan 08 §20.6 decision 2). False leaves you to the rescue.
    */
   castAway?(): boolean;
+  /**
+   * Shipless (Phase 8 piece G): sets you ashore on foot at a hideout with a slipway, her
+   * zone loaded if it must be. Without it the yard is the only way back.
+   */
+  landAtHideout?(hideoutId: string): Promise<void>;
+  /** A hideout's place on the chart, for the yard nearest it. */
+  hideoutChart?(hideoutId: string): { x: number; y: number } | undefined;
 }
 
 export interface Abandon {
@@ -84,6 +94,13 @@ export interface Abandon {
   /** Cast away, you've reached land: you make your way to the nearest yard. */
   cameAshore(): void;
   leave(): void;
+  /**
+   * The screen's other way (Phase 8 piece G): set ashore at the hideout with a slipway
+   * instead of taking the yard's hull. Does nothing unless it was offered.
+   */
+  leaveAlt(): void;
+  /** Shipless at a hideout, you give it up and make your way to the nearest yard. */
+  toYardFrom(hideoutId: string): void;
 }
 
 /** Ports with a shipyard (`ports.json` services). */
@@ -104,9 +121,23 @@ export function attachAbandon(deps: AbandonDeps): Abandon {
   let busy = false;
   let adrift = false;
   let lostWith: ReturnType<typeof loseShip> | undefined;
-  let lostWhere: { chart: { x: number; y: number } } | undefined;
+  let lostWhere:
+    { chart: { x: number; y: number }; geo?: { lat: number; lon: number } | undefined } | undefined;
   let lostName = '';
   let lostRegion: string | undefined;
+  /** The choice on the screen: the yard (leave) or a hideout's slipway (leaveAlt). */
+  let offer:
+    | {
+        port: string;
+        hideout: string;
+        lost: ReturnType<typeof loseShip>;
+        shipName: string;
+        regionName: string | undefined;
+        told: number;
+        rng: Rng;
+        how: 'rescued' | 'rowed';
+      }
+    | undefined;
 
   const nearestYard = (at: { x: number; y: number } | undefined): string => {
     const ports = yardPorts();
@@ -207,9 +238,83 @@ export function attachAbandon(deps: AbandonDeps): Abandon {
     const port = nearestYard(where?.chart);
     deps.passTime(rng.range(lo, hi) * 3600);
     const told = recognized(now());
-    settle(port, lost, shipName, regionName, told, rng, 'rescued');
+    offerOrSettle(port, lost, shipName, regionName, told, rng, 'rescued', where?.geo);
     busy = false;
     return true;
+  };
+
+  /**
+   * With a slipway at a hideout (Phase 8 piece G), the screen offers it beside the yard:
+   * the rescuer will set you ashore there, or you make your way along the shore. Without
+   * one, straight to the yard.
+   */
+  const offerOrSettle = (
+    port: string,
+    lost: ReturnType<typeof loseShip>,
+    shipName: string,
+    regionName: string | undefined,
+    told: number,
+    rng: Rng,
+    how: 'rescued' | 'rowed',
+    near: { lat: number; lon: number } | undefined,
+  ): void => {
+    const hideout = deps.landAtHideout ? slipwayHideout(state.hideouts, near) : undefined;
+    const h = hideout ? state.hideouts?.[hideout] : undefined;
+    if (!hideout || !h) {
+      settle(port, lost, shipName, regionName, told, rng, how);
+      return;
+    }
+    offer = { port, hideout, lost, shipName, regionName, told, rng, how };
+    const econ = gameEconomy();
+    const portName = portInfo(port)?.name ?? port;
+    const place = siteDef(h.siteId)?.place ?? 'your hideout';
+    const goodName = (id: string): string => econ.goods.get(id)?.name.toLowerCase() ?? id;
+    const hull = sailShipRecord(jail.abandon.hullClass).name.toLowerCase();
+    const price = Math.round(
+      hullPriceCents(econ, port, jail.abandon.hullClass) * jail.abandon.wornShare,
+    );
+    const onHand = materialsOnHand([h.storage.goods]);
+    const needs = Object.entries(SLIPWAY.newShip.goods);
+    const lines = lostLines(lost);
+    lines.push(
+      `At ${portName} the yard will let you have a worn ${hull} for ${formatCents(price)}, from your purse, your strongboxes by word, and work.`,
+    );
+    lines.push(
+      `At ${place} your slipway can build a new ${sailShipRecord(SLIPWAY.newShip.classId).name.toLowerCase()}: ${needs
+        .map(([g, n]) => `${n} ${goodName(g)}`)
+        .join(', ')} (in the shed: ${needs
+        .map(([g]) => `${onHand[g] ?? 0}`)
+        .join(', ')}), and ${spanText(newShipSeconds(now()))} of work alone.`,
+    );
+    deps.show({
+      kind: 'released',
+      title: 'Abandoned ship',
+      heading: 'After she went down...',
+      lead:
+        how === 'rescued'
+          ? `The ${shipName} foundered${regionName ? ` in ${regionName}` : ''} and went down under you. You got away in the boat, and a passing steamer picked you up, ${dateText(now())}. Her master is bound for ${portName}, but he will set you ashore at ${place} if you ask.`
+          : `The ${shipName} foundered${regionName ? ` in ${regionName}` : ''} and went down under you. You rowed the boat ashore, ${dateText(now())}. From here you could make your way to ${portName}, or along the shore to ${place}.`,
+      inside: lines,
+      ship: 'Where will you go?',
+      leaveLabel: `To the yard at ${portName}`,
+      altLabel: `Ashore at ${place}`,
+    });
+    if (!open) deps.onOpen(true);
+    open = true;
+  };
+
+  /** What went down with her, in lines for the screen. */
+  const lostLines = (lost: ReturnType<typeof loseShip>): string[] => {
+    const econ = gameEconomy();
+    const goodName = (id: string): string => econ.goods.get(id)?.name.toLowerCase() ?? id;
+    const lines: string[] = [];
+    if (lost.cargo.length > 0) {
+      lines.push(
+        `Lost with her: ${lost.cargo.map((c) => `${c.qty} CU of ${goodName(c.good)}`).join(', ')}.`,
+      );
+    }
+    if (lost.guns.length > 0) lines.push(`Her guns went down with her: ${lost.guns.length}.`);
+    return lines;
   };
 
   /** The yard's worn hull and the screen that tells it. */
@@ -220,7 +325,8 @@ export function attachAbandon(deps: AbandonDeps): Abandon {
     regionName: string | undefined,
     told: number,
     rng: Rng,
-    how: 'rescued' | 'rowed',
+    how: 'rescued' | 'rowed' | 'walked',
+    from?: string,
   ): void => {
     const player = state.player;
 
@@ -253,21 +359,14 @@ export function attachAbandon(deps: AbandonDeps): Abandon {
       now(),
       how === 'rescued'
         ? `Abandoned the ${shipName}; landed at ${portInfo(port)?.name ?? port}.`
-        : `Rowed ashore from the wreck of the ${shipName}; made our way to ${portInfo(port)?.name ?? port}.`,
+        : how === 'rowed'
+          ? `Rowed ashore from the wreck of the ${shipName}; made our way to ${portInfo(port)?.name ?? port}.`
+          : `Left ${from ?? 'the hideout'} without a ship; made our way to ${portInfo(port)?.name ?? port}.`,
     );
 
     // The screen.
     const portName = portInfo(port)?.name ?? port;
-    const goodName = (id: string): string => econ.goods.get(id)?.name.toLowerCase() ?? id;
-    const lines: string[] = [];
-    if (lost.cargo.length > 0) {
-      lines.push(
-        `Lost with her: ${lost.cargo.map((c) => `${c.qty} CU of ${goodName(c.good)}`).join(', ')}.`,
-      );
-    }
-    if (lost.guns.length > 0) {
-      lines.push(`Her guns went down with her: ${lost.guns.length}.`);
-    }
+    const lines = lostLines(lost);
     lines.push(
       `The yard at ${portName} let you have a worn ${sailShipRecord(jail.abandon.hullClass).name.toLowerCase()} for ${formatCents(price)}.`,
     );
@@ -295,13 +394,15 @@ export function attachAbandon(deps: AbandonDeps): Abandon {
       lead:
         how === 'rescued'
           ? `The ${shipName} foundered${regionName ? ` in ${regionName}` : ''} and went down under you. You got away in the boat, and a passing steamer landed you at ${portName}, ${dateText(now())}.`
-          : `The ${shipName} foundered${regionName ? ` in ${regionName}` : ''} and went down under you. You rowed the boat ashore and made your way to ${portName}, ${dateText(now())}.`,
+          : how === 'rowed'
+            ? `The ${shipName} foundered${regionName ? ` in ${regionName}` : ''} and went down under you. You rowed the boat ashore and made your way to ${portName}, ${dateText(now())}.`
+            : `With no ship and nothing to build one with, you left ${from ?? 'the hideout'} and made your way to ${portName}, ${dateText(now())}.`,
       inside: lines,
       ship: `She's sound enough to sail: hull ${Math.round(jail.abandon.wornHull01 * 100)}%, rigging ${Math.round(jail.abandon.wornRigging01 * 100)}%. You named her the ${shipName}.`,
       leaveLabel: 'Aboard her',
     });
+    if (!open) deps.onOpen(true);
     open = true;
-    deps.onOpen(true);
   };
 
   const cameAshore = (): void => {
@@ -312,8 +413,47 @@ export function attachAbandon(deps: AbandonDeps): Abandon {
     const [lo, hi] = jail.abandon.rescueHours;
     const port = nearestYard(lostWhere?.chart);
     deps.passTime(rng.range(lo, hi) * 3600);
-    settle(port, lostWith, lostName, lostRegion, 0, rng, 'rowed');
+    offerOrSettle(port, lostWith, lostName, lostRegion, 0, rng, 'rowed', lostWhere?.geo);
     lostWith = undefined;
+  };
+
+  /** Ashore at the hideout with the slipway, without a ship (piece G). */
+  const leaveAlt = (): void => {
+    const o = offer;
+    if (!open || !o) return;
+    offer = undefined;
+    open = false;
+    deps.show(undefined);
+    deps.onOpen(false);
+    const h = state.hideouts?.[o.hideout];
+    const place = (h && siteDef(h.siteId)?.place) ?? 'the hideout';
+    state.player.shipless = { hideout: o.hideout, since: now() };
+    deps.shipyard.refit();
+    landed = undefined;
+    log(
+      state,
+      now(),
+      o.how === 'rescued'
+        ? `Abandoned the ${o.shipName}; set ashore at ${place} to build another.`
+        : `Rowed ashore from the wreck of the ${o.shipName}; made our way to ${place} to build another.`,
+    );
+    void deps
+      .landAtHideout?.(o.hideout)
+      .then(() => deps.notice(`Ashore at ${place} without a ship. The slipway is the way back.`));
+  };
+
+  /** Shipless at a hideout, off to the nearest yard after all (piece G). */
+  const toYardFrom = (hideoutId: string): void => {
+    if (open || busy || !state.player.shipless) return;
+    delete state.player.shipless;
+    const h = state.hideouts?.[hideoutId];
+    const place = (h && siteDef(h.siteId)?.place) ?? 'the hideout';
+    const rng = Rng.fromSeed(`${deps.seed}|toyard|${now()}`);
+    const [lo, hi] = jail.abandon.rescueHours;
+    const port = nearestYard(deps.hideoutChart?.(hideoutId));
+    deps.passTime(rng.range(lo, hi) * 3600);
+    const none = { classId: jail.abandon.hullClass, cargo: [], guns: [], ammoCharges: 0 };
+    settle(port, none, state.player.captain.shipName, undefined, 0, rng, 'walked', place);
   };
 
   return {
@@ -348,8 +488,17 @@ export function attachAbandon(deps: AbandonDeps): Abandon {
       return adrift;
     },
     cameAshore,
+    leaveAlt,
+    toYardFrom,
     leave() {
       if (!open) return;
+      // The choice on the screen: the yard's worn hull.
+      const o = offer;
+      if (o) {
+        offer = undefined;
+        settle(o.port, o.lost, o.shipName, o.regionName, o.told, o.rng, o.how);
+        return;
+      }
       open = false;
       deps.show(undefined);
       deps.onOpen(false);

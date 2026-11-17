@@ -52,6 +52,8 @@ export type Refusal =
   | 'tooShallow'
   | 'tooDeep'
   | 'needsShore'
+  | 'askew'
+  | 'uneven'
   | 'noDeepWater'
   | 'supports'
   | 'storageInUse'
@@ -77,6 +79,8 @@ export const REFUSAL_TEXT: Readonly<Record<Refusal, string>> = {
   tooShallow: 'The water is too shallow',
   tooDeep: 'The water is too deep',
   needsShore: 'Needs to run from the shore into deep water',
+  askew: 'The ways must run straight down the shore, not along it',
+  uneven: 'The ways need a steady slope down into the water',
   noDeepWater: 'Needs deep water alongside to moor',
   supports: 'Other pieces stand on it',
   storageInUse: "The goods stored here wouldn't fit without it",
@@ -209,7 +213,8 @@ function inWater(site: BuildSite, def: StructureDef, p: Piece): Check {
     const deep = Math.max(...depths);
     if (shallow > 0.3 || deep < w.minDepthM) return no('needsShore');
     if (deep > w.maxDepthM) return no('tooDeep');
-    return OK;
+    const ways = waysSlope(site, def, p);
+    return ways ? no(ways) : OK;
   }
   for (const d of depths) {
     if (d <= 0) return no('needsWater');
@@ -217,6 +222,44 @@ function inWater(site: BuildSite, def: StructureDef, p: Piece): Check {
     if (d > w.maxDepthM) return no('tooDeep');
   }
   return OK;
+}
+
+/** Across the ways, the ground may differ this much (m): they run straight down the shore. */
+export const WAYS_ACROSS_M = 0.8;
+/** Between one cell and the next along the ways, the ground may fall this much (m). */
+export const WAYS_STEP_M = 1.5;
+
+/**
+ * A slipway's slope (plan 09 §4.3; Phase 8 piece G): a hull is launched down the ways, so
+ * they run along the fall of the shore, level across, and fall steadily into the water
+ * from the dry end, with no step too sharp for the cradle. Rot 0 and 2 run along rows,
+ * 1 and 3 along columns.
+ */
+function waysSlope(site: BuildSite, def: StructureDef, p: Piece): Refusal | undefined {
+  const alongRow = (p.rot & 1) === 0;
+  const lanes = new Map<number, number[]>();
+  for (const c of footprintCells(def, p)) {
+    const k = alongRow ? c.row : c.col;
+    const g = cellGround(site, c.col, c.row).mid;
+    const lane = lanes.get(k);
+    if (lane) lane.push(g);
+    else lanes.set(k, [g]);
+  }
+  const keys = [...lanes.keys()].sort((a, b) => a - b);
+  const means: number[] = [];
+  for (const k of keys) {
+    const lane = lanes.get(k) ?? [];
+    if (Math.max(...lane) - Math.min(...lane) > WAYS_ACROSS_M) return 'askew';
+    means.push(lane.reduce((a, b) => a + b, 0) / lane.length);
+  }
+  const first = means[0] ?? 0;
+  const dir = Math.sign((means[means.length - 1] ?? 0) - first) || 1;
+  for (let i = 1; i < means.length; i++) {
+    const step = ((means[i] ?? 0) - (means[i - 1] ?? 0)) * dir;
+    if (step < -0.15) return 'uneven';
+    if (Math.abs(step) > WAYS_STEP_M) return 'tooSteep';
+  }
+  return undefined;
 }
 
 /** Open water beside a cell at least `depthM` deep, with no base over it. */

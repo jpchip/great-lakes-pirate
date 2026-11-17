@@ -538,6 +538,13 @@ export const worldStateSchema = z.object({
     ashore: ashoreSchema.nullable(),
     /** The ship's boat (save v9). */
     rowboat: rowboatSchema,
+    /**
+     * Shipless (plan 09 §7.4; Phase 8 piece G): your ship went down and you chose to be set
+     * ashore at a hideout with a slipway instead of taking the yard's worn hull. You're on
+     * foot there until you build a new schooner or make for a yard. Optional: absent aboard
+     * your own ship, as in every save before it.
+     */
+    shipless: z.object({ hideout: z.string(), since: z.number() }).optional(),
   }),
   voyage: voyageSchema.nullable(),
   markets: marketsSchema,

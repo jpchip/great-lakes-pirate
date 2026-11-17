@@ -235,6 +235,10 @@ export function attachLaw(
     ctx.events.on('ShipPurchased', (e) => {
       raise(replaceShip(defs, ctx.state, e.classId, ctx.state.player.captain.shipName, now()));
     }),
+    // A schooner of your own building is a new hull too (Phase 8 piece G, plan 06 §2.3).
+    ctx.events.on('ShipLaunched', (e) => {
+      raise(replaceShip(defs, ctx.state, e.classId, ctx.state.player.captain.shipName, now()));
+    }),
     ctx.events.on('WorldTick', ({ gameSeconds }) => {
       raise(tickLaw(defs, world(), gameSeconds, WORLD_TICK_GAME_SECONDS / 3600, law.region()));
     }),

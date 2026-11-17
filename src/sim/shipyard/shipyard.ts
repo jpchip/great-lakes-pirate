@@ -500,9 +500,9 @@ export function repairQuote(
 
 /** What `ShipRepaired` carries (plan 10 §11). */
 export interface ShipRepairedEvent {
-  /** Undefined for a kit used at sea. */
+  /** Undefined for a kit used at sea; the hideout's id on its slipway (Phase 8 piece G). */
   port: string | undefined;
-  how: RepairPlace | 'patchKit' | 'mendKit';
+  how: RepairPlace | 'patchKit' | 'mendKit' | 'slipway';
   hull01: number;
   rigging01: number;
   costCents: number;

@@ -68,6 +68,11 @@ export interface ReleaseSnapshot {
   heading?: string;
   /** The button: "Back aboard" unless given. */
   leaveLabel?: string;
+  /**
+   * A second way out, beside the first (Phase 8 piece G: after abandoning ship, ashore at
+   * a hideout with a slipway instead of the yard). It calls `leaveAlt`.
+   */
+  altLabel?: string;
 }
 
 export type JailSnapshot = CellSnapshot | GallowsSnapshot | ReleaseSnapshot;
@@ -83,4 +88,6 @@ export interface JailActions {
   hang(): void;
   /** From the release screen, back aboard. */
   leave(): void;
+  /** The release screen's second way out, when it offers one. */
+  leaveAlt?(): void;
 }
