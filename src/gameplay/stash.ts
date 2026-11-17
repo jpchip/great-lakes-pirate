@@ -363,15 +363,17 @@ export function attachStash(opts: StashControlOptions): StashControl {
           stackIndex,
         });
         if (!r.ok) return CRAFT_REFUSALS[r.reason];
+        const def = recipeDef(r.recipe);
         ctx.events.emit('ItemCrafted', {
           hideout: id,
           recipe: r.recipe,
+          ...(def ? { station: def.station } : {}),
+          seconds: r.seconds,
           batches: r.batches,
           goods: r.goods,
           things: r.things,
         });
         economy.syncLoad();
-        const def = recipeDef(r.recipe);
         const name = def?.name.toLowerCase() ?? r.recipe;
         let text: string;
         if (r.seconds > 0) {

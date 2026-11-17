@@ -1,0 +1,11 @@
+{
+  "id": "ui.chime.soft",
+  "name": "chime-soft",
+  "description": "A small hand bell, once and soft",
+  "kind": "oneshot",
+  "bus": "ui",
+  "bundles": [
+    "ui-audio"
+  ],
+  "source": "source.flac"
+}

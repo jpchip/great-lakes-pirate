@@ -1,0 +1,11 @@
+{
+  "id": "ui.chime.bright",
+  "name": "chime-bright",
+  "description": "A counter bell struck twice, the second a fourth higher",
+  "kind": "oneshot",
+  "bus": "ui",
+  "bundles": [
+    "ui-audio"
+  ],
+  "source": "source.flac"
+}

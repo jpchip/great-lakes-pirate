@@ -1,0 +1,19 @@
+{
+  "source": "procedural",
+  "tool": "tools/audio/synth.ts (tools/audio/lib/synth.ts)",
+  "author": "Great Lakes Pirate contributors",
+  "reference": "Band-passed noise pour with rising-sine glugs, a struck-plate clang, a noise burst, low-passed noise fire",
+  "date": "2026-11-17",
+  "license": "CC BY 4.0",
+  "attribution": "Great Lakes Pirate contributors",
+  "modifications": [],
+  "description": "The still loaded: mash poured in, the copper cap seated, a match and the fire taking, the first bubbles",
+  "durationS": 4.4,
+  "pipeline": [
+    "decoded to mono 48000 Hz",
+    "edge fades",
+    "peak-normalized toward -1 dB (+0.8 dB)",
+    "Opus 56 kbps mono in Ogg (ffmpeg libopus)"
+  ],
+  "inputHash": "0aaa6c6e178e3fbb"
+}

@@ -17,6 +17,7 @@ import {
 import { CaptionFeed, type CaptionView } from './captions';
 import { FOOT_AUDIO_BUNDLE, FootSounds, type FootFrame } from './foot-audio';
 import { HARBOR_AUDIO_BUNDLE, HarborWorks } from './harbor-audio';
+import { HIDEOUT_AUDIO_BUNDLE, HideoutSounds, UI_AUDIO_BUNDLE, UiCues } from './hideout-audio';
 import { LAW_AUDIO_BUNDLE, LawSounds, type LawShipId, type LawShipView } from './law-audio';
 import {
   COMBAT_AUDIO_BUNDLE,
@@ -83,6 +84,10 @@ export interface GameAudio {
   law: LawSounds;
   combat: CombatSounds;
   foot: FootSounds;
+  /** Building and crafting at a hideout, and a still at work ashore (Phase 8 piece I). */
+  hideout: HideoutSounds;
+  /** The rest of the UI set: the stamp, the paper, the telegraph and the bells (piece I). */
+  ui: UiCues;
   captions: CaptionFeed;
   /** The captions showing now, with arrows from the listener's view (plan 15 §5). */
   captionsNow(): CaptionView[];
@@ -170,6 +175,8 @@ export async function createGameAudio(options: GameAudioOptions): Promise<GameAu
         COMBAT_AUDIO_BUNDLE,
         COMBAT_MUSIC_BUNDLE,
         FOOT_AUDIO_BUNDLE,
+        HIDEOUT_AUDIO_BUNDLE,
+        UI_AUDIO_BUNDLE,
       ],
       baseUrl,
     ),
@@ -192,6 +199,8 @@ export async function createGameAudio(options: GameAudioOptions): Promise<GameAu
   combat.captions = captions;
   const foot = new FootSounds(mixer, bank);
   foot.captions = captions;
+  const hideout = new HideoutSounds(mixer, bank);
+  const ui = new UiCues(mixer, bank, () => nowS);
   const records = new Map(SHIP_RECORDS.map((r) => [r.id, r]));
   const whistleShips: WhistleShip[] = [];
   const players: Partial<Record<Exclude<MusicMood, 'quiet'>, MusicPlayer>> = {};
@@ -228,6 +237,32 @@ export async function createGameAudio(options: GameAudioOptions): Promise<GameAu
   });
   game.events.on('HarborMasterPaid', ({ cents }) => {
     if (running()) trade.paid(cents);
+  });
+
+  // Crafting and the UI set (Phase 8 piece I).
+  game.events.on('ItemCrafted', ({ station, seconds }) => {
+    if (running()) hideout.crafted(station, seconds ?? 0);
+  });
+  game.events.on('SalvageTaken', ({ good }) => {
+    if (running()) hideout.salvage(good);
+  });
+  game.events.on('ProductionCompleted', () => {
+    if (running()) ui.play('chimeSoft');
+  });
+  game.events.on('AmbitionCompleted', () => {
+    if (running()) ui.play('chimeBright');
+  });
+  game.events.on('ContractCompleted', () => {
+    if (running()) ui.play('chimeBright');
+  });
+  game.events.on('ContractAccepted', () => {
+    if (running()) ui.play('stamp');
+  });
+  game.events.on('NewspaperBought', () => {
+    if (running()) ui.play('newspaper');
+  });
+  game.events.on('RumorHeard', ({ rumor }) => {
+    if (running() && rumor.kind === 'price') ui.play('telegraph');
   });
 
   // The law (Phase 5 piece H).
@@ -425,6 +460,7 @@ export async function createGameAudio(options: GameAudioOptions): Promise<GameAu
       frameSeconds,
     );
     foot.update({ ...f, listener: pose.at, nowS }, frameSeconds);
+    hideout.update(pose.at, f.stills ?? [], frameSeconds);
     mood = musicMood({
       sunElevationDeg: f.sunElevationDeg,
       fogVisibilityM,
@@ -454,6 +490,8 @@ export async function createGameAudio(options: GameAudioOptions): Promise<GameAu
     law,
     combat,
     foot,
+    hideout,
+    ui,
     captions,
     captionsNow() {
       if (!lastPose || !outside) return [];
@@ -495,6 +533,7 @@ export async function createGameAudio(options: GameAudioOptions): Promise<GameAu
         music.setActive(outside);
       }
       foot.setActive(ashore !== undefined);
+      if (ashore === undefined) hideout.stop();
       if (!player || !outsideNow || ctx.state !== 'running') return;
 
       const { state, cls } = player.sailing;

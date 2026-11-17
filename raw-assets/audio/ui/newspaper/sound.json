@@ -1,0 +1,11 @@
+{
+  "id": "ui.newspaper",
+  "name": "newspaper",
+  "description": "A newspaper shaken open: crackling sheets and a snap",
+  "kind": "oneshot",
+  "bus": "ui",
+  "bundles": [
+    "ui-audio"
+  ],
+  "source": "source.flac"
+}

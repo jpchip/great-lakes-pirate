@@ -1,0 +1,11 @@
+{
+  "id": "sfx.craft.forge",
+  "name": "forge",
+  "description": "The smithy at work: the bellows on the fire, heavy-tap-tap on the anvil three times, the quench hissing",
+  "kind": "oneshot",
+  "bus": "sfx",
+  "bundles": [
+    "hideout-audio"
+  ],
+  "source": "source.flac"
+}

@@ -538,9 +538,16 @@ Pieces F (after A and C) and I (after C and E) can start once this lands; E need
 
 **Not in piece F:** the island posse on foot doesn't break off at the build bounds (it doesn't search yet; Phase 9). Carrying a load shows no crate in your arms. The refuge was checked in unit tests and not driven through a zone chase in the e2e. Screenshots are in the project files (`hideout-life/`).
 
+### 16.11 Piece I: build and craft audio (2026-11-17)
+
+**Result:** built, written up in [15 §21](15-audio.md). Build mode knocks for a piece placed (lower for stone), thuds for one refused, and pries a built piece down; Build plays the yard at work for a few seconds with a saw, a hammer or a stone set for each kind of piece put up; a craft plays its station (the forge and anvil, the cooper's hoops, the still loaded, the bench's saw, plane and hammer); a still with a batch running simmers where it stands while you're ashore; salvage is set down as stone or lumber; and the UI set adds a stamp (contract taken), a newspaper, a telegraph (price news) and two bells (a batch run off; an Ambition or a contract done). The decoded audio is 5.22 MB of a budget now 8 MB (exit criterion 12's audio half). `ItemCrafted` carries the station and the work's seconds; `Hideouts.runningStills()` gives the stills at work. A preview is in the project files (`hideout-audio/preview-80s.mp3`).
+
+**Not in piece I:** the slipway's sounds (piece G is in review), a listen by ear (piece J's playtest).
+
 ---
 
 ## Changelog
+- v1.1: Phase 8 piece I built (§16.11): build and craft audio and the UI set, the decoded audio budget at 8 MB.
 - v1.0: Phase 8 piece F built (§16.10): sleeping in a bunk lays low, pursuit ends at the anchorage, concealment in the palette, being spotted (talk and the cutter's lean), salvage at the quarry and the camp.
 - v0.9: Phase 8 piece C built (§16.9): build mode, Stockton's and Siskiwit's build bounds in the walked scene, the pre-built shack and a short pier replacing the prefabs.
 - v0.10: Phase 8 piece E built crafting (§16.4): stations, recipes and items data, crafting from a hideout's storage over game time, the still's passive production capped at a batch a week, re-crating, the false-light rig, two crafted upgrades, and the Workshop tab.

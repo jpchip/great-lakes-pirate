@@ -1,0 +1,11 @@
+{
+  "id": "sfx.craft.still-load",
+  "name": "still-load",
+  "description": "The still loaded: mash poured in, the copper cap seated, a match and the fire taking, the first bubbles",
+  "kind": "oneshot",
+  "bus": "sfx",
+  "bundles": [
+    "hideout-audio"
+  ],
+  "source": "source.flac"
+}

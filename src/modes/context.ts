@@ -134,6 +134,9 @@ export interface GameEvents {
   ItemCrafted: {
     hideout: string;
     recipe: string;
+    /** The station it was made at, and the game seconds the work took (0: the still loaded). */
+    station?: string;
+    seconds?: number;
     batches: number;
     goods: Record<string, number>;
     things: Record<string, number>;

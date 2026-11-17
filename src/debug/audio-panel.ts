@@ -134,6 +134,16 @@ export function createAudioPanel(options: AudioPanelOptions): { update(): void }
   events.add(footPick, 'sound', footIds).name('Ashore: sound');
   events.add({ play: () => audio.foot.audition(footPick.sound) }, 'play').name('Ashore: play it');
 
+  // Phase 8 piece I: building, crafting and the UI set, by ear.
+  const hideoutIds = [...audio.bank.keys()]
+    .filter((id) => /\.(build|craft)\.|^ui\.(stamp|newspaper|telegraph|page|chime)/.test(id))
+    .sort();
+  const hideoutPick = { sound: hideoutIds[0] ?? '' };
+  events.add(hideoutPick, 'sound', hideoutIds).name('Hideout: sound');
+  events
+    .add({ play: () => audio.hideout.audition(hideoutPick.sound) }, 'play')
+    .name('Hideout: play it');
+
   const status = {
     context: '',
     music: '',

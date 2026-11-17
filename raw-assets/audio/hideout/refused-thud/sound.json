@@ -1,0 +1,11 @@
+{
+  "id": "ui.build.refused",
+  "name": "refused-thud",
+  "description": "A piece refused: a dull, muffled thud",
+  "kind": "oneshot",
+  "bus": "ui",
+  "bundles": [
+    "hideout-audio"
+  ],
+  "source": "source.flac"
+}

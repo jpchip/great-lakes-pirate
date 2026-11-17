@@ -1,0 +1,19 @@
+{
+  "source": "procedural",
+  "tool": "tools/audio/synth.ts (tools/audio/lib/synth.ts)",
+  "author": "Great Lakes Pirate contributors",
+  "reference": "Band-passed noise sweeps under short high noise crackles, a noise snap",
+  "date": "2026-11-17",
+  "license": "CC BY 4.0",
+  "attribution": "Great Lakes Pirate contributors",
+  "modifications": [],
+  "description": "A newspaper shaken open: crackling sheets and a snap",
+  "durationS": 1,
+  "pipeline": [
+    "decoded to mono 48000 Hz",
+    "edge fades",
+    "peak-normalized toward -3 dB (+1.5 dB)",
+    "Opus 48 kbps mono in Ogg (ffmpeg libopus)"
+  ],
+  "inputHash": "d3ac2846673483e3"
+}

@@ -1,0 +1,11 @@
+{
+  "id": "ui.telegraph",
+  "name": "telegraph",
+  "description": "A telegraph sounder taking a short message: brass clicks down and up",
+  "kind": "oneshot",
+  "bus": "ui",
+  "bundles": [
+    "ui-audio"
+  ],
+  "source": "source.flac"
+}
