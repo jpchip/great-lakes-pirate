@@ -190,6 +190,11 @@ export interface CutterSense {
    * tug's deputies, who have no gun to shoot it away). Undefined: only a disabled ship.
    */
   boardsUnderKn?: number;
+  /**
+   * The player's ship is in a hideout's anchorage (plan 06 §5.4, plan 09 §3; Phase 8 piece
+   * F): any pursuit ends there and none starts. She isn't let off being hostile.
+   */
+  refuge?: boolean;
 }
 
 export type CutterAction =
@@ -207,7 +212,7 @@ export type CutterAction =
   | { type: 'inspect' }
   | { type: 'release' }
   | { type: 'capture'; how: 'surrender' | 'boarded' }
-  | { type: 'gaveUp'; why: 'lost' | 'shallows' | 'outrun' };
+  | { type: 'gaveUp'; why: 'lost' | 'shallows' | 'outrun' | 'hideout'; sawIt?: boolean };
 
 /** Phases in which she's after the player (not patrolling, done, or let go). */
 const ACTIVE: ReadonlySet<CutterPhase> = new Set([
@@ -280,9 +285,16 @@ export function stepCutter(
     if (cutterActive(b)) go(b, 'released');
   }
 
+  // Reaching a hideout's anchorage ends any pursuit (06 §5.4): she breaks off, and if she
+  // had you in sight, she saw where you went.
+  if (sense.refuge && cutterActive(b)) {
+    giveUp(b, rules, out, 'hideout', seen(sense.awareness));
+  }
+
   switch (b.phase) {
     case 'patrol':
     case 'released': {
+      if (sense.refuge) break;
       if (b.hostile && seen(sense.awareness)) {
         go(b, 'firing');
         break;
@@ -454,13 +466,14 @@ function giveUp(
   b: CutterBrain,
   rules: CutterRules,
   out: CutterAction[],
-  why: 'lost' | 'shallows' | 'outrun',
+  why: 'lost' | 'shallows' | 'outrun' | 'hideout',
+  sawIt?: boolean,
 ): void {
   b.cooldownS = rules.cooldownS;
   b.hails = 0;
   b.shots = 0;
   go(b, 'released');
-  out.push({ type: 'gaveUp', why });
+  out.push(sawIt === undefined ? { type: 'gaveUp', why } : { type: 'gaveUp', why, sawIt });
 }
 
 /**

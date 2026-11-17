@@ -71,6 +71,16 @@
         "A lantern shows {where} most nights. Smuggler's boat. You didn't hear it from me."
       ]
     },
+    "spotted": {
+      "weight": 3,
+      "reliability": 1,
+      "label": "Talk of you",
+      "templates": [
+        "Fellow off {by} says the {ship} lies up in {where} between trips. Funny place for a schooner to keep.",
+        "There's a schooner, the {ship}, been seen in {where} more than once. What's anyone want out there?",
+        "You hear about {where}? {by} passed close and saw the {ship} lying there, snug as you like."
+      ]
+    },
     "legend": {
       "weight": 1,
       "reliability": 0.3,

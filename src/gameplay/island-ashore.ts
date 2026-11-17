@@ -4,7 +4,7 @@ import type { Hideouts } from './hideouts';
 import { rollCache, type PlacedIsland, type PlacedPoiPiece } from '../sim/islands/on-foot';
 import { bearingBox, type AshoreGround } from './onfoot/ashore-scene';
 import type { Collider } from './onfoot/colliders';
-import type { Ladder } from './onfoot/controller';
+import type { ControllerParams, Ladder } from './onfoot/controller';
 
 /**
  * Walking a hero island (plan 08 §20.4 piece H; plan 11 §3): Stockton built whole on its
@@ -43,6 +43,16 @@ export interface IslandAshoreDeps {
    * at a storage piece or the strongbox opens the hideout's storage.
    */
   hideouts?: Pick<Hideouts, 'prompt' | 'strongbox' | 'colliders'>;
+  /**
+   * Salvage from a site's ruins (Phase 8 piece F): the prompt at a pile, the rowboat's
+   * prompt with a load in your arms, and the slower walk while you carry it.
+   */
+  salvage?: {
+    prompt(at: { x: number; y: number; z: number }): IslandPrompt | undefined;
+    boatPrompt(): IslandPrompt | undefined;
+    params(base: ControllerParams): ControllerParams;
+    readonly load: unknown;
+  };
   /** The run's seed for what's hidden where (the weather's noise seed). */
   runSeed(): number;
   notice(text: string): void;
@@ -57,6 +67,12 @@ export interface IslandAshore {
   sceneFor(at: { x: number; z: number }): IslandScene | undefined;
   /** F on foot at (x, y, z): search a cairn, or open the stash at its strongbox. */
   prompt(at: { x: number; y: number; z: number }): IslandPrompt | undefined;
+  /** At the rowboat with a load of salvage in your arms: put it in the hold (piece F). */
+  boatPrompt(): IslandPrompt | undefined;
+  /** The walker's params: slower with a load in your arms (piece F). */
+  params(base: ControllerParams): ControllerParams;
+  /** Arms full: no crouching. */
+  carrying(): boolean;
   /** For the dev hooks: a cache's cairns, which holds it, and what's been searched. */
   cache(id: string):
     | {
@@ -212,13 +228,16 @@ export function attachIslandAshore(deps: IslandAshoreDeps): IslandAshore {
         }
       }
     }
-    return deps.hideouts?.prompt(at);
+    return deps.salvage?.prompt(at) ?? deps.hideouts?.prompt(at);
   };
 
   return {
     walkableAt: (at) => islandAt(at.x, at.z) !== undefined,
     sceneFor,
     prompt,
+    boatPrompt: () => deps.salvage?.boatPrompt(),
+    params: (base) => deps.salvage?.params(base) ?? base,
+    carrying: () => !!deps.salvage?.load,
     cache(id) {
       const cache = findCache(id);
       if (!cache) return undefined;

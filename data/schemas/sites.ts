@@ -81,6 +81,23 @@ export const siteSchema = z.object({
       row: z.number().int().nonnegative(),
     })
     .optional(),
+  /**
+   * What the site's ruins give to salvage (plan 09 §6.2, §16.5; Phase 8 piece F): a good, a
+   * stock a season, carried on foot a load at a time from the named prefab's pieces of these
+   * kinds (the quarry's dressed blocks, the camp's lumber piles).
+   */
+  salvage: z
+    .object({
+      good: idOf('good'),
+      /** What the load is called: "dressed brownstone", "sawn lumber". */
+      name: z.string().min(1),
+      perSeason: z.number().int().positive(),
+      loadCu: z.number().int().positive(),
+      /** The island prefab (`onFoot.pois[].id`) whose pieces are the piles. */
+      poi: z.string().min(1),
+      kinds: z.array(z.string().min(1)).min(1),
+    })
+    .optional(),
   /** Plan 12 §2.2's starting hideout for these backgrounds (Phase 4: all of them). */
   startFor: z.array(z.string()),
   blurb: z.string().min(1),

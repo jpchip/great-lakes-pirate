@@ -15,6 +15,7 @@ export const RUMOR_KINDS = [
   'smuggler',
   'legend',
   'seasonal',
+  'spotted',
 ] as const;
 export type RumorKind = (typeof RUMOR_KINDS)[number];
 
@@ -99,6 +100,8 @@ export const rumorsFileSchema = z.object({
     smuggler: kindSchema,
     legend: kindSchema,
     seasonal: kindSchema,
+    /** Talk of your ship lying up at one of your hideouts (plan 09 §8; Phase 8 piece F). */
+    spotted: kindSchema,
   }),
   /** In-season trade at trade-only or seasonal ports (plan 05 §26.5). */
   seasonal: z.array(seasonalSchema),

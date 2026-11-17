@@ -80,6 +80,34 @@ function Panel({ s, a }: { s: BuildPanelSnapshot; a: BuildActions }) {
             </ul>
           )}
         </section>
+        {s.concealment && (
+          <section class="build-conceal" data-testid="build-concealment">
+            <h3>
+              Concealment <span class="hud-num">{s.concealment.value}%</span>{' '}
+              <small>{s.concealment.word}</small>
+            </h3>
+            {s.concealment.planned && (
+              <p class="port-dim">
+                {s.concealment.planned.value}% ({s.concealment.planned.word}) once built
+              </p>
+            )}
+            <ul>
+              {s.concealment.parts.map((p) => (
+                <li key={p.label}>
+                  <span>{p.label}</span>
+                  <span class={`hud-num ${p.delta < 0 ? 'short' : ''}`}>
+                    {p.label === 'The site' ? `${p.delta}%` : `${p.delta > 0 ? '+' : ''}${p.delta}`}
+                  </span>
+                </li>
+              ))}
+            </ul>
+            {s.concealment.spotted && (
+              <p class="build-spotted" data-testid="build-spotted">
+                Seen by {s.concealment.spotted}
+              </p>
+            )}
+          </section>
+        )}
       </aside>
       <div class="build-top">
         <button class={s.tool === 'place' ? 'on' : ''} onClick={() => a.tool('place')}>

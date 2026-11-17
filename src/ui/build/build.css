@@ -136,6 +136,37 @@
   justify-content: space-between;
 }
 
+.build-conceal {
+  border-top: 1px solid var(--paper-dark);
+  padding: 4px 10px 8px;
+  font-size: 13px;
+}
+
+.build-conceal h3 {
+  margin: 2px 0;
+  font-size: 13px;
+}
+
+.build-conceal p {
+  margin: 0 0 2px;
+}
+
+.build-conceal ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.build-conceal li {
+  display: flex;
+  justify-content: space-between;
+}
+
+.build-conceal .short,
+.build-spotted {
+  color: #8c2a1c;
+}
+
 .build-top {
   pointer-events: auto;
   position: absolute;

@@ -498,16 +498,20 @@ function decayHeat(
   here: string | undefined,
   now: number,
   events: LawEvent[],
+  layLow?: string,
 ): void {
   const { decay } = defs.wanted;
   for (const [region, w] of Object.entries(law.wanted)) {
     const present = region === here;
+    const lyingLow = region === layLow;
     if (present) w.lastSeenAt = now;
     w.alert = Math.max(0, w.alert - decay.alertPerHour * hours);
     if (w.heat <= 0) continue;
     if (w.lastCrimeAt !== undefined && now - w.lastCrimeAt < decay.graceHours * 3600) continue;
     const tier = tierDef(defs, wantedTier(defs, w.heat));
-    const rate = tier.decayPerHour * (present ? decay.presentFactor : 1);
+    // Asleep at a hideout there, the region cools faster than with you away (§3.3).
+    const rate =
+      tier.decayPerHour * (lyingLow ? decay.layLowFactor : present ? decay.presentFactor : 1);
     const floor = Math.min(w.heat, Math.max(tier.decayFloor, w.floor ?? 0));
     const next = Math.max(floor, w.heat - rate * hours);
     if (next === w.heat) continue;
@@ -552,7 +556,8 @@ function decayFame(
 
 /**
  * The law's world tick: reports land, news spreads, heat and Fame decay. `hours` is the
- * game time the tick covers; `here` is the player's region (or undefined off the map).
+ * game time the tick covers; `here` is the player's region (or undefined off the map);
+ * `layLow` the region of the hideout the captain is asleep at (Phase 8 piece F).
  */
 export function tickLaw(
   defs: LawDefs,
@@ -560,10 +565,11 @@ export function tickLaw(
   now: number,
   hours: number,
   here: string | undefined,
+  layLow?: string,
 ): LawEvent[] {
   const events = fileDue(defs, world, now);
   spreadNews(defs, world, now, events);
-  decayHeat(defs, world.law, hours, here, now, events);
+  decayHeat(defs, world.law, hours, here, now, events, layLow);
   decayFame(defs, world.law, hours, now, events);
   decayGrudges(defs, world, hours);
   return events;

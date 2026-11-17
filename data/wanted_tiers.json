@@ -8,6 +8,6 @@
     { "tier": 5, "name": "Most Wanted", "minHeat": 500, "decayPerHour": 0.1, "decayFloor": 150 }
   ],
   "identification": { "unknown": 0.25, "schooner": 0.5, "ship": 1, "person": 1 },
-  "decay": { "graceHours": 12, "presentFactor": 0.25, "alertPerHour": 0.5 },
+  "decay": { "graceHours": 12, "presentFactor": 0.25, "alertPerHour": 0.5, "layLowFactor": 3 },
   "spread": { "fraction": 0.3, "perFameTier": 0.05, "delayHours": 12 }
 }

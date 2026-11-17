@@ -78,6 +78,11 @@ export const wantedTiersFileSchema = z
       presentFactor: z.number().min(0).max(1),
       /** Alertness (unidentified crimes) lost per game hour. */
       alertPerHour: z.number().nonnegative(),
+      /**
+       * Asleep at a hideout in the region (plan 06 §3.3, plan 09 §3; Phase 8 piece F): its
+       * heat cools this many times the away rate.
+       */
+      layLowFactor: z.number().positive().default(3),
     }),
     spread: z.object({
       /** The share of a newsworthy crime's heat that reaches each neighbor. */
@@ -241,6 +246,11 @@ export const lawActorsFileSchema = z.object({
     /** A beat's weight is `baseWeight` plus `pull[tier]` for each region it covers (§5.1). */
     baseWeight: z.number().nonnegative(),
     pull: z.array(z.number().nonnegative()).min(1),
+    /**
+     * Added for each region a beat covers that holds a hideout spotted this week (plan 09
+     * §8, §16.5; Phase 8 piece F): about a Hunted region's pull.
+     */
+    spottedPull: z.number().nonnegative().default(6),
     /**
      * Away to Lake Michigan by the lower lakes (§5.1): a sortie down `lane` with this weight
      * when no region is above `maxTier`, for `days` game days.

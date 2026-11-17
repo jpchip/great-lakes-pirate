@@ -57,6 +57,27 @@ export interface RumorWorld {
   weather?: { state: WeatherState; geo: ChartGeography } | undefined;
   /** The island smuggler's anchorage (piece H). */
   smugglerAnchorage?: (() => { id: string; name: string; where: string } | undefined) | undefined;
+  /**
+   * Hideouts of yours seen this week (Phase 8 piece F): talked of in the saloons of their
+   * regions and the next.
+   */
+  spotted?: (() => readonly SpottedTalk[]) | undefined;
+}
+
+/** A spotted hideout, as the saloons tell it. */
+export interface SpottedTalk {
+  hideout: string;
+  /** "Presque Isle bay, on Stockton Island". */
+  where: string;
+  /** Who saw it: "the tug Sophia". */
+  by: string;
+  /** Your ship's name when seen. */
+  ship: string;
+  at: number;
+  /** Talk stops then. */
+  until: number;
+  /** The regions whose saloons talk of it. */
+  regions: readonly string[];
 }
 
 /** A rumor as told, with the price it carries for the ledger (price tips only). */
@@ -379,6 +400,29 @@ function legendDrafts(defs: RumorsFile, port: string): Draft[] {
     }));
 }
 
+/** Talk of your hideouts, where they were seen this week (plan 09 §8; Phase 8 piece F). */
+function spottedDrafts(defs: RumorsFile, world: RumorWorld, port: string, now: number): Draft[] {
+  const region = portInfo(port)?.wantedRegion;
+  if (!region || !world.spotted) return [];
+  return world
+    .spotted()
+    .filter((s) => s.regions.includes(region) && now >= s.at && now < s.until)
+    .map((s) => ({
+      kind: 'spotted' as const,
+      // One telling per sighting.
+      subject: `${s.hideout}@${Math.round(s.at)}`,
+      alwaysTrue: true,
+      render: (_truth: boolean, rand: Rand) => ({
+        text: fill(pick(rand, defs.kinds.spotted.templates), {
+          where: s.where,
+          by: s.by,
+          ship: s.ship,
+        }),
+        expiresAt: s.until,
+      }),
+    }));
+}
+
 function seasonCalendarKey(gameSeconds: number): string {
   const d = calendarDate(gameSeconds);
   return `${d.getUTCFullYear()}-${seasonAt(gameSeconds)}`;
@@ -481,6 +525,8 @@ function heard(rumors: readonly Rumor[], d: Draft, now: number): boolean {
         return r.draft === d.subject;
       case 'seasonal':
         return r.draft === d.subject;
+      case 'spotted':
+        return r.draft === d.subject;
     }
   });
 }
@@ -501,6 +547,7 @@ export function rumorDrafts(
     ...smugglerDraft(defs, world, port),
     ...legendDrafts(defs, port),
     ...seasonalDrafts(defs, world, port, now),
+    ...spottedDrafts(defs, world, port, now),
   ].filter((d) => !heard(rumors, d, now));
 }
 
