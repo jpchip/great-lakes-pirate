@@ -36,6 +36,7 @@ import type { GameEconomy } from './economy';
 import type { Entity } from './ecs';
 import type { ShipHazards } from './hazards';
 import type { Targets } from './targets';
+import { payrollCents } from '../sim/events/events';
 
 /**
  * Boarding, looting and the aftermath in play (plan 07 §6, §7; Phase 6 piece D). Alongside
@@ -392,13 +393,15 @@ export function attachBoarding(deps: BoardingDeps): GameBoarding {
     const robbed = robbedLately(trafficShips(), s.shipId, now(), rules.robbedDays);
     const u = hash01(`${s.shipId}:${m?.cycle ?? 0}:${m?.outbound ?? true}:cash`);
     const cashCents = robbed ? 0 : Math.round(lo + (hi - lo) * u);
+    // A payroll aboard her (Phase 9 piece A): the strongbox is fuller than her own cash.
+    const payroll = robbed ? 0 : payrollCents(ctx.state.events, s.shipId, now());
     s.prize = createPrize(rules, economy.defs, {
       shipId: s.shipId,
       owner: s.owner,
       region: deps.region(),
       now: now(),
       cargo,
-      cashCents,
+      cashCents: cashCents + payroll,
     });
     s.stage = 'loot';
   };

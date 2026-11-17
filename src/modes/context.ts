@@ -316,6 +316,19 @@ export interface GameEvents {
   AmbitionPinned: { id: string; pinned: boolean };
   AmbitionCompleted: { id: string; category: string; cents: number; fame: number };
   /**
+   * Sandbox events (plan 12 §10; Phase 9 piece A): one fired at a place, one resolved by a
+   * choice (a letter answered, a chart meeting or a scene), and a letter left waiting at
+   * the harbor masters'.
+   */
+  EventTriggered: {
+    id: string;
+    key: string;
+    port?: string | undefined;
+    region?: string | undefined;
+  };
+  EventResolved: { id: string; key: string; choice: string | undefined };
+  LetterReceived: { key: string; event: string };
+  /**
    * A schooner built at a hideout's slipway and launched (Phase 8 piece G raises it; the
    * builder Ambition counts it).
    */

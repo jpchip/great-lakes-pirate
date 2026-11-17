@@ -41,6 +41,8 @@ import { EndScreen } from './end/EndScreen';
 import type { LastRun } from '../sim/run/run-end';
 import { MostWantedPage } from './news/MostWantedPage';
 import type { MostWantedPage as FrontPageModel } from '../sim/news/papers';
+import type { EventSceneView } from '../gameplay/events';
+import { EventScene, type EventSceneActions } from './events/EventScene';
 import './theme.css';
 
 /** Sail on or hold the ship, over the journal or a look at the chart. */
@@ -91,6 +93,8 @@ export interface GameUiOptions {
   onEndMenu?: (() => void) | undefined;
   /** The tier-5 front page was put down (piece F). */
   onFrontPageClosed?: (() => void) | undefined;
+  /** A sandbox event's scene (Phase 9 piece A): a choice, or putting it away. */
+  eventScene?: EventSceneActions | undefined;
 }
 
 export interface GameUi {
@@ -143,6 +147,8 @@ export interface GameUi {
   setEnd(run: LastRun | undefined): void;
   /** The tier-5 full-screen front page (Phase 5 piece F); undefined puts it away. */
   setFrontPage(page: FrontPageModel | undefined): void;
+  /** A sandbox event's scene on paper (Phase 9 piece A); undefined puts it away. */
+  setEventScene(scene: EventSceneView | undefined): void;
   /** Show a port screen tab (J in port turns to the ledger). */
   setPortTab(tab: PortTab): void;
   readonly menuOpen: boolean;
@@ -171,8 +177,10 @@ export function mountGameUi({
   onAbandon,
   onEndMenu = () => window.location.assign(window.location.pathname),
   onFrontPageClosed = () => undefined,
+  eventScene: sceneActions,
 }: GameUiOptions): GameUi {
   const frontPage = signal<FrontPageModel | undefined>(undefined);
+  const eventScene = signal<EventSceneView | undefined>(undefined);
   const closeFrontPage = (): void => {
     if (!frontPage.value) return;
     frontPage.value = undefined;
@@ -239,6 +247,9 @@ export function mountGameUi({
     if (frontPage.value) {
       e.preventDefault();
       closeFrontPage();
+    } else if (eventScene.value && !menuOpen.value) {
+      e.preventDefault();
+      sceneActions?.close();
     } else if (menuOpen.value) {
       e.preventDefault();
       setMenu(false);
@@ -264,7 +275,7 @@ export function mountGameUi({
   });
   // In port, F casts off and J turns to the ledger; J closes the journal (plan 13 §6).
   window.addEventListener('keydown', (e) => {
-    if (menuOpen.value || frontPage.value || e.repeat) return;
+    if (menuOpen.value || frontPage.value || eventScene.value || e.repeat) return;
     const keys = bindings.value.sailing;
     const is = (action: Action): boolean => (keys[action] ?? []).includes(e.code);
     if (smuggler.value && is('Interact')) {
@@ -418,6 +429,9 @@ export function mountGameUi({
         {frontPage.value && !ended.value && (
           <MostWantedPage page={frontPage.value} close={closeFrontPage} />
         )}
+        {eventScene.value && sceneActions && !frontPage.value && !ended.value && (
+          <EventScene scene={eventScene.value} actions={sceneActions} />
+        )}
         <LoadingScreen screen={loading} />
         {ended.value && <EndScreen run={ended.value} onMenu={onEndMenu} />}
       </AmbitionsContext.Provider>
@@ -512,6 +526,9 @@ export function mountGameUi({
     },
     setFrontPage(page) {
       frontPage.value = page;
+    },
+    setEventScene(scene) {
+      eventScene.value = scene;
     },
     setJail(snapshot) {
       jail.value = snapshot;

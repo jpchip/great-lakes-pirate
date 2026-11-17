@@ -27,6 +27,8 @@ export const storySchema = z.object({
   crime: z.string().optional(),
   /** An Ambition done (Phase 8 piece H): its id. */
   ambition: z.string().optional(),
+  /** A sandbox event (Phase 9 piece A): its id. */
+  event: z.string().optional(),
   goods: z.array(z.object({ good: z.string(), qty: z.number().positive() })).optional(),
   tier: z.number().int().optional(),
   /** A crime at sea (Phase 6 piece F): "the fish tug Ada Bell", her owners, the dead, cash taken. */
