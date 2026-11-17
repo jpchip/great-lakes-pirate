@@ -36,7 +36,7 @@ import { partOfDay } from '../sim/rumors/rumors';
 import { upcomingSailings, portName } from '../sim/traffic/news';
 import type { TrafficDefs } from '../sim/traffic/cargo';
 import type { GameContext } from '../modes/context';
-import { weekText } from './ambitions';
+import { weekLabel } from '../ui/hud/model';
 import { emitLaw } from './law';
 
 /**
@@ -462,7 +462,7 @@ export function attachEvents(opts: EventsOptions): GameEvents {
         subject: l.subject,
         body: l.body,
         // As the papers and the HUD date it: a game day is a week.
-        dateText: weekText(l.at),
+        dateText: weekLabel(l.at),
         read: l.read,
         choices: l.open && def ? choiceViews(def) : [],
         result: l.result,
