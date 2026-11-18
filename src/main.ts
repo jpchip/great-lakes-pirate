@@ -2177,6 +2177,8 @@ async function boot(): Promise<void> {
     showLie: (r) => ui.setLie(r === undefined, stash.moored === 'docked'),
     onOpen(open) {
       if (open) {
+        // The stash's screen needs the mouse at once, as the journal's does (see above).
+        if (document.pointerLockElement) document.exitPointerLock();
         machine.pushOverlay('trade');
         contextBeforeStash = input.context;
         input.context = 'menu';
@@ -2950,6 +2952,7 @@ async function boot(): Promise<void> {
     showSleep: (view) => ui.setSleep(view),
     onOpen(open) {
       if (open) {
+        if (document.pointerLockElement) document.exitPointerLock();
         machine.pushOverlay('trade');
         contextBeforeSleep = input.context;
         input.context = 'menu';
