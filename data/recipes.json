@@ -116,5 +116,91 @@
     "hours": 24,
     "inputs": { "goods": { "good.grain": 3 }, "things": { "item.barrel": 4 }, "water": true },
     "output": { "goods": { "good.untaxed_whiskey": 4 } }
+  },
+  {
+    "id": "recipe.loft_mend_kits",
+    "name": "Mend kits",
+    "station": "station.sail_loft",
+    "blurb": "Canvas cut to patterns on the loft floor, with twine, palms and spare line: five kits from a bolt where the bench gets three.",
+    "hours": 1,
+    "inputs": { "goods": { "good.rope_canvas": 1 } },
+    "output": { "things": { "store.mend_kit": 5 } }
+  },
+  {
+    "id": "recipe.quality_canvas",
+    "name": "Quality canvas",
+    "station": "station.sail_loft",
+    "blurb": "A new suit of close-woven duck, cut and roped on the loft floor: 5% faster at every sail. Fit it at a slipway.",
+    "hours": 12,
+    "inputs": { "goods": { "good.rope_canvas": 4, "good.hardware": 1 } },
+    "output": { "things": { "upgrade.quality_canvas": 1 } }
+  },
+  {
+    "id": "recipe.topsails",
+    "name": "Topsails",
+    "station": "station.sail_loft",
+    "blurb": "Bigger, lighter gaff topsails and a fisherman staysail between the masts: faster in light and moderate airs at Full, but she shows further and strains sooner in a blow. Fit it at a slipway.",
+    "hours": 10,
+    "inputs": { "goods": { "good.rope_canvas": 3, "good.lumber": 1 } },
+    "output": { "things": { "upgrade.topsails": 1 } }
+  },
+  {
+    "id": "recipe.storm_sails",
+    "name": "Storm sails",
+    "station": "station.sail_loft",
+    "blurb": "Heavy canvas, double-sewn and roped for the reefed and half sails: they carry 4 knots more wind before the rig strains. Fit it at a slipway.",
+    "hours": 10,
+    "inputs": { "goods": { "good.rope_canvas": 4 } },
+    "output": { "things": { "upgrade.storm_sails": 1 } }
+  },
+  {
+    "id": "recipe.dark_sails",
+    "name": "Dark-tanned sails",
+    "station": "station.sail_loft",
+    "blurb": "A suit of sails soaked in a vat of bark and tar until they're the color of a wet hull: a quarter harder to see in the dark. Fit it at a slipway.",
+    "hours": 16,
+    "inputs": { "goods": { "good.rope_canvas": 4, "good.lumber": 1 }, "water": true },
+    "output": { "things": { "upgrade.dark_sails": 1 } }
+  },
+  {
+    "id": "recipe.muffled_blocks",
+    "name": "Muffled blocks",
+    "station": "station.sail_loft",
+    "blurb": "Sheaves bushed with leather and the blocks wrapped in served canvas: no creak or clatter for a watchman to hear close in at night. Fit it at a slipway.",
+    "hours": 6,
+    "inputs": { "goods": { "good.rope_canvas": 2, "good.hardware": 1 } },
+    "output": { "things": { "upgrade.muffled_blocks": 1 } }
+  },
+  {
+    "id": "recipe.smoked_fish",
+    "name": "Smoked fish",
+    "station": "station.smokehouse",
+    "blurb": "Fresh fish split, brined in well water and hung over a slow hardwood fire for a week, then packed: it keeps as salt fish does, with no salt bought.",
+    "hours": 24,
+    "inputs": {
+      "goods": { "good.fresh_fish": 3, "good.lumber": 1 },
+      "things": { "item.barrel": 2 },
+      "water": true
+    },
+    "output": { "goods": { "good.salted_fish": 3 } }
+  },
+  {
+    "id": "recipe.powder_kegs",
+    "name": "Powder and shot by the keg",
+    "station": "station.powder_room",
+    "withStation": "station.smithy",
+    "blurb": "Shot cast at the forge, then made up in cartridges here in a lot: four kegs in four hours, where the forge alone takes two hours a keg.",
+    "hours": 4,
+    "inputs": { "goods": { "good.hardware": 3, "good.coal": 3 } },
+    "output": { "goods": { "good.powder_shot": 4 } }
+  },
+  {
+    "id": "recipe.corrected_charts",
+    "name": "Corrected charts",
+    "station": "station.cartography",
+    "blurb": "Your soundings, bearings and the pilots' marks copied fair onto clean sheets: better courses, and chart voyages run 8% faster. Fit it at a slipway; it takes an instruments slot.",
+    "hours": 12,
+    "inputs": { "goods": { "good.dry_goods": 1 } },
+    "output": { "things": { "upgrade.corrected_charts": 1 } }
   }
 ]

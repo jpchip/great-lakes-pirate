@@ -22,6 +22,39 @@
     "name": "Distillery",
     "piece": "build.distillery",
     "blurb": "A copper pot still. Load it with mash and leave it: it works while you're away, a batch a week.",
-    "passive": { "queueMax": 4 }
+    "passive": {
+      "queueMax": 4,
+      "vessel": "the still",
+      "load": "Load the still"
+    }
+  },
+  {
+    "id": "station.sail_loft",
+    "name": "Sail loft",
+    "piece": "build.sail_loft",
+    "blurb": "A long cutting table, palms and needles, and canvas laid out on the floor: mend kits, and new sails and blocks for her rig."
+  },
+  {
+    "id": "station.smokehouse",
+    "name": "Smokehouse",
+    "piece": "build.smokehouse",
+    "blurb": "A plank shed with a slow hardwood fire under racks. Hang fish in it and leave it: it cures while you're away, a batch a week.",
+    "passive": {
+      "queueMax": 4,
+      "vessel": "the smokehouse",
+      "load": "Hang it in the smoke"
+    }
+  },
+  {
+    "id": "station.powder_room",
+    "name": "Powder room",
+    "piece": "build.powder_room",
+    "blurb": "A brownstone magazine with a copper-nailed floor, kept cool and dry: powder made up into cartridges by the keg, quicker and in bigger lots than at the forge."
+  },
+  {
+    "id": "station.cartography",
+    "name": "Cartography table",
+    "piece": "build.cartography_table",
+    "blurb": "A slanted table under a lamp, dividers, parallel rules and the charts you've marked up: your own soundings and courses copied fair."
   }
 ]

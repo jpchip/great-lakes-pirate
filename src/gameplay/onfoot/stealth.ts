@@ -91,7 +91,8 @@ export interface Guard {
   /** The previous tick's place, for render interpolation. */
   readonly previous: { x: number; y: number; z: number; heading: number };
   readonly params: ControllerParams;
-  readonly route: Route;
+  /** The beat walked; `reroute` gives a new one (the island posse's sweep). */
+  route: Route;
   state: GuardState;
   /** Seconds in this state. */
   stateS: number;
@@ -196,6 +197,11 @@ export interface StealthInputs {
   wantedTier: number;
   /** Leaning (Q/E): the head's offset from the feet, meters (`lean.ts`). */
   lean?: { x: number; z: number };
+  /**
+   * Out of the law's reach (a hideout's build bounds, plan 06 §5.4): nobody looks for you
+   * or listens to your steps. Bodies are still found.
+   */
+  unseen?: boolean;
 }
 
 /** Looks a second (each guard; staggered). */
@@ -301,6 +307,13 @@ export interface Stealth {
   moveBody(id: string, at: { x: number; y: number; z: number }): void;
   /** A body put in the lake: gone tonight, never found. */
   sink(id: string): void;
+  /**
+   * Gives up on you (plan 06 §5.4, the island posse at a hideout's bounds): suspicion, a
+   * chase or a search ends, and they walk back to their beat.
+   */
+  breakOff(id: string): void;
+  /** A new beat to walk from its first point (the island posse's sweep, its walk back). */
+  reroute(id: string, route: Route): void;
   /** Measured cost of the last step, ms (the ≤ 1 ms budget, plan 08 §20.3 #10). */
   readonly lastStepMs: number;
 }
@@ -637,7 +650,7 @@ export function createStealth(
   const perceive = (g: Guard, dt: number, inputs: StealthInputs, air: number): void => {
     const f = figureOf(inputs);
     const drunk = g.state === 'drunk' ? 0.6 : 1;
-    if (g.state !== 'bribed') {
+    if (g.state !== 'bribed' && !inputs.unseen) {
       const glimpse = lookFor(g, f, lastExposure, air * drunk);
       g.glimpse = glimpse;
       const at = { x: f.x, z: f.z };
@@ -1130,7 +1143,8 @@ export function createStealth(
       const lz = inputs.lean?.z ?? 0;
       lastLight = lightAt(p.x + lx, p.y, p.z + lz, ambient, world.lamps, carried);
       lastExposure = exposure(lastLight.level01, figureOf(inputs));
-      if (!captured) playerSounds(inputs);
+      if (!captured && !inputs.unseen) playerSounds(inputs);
+      else prevPlayer = undefined;
 
       for (const g of guards) {
         g.previous.x = g.body.position.x;
@@ -1287,6 +1301,31 @@ export function createStealth(
       if (g.state !== 'dead') setState(g, 'dead');
       g.found = true;
       g.witnessed = false;
+    },
+    breakOff(id) {
+      const g = guardOrThrow(id);
+      g.recruit = undefined;
+      if (!aware(g) || g.state === 'bribed' || g.state === 'drunk') return;
+      g.meter = 0;
+      g.stimulus = undefined;
+      g.lastSeen = undefined;
+      g.searchLeftS = 0;
+      if (
+        g.state === 'alerted' ||
+        g.state === 'search' ||
+        g.state === 'suspicious' ||
+        g.state === 'fetch'
+      ) {
+        setState(g, 'return');
+      }
+    },
+    reroute(id, route) {
+      const g = guardOrThrow(id);
+      g.route = route;
+      g.waypoint = 0;
+      g.direction = 1;
+      g.waitS = 0;
+      g.path = undefined;
     },
   };
   return self;

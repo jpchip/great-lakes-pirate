@@ -33,6 +33,7 @@ import {
 import { daylight01, sight, type Conditions, type Target } from '../sim/law/perception';
 import { regionAtChart } from '../sim/law/regions';
 import { SHIP_RECORDS } from '../sim/sailing/ships';
+import { stealthOf } from '../sim/shipyard/fit';
 import { moonAt, sunAt } from '../sim/weather/celestial';
 
 /**
@@ -260,6 +261,7 @@ export function attachLawShips(
         tier: recordOf(p.ship?.classId ?? 'ship.t1_schooner').tier,
         sails01: 1,
         lanternLit: !!p.lantern?.lit,
+        ...stealthOf(p.ship?.upgrades),
       };
       const sky = sunOf(now);
       const cond: Conditions = { sky, fogM: visibilityM, rain01: 0 };

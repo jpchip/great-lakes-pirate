@@ -140,6 +140,7 @@ const CARRY_RUN = 0.65;
 const LAW_NAMES: Record<string, string> = {
   'law.morrill': 'the Morrill',
   'law.chartered_tug': 'the chartered tug',
+  'npc.marshal': 'the marshals',
 };
 
 function siteOf(hideoutId: string): SiteDef | undefined {

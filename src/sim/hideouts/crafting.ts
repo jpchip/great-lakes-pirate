@@ -107,6 +107,7 @@ export type CraftRefusal =
   | 'unknown'
   | 'badQty'
   | 'noStation'
+  | 'noPartner'
   | 'noWater'
   | 'noGoods'
   | 'noThings'
@@ -118,12 +119,13 @@ export const CRAFT_REFUSALS: Readonly<Record<CraftRefusal, string>> = {
   unknown: 'There is no such work.',
   badQty: 'Choose how many.',
   noStation: 'There is no station for that here.',
-  noWater: 'The still wants water: build a well or a rain barrel.',
+  noPartner: 'That wants a smithy here too, to cast the shot.',
+  noWater: 'That wants water: build a well or a rain barrel.',
   noGoods: "You haven't the goods for that here.",
   noThings: "You haven't the makings for that here.",
   noRoom: 'There is no room in the storage for what it makes.',
   noHot: 'There is no stolen lot here to re-crate.',
-  queueFull: 'The still is full: wait for a batch to run off.',
+  queueFull: "It's full: wait for a batch to run off.",
 };
 
 export interface CraftOptions {
@@ -184,6 +186,7 @@ export function craftRefusal(
   if (!r) return 'unknown';
   if (!Number.isInteger(batches) || batches <= 0) return 'badQty';
   if (!facts.stations.has(r.station)) return 'noStation';
+  if (r.withStation && !facts.stations.has(r.withStation)) return 'noPartner';
   if (r.inputs.water && !facts.water) return 'noWater';
   const station = stationDef(r.station);
   if (station?.passive) {
@@ -435,9 +438,10 @@ export function stashThing(
 }
 
 /**
- * A layout with a built workshop beside the starter shack: a timber floor of 4 × 2 cells
- * at cols 14–17, rows 1–2, the four stations on it, and a well at col 18 (dev hooks and
- * tests; players build theirs in build mode). Pieces already in those cells are kept.
+ * A layout with a built workshop beside the starter shack: a timber floor of 4 × 4 cells
+ * at cols 14–17, rows 1–4, the eight stations on it (Phase 8's four on rows 1–2, Phase 9's
+ * on rows 3–4), and a well at col 18 (dev hooks and tests; players build theirs in build
+ * mode). Pieces already in those cells are kept.
  */
 export function withWorkshop(layout: PackedLayout): PackedLayout {
   const grid = unpackGrid(layout);
@@ -446,11 +450,15 @@ export function withWorkshop(layout: PackedLayout): PackedLayout {
     if (slotsOf(piece).some((k) => grid.inSlot(k))) return;
     grid.add(piece, true);
   };
-  for (let c = 14; c <= 17; c++) for (let r = 1; r <= 2; r++) at('build.foundation', c, r);
+  for (let c = 14; c <= 17; c++) for (let r = 1; r <= 4; r++) at('build.foundation', c, r);
   at('build.workbench', 14, 1);
   at('build.smithy', 16, 1);
   at('build.cooperage', 14, 2);
   at('build.distillery', 16, 2);
+  at('build.sail_loft', 14, 3);
+  at('build.powder_room', 16, 3);
+  at('build.smokehouse', 14, 4);
+  at('build.cartography_table', 16, 4);
   at('build.well', 18, 1);
   return packGrid(grid);
 }
