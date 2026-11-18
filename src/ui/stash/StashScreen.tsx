@@ -735,6 +735,16 @@ export function StashScreen({ stash, actions }: { stash: StashSnapshot; actions:
           {!shipless && (
             <LieButtons refusal={stash.lieRefusal} lie={actions.lie} setMessage={setMessage} />
           )}
+          {!shipless && stash.canGoAshore && (
+            <button
+              type="button"
+              class="menu-button"
+              data-testid="stash-go-ashore"
+              onClick={actions.goAshore}
+            >
+              Go ashore (G)
+            </button>
+          )}
           {!shipless && (
             <button
               type="button"
