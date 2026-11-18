@@ -172,6 +172,60 @@ export interface HideoutCollider {
 const WALL_HALF_M = 0.1;
 const DOOR_OPENING_M = 1.1;
 
+/** The stairs' steps, as the render draws them: twelve treads rising toward local +z (rot 0
+ * up toward +z, 1 toward -x, 2 toward -z, 3 toward +x). Each tread is a walkable box from its
+ * own step to the top, so a step is only as high as one tread (under the controller's step
+ * height) and the solid stairs no longer stand as a 3 m wall. */
+const STAIR_STEPS = 12;
+function stairTreads(
+  r: { x: number; y: number; uid: number },
+  p: { rot: number },
+  b: { minX: number; maxX: number; minZ: number; maxZ: number },
+  h: number,
+): HideoutCollider[] {
+  const [dx, dz] = [
+    [0, 1],
+    [-1, 0],
+    [0, -1],
+    [1, 0],
+  ][p.rot & 3] as [number, number];
+  const span = dz !== 0 ? b.maxZ - b.minZ : b.maxX - b.minX;
+  const run = span / STAIR_STEPS;
+  const out: HideoutCollider[] = [];
+  for (let k = 0; k < STAIR_STEPS; k++) {
+    const from = k * run; // distance up the stairs from the bottom edge
+    const top = r.y + ((k + 1) * h) / STAIR_STEPS;
+    if (dz !== 0) {
+      const start = dz > 0 ? b.minZ + from : b.maxZ - from;
+      const end = dz > 0 ? b.maxZ : b.minZ;
+      out.push({
+        kind: 'floor',
+        minX: b.minX,
+        maxX: b.maxX,
+        minZ: Math.min(start, end),
+        maxZ: Math.max(start, end),
+        minY: r.y,
+        maxY: top,
+        uid: r.uid,
+      });
+    } else {
+      const start = dx > 0 ? b.minX + from : b.maxX - from;
+      const end = dx > 0 ? b.maxX : b.minX;
+      out.push({
+        kind: 'floor',
+        minX: Math.min(start, end),
+        maxX: Math.max(start, end),
+        minZ: b.minZ,
+        maxZ: b.maxZ,
+        minY: r.y,
+        maxY: top,
+        uid: r.uid,
+      });
+    }
+  }
+  return out;
+}
+
 /** Colliders for the built pieces (ghosts don't collide). */
 export function hideoutColliders(grid: BuildGrid, site: BuildSite): HideoutCollider[] {
   const out: HideoutCollider[] = [];
@@ -235,6 +289,10 @@ export function hideoutColliders(grid: BuildGrid, site: BuildSite): HideoutColli
     const minZ = Math.min(...cells.map((c) => c.row)) * CELL_M;
     const maxX = (Math.max(...cells.map((c) => c.col)) + 1) * CELL_M;
     const maxZ = (Math.max(...cells.map((c) => c.row)) + 1) * CELL_M;
+    if (def.id === 'build.stairs') {
+      out.push(...stairTreads(r, p, { minX, maxX, minZ, maxZ }, h));
+      continue;
+    }
     if (def.layer === 'base') {
       out.push({
         kind: 'floor',
