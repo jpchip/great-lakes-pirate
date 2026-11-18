@@ -17,6 +17,7 @@ import {
 import type { SmugglerSpot } from '../sim/rumors/sources';
 import type { TrafficDefs } from '../sim/traffic/cargo';
 import type { Rumor } from '../sim/world-state';
+import type { EventTalk } from '../sim/events/events';
 
 /**
  * Rumors in play (plan 05 §9; Phase 4 piece K). In a port with a saloon, a round at the
@@ -43,6 +44,8 @@ export interface RumorControlOptions {
   smugglerAnchorage?: (() => SmugglerSpot | undefined) | undefined;
   /** Your hideouts seen this week (Phase 8 piece F). */
   spotted?: (() => readonly SpottedTalk[]) | undefined;
+  /** Sandbox events standing now (Phase 9 piece A). */
+  eventTalk?: (() => readonly EventTalk[]) | undefined;
 }
 
 export function attachRumors(opts: RumorControlOptions): RumorControl {
@@ -57,6 +60,7 @@ export function attachRumors(opts: RumorControlOptions): RumorControl {
     weather: { state: ctx.state.environment.weather, geo: westernSuperiorChart() },
     smugglerAnchorage: opts.smugglerAnchorage,
     spotted: opts.spotted,
+    eventTalk: opts.eventTalk,
   });
 
   const offHail = ctx.events.on('ShipHailed', ({ shipId, news }) => {

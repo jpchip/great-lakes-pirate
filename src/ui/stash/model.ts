@@ -164,6 +164,8 @@ export interface StashSnapshot {
   slipway: SlipwaySnapshot;
   /** The view to open on, when the screen is fresh. */
   tab: StashTab | undefined;
+  /** Alongside the hideout's landing: G steps down onto the pier, no boat needed. */
+  canGoAshore?: boolean | undefined;
 }
 
 function rows(
@@ -363,6 +365,7 @@ export function stashSnapshot(opts: {
   shipless?: boolean;
   shipHere?: boolean;
   tab?: StashTab | undefined;
+  canGoAshore?: boolean;
 }): StashSnapshot {
   const { defs, hideout: h, player } = opts;
   const sources = opts.sources ?? [h.storage.goods];
@@ -405,5 +408,6 @@ export function stashSnapshot(opts: {
       gameSeconds: opts.gameSeconds,
     }),
     tab: opts.tab,
+    ...(opts.canGoAshore ? { canGoAshore: true } : {}),
   };
 }

@@ -357,14 +357,23 @@ function walls(): PieceDef[] {
   add(
     'build.wall_gable',
     'Gable end',
-    (m, s, out) =>
+    (m, s, out) => {
+      // The top edge follows the roof's underside (the slope from the eave, 0.12 m thick), so
+      // the infill meets it at both ends and leaves no gap.
+      const h = CELL_M / 2;
+      const roofUnder = (x: number): number =>
+        -EAVE_M * ROOF_PITCH +
+        ((x + h + EAVE_M) * (ROOF_RISE_M + EAVE_M * ROOF_PITCH)) / (2 * h + EAVE_M) -
+        0.12;
       out.push(
         ...gableFill(m, s, [
           [-L, 0],
           [L, 0],
-          [L, ROOF_RISE_M + (WALL_T_M / 2) * ROOF_PITCH],
+          [L, roofUnder(L)],
+          [-L, roofUnder(-L)],
         ]),
-      ),
+      );
+    },
     true,
   );
   add(
@@ -1269,17 +1278,19 @@ function catalog(): PieceDef[] {
       out.body.push(logX(0.09, 0.4, 6, 0, 1.75, 0, ROPE));
       out.body.push(box(0.04, 0.6, 0.04, 0, 1.15, 0, ROPE));
       out.body.push(frustum(0.14, 0.11, 0.24, 6, 0, 0.95, 0, BARREL));
+      // A gable with its ridge along x, as wide as the posts (±0.72) and a little past them,
+      // resting on the posts' tops at 2.95 m so nothing floats.
       const roof = prismXY(
         [
           [-0.9, 0],
           [0.9, 0],
           [0, 0.7],
         ],
-        1.0,
+        2.0,
         0,
         SHADES.shingle.main,
       );
-      out.body.push(roof.rotateY(Math.PI / 2).translate(0, 2.9, 0));
+      out.body.push(roof.rotateY(Math.PI / 2).translate(0, 2.95, 0));
     }),
   );
   defs.push(

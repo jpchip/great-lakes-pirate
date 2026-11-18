@@ -156,6 +156,8 @@ import { createNewRun, startingPort } from './sim/character/new-run';
 import { withSailingPerks } from './sim/character/perks';
 import { attachCaptain } from './gameplay/captain';
 import { attachAmbitions } from './gameplay/ambitions';
+import { attachEvents, type GameEvents as SandboxEvents } from './gameplay/events';
+import { crewsIdle } from './sim/events/events';
 import { attachLaw, devWitness } from './gameplay/law';
 import { attachPortLaw } from './gameplay/port-law';
 import { attachPapers } from './gameplay/papers';
@@ -1156,6 +1158,8 @@ async function boot(): Promise<void> {
   /** Boarding a prize (Phase 6 piece D); attached once the guns and the captains are. */
   const boardingRef: { current: GameBoarding | undefined } = { current: undefined };
   const abandonRef: { current: Abandon | undefined } = { current: undefined };
+  /** Sandbox events and letters (Phase 9 piece A); attached once the papers are. */
+  const eventsRef: { current: SandboxEvents | undefined } = { current: undefined };
   /** Puts the tier-5 front page away (piece F); set once the papers are attached. */
   const frontPageRef: { current: (() => void) | undefined } = { current: undefined };
   const ui = mountGameUi({
@@ -1180,6 +1184,8 @@ async function boot(): Promise<void> {
       // Piece E's harbor master tab offered Pay but nothing carried it to the game.
       payHarbor: (kind) => portsRef.current?.actions.payHarbor?.(kind),
       buyPaper: (paper) => portsRef.current?.actions.buyPaper?.(paper),
+      readLetter: (key) => portsRef.current?.actions.readLetter?.(key),
+      answerLetter: (key, choice) => portsRef.current?.actions.answerLetter?.(key, choice),
       close: () => portsRef.current?.close(),
       castOff: () => portsRef.current?.actions.castOff(),
       goAshore: () => goAshoreRef.current?.(),
@@ -1221,6 +1227,7 @@ async function boot(): Promise<void> {
       toYard: () => stashRef.current?.actions.toYard(),
       close: () => stashRef.current?.actions.close(),
       castOff: () => stashRef.current?.actions.castOff(),
+      goAshore: () => stashRef.current?.actions.goAshore(),
     },
     chart: {
       sail: () => travelRef.current?.setSail(),
@@ -1252,6 +1259,10 @@ async function boot(): Promise<void> {
     },
     onAbandon: () => void endRef.current?.('abandoned'),
     onFrontPageClosed: () => frontPageRef.current?.(),
+    eventScene: {
+      choose: (choice) => eventsRef.current?.choose(choice),
+      close: () => eventsRef.current?.closeScene(),
+    },
     onTakeToChart: () => {
       if (machine.mode === 'sailing' && !machine.overlayOpen) travelRef.current?.takeToChart();
     },
@@ -1304,6 +1315,7 @@ async function boot(): Promise<void> {
     traffic,
     smugglerAnchorage: () => smugglerAnchorage(),
     spotted: () => lifeRef.current?.spottedTalk() ?? [],
+    eventTalk: () => eventsRef.current?.talk() ?? [],
   });
   // The papers (Phase 5 piece F): headlines from the bus's news, Fame from the printing, the
   // newsstand in port, storm signals, and the tier-5 front page once per region.
@@ -1365,6 +1377,63 @@ async function boot(): Promise<void> {
     };
     (window as unknown as { __glpPapers: typeof hook }).__glpPapers = hook;
   }
+  // Sandbox events and letters (Phase 9 piece A): drawn on the world tick, met on a voyage
+  // or on docking as a scene on paper, and letters at the harbor master's.
+  let contextBeforeScene: InputContext = 'sailing';
+  let sceneUp = false;
+  const sandboxEvents = attachEvents({
+    ctx,
+    law: law.defs,
+    economy: economy.defs,
+    papers,
+    traffic,
+    gale: (port) => papers.signal(port) !== undefined,
+    onVoyage: () => {
+      const travel = travelRef.current;
+      return (
+        machine.mode === 'chart' &&
+        !machine.overlayOpen &&
+        travel?.trip === 'sea' &&
+        !!travel.session.voyage &&
+        !travel.session.pending
+      );
+    },
+    showScene: (scene) => ui.setEventScene(scene),
+    onSceneOpen(open) {
+      if (open === sceneUp) return;
+      sceneUp = open;
+      if (open) {
+        if (document.pointerLockElement) document.exitPointerLock();
+        machine.pushOverlay('dialog');
+        contextBeforeScene = input.context;
+        input.context = 'menu';
+        if (cameraRig) cameraRig.suspended = true;
+      } else {
+        machine.removeOverlay('dialog');
+        input.context = contextBeforeScene;
+        input.endTick();
+        if (cameraRig) cameraRig.suspended = machine.overlayOpen || machine.mode === 'onFoot';
+      }
+      document.body.dataset['eventScene'] = open ? 'open' : 'closed';
+    },
+  });
+  eventsRef.current = sandboxEvents;
+  if (import.meta.env.DEV || params.has('debug')) {
+    // `__glpEvents.fire('event.herring_run')` fires one now (`fire(id, 'port.bayfield')` at a
+    // port); `.check()` runs a draw; `.state()` and `.letters()` read them back.
+    const hook = {
+      fire: (id: string, port?: string) => sandboxEvents.fire(id, port),
+      check: () => sandboxEvents.check(),
+      state: () => sandboxEvents.state,
+      letters: () => sandboxEvents.letters(),
+      scene: () => sandboxEvents.scene(),
+      choose: (choice: string) => sandboxEvents.choose(choice),
+      close: () => sandboxEvents.closeScene(),
+      talk: () => sandboxEvents.talk(),
+      docked: (port: string) => sandboxEvents.docked(port),
+    };
+    (window as unknown as { __glpEvents: typeof hook }).__glpEvents = hook;
+  }
   // The back room after dark (Phase 6 piece E): the fence and the shady shipwright.
   const backRoom = attachBackRoom({
     ctx,
@@ -1380,6 +1449,7 @@ async function boot(): Promise<void> {
     economy,
     law: portLaw,
     papers,
+    events: sandboxEvents,
     backRoom,
     contracts,
     hazards,
@@ -2228,6 +2298,8 @@ async function boot(): Promise<void> {
     showLie: (r) => ui.setLie(r === undefined, stash.moored === 'docked'),
     onOpen(open) {
       if (open) {
+        // The stash's screen needs the mouse at once, as the journal's does (see above).
+        if (document.pointerLockElement) document.exitPointerLock();
         machine.pushOverlay('trade');
         contextBeforeStash = input.context;
         input.context = 'menu';
@@ -2249,6 +2321,7 @@ async function boot(): Promise<void> {
     shipyard,
     launched: (id) => launchedAt(id),
     toYard: (id) => abandon.toYardFrom(id),
+    ashore: { offered: () => ashoreOfferedRef.current(), go: () => goAshoreRef.current?.() },
   });
   stashRef.current = stash;
   if (import.meta.env.DEV || params.has('debug')) {
@@ -3002,6 +3075,7 @@ async function boot(): Promise<void> {
     showSleep: (view) => ui.setSleep(view),
     onOpen(open) {
       if (open) {
+        if (document.pointerLockElement) document.exitPointerLock();
         machine.pushOverlay('trade');
         contextBeforeSleep = input.context;
         input.context = 'menu';
@@ -3337,6 +3411,9 @@ async function boot(): Promise<void> {
           }),
           present: (id) => traffic.shown.get(id)?.berthed ?? false,
           crews: (districtWorld.crews ??= {}),
+          // Phase 9 piece A: a storm-bound fleet's crews, or a round stood, drink easy.
+          easy: () =>
+            crewsIdle(state.events, landing.def.port, state.environment.clock.gameSeconds),
         },
         // Part two: the district's locks and loot, remembered in the save.
         heist: {

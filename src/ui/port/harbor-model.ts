@@ -1,3 +1,4 @@
+import type { LetterView } from '../../gameplay/events';
 import { formatCents } from '../../sim/economy/knowledge';
 import { fameTier, fameTierName, wantedTierName, type LawDefs } from '../../sim/law/defs';
 import { heatIn, tierIn } from '../../sim/law/law';
@@ -64,6 +65,9 @@ export interface HarborSnapshot {
   poster: PosterSnapshot | undefined;
   /** The Saloon Keeper's discount applied. */
   saloonKeeper: boolean;
+  /** Letters waiting here, as at every harbor master's (Phase 9 piece A), newest first. */
+  letters?: LetterView[] | undefined;
+  unreadLetters?: number | undefined;
 }
 
 /** The HUD's regional Wanted indicator (plan 13 §4.1). */

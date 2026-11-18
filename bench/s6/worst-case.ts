@@ -1,5 +1,6 @@
 import { Rng } from '../../src/core/rng';
 import { createWorldState } from '../../src/sim/world-state';
+import structuresJson from '../../data/structures.json';
 
 /**
  * Spike S6 (plan 01 §11.2): a worst-case WorldState, built deterministically from a
@@ -14,7 +15,12 @@ export const PIECES_PER_HIDEOUT = 1_500;
 export const SHIPS = 200;
 export const PORTS = 16;
 export const GOODS = 30;
-export const PRICE_HISTORY_WEEKS = 52;
+/**
+ * Weeks of price history per market. S6 assumed 52 and recommended 12 at most (plan 16
+ * §15 recommendation 2); the real `markets` slice (save v5 on) keeps none, only stock and
+ * the last trade, so 12 is still a generous stand-in for one a later phase might add.
+ */
+export const PRICE_HISTORY_WEEKS = 12;
 export const ZONES = 6;
 export const ICE_GRID = 64;
 export const LOGBOOK_ENTRIES = 1_200;
@@ -22,13 +28,19 @@ export const NEWSPAPER_EDITIONS = 40;
 
 /**
  * How hideout pieces are written:
- * - `objects`: one JSON object per piece, with named fields and string ids.
- * - `packed`: a per-hideout palette of piece ids plus one flat number array, 7 numbers
- *   per piece (palette index, x, z, level, rotation, variant, paint).
+ * - `objects`: one JSON object per piece, with named fields and string ids (S6's
+ *   rejected alternative, kept for the comparison).
+ * - `packed`: save v10's real `hideouts[id]` (Phase 8 piece A): a per-hideout palette of
+ *   the kit's ids plus flat `built` and `planned` arrays of 7 numbers a piece (palette
+ *   index, col, row, level, rotation, variant, paint), with storage, things, the still's
+ *   queue, salvage and a sighting filled in.
  */
 export type PieceEncoding = 'objects' | 'packed';
 
 export const PIECE_FIELDS = 7;
+
+/** Every piece in the kit (data/structures.json), as the real palette spells them. */
+const PIECE_IDS: readonly string[] = structuresJson.map((d) => d.id);
 
 const PIECE_KINDS = [
   'foundation_stone',
@@ -73,9 +85,78 @@ function round(value: number, places: number): number {
   return Math.round(value * f) / f;
 }
 
+/** Planned pieces each hideout carries on top of its built ones: a build waiting for a session. */
+export const PLANNED_PER_HIDEOUT = 100;
+
+/** A site's build bounds at their largest (Stockton's: 20 × 24 cells; plan 09 §2.1). */
+const BOUNDS = { cols: 20, rows: 24 };
+
+/**
+ * One packed piece: palette index, col, row, level, rot, variant, paint. Props count 0.25 m
+ * steps and 15° turns, as the real format does (data/schemas/structures.ts).
+ */
+function packedPiece(rng: Rng, out: number[], prop: boolean): void {
+  const step = prop ? 8 : 1;
+  out.push(
+    rng.int(0, PIECE_IDS.length - 1),
+    rng.int(0, BOUNDS.cols * step - 1),
+    rng.int(0, BOUNDS.rows * step - 1),
+    rng.int(0, 1),
+    rng.int(0, prop ? 23 : 3),
+    rng.int(0, 2),
+    rng.int(0, 11),
+  );
+}
+
 function buildHideout(rng: Rng, index: number, encoding: PieceEncoding) {
+  if (encoding === 'packed') {
+    // The real `hideouts[id]` of save v10 (plan 09 §12; src/sim/world-state.ts), every
+    // optional field filled.
+    const built: number[] = [];
+    const planned: number[] = [];
+    for (let p = 0; p < PIECES_PER_HIDEOUT; p++) packedPiece(rng, built, rng.next() < 0.1);
+    for (let p = 0; p < PLANNED_PER_HIDEOUT; p++) packedPiece(rng, planned, rng.next() < 0.1);
+    return {
+      siteId: `site.site_${index}`,
+      claimedAt: rng.int(0, 40 * 86_400),
+      storage: {
+        goods: Array.from({ length: 12 }, (_, g) => ({
+          good: `good.g${g}`,
+          qty: rng.int(1, 400),
+          ...(g % 3 === 0
+            ? {
+                hot: {
+                  region: `region.r${rng.int(0, 7)}`,
+                  heat: round(rng.next(), 3),
+                  traceability: round(rng.next(), 3),
+                  since: rng.int(0, 40 * 86_400),
+                  owner: 'company.northern',
+                },
+              }
+            : {}),
+        })),
+        cash: rng.int(0, 5_000_000),
+        things: Object.fromEntries(
+          ['store.patch_kit', 'store.mend_kit', 'store.lockpick', 'item.crate', 'item.barrel'].map(
+            (t) => [t, rng.int(0, 40)],
+          ),
+        ),
+      },
+      layout: { palette: [...PIECE_IDS], built, planned },
+      spotted: { at: rng.int(0, 40 * 86_400), by: 'Steamer Hiawatha', ship: 'ship.player' },
+      salvage: { season: '1900-summer', taken: rng.int(0, 20) },
+      stations: {
+        'station.distillery': {
+          queue: Array.from({ length: 4 }, (_, k) => ({
+            recipe: 'recipe.whiskey',
+            readyAt: 40 * 86_400 + k * 86_400,
+          })),
+        },
+      },
+    };
+  }
   const pieceIds = PIECE_KINDS.map((k) => `piece.${k}`);
-  const base = {
+  return {
     id: `hideout.site_${index}`,
     name: `Hideout ${index}`,
     concealment: rng.int(0, 100),
@@ -83,24 +164,6 @@ function buildHideout(rng: Rng, index: number, encoding: PieceEncoding) {
       Array.from({ length: 12 }, (_, g) => [`good.g${g}`, rng.int(0, 400)]),
     ),
     cashCents: rng.int(0, 5_000_000),
-  };
-  if (encoding === 'packed') {
-    const pieces: number[] = [];
-    for (let p = 0; p < PIECES_PER_HIDEOUT; p++) {
-      pieces.push(
-        rng.int(0, pieceIds.length - 1),
-        rng.int(0, 47),
-        rng.int(0, 47),
-        rng.int(0, 2),
-        rng.int(0, 3),
-        rng.int(0, 3),
-        rng.int(0, 11),
-      );
-    }
-    return { ...base, palette: pieceIds, pieces };
-  }
-  return {
-    ...base,
     pieces: Array.from({ length: PIECES_PER_HIDEOUT }, () => ({
       type: pieceIds[rng.int(0, pieceIds.length - 1)] as string,
       x: rng.int(0, 47),
@@ -224,7 +287,15 @@ export function buildWorstCaseState(seed = 's6-worst-case', encoding: PieceEncod
       })),
       ice,
     },
-    hideouts: Array.from({ length: HIDEOUTS }, (_, i) => buildHideout(rng, i, encoding)),
+    hideouts:
+      encoding === 'packed'
+        ? Object.fromEntries(
+            Array.from({ length: HIDEOUTS }, (_, i) => [
+              `hideout.site_${i}`,
+              buildHideout(rng, i, encoding),
+            ]),
+          )
+        : Array.from({ length: HIDEOUTS }, (_, i) => buildHideout(rng, i, encoding)),
     markets,
     traffic,
     knowledge: Array.from({ length: 400 }, () => ({

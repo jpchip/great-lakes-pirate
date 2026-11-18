@@ -537,12 +537,26 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
     return { x: side?.x ?? p.x, z: side?.z ?? p.z };
   };
 
+  /**
+   * A pier with no docks district whose gangway lies on a walkable island or pad (the
+   * Stockton landing, the Siskiwit camp's dock): you step off onto it and walk.
+   */
+  const islandPier = (pier: PlacedPier): boolean => {
+    if (!deps.island) return false;
+    const harbor = deps.harbors().find((l) => l.piers.includes(pier));
+    if (harbor && districtForHarbor(harbor.def.id)) return false;
+    return deps.island.walkableAt(gangwayAt(pier, shipPose()));
+  };
+
   const landingHere = (): boolean => {
     if (!deps.terrain()) return false;
     const h = hazards().state;
     if (h.mooring === 'docked') {
       const pier = pierOf(h.berthId);
       if (!pier) return false;
+      // A hideout's landing (Stockton's, the Siskiwit camp's dock): down onto the pier
+      // and the walkable ground it reaches, no boat needed.
+      if (islandPier(pier)) return true;
       const harbor = deps.harbors().find((l) => l.piers.includes(pier));
       const def = harbor && districtForHarbor(harbor.def.id);
       if (!def || !deps.districtFrame) return false;
@@ -590,23 +604,43 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
     try {
       if (h.mooring === 'docked') {
         const pier = pierOf(h.berthId) as PlacedPier;
-        const landing = await districtLanding(pier);
-        if (!landing) {
-          return NO_WALKABLE_ASHORE;
+        if (islandPier(pier)) {
+          await deps.fade('Ashore', `Down the gangway onto the ${pier.name}`, () => {
+            from = 'berth';
+            berthId = h.berthId;
+            anchor = undefined;
+            district = undefined;
+            watch = undefined;
+            jailbreak = undefined;
+            inBoat = false;
+            boat = undefined;
+            boatState = 'stowed';
+            const at = gangwayAt(pier, shipPose());
+            scene = build(at);
+            // Face along the pier toward the shore.
+            placeCharacter(character, at, pier.bearing + Math.PI);
+            copyPrevious();
+            enter();
+          });
+        } else {
+          const landing = await districtLanding(pier);
+          if (!landing) {
+            return NO_WALKABLE_ASHORE;
+          }
+          await deps.fade('Ashore', `Down the gangway onto the ${pier.name}`, () => {
+            from = 'berth';
+            berthId = h.berthId;
+            anchor = undefined;
+            district = undefined;
+            watch = undefined;
+            inBoat = false;
+            enterDistrict(landing);
+            // Face along the pier toward the town.
+            placeCharacter(character, gangway(pier), headingToScene(pier.bearing + Math.PI));
+            copyPrevious();
+            enter();
+          });
         }
-        await deps.fade('Ashore', `Down the gangway onto the ${pier.name}`, () => {
-          from = 'berth';
-          berthId = h.berthId;
-          anchor = undefined;
-          district = undefined;
-          watch = undefined;
-          inBoat = false;
-          enterDistrict(landing);
-          // Face along the pier toward the town.
-          placeCharacter(character, gangway(pier), headingToScene(pier.bearing + Math.PI));
-          copyPrevious();
-          enter();
-        });
       } else {
         await deps.fade('Into the boat', 'The boat goes over the side', () => {
           from = 'anchor';

@@ -16,6 +16,8 @@ export const RUMOR_KINDS = [
   'legend',
   'seasonal',
   'spotted',
+  // Talk of a sandbox event standing in the region (Phase 9 piece A).
+  'event',
 ] as const;
 export type RumorKind = (typeof RUMOR_KINDS)[number];
 
@@ -102,6 +104,8 @@ export const rumorsFileSchema = z.object({
     seasonal: kindSchema,
     /** Talk of your ship lying up at one of your hideouts (plan 09 §8; Phase 8 piece F). */
     spotted: kindSchema,
+    /** Talk of a sandbox event standing in the region (Phase 9 piece A). */
+    event: kindSchema,
   }),
   /** In-season trade at trade-only or seasonal ports (plan 05 §26.5). */
   seasonal: z.array(seasonalSchema),

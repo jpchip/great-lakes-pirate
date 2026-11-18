@@ -291,7 +291,7 @@ At each new year (and at game start), roll seeded variation: ice-out date, freez
 | **2 (Superior slice)** | Calendar and clock, sun/moon from date, weather systems v1 (wind from systems), fog banks, rain, clouds, barometer, lighting LUTs |
 | **3 (Hybrid travel)** | Weather on the chart, forecasts with uncertainty, encounters with storm cells and fog banks. *Built (Phase 3 piece E, [03 §28](03-world-scale-chart-travel.md)): the sim drives the chart's wind; isobars, fronts, rain, fog banks, squalls and wind drawn; a forecast to 24 h; squalls (`squallAt`, with cold squalls in a gale's rain) and fog banks met from the sim.* |
 | **5 (Law)** | Visibility feeds stealth and detection, moon phase, storm warnings at ports |
-| **9 (Seasons & secrets)** | Full seasonal cycle, ice sim and rendering, walkable ice, snow, aurora, year variation, the Mataafa event |
+| **9 (Seasons & secrets)** | Full seasonal cycle, ice sim and rendering, walkable ice, snow, aurora, year variation, the Mataafa event. *Scoped in [11 §18](11-exploration-islands-secrets.md) as stage 2 (pieces K–N).* |
 
 **The MVP ends at freeze-up (decided 2026-10-22).** Until Phase 9 ships winter, a run that reaches the first freeze-up reaches the end of MVP content: the game says winter arrives in a later build and the run stops there. Spring at the start (May 7) has no ice; floes come with the Phase 9 ice sim.
 

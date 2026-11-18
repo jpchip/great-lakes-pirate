@@ -28,6 +28,7 @@ import type { RumorControl } from './rumors';
 import type { GameShipyard } from './shipyard';
 import type { PortLaw } from './port-law';
 import type { GamePapers } from './papers';
+import type { GameEvents } from './events';
 import type { BackRoom } from './back-room';
 import { papersSnapshot } from '../ui/port/papers-model';
 
@@ -88,6 +89,8 @@ export interface PortControlOptions {
    * paper boy's shout on arriving. Without it none of them show.
    */
   papers?: GamePapers | undefined;
+  /** Sandbox events (Phase 9 piece A): letters on the harbor master's tab, a scene on docking. */
+  events?: GameEvents | undefined;
   /**
    * The back room after dark (Phase 6 piece E): the fence and the shady shipwright, on a
    * tab of their own, and a hint in the saloon by day. Without it neither shows.
@@ -236,6 +239,10 @@ export function attachPorts(opts: PortControlOptions): PortControl {
     if (opts.law) {
       snap.harbor = opts.law.harbor(port);
       if (snap.harbor) snap.tabs.splice(snap.tabs.indexOf('ledger'), 0, 'harbor');
+      if (snap.harbor && opts.events && !shop) {
+        snap.harbor.letters = opts.events.letters();
+        snap.harbor.unreadLetters = opts.events.unread();
+      }
       snap.ledger.law = opts.law.ledger();
       const region = opts.law.regionOf(port);
       const risk = region ? opts.law.informRisk(region) : undefined;
@@ -355,6 +362,8 @@ export function attachPorts(opts: PortControlOptions): PortControl {
       notices = [...searched, ...notices];
       refresh();
     }
+    // A short scene on the pier may play (a sandbox event, Phase 9 piece A).
+    opts.events?.docked(dockedPort);
   });
   const offCastOff = ctx.events.on('ShipCastOff', ({ shipId }) => {
     if (shipId === 'ship.player') dockedPort = undefined;
@@ -555,6 +564,16 @@ export function attachPorts(opts: PortControlOptions): PortControl {
         const port = openPort;
         if (!port || !opts.law) return 'The harbor master is out.';
         const r = opts.law.pay(port, kind);
+        refresh();
+        return r;
+      },
+      readLetter(key) {
+        opts.events?.readLetter(key);
+        refresh();
+      },
+      answerLetter(key, choice) {
+        if (!opts.events) return 'The harbor master is out.';
+        const r = opts.events.answer(key, choice);
         refresh();
         return r;
       },

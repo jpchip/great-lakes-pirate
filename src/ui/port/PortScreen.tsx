@@ -63,6 +63,9 @@ export interface PortActions {
   buyGun?(gunId: string): string | undefined;
   /** The harbor master (Phase 5 piece E): pay the fine or bribe on offer; what came of it. */
   payHarbor?(kind: 'fine' | 'bribe'): string | undefined;
+  /** Letters at the harbor master's (Phase 9 piece A): one opened, and one answered. */
+  readLetter?(key: string): void;
+  answerLetter?(key: string, choice: string): string | undefined;
   /** The newsstand (Phase 5 piece F): buy a paper's latest edition; the refusal. */
   buyPaper?(paper: string): string | undefined;
   /** Close the screen and stay alongside. */
@@ -880,6 +883,15 @@ export function PortScreen({
               }}
             >
               {TAB_LABELS[id]}
+              {id === 'harbor' && (port.harbor?.unreadLetters ?? 0) > 0 && (
+                <span
+                  class="letter-badge"
+                  data-testid="letter-badge"
+                  title="Letters waiting for you"
+                >
+                  {port.harbor?.unreadLetters}
+                </span>
+              )}
             </button>
           ))}
         </nav>

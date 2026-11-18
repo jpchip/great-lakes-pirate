@@ -1,6 +1,6 @@
 # 11 — Exploration, Islands & Secrets
 
-Status: DRAFT v0.4 (decisions made; gap review applied; Phase 7's hero island built in 0.7.0)
+Status: DRAFT v0.5 (decisions made; gap review applied; Phase 7's hero island built in 0.7.0; Phase 9 scope proposed in §18)
 Parent: [00-master-plan.md](00-master-plan.md)
 Inputs:
 - Master plan: islands fully walkable, mainland not; secrets on islands; hunting and poaching; lighthouse raids on foot
@@ -295,7 +295,173 @@ All resolved.
 
 ---
 
+## 18. Phase 9 Scope: Seasons & Secrets (2026-11-17)
+
+Phase 9 is the **Seasons & Secrets** build (version 0.9.0, the **Beta** and the first public release by [17 §7](17-testing-performance-release.md)), with one goal from the [00 §7](00-master-plan.md) roadmap: **"depth."** Phases 4–8 built a captain who trades, is hunted, robs ships, burgles Bayfield, walks Stockton and builds a home there, but whose world stops being itself at the first freeze-up and has only one island worth landing on. Phase 9 gives the year its winter and the Apostles their secrets. In November a false light on Sand Island's shoal puts a laden steamer aground in a gale; a rival the papers call *Black-Sail* gets the blame for it, and the *Lantern* calls you *the Moon-Cusser* anyway. In January you haul a sled of whiskey across the ice road to La Pointe with your warmth running down, and in April you read a drowned smuggler's journal from a keeper's logbook, combine it with two other clues at your cartography table, and row into Devils Island's third cave at the dark of the moon.
+
+The scope comes from the Phase 9 rows of every plan: islands, lighthouse stations, caves, salvage, hunting and trapping, wildlife, clues and legends, and cold (§15 above); winter, ice, snow and the year's variation ([04 §15](04-water-weather-seasons.md)); false lights, wrecking and wreck investigations ([06 §6.2](06-fame-wanted-law-lighthouses.md)); the event catalog, letters, the Hollister feud, rivals, nicknames, poker, the Mataafa storm, voluntary endings and the Hall of Captains ([12 §11](12-sandbox-events-character-failure.md)); the districts marked 9+ ([08 §2.2](08-docks-district-stealth.md)); the ice bow ([10 §13](10-ship-upgrades-customization.md)); the full journal, poker and the Hall of Captains' screens ([13 §12](13-ui-ux.md)); POI kits, caves, animals, curios and season palettes ([14 §13](14-art-direction-asset-pipeline.md)); island, cave, winter and wildlife sound and the ending music ([15 §11](15-audio.md)); the remaining save slices ([16 §12](16-save-persistence.md)); and what Phase 8 left for it: events and letters (09 §16.6 decision 1), the sail loft, smokehouse, powder room and cartography table, wrecking with the false-light rig, rivals noticing hideouts, winter at the hideouts, the island posse's search, and the other five hideout sites ([09 §16.2](09-hideouts-building-crafting.md)).
+
+**Phase 9 is about three Phase 8s of work** (§18.4 counts 26 pieces against Phase 8's 10), so the plan works in three stages, each ending in something Jared can play. The stages and the docks districts are the two decisions in §18.6. The two parked Phase 7 fixes (the jailbreak sounds, the ground disc) are not in this scope (Jared, 2026-11-17).
+
+### 18.1 What Phases 4–8 change or put at risk
+
+| Finding | Source | Effect on Phase 9 |
+|---|---|---|
+| **All 22 islands are already baked to 1 m tiles** (1.2 MB under `public/world/apostles/islands/`), but only Stockton and the Siskiwit pad have an `onFoot` entry in `islands.json`; the rest are a name and a position | `data/islands.json`, `src/sim/islands/on-foot.ts` | Walking an island is landings, POIs and residents, not a bake. That makes "all 22 by Beta" a content job (pieces P–R), not a pipeline one. |
+| **Winter isn't there, and neither is the MVP's stop at freeze-up.** The clock runs on past December with open water and summer traffic; nothing ends the run at the first freeze-up as 04 §15 decided | grep finds no freeze-up, ice or end-of-content code in `src/` | Stage 2 builds the whole year (piece K). Until then a 0.8.x run that reaches December sails on in open water. A save made in autumn must carry on into Phase 9's winter (criterion 10). |
+| **Wrecks are recorded:** every sinking, scuttling, foundering and abandoning leaves a wreck with where she lies, what she carried, who drowned and whether you did it (the last 40) | `src/sim/wrecks.ts`, save `wrecks` | Salvage (piece U), wreck investigations (piece I) and the *Lucerne* legend read them; no new slice is needed for gameplay-born wrecks. |
+| **The false-light rig exists** as an item crafted at the workbench and kept in a hideout's storage | `data/items.json` `item.false_light`, `data/recipes.json` | Piece I gives it a use. Nothing else changes. |
+| **Lighthouses watch but can't be walked:** ten kept stations are observers from their galleries with vigilance and dozing (Phase 5); Minnesota Point is dark and unkept | `data/lighthouses.json`, `src/sim/lighthouses.ts`, `src/sim/law/observers.ts` | Piece H puts keepers on foot at the seven Apostles stations, using the same observer numbers so detection at sea doesn't move. |
+| **The island posse walks beats and doesn't search;** it never breaks off at a hideout's bounds because it never comes near one | 08 §20.8.3 decision 2, 09 §16.10 "Not in piece F" | Piece F. |
+| **Legends are already teased:** five legend rumors (the *Lucerne*, the payroll, the Dark Light, the Devil's Grotto, the Ghost Net) are told in saloons as Tall tale or Doubtful and lead nowhere | `data/rumors.json` `legends`, 05 §26 | Piece T makes each one lead somewhere, keeping its ids so rumors heard in an old save count as the first clue. |
+| **The harbor master has a tab** in every port screen (heat, pardons) | `src/ui/port/Harbor.tsx` | Letters wait there (piece A), so there's no new building. |
+| **Hollister Fish & Packing exists** as a company in contracts and cargo, and its packing house and cooperage stand in Bayfield's district | `src/sim/economy/contracts.ts`, `src/sim/traffic/cargo.ts`, 08 §2.2 | The feud (piece D) has its stage and its company already. |
+| **No nickname, poker, rivals, endings or Hall of Captains** exist yet; the papers call you by name | `src/sim/news/papers.ts` | Pieces B, C and E. |
+| **Claiming an abandoned site by building there isn't in:** build mode opens only at a site you hold | CHANGELOG 0.8 known limitations, 09 §2.2 | Piece W, with the five other sites. |
+| **The docks-district machinery exists:** the 56-piece kit, the placement editor, the ground and navmesh bake, the watch and the lockup | `data/kit.json`, `src/debug/district/editor.ts`, `npm run district:bake` | A second district is layout, data and its jail, not new systems (piece X). |
+| **Budgets:** audio 5.22 of 8 MB decoded; save v10, a month of crime about 15 KB; an island's on-foot scene ≤ 150 draw calls | 15 §21, 16 §12, §13 above | Each stage's audio piece checks its share; winter and the islands are the frame-time risk (criteria 12 and 19). |
+| **Phase 8 isn't closed:** its playtest (piece J) and the 0.8.0 tag are still to do, as is Phase 7's laptop playtest | 09 §16.4 | Stage 1 builds on what's merged and doesn't wait for them, but 0.9.0 can't be tagged before 0.8.0 is. |
+
+### 18.2 What Phase 9 delivers
+
+| Area | Deliverable | Plan |
+|---|---|---|
+| Events and letters | `events.json` with triggers (date, season, place, region, Fame, Wanted, Standing, flags, weather), weights, cooldowns, prerequisites and outcomes; the five channels (saloon rumors, the papers, letters at the harbor master's, chart encounters, short on-site scenes with choices); about 20 events from 12 §5.2 by the end of the phase, each changing the sim (a special voyage, a price, the cutter) rather than playing a mini-game | 12 §5 |
+| The run's voice | Your nickname coined by the papers at Fame tier 1 from your deeds and haunts, changing with your record, one reroll by a letter to the editor; Retire and Turn Lawman as endings with their front pages; the Hall of Captains, a local record of past runs | 12 §4.2, §6.3, §9 |
+| Poker night | Five-card draw against two or three at a saloon table, stakes in money, cargo, a contract or a cache map, cheating by a sleight check with a brawl or heat if caught | 12 §5.3 |
+| The Hollister feud | A chain in stages: Hollister undercuts your fish and turns your catch away; you sabotage their sheds, rob their tugs or out-trade them; it ends when one side gives | 12 §5.2 |
+| Copycat rivals | Up to three rival captains from Fame tier 2, each with a personality, a ship a tier at most below yours, a lane and a camp; they copy your methods and take your blame (and you theirs); they leave by your hand, the law's, retirement or a storm; a parley in a saloon; never at your hideouts | 12 §7, 07 §8.1 |
+| The island posse searches | At tier 4+ the marshals land where your boat is, search outward by sight, sound and (in winter) tracks, and break off at a hideout's build bounds | 06 §5.3–5.4, 08 §20.8.3 |
+| Four more stations | The sail loft (mend kits, quality canvas, topsails, storm sails, dark-tanned sails, muffled blocks), the smokehouse (smoked fish and venison), the powder room (faster, larger powder batches) and the cartography table (leads into maps), as pieces with recipes | 09 §7.1, 10 §5 |
+| Lighthouse stations on foot | The station kit (tower with stair and lantern room, keeper's house, oil house, fog signal, landing) at the seven Apostles lights; keepers on foot by the same perception as the watch; raiding the oil house and the house, dousing and relighting, tying up, bribing or killing the keeper, reading or taking the logbook; welcome by day at low Wanted | §10, 06 §6.2 |
+| Wrecking | The false-light rig set on a headland or shoal edge; traffic steering by the lights it knows at night, in fog or storm; a misled ship grounding or breaking up; the dead counted as killings; several suspicious wrecks near one light opening an investigation (heat and the cutter) | 06 §6.2 |
+| The whole year | The ice sim per zone (coverage and thickness by freezing degree-days), freeze-up and ice-out rolled each year with a winter's severity, floes at ice-out, ice on the chart, ice dragging, damaging and stopping a hull, harbors frozen in, the *Morrill* laid up, winter traffic near nothing, winter markets, the "first boat in" race to Duluth, the ice bow, and the Mataafa storm for runs that reach November 1905 | 04 §4, §8, 10 §13 |
+| Winter's look | The ice sheet and floes, snow on the ground, roofs and decks, falling snow, winter palettes for every time of day, frozen spray, and the aurora on clear winter nights | 04 §8.3, §11, 14 §13 |
+| On the ice and in the cold | Walking on ice thick enough to hold you, the Bayfield–La Pointe ice road, a sled to haul goods, thin ice that cracks before it breaks, a warmth meter (winter, wet, after a swim) restored at a fire, a stove or a keeper's house, death by cold only after clear warnings, tracks in the snow that guards and the posse follow, and winter heists on frozen-in ships | 04 §8.2, §3.2 above, 08 |
+| Discovery and the journal | Fog of war on the chart, lifted by sight, spyglass, rumors and maps; charted coves and shoals; the journal's leads, legends, discoveries, wrecks and curios | §11, 03 §5.2, 13 §12 |
+| All 22 islands | Every island landable and walkable at its tier (8 hero, 8 standard, 6 minor) with its POIs from the kits (lighthouse station, quarry, fish camp, farmstead, trapper's cabin, viewpoint, beach wreckage, cave mouth), keepers and fishermen who see and report, and La Pointe's village on Madeline | §2 |
+| Caves | Sea caves at Devils, Sand and the mainland shore east of Siskiwit, by rowboat in a calm, by swimming or from inland; the same caves walkable from the ice in winter | §5 |
+| Clues, caches and legends | Clues from documents, logbooks, wreck papers, rumors and the land itself; leads with a shrinking circle; three clues made into a map at the cartography table; hold to dig; the six legends; caches seeded per run across the islands | §7–9 |
+| Salvage | Shallow wrecks (historical, seeded and gameplay-born, your own included) found by sight or sounding and worked with grapple and hook at anchor; recent cargo hot | §6 |
+| Hunting and wildlife | Deer on the larger islands, tracked, shot, dressed and carried; venison as contraband through the smokehouse; winter fur trapping; black bears and winter wolves that warn before they attack | §3.2, §4 |
+| Seven sites | The five other hideout sites (Hermit, Devils, Outer, Minnesota Point, the North Shore cove) with their pads and anchorages; each background starting at its own; claiming by building; Minnesota Point leased, or squatted with a chance of heat | 09 §2, 12 §2.2 |
+| Docks districts | Duluth (decision 2): its waterfront, watch, jail and walkable back room | 08 §2.2 |
+| Audio | Saloon music and poker, the lighthouse station, ice, snow and winter wind, chattering teeth, islands and caves, wildlife, the ending music; within the 8 MB budget | 15 §11 |
+| Saves | `events`, `mail`, `rivals`, `feuds`, `ice`, `discovery`, `leads`, `legends`, `wrecks[].salvaged`, `traps`, `player.warmth`, `curios` and the new sites; the Hall of Captains outside the save; a 0.8.x save loading with everything at its start | 16 §12 |
+
+**Out of scope:** the diving suit and deep wrecks (§15 allows the first update after the MVP; §18.5), mirages (cut #3), T3 hulls and hull variants (10 §13), T2 on the slipway (09 §16.5), the builder's cuts #1–3 and #5 (blueprints, paint, a third level, the lookout's traffic reveal), the districts decision 2 leaves out, bounty hunters (06 cut #1), Lake Michigan and the other lakes (Phase 10), and the two parked Phase 7 fixes.
+
+### 18.3 Exit criteria
+
+Phase 9 is done when these pass on the baseline laptop and Jared signs off the last playtest.
+
+| # | Criterion | How it's checked |
+|---|---|---|
+| 1 | Every event in the catalog fires from its triggers through its channel, respects its cooldown, and changes the sim it names | A seeded year's sim test per event; unit tests on triggers |
+| 2 | A letter waits at the harbor master's in any port, is read there, and can carry an event's choice | Unit tests; an e2e reading a letter |
+| 3 | Rivals: the first at Fame 2, up to three at 3–4; blame follows method; each way out works; none ever comes to a hideout | Sim tests over a season of crime |
+| 4 | The papers coin a nickname at tier 1 and change it with your record; Retire and Turn Lawman end a run with their pages; the Hall of Captains survives a reload and a new run | Unit tests; an e2e retiring a run |
+| 5 | A poker hand plays out with stakes changing hands; a caught cheat starts a brawl or adds heat | Unit tests on the deal and the odds; an e2e hand |
+| 6 | The island posse lands near your boat, searches, and breaks off at a hideout's bounds | Sim tests; an e2e on Stockton |
+| 7 | The four new stations craft their recipes, and loft-made sails fit at the slipway | Unit tests against `recipes.json` and the upgrades |
+| 8 | A lighthouse can be raided, doused and relit, its keeper tied up, bribed or killed with the heat each brings, its logbook read | Unit tests; an e2e at one station |
+| 9 | A false light on a dark night in weather puts a laden ship on a shoal; three suspicious wrecks near one light open an investigation | A sim test with a seeded storm; the investigation test |
+| 10 | A run lives a whole year: freeze-up, a winter on the ice, ice-out and the first boat in; ice blocks and holes a hull without the ice bow; the cutter lies up; an autumn 0.8.x save carries on into winter | Sim tests over a seeded year; `tests/save-migrations.test.ts` with a v10 fixture |
+| 11 | Cold and thin ice kill only after clear warnings; the ice road carries a sled; tracks lead the watch to you | Unit tests on warmth and ice; an e2e on the ice road |
+| 12 | All 22 islands land and walk at their tiers; each island ≤ 150 draw calls with ≤ 6 people and ≤ 4 animals; a cave ≤ 40 | `tests/islands.test.ts` over every landing; `bench.island` per tier; the laptop |
+| 13 | Each of the six legends can be finished from its first clue to its payoff; caches differ by seed; three clues make a map | e2e per legend through dev hooks; seeded tests |
+| 14 | Salvage recovers cargo from a historical, a seeded and a gameplay-born wreck, and recent cargo comes up hot | Unit tests |
+| 15 | Deer can be poached and venison smoked and sold as contraband; bears and wolves warn before they attack; traps fill over weeks | Unit tests on the FSM and yields; an e2e hunt |
+| 16 | Every background starts at its own site; all seven sites can be claimed; Minnesota Point by lease or squatting | Unit tests; an e2e per new start |
+| 17 | The districts of decision 2 can be burgled, and their jails hold and can be broken out of | e2e as Bayfield's |
+| 18 | Saves round-trip every new slice; a long run (a year with rivals, legends, seven hideouts and a winter) stays in plan 16's budget | `tests/save-*.test.ts`; `bench:save` |
+| 19 | Audio within 8 MB; the frame budget in a winter storm, on a hero island and in a cave | The pipeline test; the benches; the laptop |
+| 20 | The seasons feel different, and an island is worth landing on | Jared decides |
+| 21 | Plans 04, 06, 08, 09, 10, 11, 12, 13, 14, 15 and 16 record what was built, CI is green, 17 §9's Beta checklist is worked through or its gaps listed, and 0.9.0 is tagged as the Beta | The release PR |
+
+### 18.4 Work pieces
+
+Twenty-six pieces, each sized to be one thread, in three stages by decision 1. A stage ends with a playtest of what it built; a piece starts when what it needs has landed, so stage 2's ice sim can start while stage 1 is still in review.
+
+| Stage | Pieces |
+|---|---|
+| **1, the sandbox comes alive** (start now: A, F, G, H) | A events and letters, B nickname and endings, C poker, D the Hollister feud, E rivals, F the posse searches, G four stations, H lighthouse stations, I wrecking, J stage 1 audio; then a playtest |
+| **2, winter** (K can start now) | K the year turns, L winter's look, M on the ice and in the cold, N winter audio; then a playtest |
+| **3, the islands and their secrets** (O and P can start now) | O discovery and the journal, P POI kits, Q hero islands, R standard and minor islands, S caves, T clues and legends, U salvage, V hunting and wildlife, W seven sites, X districts, Y islands audio, Z playtest and 0.9.0 |
+
+| # | Piece | Scope | Needs first | Needs Jared |
+|---|---|---|---|---|
+| A | Events and letters | Pure sim first: `events.json` and its schema; triggers over the world state, weights, cooldowns, prerequisites and outcomes as sim effects; the channels (a rumor, a paper's item, a letter, a chart encounter, a short scene with choices on paper); `mail[]` and the Letters list on the harbor master's tab; `events {active, cooldowns, flags}` in the save. The first ten events from what already exists: the payroll run, the storm-bound fleet, wreck survivors, the whiskey hijack, camp demand, a mill fire, a herring run, a coal shortage, the *Morrill* arriving, and an informant. `__glpEvents` to fire any event | — | — |
+| B | Nickname and endings | Nickname pools in `newspapers.json`; coined at Fame tier 1 from your most frequent and most notorious deeds and your haunt, changing as they change, rerolled once by a letter to the editor; used in headlines, the WANTED column and the end page. Retire (wealth and no region at tier 3+, three retirements) and Turn Lawman (Fame high, every region ≤ 1, Standing good), each offered by letter, with their epilogue pages; the Hall of Captains as its own local store with a menu entry | A | Nickname pools and epilogue wording |
+| C | Poker night | A table in the saloon at night; five-card draw against two or three captains with a shown pot; stakes of money, a lot of cargo, a contract or a cache map (a lead once O exists); cheating by a sleight check, caught into a brawl or assault heat; the Won It at Poker Ambition; the poker screen | A | — |
+| D | The Hollister feud | `feuds.hollister` in stages, started by an event once you sell fish in Bayfield often; Hollister's undercut and refusals; escalation by sabotage at their sheds (Bayfield's packing house), robbing their tugs (existing targets) or out-trading them on Standing; how it ends either way, with the papers | A | — |
+| E | Copycat rivals | `rival_templates.json`; emergence at Fame 2, up to three at 3–4; each rival a traffic ship with a personality, lane and camp (an anchorage on a standard or minor island, walkable once R lands); robbing on your lanes by their methods; blame by method similarity through the crime pipeline; the ways they leave; a parley offered by letter and met in a saloon, honored or betrayed; defeat gives Fame and a lead to their stash (the Copycat's Hoard in T); never near a hideout | A | Names and personalities |
+| F | The posse searches | The island posse at tier 4+ landing near your beached boat or your anchorage, sweeping outward with the watch's perception, following tracks when M lands, giving up after a while, and breaking off at a hideout's build bounds; it searches any walkable island as they come | — | — |
+| G | Four stations | The sail loft, smokehouse, powder room (09 cut #4 lifted) and cartography table as kit pieces with `functions.station`; their recipes (§16.5's materials, no new goods but venison in V); the loft's sails and muffled blocks as upgrades fitted at the slipway; the smokehouse's smoked fish (venison in V); the powder room's larger, quicker powder batches; the table's charting until T gives it maps | — | — |
+| H | Lighthouse stations | The station kit in the docks kit's style; the seven Apostles stations at their landings (Raspberry, Sand, Devils, Outer, Michigan, La Pointe, Chequamegon Point) as walkable pads clipped from their islands' tiles (the rest of each island in Q and R); keepers on foot on the watch's FSM with the gallery observer's vigilance; the oil house's kerosene and the house's valuables; dousing in the lantern room and relighting; tie up, bribe or kill; the logbook as clues and schedules; day visits at low Wanted | — | The kit's look |
+| I | Wrecking | The rig set from the hold on a marked headland or shoal edge; traffic at night, in fog or storm steering by the lights it knows, so a false or doused light sends some ships onto shoals (by weather, darkness and her captain); a grounded ship struck and lootable as a boarded one, a broken one a wreck; the drowned as killings with witnesses only if seen; an investigation after several suspicious wrecks near one light within weeks (heat, the cutter sent); the moon-cussing night event; the Moon-Cusser Ambition and nickname | H, A | — |
+| J | Stage 1 audio | The saloon's piano and fiddle by night, cards and chips, the station (the lamp's clockwork, the oil house, the keeper), letters and the harbor master, a rival's stinger, a ship grounding | C, H | Listen by ear |
+| K | The year turns | `ice` per zone (a coarse grid of coverage and thickness, daily by freezing and thawing degree-days, sheltered bays first); the year's roll (freeze-up, ice-out, severity, fall storms); floes at ice-out; `iceAt` for sailing (drag, damage, a hull stopped, the ice bow), harbors frozen in, ice on the chart and voyages around it; the *Morrill* laid up December to March; winter traffic and markets; the first-boat-in race; the Mataafa storm on November 27–28, 1905 | — | — |
+| L | Winter's look | The ice sheet over the water from the coverage grid, instanced floes, snow on terrain, the district, hideouts and decks by season, falling snow and frozen spray, winter palettes, the aurora on clear cold nights (04 cut #3 lifted if it stays cheap) | K | The look |
+| M | On the ice and in the cold | Walking where the ice holds; the ice road between Bayfield and La Pointe; a sled hauling a few CU; thin ice that cracks, groans and then breaks, with a short chance to climb out; `player.warmth` (winter, wet, a swim, freezing rain) and fires, stoves and keepers' houses to warm at; tracks in snow for the watch and the posse; heists on ships frozen in | K | — |
+| N | Winter audio | Ice cracking and groaning, snow underfoot, winter wind, a sled, teeth chattering and gusts as warmth drops, frozen-in harbor nights | L, M | Listen by ear |
+| O | Discovery and the journal | `discovery` (POIs, sites, wrecks, wonders, charted waters), fog of war on the chart lifted by sight, spyglass, rumors and maps (an existing save starts with what it has visited charted); `leads[]` with search circles; the journal's Leads, Legends, Discoveries and Curios tabs; `curios[]` and showing them at a hideout | — | — |
+| P | POI kits | The fish camp, farmstead, trapper's cabin, viewpoint, beach wreckage, cairns and dig spots, and the cave mouth, built as the quarry and station kits were; `bench.island` per tier | — | The look |
+| Q | Hero islands | Madeline (with La Pointe's village and the ice road's landing), Hermit, Basswood, Devils, Sand, Outer and Raspberry walked whole, each with its POIs, landings, trees and residents (fishermen and farmers who see and report) | P, H | — |
+| R | Standard and minor islands | The other fourteen islands landable and walkable with their one to three POIs, or none, at their tiers; a test that lands on every one | P | — |
+| S | Caves | Sea cave meshes at Devils, Sand and the mainland east of Siskiwit; rowing in below a wave height, swimming in, or walking in from an inland mouth; winter ice caves from the ice (11 cut #1 kept in if M lands); caches and the Grotto's chamber | P, Q | — |
+| T | Clues and legends | `clues.json`, `legends.json`, `caches.json`; clue sources (stolen documents, logbooks, wreck papers, rumors, marks in the land); leads that shrink; three clues into a map at the cartography table; hold to dig; seeded caches across the islands; the six legends (the *Lucerne*, the Quarryman's Payroll, the Dark Light of Minnesota Point, the Devil's Grotto, Outer Island's Ghost Net, the Copycat's Hoard) with their curios, Fame and papers | O, G, Q, S, E | Legend wording |
+| U | Salvage | Wrecks from the *Lucerne* and R1's list, seeded old wrecks, and the ones you and the lake made; finding by sight in clear water or the sounding spike; grapple and hook at anchor, a chance per attempt and the time it takes; old cargo clean, recent cargo hot; salvaging your own victims as suspicious | O | — |
+| V | Hunting and wildlife | `wildlife.json`; deer on Stockton, Madeline and Oak; tracking, the rifle, dressing and carrying a carcass; venison as contraband through the smokehouse and sold to camps and fences; bears and wolves on the Wander → Wary → Threaten → Attack or Flee FSM, scared by noise, shot, or kept off by fire; winter trap spots that fill over weeks; the Venison King Ambition | Q, G, K | — |
+| W | Seven sites | Hermit, Devils (the sea cave mooring and the clifftop pad), Outer (the fish camp) on their islands, Minnesota Point and the North Shore cove as mainland pads in their zones, each with build bounds, anchorage, concealment and a pre-built start; every background starting at its own; claiming by building; Minnesota Point's lease or squatting | Q, S | Pre-built layouts |
+| X | Duluth | By decision 2: Duluth's district laid out with the editor from Sanborn maps, baked, its watch, its lockup holding that region's prisoners, its back room where it has one | — | Layout |
+| Y | Islands audio | Island ambience by tier and season, caves, deer, bears and wolves, the grapple and a dig, the ending music | Q, S, V | Listen by ear |
+| Z | Playtest and 0.9.0 | The §18.3 scenarios, the benches, 17 §9's Beta checklist, the plans updated, tag 0.9.0 | All | Playtest, sign-off |
+
+### 18.5 Smaller calls assumed (Jared can override)
+
+- **About twenty events at Beta,** not every row of 12 §5.2 at once: piece A brings ten from systems that exist, and the rest arrive with their pieces (the feud, rivals, moon-cussing, first boat in, camp demand for venison, poker night, the marshal posse landing).
+- **Letters live on the harbor master's tab,** in any port with a port screen. Bail by sending word stays as it is.
+- **12's cut list stays uncut:** letters, rival parley, the nickname reroll and poker cheating are all in.
+- **Rivals' camps are anchorages until the islands are walkable:** in stage 1 a rival lives at a chart mark with a stash you can't yet reach on foot; piece T makes it the Copycat's Hoard.
+- **The posse searches from your boat,** not from your hideout, and never sets foot in a hideout's bounds.
+- **The powder room is in** (09 cut #4 lifted, since Jared's Phase 8 decision left cuts #1–5 for later): it speeds powder and shot and makes bigger batches; nothing explodes, since nothing raids a hideout.
+- **Wrecking works on the traffic's real routes:** ships steer by lights they know, so a false light only fools a ship whose route passes it; a clear night and an alert captain mostly see through it.
+- **Lighthouse stations come before their islands:** piece H walks each station's pad, and Q and R open the rest of the island around it.
+- **The cutter lies up from December to March** as the *Morrill* did; winter policing is the watch and the posse.
+- **A winter you'd rather skip:** sleeping in a hideout's bunk offers "until ice-out" from freeze-up on, with the still and the law running; it's a choice, not the default.
+- **Ice and snow are their own slice and visual layer;** frozen harbors use the berths, not a new port state.
+- **The aurora and winter ice caves are in if cheap** (04 cut #3, 11 cut #1), and the first to go if stage 2 or 3 runs long.
+- **The diving suit and deep wrecks wait for the first update after Beta,** as §15 allows; shallow salvage is in.
+- **La Pointe comes with Madeline** in piece Q as a small village with its pier and trading post, not a district with a watch and a lockup.
+- **No new goods:** poached venison is already contraband in `goods.json`, and furs are already a good.
+- **Each stage's playtest is short:** the stage's criteria and an hour's play, not a full Phase sign-off; the 0.9.0 playtest covers everything.
+- **The two parked Phase 7 fixes stay parked** (Jared, 2026-11-17).
+
+### 18.6 Decisions for Jared
+
+1. **How should Phase 9 be staged?** **Decided 2026-11-17: three stages, each ending in a playtest, Beta at the end** (Jared).
+   - **Three stages, each ending in a playtest, Beta at the end (recommended):** the sandbox's life first (events, rivals, the posse, stations, lighthouses and wrecking), then winter, then the islands and their secrets. Each stage is about one Phase 8, so there's something new to play at each stage's end, and stage 3 can be cut to fit.
+   - **One phase, one playtest at the end:** as Phases 5–8 ran. Fewer stops, but nothing to play for a long time and a large final playtest.
+   - **Beta after stages 1 and 2:** tag 0.9.0 with the sandbox and winter, and move the islands and secrets to a Phase 9.5 before the lakes. Beta comes much sooner, but plan 17's Beta definition (islands and legends) changes.
+2. **Which docks districts come in Phase 9?** **Decided 2026-11-17: Duluth only; Ashland, Washburn, Superior and Two Harbors after Beta, La Pointe with Madeline** (Jared). Plan 17 says Beta has all of them; 08 §2.2 lists six more.
+   - **Duluth only, the rest after Beta (recommended):** the biggest port, the best fence, the Saloon Keeper's start, the Dark Light legend's town and a jail of its own. One piece, and the machinery is built. Ashland, Washburn, Superior and Two Harbors follow after Beta; La Pointe comes with Madeline.
+   - **All six, as plan 17 says:** about four more pieces of layout and guards, and the longest stage 3.
+   - **None:** Bayfield stays the only district at Beta, and Duluth's back room stays a port tab.
+
+### 18.7 Housekeeping found along the way
+
+- The master plan's Phase 9 row should name the three stages and decision 2's districts once this is approved, and plan 17's Beta row should match decision 2.
+- Plan 04 §15 says the MVP ends at freeze-up; that stop was never built (§18.1), and stage 2 makes it moot. 04 should say so.
+- Plan 12 §11's Phase 8 row still lists events and letters; 09 §16.6 moved them here.
+- Plan 09 has two sections numbered 16.11 (the slipway and build audio); the slipway's should be 16.12.
+- Plan 17 §9's Beta checklist wants the Ojibwe cultural review "well before Beta" and hosting for the first public release. Both are Jared's to start; neither blocks a piece.
+- Phase 8's playtest and 0.8.0 tag, and Phase 7's laptop playtest, are still open.
+
+---
+
 ## Changelog
+- v0.5: Phase 9 scope (§18), as proposed 2026-11-17: what Phases 4–8 change, deliverables, exit criteria, 26 work pieces in three stages, smaller calls and two decisions (staging, districts). Both decisions taken the same day: three stages with a playtest each, and Duluth as the one new district.
 - v0.4: Phase 7 as built (§15): Stockton on foot, the quarry, the seeded cache, the rowboat and the posse.
 - v0.3: Gap review: minor islets stay walkable (cut removed), islands load as their own scenes.
 - v0.2: Decisions: poaching and trapping, wildlife hazards (bears, wolves), a purchasable diving suit for deep wrecks (with design), cold exposure, 6 legends plus seeded caches.
