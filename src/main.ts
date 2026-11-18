@@ -1211,6 +1211,7 @@ async function boot(): Promise<void> {
       toYard: () => stashRef.current?.actions.toYard(),
       close: () => stashRef.current?.actions.close(),
       castOff: () => stashRef.current?.actions.castOff(),
+      goAshore: () => stashRef.current?.actions.goAshore(),
     },
     chart: {
       sail: () => travelRef.current?.setSail(),
@@ -2198,6 +2199,7 @@ async function boot(): Promise<void> {
     shipyard,
     launched: (id) => launchedAt(id),
     toYard: (id) => abandon.toYardFrom(id),
+    ashore: { offered: () => ashoreOfferedRef.current(), go: () => goAshoreRef.current?.() },
   });
   stashRef.current = stash;
   if (import.meta.env.DEV || params.has('debug')) {

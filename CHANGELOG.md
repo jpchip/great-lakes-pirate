@@ -15,6 +15,7 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ### Changed
 
+- **Go ashore from a hideout's pier:** tied up alongside the Stockton landing or the Siskiwit camp dock, G (or Go ashore on the hideout screen) puts you straight onto the pier by the ship, on foot, with no rowboat. F at the same spot goes back aboard, still alongside. At anchor you still row in.
 - The audio decoded up front may now take 8 MB (was 5 MB); it stands at 5.22 MB.
 - **The hideouts are built from pieces:** Stockton's prefab shack, strongbox and shed, and the logging camp's, are now the grid's pre-built shack (a plank room with a bunk, a stove, a strongbox and 40 CU of shelving) and a short pier with a mooring post, standing in each hideout's build bounds. Your stash and its contents are where they were.
 - The hideout screen's title names its own site (it said Stockton Stash at Siskiwit too).

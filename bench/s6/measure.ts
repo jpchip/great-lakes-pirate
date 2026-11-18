@@ -5,7 +5,13 @@ import { decodeSave } from '../../src/core/save/decode';
 import { createWorkerEncoder } from '../../src/core/save/encoder';
 import { encodeSave, type SaveHeader } from '../../src/core/save/envelope';
 import { SECONDS_PER_GAME_DAY, createClockState, fastForward } from '../../src/core/time';
-import { buildWorstCaseState, type PieceEncoding } from './worst-case';
+import {
+  buildWorstCaseState,
+  HIDEOUTS,
+  PIECES_PER_HIDEOUT,
+  PLANNED_PER_HIDEOUT,
+  type PieceEncoding,
+} from './worst-case';
 import { createWorldTick } from './world-tick';
 
 /**
@@ -139,7 +145,12 @@ async function measureEncoding(encoding: PieceEncoding) {
       compressedBytes: envelope.payload.length,
       hideoutsRawBytes: strToU8(hideoutsJson).length,
       hideoutsCompressedBytes: zlibSync(strToU8(hideoutsJson), { level: 6 }).length,
-      bytesPerPieceRaw: Math.round((strToU8(hideoutsJson).length / (7 * 1500)) * 10) / 10,
+      bytesPerPieceRaw:
+        Math.round(
+          (strToU8(hideoutsJson).length /
+            (HIDEOUTS * (PIECES_PER_HIDEOUT + (encoding === 'packed' ? PLANNED_PER_HIDEOUT : 0)))) *
+            10,
+        ) / 10,
     },
     sliceBytes: Object.fromEntries(
       Object.entries(state).map(([key, slice]) => {
