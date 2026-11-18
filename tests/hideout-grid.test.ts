@@ -252,8 +252,11 @@ describe('validity (plan 09 §4.3)', () => {
     expect(refusal(g, shore, P('pier', 0, 0))).toBeUndefined();
     const deep: BuildSite = { ...shore, ground: () => -9 };
     expect(refusal(g, deep, P('pier', 0, 0))).toBe('tooDeep');
+    // Piers cross shallow water on their pilings, so a bar under 0.1 m is fine too.
     const shoal: BuildSite = { ...shore, ground: () => -0.1 };
-    expect(refusal(g, shoal, P('pier', 0, 0))).toBe('tooShallow');
+    expect(refusal(g, shoal, P('pier', 0, 0))).toBeUndefined();
+    const dry: BuildSite = { ...shore, ground: () => 0.2 };
+    expect(refusal(g, dry, P('pier', 0, 0))).toBe('needsWater');
     // The slipway runs 4 cells from dry land at row 4 out to 2.5 m at row 1.
     expect(refusal(g, shore, P('slipway', 0, 1))).toBeUndefined();
     expect(refusal(g, shore, P('slipway', 0, 0))).toBe('needsShore');

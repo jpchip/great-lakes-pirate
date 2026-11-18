@@ -24,6 +24,7 @@ import {
 } from '../traffic/news';
 import type { WeatherState } from '../weather/weather';
 import type { Background, Rumor } from '../world-state';
+import type { EventTalk } from '../events/events';
 
 /**
  * Rumors and price news (plan 05 §4.3, §9; Phase 4 piece K). Talk in a saloon is drawn
@@ -62,6 +63,8 @@ export interface RumorWorld {
    * regions and the next.
    */
   spotted?: (() => readonly SpottedTalk[]) | undefined;
+  /** Sandbox events standing now (Phase 9 piece A): talked of in the saloons of their region. */
+  eventTalk?: (() => readonly EventTalk[]) | undefined;
 }
 
 /** A spotted hideout, as the saloons tell it. */
@@ -423,6 +426,24 @@ function spottedDrafts(defs: RumorsFile, world: RumorWorld, port: string, now: n
     }));
 }
 
+/** Talk of a sandbox event standing in the port's region (Phase 9 piece A); true. */
+function eventDrafts(defs: RumorsFile, world: RumorWorld, port: string, now: number): Draft[] {
+  const region = portInfo(port)?.wantedRegion;
+  if (!region || !world.eventTalk) return [];
+  return world
+    .eventTalk()
+    .filter((t) => t.region === region && now < t.until && t.lines.length > 0)
+    .map((t) => ({
+      kind: 'event' as const,
+      subject: t.key,
+      alwaysTrue: true,
+      render: (_truth: boolean, rand: Rand) => ({
+        text: fill(pick(rand, defs.kinds.event.templates), { line: pick(rand, t.lines) }),
+        expiresAt: t.until,
+      }),
+    }));
+}
+
 function seasonCalendarKey(gameSeconds: number): string {
   const d = calendarDate(gameSeconds);
   return `${d.getUTCFullYear()}-${seasonAt(gameSeconds)}`;
@@ -526,6 +547,7 @@ function heard(rumors: readonly Rumor[], d: Draft, now: number): boolean {
       case 'seasonal':
         return r.draft === d.subject;
       case 'spotted':
+      case 'event':
         return r.draft === d.subject;
     }
   });
@@ -548,6 +570,7 @@ export function rumorDrafts(
     ...legendDrafts(defs, port),
     ...seasonalDrafts(defs, world, port, now),
     ...spottedDrafts(defs, world, port, now),
+    ...eventDrafts(defs, world, port, now),
   ].filter((d) => !heard(rumors, d, now));
 }
 

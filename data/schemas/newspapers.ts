@@ -48,6 +48,8 @@ export const STORY_KINDS = [
   'firstBoat',
   'galeRun',
   'ambition',
+  // A sandbox event's item (Phase 9 piece A): its lines are in events.json.
+  'event',
 ] as const;
 export type StoryKind = (typeof STORY_KINDS)[number];
 

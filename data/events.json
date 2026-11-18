@@ -1,0 +1,256 @@
+{
+  "rules": {
+    "checkHours": 6,
+    "chance": 0.3,
+    "maxActive": 3,
+    "graceDays": 1,
+    "keepLetters": 12,
+    "sceneChance": 0.6
+  },
+  "events": [
+    {
+      "id": "event.payroll_run",
+      "name": "The payroll run",
+      "type": "opportunity",
+      "weight": 1.2,
+      "cooldownDays": 5,
+      "hours": 60,
+      "channels": ["rumor"],
+      "triggers": { "months": [4, 5, 6, 7, 8, 9, 10] },
+      "ports": ["port.duluth", "port.superior", "port.ashland", "port.washburn"],
+      "outcomes": [{ "kind": "payroll", "cents": [35000, 90000], "withinDays": 2 }],
+      "rumor": [
+        "the {ship} carries the camps' payroll out of {port} {when}. A strongbox with {cash} in it, and two clerks to sit on it.",
+        "there's a payroll going out of {port} {when} in the {ship}: {cash} for the mines, and nobody aboard but her crew and a clerk."
+      ]
+    },
+    {
+      "id": "event.storm_bound",
+      "name": "The storm-bound fleet",
+      "type": "opportunity",
+      "weight": 2,
+      "cooldownDays": 3,
+      "hours": 18,
+      "channels": ["rumor", "paper"],
+      "triggers": { "gale": true },
+      "ports": ["port.bayfield"],
+      "outcomes": [{ "kind": "restock" }, { "kind": "crewsIdle" }],
+      "rumor": [
+        "every pier in {port} is full: the gale's kept the fleet in, the warehouses are stacked to the rafters, and the crews are drinking the town dry.",
+        "half the lake's lying at {port} till the blow's done. Holds full, crews ashore, and nobody minding the sheds."
+      ],
+      "paper": {
+        "headline": "Fleet Storm-Bound at {port}",
+        "deck": "Every Berth Taken as the Gale Holds; Warehouses Full",
+        "body": "Steamers, tugs and schooners crowd the piers at {port} while the storm signal flies. The wharfingers report the sheds full of freight waiting on fair weather, and the saloons doing a trade not seen since the Fourth."
+      }
+    },
+    {
+      "id": "event.wreck_survivors",
+      "name": "Wreck survivors",
+      "type": "opportunity",
+      "weight": 1,
+      "cooldownDays": 6,
+      "hours": 6,
+      "channels": ["chart"],
+      "triggers": { "months": [4, 5, 6, 7, 8, 9, 10] },
+      "scene": {
+        "title": "A lifeboat adrift",
+        "body": "Your lookout sings out: a ship's boat, low in the water, four men in her and one of them waving a shirt on an oar. Their schooner opened up in the night and went down under them. They have a little money between them and nothing else."
+      },
+      "choices": [
+        {
+          "id": "rescue",
+          "label": "Take them aboard",
+          "result": "You bring them aboard, give them blankets and coffee, and set them ashore at the next town. They'll tell everybody who picked them up.",
+          "outcomes": [
+            { "kind": "standing", "amount": 6 },
+            { "kind": "fame", "amount": 2 },
+            { "kind": "flag", "flag": "rescued_survivors" },
+            {
+              "kind": "log",
+              "text": "Picked up four men from a lifeboat adrift and set them ashore."
+            }
+          ]
+        },
+        {
+          "id": "rob",
+          "label": "Take their money and leave them",
+          "result": "You take their purses at the rail and bear away. They'll be picked up, or they won't, and either way they'll talk.",
+          "outcomes": [
+            { "kind": "cash", "cents": [1500, 6000] },
+            { "kind": "heat", "amount": 18 },
+            { "kind": "standing", "amount": -8 },
+            { "kind": "log", "text": "Robbed four castaways in a lifeboat and left them adrift." }
+          ]
+        },
+        {
+          "id": "sail_on",
+          "label": "Sail on",
+          "result": "You stand on and the boat drops astern. Somebody else's business.",
+          "outcomes": []
+        }
+      ]
+    },
+    {
+      "id": "event.whiskey_hijack",
+      "name": "The whiskey hijack",
+      "type": "opportunity",
+      "weight": 1,
+      "cooldownDays": 4,
+      "hours": 14,
+      "channels": ["scene"],
+      "triggers": { "hours": [15, 23] },
+      "ports": ["port.bayfield"],
+      "scene": {
+        "title": "Idle hands on the pier",
+        "body": "A crew sits on the stringpiece with their feet over the water, passing round an empty bottle. Their captain's gone up to the hotel for the night and left them nothing to do and nothing to drink. One of them looks at you hopefully."
+      },
+      "choices": [
+        {
+          "id": "stand",
+          "label": "Stand them a round",
+          "costCents": 200,
+          "result": "You send a boy up to the saloon with two dollars. By dark the whole crew are there, and the men on watch tonight won't need much persuading.",
+          "outcomes": [{ "kind": "crewsIdle" }]
+        },
+        {
+          "id": "walk_on",
+          "label": "Walk on",
+          "result": "You nod to them and walk on up the pier.",
+          "outcomes": []
+        }
+      ]
+    },
+    {
+      "id": "event.camp_demand",
+      "name": "Camp demand",
+      "type": "opportunity",
+      "weight": 1,
+      "cooldownDays": 8,
+      "hours": 72,
+      "channels": ["letter"],
+      "triggers": { "months": [8, 9, 10, 11] },
+      "ports": ["port.ashland", "port.washburn"],
+      "outcomes": [
+        { "kind": "price", "good": "good.provisions", "factor": 0.3 },
+        { "kind": "price", "good": "good.whiskey", "factor": 0.4, "ports": ["port.two_harbors"] }
+      ],
+      "letter": {
+        "from": "J. Larsen, foreman, Camp No. 4",
+        "subject": "Provisions wanted",
+        "body": "Captain {captain}, — The camps are going in early this year and every pound of pork and flour at {port} is bought up already. We pay over the odds for provisions landed there this week, and the boys up the shore at Two Harbors would pay the same for whiskey, if a man had any. — J. Larsen"
+      }
+    },
+    {
+      "id": "event.mill_fire",
+      "name": "A mill fire",
+      "type": "market",
+      "weight": 0.8,
+      "cooldownDays": 10,
+      "hours": 72,
+      "channels": ["paper"],
+      "triggers": { "months": [4, 5, 6, 7, 8, 9] },
+      "ports": ["port.ashland", "port.washburn", "port.bayfield"],
+      "outcomes": [{ "kind": "price", "good": "good.lumber", "factor": 0.3 }],
+      "paper": {
+        "headline": "Mill Burned at {port}",
+        "deck": "Night Fire Takes Saw Mill and Yard; Lumber Short",
+        "body": "A fire that began in the engine house at {port} took the mill and most of the piled lumber in its yard before morning. Dealers say sawn lumber will be dear there until the mill is rebuilt."
+      }
+    },
+    {
+      "id": "event.herring_run",
+      "name": "A herring run",
+      "type": "market",
+      "weight": 1.2,
+      "cooldownDays": 6,
+      "hours": 72,
+      "channels": ["rumor", "paper"],
+      "triggers": { "months": [9, 10, 11] },
+      "ports": ["port.bayfield", "port.red_cliff"],
+      "outcomes": [
+        { "kind": "price", "good": "good.fresh_fish", "factor": 2.6 },
+        { "kind": "price", "good": "good.salted_fish", "factor": 1.8 }
+      ],
+      "rumor": [
+        "the herring are in thick off {port}: the tugs can't lift the nets, and fish are going for next to nothing on the dock. Carry them to Duluth and you'd do well."
+      ],
+      "paper": {
+        "headline": "Herring Run at {port}",
+        "deck": "Nets Too Full to Lift; Fish Cheap on the Docks",
+        "body": "The fall run of herring has come in thick off {port}, and the packing houses cannot salt them fast enough. Fresh fish are to be had on the docks there at prices not seen in years."
+      }
+    },
+    {
+      "id": "event.coal_shortage",
+      "name": "A coal shortage",
+      "type": "market",
+      "weight": 0.8,
+      "cooldownDays": 10,
+      "hours": 96,
+      "channels": ["paper"],
+      "triggers": { "months": [8, 9, 10, 11] },
+      "ports": ["port.duluth"],
+      "outcomes": [
+        { "kind": "price", "good": "good.coal", "factor": 0.3, "ports": ["port.superior"] }
+      ],
+      "paper": {
+        "headline": "Coal Short at the Head of the Lakes",
+        "deck": "Colliers Late; Docks at {port} and Superior Nearly Bare",
+        "body": "With the colliers from Buffalo held up below and winter coming, the coal docks at {port} and Superior are near bare. Dealers ask double, and householders are told to look to their woodpiles."
+      }
+    },
+    {
+      "id": "event.morrill_arrives",
+      "name": "The Morrill ordered in",
+      "type": "threat",
+      "weight": 1,
+      "cooldownDays": 6,
+      "hours": 72,
+      "channels": ["paper"],
+      "triggers": { "wanted": { "min": 1 } },
+      "outcomes": [{ "kind": "cutter" }],
+      "paper": {
+        "headline": "Revenue Cutter Ordered to {region}",
+        "deck": "The Morrill to Patrol Against Lawlessness on the Water",
+        "body": "On complaints from shippers, the revenue cutter Morrill has been ordered to patrol {region} until further notice. Her commander is said to have orders to stop and search any vessel answering the description of the craft lately complained of."
+      }
+    },
+    {
+      "id": "event.informant",
+      "name": "An informant",
+      "type": "threat",
+      "weight": 1,
+      "cooldownDays": 10,
+      "hours": 48,
+      "channels": ["letter"],
+      "triggers": { "wanted": { "min": 1 }, "hideout": true },
+      "letter": {
+        "from": "A friend",
+        "subject": "Somebody is talking",
+        "body": "Captain, — A man who drinks at the Pier saloon has been asking after you, and says he knows where you keep your goods ({hideout}). He means to sell it to the marshal. He'll keep his mouth shut for {cost}, sent care of the harbor master. — A friend"
+      },
+      "choices": [
+        {
+          "id": "pay",
+          "label": "Pay him off",
+          "costCents": 4000,
+          "result": "You leave the money with the harbor master in a plain envelope. Nobody comes asking.",
+          "outcomes": [{ "kind": "log", "text": "Paid an informant to keep quiet." }]
+        },
+        {
+          "id": "ignore",
+          "label": "Let him talk",
+          "result": "You burn the letter. A week later the talk in the saloons is all about your hideout, and the law has heard it too.",
+          "outcomes": [
+            { "kind": "spotted", "by": "an informant" },
+            { "kind": "heat", "amount": 15 },
+            { "kind": "log", "text": "An informant sold word of your hideout to the law." }
+          ]
+        }
+      ],
+      "defaultChoice": "ignore"
+    }
+  ]
+}

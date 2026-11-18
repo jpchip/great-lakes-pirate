@@ -1,7 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import { encodeSave, type SaveHeader } from '../src/core/save/envelope';
 import { decodeSave } from '../src/core/save/decode';
-import { buildWorstCaseState } from '../bench/s6/worst-case';
+import {
+  buildWorstCaseState,
+  HIDEOUTS,
+  PIECES_PER_HIDEOUT,
+  PLANNED_PER_HIDEOUT,
+} from '../bench/s6/worst-case';
+import { hideoutsSchema } from '../src/sim/world-state';
+import { structure } from '../src/sim/hideouts/structures';
 import { EventBus } from '../src/core/events';
 import { SECONDS_PER_GAME_DAY, WORLD_TICK_GAME_SECONDS } from '../src/core/time';
 import { attachEconomy } from '../src/gameplay/economy';
@@ -284,5 +291,21 @@ describe('a Phase 7 run save size', () => {
       `five districts robbed: ${(envelope.payload.length / 1024).toFixed(1)} KB compressed`,
     );
     expect(envelope.payload.length).toBeLessThan(15_000);
+  });
+});
+
+// Phase 8 criterion 6 (plan 09 §16.3): seven hideouts of 1,500 pieces in save v10's real
+// `hideouts[id]` shape (packed layout, storage, things, the still's queue) are what the
+// worst case carries, so the 250 KB check above holds them.
+describe('the worst case carries real v10 hideouts', () => {
+  it('parses against the save schema, seven hideouts of 1,500 built pieces', () => {
+    const { hideouts } = buildWorstCaseState() as unknown as { hideouts: unknown };
+    const parsed = hideoutsSchema.parse(hideouts);
+    expect(Object.keys(parsed)).toHaveLength(HIDEOUTS);
+    for (const h of Object.values(parsed)) {
+      expect(h.layout.built.length / 7).toBe(PIECES_PER_HIDEOUT);
+      expect(h.layout.planned.length / 7).toBe(PLANNED_PER_HIDEOUT);
+      expect(() => h.layout.palette.forEach((id) => structure(id))).not.toThrow();
+    }
   });
 });

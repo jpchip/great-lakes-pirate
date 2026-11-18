@@ -3565,3 +3565,108 @@ body[data-mode='chart'] .chart-layer {
   background-size: 8px 8px;
   transform: rotate(1deg);
 }
+
+/* A sandbox event's scene on paper (Phase 9 piece A): a sheet over the held world. */
+.event-scene-screen {
+  z-index: 44;
+  align-items: center;
+  background: rgba(14, 10, 7, 0.62);
+}
+
+.event-scene {
+  width: min(560px, 100%);
+  padding: 22px 28px 24px;
+  color: var(--ink);
+  background: var(--paper);
+  border: 1px solid var(--paper-dark);
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.55);
+  transform: rotate(0.4deg);
+}
+
+.event-scene-place {
+  font-size: 13px;
+  font-style: italic;
+  letter-spacing: 0.04em;
+  opacity: 0.75;
+}
+
+.event-scene-title {
+  margin: 4px 0 12px;
+  font-size: 26px;
+  border-bottom: 1px solid var(--paper-dark);
+  padding-bottom: 6px;
+}
+
+.event-scene-body,
+.event-scene-result {
+  margin: 0 0 14px;
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.event-scene-result {
+  padding-left: 12px;
+  border-left: 3px solid var(--paper-dark);
+  font-style: italic;
+}
+
+.event-scene-choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+/* Letters waiting at the harbor master's (Phase 9 piece A). */
+.harbor-letters {
+  margin-top: 14px;
+  padding-top: 8px;
+  border-top: 1px solid var(--paper-dark);
+}
+
+.harbor-letters h3 {
+  margin: 0 0 6px;
+  font-size: 16px;
+}
+
+.harbor-letter {
+  margin: 0 0 8px;
+  padding: 8px 12px;
+  background: #f3ead2;
+  border: 1px solid var(--paper-dark);
+}
+
+.harbor-letter summary {
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.harbor-letter.unread summary {
+  font-weight: 700;
+}
+
+.harbor-letter-body {
+  margin: 8px 0;
+  font-size: 15px;
+  line-height: 1.45;
+  white-space: pre-line;
+}
+
+.harbor-letter-choices {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.letter-badge {
+  margin-left: 4px;
+  padding: 0 6px;
+  border-radius: 8px;
+  font-size: 12px;
+  color: var(--paper);
+  background: var(--ink);
+}
+
+.choice-cost {
+  opacity: 0.85;
+  font-size: 0.9em;
+}
