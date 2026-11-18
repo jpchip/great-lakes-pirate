@@ -591,7 +591,24 @@ Piece E's stretch (§20.4 row E, §20.5), which missed 0.7.0 (§20.8 "Scope that
 
 ---
 
+### 20.10 Phase 9 piece F: the island posse searches (2026-11-17)
+
+**Result:** built, from [11 §18](11-exploration-islands-secrets.md)'s piece F. It settles §20.8.3 decision 2 and the gap [09 §16.10](09-hideouts-building-crafting.md) left ("the island posse on foot doesn't break off at the build bounds").
+
+| Piece | Where | Notes |
+|---|---|---|
+| Landing | `island-posse.ts` `land`, `landingNear` | At tier 4+ the marshals put in 45 s after you set foot on any walkable island that isn't the mainland (25 s from tier 5), on the dry ground nearest your boat: the beached rowboat, or the ship at her anchorage. Never on a pier or a ledge, and only where a walk leads inland. The tier is read when they land, so heat earned ashore counts. Notice: "A marshal has put in by your boat" |
+| The sweep | `sweepRoutes` | Arcs at 18, 40, 65 and 95 m round the landing, a stop every 22 m with a 3 s look about, walked back and forth outward. Two marshals split the circle, a half each. Stops in the water, the hideouts' bounds or out of walking reach drop out. Sight and hearing are the watch's own (`createStealth`) |
+| Giving up | `giveUp`, `GIVE_UP_S` | After 4 minutes with nobody suspicious of anything (6 from tier 5), or the sweep walked to its end, they walk back to the landing and put off ("The marshals' boat puts off"); they're gone for that landing. Seen on the way back, the search is on again |
+| The hideout's bounds | `closeSanctuaries`, `StealthInputs.unseen`, `Stealth.breakOff` | The bounds are cut out of the posse's grid, so they never set foot there. With you inside them they neither see nor hear you, and a chase, a search or suspicion breaks off ("The marshals break off: you're home"; `PursuitEndedAtHideout` by `npc.marshal`). A marshal who had you in sight as you went in spots the place (06 §5.4): "Seen by the marshals" in the build palette, and the week's talk |
+| Wiring | `ashore.ts`, `main.ts` | `deps.posse` gets where your boat lies; the posse's voices go to `audio.foot` through `posse.on`. `Stealth.reroute` gives a guard a new beat |
+| Dev | `__glpFoot.posse()` (phase, landing, clock, guards placed), `posseLand()`, `posseGiveUp()` | |
+| Tests | `tests/island-posse.test.ts`, `e2e/island-posse.spec.ts` | Count by tier; nobody before the time's up; the landing by the boat; the sweep outward in two sectors; giving up and putting off; the chase as danger; breaking off at a hideout's box, never stepping in it, and seeing you go in. The e2e lands one at Stockton, sees him sweep, has none come when clean, and runs from him into the Presque Isle bounds |
+
+**Not in piece F:** tracks in snow (piece M); a posse on the mainland camp pad (still none, as Phase 8 decided). Screenshots are in the project files (`posse-search/`).
+
 ## Changelog
+- v0.16: Phase 9 piece F (2026-11-17): the island posse searches (§20.10). The marshals land by your boat, sweep outward, give up and put off, and break off at a hideout's build bounds without setting foot in them.
 - v0.15.1: 0.7.2 (2026-11-16), from Jared's play of 0.7.1: `render/district/signs.ts` hangs a painted board (a canvas texture, one material per building) over each building's first door, on the wall that door is set in and clear of its battens. It says the building's `name`, or else its use by kind. A false front's blank board (kit-meshes `roofGeometry`) gets the words instead. The salt sacks at (-27, 0) and the net reel at (-74, 0) moved off the track to z = 2, and the navmesh was rebaked. Parked at Jared's call: a soft disc on the ground that follows the player by day, cause not yet found.
 - v0.15: Lean, peek and putting out lamps (§20.9): §17's cuts #2 and #3 taken back.
 - v0.14: Piece K (2026-11-16, 0.7.1): the daytime crowd. `crowd.ts` puts three townsfolk and dockhands at each `crowd` mark of the district, strolling on the navmesh by day and gone at dusk; they are scenery, outside the stealth layer and perception, and drawn as the watch's figures (§2.3). Together with the dev Ashore jump, the crowd is the last of the 0.7.0 playtest's open calls.
