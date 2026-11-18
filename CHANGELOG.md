@@ -4,6 +4,8 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-11-18
+
 ### Added
 
 - **Build mode (Phase 8 piece C):** on foot inside your hideout, press B to build. The camera rises over the site; pick a piece from the logbook palette (each variant shows its cost and how many you can afford), and a ghost shows where it goes, green, or red with the reason it can't ("Needs a floor under it"). Click to place, or drag for a line of walls or a rectangle of floors and roofs. R turns a piece, X takes pieces down for 75% of their materials back, Q picks up the piece under the cursor, Ctrl+Z and Ctrl+Y undo and redo, PgUp and PgDn change level, and Tab shows the grid. Planned pieces cost nothing until you press Build: the work then takes materials from the hideout's storage (and the hold, if your ship's moored there) and passes the days it takes, by crew and season. What you build is solid to walk on and around, and F opens the stores at a storage piece as well as the strongbox. `__glpBuild` reads and drives it ([plan 09 §16.9](plans/09-hideouts-building-crafting.md)).
@@ -25,6 +27,14 @@ All notable changes to this project are recorded here. The format follows [Keep 
 - **The Lumberjack starts at Siskiwit:** a new Lumberjack's hideout is the logging camp instead of Stockton, with its strongbox and 40 CU of storage, opened at the strongbox on foot or from the anchorage. The menu and the First Week name it. A Lumberjack already under way keeps Stockton.
 - **The Gannet:** the second smuggler, a pound-net tug, lies to her anchor off the camp dock after dark, as the _Whippoorwill_ does in Oak Island's lee.
 - **Jump to, Ashore (dev):** Siskiwit Bay, anchored off the camp and landed on the beach by the dock (also `?ashore=siskiwit`). `?harbor=siskiwit` starts off the dock's end.
+
+### Fixed
+
+- **Piers over shallow water:** a pier, corner or T can now cross a sandbar on its pilings. Only dry land is still refused.
+- **Stairs and foundation steps:** both were walls to the walk controller, so you had to hop. Each is now walkable treads, a step at a time.
+- **The well's roof:** it floated over its posts. It now rests on them.
+- **Gable ends:** the sloped top meets the roof's underside at both ends, leaving no gap.
+- **The stash's buttons:** opening the storage, the workshop, the slipway or a bunk's sleep screen on foot now frees the mouse, so you don't need Esc first.
 
 ### Known limitations
 

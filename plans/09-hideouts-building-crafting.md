@@ -1,6 +1,6 @@
 # 09 — Hideouts, Grid Building & Crafting
 
-Status: DRAFT v0.5 (Phase 8 scope proposed in §16)
+Status: DRAFT v0.5 (Phase 8 scope proposed in §16; Phase 8 built as 0.8.0, 2026-11-18)
 Parent: [00-master-plan.md](00-master-plan.md)
 Inputs:
 - Master plan decisions: multiple hideouts, mainly for storage; separate storage per hideout; grid-based building; robust customization; the law can't raid; crafting from supplies
@@ -585,6 +585,7 @@ The measurable half of §16.3's criteria 3, 6 and 12, taken in the cloud contain
 ---
 
 ## Changelog
+- v1.4: Phase 8 released as 0.8.0 (2026-11-18), after the playtest and the fixes to stairs, foundation steps, the well's roof, gable ends and piers (§16.13 is the release record, CHANGELOG 0.8.0).
 - v1.3: Phase 8 piece J's benches (§16.12): the kit and in-game hideout benches, seven real v10 hideouts in the save's worst case, the audio budget; the laptop's frame times at 60 Hz throughout.
 - v1.2: §16.7's housekeeping: the master plan's Phase 8 and 9 rows, plan 12 §11 on events, and the Phase 8 tracking issue (#136).
 - v1.1: Phase 8 piece I built (§16.11): build and craft audio and the UI set, the decoded audio budget at 8 MB.
