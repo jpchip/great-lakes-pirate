@@ -357,14 +357,23 @@ function walls(): PieceDef[] {
   add(
     'build.wall_gable',
     'Gable end',
-    (m, s, out) =>
+    (m, s, out) => {
+      // The top edge follows the roof's underside (the slope from the eave, 0.12 m thick), so
+      // the infill meets it at both ends and leaves no gap.
+      const h = CELL_M / 2;
+      const roofUnder = (x: number): number =>
+        -EAVE_M * ROOF_PITCH +
+        ((x + h + EAVE_M) * (ROOF_RISE_M + EAVE_M * ROOF_PITCH)) / (2 * h + EAVE_M) -
+        0.12;
       out.push(
         ...gableFill(m, s, [
           [-L, 0],
           [L, 0],
-          [L, ROOF_RISE_M + (WALL_T_M / 2) * ROOF_PITCH],
+          [L, roofUnder(L)],
+          [-L, roofUnder(-L)],
         ]),
-      ),
+      );
+    },
     true,
   );
   add(
