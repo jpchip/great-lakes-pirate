@@ -81,6 +81,8 @@ export interface StashActions {
   toYard(): void;
   close(): void;
   castOff(): void;
+  /** Alongside the hideout's landing: close the screen and step down onto the pier. */
+  goAshore(): void;
 }
 
 export interface StashControl {
@@ -135,6 +137,8 @@ export interface StashControlOptions {
   launched?(hideoutId: string): void;
   /** Shipless at a hideout, making for the yard instead. */
   toYard?(hideoutId: string): void;
+  /** Going ashore from the pier the ship lies at: whether it's offered, and doing it. */
+  ashore?: { offered(): boolean; go(): void };
 }
 
 /** Which view of the stash screen opens: the shed, the stations, or the slipway. */
@@ -236,6 +240,10 @@ export function attachStash(opts: StashControlOptions): StashControl {
     }
   };
 
+  /** Alongside (not at anchor) with a landing to walk: the screen offers going ashore. */
+  const canGoAshore = (): boolean =>
+    !shipless() && moored() === 'docked' && !!opts.ashore?.offered();
+
   const refresh = (): void => {
     if (!openHideout) return;
     const h = hideouts()[openHideout];
@@ -257,6 +265,7 @@ export function attachStash(opts: StashControlOptions): StashControl {
         shipless: shipless(),
         shipHere: shipHere(openHideout),
         tab: openTab,
+        canGoAshore: canGoAshore(),
       }),
     );
   };
@@ -565,6 +574,11 @@ export function attachStash(opts: StashControlOptions): StashControl {
         close();
         // Shipless there's nothing to cast off: F just closes the screen.
         if (!shipless()) opts.castOff();
+      },
+      goAshore() {
+        if (!canGoAshore()) return;
+        close();
+        opts.ashore?.go();
       },
     },
     dispose() {
