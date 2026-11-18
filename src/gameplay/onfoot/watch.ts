@@ -125,6 +125,8 @@ export interface WatchOptions {
     ships: readonly MooredInput[];
     present(id: string): boolean;
     crews: Record<string, CrewDrunk>;
+    /** The crews drink easy tonight (a sandbox event, Phase 9 piece A): half the bottles. */
+    easy?: () => boolean;
   };
   /**
    * A jailbreak (piece G): you start in the lockup's cell, the jailer is on his round, and
@@ -249,7 +251,8 @@ export function createWatch(opts: WatchOptions): Watch {
   }
   const rules = gameTools().file;
   const trick = rules.whiskey.trick;
-  const perk = (): boolean => opts.heist?.hooks.perk?.(trick.perk) ?? false;
+  const perk = (): boolean =>
+    (opts.heist?.hooks.perk?.(trick.perk) ?? false) || (opts.moored?.easy?.() ?? false);
   const alongside = (s: MooredShip): boolean => !gone.has(s.id);
   const drunkTonight = (s: MooredShip, t: number): CrewDrunk | undefined => {
     const r = opts.moored?.crews[s.key];

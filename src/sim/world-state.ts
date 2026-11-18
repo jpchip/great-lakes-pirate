@@ -28,6 +28,7 @@ import {
 import { lanternStateSchema } from './law/lantern';
 import { freshStats, logbookSchema, statsSchema } from './run/record';
 import { newsSchema } from './news/state';
+import { eventsStateSchema, mailSchema } from './events/events';
 import { MOUNTS } from '../../data/schemas/combat';
 
 /**
@@ -609,6 +610,14 @@ export const worldStateSchema = z.object({
    * and each paper's last editions. Optional: absent, a run starts with no news.
    */
   newspapers: newsSchema.optional(),
+  /**
+   * Sandbox events (plan 12 §10 `events {active, cooldowns, flags}`; Phase 9 piece A): the
+   * events standing now, each one's cooldown, the flags they set, and the next draw.
+   * Optional: absent, a run has had none and the first draw waits a game day.
+   */
+  events: eventsStateSchema.optional(),
+  /** Letters waiting at the harbor masters' (plan 12 §10 `mail[]`; piece A). */
+  mail: mailSchema.optional(),
   /**
    * Wreck sites (plan 07 §7.3; Phase 6 piece F): ships gone to the bottom, yours among
    * them. Optional: absent, the lake has none yet.

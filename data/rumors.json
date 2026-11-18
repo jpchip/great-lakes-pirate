@@ -92,6 +92,12 @@
       "reliability": 0.8,
       "label": "Season",
       "templates": ["{line}"]
+    },
+    "event": {
+      "weight": 8,
+      "reliability": 1,
+      "label": "Talk of the town",
+      "templates": ["{line}"]
     }
   },
   "seasonal": [

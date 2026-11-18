@@ -2,6 +2,7 @@ import { formatCents } from '../../sim/economy/knowledge';
 import { WantedIcon } from '../hud/Wanted';
 import type { HarborSnapshot, PosterSnapshot } from './harbor-model';
 import type { PortActions } from './PortScreen';
+import type { LetterView } from '../../gameplay/events';
 
 /**
  * The harbor master's tab (plan 06 §3.3, §5.2; plan 13 §12; Phase 5 piece E): where you
@@ -45,6 +46,68 @@ function HeatBar({ h }: { h: HarborSnapshot }) {
         <div style={{ width: `${(frac * 100).toFixed(1)}%` }} />
       </div>
     </div>
+  );
+}
+
+/**
+ * Letters waiting at the harbor master's (plan 12 §5.1; Phase 9 piece A): the same mail at
+ * every port. Opening one marks it read; one with choices is answered here.
+ */
+function Letters({
+  letters,
+  actions,
+  setMessage,
+}: {
+  letters: readonly LetterView[];
+  actions: PortActions;
+  setMessage(m: string | undefined): void;
+}) {
+  return (
+    <section class="harbor-letters" data-testid="harbor-letters">
+      <h3>Letters</h3>
+      {letters.map((l) => (
+        <details
+          key={l.key}
+          class={`harbor-letter${l.read ? '' : ' unread'}`}
+          data-testid="harbor-letter"
+          data-key={l.key}
+          onToggle={(e) => {
+            if ((e.currentTarget as HTMLDetailsElement).open && !l.read)
+              actions.readLetter?.(l.key);
+          }}
+        >
+          <summary>
+            {l.subject}{' '}
+            <span class="port-dim">
+              from {l.from}, {l.dateText}
+            </span>
+          </summary>
+          <p class="harbor-letter-body">{l.body}</p>
+          {l.result && (
+            <p class="menu-note" data-testid="harbor-letter-result">
+              {l.result}
+            </p>
+          )}
+          {l.choices.length > 0 && (
+            <div class="harbor-letter-choices">
+              {l.choices.map((c, i) => (
+                <button
+                  type="button"
+                  key={c.id}
+                  class={`menu-button${i === 0 ? ' primary' : ''}`}
+                  data-testid={`letter-choice-${c.id}`}
+                  disabled={!c.affordable}
+                  onClick={() => setMessage(actions.answerLetter?.(l.key, c.id))}
+                >
+                  {c.label}
+                  {c.costText && <span class="choice-cost"> ({c.costText})</span>}
+                </button>
+              ))}
+            </div>
+          )}
+        </details>
+      ))}
+    </section>
   );
 }
 
@@ -108,6 +171,9 @@ export function Harbor({
             <li>The quiet trade is watched here: {h.informRisk} a receiver turns you in.</li>
           )}
         </ul>
+        {h.letters && h.letters.length > 0 && (
+          <Letters letters={h.letters} actions={actions} setMessage={setMessage} />
+        )}
       </div>
       {h.poster && <Poster poster={h.poster} />}
     </div>
