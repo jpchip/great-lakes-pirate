@@ -1,14 +1,17 @@
 import { defineConfig, devices } from '@playwright/test';
 
 /**
- * Runs the hideout bench (plan 09 §10, §16.3 criterion 3) in Chromium: `npm run bench:hideout`. Kept apart from the
- * e2e suite so CI never runs it. Headless Chromium renders with SwiftShader on the CPU,
+ * Runs the hideout benches (plan 09 §10, §16.3 criteria 3 and 12) in Chromium: `npm run bench:hideout`. Kept apart from
+ * the e2e suite so CI never runs it. Headless Chromium renders with SwiftShader on the CPU,
  * so its frame times say little; draw calls, triangles and placement cost are the point.
- * Run the page on the laptop for real frame times.
+ * On the laptop, `GPU=1 npm run bench:hideout` opens a headed browser on the real GPU for
+ * frame times.
  */
+const gpu = Boolean(process.env.GPU);
 export default defineConfig({
   testDir: '.',
-  testMatch: 'hideout.bench.ts',
+  testMatch: '*.bench.ts',
+  workers: 1,
   timeout: 900_000,
   reporter: 'list',
   use: { baseURL: 'http://localhost:5198', viewport: { width: 1280, height: 720 } },
@@ -18,8 +21,9 @@ export default defineConfig({
       use: {
         ...devices['Desktop Chrome'],
         viewport: { width: 1280, height: 720 },
+        headless: !gpu,
         launchOptions: {
-          args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'],
+          args: gpu ? [] : ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'],
           ...(process.env.PW_CHROMIUM_PATH ? { executablePath: process.env.PW_CHROMIUM_PATH } : {}),
         },
       },
