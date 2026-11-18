@@ -273,6 +273,9 @@ export function mountGameUi({
     } else if (stash.value && is('Interact')) {
       e.preventDefault();
       stashActions?.castOff();
+    } else if (stash.value?.canGoAshore && is('GoAshore')) {
+      e.preventDefault();
+      stashActions?.goAshore();
     } else if (port.value && is('Interact')) {
       e.preventDefault();
       portActions?.castOff();

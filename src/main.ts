@@ -1211,6 +1211,7 @@ async function boot(): Promise<void> {
       toYard: () => stashRef.current?.actions.toYard(),
       close: () => stashRef.current?.actions.close(),
       castOff: () => stashRef.current?.actions.castOff(),
+      goAshore: () => stashRef.current?.actions.goAshore(),
     },
     chart: {
       sail: () => travelRef.current?.setSail(),
@@ -2177,6 +2178,8 @@ async function boot(): Promise<void> {
     showLie: (r) => ui.setLie(r === undefined, stash.moored === 'docked'),
     onOpen(open) {
       if (open) {
+        // The stash's screen needs the mouse at once, as the journal's does (see above).
+        if (document.pointerLockElement) document.exitPointerLock();
         machine.pushOverlay('trade');
         contextBeforeStash = input.context;
         input.context = 'menu';
@@ -2198,6 +2201,7 @@ async function boot(): Promise<void> {
     shipyard,
     launched: (id) => launchedAt(id),
     toYard: (id) => abandon.toYardFrom(id),
+    ashore: { offered: () => ashoreOfferedRef.current(), go: () => goAshoreRef.current?.() },
   });
   stashRef.current = stash;
   if (import.meta.env.DEV || params.has('debug')) {
@@ -2950,6 +2954,7 @@ async function boot(): Promise<void> {
     showSleep: (view) => ui.setSleep(view),
     onOpen(open) {
       if (open) {
+        if (document.pointerLockElement) document.exitPointerLock();
         machine.pushOverlay('trade');
         contextBeforeSleep = input.context;
         input.context = 'menu';

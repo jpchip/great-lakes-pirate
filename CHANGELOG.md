@@ -7,6 +7,11 @@ All notable changes to this project are recorded here. The format follows [Keep 
 ### Added
 
 - **Four more hideout stations (Phase 9 piece G):** build a sail loft, smokehouse, powder room or cartography table and it gets a tab in the Workshop. The sail loft cuts five mend kits from a bolt and makes five fittings for the slipway: quality canvas, storm sails, topsails (10% faster at Full in light and moderate airs, but seen further and strained sooner), dark-tanned sails (seen a quarter less far at night) and muffled blocks (a watcher close in after dark is slower to notice you). The smokehouse cures fresh fish into salt fish over a week while you're away, with hardwood and well water instead of bought salt. The powder room, beside a smithy, makes up four kegs of powder and shot in four hours. The cartography table draws corrected charts, an instrument that runs chart voyages 8% faster ([plan 09 §16.13](plans/09-hideouts-building-crafting.md)).
+
+## [0.8.0] - 2026-11-18
+
+### Added
+
 - **Build mode (Phase 8 piece C):** on foot inside your hideout, press B to build. The camera rises over the site; pick a piece from the logbook palette (each variant shows its cost and how many you can afford), and a ghost shows where it goes, green, or red with the reason it can't ("Needs a floor under it"). Click to place, or drag for a line of walls or a rectangle of floors and roofs. R turns a piece, X takes pieces down for 75% of their materials back, Q picks up the piece under the cursor, Ctrl+Z and Ctrl+Y undo and redo, PgUp and PgDn change level, and Tab shows the grid. Planned pieces cost nothing until you press Build: the work then takes materials from the hideout's storage (and the hold, if your ship's moored there) and passes the days it takes, by crew and season. What you build is solid to walk on and around, and F opens the stores at a storage piece as well as the strongbox. `__glpBuild` reads and drives it ([plan 09 §16.9](plans/09-hideouts-building-crafting.md)).
 - **The hideout kit (Phase 8 piece B):** 63 buildable pieces drawn as procedural low-poly geometry in the docks kit's style, every id in piece A's `data/structures.json`: foundations, low foundations, steps and pilings that reach down to the ground or lake bed; plank and flagstone floors and a trapdoor; walls, half walls, door and window frames and gable ends in log, plank (clapboard), brownstone and tarpaper; plank and iron-strapped doors, shutters and glazed windows; slope, ridge, lean-to, hip, flat and dormer roofs in cedar shingle, plank, tarpaper and turf, and a brownstone chimney; stairs and ladders; pier straight, corner and T, the pier ladder, mooring posts and the slipway; palisade, rail fence, gate, brush screen and path stones; the crate stack, barrel rack, shelving, warehouse bay, hidden cellar vault and strongbox; the bunk, stove, fireplace, well, rain barrel and three lanterns; the workbench, smithy, cooperage and distillery; and a table, chair, sea chest, rug, nets, anchor, ship's wheel and figurehead. Each piece and material is one instanced mesh with its lamp glass in it, so a 1,500-piece hideout draws in 77 calls up close (budget 80) and its merged proxy in one from the ship. `/hideout.html` shows the catalog or a compound of any size, and `npm run bench:hideout` measures it ([plan 09 §10](plans/09-hideouts-building-crafting.md)).
 - **Crafting at a hideout (Phase 8 piece E):** the stash screen gains a Workshop tab listing the stations built at that hideout and what each makes from the goods in its storage and the hold of a ship moored there. The workbench makes patch and mend kits, crates, the false-light rig (kept for Phase 9's wrecking) and repair stores; the smithy casts powder and shot, files lockpicks and draws crowbars, and builds improved carriages; the cooperage makes barrels, salts fresh fish down, and re-crates stolen goods so the company's marks come off (a Re-crate button on a hot lot in the shed). The work runs the clock on, faster with a bigger crew. The distillery is loaded with grain, barrels and water from a well or rain barrel and left: a batch of four loads of untaxed whiskey runs off each week while you're away, up to four batches in the still, into that hideout's storage. Kits, picks and crowbars made there go aboard into the lockers from the workshop; the two upgrades wait for the slipway (piece G). Repair stores, once fitted, hold four more of each kit. `__glpCraft` raises a workshop, gives materials and runs the clock ([plan 09 §7](plans/09-hideouts-building-crafting.md)).
@@ -16,6 +21,7 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ### Changed
 
+- **Go ashore from a hideout's pier:** tied up alongside the Stockton landing or the Siskiwit camp dock, G (or Go ashore on the hideout screen) puts you straight onto the pier by the ship, on foot, with no rowboat. F at the same spot goes back aboard, still alongside. At anchor you still row in.
 - The audio decoded up front may now take 8 MB (was 5 MB); it stands at 5.22 MB.
 - **The hideouts are built from pieces:** Stockton's prefab shack, strongbox and shed, and the logging camp's, are now the grid's pre-built shack (a plank room with a bunk, a stove, a strongbox and 40 CU of shelving) and a short pier with a mooring post, standing in each hideout's build bounds. Your stash and its contents are where they were.
 - The hideout screen's title names its own site (it said Stockton Stash at Siskiwit too).
@@ -25,6 +31,14 @@ All notable changes to this project are recorded here. The format follows [Keep 
 - **The Lumberjack starts at Siskiwit:** a new Lumberjack's hideout is the logging camp instead of Stockton, with its strongbox and 40 CU of storage, opened at the strongbox on foot or from the anchorage. The menu and the First Week name it. A Lumberjack already under way keeps Stockton.
 - **The Gannet:** the second smuggler, a pound-net tug, lies to her anchor off the camp dock after dark, as the _Whippoorwill_ does in Oak Island's lee.
 - **Jump to, Ashore (dev):** Siskiwit Bay, anchored off the camp and landed on the beach by the dock (also `?ashore=siskiwit`). `?harbor=siskiwit` starts off the dock's end.
+
+### Fixed
+
+- **Piers over shallow water:** a pier, corner or T can now cross a sandbar on its pilings. Only dry land is still refused.
+- **Stairs and foundation steps:** both were walls to the walk controller, so you had to hop. Each is now walkable treads, a step at a time.
+- **The well's roof:** it floated over its posts. It now rests on them.
+- **Gable ends:** the sloped top meets the roof's underside at both ends, leaving no gap.
+- **The stash's buttons:** opening the storage, the workshop, the slipway or a bunk's sleep screen on foot now frees the mouse, so you don't need Esc first.
 
 ### Known limitations
 
