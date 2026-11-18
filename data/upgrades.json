@@ -40,12 +40,25 @@
     }
   },
   {
+    "id": "upgrade.muffled_blocks",
+    "name": "Muffled blocks",
+    "category": "utility",
+    "blurb": "Leather-bushed sheaves and served blocks: close in after dark, within about 500 m, a watcher takes about half again as long to make her out.",
+    "priceCents": 3500,
+    "sources": ["hideout"],
+    "installHours": 3,
+    "transferable": true,
+    "effects": {
+      "muffled": true
+    }
+  },
+  {
     "id": "upgrade.quality_canvas",
     "name": "Quality canvas",
     "category": "rigging",
     "blurb": "A new suit of close-woven cotton duck that holds its shape: 5% faster at every sail.",
     "priceCents": 9000,
-    "sources": ["shipyard"],
+    "sources": ["shipyard", "hideout"],
     "installHours": 8,
     "transferable": false,
     "effects": {
@@ -58,11 +71,39 @@
     "category": "rigging",
     "blurb": "Heavy-weather canvas for the reefed and half sails: they carry 4 knots more wind before the rigging strains.",
     "priceCents": 7000,
-    "sources": ["shipyard"],
+    "sources": ["shipyard", "hideout"],
     "installHours": 6,
     "transferable": false,
     "effects": {
       "safeWindKn": [0, 4, 4, 0]
+    }
+  },
+  {
+    "id": "upgrade.topsails",
+    "name": "Topsails",
+    "category": "rigging",
+    "blurb": "Bigger, lighter gaff topsails and a fisherman staysail: 10% faster at Full in light and moderate airs, fading out by 18 knots; she's seen a tenth further with them set, and Full strains from 16 knots.",
+    "priceCents": 8000,
+    "sources": ["hideout"],
+    "installHours": 6,
+    "transferable": false,
+    "effects": {
+      "lightAirMul": 1.1,
+      "sailSightMul": 1.1,
+      "safeWindKn": [0, 0, 0, -3]
+    }
+  },
+  {
+    "id": "upgrade.dark_sails",
+    "name": "Dark-tanned sails",
+    "category": "rigging",
+    "blurb": "Sails tanned the color of a wet hull: after dark she's seen a quarter less far. Not a disguise, and it sheds no heat.",
+    "priceCents": 8500,
+    "sources": ["hideout"],
+    "installHours": 8,
+    "transferable": false,
+    "effects": {
+      "nightSightMul": 0.75
     }
   },
   {
@@ -145,6 +186,19 @@
     "effects": {
       "spyglassFovMul": 0.5,
       "lookRangeMul": 1.5
+    }
+  },
+  {
+    "id": "upgrade.corrected_charts",
+    "name": "Corrected charts",
+    "category": "instruments",
+    "blurb": "Charts corrected with your own soundings and courses: chart voyages run 8% faster.",
+    "priceCents": 4000,
+    "sources": ["hideout"],
+    "installHours": 1,
+    "transferable": true,
+    "effects": {
+      "chartSpeedMul": 1.08
     }
   },
   {

@@ -1447,6 +1447,108 @@
     }
   },
   {
+    "id": "build.sail_loft",
+    "name": "Sail loft",
+    "category": "station",
+    "placement": "cell",
+    "layer": "object",
+    "stand": "onFloor",
+    "footprint": [2, 1],
+    "heightM": 1.6,
+    "collider": "solid",
+    "variants": [
+      {
+        "material": "timber",
+        "cost": {
+          "good.lumber": 4,
+          "good.hardware": 1,
+          "good.rope_canvas": 1
+        }
+      }
+    ],
+    "buildHours": 3,
+    "functions": {
+      "station": "station.sail_loft"
+    }
+  },
+  {
+    "id": "build.smokehouse",
+    "name": "Smokehouse",
+    "category": "station",
+    "placement": "cell",
+    "layer": "object",
+    "stand": "onFloor",
+    "footprint": [2, 1],
+    "heightM": 2.6,
+    "collider": "solid",
+    "variants": [
+      {
+        "material": "plank",
+        "cost": {
+          "good.lumber": 5,
+          "good.hardware": 1
+        }
+      }
+    ],
+    "buildHours": 4,
+    "groundOk": true,
+    "maxLevel": 0,
+    "functions": {
+      "station": "station.smokehouse",
+      "smoke": true,
+      "concealment": -0.02
+    }
+  },
+  {
+    "id": "build.powder_room",
+    "name": "Powder room",
+    "category": "station",
+    "placement": "cell",
+    "layer": "object",
+    "stand": "onFloor",
+    "footprint": [2, 1],
+    "heightM": 1.8,
+    "collider": "solid",
+    "variants": [
+      {
+        "material": "brownstone",
+        "cost": {
+          "good.brownstone": 4,
+          "good.hardware": 2,
+          "good.lumber": 1
+        }
+      }
+    ],
+    "buildHours": 5,
+    "functions": {
+      "station": "station.powder_room"
+    }
+  },
+  {
+    "id": "build.cartography_table",
+    "name": "Cartography table",
+    "category": "station",
+    "placement": "cell",
+    "layer": "object",
+    "stand": "onFloor",
+    "footprint": [1, 1],
+    "heightM": 1.1,
+    "collider": "solid",
+    "variants": [
+      {
+        "material": "plank",
+        "cost": {
+          "good.lumber": 2,
+          "good.dry_goods": 1
+        }
+      }
+    ],
+    "buildHours": 2,
+    "functions": {
+      "station": "station.cartography"
+    }
+  },
+  {
     "id": "build.table",
     "name": "Table",
     "category": "decor",

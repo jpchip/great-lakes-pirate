@@ -4,6 +4,10 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ## [Unreleased]
 
+### Added
+
+- **Four more hideout stations (Phase 9 piece G):** build a sail loft, smokehouse, powder room or cartography table and it gets a tab in the Workshop. The sail loft cuts five mend kits from a bolt and makes five fittings for the slipway: quality canvas, storm sails, topsails (10% faster at Full in light and moderate airs, but seen further and strained sooner), dark-tanned sails (seen a quarter less far at night) and muffled blocks (a watcher close in after dark is slower to notice you). The smokehouse cures fresh fish into salt fish over a week while you're away, with hardwood and well water instead of bought salt. The powder room, beside a smithy, makes up four kegs of powder and shot in four hours. The cartography table draws corrected charts, an instrument that runs chart voyages 8% faster ([plan 09 §16.13](plans/09-hideouts-building-crafting.md)).
+
 ## [0.8.0] - 2026-11-18
 
 ### Added

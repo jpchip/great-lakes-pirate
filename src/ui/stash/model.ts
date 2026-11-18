@@ -93,6 +93,9 @@ export interface StationRow {
   /** A still's batches: what and when it runs off. */
   queue: { name: string; readyText: string }[];
   queueMax: number;
+  /** A passive station in a sentence ("the still", "the smokehouse"), and its button. */
+  vessel: string;
+  loadText: string;
 }
 
 export interface ThingRow {
@@ -215,6 +218,8 @@ function workshop(opts: {
     blurb: st.blurb,
     passive: !!st.passive,
     queueMax: st.passive?.queueMax ?? 0,
+    vessel: st.passive?.vessel ?? st.name.toLowerCase(),
+    loadText: st.passive?.load ?? 'Make',
     queue: (h.stations?.[st.id]?.queue ?? []).map((b) => ({
       name: recipesAt(st.id).find((r) => r.id === b.recipe)?.name ?? b.recipe,
       readyText:

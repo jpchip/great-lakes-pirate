@@ -69,6 +69,19 @@ export const upgradeEffectsSchema = z.object({
   kitsMax: z.number().int().positive().optional(),
   /** Hidden gun ports: she looks unarmed to targets (not to the law's ship profile). */
   looksUnarmed: z.boolean().optional(),
+  /**
+   * Topsails (plan 10 §5.2; Phase 9 piece G): speed multiplier at Full in light and
+   * moderate airs, fading out between 14 and 18 knots of wind.
+   */
+  lightAirMul: z.number().positive().optional(),
+  /** How much further she's seen with her sails set (topsails), at full sail. */
+  sailSightMul: z.number().positive().optional(),
+  /** How far she's seen in full dark (dark-tanned sails: 0.75), easing in at dusk. */
+  nightSightMul: z.number().positive().optional(),
+  /** Muffled blocks (plan 10 §5.6): close in after dark, watchers are slower to notice her. */
+  muffled: z.boolean().optional(),
+  /** Corrected charts: chart voyages run this much faster (plan 10 §5.5's better routing). */
+  chartSpeedMul: z.number().positive().optional(),
 });
 
 export const upgradeSchema = z.object({

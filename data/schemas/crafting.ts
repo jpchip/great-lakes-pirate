@@ -37,7 +37,15 @@ export const stationSchema = z.object({
    * Works while you're away (plan 09 §7.3): loaded batches wait in its queue and run one
    * after another, so it never makes more than one batch per batch time.
    */
-  passive: z.object({ queueMax: z.number().int().positive() }).optional(),
+  passive: z
+    .object({
+      queueMax: z.number().int().positive(),
+      /** What it is in a sentence ("the still", "the smokehouse"). */
+      vessel: z.string().min(1),
+      /** The button that loads a batch ("Load the still"). */
+      load: z.string().min(1),
+    })
+    .optional(),
 });
 
 const goodsSchema = z.record(idOf('good'), z.number().int().positive());
@@ -48,6 +56,11 @@ export const recipeSchema = z
     id: idOf('recipe'),
     name: z.string().min(1),
     station: idOf('station'),
+    /**
+     * A second station that must stand at the hideout too (Phase 9 piece G: the powder
+     * room makes up the shot the forge casts).
+     */
+    withStation: idOf('station').optional(),
     blurb: z.string().min(1),
     /** Game hours a batch takes, solo (a crew speeds an active station, not a still). */
     hours: z.number().positive(),

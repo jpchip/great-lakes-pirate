@@ -24,6 +24,8 @@ export interface SailingClass {
   sweeps: boolean;
   sweepsSpeed: number;
   sweepsTurnRate: number;
+  /** Topsails: the extra speed at Full in light airs, as a multiplier (1 without). */
+  lightAirMul: number;
 
   sailFactors: readonly [number, number, number, number];
   /** Wind speed (knots) → windStrengthFactor. */
@@ -70,6 +72,7 @@ export function compileSailingClass(ship: SailShipRecord, h: HandlingRecord): Sa
     sweeps: ship.sweeps,
     sweepsSpeed: knotsToMs(ship.sweepsKn),
     sweepsTurnRate: ship.sweepsTurnDegS * DEG,
+    lightAirMul: ship.lightAirMul ?? 1,
 
     sailFactors: h.sailFactors,
     windStrength: createCurve(h.windStrength),

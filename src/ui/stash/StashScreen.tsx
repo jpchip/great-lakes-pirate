@@ -229,11 +229,13 @@ function Cash({
 function Recipe({
   recipe,
   passive,
+  loadText,
   actions,
   setMessage,
 }: {
   recipe: RecipeRow;
   passive: boolean;
+  loadText: string;
   actions: StashActions;
   setMessage(m: string | undefined): void;
 }) {
@@ -295,7 +297,7 @@ function Recipe({
           title={recipe.refusal}
           onClick={() => setMessage(actions.craft(recipe.id, batches))}
         >
-          {passive ? 'Load the still' : 'Make'}
+          {passive ? loadText : 'Make'}
         </button>
         {recipe.max <= 0 && recipe.refusal && <small class="port-dim">{recipe.refusal}</small>}
       </div>
@@ -318,7 +320,7 @@ function Station({
       {station.passive && (
         <div class="craft-queue" data-testid="still-queue">
           <strong>
-            In the still ({station.queue.length} / {station.queueMax})
+            In {station.vessel} ({station.queue.length} / {station.queueMax})
           </strong>
           {station.queue.length === 0 ? (
             <span class="port-dim"> Nothing loaded.</span>
@@ -339,6 +341,7 @@ function Station({
             key={r.id}
             recipe={r}
             passive={station.passive}
+            loadText={station.loadText}
             actions={actions}
             setMessage={setMessage}
           />
@@ -364,8 +367,8 @@ function Workshop({
     <div class="craft" data-testid="workshop">
       {workshop.stations.length === 0 ? (
         <p class="port-dim">
-          No workstations here yet. Build a workbench, smithy, cooperage or distillery, and what you
-          can make with them shows here.
+          No workstations here yet. Build a workbench, smithy, cooperage, distillery, sail loft,
+          smokehouse, powder room or cartography table, and what you can make with them shows here.
         </p>
       ) : (
         <div class="craft-body">
@@ -573,8 +576,9 @@ function Slipway({
         <h3>Fittings made here</h3>
         {s.upgrades.length === 0 ? (
           <p class="port-dim">
-            None waiting. Repair stores come from the workbench and improved carriages from the
-            smithy.
+            None waiting. Repair stores come from the workbench, improved carriages from the smithy,
+            sails and muffled blocks from the sail loft, and corrected charts from the cartography
+            table.
           </p>
         ) : (
           <ul>

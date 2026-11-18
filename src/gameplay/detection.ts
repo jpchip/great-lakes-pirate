@@ -6,6 +6,7 @@ import {
   createMeter,
   daylight01,
   landBetween,
+  quietFactor,
   shoreBehind,
   sight,
   stepMeter,
@@ -28,6 +29,7 @@ import {
 import type { Identification, Witness, WitnessSource } from '../sim/law/witness';
 import { moonAt, sunAt } from '../sim/weather/celestial';
 import { SHIP_RECORDS } from '../sim/sailing/ships';
+import { stealthOf } from '../sim/shipyard/fit';
 import type { Entity } from './ecs';
 
 /**
@@ -145,6 +147,9 @@ export function attachDetection(deps: DetectionDeps): Detection {
       tier: tierOf(sailing.cls.id),
       sails01: sailing.state.sailSetting / 3,
       lanternLit: !!player.lantern?.lit,
+      // Her sails and blocks (Phase 9 piece G): topsails show, tanned canvas and muffled
+      // blocks hide.
+      ...stealthOf(ctx.state.player.ship?.upgrades),
     };
     const ship = { x: t.position.x, z: t.position.z };
     const lights = deps.lights();
@@ -206,7 +211,7 @@ export function attachDetection(deps: DetectionDeps): Detection {
       }
       const before = awarenessOf(meter);
       const hit = !blocked && !!o.light && beamHit(o.light, ship, beamS, lamp01);
-      stepMeter(meter, s, o.vigilance, dt, hit);
+      stepMeter(meter, s, o.vigilance * quietFactor(target, day, distanceM), dt, hit);
       const w: Watcher = {
         observer: o,
         meter,

@@ -582,9 +582,44 @@ The measurable half of §16.3's criteria 3, 6 and 12, taken in the cloud contain
 - **The Build button with 1,479 pieces queued** runs 98 game days of work at once and takes 4.2 s on the main thread, most of it the clock running on through those days. A realistic session (a room or two, a day or two of work) takes a few tens of milliseconds. Not a budget, but worth seeing on the laptop.
 - **On the laptop (2026-11-17, Jared, `GPU=1 npm run bench:hideout`, headed Chromium on its GPU):** every frame time holds the display's 60 Hz. The kit bench's 1,500 pieces run at 16.7 / 16.8 ms median / p95. In the game at Medium with 1,542 pieces, the build camera runs at 16.7 / 16.8 ms on the top level (967 frames) and on the ground level (519), and so does standing in the yard on foot (916). A p95 of 16.8 ms is the vsync interval's jitter, not a missed frame. The draw calls match the container's: 77 / 1 in the kit bench, and 73 for the whole frame in the build camera, of which the hideout adds 13. On foot the frame peaks at 126 calls, inside bench.island's 150. Editing the full site takes the two frames it waits for (23–34 ms), and the 1,479-piece Build is 3.9 s. Criteria 3 and 12 pass. `bench:save` wasn't rerun on the laptop: the container's 2.9 ms p95 has tracked the laptop within a millisecond since S6.
 
+### 16.13 Phase 9 piece G: four more stations (2026-11-17)
+
+**Result:** built, as [11 §18.4](11-exploration-islands-secrets.md)'s piece G (exit criterion 7). The sail loft, smokehouse, powder room and cartography table are kit pieces in the build palette's Stations, and each gets a tab in the Workshop when it stands at the hideout. Screenshots are in the project files (`new-stations/`).
+
+| Station | Recipe | Inputs | Time | Makes |
+|---|---|---|---|---|
+| Sail loft (4 lumber, 1 hardware, 1 rope & canvas) | Mend kits | 1 rope & canvas | 1 h | 5 mend kits (the bench gets 3) |
+| | Quality canvas | 4 rope & canvas, 1 hardware | 12 h | the upgrade (+5% speed) |
+| | Topsails | 3 rope & canvas, 1 lumber | 10 h | the upgrade (new) |
+| | Storm sails | 4 rope & canvas | 10 h | the upgrade (+4 kn before strain at Reefed and Half) |
+| | Dark-tanned sails | 4 rope & canvas, 1 lumber (bark), water | 16 h | the upgrade (new) |
+| | Muffled blocks | 2 rope & canvas, 1 hardware | 6 h | the upgrade (new) |
+| Smokehouse (5 lumber, 1 hardware; may stand on bare ground, smokes) | Smoked fish | 3 fresh fish, 1 lumber (hardwood), 2 barrels, water | a week, passive | 3 CU salted fish |
+| Powder room (4 brownstone, 2 hardware, 1 lumber) | Powder and shot by the keg | 3 hardware, 3 coal, **a smithy too** | 4 h | 4 CU powder & shot (the forge alone: 2 h a keg) |
+| Cartography table (2 lumber, 1 dry goods) | Corrected charts | 1 dry goods | 12 h | the upgrade (new) |
+
+| Upgrade | Slot | Effect | Where |
+|---|---|---|---|
+| Topsails | rigging | At Full, ×1.1 speed up to 14 kn of wind, fading out by 18 kn (`lightAirMul`, folded into the class and applied in `updateTargetSpeed`); seen ×1.1 further with all sail set (`sailSightMul`); Full strains from 16 kn, not 19 | `fit.ts`, `controller.ts`, `perception.ts` |
+| Dark-tanned sails | rigging | Seen ×0.75 as far in full dark, easing in through the twilight; nothing by day (`nightSightMul`) | `perception.ts` (`canvasFactor`), the zones' watchers and the cutter's chart lookout |
+| Muffled blocks | utility | Within 300 m in full dark a watcher's meter fills 35% slower (about half again as long), easing out by 500 m and at dawn (`quietFactor`, on the watcher's vigilance) | `perception.ts`, `detection.ts` |
+| Corrected charts | instruments | Chart voyages run 8% faster (`chartSpeedMul`, the chart session's cruise speed) | `fit.ts` `Instruments`, `chart-travel.ts` |
+
+Quality canvas and storm sails gain the `hideout` source and are still sold at the yard; the four new ones are made only at home and fit at the slipway like piece E's. Calls made in the piece (Jared can override):
+
+- **Smoked fish is salted fish.** §18.5 adds no goods, so the smokehouse cures fresh fish into the same good as the cooperage, with hardwood and well water instead of bought salt. Smoked venison waits for piece V.
+- **The powder room makes its own recipe and wants the smithy beside it** (a recipe's new `withStation`), rather than speeding the forge's; nothing explodes (§18.5).
+- **The table's charting is an instrument upgrade** until piece T gives it maps: plan 10 §5.5's updated charts, made at home.
+- **Topsails on a schooner that already sets gaff topsails** are bigger, lighter ones and a fisherman staysail; they share the T1's one rigging slot with every other suit, so on a T1 the loft's sails are a choice.
+- Muffled blocks go in utility (plan 10 has no stealth slot), so a T1 fits them beside any suit of sails.
+- A passive station names itself (`passive.vessel`, `passive.load`): "In the smokehouse", "Hang it in the smoke".
+
+**Not in piece G:** craft sounds for the four (they play the workbench's; piece J's ear), F at a station on foot (the stash screen's Workshop tab, as piece E), the topsails on the ship's model.
+
 ---
 
 ## Changelog
+- v1.5: Phase 9 piece G built the sail loft, smokehouse, powder room and cartography table (§16.13): their pieces and recipes, four new upgrades (topsails, dark-tanned sails, muffled blocks, corrected charts) and what they do.
 - v1.4: Phase 8 released as 0.8.0 (2026-11-18), after the playtest and the fixes to stairs, foundation steps, the well's roof, gable ends and piers (the release notes are in CHANGELOG 0.8.0).
 - v1.3: Phase 8 piece J's benches (§16.12): the kit and in-game hideout benches, seven real v10 hideouts in the save's worst case, the audio budget; the laptop's frame times at 60 Hz throughout.
 - v1.2: §16.7's housekeeping: the master plan's Phase 8 and 9 rows, plan 12 §11 on events, and the Phase 8 tracking issue (#136).
