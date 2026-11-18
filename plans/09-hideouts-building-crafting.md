@@ -473,11 +473,11 @@ Ten pieces, each sized to be one thread. Four can start at once (A, B, D and H).
 
 ### 16.7 Housekeeping found along the way
 
-- The master plan's Phase 8 row should gain Siskiwit Bay, crafting, the slipway, laying low and (by decision 1) Ambitions once this scope is approved, and its Phase 9 row should keep events.
+- ~~The master plan's Phase 8 row should gain Siskiwit Bay, crafting, the slipway, laying low and (by decision 1) Ambitions once this scope is approved, and its Phase 9 row should keep events.~~ Done 2026-11-17 (00 v0.11).
 - Plan 03 §20.5 says Siskiwit's zone is baked "in Phase 8"; plan 07 §14.6.1's second smuggler is already in `data/smuggler.json` and drops in with it (piece D).
-- Plan 12 §11's Phase 8 row and the master plan disagree on events (decision 1); whichever way it goes, one of them changes.
+- ~~Plan 12 §11's Phase 8 row and the master plan disagree on events (decision 1); whichever way it goes, one of them changes.~~ Done 2026-11-17: plan 12 §11 moves events and letters to Phase 9 (12 v0.11).
 - §7.4's open question for plan 10 (is T2 buildable on a slipway?) is answered "not in the MVP" by §16.5.
-- Plan 17 wants a tracking issue per phase with the acceptance checklist; §16.3 can become it once approved.
+- ~~Plan 17 wants a tracking issue per phase with the acceptance checklist; §16.3 can become it once approved.~~ Done 2026-11-17: [#136](https://github.com/jpchip/great-lakes-pirate/issues/136), which piece J ticks.
 - Phase 7's laptop playtest (08 §20.8.2) is still open, and Phase 8 doesn't depend on it.
 
 ### 16.8 Piece D: Siskiwit Bay (2026-11-16)
@@ -560,6 +560,28 @@ Calls made in the piece (Jared can override): repairs cost materials, not money,
 
 **Not in piece I:** the slipway's sounds (piece G is in review), a listen by ear (piece J's playtest).
 
+### 16.12 Piece J: the benches (2026-11-17)
+
+The measurable half of §16.3's criteria 3, 6 and 12, taken in the cloud container (4 vCPU Xeon, headless Chromium on SwiftShader). Draw calls, triangles, sizes and CPU costs carry over to the laptop; frame times don't, so the p95 ≤ 16.7 ms on Medium was taken there (`GPU=1 npm run bench:hideout` runs both benches headed on its GPU; results below the table).
+
+| Criterion | Measure | Budget | Result |
+|---|---|---|---|
+| 3 | Kit bench, 1,500 pieces: the hideout's draw calls up close | ≤ 80 | **77** (259k triangles) |
+| 3 | Kit bench: from the ship, 600 m off | 1–3 | **1**, the proxy (21k triangles) |
+| 3 | Kit bench: placing / removing a piece | < 1 frame | **≤ 0.5 / ≤ 0.1 ms**; the proxy rebuild 22 ms, 400 ms after the last edit |
+| 3, 12 | In the game at Medium: Stockton filled through build mode to **1,542 pieces** (Build pressed), the build camera orbiting on the top level | the hideout's own ≤ 80 | **73 calls for the whole frame** (terrain, water, sky and all), 15 more than with the starter shack; 394k triangles |
+| 3, 12 | The same, the ground level edited (upper levels cut away) / on foot in the yard | — | 66 / 84 calls for the whole frame; 288k / 422k triangles |
+| 12 | Editing that full site (a lantern placed, null renderer) | < 1 frame | **2–3 ms** a placement, the same as an empty site |
+| 6 | Seven hideouts of 1,500 built and 100 planned pieces, in save v10's real `hideouts[id]` (every optional field filled, random values), inside S6's worst case | ≤ 250 KB compressed | **210 KB**; the hideouts slice 61 KB (200 KB raw, 17.9 B a piece) |
+| 6 | The same seven hideouts in a real new run | — | **63 KB** compressed |
+| 6 | `bench:save`: the main thread's `postMessage` per autosave | ≤ 4 ms | **2.0 / 2.9 ms** median / p95 (S6 had 2.6 / 4.0 on this container, 3.1 / 3.9 on the laptop); no long tasks, frame gaps 16.7 ms |
+| 12 | Decoded audio up front (the pipeline test) | ≤ 8 MB | **5.22 MB** |
+
+- **The worst case now carries the real hideouts.** S6's stand-in pieces (24 made-up kinds, a hideout's own name and concealment) gave way to v10's shape: the kit's 63 ids as the palette, props in 0.25 m steps and 15° turns, `planned` beside `built`, storage with hot lots and things, the still's queue, a sighting and salvage. `tests/save-size.test.ts` parses the slice with the save's own schema, so the two can't drift apart again. The real shape is 6 KB bigger compressed than S6's, which tipped the worst case to 254 KB.
+- **Fixed by S6's own recommendation:** the stand-in market price history went from 52 weeks to 12 (plan 16 §15 recommendation 2). The real `markets` slice keeps no history at all (stock and the last trade), so 12 weeks is still generous for one a later phase might add. Nothing in the game changed.
+- **The Build button with 1,479 pieces queued** runs 98 game days of work at once and takes 4.2 s on the main thread, most of it the clock running on through those days. A realistic session (a room or two, a day or two of work) takes a few tens of milliseconds. Not a budget, but worth seeing on the laptop.
+- **On the laptop (2026-11-17, Jared, `GPU=1 npm run bench:hideout`, headed Chromium on its GPU):** every frame time holds the display's 60 Hz. The kit bench's 1,500 pieces run at 16.7 / 16.8 ms median / p95. In the game at Medium with 1,542 pieces, the build camera runs at 16.7 / 16.8 ms on the top level (967 frames) and on the ground level (519), and so does standing in the yard on foot (916). A p95 of 16.8 ms is the vsync interval's jitter, not a missed frame. The draw calls match the container's: 77 / 1 in the kit bench, and 73 for the whole frame in the build camera, of which the hideout adds 13. On foot the frame peaks at 126 calls, inside bench.island's 150. Editing the full site takes the two frames it waits for (23–34 ms), and the 1,479-piece Build is 3.9 s. Criteria 3 and 12 pass. `bench:save` wasn't rerun on the laptop: the container's 2.9 ms p95 has tracked the laptop within a millisecond since S6.
+
 ### 16.13 Phase 9 piece G: four more stations (2026-11-17)
 
 **Result:** built, as [11 §18.4](11-exploration-islands-secrets.md)'s piece G (exit criterion 7). The sail loft, smokehouse, powder room and cartography table are kit pieces in the build palette's Stations, and each gets a tab in the Workshop when it stands at the hideout. Screenshots are in the project files (`new-stations/`).
@@ -597,7 +619,9 @@ Quality canvas and storm sails gain the `hideout` source and are still sold at t
 ---
 
 ## Changelog
-- v0.12: Phase 9 piece G built the sail loft, smokehouse, powder room and cartography table (§16.13): their pieces and recipes, four new upgrades (topsails, dark-tanned sails, muffled blocks, corrected charts) and what they do.
+- v1.4: Phase 9 piece G built the sail loft, smokehouse, powder room and cartography table (§16.13): their pieces and recipes, four new upgrades (topsails, dark-tanned sails, muffled blocks, corrected charts) and what they do.
+- v1.3: Phase 8 piece J's benches (§16.12): the kit and in-game hideout benches, seven real v10 hideouts in the save's worst case, the audio budget; the laptop's frame times at 60 Hz throughout.
+- v1.2: §16.7's housekeeping: the master plan's Phase 8 and 9 rows, plan 12 §11 on events, and the Phase 8 tracking issue (#136).
 - v1.1: Phase 8 piece I built (§16.11): build and craft audio and the UI set, the decoded audio budget at 8 MB.
 - v0.11: Phase 8 piece G built the slipway (§16.10): its slope rule, full repairs and crafted upgrades fitted on the ways, shipless after a sinking with a new schooner built there, and the abandon screen's choice.
 - v1.0: Phase 8 piece F built (§16.10): sleeping in a bunk lays low, pursuit ends at the anchorage, concealment in the palette, being spotted (talk and the cutter's lean), salvage at the quarry and the camp.
