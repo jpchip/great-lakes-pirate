@@ -2,6 +2,13 @@ import * as THREE from 'three';
 import type { LighthouseDef, TowerStyle } from '../../../data/schemas/lighthouses';
 import { PALETTE } from '../style/palette';
 import { box, frustum, gable, merged, part, place, strut } from '../style/parts';
+import {
+  skeletonPlatformHalf,
+  stationFor,
+  stationKit,
+  type KitDoor,
+  type KitSolid,
+} from '../../sim/light-stations';
 
 /**
  * The lighthouse station kit (plan 14 §8, §13; Phase 2 piece F): three tower styles that
@@ -89,7 +96,7 @@ function conical(def: LighthouseDef): StationParts {
     body.push(gable(5.5, 3.2, 2.6, 0, 4.2, houseZ, PALETTE.roofGray));
     body.push(box(1.2, 2.8, 1, 2.8, 3, houseZ, PALETTE.brick));
     for (const x of [-1.6, 1.2]) windows.push(box(0.9, 1.3, 0.2, x, 1.5, 2.1, PALETTE.windowAmber));
-    return assemble(body, glass, windows, H);
+    return assemble(body, glass, windows, H, def);
   }
   body.push(box(9, 4.6, 6.4, -2, 0, 11, PALETTE.brick));
   body.push(gable(9, 6.4, 2.8, -2, 4.6, 11, PALETTE.roofGray));
@@ -97,7 +104,7 @@ function conical(def: LighthouseDef): StationParts {
   body.push(box(3.2, 2.8, 3.2, 8.5, 0, 6, PALETTE.brick));
   body.push(gable(3.2, 3.2, 1.6, 8.5, 2.8, 6, PALETTE.roofGray));
   for (const x of [-4.2, -0.2]) windows.push(box(1.1, 1.5, 0.2, x, 1.7, 7.7, PALETTE.windowAmber));
-  return assemble(body, glass, windows, H);
+  return assemble(body, glass, windows, H, def);
 }
 
 function dwelling(def: LighthouseDef): StationParts {
@@ -122,7 +129,7 @@ function dwelling(def: LighthouseDef): StationParts {
     windows.push(box(0.9, 1.5, 0.2, x, 1.5, -2.4 + 0.02, PALETTE.windowAmber));
     windows.push(box(0.9, 1.5, 0.2, x, 4.1, -2.4 + 0.02, PALETTE.windowAmber));
   }
-  return assemble(body, glass, windows, H);
+  return assemble(body, glass, windows, H, def);
 }
 
 /** `lantern`, with the lamp moved off the tower's axis. */
@@ -175,13 +182,81 @@ function skeleton(def: LighthouseDef): StationParts {
       body.push(strut(v(ax, az, r1, y1), v(bx, bz, r1, y1), 0.12, finish));
     }
   }
-  body.push(box(top * 2 + 1.4, 0.4, top * 2 + 1.4, 0, H - 0.4, 0, trimColor));
+  const ph = skeletonPlatformHalf(H);
+  body.push(box(ph * 2, 0.4, ph * 2, 0, H - 0.4, 0, trimColor));
   lantern(H, 1.05, glass, body, glassOf(def));
   // A small watch house at the foot, with a lit window.
   body.push(box(4.2, 2.8, 3.6, 0, 0, 7, PALETTE.weatheredWood));
   body.push(gable(4.2, 3.6, 1.4, 0, 2.8, 7, PALETTE.roofGray));
   windows.push(box(0.9, 1.1, 0.2, -0.8, 1.0, 5.12, PALETTE.windowAmber));
-  return assemble(body, glass, windows, H);
+  return assemble(body, glass, windows, H, def);
+}
+
+const DOOR = 0x3a2a1e;
+
+/** A door on the face of the solid the stand point is outside, facing the point. */
+function doorOn(solids: readonly KitSolid[], at: KitDoor, out: THREE.BufferGeometry[]): void {
+  let best: { x: number; z: number; yaw: number; d: number } | undefined;
+  for (const s of solids) {
+    if (s.part === 'rail' || s.part === 'gallery' || s.part === 'lantern' || s.part === 'leg') {
+      continue;
+    }
+    if (s.y0 > at.y + 0.5) continue;
+    let fx: number;
+    let fz: number;
+    if (s.shape === 'cyl') {
+      const a = Math.atan2(at.x - s.x, at.z - s.z);
+      fx = s.x + Math.sin(a) * s.w;
+      fz = s.z + Math.cos(a) * s.w;
+    } else {
+      fx = Math.min(Math.max(at.x, s.x - s.w / 2), s.x + s.w / 2);
+      fz = Math.min(Math.max(at.z, s.z - s.d / 2), s.z + s.d / 2);
+    }
+    const d = Math.hypot(at.x - fx, at.z - fz);
+    if (!best || d < best.d) best = { x: fx, z: fz, yaw: Math.atan2(at.x - fx, at.z - fz), d };
+  }
+  if (!best) return;
+  const g = part(new THREE.BoxGeometry(1.0, 2.0, 0.12), DOOR);
+  g.rotateY(best.yaw);
+  out.push(place(g, best.x, at.y + 1.0, best.z));
+}
+
+/** A ladder up the middle of a skeleton tower, from the ground to the platform. */
+function ladderUp(H: number, z: number, out: THREE.BufferGeometry[]): void {
+  for (const x of [-0.28, 0.28]) out.push(box(0.07, H, 0.07, x, 0, z, PALETTE.lanternBlack));
+  for (let y = 0.35; y < H; y += 0.42)
+    out.push(box(0.56, 0.05, 0.05, 0, y, z, PALETTE.lanternBlack));
+}
+
+/**
+ * Phase 9 piece H: what the station needs to be walked, from the same kit numbers the
+ * ashore scene makes solid: an oil house where the Phase 2 kit had none, the fog signal
+ * (a bell frame, or a whistle house), the doors you work at, and a skeleton tower's ladder.
+ */
+function onFootParts(def: LighthouseDef, body: THREE.BufferGeometry[]): void {
+  const kit = stationKit(def);
+  for (const e of kit.extras) {
+    if (e.part === 'oil') {
+      body.push(box(e.w, e.h, e.d, e.x, 0, e.z, PALETTE.brick));
+      body.push(gable(e.w, e.d, Math.min(e.w, e.d) * 0.4, e.x, e.h, e.z, PALETTE.roofGray));
+    } else if (e.signal === 'bell') {
+      // A heavy timber frame with the bell hung under its cap.
+      for (const sx of [-1, 1]) {
+        body.push(box(0.3, e.h, 0.3, e.x + (sx * e.w) / 2.6, 0, e.z, PALETTE.weatheredWood));
+      }
+      body.push(box(e.w * 0.9, 0.3, 0.5, e.x, e.h, e.z, PALETTE.weatheredWood));
+      body.push(frustum(0.18, 0.5, 0.8, 10, e.x, e.h - 0.9, e.z, PALETTE.lanternBlack));
+      body.push(box(e.w, 0.4, e.d, e.x, 0, e.z, foundationColor));
+    } else {
+      body.push(box(e.w, e.h, e.d, e.x, 0, e.z, PALETTE.brick));
+      body.push(gable(e.w, e.d, 1.4, e.x, e.h, e.z, PALETTE.roofGray));
+      body.push(box(0.35, 1.6, 0.35, e.x + e.w / 3, e.h + 0.6, e.z, PALETTE.lanternBlack));
+    }
+  }
+  if (kit.ladder) ladderUp(def.tower.heightM, kit.doors.tower.z, body);
+  else doorOn(kit.solids, kit.doors.tower, body);
+  doorOn(kit.solids, kit.doors.house, body);
+  doorOn(kit.solids, kit.doors.oil, body);
 }
 
 const triangles = (g: THREE.BufferGeometry): number => g.getAttribute('position').count / 3;
@@ -191,7 +266,9 @@ function assemble(
   glass: THREE.BufferGeometry[],
   windows: THREE.BufferGeometry[],
   H: number,
+  def?: LighthouseDef,
 ): StationParts {
+  if (def && stationFor(def.id)) onFootParts(def, body);
   const b = merged(body);
   const l = merged(glass);
   const w = windows.length ? merged(windows) : undefined;

@@ -65,6 +65,7 @@ import {
 import type { DistrictMark } from '../../../data/schemas/districts';
 import type { JailbreakRules } from '../../../data/schemas/jail';
 import { createJailbreak, jailGuards, type Jailbreak, type JailbreakEvent } from './jailbreak';
+import type { StationOnFoot } from './station-watch';
 
 /**
  * The night watch in a district you've gone ashore in (plan 08 §5, §10; Phase 7): piece D's
@@ -217,6 +218,8 @@ export interface Watch {
   douseOffer(player: CharacterState): DouseOffer | undefined;
   /** Puts a lamp out as F would (the dev hook): the noise, and any guard watching grows wary. */
   douseLamp(k: number, player: CharacterState): void;
+  /** A lighthouse station's own doings (plan 11 §18.4 piece H), on a station's watch. */
+  readonly station?: StationOnFoot;
 }
 
 export function skyAt(gameSeconds: number, cloud01: number): SkyLight {

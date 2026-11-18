@@ -1,7 +1,7 @@
 import { dayAndHour, SECONDS_PER_GAME_DAY } from '../../core/time';
 import type { CrimeInput, LawEvent } from '../../sim/law/law';
 import type { CrimeDetails } from '../../sim/law/state';
-import type { Identification, Witness } from '../../sim/law/witness';
+import type { Identification, Reporting, Witness } from '../../sim/law/witness';
 import type { ConductReason } from './conduct';
 import type { Heist, HeistEvent } from './heist';
 import type { Guard, Stealth, StealthEvent } from './stealth';
@@ -64,6 +64,8 @@ export interface FootLawPlace {
   /** The region the district is in (`region.apostles` for Bayfield). */
   region: string;
   port?: string;
+  /** A lighthouse keeper's report goes as his station's does (plan 06 §6.1; piece H). */
+  reporting?: Reporting;
 }
 
 export interface FootLaw {
@@ -92,12 +94,17 @@ export function crimeForSighting(
 }
 
 /** A guard as a witness to the law (plan 06 §2.4). */
-export function guardWitness(g: Guard, identification?: Identification): Witness {
+export function guardWitness(
+  g: Guard,
+  identification?: Identification,
+  reporting?: Reporting,
+): Witness {
   return {
     id: g.id,
     kind: g.type.witness,
     name: guardNoun(g),
     identification: identification ?? (g.identified ? 'person' : 'unknown'),
+    ...(reporting && g.type.witness === 'keeper' ? { reporting } : {}),
   };
 }
 
@@ -117,6 +124,8 @@ export function createFootLaw(
     evidence?(id: string, gameSeconds: number): Witness | undefined;
   },
 ): FootLaw {
+  const witnessOf = (g: Guard, identification?: Identification): Witness =>
+    guardWitness(g, identification, place.reporting);
   const events: LawEvent[] = [];
   const incidents = new Map<string, string>();
   /** The conduct each guard saw when he spotted you. */
@@ -188,7 +197,7 @@ export function createFootLaw(
           if (!crime) return;
           // Seen with a building's crates: a witness to that burglary, who names you.
           if (saw?.reason === 'loot' && saw.crateFrom) {
-            burglary(saw.crateFrom, [guardWitness(g)]);
+            burglary(saw.crateFrom, [witnessOf(g)]);
             return;
           }
           // Carrying a man is that man's crime; anything else is one incident a kind.
@@ -196,7 +205,7 @@ export function createFootLaw(
             saw?.reason === 'body' && tools?.carrying
               ? `victim:${tools.carrying}`
               : `seen:${crime}`;
-          incident(key, crime, [guardWitness(g)]);
+          incident(key, crime, [witnessOf(g)]);
         }
         // `assault` is GuardWoke's below, and `body` BodyFound's, whoever found it.
         return;
@@ -206,7 +215,7 @@ export function createFootLaw(
         // a watchman when he's found one), by you if he'd learned your face. Drink is no crime.
         const g = guard(e.npc);
         if (!g || e.drank) return;
-        incident(`victim:${g.id}`, 'crime.assault', [guardWitness(g)], { victim: guardNoun(g) });
+        incident(`victim:${g.id}`, 'crime.assault', [witnessOf(g)], { victim: guardNoun(g) });
         return;
       }
       case 'BodyFound': {
@@ -218,7 +227,7 @@ export function createFootLaw(
         incident(
           `victim:${victim.id}`,
           'crime.killing',
-          [guardWitness(finder, faceKnown ? 'person' : 'unknown')],
+          [witnessOf(finder, faceKnown ? 'person' : 'unknown')],
           { victim: guardNoun(victim), killed: 1 },
         );
         return;
@@ -236,7 +245,7 @@ export function createFootLaw(
         const victim = guard(e.npc);
         const witnesses = e.seenBy.flatMap((id) => {
           const g = guard(id);
-          return g ? [guardWitness(g)] : [];
+          return g ? [witnessOf(g)] : [];
         });
         const killing = e.type === 'Killed';
         incident(
@@ -251,7 +260,7 @@ export function createFootLaw(
         const victim = guard(e.npc);
         const witnesses = e.seenBy.flatMap((id) => {
           const g = guard(id);
-          return g ? [guardWitness(g)] : [];
+          return g ? [witnessOf(g)] : [];
         });
         if (witnesses.length === 0) return;
         incident(
@@ -266,7 +275,7 @@ export function createFootLaw(
         const g = guard(e.npc);
         if (!e.reports || !g) return;
         // Face to face: he knows who offered.
-        incident(`bribe:${g.id}`, 'crime.bribery', [guardWitness(g, 'person')]);
+        incident(`bribe:${g.id}`, 'crime.bribery', [witnessOf(g, 'person')]);
         return;
       }
       default:

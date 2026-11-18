@@ -71,7 +71,7 @@ export interface FootFrame {
 
 export interface GuardFrame {
   id: string;
-  /** `npc.watchman`, `npc.constable`, `npc.sailor`, `npc.marshal`. */
+  /** `npc.watchman`, `npc.constable`, `npc.sailor`, `npc.marshal`, `npc.keeper`. */
   type: string;
   /** The FSM state: down ones lie on the ground. */
   state: string;
@@ -127,6 +127,8 @@ const GUARD_LOOKS: Record<string, { coat: number; hat: number; front: number; ta
   'npc.constable': { coat: 0x1d2f5a, hat: 0x141c33, front: 0xc9a24a, tall: true },
   'npc.marshal': { coat: 0x9a8461, hat: 0x3b2e22, front: 0x6d5a3f, tall: false },
   'npc.sailor': { coat: 0x22262e, hat: 0x22262e, front: 0xd8d4c8, tall: false },
+  // The Lighthouse Service's keepers (Phase 9 piece H): a navy uniform coat with brass buttons and a cap.
+  'npc.keeper': { coat: 0x1c2638, hat: 0x1c2638, front: 0xb8963e, tall: false },
   // Behind the counters (piece F): a shopkeeper in shirtsleeves and an apron, the fence in black.
   'npc.shopkeeper': { coat: 0x7d7466, hat: 0x4a3f33, front: 0xe6e0d2, tall: false },
   'npc.fence': { coat: 0x26221f, hat: 0x26221f, front: 0x7a2f2a, tall: false },

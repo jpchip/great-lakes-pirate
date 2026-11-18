@@ -32,6 +32,7 @@ import type { AshoreState, RowboatSave, WorldState } from '../sim/world-state';
 import type { DistrictDef, DistrictMark } from '../../data/schemas/districts';
 import type { IslandAshore } from './island-ashore';
 import type { IslandPosse } from './island-posse';
+import type { PlacedStation } from '../sim/light-stations';
 import type { XZ } from './onfoot/nav';
 import {
   districtBerthPiers,
@@ -143,6 +144,11 @@ export interface AshoreDeps {
    * where yours lies now (the rowboat, or the ship), scene meters, for them to land by.
    */
   posse?(island: string, scene: AshoreScene, boat: () => XZ): IslandPosse | undefined;
+  /**
+   * A lighthouse station's keepers on its pad (plan 11 §18.4 piece H), answering the
+   * district watch's shape so the tool belt and the HUD work there.
+   */
+  stationWatch?(station: PlacedStation, scene: AshoreScene): Watch | undefined;
   /**
    * The trees and shore rocks the renderer plants over a rectangle (zone meters), and the
    * share the quality preset draws: they get trunks you walk around.
@@ -517,6 +523,10 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
             return { x: at.x, z: at.z };
           })
         : undefined;
+    // A lighthouse station's keepers (plan 11 §18.4 piece H): the tools work on them.
+    watch?.footLaw?.dispose();
+    watch =
+      island?.station && deps.stationWatch ? deps.stationWatch(island.station, built) : undefined;
     return built;
   };
 
@@ -945,7 +955,10 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
     }
     if (boat && Math.hypot(c.position.x - boat.x, c.position.z - boat.z) < REACH_M + 0.8) {
       // A load of salvage in your arms goes in the boat first (Phase 8 piece F).
-      const load = !district && !c.swimming ? deps.island?.boatPrompt() : undefined;
+      const load =
+        !district && !c.swimming
+          ? (deps.island?.boatPrompt() ?? watch?.station?.boatPrompt())
+          : undefined;
       if (load) return load;
       if (boatState === 'beached' && !c.swimming) return { text: 'Shove off', act: shoveOff };
       if (boatState !== 'beached') return { text: 'Climb into the boat', act: climbIn };
@@ -1127,7 +1140,11 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
           right: side,
           run: input.isDown('Sprint'),
           // Arms full of a crate, you can't stoop (plan 08 §7).
-          crouch: input.isDown('Crouch') && !watch?.heist?.carrying && !deps.island?.carrying(),
+          crouch:
+            input.isDown('Crouch') &&
+            !watch?.heist?.carrying &&
+            !watch?.station?.carrying &&
+            !deps.island?.carrying(),
           jump: input.pressed('Jump'),
         },
         walkCamera.yaw,
@@ -1143,7 +1160,7 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
         (input.isDown('LeanRight') ? 1 : 0) - (input.isDown('LeanLeft') ? 1 : 0),
         character,
         ahead !== 0 || side !== 0,
-        !watch?.heist?.carrying && !watch?.tools?.carrying,
+        !watch?.heist?.carrying && !watch?.tools?.carrying && !watch?.station?.carrying,
         walkCamera.yaw,
         scene,
         character.crouching ? DEFAULT_CONTROLLER.crouchHeight : DEFAULT_CONTROLLER.standHeight,
@@ -1168,7 +1185,8 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
         // A teleport or a fade is not a stride.
         if (moved < 2) {
           const surface = character.swimming ? 'water' : character.surface;
-          const carrying = watch?.heist?.carrying !== undefined;
+          const carrying =
+            watch?.heist?.carrying !== undefined || watch?.station?.carrying !== undefined;
           const r = strides.step(
             moved,
             character.gait,

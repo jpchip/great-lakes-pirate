@@ -515,6 +515,29 @@ export type DangerState = z.infer<typeof dangerSchema>;
 export const DECKHAND_PURSE_CENTS = 15_000;
 export const DECKHAND_CARGO = [{ good: 'good.rope_canvas', qty: 5 }] as const;
 
+/** A keeper's fate at his station (plan 06 §6.2), game seconds; absent while he's well. */
+const keeperFateSchema = z.object({
+  /** Killed then: his relief comes after `replaceDays`. */
+  diedAt: z.number().optional(),
+  /** Out cold, tied up or sleeping off your whiskey until then. */
+  downUntil: z.number().optional(),
+  /** Paid to look away until then. */
+  bribedUntil: z.number().optional(),
+});
+
+export const lightStationStateSchema = z.object({
+  /** The lamp was put out then; a keeper at his post lights it again. */
+  dousedAt: z.number().optional(),
+  keepers: z.record(z.string(), keeperFateSchema),
+  /** Cans taken from the oil house since a stocking. */
+  oilTaken: z.object({ count: z.number().int().nonnegative(), since: z.number() }).optional(),
+  houseRobbedAt: z.number().optional(),
+  logbookTakenAt: z.number().optional(),
+  /** The last day visit's talk with the keeper (one a day). */
+  talkedAt: z.number().optional(),
+});
+export type LightStationState = z.infer<typeof lightStationStateSchema>;
+
 export const worldStateSchema = z.object({
   player: z.looseObject({
     location: locationSchema,
@@ -571,6 +594,12 @@ export const worldStateSchema = z.object({
       z.object({ searched: z.array(z.number().int().nonnegative()), looted: z.boolean() }),
     )
     .optional(),
+  /**
+   * The lighthouse stations on foot (plan 11 §10, §18.4 piece H), by light id: a doused
+   * lamp, what's become of each keeper, the oil and the house robbed and the logbook taken.
+   * Absent until the first landing at one, so no version bump.
+   */
+  lightStations: z.record(z.string(), lightStationStateSchema).optional(),
   knowledge: knowledgeSchema,
   /**
    * The Captain's First Week checklist (plan 12 §3, Phase 4 piece C). Only a run made in

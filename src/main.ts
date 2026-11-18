@@ -196,6 +196,16 @@ import { showTabLocked } from './ui/menu/tab-locked';
 import { attachAshore, type GameAshore } from './gameplay/ashore';
 import { DISTRICTS, districtFootprint, districtFrame } from './gameplay/district/ground';
 import { createWatch } from './gameplay/onfoot/watch';
+import { createStationWatch, keeperWeather } from './gameplay/onfoot/station-watch';
+import {
+  emptyStation,
+  keepersOnDuty,
+  lampOut,
+  placeStation,
+  settleStation,
+  type PlacedStation,
+} from './sim/light-stations';
+import type { LightStationState } from './sim/world-state';
 import { shopPrompt } from './gameplay/onfoot/shops';
 import { gameTools } from './gameplay/onfoot/tools';
 import { stealthHud } from './ui/hud/stealth-model';
@@ -1548,11 +1558,52 @@ async function boot(): Promise<void> {
     }
     return placedLights.lights;
   };
+  // The lighthouse stations you can land at (plan 11 §18.4 piece H), placed with the lights.
+  let placedStations: { lights: readonly PlacedLight[]; stations: PlacedStation[] } = {
+    lights: [],
+    stations: [],
+  };
+  const zoneStations = (): readonly PlacedStation[] => {
+    const lights = zoneLights();
+    if (placedStations.lights !== lights) {
+      const terrain = zone?.terrain;
+      placedStations = {
+        lights,
+        stations: terrain
+          ? lights.flatMap((p) => placeStation(p, (x, z) => terrain.heightAt(x, z)) ?? [])
+          : [],
+      };
+    }
+    return placedStations.stations;
+  };
+  const stationRecord = (lightId: string): LightStationState =>
+    ((state.lightStations ??= {})[lightId] ??= emptyStation());
+  /**
+   * The zone's lights as the sea sees them now: a doused lamp dark (no glow, no beam), and
+   * only the keepers at their posts watching. Time passes at each station first.
+   */
+  const stationLights = (): readonly PlacedLight[] => {
+    const t = state.environment.clock.gameSeconds;
+    return zoneLights().map((p) => {
+      const st = state.lightStations?.[p.def.id];
+      if (!st) {
+        scene?.lighthouses?.setDark(p.def.id, false);
+        return p;
+      }
+      settleStation(p.def, st, t);
+      const dark = lampOut(st);
+      scene?.lighthouses?.setDark(p.def.id, dark);
+      return {
+        ...p,
+        def: { ...p.def, lit: p.def.lit && !dark, keepers: keepersOnDuty(p.def, st, t) },
+      };
+    });
+  };
   const detection = attachDetection({
     ctx,
     player: playerShip,
     zoneId: () => (zone ? zone.manifest.zone : undefined),
-    lights: zoneLights,
+    lights: stationLights,
     shipName: (id) =>
       traffic.contacts.find((c) => c.id === id)?.name ??
       arena?.encounter.ships.find((s) => s.id === id)?.name,
@@ -2979,6 +3030,7 @@ async function boot(): Promise<void> {
         return lifeRef.current?.load;
       },
     },
+    stations: zoneStations,
     runSeed: () => state.environment.weather.noiseSeed,
     notice: (text) => showNotice(text),
   });
@@ -3241,6 +3293,61 @@ async function boot(): Promise<void> {
         }
       });
       return posse;
+    },
+    // A lighthouse station's keepers (plan 11 §18.4 piece H): the watch's machinery on the
+    // station's pad, its doings remembered in the save for the light at sea.
+    stationWatch: (station, scene) => {
+      const region = (): string => law.region() ?? '';
+      const tierNow = (): number => wantedTier(law.defs, state.wanted[region()]?.heat ?? 0);
+      const fameTiers = Math.max(1, law.defs.fame.tiers.length - 1);
+      const port = station.def.light === 'light.chequamegon' ? 'port.ashland' : 'port.bayfield';
+      const watch = createStationWatch({
+        station,
+        scene,
+        record: () => stationRecord(station.def.light),
+        tier: tierNow(),
+        seed: trafficSeed,
+        runSeed: () => state.environment.weather.noiseSeed,
+        conditions: () => {
+          const t = state.environment.clock.gameSeconds;
+          return {
+            gameSeconds: t,
+            cloud01: ctx.weather.cloudAt(t),
+            fogM: ctx.weather.fogVisibilityAt(t),
+            rain01: ctx.weather.rainAt(t),
+            wantedTier: tierNow(),
+            fame01: fameTier(law.defs, state.fame.value) / fameTiers,
+          };
+        },
+        suspect: () => suspectOverride.value,
+        pockets: state.player,
+        hasWeapon: (id) => !!state.player.ship?.weapons.some((w) => w.weapon === id),
+        law: {
+          commit: (input) => law.commit(input),
+          addWitness: (id, w) => law.addWitness(id, w),
+          detail: (id, details) => {
+            const open = state.reports.crimes.find((c) => c.id === id);
+            if (open) open.details = details;
+          },
+          region,
+        },
+        hooks: {
+          stow: (crate) => stowCrate(crate, region()),
+          schedule: () => rumors.readSchedule(port)?.text,
+          weather: () =>
+            keeperWeather(ctx.weather.barometerAt(state.environment.clock.gameSeconds)?.trend),
+          notice: (text) => showNotice(text),
+          changed: () => void stationLights(),
+        },
+      });
+      if (audio) {
+        watch.on((e) => audio.foot.stealth(e));
+        watch.onTool((e) => {
+          if (e.type !== 'StoneThrown') return audio.foot.tool(e);
+          audio.foot.tool(e, { x: e.x, y: e.y, z: e.z });
+        });
+      }
+      return watch;
     },
     // Your own footsteps and landings, heard (piece I).
     ...(audio
@@ -3758,7 +3865,7 @@ async function boot(): Promise<void> {
       behindGuard: (id: string, distM = 1.5) => {
         const d = ashore.district;
         const g = ashore.watch?.stealth.guard(id);
-        if (!d || !g) return false;
+        if (!g) return false;
         g.waitS = 1e6;
         g.path = undefined;
         const wp = g.route.points[g.waypoint];
@@ -3766,9 +3873,10 @@ async function boot(): Promise<void> {
         const h = g.body.heading;
         const x = g.body.position.x - Math.sin(h) * distM;
         const z = g.body.position.z + Math.cos(h) * distM;
-        const p = d.frame.toZone(x, z);
+        // A district's guards walk its local frame; a station's keepers walk the zone's.
+        const p = d ? d.frame.toZone(x, z) : { x, z };
         ashore.teleport(p.x, p.z, g.body.position.y);
-        ashore.face(d.frame.headingToZone(h));
+        ashore.face(d ? d.frame.headingToZone(h) : h);
         return true;
       },
       /** Piece E: a cosh, two lengths of rope and three bottles, as if from the chandlery. */
@@ -3846,6 +3954,129 @@ async function boot(): Promise<void> {
       save: () => saveControls.saveNow(),
     };
     (window as unknown as { __glpFoot: typeof hook }).__glpFoot = hook;
+    /**
+     * Lighthouse stations on foot (plan 11 §18.4 piece H): `list()` the zone's stations,
+     * `land(id)` anchors off one and lands on its beach, `goto('tower' | 'house' | 'oil' |
+     * 'gallery' | 'landing')` stands you there, `here()` reads the station you're at (its
+     * prompt, keepers and record), and `act()` does what F would there at once.
+     */
+    const stationAt = () => ashore.watch?.station;
+    const stationHook = {
+      list: () =>
+        zoneStations().map((s) => ({
+          id: s.def.light,
+          name: s.light.def.name,
+          island: s.island,
+          tower: { x: s.light.x, y: s.light.groundM, z: s.light.z },
+          doors: s.doors,
+          gallery: s.gallery,
+          landing: s.landing && { x: s.landing.x, z: s.landing.z },
+          bluff: s.bluff,
+          treads: s.stairs.length,
+          record: state.lightStations?.[s.def.light],
+          dark: lampOut(state.lightStations?.[s.def.light]),
+          onDuty: keepersOnDuty(
+            s.light.def,
+            state.lightStations?.[s.def.light],
+            state.environment.clock.gameSeconds,
+          ),
+        })),
+      async land(id: string): Promise<string | undefined> {
+        const st = zoneStations().find((s) => s.def.light === id);
+        const terrain = zone?.terrain;
+        if (!st || !terrain) return 'No such station in this zone';
+        const spot = viewingSpot(st.light, terrain, 260);
+        if (!spot) return 'No water off it';
+        let why: string | undefined = 'Not yet';
+        // A slow frame rate takes a few ticks to bring her to her anchor.
+        for (let tries = 0; tries < 12 && why; tries++) {
+          hook.place(spot.x, spot.z, (spot.heading * 180) / Math.PI);
+          hook.anchor();
+          await new Promise((done) => setTimeout(done, 800));
+          why = await hook.land();
+        }
+        if (why) return why;
+        await new Promise((done) => setTimeout(done, 1200));
+        const fx = Math.sin(st.light.seaward);
+        const fz = -Math.cos(st.light.seaward);
+        const rx = -fz;
+        const rz = fx;
+        let wx = st.light.x;
+        let wz = st.light.z;
+        for (let d = 4; d < 160; d++) {
+          wx = st.light.x + fx * d;
+          wz = st.light.z + fz * d;
+          if (terrain.heightAt(wx, wz) <= 0.2) break;
+        }
+        hook.teleport(wx + fx * 1.5 + rx * 3, wz + fz * 1.5 + rz * 3);
+        await new Promise((done) => setTimeout(done, 800));
+        const refused = await hook.stepAshore();
+        const ladder = st.landingLadder;
+        if (!refused || !ladder) return refused ?? undefined;
+        // A cliff: up the landing stage's ladder instead, and onto its deck.
+        hook.teleport(ladder.x + fx * 1.6, ladder.z + fz * 1.6);
+        await new Promise((done) => setTimeout(done, 800));
+        hook.interact();
+        await new Promise((done) => setTimeout(done, 400));
+        ashore.character.ladder = undefined;
+        ashore.teleport(ladder.topX, ladder.topZ, ladder.topY + 0.05);
+        return ashore.inBoat ? refused : undefined;
+      },
+      goto(part: 'tower' | 'house' | 'oil' | 'gallery' | 'landing' | 'bluff') {
+        const st = stationAt()?.station;
+        if (!st) return false;
+        const p =
+          part === 'gallery'
+            ? st.gallery.stand
+            : part === 'bluff'
+              ? st.bluff?.foot
+              : part === 'landing'
+                ? st.landing && { x: st.landing.x, y: st.landing.maxY, z: st.landing.z }
+                : st.doors[part];
+        if (!p) return false;
+        ashore.teleport(p.x, p.z, p.y + 0.05);
+        const to = part === 'gallery' ? st.gallery.lamp : { x: st.light.x, z: st.light.z };
+        ashore.face(Math.atan2(to.x - p.x, -(to.z - p.z)));
+        return true;
+      },
+      here() {
+        const w = stationAt();
+        if (!w) return undefined;
+        const o = w.offer(ashore.character);
+        return {
+          id: w.station.def.light,
+          offer: o && { label: o.label, ok: o.ok, why: o.why },
+          at: { ...ashore.character.position },
+          aloft: w.aloft(ashore.character),
+          carrying: w.carrying?.good,
+          keepers: (ashore.watch?.stealth.guards ?? []).map((g) => ({
+            id: g.id,
+            name: g.name,
+            state: g.state,
+            x: g.body.position.x,
+            y: g.body.position.y,
+            z: g.body.position.z,
+          })),
+          record: state.lightStations?.[w.station.def.light],
+          conduct: ashore.watch?.conduct?.words,
+        };
+      },
+      act() {
+        const w = stationAt();
+        const o = w?.offer(ashore.character);
+        if (!o?.ok) return o ? `${o.label}: ${o.why ?? 'not now'}` : undefined;
+        o.act();
+        stationLights();
+        return o.label;
+      },
+      /** For screenshots: look from `from` at `to` (zone meters), or back behind you. */
+      camera(from?: { x: number; y: number; z: number }, to?: { x: number; y: number; z: number }) {
+        ashore.cameraOverride = from && to ? () => ({ position: from, target: to }) : undefined;
+      },
+      settle: () =>
+        stationLights().map((p) => ({ id: p.def.id, lit: p.def.lit, keepers: p.def.keepers })),
+    };
+    (window as unknown as { __glpStation: typeof stationHook }).__glpStation = stationHook;
     // `?ashore=bayfield` ties up at the fish pier and goes ashore; `?ashore=stockton` anchors
     // off the quarry and lands on the island; `?ashore=siskiwit` anchors off the logging
     // camp's dock and lands on its mainland pad (Phase 8 piece D). The dev jump menu uses

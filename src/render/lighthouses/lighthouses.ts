@@ -22,6 +22,8 @@ import {
   type StylizedMaterial,
 } from '../style/stylized-material';
 import { buildStation } from './kit';
+import { placeStation, stationFor } from '../../sim/light-stations';
+import { box, merged } from '../style/parts';
 
 /**
  * The lights of the Apostles drawn (plan 14 §8, §10; Phase 2 piece F): each station from
@@ -170,6 +172,8 @@ export interface LighthouseView {
    * environment, `fogDensity` the scene's exp² density.
    */
   update(nowS: number, camera: THREE.Vector3, sunElevationDeg: number, fogDensity: number): void;
+  /** A doused lamp (plan 06 §6.2; Phase 9 piece H): dark until it's lit again. */
+  setDark(lightId: string, dark: boolean): void;
   dispose(): void;
 }
 
@@ -236,6 +240,41 @@ export function createLighthouses(
       windows.userData['noOutline'] = true;
       meshes.push(windows);
       root.add(windows);
+    }
+    // The landing stage of a station you can walk (Phase 9 piece H), out along the seaward
+    // axis: planks on piles, in the kit's frame.
+    const walk = stationFor(def.id) ? placeStation(p, (x, z) => terrain.heightAt(x, z)) : undefined;
+    if (walk?.landing) {
+      const landing = walk.landing;
+      // Along the seaward axis: in the kit's frame, x = 0 and z = -distance.
+      const local = (q: { x: number; z: number }): number => -Math.hypot(q.x - p.x, q.z - p.z);
+      const along = local(landing);
+      const deckY = landing.maxY - p.groundM;
+      const planks: THREE.BufferGeometry[] = [
+        box(landing.w, 0.25, landing.d, 0, deckY - 0.25, along, PALETTE.deckWood),
+      ];
+      for (let k = 0; k <= 3; k++) {
+        const z = along - landing.d / 2 + (k * landing.d) / 3;
+        for (const x of [-landing.w / 2 + 0.15, landing.w / 2 - 0.15]) {
+          planks.push(box(0.25, 3, 0.25, x, deckY - 3, z, PALETTE.sparBrown));
+        }
+      }
+      // The ladder down the outer end, to a boat alongside.
+      const endZ = along - landing.d / 2 - 0.05;
+      for (const x of [-0.3, 0.3])
+        planks.push(box(0.07, 2.2, 0.07, x, deckY - 1.9, endZ, PALETTE.lanternBlack));
+      for (let y = deckY - 1.8; y < deckY; y += 0.4)
+        planks.push(box(0.6, 0.05, 0.05, 0, y, endZ, PALETTE.lanternBlack));
+      // The stair up the bluff, a tread at a time on its own block.
+      for (const t of walk.stairs) {
+        planks.push(
+          box(t.w, t.maxY - t.minY, t.d, 0, t.minY - p.groundM, local(t), PALETTE.weatheredWood),
+        );
+      }
+      const deck = new THREE.Mesh(merged(planks), bodyMaterial);
+      deck.name = 'landing';
+      meshes.push(deck);
+      root.add(deck);
     }
     creaseNormals(root);
     // Ink outlines: lighthouses are hero objects (plan 14 §3.4), terrain is not.
@@ -321,6 +360,10 @@ export function createLighthouses(
     },
     applyPreset(next) {
       beams = next.lighthouseBeams;
+    },
+    setDark(lightId, dark) {
+      const s = stations.find((k) => k.placed.def.id === lightId);
+      if (s) s.burning = dark || !s.placed.def.lit ? 0 : 1;
     },
     update(nowS, camera, sunElevationDeg, fogDensity) {
       const night = lampLevel(sunElevationDeg);
