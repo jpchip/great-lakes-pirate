@@ -785,7 +785,7 @@
     ],
     "buildHours": 3,
     "water": {
-      "minDepthM": 0.3,
+      "minDepthM": 0,
       "maxDepthM": 6
     },
     "maxLevel": 0
@@ -809,7 +809,7 @@
     ],
     "buildHours": 3,
     "water": {
-      "minDepthM": 0.3,
+      "minDepthM": 0,
       "maxDepthM": 6
     },
     "maxLevel": 0
@@ -833,7 +833,7 @@
     ],
     "buildHours": 3,
     "water": {
-      "minDepthM": 0.3,
+      "minDepthM": 0,
       "maxDepthM": 6
     },
     "maxLevel": 0
