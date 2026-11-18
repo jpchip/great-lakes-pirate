@@ -32,4 +32,20 @@ describe('stairs walk up in steps, not as a wall (plan 09 §10)', () => {
     for (let i = 1; i < tops.length; i++)
       expect((tops[i] ?? 0) - (tops[i - 1] ?? 0)).toBeLessThanOrEqual(0.4);
   });
+
+  it('lets foundation steps be walked up in thirds, too', () => {
+    const g = new BuildGrid();
+    const r = placePiece(g, flat, P('foundation_stairs', 0, 0));
+    expect(r.ok).toBe(true);
+    if (r.ok) g.setBuilt(r.uids[0] ?? -1, true);
+    const all = hideoutColliders(g, flat);
+    expect(all.some((c) => c.kind === 'solid' && c.maxY - c.minY >= 0.5)).toBe(false);
+    const treads = all.filter((c) => c.kind === 'floor' && c.minY < 0);
+    const tops = treads.map((t) => t.maxY).sort((a, b) => a - b);
+    expect(tops).toHaveLength(3);
+    expect(tops[2] ?? 9).toBeCloseTo(0, 2);
+    expect((tops[0] ?? 9) - -0.6).toBeGreaterThan(0);
+    for (let i = 1; i < tops.length; i++)
+      expect((tops[i] ?? 0) - (tops[i - 1] ?? 0)).toBeLessThanOrEqual(0.4);
+  });
 });
