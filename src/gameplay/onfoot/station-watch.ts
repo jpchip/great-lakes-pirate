@@ -1,5 +1,6 @@
 import { Rng } from '../../core/rng';
 import { dayAndHour } from '../../core/time';
+import type { LighthouseDef } from '../../../data/schemas/lighthouses';
 import type { LightStationRules } from '../../../data/schemas/light_stations';
 import {
   STATION_RULES,
@@ -137,6 +138,17 @@ const REACH_M = 1.9;
 const ALOFT_M = 4;
 /** A can of kerosene is a load: slower, no running. */
 const CAN_SPEED = 0.75;
+
+function spotNoticeForReporting(reporting: LighthouseDef['reporting']): string {
+  switch (reporting) {
+    case 'fast':
+      return 'He can signal the town within the hour.';
+    case 'medium':
+      return 'Word will reach town in a few hours.';
+    case 'slow':
+      return 'He will row to town at dawn.';
+  }
+}
 /** The nav grid round a station: this far either side of the tower. */
 const NAV_HALF_M = 70;
 const KEROSENE = 'good.kerosene';
@@ -420,6 +432,16 @@ export function createStationWatch(opts: StationWatchOptions): Watch & {
   let readThisLanding = false;
 
   /** The keeper face to face with you, standing, by day. */
+  const keeperWatching = (): boolean => stealth.guards.some((g) => g.state === 'alerted');
+
+  const blockedByWatcher = (label: string): StationOffer => ({
+    label,
+    ok: false,
+    why: 'The keeper is watching',
+    holdS: 0,
+    act() {},
+  });
+
   const keeperToTalk = (p: CharacterState): Guard | undefined => {
     if (!welcome()) return undefined;
     for (const g of stealth.guards) {
@@ -441,6 +463,9 @@ export function createStationWatch(opts: StationWatchOptions): Watch & {
         Math.abs(wrap(p.heading - headingTo(p.position, lamp))) < Math.PI / 3 &&
         Math.hypot(p.position.x - lamp.x, p.position.z - lamp.z) <= st.gallery.reachM;
       if (facing) {
+        if (keeperWatching()) {
+          return blockedByWatcher(lampOut(rec) ? 'Light the lamp' : 'Put out the lamp');
+        }
         if (lampOut(rec)) {
           return {
             label: 'Light the lamp',
@@ -527,8 +552,10 @@ export function createStationWatch(opts: StationWatchOptions): Watch & {
     }
     if (nearPt(p, st.doors.oil)) {
       const left = oilLeft(st.def, rec, t, rules);
+      const oilLabel = `Take a can of kerosene (${left} left)`;
+      if (keeperWatching()) return blockedByWatcher(oilLabel);
       return {
-        label: `Take a can of kerosene (${left} left)`,
+        label: oilLabel,
         ok: left > 0,
         ...(left > 0 ? {} : { why: 'The oil house is empty' }),
         holdS: rules.oilS,
@@ -548,6 +575,21 @@ export function createStationWatch(opts: StationWatchOptions): Watch & {
       };
     }
     if (nearPt(p, st.doors.house)) {
+      if (keeperWatching()) {
+        if (night() && sleepers.length && !sleepersTied()) {
+          return blockedByWatcher(`Tie up the sleeping keeper${sleepers.length > 1 ? 's' : ''}`);
+        }
+        if (!readThisLanding && logbookHere(rec, t, rules)) {
+          return blockedByWatcher('Read the logbook');
+        }
+        if (houseStocked(rec, t, rules)) {
+          return blockedByWatcher("Search the keepers' house");
+        }
+        if (logbookHere(rec, t, rules)) {
+          return blockedByWatcher('Take the logbook');
+        }
+        return blockedByWatcher("Search the keepers' house");
+      }
       // At night the keepers off watch are asleep in there.
       if (night() && sleepers.length && !sleepersTied()) {
         const need = sleepers.filter((id) => onDuty(rec, id, t, rules)).length;
@@ -646,6 +688,13 @@ export function createStationWatch(opts: StationWatchOptions): Watch & {
       };
     },
   };
+
+  let spotWarned = false;
+  stealth.on((e) => {
+    if (e.type !== 'PlayerSpotted' || spotWarned) return;
+    spotWarned = true;
+    opts.hooks.notice(`You've been seen. ${spotNoticeForReporting(light.reporting)}`);
+  });
 
   /** A hostile tool beats the station; a word or a coin to a keeper waits for the talk. */
   const toolFirst = (player: CharacterState): boolean => {
