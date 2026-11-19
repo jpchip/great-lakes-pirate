@@ -37,6 +37,7 @@ import { attachEconomy } from './gameplay/economy';
 import { attachPorts, type PortControl } from './gameplay/port';
 import { attachBackRoom } from './gameplay/back-room';
 import { fameTier, gameLaw, wantedTier } from './sim/law/defs';
+import { identifyInFlightReports } from './sim/law/law';
 import { attachRumors } from './gameplay/rumors';
 import { knowsRumor } from './sim/rumors/rumors';
 import { smugglerAnchorage } from './sim/economy/smuggler';
@@ -3475,6 +3476,8 @@ async function boot(): Promise<void> {
             const open = state.reports.crimes.find((c) => c.id === id);
             if (open) open.details = details;
           },
+          identifyWitness: (witnessId, identification) =>
+            identifyInFlightReports(state, witnessId, identification),
           region,
         },
         hooks: {
@@ -3564,6 +3567,8 @@ async function boot(): Promise<void> {
             const open = state.reports.crimes.find((c) => c.id === id);
             if (open) open.details = details;
           },
+          identifyWitness: (witnessId, identification) =>
+            identifyInFlightReports(state, witnessId, identification),
           region,
           port: landing.def.port,
         },
@@ -5150,7 +5155,12 @@ async function boot(): Promise<void> {
           };
           const snap = stealthHud(readout, ashore.zoneAt(), project, vp, now);
           const tools = ashore.toolsHud();
-          ui.setStealthHud(tools ? { ...snap, tools } : snap);
+          const report = portLaw.report();
+          ui.setStealthHud({
+            ...snap,
+            ...(tools ? { tools } : {}),
+            ...(report ? { report } : {}),
+          });
           const conduct = ashore.watch?.conduct;
           document.body.dataset['conduct'] = conduct?.reason ?? 'none';
           document.body.dataset['gem'] = snap.gem.level;
