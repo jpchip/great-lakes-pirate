@@ -56,6 +56,11 @@ import { DEFAULT_SHIP_CAMERA } from './gameplay/camera/ship-camera';
 import { attachTraffic, HAIL_RANGE_M, LOOK_RANGE_M, type TrafficZone } from './gameplay/traffic';
 import { createContacts, type Contact } from './sim/chart/traffic';
 import { portInfo } from './sim/economy/defs';
+import { formatCents } from './sim/economy/knowledge';
+import { takeCleanFromHold, type CargoStack } from './sim/economy/hold';
+import { COLD } from './sim/cold/footing';
+import { layRoad, roadOpen, snowLies, thinnestOnRoad } from './sim/cold/road';
+import type { AshoreWinter } from './gameplay/cold';
 import { pierSideKey, sideOfBerth } from './sim/traffic/berths';
 import { clearArena, materializeArena, type ArenaPlay } from './gameplay/arena';
 import {
@@ -3576,8 +3581,86 @@ async function boot(): Promise<void> {
   };
   /** Dev hook: forces `suspect` on foot (see `__glpFoot.suspect`). */
   const suspectOverride: { value: boolean | undefined } = { value: undefined };
+  // Winter on foot (Phase 9 piece M): the lake's ice to walk on, the cold, the hand sled and
+  // the Bayfield–La Pointe ice road.
+  const iceRoadCache: { key: string; road: ReturnType<AshoreWinter['road']> } = {
+    key: '',
+    road: undefined,
+  };
+  const ashoreWinter: AshoreWinter = {
+    seed: trafficSeed,
+    iceAt: (x, z) =>
+      gameIce.at(
+        fromWorldChart(westernSuperiorChart(), zoneToChart({ x, z }, zoneFrame(zone, zoneData))),
+      ),
+    air: () => {
+      const t = state.environment.clock.gameSeconds;
+      const at = ashoreRef.current?.zoneAt() ?? shipPose();
+      return {
+        airC: ctx.weather.airAt(t),
+        windKn: ctx.weather.windAt(at, t).speedKn,
+        precip01: ctx.weather.rainAt(t),
+      };
+    },
+    snow: () => snowLies(trafficSeed, state.environment.clock.gameSeconds),
+    road: () => {
+      const key = `${zoneData.id}|${harborLayouts.length}`;
+      if (iceRoadCache.key !== key) {
+        iceRoadCache.key = key;
+        const piers = harborLayouts.flatMap((l) => l.piers);
+        const a = piers.find((p) => p.id === COLD.road.from);
+        const b = piers.find((p) => p.id === COLD.road.to);
+        const at = (p: typeof a & object, along: number) => ({
+          x: p.root.x + Math.sin(p.bearing) * along,
+          z: p.root.z - Math.cos(p.bearing) * along,
+        });
+        iceRoadCache.road =
+          a && b
+            ? {
+                ...layRoad(at(a, a.lengthM + 6), at(b, b.lengthM + 6)),
+                fromHead: { ...at(a, a.lengthM - 3), y: a.deckM },
+                toHead: { ...at(b, b.lengthM - 3), y: b.deckM },
+              }
+            : undefined;
+      }
+      return iceRoadCache.road;
+    },
+    roadPier: COLD.road.from,
+    roadPort: COLD.road.toPort,
+    weightOf: (g) => economy.defs.goods.get(g)?.weightFactor ?? 1,
+    valueOf: (g) => economy.defs.goods.get(g)?.basePriceCents ?? 0,
+    hold: () => state.player.cargo,
+    holdChanged: () => economy.syncLoad(),
+    sell: (port, load) => {
+      const left: CargoStack[] = [];
+      let cents = 0;
+      let sold = 0;
+      for (const l of load) {
+        if (l.hot || l.contract) {
+          left.push(l);
+          continue;
+        }
+        state.player.cargo.push({ good: l.good, qty: l.qty });
+        const r = economy.sell(port, l.good, l.qty);
+        if (r.ok) {
+          cents += r.event.totalCents;
+          sold += l.qty;
+        } else {
+          takeCleanFromHold(state.player.cargo, l.good, l.qty);
+          left.push(l);
+        }
+      }
+      economy.syncLoad();
+      const name = portInfo(port)?.name ?? 'the trading post';
+      const line = sold
+        ? `Sold ${sold} CU at ${name} for ${formatCents(cents)}`
+        : `${name}'s trading post won't take any of it`;
+      return { left, line: left.length && sold ? `${line}; the rest stays on the sled` : line };
+    },
+  };
   const ashore = attachAshore({
     ctx,
+    winter: ashoreWinter,
     ship: playerShip,
     hull: {
       lengthM: shipRecord.buoyancy.length,
@@ -3848,6 +3931,8 @@ async function boot(): Promise<void> {
           // Phase 9 piece A: a storm-bound fleet's crews, or a round stood, drink easy.
           easy: () =>
             crewsIdle(state.events, landing.def.port, state.environment.clock.gameSeconds),
+          // Frozen in (Phase 9 piece M): laid up for the winter, her crew paid off.
+          laidUp: gameIce.harborClosed(landing.def.port),
         },
         // Part two: the district's locks and loot, remembered in the save.
         heist: {
@@ -4427,6 +4512,49 @@ async function boot(): Promise<void> {
       save: () => saveControls.saveNow(),
     };
     (window as unknown as { __glpFoot: typeof hook }).__glpFoot = hook;
+    /**
+     * Winter on foot (Phase 9 piece M): `__glpCold.state()` reads warmth, the ice under you,
+     * the sled and your prints; `.road()` the ice road; `.toRoad()` goes down onto it;
+     * `.walk(t)` puts you a share `t` along it; `.warmth(v, wet)` sets the meter.
+     */
+    const coldHook = {
+      state: () => ashore.winter(),
+      road: () => {
+        const r = ashoreWinter.road();
+        const ice = (p: { x: number; z: number }) => ashoreWinter.iceAt(p.x, p.z).thicknessCm;
+        return (
+          r && {
+            from: r.from,
+            to: r.to,
+            lengthM: r.lengthM,
+            markers: r.markers.length,
+            thinnestCm: thinnestOnRoad(r, ice),
+            open: roadOpen(r, ice),
+          }
+        );
+      },
+      toRoad: () => ashore.iceRoad(),
+      walk: (t: number, offM = 0) => {
+        const r = ashoreWinter.road();
+        if (!r) return false;
+        const len = r.lengthM || 1;
+        const ux = (r.to.x - r.from.x) / len;
+        const uz = (r.to.z - r.from.z) / len;
+        ashore.teleport(
+          r.from.x + (r.to.x - r.from.x) * t - uz * offM,
+          r.from.z + (r.to.z - r.from.z) * t + ux * offM,
+        );
+        return true;
+      },
+      warmth: (value: number, wet = 0) => {
+        state.player.warmth = { value, wet };
+      },
+      air: () => ashoreWinter.air(),
+      snow: () => ashoreWinter.snow(),
+      ice: (x: number, z: number) => ashoreWinter.iceAt(x, z),
+      prints: () => ashore.tracks.prints.map((p) => ({ x: p.x, z: p.z, sled: p.sled })),
+    };
+    (window as unknown as { __glpCold: typeof coldHook }).__glpCold = coldHook;
     /**
      * Lighthouse stations on foot (plan 11 §18.4 piece H): `list()` the zone's stations,
      * `land(id)` anchors off one and lands on its beach, `goto('tower' | 'house' | 'oil' |
@@ -5476,7 +5604,9 @@ async function boot(): Promise<void> {
           inBoat: body.inBoat,
           mouseLocked: footLook.locked,
           banner: body.banner,
+          warmth: body.warmth,
         });
+        document.body.dataset['warmth'] = body.warmth ? body.warmth.stage : 'warm';
         document.body.dataset['ashore'] = body.inBoat
           ? 'boat'
           : body.swimming

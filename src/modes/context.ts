@@ -28,6 +28,7 @@ import type { Witness } from '../sim/law/witness';
 import type { Chart } from '../core/coords';
 import type { DamagePool } from '../../data/schemas/combat';
 import type { HitLocation } from '../sim/combat/hull';
+import type { RunEndCause } from '../sim/run/run-end';
 
 /** Events shared across layers. Each system plan adds its own (plan 01 §3.5). */
 export interface GameEvents {
@@ -288,7 +289,11 @@ export interface GameEvents {
   JailbreakStarted: { port: string; execution: boolean };
   JailbreakSucceeded: { port: string; region: string; execution: boolean };
   JailbreakFailed: { port: string; execution: boolean; weeks: number };
-  RunEnded: { cause: 'executed' | 'abandoned' | 'killed' | 'drowned' | 'fell' };
+  RunEnded: { cause: RunEndCause };
+  /** Thin ice under you moved a stage (Phase 9 piece M): a crack, a groan, or through. */
+  IceGave: { stage: 'cracking' | 'groaning' | 'broken' };
+  /** Your warmth fell into a worse stage on foot (plan 11 §14 `WarmthCritical`; piece M). */
+  WarmthCritical: { stage: 'chilled' | 'cold' | 'freezing' | 'frozen' };
   /**
    * Abandon ship (Phase 6 piece F, plan 07 §14.6 decision 2): your ship foundered and you
    * took to the boat. She went down with her cargo and her guns.

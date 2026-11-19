@@ -128,6 +128,11 @@ export interface WatchOptions {
     crews: Record<string, CrewDrunk>;
     /** The crews drink easy tonight (a sandbox event, Phase 9 piece A): half the bottles. */
     easy?: () => boolean;
+    /**
+     * The harbor is frozen in (Phase 9 piece M): the ships lie laid up for the winter, their
+     * crews paid off. No deck watch, nobody in the saloon, and a robbery is found late.
+     */
+    laidUp?: boolean;
   };
   /**
    * A jailbreak (piece G): you start in the lockup's cell, the jailer is on his round, and
@@ -246,7 +251,7 @@ export function createWatch(opts: WatchOptions): Watch {
   const gone = new Set<string>();
   for (const s of moored) {
     model.colliders.add(s.hull);
-    plan.base.push(deckWatch(s));
+    if (!opts.moored?.laidUp) plan.base.push(deckWatch(s));
   }
   // The lockup's own guards on the night of a jailbreak (piece G).
   if (opts.jailbreak) {
@@ -376,7 +381,9 @@ export function createWatch(opts: WatchOptions): Watch {
           // A ship's burglary is her crew's to report: late and vague if they drank.
           evidence: (id, t) => {
             const s = moored.find((k) => k.key === id);
-            return s && crewEvidence(s, t, drunkTonight(s, t) !== undefined, rules);
+            if (!s) return undefined;
+            const late = drunkTonight(s, t) !== undefined || !!opts.moored?.laidUp;
+            return crewEvidence(s, t, late, rules);
           },
         },
       )
@@ -504,7 +511,7 @@ export function createWatch(opts: WatchOptions): Watch {
     },
     crews() {
       const t = opts.conditions().gameSeconds;
-      if (!crewInSaloon(dayAndHour(t).hour, rules)) return [];
+      if (opts.moored?.laidUp || !crewInSaloon(dayAndHour(t).hour, rules)) return [];
       return crewTables(model.marks, moored)
         .filter(({ ship }) => {
           const r = drunkTonight(ship, t);

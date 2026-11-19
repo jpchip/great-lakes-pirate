@@ -19,6 +19,8 @@ import { moonAt, sunAt } from './celestial';
 import {
   CLEAR_VISIBILITY_M,
   advanceWeather,
+  airTempAt,
+  climateAtTime,
   barometerAt,
   cloudAt,
   fogBanksAt,
@@ -241,6 +243,11 @@ export interface LocalWeather {
   visibilityAt(p: { x: number; z: number }, gameSeconds: number): number;
   /** Fog and haze alone, for the renderer; the night is drawn, not fogged. */
   fogVisibilityAt(gameSeconds: number): number;
+  /**
+   * The air at the player, °C (Phase 9 piece M's cold): the sim's, the winter's roll in it;
+   * under a panel override, the climate's normal for the date.
+   */
+  airAt(gameSeconds: number): number;
   cloudAt(gameSeconds: number): number;
   /** Rain, 0–1, at the player: from the sim's rain shields, or the panel's slider. */
   rainAt(gameSeconds: number): number;
@@ -459,6 +466,12 @@ export function createLocalWeather(
       const dark = Math.min(1, -sun / ((12 * Math.PI) / 180));
       const nightM = (300 + 1700 * moonlight) * (1 - 0.6 * weather.cloudAt(t));
       return Math.min(fog, Math.exp(Math.log(fog) * (1 - dark) + Math.log(nightM) * dark));
+    },
+
+    airAt(t) {
+      if (sim) return airTempAt(sim.state, zoneToChart(probe, sim.frame), t);
+      const c = climateAtTime(t);
+      return (c.airMaxC + c.airMinC) / 2;
     },
 
     fogVisibilityAt(t) {

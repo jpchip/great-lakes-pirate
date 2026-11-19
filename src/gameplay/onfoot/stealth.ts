@@ -314,6 +314,11 @@ export interface Stealth {
   breakOff(id: string): void;
   /** A new beat to walk from its first point (the island posse's sweep, its walk back). */
   reroute(id: string, route: Route): void;
+  /**
+   * Tracks in the snow (Phase 9 piece M): a guard who isn't already after you goes to look
+   * where the trail leads, searching there. False if they're in no state to.
+   */
+  follow(id: string, at: XZ): boolean;
   /** Measured cost of the last step, ms (the ≤ 1 ms budget, plan 08 §20.3 #10). */
   readonly lastStepMs: number;
 }
@@ -1318,6 +1323,16 @@ export function createStealth(
       ) {
         setState(g, 'return');
       }
+    },
+    follow(id, at) {
+      const g = guardOrThrow(id);
+      if (!aware(g) || g.state === 'alerted' || g.state === 'fetch') return false;
+      if (g.state === 'bribed' || g.state === 'drunk' || g.state === 'distracted') return false;
+      if (g.type.witness === 'sailor') return false;
+      g.meter = Math.max(g.meter, SUSPICIOUS);
+      g.stimulus = { x: at.x, z: at.z };
+      startSearch(g, at);
+      return true;
     },
     reroute(id, route) {
       const g = guardOrThrow(id);

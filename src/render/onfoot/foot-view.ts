@@ -1,3 +1,4 @@
+import { createWinterView, type WinterFrame } from './winter-view';
 import * as THREE from 'three';
 import type { DistrictModel } from '../../gameplay/district/district';
 import type { DistrictFrame } from '../../gameplay/district/ground';
@@ -67,6 +68,8 @@ export interface FootFrame {
     | undefined;
   /** The watch, zone meters (Phase 7 piece D's guards). */
   guards?: readonly GuardFrame[] | undefined;
+  /** Winter on foot (Phase 9 piece M): the sled, your prints, the ice road. */
+  winter?: WinterFrame | undefined;
 }
 
 export interface GuardFrame {
@@ -199,6 +202,9 @@ export function createFootView(
   boat.add(rower);
   group.add(captain, boat);
   group.visible = false;
+  const winter = createWinterView();
+  group.add(winter.group);
+  const clock = { t: 0 };
 
   const guardGeo = new Map<string, THREE.BufferGeometry>();
   const guardShape = (type: string): THREE.BufferGeometry => {
@@ -257,6 +263,8 @@ export function createFootView(
       group.visible = !!frame;
       if (!frame) return;
       placeGuards(frame.guards);
+      clock.t += 1 / 60;
+      winter.update(frame.winter, clock.t);
       const c = frame.captain;
       captain.visible = c.visible;
       captain.geometry = c.crouching || c.swimming ? crouchGeo : standGeo;
@@ -284,6 +292,7 @@ export function createFootView(
       }
     },
     dispose() {
+      winter.dispose();
       for (const g of guardGeo.values()) g.dispose();
       lanternGeo.dispose();
       lanternMat.dispose();
