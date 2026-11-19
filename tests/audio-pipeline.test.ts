@@ -18,6 +18,7 @@ import {
   UI_AUDIO_BUNDLE,
   UI_SOUND,
 } from '../src/audio/hideout-audio';
+import { SANDBOX_AUDIO_BUNDLE, SANDBOX_SOUND } from '../src/audio/sandbox-audio';
 import { PORT_AUDIO_BUNDLE, PORT_SOUND } from '../src/audio/port-audio';
 import { LAW_AUDIO_BUNDLE, LAW_SOUND, LAW_WHISTLE } from '../src/audio/law-audio';
 import {
@@ -274,6 +275,14 @@ describe('shipped sounds (plan 15 §3.2, §8)', () => {
     expect(bytes(ui)).toBeLessThanOrEqual(128 * 1024);
   });
 
+  it("has stage 1's sounds and nothing else (Phase 9 piece J)", () => {
+    const sandbox = manifest.bundles[SANDBOX_AUDIO_BUNDLE] ?? [];
+    const ids = Object.values(SANDBOX_SOUND).flat();
+    expect([...sandbox].sort()).toEqual([...ids].sort());
+    const bytes = sandbox.reduce((s, id) => s + (manifest.assets[id]?.bytes ?? 0), 0);
+    expect(bytes).toBeLessThanOrEqual(1024 * 1024);
+  });
+
   it('keeps the decoded audio within 8 MB, music streaming on top', () => {
     const size = (bundle: string): number =>
       (manifest.bundles[bundle] ?? []).reduce(
@@ -294,6 +303,7 @@ describe('shipped sounds (plan 15 §3.2, §8)', () => {
       FOOT_AUDIO_BUNDLE,
       HIDEOUT_AUDIO_BUNDLE,
       UI_AUDIO_BUNDLE,
+      SANDBOX_AUDIO_BUNDLE,
     ];
     const streamed = [MUSIC_BUNDLE, CHART_MUSIC_BUNDLE];
     expect(size(SAILING_AUDIO_BUNDLE) + size(WORLD_AUDIO_BUNDLE)).toBeLessThanOrEqual(

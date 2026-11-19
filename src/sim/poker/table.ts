@@ -647,7 +647,8 @@ function showdown(table: TableState, hand: HandState, file: PokerFile): void {
   const verb = winners.length > 1 ? 'split' : winners[0] === YOU ? 'take' : 'takes';
   const text = `${cap(names.join(' and '))} ${verb} ${formatCents(hand.potCents)}${how}.`;
   hand.result = { winners, potCents: hand.potCents, shown, text, netCents, side };
-  if (contested) beat(hand, { kind: 'show', you: hand.inHand.includes(YOU), cards: 5 * ranks.size });
+  if (contested)
+    beat(hand, { kind: 'show', you: hand.inHand.includes(YOU), cards: 5 * ranks.size });
   beat(hand, { kind: 'won', you: winners.includes(YOU), cents: hand.potCents });
   hand.log.push(text);
   hand.phase = 'done';

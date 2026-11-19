@@ -906,6 +906,7 @@ async function boot(): Promise<void> {
     sites: harborSites(harborLayouts),
     captions: settings.value.ui.captions,
     region: () => law.region(),
+    zoneId: () => zoneData.id,
     onState: (s) => (document.body.dataset['audio'] = s),
   }).catch((err: unknown) => {
     console.warn('Audio unavailable; running silent', err);
@@ -915,7 +916,13 @@ async function boot(): Promise<void> {
   if (audio) document.body.dataset['audioBank'] = String(audio.bank.size);
   // `?debug`: sound the nearest fog signal now, for the captions' e2e test (piece J).
   if (audio && params.has('debug')) {
-    const hook = { fogSignal: () => audio.world.signalNow() };
+    const hook = {
+      fogSignal: () => audio.world.signalNow(),
+      // Stage 1 (piece J): what's sounding, and a rival's stinger for piece E's hook.
+      sandbox: () => audio.sandbox.levels,
+      rival: (why: 'news' | 'sighted' | 'parley' | 'beaten' = 'sighted') =>
+        ctx.events.emit('RivalStinger', { rival: 'dev', why }),
+    };
     (window as unknown as { __glpAudio: typeof hook }).__glpAudio = hook;
   }
   /** The chart's music and cues on the page, for the e2e tests; written only on a change. */
@@ -955,6 +962,17 @@ async function boot(): Promise<void> {
     const still = a.hideout.levels.still.toFixed(2);
     if (d['hideoutStill'] !== still) d['hideoutStill'] = still;
     if (a.ui.last && d['uiCue'] !== a.ui.last) d['uiCue'] = a.ui.last;
+    // Stage 1 (Phase 9 piece J).
+    const sb = a.sandbox.levels;
+    if (sb.last && d['sandboxCue'] !== sb.last) d['sandboxCue'] = sb.last;
+    const sbBeds = Object.entries(sb.beds)
+      .filter(([, g]) => g > 0.01)
+      .map(([id]) => id)
+      .join(' ');
+    if (d['sandboxBeds'] !== sbBeds) d['sandboxBeds'] = sbBeds;
+    if (d['sandboxTune'] !== sb.tune) d['sandboxTune'] = sb.tune;
+    const sbCues = String(sb.cues);
+    if (d['sandboxCues'] !== sbCues) d['sandboxCues'] = sbCues;
     const beds = Object.entries(a.foot.levels.beds)
       .filter(([, g]) => g > 0.01)
       .map(([id]) => id)
@@ -1205,6 +1223,8 @@ async function boot(): Promise<void> {
   /** Puts the tier-5 front page away (piece F); set once the papers are attached. */
   const frontPageRef: { current: (() => void) | undefined } = { current: undefined };
   const ui = mountGameUi({
+    // The port screen's tab, heard: the harbor master's bell, the saloon's room (piece J).
+    onPortTab: (tab) => audio?.portTab(tab),
     root: uiRoot,
     settings,
     port: {
@@ -3735,6 +3755,8 @@ async function boot(): Promise<void> {
             keeperWeather(ctx.weather.barometerAt(state.environment.clock.gameSeconds)?.trend),
           notice: (text) => showNotice(text),
           changed: () => void stationLights(),
+          // The lamp, the stair, the oil house and the keepers, heard (piece J).
+          sound: (cue) => audio?.sandbox.station(cue),
           // The keepers note the shoals and wrecks near the light (piece O).
           logbook: () => {
             const n = discovery.logbookRead(station.def.light).length;

@@ -28,6 +28,8 @@ import type { JailbreakEvent } from '../gameplay/onfoot/jailbreak';
 import type { Surface } from '../gameplay/onfoot/noise';
 import type { GuardState, StealthEvent } from '../gameplay/onfoot/stealth';
 import type { ToolEvent } from '../gameplay/onfoot/tools';
+import type { StationSoundView } from '../gameplay/onfoot/station-watch';
+import { saloonNight } from './sandbox-mix';
 
 /**
  * The captain ashore, heard (Phase 7 piece I; plan 08 §20.4 row I, plan 15 §4.5, §6.1,
@@ -112,9 +114,13 @@ export interface FootFrame {
   picking: number | undefined;
   /** Stills with a batch running in the zone, zone meters (Phase 8 piece I). */
   stills?: readonly AudioPoint[];
+  /** The hour of the day, 0–23: the saloon's piano and fiddle play by night (piece J). */
+  hour?: number;
+  /** A lighthouse station's lamp and house, offsets from you (Phase 9 piece J). */
+  station?: StationSoundView | undefined;
 }
 
-type BedId = 'docks' | 'forest' | 'crickets' | 'room' | 'tune' | 'tension';
+type BedId = 'docks' | 'forest' | 'crickets' | 'room' | 'tune' | 'nightTune' | 'tension';
 
 interface Bed {
   source: AudioBufferSourceNode;
@@ -130,6 +136,8 @@ const BEDS: Record<BedId, { sound: string; bus: BusId; level: number }> = {
   room: { sound: FOOT_SOUND.room, bus: 'ambience', level: 1 },
   // Encoded as beds (RMS −24 dB), so brought up to sit where music does.
   tune: { sound: FOOT_SOUND.tune, bus: 'music', level: 1.8 },
+  // "The Late Boat Waltz" by night (Phase 9 piece J), in the stage 1 bundle.
+  nightTune: { sound: 'music.saloon.night', bus: 'music', level: 1.6 },
   tension: { sound: FOOT_SOUND.tension, bus: 'music', level: 2 },
 };
 
@@ -148,10 +156,15 @@ export class FootSounds {
     lastStep: '',
     last: '',
     tension: 0,
-    beds: { docks: 0, forest: 0, crickets: 0, room: 0, tune: 0, tension: 0 } as Record<
-      BedId,
-      number
-    >,
+    beds: {
+      docks: 0,
+      forest: 0,
+      crickets: 0,
+      room: 0,
+      tune: 0,
+      nightTune: 0,
+      tension: 0,
+    } as Record<BedId, number>,
     barks: 0,
   };
   private readonly beds = new Map<BedId, Bed>();
@@ -491,7 +504,11 @@ export class FootSounds {
     this.bed('crickets', mix.crickets, f.inside ? 2500 : 12000, dt);
     this.bed('room', mix.room, mix.saloonLowpassHz, dt);
     // The tune gives way to the stealth layer when the night turns.
-    this.bed('tune', mix.tune * (1 - 0.6 * tension), mix.saloonLowpassHz, dt);
+    // From supper on the piano and fiddle take over from the polka (piece J).
+    const night = f.hour !== undefined && saloonNight(f.hour);
+    const tune = mix.tune * (1 - 0.6 * tension);
+    this.bed('tune', night ? 0 : tune, mix.saloonLowpassHz, dt);
+    this.bed('nightTune', night ? tune : 0, mix.saloonLowpassHz, dt);
     this.bed('tension', tensionGain(tension), 12000, dt);
   }
 
@@ -588,7 +605,7 @@ export class FootSounds {
       gain.gain.value = 0;
       source.connect(filter).connect(gain).connect(this.mixer.buses[def.bus]);
       // The tune and the layer from the top; the beds from anywhere, so they never line up.
-      const musical = id === 'tune' || id === 'tension';
+      const musical = id === 'tune' || id === 'nightTune' || id === 'tension';
       source.start(ctx.currentTime, musical ? 0 : this.random() * buffer.duration);
       bed = { source, filter, gain, silentS: 0 };
       this.beds.set(id, bed);

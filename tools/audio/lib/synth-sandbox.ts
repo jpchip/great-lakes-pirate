@@ -75,7 +75,9 @@ function swish(
   for (let i = 0; i < n; i++) {
     const t = i / rate;
     out[i] =
-      (out[i] as number) * smooth(t / riseS) * smooth((seconds - t) / Math.max(0.01, seconds - riseS));
+      (out[i] as number) *
+      smooth(t / riseS) *
+      smooth((seconds - t) / Math.max(0.01, seconds - riseS));
   }
   return out;
 }
@@ -395,7 +397,12 @@ export function cardDealt(variant: number, rate: number): Float32Array {
     secs(0.01, rate),
     0.45,
   );
-  mixInto(out, lowpass(thud(rate, random, 0.06, 300 + 80 * random()), 1800, rate), secs(slide, rate), 0.3);
+  mixInto(
+    out,
+    lowpass(thud(rate, random, 0.06, 300 + 80 * random()), 1800, rate),
+    secs(slide, rate),
+    0.3,
+  );
   return out;
 }
 
@@ -427,7 +434,12 @@ export function chipsDown(variant: number, rate: number): Float32Array {
   }
   // One rolls a little and lies down.
   for (let k = 0; k < 3; k++) {
-    mixInto(out, chipClick(rate, random), secs(t + 0.05 + k * (0.05 - 0.012 * k), rate), 0.3 / (k + 1));
+    mixInto(
+      out,
+      chipClick(rate, random),
+      secs(t + 0.05 + k * (0.05 - 0.012 * k), rate),
+      0.3 / (k + 1),
+    );
   }
   mixInto(out, lowpass(thud(rate, random, 0.06, 240), 1200, rate), 0, 0.15);
   return out;
@@ -459,8 +471,18 @@ export function tableKnock(rate: number, seed = 9240): Float32Array {
     [0, 1],
     [0.13, 0.8],
   ] as const) {
-    mixInto(out, lowpass(thud(rate, random, 0.16, 150 + 30 * random()), 1400, rate), secs(at, rate), g);
-    mixInto(out, lowpass(burst(rate, random, 0.03, 700, 1, 0.006), 1500, rate), secs(at, rate), 0.4 * g);
+    mixInto(
+      out,
+      lowpass(thud(rate, random, 0.16, 150 + 30 * random()), 1400, rate),
+      secs(at, rate),
+      g,
+    );
+    mixInto(
+      out,
+      lowpass(burst(rate, random, 0.03, 700, 1, 0.006), 1500, rate),
+      secs(at, rate),
+      0.4 * g,
+    );
   }
   return out;
 }
@@ -471,7 +493,8 @@ export function cardsFolded(rate: number, seed = 9250): Float32Array {
   const out = new Float32Array(secs(0.55, rate));
   mixInto(out, swish(rate, random, 0.12, 2400, 0.8, 0.04), 0, 0.4);
   const at = 0.16;
-  for (let k = 0; k < 5; k++) mixInto(out, cardTick(rate, random, 0.6), secs(at + k * 0.006, rate), 0.6);
+  for (let k = 0; k < 5; k++)
+    mixInto(out, cardTick(rate, random, 0.6), secs(at + k * 0.006, rate), 0.6);
   mixInto(out, swish(rate, random, 0.09, 1900, 0.8, 0.02), secs(at, rate), 0.6);
   mixInto(out, lowpass(thud(rate, random, 0.08, 230), 1500, rate), secs(at + 0.02, rate), 0.35);
   return out;
@@ -568,7 +591,9 @@ function hush(rate: number, random: Random, seconds: number, hz: number, riseS: 
   for (let i = 0; i < n; i++) {
     const t = i / rate;
     out[i] =
-      (out[i] as number) * smooth(t / riseS) * smooth((seconds - t) / Math.max(0.01, seconds - riseS));
+      (out[i] as number) *
+      smooth(t / riseS) *
+      smooth((seconds - t) / Math.max(0.01, seconds - riseS));
   }
   return out;
 }
@@ -609,7 +634,12 @@ export function lampDoused(rate: number, seed = 9320): Float32Array {
   let t = 0.9;
   let gap = 0.35;
   for (let k = 0; k < 5; k++) {
-    mixInto(out, burst(rate, random, 0.02, k % 2 ? 2500 : 3100, 3, 0.0025), secs(t, rate), 0.3 - 0.05 * k);
+    mixInto(
+      out,
+      burst(rate, random, 0.02, k % 2 ? 2500 : 3100, 3, 0.0025),
+      secs(t, rate),
+      0.3 - 0.05 * k,
+    );
     t += gap;
     gap *= 1.25;
   }
@@ -626,7 +656,8 @@ export function lampLit(rate: number, seed = 9330): Float32Array {
   // The match: a scratch, then the flare's hiss.
   mixInto(out, swish(rate, random, 0.14, 3800, 1.2, 0.03), secs(0.05, rate), 0.9);
   const flare = swish(rate, random, 0.5, 5200, 0.7, 0.02);
-  for (let i = 0; i < flare.length; i++) flare[i] = (flare[i] as number) * Math.exp(-i / rate / 0.15);
+  for (let i = 0; i < flare.length; i++)
+    flare[i] = (flare[i] as number) * Math.exp(-i / rate / 0.15);
   mixInto(out, flare, secs(0.18, rate), 0.7);
   // The wick takes: a low whoomp, then the flame's steady draw.
   mixInto(out, hush(rate, random, 0.4, 260, 0.08), secs(0.85, rate), 2.6);
@@ -714,9 +745,15 @@ export function towerStair(rate: number, seed = 9360): Float32Array {
   for (let k = 0; k < 12; k++) {
     const t = 0.04 + k * (0.22 + 0.03 * random());
     const g = 0.6 + 0.4 * random();
-    mixInto(out, clang(rate, random, 330 + 60 * random(), 0.5).slice(0, secs(0.4, rate)), secs(t, rate), 0.35 * g);
+    mixInto(
+      out,
+      clang(rate, random, 330 + 60 * random(), 0.5).slice(0, secs(0.4, rate)),
+      secs(t, rate),
+      0.35 * g,
+    );
     mixInto(out, thud(rate, random, 0.12, 130 + 30 * random()), secs(t, rate), 0.6 * g);
-    if (k % 3 === 1) mixInto(out, ping(rate, 1900 + 300 * random(), 0.03, 0.15), secs(t + 0.08, rate), 0.15);
+    if (k % 3 === 1)
+      mixInto(out, ping(rate, 1900 + 300 * random(), 0.03, 0.15), secs(t + 0.08, rate), 0.15);
   }
   return trimTail(reverb(out, rate, 0.4, 0.85, 0.35), rate);
 }
@@ -807,7 +844,12 @@ export function deskBell(rate: number, seed = 9400): Float32Array {
 function crinkle(rate: number, random: Random, seconds: number, density: number): Float32Array {
   const out = new Float32Array(secs(seconds, rate));
   for (let t = 0; t < seconds; t += (0.5 + random()) / density) {
-    mixInto(out, burst(rate, random, 0.012, 2500 + 4000 * random(), 1.4, 0.002), secs(t, rate), 0.3 + 0.5 * random());
+    mixInto(
+      out,
+      burst(rate, random, 0.012, 2500 + 4000 * random(), 1.4, 0.002),
+      secs(t, rate),
+      0.3 + 0.5 * random(),
+    );
   }
   return out;
 }
@@ -822,7 +864,12 @@ export function letterOpened(rate: number, seed = 9410): Float32Array {
   // The tear: rough, granular, rising a little as the finger runs along.
   const tear = new Float32Array(secs(0.32, rate));
   for (let t = 0; t < 0.3; t += 0.003 + 0.006 * random()) {
-    mixInto(tear, burst(rate, random, 0.01, 1500 + 2500 * (t / 0.3) + 800 * random(), 1, 0.0025), secs(t, rate), 0.4 + 0.5 * random());
+    mixInto(
+      tear,
+      burst(rate, random, 0.01, 1500 + 2500 * (t / 0.3) + 800 * random(), 1, 0.0025),
+      secs(t, rate),
+      0.4 + 0.5 * random(),
+    );
   }
   mixInto(out, tear, secs(0.02, rate), 0.9);
   // Drawn out: a slide of paper on paper.
@@ -923,7 +970,7 @@ export function shipAground(rate: number, seed = 9600): Float32Array {
       (1 - smooth((u - 0.8) / 0.2));
   }
   mixInto(out, drag, secs(0.1, rate), 1);
-  for (let t = 0.12; t < 0.12 + dragS * 0.85; ) {
+  for (let t = 0.12; t < 0.12 + dragS * 0.85;) {
     const u = (t - 0.12) / dragS;
     mixInto(
       out,
@@ -958,7 +1005,11 @@ export function agroundCrew(rate: number, seed = 9610): Float32Array {
       const b = v[Math.floor(random() * v.length)] as Vowel;
       mixInto(
         out,
-        syllable(say(0, len, pitch * (1 + 0.15 * random()), a, b, 0.8 + 0.3 * random(), k === 0), rate, random),
+        syllable(
+          say(0, len, pitch * (1 + 0.15 * random()), a, b, 0.8 + 0.3 * random(), k === 0),
+          rate,
+          random,
+        ),
         secs(t, rate),
         0.35 + 0.2 * random(),
       );

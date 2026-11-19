@@ -1415,7 +1415,7 @@ function renderSandbox(): void {
   sound(
     'voice.station.greeting',
     'greeting',
-    "A keeper's greeting by day: a friendly call and a \"well, now\" (no words)",
+    'A keeper\'s greeting by day: a friendly call and a "well, now" (no words)',
     keeperGreeting(RATE),
     'Formant-synthesized syllables in a low voice, a little reverb',
     'voice',
