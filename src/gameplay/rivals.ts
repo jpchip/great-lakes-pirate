@@ -118,7 +118,10 @@ export function huntingLanes(law: LawDefs): HuntingLane[] {
         const [a, b] = [pts[i], pts[i + 1]] as [[number, number], [number, number]];
         for (let k = 0; k <= 8; k++) {
           const t = k / 8;
-          const r = regionAtGeo(law, { lon: a[0] + (b[0] - a[0]) * t, lat: a[1] + (b[1] - a[1]) * t });
+          const r = regionAtGeo(law, {
+            lon: a[0] + (b[0] - a[0]) * t,
+            lat: a[1] + (b[1] - a[1]) * t,
+          });
           if (!regions.includes(r)) regions.push(r);
         }
       }
@@ -241,7 +244,11 @@ export function attachRivals(opts: RivalsOptions): GameRivals {
   });
 
   const fire = (id: string, r: Rival, port?: string, quiet?: boolean): ActiveEvent | undefined => {
-    const ev = events.fire(id, port, { rival: r.id, region: r.region, ...(quiet ? { quiet } : {}) });
+    const ev = events.fire(id, port, {
+      rival: r.id,
+      region: r.region,
+      ...(quiet ? { quiet } : {}),
+    });
     return typeof ev === 'string' ? undefined : ev;
   };
 
@@ -279,7 +286,7 @@ export function attachRivals(opts: RivalsOptions): GameRivals {
       }
       // Back on her timetable (unless something sank her and she's lying low).
       const rec = s[id];
-      if (rec && rec.lostUntil === NEVER) delete s[id];
+      if (rec && rec.lostUntil === NEVER) Reflect.deleteProperty(s, id);
     }
     traffic.syncLost();
   };
@@ -340,8 +347,18 @@ export function attachRivals(opts: RivalsOptions): GameRivals {
     const pinned = pinnedOnYou(st(), r, method, rand, defs);
     const ident: Identification = pinned ? 'schooner' : 'unknown';
     const witness: Witness = victim
-      ? { id: `crew.${victim.id}`, kind: 'crew', name: `the crew of the ${victim.name}`, identification: ident }
-      : { id: `${m.witness}.${r.id}`, kind: m.witness, name: `a ${m.witness}`, identification: ident };
+      ? {
+          id: `crew.${victim.id}`,
+          kind: 'crew',
+          name: `the crew of the ${victim.name}`,
+          identification: ident,
+        }
+      : {
+          id: `${m.witness}.${r.id}`,
+          kind: m.witness,
+          name: `a ${m.witness}`,
+          identification: ident,
+        };
     let heat = 0;
     for (const crime of m.rivalCrimes) {
       heat += crimeDef(law.defs, crime).heat;
@@ -433,14 +450,17 @@ export function attachRivals(opts: RivalsOptions): GameRivals {
       });
     }
     ctx.events.emit('RivalDefeated', { id: r.id, how });
-    opts.notice?.(`You've beaten ${rivalName(r)}. His crew says he keeps a stash ${lead?.where ?? ''}.`);
+    opts.notice?.(
+      `You've beaten ${rivalName(r)}. His crew says he keeps a stash ${lead?.where ?? ''}.`,
+    );
   };
 
   const offer = (r: Rival): void => {
     offerParley(r, now(), defs);
     fire(defs.events.parley, r);
     const p = r.parley;
-    if (p?.kind && p.port) ctx.events.emit('ParleyOffered', { id: r.id, kind: p.kind, port: p.port });
+    if (p?.kind && p.port)
+      ctx.events.emit('ParleyOffered', { id: r.id, kind: p.kind, port: p.port });
   };
 
   const stage = (r: Rival): void => {
@@ -516,7 +536,15 @@ export function attachRivals(opts: RivalsOptions): GameRivals {
         stage(r);
       } else if (e.id === defs.events.meet.truce || e.id === defs.events.meet.split) {
         if (e.choice === defs.events.acceptChoice) {
-          acceptParley(r, lanes, yourTopRegion(st()) ?? law.region(), now(), rand, defs, activeRivals(st()));
+          acceptParley(
+            r,
+            lanes,
+            yourTopRegion(st()) ?? law.region(),
+            now(),
+            rand,
+            defs,
+            activeRivals(st()),
+          );
           sync();
         } else if (e.choice === defs.events.sellChoice) sellToLaw(r, now(), defs);
         else parleyLapsed(r, 'refused', now());

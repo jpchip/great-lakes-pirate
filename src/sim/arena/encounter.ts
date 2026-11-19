@@ -184,6 +184,9 @@ export const DEV_ENCOUNTERS = [
   'tug',
   'cutter',
   'derelict',
+  // A copycat rival's schooner and the larger one (Phase 9 piece E).
+  'rival',
+  'rival_large',
   'squall',
   'fogbank',
   'convoy',
@@ -201,6 +204,8 @@ const DEV_SHIPS: Readonly<Record<string, { classId: string; name: string; stoppe
   steamer: { classId: 'ship.package_steamer', name: 'Hiram R. Dixon' },
   tug: { classId: 'ship.fish_tug', name: 'Ella G.' },
   cutter: { classId: 'ship.cutter_morrill', name: 'Morrill' },
+  rival: { classId: 'ship.rival_schooner', name: 'Black Duck' },
+  rival_large: { classId: 'ship.rival_schooner_t2', name: 'Sea Wolf' },
   derelict: { classId: 'ship.schooner_barge', name: 'Wreck of the Pretoria', stopped: true },
 };
 

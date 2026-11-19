@@ -441,7 +441,7 @@
     "name": "Pirate schooner (large)",
     "role": "npc",
     "propulsion": "sail",
-    "lengthM": 26,
+    "lengthM": 20,
     "displayScale": 1.3,
     "hullMaxSpeedKn": 11.2,
     "accelTau": 4,

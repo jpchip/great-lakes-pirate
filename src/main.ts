@@ -1404,7 +1404,7 @@ async function boot(): Promise<void> {
     document.body.dataset['frontPage'] = 'closed';
   };
   // Copycat rivals (Phase 9 piece E), attached once the events are: the papers name them.
-  let rivals: GameRivals | undefined;
+  let rivals: GameRivals | undefined = undefined;
   const papers = attachPapers({
     ctx,
     law,

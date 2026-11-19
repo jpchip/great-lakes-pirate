@@ -558,7 +558,9 @@ const RIVAL_SCHOONER: NpcShipLines = {
 
 /** Every NPC class's lines, keyed by its ships.json `modelId`. */
 export const NPC_LINES: Readonly<Record<string, NpcShipLines>> = Object.fromEntries(
-  [ORE_FREIGHTER, SCHOONER_BARGE, PACKAGE_STEAMER, FISH_TUG, CUTTER_MORRILL, RIVAL_SCHOONER].map((l) => [l.id, l]),
+  [ORE_FREIGHTER, SCHOONER_BARGE, PACKAGE_STEAMER, FISH_TUG, CUTTER_MORRILL, RIVAL_SCHOONER].map(
+    (l) => [l.id, l],
+  ),
 );
 
 export function npcLines(modelId: string): NpcShipLines {

@@ -377,10 +377,11 @@ export function emergeRival(
     defs.ships.filter((s) => s.tier <= tier).sort((a, b) => b.tier - a.tier)[0] ?? defs.ships[0];
   if (!shipDef) return undefined;
   const usedShips = new Set(state.list.map((r) => r.shipName));
-  const shipName = pick(
-    shipDef.names.filter((n) => !usedShips.has(n)),
-    rand,
-  ) ?? (pick(shipDef.names, rand) as string);
+  const shipName =
+    pick(
+      shipDef.names.filter((n) => !usedShips.has(n)),
+      rand,
+    ) ?? (pick(shipDef.names, rand) as string);
 
   const usedFirst = new Set(active.map((r) => r.first));
   const usedLast = new Set(state.list.map((r) => r.last));
@@ -584,7 +585,13 @@ export function endRival(
 // --- Parley.
 
 /** Do they write proposing a parley this hour? Once a rival, after `afterDays` settled. */
-export function parleyDue(r: Rival, now: number, hours: number, rand: Rand, defs = RIVALS): boolean {
+export function parleyDue(
+  r: Rival,
+  now: number,
+  hours: number,
+  rand: Rand,
+  defs = RIVALS,
+): boolean {
   if (r.status !== 'active' || r.parley) return false;
   if (now - r.emergedAt < defs.rules.parley.afterDays * DAY) return false;
   const daily = personalityOf(r, defs).parley;
@@ -644,10 +651,11 @@ export function acceptParley(
     const mine = yourRegion ?? r.region;
     const taken = new Set(others.filter((o) => o.id !== r.id).map((o) => o.lane));
     const away = lanes.filter((l) => !l.regions.includes(mine) && !l.regions.includes(r.region));
-    const lane = pick(
-      away.filter((l) => !taken.has(l.id)),
-      rand,
-    ) ?? pick(away, rand);
+    const lane =
+      pick(
+        away.filter((l) => !taken.has(l.id)),
+        rand,
+      ) ?? pick(away, rand);
     if (lane) {
       next.homeLane = r.lane;
       next.homeRegion = r.region;
