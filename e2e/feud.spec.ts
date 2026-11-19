@@ -121,6 +121,6 @@ test('fouls the brine in the packing house at night while the feud is on', async
   await page.keyboard.down('KeyF');
   await expect.poll(async () => (await feud(page)).sheds, { timeout: 15_000 }).toBeGreaterThan(0);
   await page.keyboard.up('KeyF');
-  await expect(prompt).toContainText('done tonight');
+  await expect(prompt).toContainText('Done tonight');
   expect(errors).toEqual([]);
 });

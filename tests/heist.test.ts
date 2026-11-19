@@ -498,7 +498,7 @@ describe.skipIf(!baked)("sabotage at Hollister's packing house (Phase 9 piece D)
     expect(c?.company).toBe('company.hollister_fish');
     expect(c?.witnesses[0]?.reportAt).toBe(nextDawn(NIGHT));
     // Once a night.
-    expect(s.prompt()?.label).toBe('Foul the brine barrels: done tonight');
+    expect(s.prompt()).toMatchObject({ label: 'Foul the brine barrels', why: 'Done tonight' });
     s.hold(4.2);
     expect(s.events.filter((e) => e.type === 'Sabotaged')).toHaveLength(1);
     expect(s.world.sabotaged?.['sabotage.brine']).toBe(nightOf(NIGHT));

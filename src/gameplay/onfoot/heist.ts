@@ -557,7 +557,7 @@ export function createHeist(opts: HeistOptions): Heist {
       return {
         key: `sabotage:${spot.mark}`,
         verb: 'sabotage',
-        label: done ? `${spot.label}: done tonight` : spot.label,
+        label: spot.label,
         ok: !done,
         ...(done ? { why: 'Done tonight' } : {}),
         holdS: spot.holdS,
