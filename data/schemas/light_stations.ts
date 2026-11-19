@@ -17,6 +17,16 @@ export const lightStationRulesSchema = z.object({
   replaceDays: z.number().positive(),
   /** The highest regional Wanted tier keepers still welcome a visitor at by day. */
   welcomeMaxTier: z.number().int().min(0).max(5),
+  /**
+   * A lone keeper killed, with nobody left at the station to tell it, lies there until
+   * someone comes: the tender, a fisherman. Found this many game days on, from–to.
+   */
+  foundDays: z.tuple([z.number().positive(), z.number().positive()]),
+  /**
+   * The keepers log the ships they see. One logged this many game days or less before a
+   * lone keeper's death ties the killing to her, if the logbook's still there to read.
+   */
+  logTieDays: z.number().positive(),
   /** The station's grounds, meters round the tower: at night anyone on them is suspect. */
   groundsM: z.number().positive(),
   /** Seconds F is held for each thing done at the station. */

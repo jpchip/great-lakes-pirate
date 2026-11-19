@@ -4,7 +4,8 @@ import { expect, test, type Page } from '@playwright/test';
  * Phase 9 piece H (plan 11 §18.4): a lighthouse station on foot, at Raspberry Island. By
  * day the keepers welcome you: a word, the logbook, a can from the oil house. By night
  * the lone keeper is on watch at night: knife him, douse the lamp,
- * and it stays dark with nobody left to light it, until you light it again yourself.
+ * and it stays dark with nobody left to light it, until you light it again yourself. With
+ * nobody left to tell it, the killing isn't reported until he's found a week or two on.
  */
 
 interface Point {
@@ -32,6 +33,7 @@ interface Hooks {
     here(): Here | undefined;
     act(): string | undefined;
     settle(): { id: string; lit: boolean; keepers: number }[];
+    pass(days: number): number;
   };
   __glpFoot: {
     hour(h: number): void;
@@ -136,7 +138,8 @@ test('by night: knife the keeper on watch, douse the lamp and light it again', a
   const crimes = await page.evaluate(() =>
     (window as unknown as Hooks).__glpLaw.state().reports.crimes.map((c) => c.crime),
   );
-  expect(crimes).toContain('crime.assault');
+  // Nobody's left to tell it: no report yet.
+  expect(crimes).not.toContain('crime.killing');
 
   // Douse the lamp: with nobody at his post it stays dark.
   await goTo(page, 'gallery');
@@ -151,5 +154,12 @@ test('by night: knife the keeper on watch, douse the lamp and light it again', a
   // And light it again.
   expect(await station(page, (s) => s.act())).toBe('Light the lamp');
   expect((await raspberry(page))?.dark).toBe(false);
+
+  // A fortnight on he's been found, and the law hears of a killing.
+  expect(await station(page, (s) => s.pass(15))).toBe(1);
+  const later = await page.evaluate(() =>
+    (window as unknown as Hooks).__glpLaw.state().reports.crimes.map((c) => c.crime),
+  );
+  expect(later).toContain('crime.killing');
   expect(errors).toEqual([]);
 });

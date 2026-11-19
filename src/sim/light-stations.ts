@@ -6,6 +6,8 @@ import {
 } from '../../data/schemas/light_stations';
 import type { LighthouseDef } from '../../data/schemas/lighthouses';
 import { Rng } from '../core/rng';
+import { strongerIdent } from './law/sea-crimes';
+import type { Identification } from './law/witness';
 import { SECONDS_PER_GAME_DAY } from '../core/time';
 import { LIGHTHOUSES, stationOffsetWorld, type PlacedLight } from './lighthouses';
 import type { LightStationState } from './world-state';
@@ -630,4 +632,73 @@ export function logbookHere(
 ): boolean {
   const at = st?.logbookTakenAt;
   return at === undefined || t - at >= rules.restockDays * DAY;
+}
+
+// --- The log, and a keeper nobody's left to find -----------------------------------------
+
+/**
+ * The keepers write you in the log: your ship seen from the tower, or you at the door by
+ * day. Seen again within the hour, the better sighting stands.
+ */
+export function logSighting(st: LightStationState, t: number, ident: Identification): void {
+  const last = st.logged;
+  st.logged =
+    last && t - last.at < 3600
+      ? { at: t, ident: strongerIdent(last.ident, ident) }
+      : { at: t, ident };
+}
+
+/**
+ * What the log says about a death at `diedAt`: who was there last, if they were logged
+ * close enough before it and the book is still in the house to be read (taken after the
+ * entry, the entry went with it). Otherwise nothing ties it to anyone.
+ */
+export function loggedTie(
+  st: LightStationState,
+  diedAt: number,
+  rules: LightStationRules = STATION_RULES,
+): Identification {
+  const l = st.logged;
+  if (!l || l.at > diedAt || diedAt - l.at > rules.logTieDays * DAY) return 'unknown';
+  if (st.logbookTakenAt !== undefined && st.logbookTakenAt >= l.at) return 'unknown';
+  return l.ident;
+}
+
+/**
+ * After a keeper dies: if nobody is left living at the station, nobody tells it. He's found
+ * a week or two on (the tender, a fisherman), seeded by the run and the death. True if it
+ * set that up now.
+ */
+export function noteLoneDeath(
+  light: Pick<LighthouseDef, 'id' | 'keepers'>,
+  st: LightStationState,
+  t: number,
+  runSeed: number | string,
+  rules: LightStationRules = STATION_RULES,
+): boolean {
+  if (st.unfound) return false;
+  const roster = stationKeepers(light);
+  const dead = roster.filter((k) => !living(st, k.id, t, rules));
+  if (dead.length === 0 || dead.length < roster.length) return false;
+  const diedAt = Math.min(...dead.map((k) => st.keepers[k.id]?.diedAt ?? t));
+  const [lo, hi] = rules.foundDays;
+  const rng = Rng.fromSeed(`${runSeed}:${light.id}:found:${Math.round(diedAt)}`);
+  st.unfound = {
+    diedAt,
+    findAt: diedAt + (lo + (hi - lo) * rng.next()) * DAY,
+    killed: dead.length,
+  };
+  return true;
+}
+
+/** He's found: what the finder can tell the law (and the record cleared), once it's time. */
+export function bodyFound(
+  st: LightStationState,
+  t: number,
+  rules: LightStationRules = STATION_RULES,
+): { diedAt: number; killed: number; ident: Identification } | undefined {
+  const u = st.unfound;
+  if (!u || t < u.findAt) return undefined;
+  delete st.unfound;
+  return { diedAt: u.diedAt, killed: u.killed, ident: loggedTie(st, u.diedAt, rules) };
 }

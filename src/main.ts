@@ -202,6 +202,7 @@ import { attachAshore, type GameAshore } from './gameplay/ashore';
 import { DISTRICTS, districtFootprint, districtFrame } from './gameplay/district/ground';
 import { createWatch } from './gameplay/onfoot/watch';
 import { createStationWatch, keeperWeather } from './gameplay/onfoot/station-watch';
+import { attachKeeperFound } from './gameplay/keeper-found';
 import {
   emptyStation,
   keepersOnDuty,
@@ -1699,6 +1700,8 @@ async function boot(): Promise<void> {
   });
   // The law asks piece B's watchers who saw a crime at sea (plan 06 §2.1, §7.1).
   law.witnesses = detection;
+  // The keepers' log, and a lone keeper found dead a week or two after (plan 06 §6.2).
+  const keeperFound = attachKeeperFound({ ctx, law, notice: (text) => showNotice(text) });
   // For the console and the e2e tests: who's watching, the witnesses, and the lantern.
   if (import.meta.env.DEV || params.has('debug')) {
     const hook = {
@@ -4226,6 +4229,11 @@ async function boot(): Promise<void> {
       },
       settle: () =>
         stationLights().map((p) => ({ id: p.def.id, lit: p.def.lit, keepers: p.def.keepers })),
+      /** Jumps the clock `days` on and runs the finding of a keeper nobody was left to tell. */
+      pass(days: number) {
+        state.environment.clock.gameSeconds += days * SECONDS_PER_GAME_DAY;
+        return keeperFound.step();
+      },
     };
     (window as unknown as { __glpStation: typeof stationHook }).__glpStation = stationHook;
     // `?ashore=bayfield` ties up at the fish pier and goes ashore; `?ashore=stockton` anchors

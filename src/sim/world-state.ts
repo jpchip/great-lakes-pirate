@@ -536,6 +536,17 @@ export const lightStationStateSchema = z.object({
   logbookTakenAt: z.number().optional(),
   /** The last day visit's talk with the keeper (one a day). */
   talkedAt: z.number().optional(),
+  /**
+   * The last time the keepers logged your ship (or you, a visitor by day), and how well
+   * they knew her. The logbook carries it: taken after, it's gone with the book.
+   */
+  logged: z
+    .object({ at: z.number(), ident: z.enum(['unknown', 'schooner', 'ship', 'person']) })
+    .optional(),
+  /** Every keeper here dead and nobody to tell it: he's found then, and the law hears. */
+  unfound: z
+    .object({ diedAt: z.number(), findAt: z.number(), killed: z.number().int().positive() })
+    .optional(),
 });
 export type LightStationState = z.infer<typeof lightStationStateSchema>;
 
