@@ -217,6 +217,11 @@ function damageHull(h: HazardState, amount: number, events: HazardEvent[]): void
   }
 }
 
+/** Hull damage from outside the hazards' own step (ice, piece K): founders at 0 as theirs do. */
+export function damageHullBy(h: HazardState, amount: number, events: HazardEvent[]): void {
+  damageHull(h, amount, events);
+}
+
 export function damageRigging(h: HazardState, amount: number): void {
   h.rigging = Math.max(0, h.rigging - amount);
 }

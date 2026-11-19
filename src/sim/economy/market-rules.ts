@@ -43,6 +43,12 @@ export const marketRulesSchema = z.object({
   recoveryPerDay: z.number().positive(),
   /** A good out of season: its target stock as a share of the in-season one. */
   offSeasonStock: z.number().min(0).max(1),
+  /**
+   * A port frozen in for the winter (piece K): nothing comes by water, so what it imports
+   * runs down toward this share of its target, and what it ships out piles up to this.
+   */
+  frozenImportStock: z.number().min(0).max(1).default(0.4),
+  frozenExportStock: z.number().min(1).default(1.4),
   /** Stock never drifts below this many CU, so the price formula stays finite. */
   minStockCu: z.number().positive(),
 });
@@ -61,5 +67,7 @@ export function defaultMarketRules(): MarketRules {
     recoveryPerDay: 0.35,
     offSeasonStock: 0.6,
     minStockCu: 0.5,
+    frozenImportStock: 0.4,
+    frozenExportStock: 1.4,
   };
 }
