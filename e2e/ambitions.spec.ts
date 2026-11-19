@@ -76,6 +76,6 @@ test('pins three ambitions, follows them on the HUD, and earns a mark', async ({
   await expect(mark).toContainText('A bank draft');
   await mark.getByTestId('ambition-clear').click();
   await expect(mark).toHaveCount(0);
-  await expect(page_).toContainText('1 of 14 done');
+  await expect(page_).toContainText('1 of 15 done');
   expect(errors).toEqual([]);
 });
