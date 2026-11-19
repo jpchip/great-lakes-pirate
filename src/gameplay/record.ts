@@ -60,12 +60,15 @@ export function attachRecord(ctx: GameContext, defs: LawDefs): () => void {
           : `Passed ${e.qty} CU of ${good(e.good)} to the island smuggler.`,
       );
     }),
-    ev.on('CrimeCommitted', () => (stats().crimes += 1)),
+    ev.on('CrimeCommitted', (e) => {
+      if (!e.by) stats().crimes += 1;
+    }),
     ev.on('ReportFiled', (e) => {
       if (e.heatAdded <= 0) return;
-      write(
-        `Word reached the law in ${region(e.region)}: ${crimeDef(defs, e.crime).name.toLowerCase()}.`,
-      );
+      const what = crimeDef(defs, e.crime).name.toLowerCase();
+      // A copycat's work laid at your door (Phase 9 piece E).
+      const theirs = e.by ? ', laid at my door, though it was none of my doing' : '';
+      write(`Word reached the law in ${region(e.region)}: ${what}${theirs}.`);
     }),
     ev.on('WantedTierChanged', (e) => {
       const s = stats();

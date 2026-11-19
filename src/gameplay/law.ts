@@ -78,6 +78,11 @@ export interface GameLaw {
    * faster while it's set. Set for the length of a sleep, then cleared.
    */
   layLow: string | undefined;
+  /**
+   * Copycat rivals (Phase 9 piece E): the rival a crime of yours is put down to by its
+   * method, if any. Asked as each crime of yours is committed.
+   */
+  blame: ((input: CrimeInput) => string | undefined) | undefined;
   dispose(): void;
 }
 
@@ -167,7 +172,11 @@ export function attachLaw(
   const law: GameLaw = {
     defs,
     witnesses: NO_WITNESSES,
-    commit: (input) => raise(commitCrime(defs, world(), input, now())),
+    commit: (input) => {
+      const blamedOn = input.blamedOn ?? (input.by ? undefined : law.blame?.(input));
+      const crime = blamedOn ? { ...input, blamedOn } : input;
+      return raise(commitCrime(defs, world(), crime, now()));
+    },
     addWitness: (crimeId, w) => raise(addWitness(defs, world(), crimeId, w, now())),
     releasePending: (crimeId, at) => raise(releasePending(defs, world(), crimeId, at, now())),
     addHeat: (region, heat) => raise(addHeat(defs, ctx.state, region, heat, now())),
@@ -182,6 +191,7 @@ export function attachLaw(
     },
     locate: undefined,
     layLow: undefined,
+    blame: undefined,
     region: () => law.locate?.() ?? playerRegion(defs, ctx.state),
     setHeat: (region, heat) => raise(setHeat(defs, ctx.state, region, heat)),
     setTier: (region, tier) => raise(setTier(defs, ctx.state, region, tier)),

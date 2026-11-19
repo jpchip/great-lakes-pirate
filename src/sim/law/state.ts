@@ -92,6 +92,16 @@ export const openCrimeSchema = z.object({
   company: z.string().optional(),
   details: crimeDetailsSchema.optional(),
   /**
+   * A copycat rival's crime, not yours (Phase 9 piece E): its reports never name you, but
+   * one that says "a schooner" is laid at your door.
+   */
+  by: z.string().optional(),
+  /**
+   * Your crime put down to a rival by its method (Phase 9 piece E): the reports that only
+   * saw "a schooner" or nobody go against them, not you.
+   */
+  blamedOn: z.string().optional(),
+  /**
    * A witness yet to set off (Phase 6 piece F): the robbed crew, who report only once you
    * let them go (or never, if they went down with her). The crime stays open for them.
    */

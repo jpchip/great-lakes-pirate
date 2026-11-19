@@ -104,7 +104,8 @@ export function attachFeuds(opts: FeudOptions): GameFeuds {
     check();
   });
   const offCrime = ctx.events.on('CrimeCommitted', (e) => {
-    if (!e.company) return;
+    // A copycat's crime (Phase 9 piece E) is no pressure of yours.
+    if (!e.company || e.by) return;
     for (const def of FEUDS) {
       if (def.company === e.company) noteCrime(def, stateOf(def), e.crime);
     }

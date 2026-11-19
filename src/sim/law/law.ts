@@ -54,6 +54,10 @@ export type LawEvent =
       at: number;
       company?: string | undefined;
       details?: CrimeDetails | undefined;
+      /** A rival's crime (Phase 9 piece E), not yours. */
+      by?: string | undefined;
+      /** Yours, put down to a rival (Phase 9 piece E). */
+      blamedOn?: string | undefined;
     }
   | {
       type: 'Witnessed';
@@ -74,6 +78,8 @@ export type LawEvent =
       heatAdded: number;
       alertAdded: number;
       details?: CrimeDetails | undefined;
+      by?: string | undefined;
+      blamedOn?: string | undefined;
     }
   | { type: 'ReportIntercepted'; crimeId: string; reportId: string; witness: WitnessRef }
   | { type: 'WantedTierChanged'; region: string; from: number; to: number; heat: number }
@@ -99,6 +105,16 @@ export interface CrimeInput {
    * piece F). The crime stays open for them even if nobody else saw it.
    */
   pending?: Witness | undefined;
+  /**
+   * A copycat rival did it (Phase 9 piece E): the rival's id. Nobody names you for it, but
+   * a report that only saw "a schooner" puts its heat on you.
+   */
+  by?: string | undefined;
+  /**
+   * Your crime, put down to a rival by its method (Phase 9 piece E): reports that saw "a
+   * schooner" or nobody raise the alert against them and add no heat to you.
+   */
+  blamedOn?: string | undefined;
 }
 
 export function regionWanted(law: LawState, region: string): RegionWanted {
@@ -169,6 +185,8 @@ export function commitCrime(
       at: now,
       ...(input.company ? { company: input.company } : {}),
       ...(input.details ? { details: input.details } : {}),
+      ...(input.by ? { by: input.by } : {}),
+      ...(input.blamedOn ? { blamedOn: input.blamedOn } : {}),
     },
   ];
   if (input.witnesses.length === 0 && !input.pending) return events;
@@ -184,6 +202,8 @@ export function commitCrime(
     named: false,
     ...(input.company ? { company: input.company } : {}),
     ...(input.details ? { details: input.details } : {}),
+    ...(input.by ? { by: input.by } : {}),
+    ...(input.blamedOn ? { blamedOn: input.blamedOn } : {}),
     ...(p
       ? {
           pending: {
@@ -326,9 +346,14 @@ function fileReport(
   let id = report.identification;
   // No disguise, but a new hull: a report on the old ship only describes "a schooner".
   if (id === 'ship' && crime.hull !== law.profiles.ship.hull) id = 'schooner';
+  // A rival's crime (Phase 9 piece E): nobody saw you, so the best it can say is "a
+  // schooner", and that is laid at your door.
+  if (crime.by && (id === 'ship' || id === 'person')) id = 'schooner';
+  // Yours put down to a rival: what saw only a schooner, or nobody, goes against them.
+  const theirs = !!crime.blamedOn && (id === 'unknown' || id === 'schooner');
   let heatAdded = 0;
   let alertAdded = 0;
-  if (id === 'unknown') {
+  if (id === 'unknown' || theirs) {
     alertAdded = def.heat * factor(defs, 'unknown');
     regionWanted(law, crime.region).alert += alertAdded;
   } else {
@@ -359,6 +384,8 @@ function fileReport(
     heatAdded,
     alertAdded,
     ...(crime.details ? { details: crime.details } : {}),
+    ...(crime.by ? { by: crime.by } : {}),
+    ...(theirs ? { blamedOn: crime.blamedOn } : {}),
   });
 }
 

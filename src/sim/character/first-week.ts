@@ -130,7 +130,7 @@ export function stepForEvent(
       return 'voyage';
     case 'CrimeCommitted':
       // A burglary ashore: a lock forced or a warehouse's goods carried off.
-      return p['crime'] === 'crime.burglary' ? 'warehouse' : undefined;
+      return p['crime'] === 'crime.burglary' && !p['by'] ? 'warehouse' : undefined;
     default:
       return undefined;
   }
