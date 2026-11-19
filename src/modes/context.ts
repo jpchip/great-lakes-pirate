@@ -304,7 +304,7 @@ export interface GameEvents {
    * with the storm signal up, or the first boat in after the ice.
    */
   FeatAccomplished: {
-    kind: 'escape' | 'recordRun' | 'galeRun' | 'firstBoat';
+    kind: 'escape' | 'recordRun' | 'galeRun' | 'firstBoat' | 'moonCussing';
     region: string;
     port?: string;
     by?: string;

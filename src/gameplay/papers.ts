@@ -71,6 +71,8 @@ export interface GamePapers {
   signals(): string[];
   /** Prints today's editions now, or a later day's (the dev panel). */
   pressNow(daysAhead?: number): Edition[];
+  /** Queues a story from elsewhere (Phase 9 piece I: a ship ashore nobody saw a light for). */
+  story(input: StoryInput): void;
   /** The Most Wanted page waiting to be shown, if any (taken once). */
   takeFrontPage(): MostWantedPage | undefined;
   readonly state: NewsState;
@@ -492,6 +494,7 @@ export function attachPapers(opts: PapersOptions): GamePapers {
       return signalCache.ports;
     },
     pressNow: (daysAhead = 0) => press(dayAndHour(now()).day + daysAhead),
+    story: add,
     takeFrontPage() {
       const p = frontPage;
       frontPage = undefined;

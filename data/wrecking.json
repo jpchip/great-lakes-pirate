@@ -1,0 +1,61 @@
+{
+  "rules": {
+    "rigHours": 10,
+    "setRangeM": 70,
+    "passNm": 2.5,
+    "chance": { "falseLight": 0.6, "doused": 0.3 },
+    "bothFactor": 1.25,
+    "nightSunDeg": -6,
+    "moonFactor": 0.3,
+    "weather": { "clear": 0.3, "thickVisM": 2500, "freshKn": 18, "fresh": 0.65, "galeKn": 30 },
+    "dousedNeedsWeather": 0.6,
+    "captain": [0.5, 1.5],
+    "breakUp": { "fromKn": 20, "atGaleChance": 0.6 },
+    "drowned": { "stranded": [0, 0.15], "broken": [0.25, 0.7] },
+    "strandedDays": 2,
+    "repairDays": 3,
+    "brokenDays": 60,
+    "keeper": { "chance": 0.5, "rangeNm": 4 },
+    "nearM": 900,
+    "investigation": { "wrecks": 3, "withinDays": 4, "heat": 35, "days": 3 },
+    "moonCussing": { "maxIllumination": 0.25, "withinHours": 30 }
+  },
+  "marks": [
+    {
+      "id": "mark.sand_shoal",
+      "name": "Sand Island shoal",
+      "light": "light.sand",
+      "rig": { "lat": 46.98898, "lon": -90.97007 },
+      "shoal": { "lat": 46.9911, "lon": -90.97137 },
+      "danger": 0.9,
+      "blurb": "The sand point east of the light, with the shoal off it: the package boats pass close inside the light here."
+    },
+    {
+      "id": "mark.raspberry_reef",
+      "name": "Raspberry Island reef",
+      "light": "light.raspberry",
+      "rig": { "lat": 46.97822, "lon": -90.78473 },
+      "shoal": { "lat": 46.97844, "lon": -90.78394 },
+      "danger": 0.8,
+      "blurb": "The low east end of Raspberry Island, the reef just off it, and the lumber tows and package boats steering for Raspberry's light."
+    },
+    {
+      "id": "mark.gull_shoal",
+      "name": "Gull Island shoal",
+      "light": "light.michigan",
+      "rig": { "lat": 46.89373, "lon": -90.44992 },
+      "shoal": { "lat": 46.89373, "lon": -90.44736 },
+      "danger": 1,
+      "blurb": "The long gravel shoal out to Gull Island, the ore boats for Ashland rounding it by Michigan Island's light."
+    },
+    {
+      "id": "mark.chequamegon_point",
+      "name": "Chequamegon Point",
+      "light": "light.chequamegon",
+      "rig": { "lat": 46.69469, "lon": -90.85315 },
+      "shoal": { "lat": 46.69539, "lon": -90.8518 },
+      "danger": 0.7,
+      "blurb": "The sandspit's western tip and the bar off it, where the Ashland boats feel their way in by the point's light."
+    }
+  ]
+}

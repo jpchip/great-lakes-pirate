@@ -158,7 +158,8 @@ const record = (v: unknown): Record<string, unknown> =>
  * The counter an event moves, if any. Events are matched by name and payload:
  * - `ContractCompleted` not late: a contract on time;
  * - `FeatAccomplished` (the papers' feats): an escape from the *Morrill*, a record run, and
- *   making port through a gale, counted in November only;
+ *   making port through a gale, counted in November only, and a ship put on a shoal by
+ *   your light (Phase 9 piece I);
  * - `ShipLaunched` from a slipway (Phase 8 piece G).
  */
 export function counterForEvent(
@@ -173,6 +174,7 @@ export function counterForEvent(
     case 'FeatAccomplished':
       if (p['kind'] === 'escape') return p['by'] === 'law.morrill' ? 'morrillEscapes' : undefined;
       if (p['kind'] === 'recordRun') return 'recordRuns';
+      if (p['kind'] === 'moonCussing') return 'moonCussings';
       if (p['kind'] === 'galeRun') {
         return calendarDate(now).getUTCMonth() === 10 ? 'novemberGales' : undefined;
       }

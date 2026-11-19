@@ -4,6 +4,7 @@ import { gameSmuggler, smugglerById } from '../sim/economy/smuggler';
 import { gameLaw, type LawDefs } from '../sim/law/defs';
 import {
   tierIn,
+  addHeat,
   addWitness,
   commitCrime,
   releasePending,
@@ -58,6 +59,8 @@ export interface GameLaw {
    */
   releasePending(crimeId: string, at: number | undefined): LawEvent[];
   intercept(reportId: string): LawEvent | undefined;
+  /** Heat from outside the pipeline (Phase 9 piece I: an inquiry into wrecks near a light). */
+  addHeat(region: string, heat: number): LawEvent[];
   /** Lands every report on its way now (the dev panel). */
   fileAll(): LawEvent[];
   /** The player's region now. */
@@ -167,6 +170,7 @@ export function attachLaw(
     commit: (input) => raise(commitCrime(defs, world(), input, now())),
     addWitness: (crimeId, w) => raise(addWitness(defs, world(), crimeId, w, now())),
     releasePending: (crimeId, at) => raise(releasePending(defs, world(), crimeId, at, now())),
+    addHeat: (region, heat) => raise(addHeat(defs, ctx.state, region, heat, now())),
     intercept(reportId) {
       const e = interceptReport(world(), reportId);
       if (e) emitLaw(ctx, e);
