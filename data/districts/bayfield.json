@@ -2034,6 +2034,15 @@
       "opens": "saloon"
     },
     {
+      "id": "shop.card_table",
+      "kind": "shop",
+      "x": 18,
+      "z": 14.5,
+      "headingDeg": 90,
+      "ref": "saloon",
+      "opens": "cards"
+    },
+    {
       "id": "shop.back_room",
       "kind": "shop",
       "x": 14,

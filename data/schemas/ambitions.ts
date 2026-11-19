@@ -17,8 +17,9 @@ export type AmbitionCategory = (typeof AMBITION_CATEGORIES)[number];
 /**
  * Counters kept from the bus (`src/sim/character/ambitions.ts` `counterForEvent`):
  * escapes from the *Morrill*, contracts delivered on time, record runs, ports made through
- * a gale in November, schooners launched from a slipway (Phase 8 piece G), and ships put
- * on a shoal by a false light (Phase 9 piece I).
+ * a gale in November, schooners launched from a slipway (Phase 8 piece G), cargoes won
+ * at the card table (Phase 9 piece C), and ships put on a shoal by a false light (Phase 9
+ * piece I).
  */
 export const AMBITION_COUNTERS = [
   'morrillEscapes',
@@ -26,6 +27,7 @@ export const AMBITION_COUNTERS = [
   'recordRuns',
   'novemberGales',
   'slipwayLaunches',
+  'pokerCargoes',
   // Ships put on a shoal with a false light or a doused one (Phase 9 piece I).
   'moonCussings',
 ] as const;

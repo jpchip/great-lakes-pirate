@@ -20,6 +20,7 @@ export const SHOP_TABS: Record<ShopTab, PortTab> = {
   contracts: 'freight',
   backRoom: 'backRoom',
   saloon: 'saloon',
+  cards: 'cards',
 };
 
 /** From where you stand to the keeper, across the counter. */
@@ -34,6 +35,8 @@ export interface ShopNow {
   backRoomOpen: boolean;
   /** The fence's name, for the prompt. */
   fenceName?: string | undefined;
+  /** The saloon's card table sits now (after supper, and you're not barred). */
+  cardsOpen?: boolean | undefined;
 }
 
 export interface ShopPrompt {
@@ -78,6 +81,9 @@ export function shopPrompt(
       };
     case 'saloon':
       return { text: 'Stand at the bar', tab, title };
+    case 'cards':
+      if (!now.cardsOpen) return undefined;
+      return { text: 'Sit in at the card table', tab, title: `${title}: the card table` };
     case 'market':
       return { text: `Trade at ${title}`, tab, title };
     case 'chandlery':
@@ -87,6 +93,29 @@ export function shopPrompt(
     case 'ledger':
       return { text: 'Read the ledger', tab, title };
   }
+}
+
+/**
+ * The captains round the card table (Phase 9 piece C): three seats a step off the mark,
+ * across from you and to either hand, each facing the table. You sit on the side its
+ * heading faces away from. Local meters.
+ */
+export function cardPlayers(
+  mark: DistrictMark,
+): { id: string; x: number; z: number; heading: number }[] {
+  const out: { id: string; x: number; z: number; heading: number }[] = [];
+  const base = (mark.headingDeg * Math.PI) / 180;
+  // Ahead of you, and to either hand: the seat behind you is yours.
+  for (const k of [0, 1, 3]) {
+    const a = base + (k * Math.PI) / 2;
+    out.push({
+      id: `cards:${mark.id}:${k}`,
+      x: mark.x + Math.sin(a) * 1.05,
+      z: mark.z - Math.cos(a) * 1.05,
+      heading: a + Math.PI,
+    });
+  }
+  return out;
 }
 
 /** Who stands at a counter, for the figure drawn there. */

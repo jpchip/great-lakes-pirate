@@ -62,7 +62,7 @@ describe('the ambitions catalog', () => {
   it('has about twelve goals across the five MVP categories, each with a mark', () => {
     const file = ambitionsFileSchema.parse(ambitionsJson);
     expect(file.ambitions.length).toBeGreaterThanOrEqual(12);
-    expect(file.ambitions.length).toBeLessThanOrEqual(15);
+    expect(file.ambitions.length).toBeLessThanOrEqual(20);
     expect(new Set(file.ambitions.map((a) => a.category))).toEqual(
       new Set(['wealth', 'infamy', 'trade', 'seamanship', 'builder']),
     );

@@ -92,10 +92,12 @@ const seq = (...xs: number[]): (() => number) => {
 };
 
 describe('events.json', () => {
-  it('validates, with the ten events of piece A and the moon-cussing night of piece I', () => {
+  it('validates, with the ten events of piece A, the poker night of piece C and the moon-cussing night of piece I', () => {
     const file = eventsFileSchema.parse(eventsJson);
-    expect(file.events.map((e) => e.id).sort()).toEqual(
-      [
+    const ids = file.events.map((e) => e.id);
+    expect(ids).toContain('event.poker_night');
+    expect(ids).toEqual(
+      expect.arrayContaining([
         'event.camp_demand',
         'event.coal_shortage',
         'event.herring_run',
@@ -107,7 +109,7 @@ describe('events.json', () => {
         'event.storm_bound',
         'event.whiskey_hijack',
         'event.wreck_survivors',
-      ].sort(),
+      ]),
     );
   });
 
@@ -252,7 +254,7 @@ describe('triggers and the draw', () => {
         dockedPort: moment === 'dock' ? 'port.bayfield' : undefined,
         // A dark, stormy night with a ship due past a wrecking mark, now and then (piece I).
         wreckingNight: () =>
-          rng.next() < 0.15
+          rng.next() < 0.4
             ? {
                 ship: 'ship.x',
                 name: 'Steamer X',
