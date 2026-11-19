@@ -181,6 +181,17 @@
   fill: #ff7a66;
 }
 
+.stealth-law {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  pointer-events: none;
+}
+
 .stealth-dawn {
   position: absolute;
   top: 14px;

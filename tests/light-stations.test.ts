@@ -62,6 +62,7 @@ describe('the light stations (plan 11 §18 piece H)', () => {
     );
     for (const s of LIGHT_STATIONS) {
       const def = light(s.light);
+      expect(s.keepers).toHaveLength(1);
       expect(s.keepers.length, s.light).toBeGreaterThanOrEqual(def.keepers);
       expect(stationKeepers(def)).toHaveLength(def.keepers);
       expect(s.kerosene).toBeGreaterThan(0);
@@ -127,6 +128,7 @@ describe('the light stations (plan 11 §18 piece H)', () => {
     const bluff = need(st.bluff, 'bluff');
     expect(bluff.head.y - bluff.foot.y).toBeGreaterThanOrEqual(BLUFF_RISE_M);
     expect(bluff.head.y).toBeCloseTo(17, 6);
+    expect(bluff.foot.y).toBe(need(st.landing, 'landing').maxY);
     expect(st.stairs.length).toBeGreaterThan(0);
   });
 
@@ -141,17 +143,16 @@ describe('the light stations (plan 11 §18 piece H)', () => {
 describe("a station's keepers and stores", () => {
   const rasp = light('light.raspberry');
   const k1 = 'light.raspberry.k1';
-  const k2 = 'light.raspberry.k2';
 
   it('keeps every keeper at his post until something befalls him', () => {
-    expect(keepersOnDuty(rasp, undefined, 0)).toBe(2);
+    expect(keepersOnDuty(rasp, undefined, 0)).toBe(1);
     const st = emptyStation();
     st.keepers[k1] = { downUntil: 100 };
     expect(onDuty(st, k1, 50)).toBe(false);
     expect(onDuty(st, k1, 100)).toBe(true);
-    st.keepers[k2] = { bribedUntil: 200 };
+    st.keepers[k1] = { bribedUntil: 200 };
     expect(keepersOnDuty(rasp, st, 50)).toBe(0);
-    expect(keepersOnDuty(rasp, st, 150)).toBe(1);
+    expect(keepersOnDuty(rasp, st, 250)).toBe(1);
   });
 
   it("leaves a dead keeper's post empty until his relief comes", () => {
@@ -180,13 +181,11 @@ describe("a station's keepers and stores", () => {
     const st = emptyStation();
     st.dousedAt = 0;
     st.keepers[k1] = { downUntil: 10 * 3600 };
-    st.keepers[k2] = { diedAt: 0 };
     settleStation(rasp, st, 2 * 3600);
     expect(lampOut(st)).toBe(true);
     // He comes round, and the lamp is lit.
     settleStation(rasp, st, 10 * 3600);
     expect(lampOut(st)).toBe(false);
-    expect(st.keepers[k2]).toBeDefined();
   });
 
   it('runs the oil house down a can at a time, stocked again after the tender comes', () => {
@@ -259,5 +258,23 @@ describe('the stations on the Apostles zone', () => {
       placeStation(need(placed.find((p) => p.def.id === 'light.michigan')), heightAt),
     );
     expect(mich.bluff).toBeDefined();
+  });
+
+  it('puts the bluff stair foot on the landing deck so F can see you there', () => {
+    if (!baked) return;
+    const frame = manifestFrame(zone.manifest);
+    const heightAt = (x: number, z: number) =>
+      zone.terrain.contains(x, z) ? zone.terrain.heightAt(x, z) : -10;
+    const placed = placeLights(lightsIn('zone.apostles'), frame, zone.terrain);
+    const climbReachY = 1.2;
+    for (const id of ['light.devils', 'light.michigan'] as const) {
+      const p = need(placed.find((l) => l.def.id === id));
+      const st = need(placeStation(p, heightAt), id);
+      const landing = need(st.landing, 'landing');
+      const bluff = need(st.bluff, 'bluff');
+      expect(bluff.foot.y).toBe(landing.maxY);
+      expect(heightAt(bluff.foot.x, bluff.foot.z) - landing.maxY).toBeGreaterThan(0.5);
+      expect(bluff.foot.y - landing.maxY).toBeLessThan(climbReachY);
+    }
   });
 });

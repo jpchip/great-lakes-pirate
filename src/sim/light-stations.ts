@@ -368,8 +368,8 @@ export function stationBluff(
   const hz = light.z + fz * stopM;
   const footX = light.x + fx * (along - 0.5);
   const footZ = light.z + fz * (along - 0.5);
-  // The deck's inner end can sit below a steep bank: the stair starts where you stand.
-  const y0 = Math.max(landing.maxY, heightAt(footX, footZ));
+  // The foot sits on the landing deck where you stand; F teleports from there up the bluff.
+  const y0 = landing.maxY;
   const y1 = Math.max(heightAt(hx, hz), light.groundM);
   const rise = y1 - y0;
   const run = along - stopM;

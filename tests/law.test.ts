@@ -10,6 +10,7 @@ import { gameLaw, wantedTier } from '../src/sim/law/defs';
 import {
   commitCrime,
   heatIn,
+  identifyInFlightReports,
   interceptReport,
   replaceShip,
   setHeat,
@@ -189,6 +190,25 @@ describe('the crime pipeline (plan 06 §2.1)', () => {
     tickLaw(defs, w, NOON, 0, undefined);
     expect(heatIn(w.law, APOSTLES)).toBe(0);
     expect(w.law.wanted[APOSTLES]?.alert).toBe(5);
+  });
+
+  it('names an in-flight report when the witness learns who you are', () => {
+    const w = world();
+    const k: Witness = {
+      id: 'light.raspberry.k1',
+      kind: 'keeper',
+      name: 'the keeper',
+      identification: 'unknown',
+    };
+    commitCrime(defs, w, { crime: 'crime.trespass', region: APOSTLES, witnesses: [k] }, NOON);
+    const report = must(w.law.reports.inProgress[0]);
+    expect(report.identification).toBe('unknown');
+    identifyInFlightReports(w.law, k.id, 'person');
+    expect(report.identification).toBe('person');
+    report.eta = NOON;
+    tickLaw(defs, w, NOON, 0, undefined);
+    expect(heatIn(w.law, APOSTLES)).toBe(5);
+    expect(w.law.wanted[APOSTLES]?.alert ?? 0).toBe(0);
   });
 
   it('a traced crime is named to you whatever the witness saw, and costs Standing and brings Fame', () => {

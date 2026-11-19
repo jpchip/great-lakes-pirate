@@ -18,7 +18,7 @@
       "color": "white"
     },
     "lens": "3½-order since 1869",
-    "keepers": 3,
+    "keepers": 1,
     "reporting": "slow",
     "confidence": "unknown",
     "notes": "R1 has the characteristic as unknown; fixed white is the assumption. The 1869 tower (the 1929 skeleton tower isn't built yet). 'The unwanted lighthouse'."
@@ -73,7 +73,7 @@
       "periodS": 90
     },
     "lens": "5th-order",
-    "keepers": 2,
+    "keepers": 1,
     "reporting": "fast",
     "fogSignal": {
       "kind": "bell",
@@ -107,7 +107,7 @@
       "periodS": 90
     },
     "lens": "3rd-order Sautter",
-    "keepers": 3,
+    "keepers": 1,
     "reporting": "slow",
     "fogSignal": {
       "kind": "whistle",
@@ -137,7 +137,7 @@
       "color": "white"
     },
     "lens": "4th-order Lepaute",
-    "keepers": 2,
+    "keepers": 1,
     "reporting": "medium",
     "confidence": "confirmed",
     "notes": "Lit 1881, fixed white until 1921. Brownstone dwelling; guards the Sevona shoal."
@@ -161,7 +161,7 @@
       "color": "red"
     },
     "lens": "4th-order, temporary",
-    "keepers": 3,
+    "keepers": 1,
     "reporting": "slow",
     "confidence": "confirmed",
     "notes": "The tower stands but the 3rd-order lens doesn't arrive until June 1901, so in 1900 it shows a temporary fixed red light: a known gap in coverage on the exposed north edge. The tower's build (a steel skeleton) is ⚠️ from memory, to check against NPS photos."
@@ -185,7 +185,7 @@
       "color": "white"
     },
     "lens": "unknown",
-    "keepers": 2,
+    "keepers": 1,
     "reporting": "medium",
     "confidence": "unknown",
     "notes": "Lit 1896-97 on the tip of Long Island, eroding. R1 has the lens and the characteristic as unknown; fixed white is the assumption."
@@ -210,7 +210,7 @@
       "color": "red"
     },
     "lens": "unknown (temporary)",
-    "keepers": 2,
+    "keepers": 1,
     "reporting": "fast",
     "fogSignal": {
       "kind": "whistle",
@@ -299,7 +299,7 @@
       "color": "red"
     },
     "lens": "4th-order Fresnel",
-    "keepers": 2,
+    "keepers": 1,
     "reporting": "medium",
     "fogSignal": {
       "kind": "whistle",
