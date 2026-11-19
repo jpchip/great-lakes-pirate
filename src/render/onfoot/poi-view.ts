@@ -3,6 +3,8 @@ import type { PlacedIsland, PlacedPoiPiece } from '../../sim/islands/on-foot';
 import { PALETTE } from '../style/palette';
 import { box, frustum, gable, merged, part, strut } from '../style/parts';
 import { createStylizedMaterial, type StyleLighting } from '../style/stylized-material';
+import type { PoiPieceKind } from '../../../data/schemas/pois';
+import * as kit from './poi-kit';
 
 /**
  * The walkable islands' points of interest drawn (plan 11 §3.1 POI kits; plan 08 §20.4
@@ -177,29 +179,62 @@ function cairnGeometry(p: PlacedPoiPiece): THREE.BufferGeometry[] {
     [0, 0, 0.45, 0.35],
     [0.05, 0.05, 0.3, 0.62],
   ];
+  // A cache cairn is 1.4 m across; a marker cairn (piece P) scales up from it.
+  const k = p.widthM / 1.4;
+  const kh = (p.maxY - p.minY - 0.3) / 0.8;
   for (const [x, z, s, y] of stones) {
     const g = part(new THREE.DodecahedronGeometry(s / 2, 0), CAIRN_STONE);
-    g.scale(1, 0.75, 1);
-    g.translate(x, y + s * 0.3, z);
+    g.scale(k, 0.75 * kh, k);
+    g.translate(x * k, (y + s * 0.3) * kh, z * k);
     out.push(orient(g, p, p.minY + 0.3));
   }
   return out;
 }
 
+/** Every kind's builder: the quarry's and the logging camp's here, piece P's in the kit. */
+const BUILDERS: Record<PoiPieceKind, (p: PlacedPoiPiece) => THREE.BufferGeometry[]> = {
+  ledge: ledgeGeometry,
+  derrick: derrickGeometry,
+  shack: shackGeometry,
+  block: blockGeometry,
+  steps: stepsGeometry,
+  logs: logsGeometry,
+  lumber: lumberGeometry,
+  wall: wallGeometry,
+  cairn: cairnGeometry,
+  dock: kit.dockGeometry,
+  shanty: kit.shantyGeometry,
+  fish_house: kit.fishHouseGeometry,
+  net_reel: kit.netReelGeometry,
+  drying_rack: kit.dryingRackGeometry,
+  barrels: kit.barrelsGeometry,
+  boat: kit.boatGeometry,
+  cabin: kit.cabinGeometry,
+  barn: kit.barnGeometry,
+  field: kit.fieldGeometry,
+  fence: kit.fenceGeometry,
+  woodpile: kit.woodpileGeometry,
+  stumps: kit.stumpsGeometry,
+  hide_rack: kit.hideRackGeometry,
+  signal: kit.signalGeometry,
+  ribs: kit.ribsGeometry,
+  spar: kit.sparGeometry,
+  planks: kit.planksGeometry,
+  dig: kit.digGeometry,
+  blaze: kit.blazeGeometry,
+  boulder: kit.boulderGeometry,
+  cave_mouth: kit.caveMouthGeometry,
+};
+
+/** One placed piece's parts, zone meters. */
+export function pieceGeometry(p: PlacedPoiPiece): THREE.BufferGeometry[] {
+  return BUILDERS[p.kind](p);
+}
+
 export function islandPiecesGeometry(islands: readonly PlacedIsland[]): THREE.BufferGeometry[] {
   const parts: THREE.BufferGeometry[] = [];
   for (const island of islands) {
-    for (const p of island.pieces) {
-      if (p.kind === 'ledge') parts.push(...ledgeGeometry(p));
-      else if (p.kind === 'derrick') parts.push(...derrickGeometry(p));
-      else if (p.kind === 'shack') parts.push(...shackGeometry(p));
-      else if (p.kind === 'block') parts.push(...blockGeometry(p));
-      else if (p.kind === 'steps') parts.push(...stepsGeometry(p));
-      else if (p.kind === 'logs') parts.push(...logsGeometry(p));
-      else if (p.kind === 'lumber') parts.push(...lumberGeometry(p));
-      else if (p.kind === 'wall') parts.push(...wallGeometry(p));
-      else parts.push(...cairnGeometry(p));
-    }
+    for (const p of island.pieces) parts.push(...pieceGeometry(p));
   }
   return parts;
 }
