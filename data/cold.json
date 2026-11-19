@@ -1,0 +1,70 @@
+{
+  "ice": {
+    "topM": 0.04,
+    "minCoverage": 0.7,
+    "formsCm": 3,
+    "holdCm": 10,
+    "kgPerCm": 10,
+    "weakSpotM": 24,
+    "weakSpotDepth": 0.35,
+    "roadClearM": 10
+  },
+  "thin": {
+    "rate": 0.55,
+    "runMul": 1.8,
+    "stillMul": 0.35,
+    "relax": 0.25,
+    "crackAt": 0.25,
+    "groanAt": 0.6,
+    "holeM": 2.5,
+    "climbS": 2.2,
+    "windowS": 14,
+    "edgeHoldMin": 0.35
+  },
+  "warmth": {
+    "comfortC": 8,
+    "lossPerDegreeS": 0.012,
+    "wetMul": 3,
+    "waterLossPerDegreeS": 0.07,
+    "recoverS": 0.4,
+    "heatS": 2.5,
+    "heatRadiusM": 4,
+    "dryHeatS": 0.05,
+    "dryAirS": 0.004,
+    "rainWetS": 0.02,
+    "snowWetS": 0.002,
+    "runWarmMul": 0.7,
+    "chilled": 60,
+    "cold": 35,
+    "freezing": 15,
+    "drainHealthS": 0.5,
+    "aboardPerHour": 60
+  },
+  "sled": {
+    "capacityCu": 3,
+    "cuKg": 90,
+    "sledKg": 25,
+    "ropeM": 2.6,
+    "slowPerCu": 0.1,
+    "minSpeedMul": 0.6
+  },
+  "tracks": {
+    "spacingM": 0.9,
+    "max": 600,
+    "lifeS": 86400,
+    "fillS": 2400,
+    "noticeM": 3,
+    "freshS": 21600,
+    "leadPrints": 8
+  },
+  "road": {
+    "id": "road.la_pointe",
+    "name": "The ice road to La Pointe",
+    "from": "pier.bayfield_city",
+    "to": "pier.la_pointe_city",
+    "toPort": "port.la_pointe",
+    "openCm": 20,
+    "markerM": 30,
+    "endM": 12
+  }
+}

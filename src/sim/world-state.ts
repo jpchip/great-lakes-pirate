@@ -597,6 +597,25 @@ export const worldStateSchema = z.object({
      * your own ship, as in every save before it.
      */
     shipless: z.object({ hideout: z.string(), since: z.number() }).optional(),
+    /**
+     * The warmth meter (plan 11 §14 `player.warmth`; Phase 9 piece M), 0–100, and how wet
+     * through you are, 0–1. Optional: absent, you're warm and dry.
+     */
+    warmth: z
+      .object({ value: z.number().min(0).max(100), wet: z.number().min(0).max(1) })
+      .optional(),
+    /**
+     * The hand sled out on the ice (piece M): where she lies, zone meters, and her load.
+     * Absent while she's stowed aboard.
+     */
+    sled: z
+      .object({
+        x: z.number(),
+        z: z.number(),
+        heading: z.number(),
+        load: z.array(cargoStackSchema),
+      })
+      .optional(),
   }),
   voyage: voyageSchema.nullable(),
   markets: marketsSchema,
