@@ -102,7 +102,8 @@
         "heightM": 3,
         "yawDeg": 4
       }
-    ]
+    ],
+    "site": "shore"
   },
   {
     "id": "poi.logging_camp",
@@ -293,8 +294,8 @@
       },
       {
         "kind": "boat",
-        "right": -4,
-        "out": 11,
+        "right": 1.5,
+        "out": 7,
         "widthM": 1.8,
         "depthM": 7,
         "heightM": 1.2,

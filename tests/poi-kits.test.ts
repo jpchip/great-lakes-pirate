@@ -1,11 +1,14 @@
 import type * as THREE from 'three';
+import { Vector3 } from 'three';
 import { describe, expect, it } from 'vitest';
 import tiersJson from '../data/island_tiers.json';
 import { islandTiersFileSchema } from '../data/schemas/island_tiers';
 import { poiPieceKindSchema, type PoiDef } from '../data/schemas/pois';
 import { pieceColliders } from '../src/gameplay/island-ashore';
 import type { Collider } from '../src/gameplay/onfoot/colliders';
+import { DRAWN_CURIOS, curiosGeometry } from '../src/render/hideout/curios';
 import { pieceGeometry } from '../src/render/onfoot/poi-view';
+import { DISPLAY_PIECES, curioDefs, curioSlots } from '../src/sim/discovery/discovery';
 import {
   FLAT_KINDS,
   ISLANDS,
@@ -216,6 +219,46 @@ describe('islands against their tier (island_tiers.json)', () => {
         return poi ? n + triangles(place(poi, flat).pieces.flatMap(pieceGeometry)) : n;
       }, 0);
       expect(tris, tier).toBeLessThanOrEqual(budget.poiTriangles);
+    }
+  });
+});
+
+describe('curios on the shelves (piece O, drawn in piece P)', () => {
+  const piece = (id: string, x: number, rot: number, built = true) => ({
+    id,
+    built,
+    x,
+    y: 0,
+    z: 0,
+    rot,
+  });
+
+  it('a shelf, a table and a chest offer four places; ghosts and other pieces none', () => {
+    const slots = curioSlots([
+      piece('build.shelving', 0, 0),
+      piece('build.table', 4, 1),
+      piece('build.chest', 8, 2),
+      piece('build.chest', 12, 0, false),
+      piece('build.wall', 16, 0),
+    ]);
+    const room =
+      (DISPLAY_PIECES['build.shelving'] ?? 0) +
+      (DISPLAY_PIECES['build.table'] ?? 0) +
+      (DISPLAY_PIECES['build.chest'] ?? 0);
+    expect(slots).toHaveLength(room);
+    // On the shelving's top shelf, and turned with a table turned a quarter.
+    expect(slots[0]?.y).toBeCloseTo(1.94, 5);
+    expect(slots[1]?.yaw).toBeCloseTo(-Math.PI / 2, 5);
+    for (const s of slots.slice(1, 3)) expect(Math.hypot(s.x - 4, s.z)).toBeLessThan(0.8);
+  });
+
+  it('every curio in the catalog is drawn, small', () => {
+    for (const c of curioDefs()) {
+      expect(DRAWN_CURIOS, c.id).toContain(c.id);
+      const g = curiosGeometry([{ id: c.id, slot: { x: 0, y: 0, z: 0, yaw: 0 } }]);
+      g?.computeBoundingBox();
+      const size = g?.boundingBox?.getSize(new Vector3());
+      expect(size && Math.max(size.x, size.y, size.z), c.id).toBeLessThan(0.7);
     }
   });
 });

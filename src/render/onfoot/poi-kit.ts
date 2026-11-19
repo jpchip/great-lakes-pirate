@@ -48,7 +48,7 @@ const BARN_TRIM = 0xb8ab90;
 /** Turned earth, and the crops on it. */
 const SOIL = 0x5f4c38;
 const SOIL_DARK = 0x4c3c2c;
-const CROPS = [SOIL_DARK, 0xb9a45e, 0x5d7040, 0x9a9558] as const;
+const CROPS = [SOIL_DARK, 0xa8995e, 0x5d7040, 0x948f58] as const;
 const RAIL = 0x8a7f6c;
 const STUMP = 0x6f5f4a;
 const HIDES = [0x7a5638, 0x8f6a46, 0x5e4630] as const;

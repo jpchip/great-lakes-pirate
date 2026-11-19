@@ -4061,10 +4061,17 @@ async function boot(): Promise<void> {
   const syncHideoutsView = (): void => {
     if (!scene) return;
     const cut = buildMode.cut();
-    const key = `${hideouts.version}|${zone ? zoneData.id : '-'}|${arena ? 'a' : ''}|${JSON.stringify(cut ?? '')}`;
+    // The curios set out at each hideout, drawn on its shelves (Phase 9 piece P).
+    const shown = discovery.curios.flatMap((c) => (c.shownAt ? [`${c.shownAt}:${c.id}`] : []));
+    const key = `${hideouts.version}|${zone ? zoneData.id : '-'}|${arena ? 'a' : ''}|${JSON.stringify(cut ?? '')}|${shown.join(',')}`;
     if (key === hideoutsDrawn) return;
     hideoutsDrawn = key;
-    scene.hideouts.sync(hideouts.draw(cut));
+    scene.hideouts.sync(
+      hideouts.draw(cut).map((s) => ({
+        ...s,
+        curios: discovery.curios.filter((c) => c.shownAt === s.key).map((c) => c.id),
+      })),
+    );
   };
   if (import.meta.env.DEV || params.has('debug')) {
     /**
