@@ -171,7 +171,8 @@ export type DistrictBuildingDef = z.infer<typeof districtBuildingSchema>;
  * the counters you trade at on foot (piece F's `shop` marks, in the building of their `ref`)
  * and the saloon tables a moored ship's crew drinks at (`crew`). Piece G's `jail` marks set
  * the lockup's scene: `jail.cell` where you're held, the jailer's `jail.desk`, `jail.look`
- * and `jail.bars`, and the tier-5 `jail.guard` and `jail.marshal`.
+ * and `jail.bars`, and the tier-5 `jail.guard` and `jail.marshal`. A `sabotage` mark is
+ * where a feud's company's stock can be spoiled (Phase 9 piece D).
  */
 export const districtMarkSchema = z.object({
   id: z.string().regex(/^[a-z0-9_.]+$/),
@@ -186,6 +187,7 @@ export const districtMarkSchema = z.object({
     'shop',
     'crew',
     'jail',
+    'sabotage',
   ]),
   x: z.number(),
   z: z.number(),

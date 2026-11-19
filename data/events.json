@@ -267,6 +267,256 @@
       "defaultChoice": "ignore"
     },
     {
+      "id": "event.hollister_undercut",
+      "name": "Hollister undercuts you",
+      "type": "feud",
+      "weight": 1,
+      "cooldownDays": 0,
+      "hours": 72,
+      "channels": ["letter", "rumor"],
+      "draw": false,
+      "ports": ["port.bayfield"],
+      "maxPerRun": 1,
+      "outcomes": [
+        {
+          "kind": "log",
+          "text": "Hollister Fish & Packing cut the price they pay me for fish at {port}."
+        }
+      ],
+      "letter": {
+        "from": "E. T. Hollister, Hollister Fish & Packing Co.",
+        "subject": "Your fish",
+        "body": "Captain {captain}, \u2014 It has come to my notice that you have been landing fish on our dock at {port} as though you were one of the Company's own boats. You are not. From this week our buyers will give you sixty cents on the dollar for anything you bring in, and you may take it or carry it elsewhere. The Company's tugs have fished these grounds for twenty years and mean to fish them twenty more. \u2014 E. T. Hollister"
+      },
+      "rumor": [
+        "Hollister's put the word out on Captain {captain}: sixty cents on the dollar for that captain's fish, and the buyers on the {port} dock are to hold to it.",
+        "old Hollister doesn't like a boat he doesn't own selling fish on his dock. Captain {captain} is getting sixty cents on the dollar, and that's him being kind."
+      ]
+    },
+    {
+      "id": "event.hollister_refuses",
+      "name": "Hollister turns your catch away",
+      "type": "feud",
+      "weight": 1,
+      "cooldownDays": 0,
+      "hours": 72,
+      "channels": ["rumor", "paper"],
+      "draw": false,
+      "ports": ["port.bayfield"],
+      "maxPerRun": 1,
+      "paperNames": true,
+      "outcomes": [
+        {
+          "kind": "log",
+          "text": "Hollister's buyers at {port} will take no more of my fish."
+        }
+      ],
+      "rumor": [
+        "the buyers at {port} have orders: not a pound of Captain {captain}'s fish, at any price. Hollister means to starve that captain off the grounds."
+      ],
+      "paper": {
+        "headline": "Packer Shuts Its Dock to {captain}",
+        "deck": "Hollister Buyers to Take No Fish from the Independent Captain",
+        "body": "The Hollister Fish & Packing Company has instructed its buyers at {port} to take no fish from {who}, who has lately been selling on the Company's dock. Mr. Hollister told this paper that the grounds are fished by the Company's tugs and that he sees no reason to buy from a man who means to take them over."
+      }
+    },
+    {
+      "id": "event.hollister_reward",
+      "name": "Hollister posts a reward",
+      "type": "feud",
+      "weight": 1,
+      "cooldownDays": 0,
+      "hours": 72,
+      "channels": ["rumor", "paper"],
+      "draw": false,
+      "ports": ["port.bayfield"],
+      "maxPerRun": 1,
+      "outcomes": [
+        {
+          "kind": "heat",
+          "amount": 15
+        }
+      ],
+      "rumor": [
+        "Hollister's offering a hundred dollars to anyone who'll tell the marshal who's been at his sheds and his tugs. He's got a fair idea already."
+      ],
+      "paper": {
+        "headline": "Hollister Offers $100 Reward",
+        "deck": "Packer's Sheds and Tugs Attacked; Company Appeals to the Law",
+        "body": "The Hollister Fish & Packing Company offers one hundred dollars for information leading to the arrest of the persons responsible for the damage done to its property at {port} and on the water. The marshal has been asked to look into it, and Mr. Hollister makes no secret of whom he suspects."
+      }
+    },
+    {
+      "id": "event.hollister_terms",
+      "name": "Hollister's terms",
+      "type": "feud",
+      "weight": 1,
+      "cooldownDays": 0,
+      "hours": 48,
+      "channels": ["letter"],
+      "draw": false,
+      "ports": ["port.bayfield"],
+      "letter": {
+        "from": "E. T. Hollister, Hollister Fish & Packing Co.",
+        "subject": "Terms",
+        "body": "Captain {captain}, \u2014 This has gone on long enough, and it costs us both. The Company will buy your fish again at {port}, at eighty-five cents on the dollar, for as long as you care to sell it, on condition that it ends here. Write your answer care of the harbor master. \u2014 E. T. Hollister"
+      },
+      "choices": [
+        {
+          "id": "accept",
+          "label": "Take his terms",
+          "result": "You write that you accept. His buyers will take your fish again, at his price, and the Company will hear no more from you.",
+          "outcomes": []
+        },
+        {
+          "id": "refuse",
+          "label": "Tear it up",
+          "result": "You tear the letter in half and leave it with the harbor master to send back. Let him find out what it costs.",
+          "outcomes": []
+        }
+      ],
+      "defaultChoice": "refuse"
+    },
+    {
+      "id": "event.hollister_yielded",
+      "name": "You come to terms with Hollister",
+      "type": "feud",
+      "weight": 1,
+      "cooldownDays": 0,
+      "hours": 24,
+      "channels": ["paper", "rumor"],
+      "draw": false,
+      "ports": ["port.bayfield"],
+      "maxPerRun": 1,
+      "paperNames": true,
+      "outcomes": [
+        {
+          "kind": "log",
+          "text": "Came to terms with Hollister Fish & Packing: their price, and the feud's done."
+        }
+      ],
+      "rumor": [
+        "Captain {captain} took Hollister's terms in the end. Eighty-five cents on the dollar, and glad of it."
+      ],
+      "paper": {
+        "headline": "Hollister and {captain} Settle",
+        "deck": "Independent Captain Accepts the Company's Price",
+        "body": "The quarrel between the Hollister Fish & Packing Company and {who} is at an end. The captain has accepted the Company's terms and will sell at {port} at its price. Mr. Hollister said he was pleased that good sense had prevailed."
+      }
+    },
+    {
+      "id": "event.hollister_gives_sheds",
+      "name": "Hollister gives (the sheds)",
+      "type": "feud",
+      "weight": 1,
+      "cooldownDays": 0,
+      "hours": 48,
+      "channels": ["letter", "paper", "rumor"],
+      "draw": false,
+      "ports": ["port.bayfield"],
+      "maxPerRun": 1,
+      "paperNames": true,
+      "outcomes": [
+        {
+          "kind": "fame",
+          "amount": 6
+        },
+        {
+          "kind": "log",
+          "text": "Hollister Fish & Packing gave in: their sheds had cost them more than my fish ever would."
+        }
+      ],
+      "letter": {
+        "from": "E. T. Hollister, Hollister Fish & Packing Co.",
+        "subject": "Enough",
+        "body": "Captain {captain}, \u2014 I cannot prove what I know, and I have stopped trying. Our buyers at {port} will take your fish again, and pay you the best price on the dock and a little over. I ask only that the Company's sheds be left alone. \u2014 E. T. Hollister"
+      },
+      "rumor": [
+        "Hollister's given up. Two nights' brine spoiled and his warehouse cleaned out, and now he pays Captain {captain} over the odds for fish just to be let alone."
+      ],
+      "paper": {
+        "headline": "Hollister Gives Way",
+        "deck": "Packer Reopens Its Dock to {captain} After a Season of Trouble at Its Sheds",
+        "body": "After a season in which its packing house and warehouse at {port} were repeatedly broken into and its stock spoiled, the Hollister Fish & Packing Company has made its peace with {who}, whose fish it lately refused. Nothing has been proved, and Mr. Hollister would say only that the Company wished to put the matter behind it."
+      }
+    },
+    {
+      "id": "event.hollister_gives_tugs",
+      "name": "Hollister gives (the tugs)",
+      "type": "feud",
+      "weight": 1,
+      "cooldownDays": 0,
+      "hours": 48,
+      "channels": ["letter", "paper", "rumor"],
+      "draw": false,
+      "ports": ["port.bayfield"],
+      "maxPerRun": 1,
+      "paperNames": true,
+      "outcomes": [
+        {
+          "kind": "fame",
+          "amount": 6
+        },
+        {
+          "kind": "log",
+          "text": "Hollister Fish & Packing gave in: they couldn't keep their tugs on the grounds with me about."
+        }
+      ],
+      "letter": {
+        "from": "E. T. Hollister, Hollister Fish & Packing Co.",
+        "subject": "Enough",
+        "body": "Captain {captain}, \u2014 My tug captains will not go out while your sail is on the lake, and I cannot blame them. Our buyers at {port} will take your fish again at the best price on the dock and a little over. Leave the Company's boats alone. \u2014 E. T. Hollister"
+      },
+      "rumor": [
+        "Hollister's tugs are lying in the slip with their nets dry. Their skippers won't go out while Captain {captain} is about, and the old man's paying that captain over the odds to keep the peace."
+      ],
+      "paper": {
+        "headline": "Fish Tugs Stay in Port",
+        "deck": "Hollister Makes Peace with {captain} After Its Boats Are Robbed",
+        "body": "The Hollister Fish & Packing Company, several of whose tugs have been stopped and robbed on the grounds this season, has reopened its dock at {port} to {who} and will pay the captain's price. The Company's skippers say they will not fish while the matter stands, and Mr. Hollister has evidently decided that it shall not."
+      }
+    },
+    {
+      "id": "event.hollister_gives_trade",
+      "name": "Hollister gives (out-traded)",
+      "type": "feud",
+      "weight": 1,
+      "cooldownDays": 0,
+      "hours": 48,
+      "channels": ["letter", "paper", "rumor"],
+      "draw": false,
+      "ports": ["port.bayfield"],
+      "maxPerRun": 1,
+      "paperNames": true,
+      "outcomes": [
+        {
+          "kind": "fame",
+          "amount": 6
+        },
+        {
+          "kind": "standing",
+          "amount": 5
+        },
+        {
+          "kind": "log",
+          "text": "Hollister Fish & Packing gave in: I'd out-traded them, and {port} knew it."
+        }
+      ],
+      "letter": {
+        "from": "E. T. Hollister, Hollister Fish & Packing Co.",
+        "subject": "A proposal",
+        "body": "Captain {captain}, \u2014 You have made your point. The fish you will not sell us has gone to Duluth and Superior at a better price, and the town has taken your side. Our buyers at {port} will take your fish again at the best price on the dock and a little over, if you will bring it to us first. \u2014 E. T. Hollister"
+      },
+      "rumor": [
+        "Captain {captain} beat Hollister fair and square: carried the catch to Duluth and made friends of half of {port} doing it. Now the old man's paying over the odds to get that fish back."
+      ],
+      "paper": {
+        "headline": "Independent Beats the Packer",
+        "deck": "{captain} Wins Hollister's Custom After the Company Shut Its Dock",
+        "body": "When the Hollister Fish & Packing Company closed its dock at {port} to {who}, the captain carried the catch down the lake instead and sold it there. The Company has now reopened its dock to the captain, at a price above its own boats', and the town is said to be well pleased. It is a good season for the independent fisherman."
+      }
+    },
+    {
       "id": "event.poker_night",
       "name": "Poker night",
       "type": "opportunity",

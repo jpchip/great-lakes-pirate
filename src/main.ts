@@ -174,6 +174,8 @@ import {
 } from './sim/discovery/discovery';
 import { attachEvents, type GameEvents as SandboxEvents } from './gameplay/events';
 import { crewsIdle } from './sim/events/events';
+import { attachFeuds } from './gameplay/feuds';
+import { FEUDS, feudOpen } from './sim/events/feuds';
 import { attachLaw, devWitness } from './gameplay/law';
 import { attachPortLaw } from './gameplay/port-law';
 import { attachPapers } from './gameplay/papers';
@@ -807,11 +809,13 @@ async function boot(): Promise<void> {
         region = law.region() ?? 'region.chequamegon',
         kind: WitnessKind | 'none' = 'keeper',
         identification: Identification = 'ship',
+        company?: string,
       ) =>
         law.commit({
           crime,
           region,
           witnesses: kind === 'none' ? [] : [devWitness(kind, identification)],
+          ...(company ? { company } : {}),
         }),
       fileAll: () => law.fileAll(),
       harbor: (port: string) => portLaw.harbor(port),
@@ -1552,6 +1556,26 @@ async function boot(): Promise<void> {
     };
     (window as unknown as { __glpEvents: typeof hook }).__glpEvents = hook;
   }
+  // The Hollister feud (Phase 9 piece D): sales, crimes and the clock move it on; its buyers
+  // set what you're paid for fish at Bayfield.
+  const feuds = attachFeuds({
+    ctx,
+    events: sandboxEvents,
+    companyName: (id) => traffic.defs.factions.get(id)?.short ?? 'The company',
+  });
+  economy.sellFactor = (port, good) => feuds.sellTerms(port, good)?.factor ?? 1;
+  if (import.meta.env.DEV || params.has('debug')) {
+    // `__glpFeud.state()` reads the Hollister feud; `.check()` moves it on if a beat is due;
+    // `.pressure()` is the pressure by method.
+    const hook = {
+      state: () => feuds.state(),
+      pressure: () => feuds.pressure(),
+      check: () => feuds.check(),
+      sellTerms: (port: string, good: string) => feuds.sellTerms(port, good),
+      shunned: () => feuds.shunned(),
+    };
+    (window as unknown as { __glpFeud: typeof hook }).__glpFeud = hook;
+  }
   // The back room after dark (Phase 6 piece E): the fence and the shady shipwright.
   const backRoom = attachBackRoom({
     ctx,
@@ -1597,6 +1621,7 @@ async function boot(): Promise<void> {
     law: portLaw,
     papers,
     events: sandboxEvents,
+    feuds,
     backRoom,
     contracts,
     hazards,
@@ -3696,6 +3721,9 @@ async function boot(): Promise<void> {
             },
             readPapers: () => rumors.readSchedule(landing.def.port)?.text,
             perk: (id) => hasPerk(state.player.captain, id),
+            // Phase 9 piece D: Hollister's brine, while the feud is on.
+            canSabotage: (owner) =>
+              !!owner && FEUDS.some((f) => f.company === owner && feudOpen(state.feuds?.[f.id])),
             notice: (text) => showNotice(text),
           },
         },

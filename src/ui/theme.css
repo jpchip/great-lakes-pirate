@@ -1039,6 +1039,19 @@ body[data-mode='chart'] .chart-layer {
   font-size: 11px;
 }
 
+/* A feud's buyers (Phase 9 piece D): what Hollister pays you, under the Sell price. */
+.port-feud {
+  display: block;
+  font-size: 10px;
+  font-style: italic;
+  color: #7a4a12;
+  white-space: nowrap;
+}
+
+.port-feud.refused {
+  color: #8b2a1a;
+}
+
 .port-elsewhere.stale,
 .ledger-table tr.hot {
   color: #7a4a12;
