@@ -406,6 +406,8 @@ export function attachPorts(opts: PortControlOptions): PortControl {
   });
   // A zone change takes the ship off the pier without a cast-off.
   const offZone = ctx.events.on('ZoneExited', () => (dockedPort = undefined));
+  // A feud moved on (Hollister turns your fish away): the market's prices change under you.
+  const offFeud = ctx.events.on('FeudChanged', () => refresh());
 
   /** Deliveries and handed-back cargo on arriving, in a line each. */
   const arrivalNotices = (port: string): string[] => {
@@ -677,6 +679,7 @@ export function attachPorts(opts: PortControlOptions): PortControl {
       offDocked();
       offCastOff();
       offZone();
+      offFeud();
     },
   };
 }
