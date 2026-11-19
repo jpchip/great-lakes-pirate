@@ -78,14 +78,19 @@ test('finds the Lucerne by the lead line and grapples her cargo and papers', asy
   // Her legend heard, then at anchor over her: F casts the grapple.
   await page.evaluate(() => {
     const w = window as unknown as Hooks;
-    w.__glpDiscovery.lead('legend.lucerne', 'The Lucerne went down off Long Island with all hands.');
+    w.__glpDiscovery.lead(
+      'legend.lucerne',
+      'The Lucerne went down off Long Island with all hands.',
+    );
     w.__glpSalvage.over('wreck.lucerne', true);
   });
   await expect
     .poll(() => page.evaluate(() => (window as unknown as Hooks).__glpSalvage.chip()))
     .toContain('F cast the grapple');
   await page.keyboard.press('KeyF');
-  await expect(page.getByTestId('hud-status').filter({ hasText: 'Dragging the grapple' })).toHaveCount(1, {
+  await expect(
+    page.getByTestId('hud-status').filter({ hasText: 'Dragging the grapple' }),
+  ).toHaveCount(1, {
     timeout: 5000,
   });
   await shot(page, '1-grapple-down');

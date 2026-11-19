@@ -242,7 +242,7 @@ export function seenOnBottom(
 ): boolean {
   const s = rules.sight;
   if (c.daylight < s.daylight || c.hsM > s.maxHsM || c.depthM > s.maxDepthM) return false;
-  const range = s.rangeM * (1 - 0.5 * Math.max(0, c.depthM) / s.maxDepthM);
+  const range = s.rangeM * (1 - (0.5 * Math.max(0, c.depthM)) / s.maxDepthM);
   return c.distM <= Math.min(range, c.visibilityM);
 }
 
@@ -371,7 +371,10 @@ export function castGrapple(
       break;
     }
   }
-  const n = Math.min(line.qty, rng.int(rules.haulCu[0], Math.max(rules.haulCu[0], rules.haulCu[1])));
+  const n = Math.min(
+    line.qty,
+    rng.int(rules.haulCu[0], Math.max(rules.haulCu[0], rules.haulCu[1])),
+  );
   const share = soundShare(line.good, t.ageDays);
   let sound = 0;
   let spoiled = 0;

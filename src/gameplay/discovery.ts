@@ -338,10 +338,10 @@ export function attachDiscovery(opts: DiscoveryOptions): GameDiscovery {
           : how === 'sounding'
             ? 'Sounded out'
             : how === 'spyglass'
-            ? 'Made out through the glass'
-            : how === 'foot'
-              ? 'Came upon'
-              : 'Sighted';
+              ? 'Made out through the glass'
+              : how === 'foot'
+                ? 'Came upon'
+                : 'Sighted';
       log(state, t, `${verb} ${lowerFirst(name)}.`);
       opts.notice(`Charted: ${name}`);
       ctx.events.emit('PoiDiscovered', { id, kind, how });
@@ -550,10 +550,9 @@ export function attachDiscovery(opts: DiscoveryOptions): GameDiscovery {
     logbookRead(lightId) {
       const light = LIGHTHOUSES.find((l) => l.id === lightId);
       if (!light) return [];
-      const wrecks = [
-        ...(state.wrecks?.list ?? []),
-        ...oldWrecks().filter((w) => w.logged),
-      ].map((w) => ({ id: w.id, at: w.at }));
+      const wrecks = [...(state.wrecks?.list ?? []), ...oldWrecks().filter((w) => w.logged)].map(
+        (w) => ({ id: w.id, at: w.at }),
+      );
       const ids = chartFromLogbook(d, light.at, wrecks, now());
       for (const id of ids) {
         const p = placeDef(id);

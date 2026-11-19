@@ -96,7 +96,10 @@
       { "at": { "lat": 46.9046, "lon": -90.4347 }, "where": "on the Gull Island shoal" },
       { "at": { "lat": 47.0902, "lon": -90.417 }, "where": "on the reef off Outer Island" },
       { "at": { "lat": 46.9274, "lon": -90.5447 }, "where": "in Presque Isle Bay on Stockton" },
-      { "at": { "lat": 46.8807, "lon": -90.7655 }, "where": "off the north end of Basswood Island" },
+      {
+        "at": { "lat": 46.8807, "lon": -90.7655 },
+        "where": "off the north end of Basswood Island"
+      },
       { "at": { "lat": 47.0396, "lon": -90.6669 }, "where": "off Rocky Island" }
     ],
     "names": [

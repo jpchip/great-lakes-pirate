@@ -2079,9 +2079,13 @@ async function boot(): Promise<void> {
     if (!wreckHulls || ++hullsClock % 30 !== 1) return;
     const t = ctx.terrain;
     wreckHulls.sync(
-      salvage.sites().flatMap((s) =>
-        t && !s.deep ? [{ id: s.id, x: s.x, z: s.z, bottomY: t.heightAt(s.x, s.z), mast: !s.old }] : [],
-      ),
+      salvage
+        .sites()
+        .flatMap((s) =>
+          t && !s.deep
+            ? [{ id: s.id, x: s.x, z: s.z, bottomY: t.heightAt(s.x, s.z), mast: !s.old }]
+            : [],
+        ),
     );
   };
   const syncWrecking = (): void => {
