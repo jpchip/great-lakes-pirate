@@ -24,7 +24,14 @@ import {
 } from '../src/gameplay/onfoot/tools';
 import { lawWorld } from '../src/gameplay/law';
 import { gameLaw } from '../src/sim/law/defs';
-import { addWitness, commitCrime, fileDue, heatIn, type LawEvent } from '../src/sim/law/law';
+import {
+  addWitness,
+  commitCrime,
+  fileDue,
+  heatIn,
+  identifyInFlightReports,
+  type LawEvent,
+} from '../src/sim/law/law';
 import type { SkyLight } from '../src/sim/law/perception';
 import { parseLayout } from '../src/sim/district/layout';
 import { createWorldState } from '../src/sim/world-state';
@@ -219,6 +226,8 @@ function scene(
     {
       commit: (i) => commitCrime(defs, world(), i, inputs.gameSeconds),
       addWitness: (id, w) => addWitness(defs, world(), id, w, inputs.gameSeconds),
+      identifyWitness: (witnessId, identification) =>
+        identifyInFlightReports(state, witnessId, identification),
     },
     { region: REGION, port: 'port.bayfield' },
     () => (tools.carrying ? 'body' : inputs.suspect ? 'trespass' : undefined),

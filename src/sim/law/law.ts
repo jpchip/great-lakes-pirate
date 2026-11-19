@@ -456,6 +456,21 @@ export function interceptReport(world: LawWorld, reportId: string): LawEvent | u
   return { type: 'ReportIntercepted', crimeId: r.crimeId, reportId: r.id, witness: r.witness };
 }
 
+/**
+ * A witness learned who you are after his report was already sent (plan 11 §18.4 piece H):
+ * the report on its way names you when it lands.
+ */
+export function identifyInFlightReports(
+  law: LawState,
+  witnessId: string,
+  identification: Identification,
+): void {
+  if (identification === 'unknown') return;
+  for (const r of law.reports.inProgress) {
+    if (r.witness.id === witnessId && r.identification === 'unknown') r.identification = identification;
+  }
+}
+
 /** The news of the heaviest crimes reaches the neighbors (§3.4); more so with Fame. */
 function spreadNews(defs: LawDefs, world: LawWorld, now: number, events: LawEvent[]): void {
   const { law } = world;

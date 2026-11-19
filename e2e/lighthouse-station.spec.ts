@@ -3,7 +3,7 @@ import { expect, test, type Page } from '@playwright/test';
 /**
  * Phase 9 piece H (plan 11 §18.4): a lighthouse station on foot, at Raspberry Island. By
  * day the keepers welcome you: a word, the logbook, a can from the oil house. By night
- * they're on watch and asleep: tie up the sleepers, knife the one on watch, douse the lamp,
+ * the lone keeper is on watch at night: knife him, douse the lamp,
  * and it stays dark with nobody left to light it, until you light it again yourself.
  */
 
@@ -84,10 +84,7 @@ test('by day the keepers welcome you: their news, the logbook and a can of keros
   const errors = collectErrors(page);
   await landAt(page, 10);
   const here = await station(page, (s) => s.here());
-  expect(here?.keepers.map((k) => k.name)).toEqual([
-    'the keeper, Francis Jacker',
-    'the keeper, Ole Halvorsen',
-  ]);
+  expect(here?.keepers.map((k) => k.name)).toEqual(['the keeper, Francis Jacker']);
 
   // F does what's to be done there; a keeper close by has a word for you first, once a day.
   const actPastTalk = async (): Promise<string | undefined> => {
@@ -110,7 +107,7 @@ test('by day the keepers welcome you: their news, the logbook and a can of keros
   expect(errors).toEqual([]);
 });
 
-test('by night: tie the sleepers, knife the watch, douse the lamp and light it again', async ({
+test('by night: knife the keeper on watch, douse the lamp and light it again', async ({
   page,
 }) => {
   test.setTimeout(180_000);
@@ -120,18 +117,12 @@ test('by night: tie the sleepers, knife the watch, douse the lamp and light it a
     f.restock();
     f.suspect(false);
   });
-  expect((await raspberry(page))?.onDuty).toBe(2);
+  expect((await raspberry(page))?.onDuty).toBe(1);
   expect((await raspberry(page))?.dark).toBe(false);
 
-  // One keeper on watch up the tower; the other asleep in the house.
   const here = await station(page, (s) => s.here());
   expect(here?.keepers).toHaveLength(1);
   const watch = here?.keepers[0]?.id ?? '';
-
-  // Tie up the sleeper.
-  await goTo(page, 'house');
-  expect(await station(page, (s) => s.act())).toBe('Tie up the sleeping keeper');
-  expect((await raspberry(page))?.onDuty).toBe(1);
 
   // Knife the keeper on watch, from behind.
   expect(
