@@ -11,7 +11,6 @@ import {
   winterAt,
   winterDay,
   winterOf,
-  type IceKind,
   type IceSample,
   type Winter,
 } from './season';
@@ -109,7 +108,15 @@ export class LakeIce {
     }
     // A key that changes once a calendar day: the picture is redrawn no oftener.
     const day = Math.floor(calendarMs(gameSeconds) / 86_400_000);
-    return { key: `${this.seed}|${day}`, min: f.min, cellM: f.cellM, cols: f.cols, rows: f.rows, coverage, kind };
+    return {
+      key: `${this.seed}|${day}`,
+      min: f.min,
+      cellM: f.cellM,
+      cols: f.cols,
+      rows: f.rows,
+      coverage,
+      kind,
+    };
   }
 }
 

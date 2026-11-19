@@ -92,9 +92,20 @@ const seq = (...xs: number[]): (() => number) => {
 };
 
 describe('events.json', () => {
-  it('validates, with the ten events of piece A', () => {
+  it('validates, with the ten events of piece A and the scripted three of piece K', () => {
     const file = eventsFileSchema.parse(eventsJson);
-    expect(file.events.map((e) => e.id).sort()).toEqual(
+    expect(
+      file.events
+        .filter((e) => e.scripted)
+        .map((e) => e.id)
+        .sort(),
+    ).toEqual(['event.freeze_up', 'event.ice_out', 'event.mataafa'].sort());
+    expect(
+      file.events
+        .filter((e) => !e.scripted)
+        .map((e) => e.id)
+        .sort(),
+    ).toEqual(
       [
         'event.camp_demand',
         'event.coal_shortage',
@@ -258,6 +269,11 @@ describe('triggers and the draw', () => {
     }
     for (const e of EVENTS.events) {
       const mine = fires.filter((f) => f.id === e.id);
+      // The scripted ones come from the ice and the weather on their dates, never the draw.
+      if (e.scripted) {
+        expect(mine, e.id).toHaveLength(0);
+        continue;
+      }
       expect(mine.length, e.id).toBeGreaterThan(0);
       for (let i = 1; i < mine.length; i++) {
         const gap = must(mine[i]).at - must(mine[i - 1]).at;

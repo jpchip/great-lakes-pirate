@@ -91,6 +91,11 @@ export const eventDefSchema = z.object({
   cooldownDays: z.number().nonnegative(),
   /** How long it stands, game hours (the price, the payroll, the talk). */
   hours: z.number().positive(),
+  /**
+   * Fired by its own system, never drawn (piece K: freeze-up, ice-out and the Mataafa
+   * storm come from the ice and the weather, on their dates).
+   */
+  scripted: z.boolean().optional(),
   /** At most this many times a run; unlimited when absent. */
   maxPerRun: z.number().int().positive().optional(),
   channels: z.array(z.enum(EVENT_CHANNELS)).min(1),

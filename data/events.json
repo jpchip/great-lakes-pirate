@@ -16,9 +16,17 @@
       "cooldownDays": 5,
       "hours": 60,
       "channels": ["rumor"],
-      "triggers": { "months": [4, 5, 6, 7, 8, 9, 10] },
+      "triggers": {
+        "months": [4, 5, 6, 7, 8, 9, 10]
+      },
       "ports": ["port.duluth", "port.superior", "port.ashland", "port.washburn"],
-      "outcomes": [{ "kind": "payroll", "cents": [35000, 90000], "withinDays": 2 }],
+      "outcomes": [
+        {
+          "kind": "payroll",
+          "cents": [35000, 90000],
+          "withinDays": 2
+        }
+      ],
       "rumor": [
         "the {ship} carries the camps' payroll out of {port} {when}. A strongbox with {cash} in it, and two clerks to sit on it.",
         "there's a payroll going out of {port} {when} in the {ship}: {cash} for the mines, and nobody aboard but her crew and a clerk."
@@ -32,9 +40,18 @@
       "cooldownDays": 3,
       "hours": 18,
       "channels": ["rumor", "paper"],
-      "triggers": { "gale": true },
+      "triggers": {
+        "gale": true
+      },
       "ports": ["port.bayfield"],
-      "outcomes": [{ "kind": "restock" }, { "kind": "crewsIdle" }],
+      "outcomes": [
+        {
+          "kind": "restock"
+        },
+        {
+          "kind": "crewsIdle"
+        }
+      ],
       "rumor": [
         "every pier in {port} is full: the gale's kept the fleet in, the warehouses are stacked to the rafters, and the crews are drinking the town dry.",
         "half the lake's lying at {port} till the blow's done. Holds full, crews ashore, and nobody minding the sheds."
@@ -53,7 +70,9 @@
       "cooldownDays": 6,
       "hours": 6,
       "channels": ["chart"],
-      "triggers": { "months": [4, 5, 6, 7, 8, 9, 10] },
+      "triggers": {
+        "months": [4, 5, 6, 7, 8, 9, 10]
+      },
       "scene": {
         "title": "A lifeboat adrift",
         "body": "Your lookout sings out: a ship's boat, low in the water, four men in her and one of them waving a shirt on an oar. Their schooner opened up in the night and went down under them. They have a little money between them and nothing else."
@@ -64,9 +83,18 @@
           "label": "Take them aboard",
           "result": "You bring them aboard, give them blankets and coffee, and set them ashore at the next town. They'll tell everybody who picked them up.",
           "outcomes": [
-            { "kind": "standing", "amount": 6 },
-            { "kind": "fame", "amount": 2 },
-            { "kind": "flag", "flag": "rescued_survivors" },
+            {
+              "kind": "standing",
+              "amount": 6
+            },
+            {
+              "kind": "fame",
+              "amount": 2
+            },
+            {
+              "kind": "flag",
+              "flag": "rescued_survivors"
+            },
             {
               "kind": "log",
               "text": "Picked up four men from a lifeboat adrift and set them ashore."
@@ -78,10 +106,22 @@
           "label": "Take their money and leave them",
           "result": "You take their purses at the rail and bear away. They'll be picked up, or they won't, and either way they'll talk.",
           "outcomes": [
-            { "kind": "cash", "cents": [1500, 6000] },
-            { "kind": "heat", "amount": 18 },
-            { "kind": "standing", "amount": -8 },
-            { "kind": "log", "text": "Robbed four castaways in a lifeboat and left them adrift." }
+            {
+              "kind": "cash",
+              "cents": [1500, 6000]
+            },
+            {
+              "kind": "heat",
+              "amount": 18
+            },
+            {
+              "kind": "standing",
+              "amount": -8
+            },
+            {
+              "kind": "log",
+              "text": "Robbed four castaways in a lifeboat and left them adrift."
+            }
           ]
         },
         {
@@ -100,7 +140,9 @@
       "cooldownDays": 4,
       "hours": 14,
       "channels": ["scene"],
-      "triggers": { "hours": [15, 23] },
+      "triggers": {
+        "hours": [15, 23]
+      },
       "ports": ["port.bayfield"],
       "scene": {
         "title": "Idle hands on the pier",
@@ -112,7 +154,11 @@
           "label": "Stand them a round",
           "costCents": 200,
           "result": "You send a boy up to the saloon with two dollars. By dark the whole crew are there, and the men on watch tonight won't need much persuading.",
-          "outcomes": [{ "kind": "crewsIdle" }]
+          "outcomes": [
+            {
+              "kind": "crewsIdle"
+            }
+          ]
         },
         {
           "id": "walk_on",
@@ -130,11 +176,22 @@
       "cooldownDays": 8,
       "hours": 72,
       "channels": ["letter"],
-      "triggers": { "months": [8, 9, 10, 11] },
+      "triggers": {
+        "months": [8, 9, 10, 11]
+      },
       "ports": ["port.ashland", "port.washburn"],
       "outcomes": [
-        { "kind": "price", "good": "good.provisions", "factor": 0.3 },
-        { "kind": "price", "good": "good.whiskey", "factor": 0.4, "ports": ["port.two_harbors"] }
+        {
+          "kind": "price",
+          "good": "good.provisions",
+          "factor": 0.3
+        },
+        {
+          "kind": "price",
+          "good": "good.whiskey",
+          "factor": 0.4,
+          "ports": ["port.two_harbors"]
+        }
       ],
       "letter": {
         "from": "J. Larsen, foreman, Camp No. 4",
@@ -150,9 +207,17 @@
       "cooldownDays": 10,
       "hours": 72,
       "channels": ["paper"],
-      "triggers": { "months": [4, 5, 6, 7, 8, 9] },
+      "triggers": {
+        "months": [4, 5, 6, 7, 8, 9]
+      },
       "ports": ["port.ashland", "port.washburn", "port.bayfield"],
-      "outcomes": [{ "kind": "price", "good": "good.lumber", "factor": 0.3 }],
+      "outcomes": [
+        {
+          "kind": "price",
+          "good": "good.lumber",
+          "factor": 0.3
+        }
+      ],
       "paper": {
         "headline": "Mill Burned at {port}",
         "deck": "Night Fire Takes Saw Mill and Yard; Lumber Short",
@@ -167,11 +232,21 @@
       "cooldownDays": 6,
       "hours": 72,
       "channels": ["rumor", "paper"],
-      "triggers": { "months": [9, 10, 11] },
+      "triggers": {
+        "months": [9, 10, 11]
+      },
       "ports": ["port.bayfield", "port.red_cliff"],
       "outcomes": [
-        { "kind": "price", "good": "good.fresh_fish", "factor": 2.6 },
-        { "kind": "price", "good": "good.salted_fish", "factor": 1.8 }
+        {
+          "kind": "price",
+          "good": "good.fresh_fish",
+          "factor": 2.6
+        },
+        {
+          "kind": "price",
+          "good": "good.salted_fish",
+          "factor": 1.8
+        }
       ],
       "rumor": [
         "the herring are in thick off {port}: the tugs can't lift the nets, and fish are going for next to nothing on the dock. Carry them to Duluth and you'd do well."
@@ -190,10 +265,17 @@
       "cooldownDays": 10,
       "hours": 96,
       "channels": ["paper"],
-      "triggers": { "months": [8, 9, 10, 11] },
+      "triggers": {
+        "months": [8, 9, 10, 11]
+      },
       "ports": ["port.duluth"],
       "outcomes": [
-        { "kind": "price", "good": "good.coal", "factor": 0.3, "ports": ["port.superior"] }
+        {
+          "kind": "price",
+          "good": "good.coal",
+          "factor": 0.3,
+          "ports": ["port.superior"]
+        }
       ],
       "paper": {
         "headline": "Coal Short at the Head of the Lakes",
@@ -209,8 +291,16 @@
       "cooldownDays": 6,
       "hours": 72,
       "channels": ["paper"],
-      "triggers": { "wanted": { "min": 1 } },
-      "outcomes": [{ "kind": "cutter" }],
+      "triggers": {
+        "wanted": {
+          "min": 1
+        }
+      },
+      "outcomes": [
+        {
+          "kind": "cutter"
+        }
+      ],
       "paper": {
         "headline": "Revenue Cutter Ordered to {region}",
         "deck": "The Morrill to Patrol Against Lawlessness on the Water",
@@ -225,7 +315,12 @@
       "cooldownDays": 10,
       "hours": 48,
       "channels": ["letter"],
-      "triggers": { "wanted": { "min": 1 }, "hideout": true },
+      "triggers": {
+        "wanted": {
+          "min": 1
+        },
+        "hideout": true
+      },
       "letter": {
         "from": "A friend",
         "subject": "Somebody is talking",
@@ -237,20 +332,106 @@
           "label": "Pay him off",
           "costCents": 4000,
           "result": "You leave the money with the harbor master in a plain envelope. Nobody comes asking.",
-          "outcomes": [{ "kind": "log", "text": "Paid an informant to keep quiet." }]
+          "outcomes": [
+            {
+              "kind": "log",
+              "text": "Paid an informant to keep quiet."
+            }
+          ]
         },
         {
           "id": "ignore",
           "label": "Let him talk",
           "result": "You burn the letter. A week later the talk in the saloons is all about your hideout, and the law has heard it too.",
           "outcomes": [
-            { "kind": "spotted", "by": "an informant" },
-            { "kind": "heat", "amount": 15 },
-            { "kind": "log", "text": "An informant sold word of your hideout to the law." }
+            {
+              "kind": "spotted",
+              "by": "an informant"
+            },
+            {
+              "kind": "heat",
+              "amount": 15
+            },
+            {
+              "kind": "log",
+              "text": "An informant sold word of your hideout to the law."
+            }
           ]
         }
       ],
       "defaultChoice": "ignore"
+    },
+    {
+      "id": "event.freeze_up",
+      "name": "Freeze-up",
+      "type": "flavor",
+      "weight": 1,
+      "cooldownDays": 0,
+      "hours": 72,
+      "scripted": true,
+      "channels": ["rumor", "paper"],
+      "rumor": [
+        "{port}'s frozen in. The last boats went down the lake a week back, and the ones that didn't are laid up at the coal dock till spring.",
+        "that's the season done at {port}: ice from the piers out past the light, and the crews paid off. Fuel and flour'll be dear by February."
+      ],
+      "paper": {
+        "headline": "Navigation Closed at {port}",
+        "deck": "Ice Takes the Harbor; Vessels Laid Up for the Winter",
+        "body": "The ice has closed {port} to navigation for the season. The last of the fleet has cleared or gone into winter quarters, the tugs are hauled out, and the harbor master has struck his flag. Dealers report stocks of coal, flour and provisions laid in, but warn that prices will rise with the winter."
+      }
+    },
+    {
+      "id": "event.ice_out",
+      "name": "Ice-out",
+      "type": "flavor",
+      "weight": 1,
+      "cooldownDays": 0,
+      "hours": 72,
+      "scripted": true,
+      "channels": ["rumor", "paper"],
+      "rumor": [
+        "the ice is going out of {port}: floes all down the shore and open water at the piers. First boat in will get the town's welcome and a price for anything she carries.",
+        "{port}'s open again. Watch for floes off the points a week or two yet, they'll stave a plank."
+      ],
+      "paper": {
+        "headline": "The Ice Goes Out at {port}",
+        "deck": "Harbor Open; Watch Kept for the First Boat of the Season",
+        "body": "The ice went out of {port} this week before a fresh southwest wind, and the harbor is open to navigation. Floe ice still runs along the shore and off the points. The wharves are being made ready, and the town is watching the lake for the first boat of the season, whose captain will be given the customary silk hat."
+      }
+    },
+    {
+      "id": "event.mataafa",
+      "name": "The Mataafa storm",
+      "type": "flavor",
+      "weight": 1,
+      "cooldownDays": 0,
+      "hours": 96,
+      "scripted": true,
+      "maxPerRun": 1,
+      "channels": ["rumor", "paper"],
+      "ports": ["port.duluth"],
+      "outcomes": [
+        {
+          "kind": "price",
+          "good": "good.coal",
+          "factor": 0.6,
+          "ports": ["port.superior"]
+        },
+        {
+          "kind": "price",
+          "good": "good.provisions",
+          "factor": 0.7
+        }
+      ],
+      "rumor": [
+        "the worst blow anybody's seen: the Mataafa went onto the north pier at the canal with her crew aboard, and they froze in the after cabin with the whole town on the beach watching.",
+        "a northeaster out of nowhere, eighty mile an hour down the length of the lake. Two dozen boats ashore or gone from here to the Soo."
+      ],
+      "paper": {
+        "headline": "STORM OF THE CENTURY",
+        "deck": "The Mataafa Ashore at the Ship Canal; Her Crew Lost Within Sight of the City",
+        "body": "A northeast gale of unexampled fury swept the head of the lakes on Monday and Tuesday. The steel steamer Mataafa, turning back for shelter, struck the north pier at the ship canal and broke in two; nine of her crew froze to death in her stern within a few hundred yards of the thousands gathered on the shore. Vessels are reported ashore from Two Harbors to the Apostles, and the loss to shipping is beyond reckoning."
+      }
     }
   ]
 }

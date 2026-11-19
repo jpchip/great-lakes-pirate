@@ -72,7 +72,9 @@ export interface Winter {
 
 /** Calendar ms of a game time. */
 export function calendarMs(gameSeconds: number): number {
-  return CALENDAR_START_MS + (gameSeconds / SECONDS_PER_GAME_DAY) * CALENDAR_DAYS_PER_GAME_DAY * DAY_MS;
+  return (
+    CALENDAR_START_MS + (gameSeconds / SECONDS_PER_GAME_DAY) * CALENDAR_DAYS_PER_GAME_DAY * DAY_MS
+  );
 }
 
 /** The game time a calendar moment falls at. */
@@ -102,7 +104,10 @@ function winterWeight(ms: number): number {
 }
 
 /** The winter's roll: its severity, its fall storms and the anomaly's draws. */
-function rollWinter(seed: string, year: number): { severity: number; fallStorms: number; rng: Rng } {
+function rollWinter(
+  seed: string,
+  year: number,
+): { severity: number; fallStorms: number; rng: Rng } {
   const rng = Rng.fromSeed(`${seed}|winter|${year}`);
   const y = ICE.year;
   // A sum of three uniforms: most winters near the normals, a few hard or open ones.
@@ -142,7 +147,8 @@ export function computeWinter(seed: string, year: number): Winter {
 
   for (let c = 0; c < CLASSES; c++) {
     const shelter = shelterOf(c);
-    const need = g.coolShelteredFdd + (g.coolOpenFdd - g.coolShelteredFdd) * (1 - shelter) ** g.coolPower;
+    const need =
+      g.coolShelteredFdd + (g.coolOpenFdd - g.coolShelteredFdd) * (1 - shelter) ** g.coolPower;
     const pack = shelter < g.packBelow;
     const maxCover = pack ? g.packMaxCoverage : 1;
     const cd = g.breakup.clearDays;

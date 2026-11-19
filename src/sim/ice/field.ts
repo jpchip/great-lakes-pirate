@@ -84,7 +84,10 @@ export function buildShelterField(geo: ChartGeography): ShelterField {
   const BUCKET = 8;
   const bcols = Math.ceil(cols / BUCKET);
   const brows = Math.ceil(rows / BUCKET);
-  const buckets: { pos: Chart; fathoms: number }[][] = Array.from({ length: bcols * brows }, () => []);
+  const buckets: { pos: Chart; fathoms: number }[][] = Array.from(
+    { length: bcols * brows },
+    () => [],
+  );
   for (const s of geo.soundings) {
     const c = Math.floor((s.pos.x - min.x) / cellM / BUCKET);
     const r = Math.floor((s.pos.y - min.y) / cellM / BUCKET);
@@ -166,6 +169,7 @@ export function shelterAt(f: ShelterField, p: Chart): number {
   const ty = Math.max(0, Math.min(1, fy - r0));
   const v = (r: number, c: number): number => f.shelter[r * f.cols + c] as number;
   return (
-    (v(r0, c0) * (1 - tx) + v(r0, c1) * tx) * (1 - ty) + (v(r1, c0) * (1 - tx) + v(r1, c1) * tx) * ty
+    (v(r0, c0) * (1 - tx) + v(r0, c1) * tx) * (1 - ty) +
+    (v(r1, c0) * (1 - tx) + v(r1, c1) * tx) * ty
   );
 }

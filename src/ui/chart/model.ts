@@ -286,6 +286,9 @@ export function chartHud(src: ChartHudSources): ChartHudSnapshot {
   let problem: string | undefined;
   if (!voyage && course?.problem === 'aground') {
     problem = 'That course runs aground (red cross). Add a waypoint around the land.';
+  } else if (!voyage && course?.problem === 'ice') {
+    problem =
+      "That course runs into ice she can't break (hatched). Plot around it, or wait for the ice to go out.";
   } else if (!voyage && course?.problem === 'insideDestination') {
     problem = "You're already in that zone: sail there at the helm, not on the chart.";
   } else if (!voyage && plotted && course.problem === 'tooShort') {

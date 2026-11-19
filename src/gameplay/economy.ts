@@ -1,6 +1,7 @@
 import { WORLD_TICK_GAME_SECONDS } from '../core/time';
 import { cargoCapacity, gameEconomy, type EconomyDefs } from '../sim/economy/defs';
 import { holdLoad01 } from '../sim/economy/hold';
+import { lakeIceFor } from '../sim/ice/ice';
 import { shockMarket, tickMarkets, unitPrices, quote, type TradeSide } from '../sim/economy/market';
 import { buy, maxBuyable, sell, type TradeResult } from '../sim/economy/trade';
 import type { GameContext } from '../modes/context';
@@ -79,7 +80,10 @@ export function attachEconomy(
   };
 
   const offTick = ctx.events.on('WorldTick', ({ gameSeconds }) =>
-    tickMarkets(defs, markets(), gameSeconds, WORLD_TICK_GAME_SECONDS),
+    tickMarkets(defs, markets(), gameSeconds, WORLD_TICK_GAME_SECONDS, (port) =>
+      // A port frozen in for the winter gets nothing by water (piece K).
+      lakeIceFor(runSeed(ctx)).harborClosed(port, gameSeconds),
+    ),
   );
   syncLoad();
 

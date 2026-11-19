@@ -38,7 +38,12 @@ const REPORT_S = 4;
 const lastReport = new WeakMap<Entity, number>();
 const hazardEvents: HazardEvent[] = [];
 
-export function iceSailingSystem(world: GameWorld, deps: IceSailingDeps, dt: number, now: number): void {
+export function iceSailingSystem(
+  world: GameWorld,
+  deps: IceSailingDeps,
+  dt: number,
+  now: number,
+): void {
   for (const e of world.with('transform', 'previousTransform', 'sailing', 'hazards')) {
     const s = e.sailing.state;
     const h = e.hazards.state;

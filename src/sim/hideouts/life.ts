@@ -31,10 +31,14 @@ import { structure } from './structures';
 // ---------------------------------------------------------------------------------
 // Sleep
 
-export type SleepUntil = 'dawn' | 'noon' | 'dusk' | 'eight';
+/**
+ * `iceOut` (piece K): from freeze-up on, sleep the winter through until the ice goes out
+ * of the hideout's waters, with the still and the law running (plan 11 §18.5).
+ */
+export type SleepUntil = 'dawn' | 'noon' | 'dusk' | 'eight' | 'iceOut';
 
-/** The choices, in the order the dialog shows them. */
-export const SLEEP_CHOICES: readonly [SleepUntil, string][] = [
+/** The choices, in the order the dialog shows them (`iceOut` only when frozen in). */
+export const SLEEP_CHOICES: readonly [Exclude<SleepUntil, 'iceOut'>, string][] = [
   ['dawn', 'Until dawn'],
   ['noon', 'Until noon'],
   ['dusk', 'Until dusk'],
@@ -48,7 +52,10 @@ const MIN_SLEEP_S = 3600;
  * Seconds from `now` until the next waking hour: sunrise, noon, sunset, or eight hours on.
  * Always at least an hour and at most a day, so lying down at dawn for dawn sleeps round.
  */
-export function sleepSeconds(until: SleepUntil, now: number): number {
+export function sleepSeconds(
+  until: Exclude<SleepUntil, 'iceOut'>,
+  now: number,
+): number {
   if (until === 'eight') return 8 * 3600;
   if (until === 'noon') {
     const into = ((now % SECONDS_PER_GAME_DAY) + SECONDS_PER_GAME_DAY) % SECONDS_PER_GAME_DAY;
@@ -73,6 +80,7 @@ export function sleepText(until: SleepUntil, seconds: number): string {
   const m = Math.round(seconds / 60);
   const span = m >= 60 ? `${Math.floor(m / 60)} h${m % 60 ? ` ${m % 60} m` : ''}` : `${m} m`;
   if (until === 'eight') return `You slept eight hours.`;
+  if (until === 'iceOut') return `You wintered at the hideout until the ice went out.`;
   return `You slept until ${until} (${span}).`;
 }
 

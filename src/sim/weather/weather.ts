@@ -795,7 +795,10 @@ export function mataafa(): { spawnAt: number; peakAt: number } {
 export function mataafaSystem(state: WeatherState, t: number): PressureSystem {
   const { peakAt } = mataafa();
   // At its height the low lies about 250 km south-east of Duluth, moving north-east.
-  const peak = { x: WORLD_PROJECTION_REF.duluth.x + 200_000, y: WORLD_PROJECTION_REF.duluth.y - 250_000 };
+  const peak = {
+    x: WORLD_PROJECTION_REF.duluth.x + 200_000,
+    y: WORLD_PROJECTION_REF.duluth.y - 250_000,
+  };
   const speed = (MATAAFA_KMH * 1000) / HOUR;
   const vx = speed * Math.SQRT1_2;
   const vy = speed * Math.SQRT1_2;

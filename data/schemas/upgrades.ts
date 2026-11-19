@@ -80,6 +80,12 @@ export const upgradeEffectsSchema = z.object({
   nightSightMul: z.number().positive().optional(),
   /** Muffled blocks (plan 10 §5.6): close in after dark, watchers are slower to notice her. */
   muffled: z.boolean().optional(),
+  /**
+   * The ice-strengthened bow (plan 10 §5.1; Phase 9 piece K): iron plating on the stem and
+   * a sheathed forefoot. Ice does 70% less damage and drags 40% less, and she can force ice
+   * two and a half times as thick before it stops her.
+   */
+  iceBow: z.boolean().optional(),
   /** Corrected charts: chart voyages run this much faster (plan 10 §5.5's better routing). */
   chartSpeedMul: z.number().positive().optional(),
 });

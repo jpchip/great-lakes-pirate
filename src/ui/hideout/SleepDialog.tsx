@@ -38,6 +38,16 @@ export function SleepDialog({ view, actions }: { view: SleepView; actions: Sleep
                 {label}
               </button>
             ))}
+            {view.iceOut && (
+              <button
+                type="button"
+                class="menu-button"
+                data-testid="sleep-iceOut"
+                onClick={() => actions.sleep('iceOut')}
+              >
+                {view.iceOut}
+              </button>
+            )}
           </span>
           <button
             type="button"

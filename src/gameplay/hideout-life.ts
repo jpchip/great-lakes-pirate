@@ -1,6 +1,7 @@
 import type { SiteDef } from '../../data/schemas/sites';
 import type { Zone, ZoneFrame } from '../core/coords';
 import type { GameContext } from '../modes/context';
+import { aboutDate } from './ice';
 import { addToHold, holdFree, holdUsed, type Hold } from '../sim/economy/hold';
 import {
   concealmentOf,
@@ -70,6 +71,11 @@ export interface HideoutLifeDeps {
   standing(): { x: number; y: number; z: number } | undefined;
   /** The walked islands' prefab pieces in the zone (the salvage piles among them). */
   islandPieces(): Iterable<PlacedPoiPiece>;
+  /**
+   * When the ice holding a hideout's waters goes out (piece K), if it's frozen in now: the
+   * bunk then offers to sleep until then. Absent or undefined: no such choice.
+   */
+  iceOutAt?(hideoutId: string): number | undefined;
   /** Why sleeping is refused now (the law on your tail), or undefined. */
   blocked(): string | undefined;
   /** The ship's hold and its capacity, for a load put in the rowboat. */
@@ -93,6 +99,8 @@ export interface SleepView {
   /** "three times as fast as away". */
   factor: number;
   message: string | undefined;
+  /** "Until the ice goes out (about April 21)", when the hideout's waters are frozen in. */
+  iceOut?: string | undefined;
 }
 
 export interface SleepActions {
@@ -183,7 +191,14 @@ export function attachHideoutLife(deps: HideoutLifeDeps): HideoutLife {
       heat: Math.round(ctx.state.wanted[region]?.heat ?? 0),
       factor: law.defs.wanted.decay.layLowFactor,
       message,
+      iceOut: iceOutLabel(sleepAt),
     };
+  };
+
+  const iceOutLabel = (id: string): string | undefined => {
+    const at = deps.iceOutAt?.(id);
+    if (at === undefined || at <= now()) return undefined;
+    return `Until the ice goes out (${aboutDate(at)})`;
   };
 
   const closeSleep = (): void => {
@@ -207,7 +222,18 @@ export function attachHideoutLife(deps: HideoutLifeDeps): HideoutLife {
     const region = site.wantedRegion;
     const before = ctx.state.wanted[region]?.heat ?? 0;
     const tierBefore = tierIn(law.defs, ctx.state, region);
-    const seconds = sleepSeconds(until, now());
+    let seconds: number;
+    if (until === 'iceOut') {
+      const at = deps.iceOutAt?.(id);
+      if (at === undefined || at <= now()) {
+        message = "The ice isn't holding her in.";
+        deps.showSleep(view());
+        return message;
+      }
+      seconds = Math.max(3600, at - now());
+    } else {
+      seconds = sleepSeconds(until, now());
+    }
     const ticks = Math.max(1, Math.round(seconds / 600));
     law.layLow = region;
     try {

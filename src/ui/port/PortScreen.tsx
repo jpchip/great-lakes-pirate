@@ -63,6 +63,8 @@ export interface PortActions {
   buyGun?(gunId: string): string | undefined;
   /** The harbor master (Phase 5 piece E): pay the fine or bribe on offer; what came of it. */
   payHarbor?(kind: 'fine' | 'bribe'): string | undefined;
+  /** Frozen in (piece K): lay her up and let the winter pass until the ice goes out. */
+  layUp?(): string | undefined;
   /** Letters at the harbor master's (Phase 9 piece A): one opened, and one answered. */
   readLetter?(key: string): void;
   answerLetter?(key: string, choice: string): string | undefined;

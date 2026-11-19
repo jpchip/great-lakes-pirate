@@ -157,6 +157,23 @@ export function Harbor({
             {h.refusalText}
           </p>
         )}
+        {h.frozenUntil && (
+          <div class="harbor-deal" data-testid="harbor-frozen">
+            <p class="menu-note">
+              The harbor's frozen in. Nothing goes in or out until the ice goes out,{' '}
+              {h.frozenUntil}. He'll see her laid up at the coal dock for the winter, and the town
+              will put you up.
+            </p>
+            <button
+              type="button"
+              class="menu-button primary"
+              data-testid="harbor-lay-up"
+              onClick={() => setMessage(actions.layUp?.())}
+            >
+              Lay up until the ice goes out
+            </button>
+          </div>
+        )}
         <ul class="harbor-notes">
           {h.reportsComing > 0 && (
             <li data-testid="harbor-reports">

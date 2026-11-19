@@ -258,8 +258,12 @@ export function createTraffic(
   projection: ChartProjection,
   seed: string,
   graph: RouteGraph = westernSuperiorRoutes(),
-  /** The run's ice keeps ships in port while their lanes' ends are frozen (piece K). */
-  withIce = true,
+  /**
+   * The run's seed for the ice (piece K), which keeps ships in port while their lanes'
+   * ends are frozen: the run's own (the traffic's seed less its `-traffic`), so the
+   * timetable and the rest of the game see the same winter. False for no ice.
+   */
+  iceSeed: string | false = seed.replace(/-traffic$/, ''),
 ): Contact[] {
   const toChart = ([lon, lat]: [number, number]): Chart => projection.geoToChart({ lat, lon });
   const contacts: Contact[] = [];
@@ -300,12 +304,12 @@ export function createTraffic(
           homeNode: flip ? lane.to : lane.from,
           awayNode: flip ? lane.from : lane.to,
         };
-        if (withIce) {
+        if (iceSeed !== false) {
           const end = (n: RouteNode): IceEnd => ({ port: n.port, lonLat: n.at });
           const ends: [IceEnd, IceEnd] = flip
             ? [end(toNode), end(fromNode)]
             : [end(fromNode), end(toNode)];
-          schedule.ice = { seed, ends };
+          schedule.ice = { seed: iceSeed, ends };
         }
         schedule.phaseS = hash01(`${key}:phase`) * cycleS(schedule);
         const kind = CLASS_KIND[entry.classId] ?? 'freighter';

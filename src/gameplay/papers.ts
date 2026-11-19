@@ -385,19 +385,25 @@ export function attachPapers(opts: PapersOptions): GamePapers {
       });
       ctx.events.emit('FeatAccomplished', { kind: 'recordRun', region, port: e.to });
     }),
+    // The first boat into Duluth after the ice (piece K's race): the ice module judges it.
+    ev.on('FirstBoatIn', ({ port, you }) => {
+      if (!you) return;
+      const at = now();
+      const region = regionOfPort(port);
+      if (!region) return;
+      const s = state();
+      const year = calendarDate(at).getUTCFullYear();
+      if (s.firstBoatYear === year) return;
+      s.firstBoatYear = year;
+      add({ kind: 'firstBoat', key: `firstBoat:${year}`, at, region, port, ident: 'person' });
+      ctx.events.emit('FeatAccomplished', { kind: 'firstBoat', region, port });
+    }),
     ev.on('PortVisited', ({ port }) => {
       const at = now();
       const region = regionOfPort(port);
       if (!region) return;
       const s = state();
-      const date = calendarDate(at);
-      const year = date.getUTCFullYear();
       const f = defs.file.feats;
-      if (s.firstBoatYear !== year && f.iceOutMonths.includes(date.getUTCMonth())) {
-        s.firstBoatYear = year;
-        add({ kind: 'firstBoat', key: `firstBoat:${year}`, at, region, port, ident: 'person' });
-        ctx.events.emit('FeatAccomplished', { kind: 'firstBoat', region, port });
-      }
       const p = geo.ports.find((x) => x.id === port);
       const w = ctx.state.environment.weather;
       if (

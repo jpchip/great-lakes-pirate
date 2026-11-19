@@ -48,6 +48,13 @@ export interface SailingModeOptions {
    */
   dockGate?: ((berthId: string) => boolean) | undefined;
   /**
+   * Asked before F casts her off a berth: false holds her there (piece K: a harbor frozen
+   * in). Absent, every cast-off stands.
+   */
+  castOffGate?: ((berthId: string) => boolean) | undefined;
+  /** Ice under the hulls (piece K): drag, damage and the edge she can't pass, after the hazards. */
+  ice?: { step(dt: number): void } | undefined;
+  /**
    * The law at close quarters (Phase 5 piece C): the cutter's captain, after the arena's
    * helms and before the ships move, in a zone or an arena.
    */
@@ -167,6 +174,11 @@ export function createSailingMode(ctx: GameContext, options: SailingModeOptions)
       const berth = berthAt(e.sailing.state, e.hazards.cls, hazardEnv);
       if (berth && !gate(berth.id)) cmd.interact = false;
     }
+    const off = options.castOffGate;
+    const h = e.hazards?.state;
+    if (cmd.interact && off && h?.mooring === 'docked' && h.berthId && !off(h.berthId)) {
+      cmd.interact = false;
+    }
     return cmd;
   };
   const hazardEnv = {
@@ -226,6 +238,7 @@ export function createSailingMode(ctx: GameContext, options: SailingModeOptions)
       hazardSystem(ctx.world, mooringFor, hazardEnv, options.wind, scale, dt, (e, ev) =>
         emitHazard(ctx.events, e.id, ev),
       );
+      options.ice?.step(dt);
       options.arena?.step(dt);
       options.law?.step(dt);
       options.targets?.step(dt);

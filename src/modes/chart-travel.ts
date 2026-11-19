@@ -119,6 +119,17 @@ export interface ChartTravelHost {
   /** Every hostile hunts and forces meetings, whatever the Wanted (`?cutter=hunt`, dev). */
   cutterHunts?: boolean;
   /**
+   * The winter's ice (piece K), at chart geography points: where it closes the way to her
+   * ship, its drag on her where she can get through, and the chart's picture of it.
+   */
+  ice?:
+    | {
+        closed(p: Chart): boolean;
+        drag(p: Chart): number;
+        picture(): import('../sim/ice/ice').IcePicture;
+      }
+    | undefined;
+  /**
    * The law's ships (Phase 5 piece C): whether one hunts the player at `player` (chart
    * geography meters) and how far her lookout sees the ship through `visibilityM` of weather.
    */
@@ -255,6 +266,7 @@ export function createChartTravel(host: ChartTravelHost): ChartTravel {
     handled: new Set(),
     quietUntil: 0,
     hostilesHunt: host.cutterHunts ?? false,
+    ice: host.ice,
   };
   const hunter = host.hunter;
   if (hunter) {
@@ -306,6 +318,13 @@ export function createChartTravel(host: ChartTravelHost): ChartTravel {
 
   const chart = createChartMode(ctx, session, {
     onArrived: (zone) => arrive(zone),
+    onIceAhead: () => {
+      notice = {
+        title: 'Ice ahead',
+        text: "The ice has closed the way ahead, too thick for her to break. She's hove to at its edge: plot a course around it.",
+      };
+      void host.save();
+    },
   });
 
   /** A zone pose on this chart: zones sit in the world chart frame. */
@@ -440,6 +459,7 @@ export function createChartTravel(host: ChartTravelHost): ChartTravel {
             boat: ashorePos.boat ? onChart(ashorePos.boat, ashoreFrame) : undefined,
           },
           weather: pictureNow(),
+          ice: host.ice?.picture(),
           now: clock.gameSeconds,
           daylight: daylight(h),
           spotRangeM: spotRangeM(h) * weather,
