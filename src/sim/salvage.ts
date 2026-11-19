@@ -266,7 +266,15 @@ export interface CastConditions {
 /** Why the grapple can't be worked here now, or undefined. */
 export function castRefusal(
   rules: SalvageRules,
-  c: { depthM: number; hsM: number; deep: boolean; holdFree: number; pickedClean: boolean },
+  c: {
+    depthM: number;
+    hsM: number;
+    deep: boolean;
+    holdFree: number;
+    pickedClean: boolean;
+    /** Her papers or a curio still down there (they need no room in the hold). */
+    findsLeft?: boolean;
+  },
 ): string | undefined {
   if (c.deep) return 'She lies far too deep for the grapple. A diving suit would reach her.';
   if (c.depthM > rules.maxDepthM) {
@@ -274,7 +282,7 @@ export function castRefusal(
   }
   if (c.pickedClean) return "There's nothing left in her worth the grapple: she's picked clean.";
   if (c.hsM > rules.maxHsM) return 'Too much sea running to work a grapple. Wait for a calm.';
-  if (c.holdFree <= 0) return 'No room in the hold for anything she gives up.';
+  if (c.holdFree <= 0 && !c.findsLeft) return 'No room in the hold for anything she gives up.';
   return undefined;
 }
 
@@ -339,7 +347,7 @@ export function castGrapple(
   const finds: ('papers' | 'curio')[] = [];
   if (t.papers && p.papersAt === undefined) finds.push('papers');
   if (t.curio && p.curioAt === undefined) finds.push('curio');
-  if (finds.length && (left.length === 0 || rng.chance(rules.findChance))) {
+  if (finds.length && (left.length === 0 || holdFree < 1 || rng.chance(rules.findChance))) {
     p.hooked++;
     const f = rng.pick(finds);
     if (f === 'papers') {

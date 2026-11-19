@@ -215,6 +215,9 @@ export function attachSalvage(deps: SalvageDeps): GameSalvage {
       deep: s.deep,
       holdFree: holdFree(state.player.cargo, deps.economy.capacity),
       pickedClean: pickedClean(s.target, p),
+      findsLeft:
+        (s.target.papers && p?.papersAt === undefined) ||
+        (!!s.target.curio && p?.curioAt === undefined),
     });
     return { site: s, depthM, refusal };
   };
