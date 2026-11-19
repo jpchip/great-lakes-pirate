@@ -34,6 +34,7 @@ import { eventsStateSchema, mailSchema } from './events/events';
 import { iceStateSchema } from './ice/state';
 import { feudsStateSchema } from './events/feuds';
 import { MOUNTS } from '../../data/schemas/combat';
+import { curiosSchema, discoveryStateSchema, leadsSchema } from './discovery/discovery';
 
 /**
  * WorldState skeleton (plan 01 §3.1, plan 16 §5.2). Each slice is filled in by its
@@ -689,6 +690,16 @@ export const worldStateSchema = z.object({
    * them. Optional: absent, the lake has none yet.
    */
   wrecks: wrecksSchema.optional(),
+  /**
+   * What's on the captain's chart (plan 11 §14 `discovery`, plan 03 §9; Phase 9 piece O):
+   * places, hideout sites and wrecks found, by id, and those only heard of. Optional:
+   * absent, a run from before it is charted on load with what it has visited.
+   */
+  discovery: discoveryStateSchema.optional(),
+  /** Leads with their search circles and clues (plan 11 §14 `leads[]`; piece O). */
+  leads: leadsSchema.optional(),
+  /** Curios owned and where each is set out (plan 11 §14 `curios[]`; piece O). */
+  curios: curiosSchema.optional(),
   /**
    * Wrecking (plan 06 §6.2, plan 11 §18.4 piece I): false lights burning, ships judged at
    * them this night, ships stranded on the marks' shoals, and the investigations opened.

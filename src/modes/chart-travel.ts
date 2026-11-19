@@ -148,7 +148,15 @@ export interface ChartTravelHost {
   /** The zone's sailing tick, run under a look while `sailOn` holds. */
   sailTick?: ((dt: number) => void) | undefined;
   /** Places the captain knows to mark on the chart, e.g. the smuggler's anchorage (piece H). */
-  marks?: (() => readonly { at: Geo; label: string; kind: ChartMarkKind }[]) | undefined;
+  marks?:
+    | (() => readonly {
+        at: Geo;
+        label: string;
+        kind: ChartMarkKind;
+        /** Real meters: a shoal's extent, a lead's circle (Phase 9 piece O). */
+        radiusM?: number | undefined;
+      }[])
+    | undefined;
   /**
    * The captain and the rowboat, zone meters, while a look is open from on foot (piece
    * ask: see the island and the ship from the chart). Undefined at the helm.
@@ -470,6 +478,7 @@ export function createChartTravel(host: ChartTravelHost): ChartTravel {
             pos: geo.projection.geoToChart(m.at),
             label: m.label,
             kind: m.kind,
+            radiusM: m.radiusM,
           })),
         });
       },

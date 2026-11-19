@@ -40,7 +40,7 @@ import { attachPoker } from './gameplay/poker';
 import { fameTier, gameLaw, wantedTier } from './sim/law/defs';
 import { identifyInFlightReports } from './sim/law/law';
 import { attachRumors } from './gameplay/rumors';
-import { knowsRumor } from './sim/rumors/rumors';
+import { knowsRumor, rumorDefs } from './sim/rumors/rumors';
 import { smugglerAnchorage } from './sim/economy/smuggler';
 import { attachContracts, contractsOf } from './gameplay/contracts';
 import { attachSmugglers, type SmugglerControl } from './gameplay/smuggler';
@@ -109,7 +109,12 @@ import { createHazardState, mooringBerths, type MooringBerth } from './sim/saili
 import { PLAYER_SHIP_IDS, sailShipRecord } from './sim/sailing/ships';
 import { httpBytes, loadIslandGround, loadZoneTerrain, type LoadedZone } from './sim/terrain/load';
 import type { GridField } from './sim/terrain/grid-field';
-import { placeZoneIslands, walkableIslands, type PlacedIsland } from './sim/islands/on-foot';
+import {
+  ISLANDS,
+  placeZoneIslands,
+  walkableIslands,
+  type PlacedIsland,
+} from './sim/islands/on-foot';
 import { zoneClearings } from './sim/terrain/clearings';
 import { plantTile, TREE_CELL_M } from './sim/terrain/vegetation';
 import { attachBuildMode } from './gameplay/build-mode';
@@ -165,6 +170,13 @@ import { createNewRun, startingPort } from './sim/character/new-run';
 import { withSailingPerks } from './sim/character/perks';
 import { attachCaptain } from './gameplay/captain';
 import { attachAmbitions } from './gameplay/ambitions';
+import { attachDiscovery, placeTalk } from './gameplay/discovery';
+import {
+  CHARTED_SHOAL_WARN_DRAFTS,
+  discoveriesFile,
+  worldGeo,
+  type Lookout,
+} from './sim/discovery/discovery';
 import { attachEvents, type GameEvents as SandboxEvents } from './gameplay/events';
 import { aboutDate, attachIce, ICE_BOW_UPGRADE } from './gameplay/ice';
 import { iceSailingSystem } from './gameplay/ice-sailing';
@@ -786,6 +798,16 @@ async function boot(): Promise<void> {
   const portLaw = attachPortLaw(ctx, law, economy);
   // The run's record for the end screen: its counters and the logbook (piece D).
   attachRecord(ctx, law.defs);
+  // Discovery and the journal (Phase 9 piece O): what's on the chart, leads and curios. The
+  // lookout is wired below, once the camera, the chart and the captain ashore are up.
+  const lookoutRef: { current: (() => Lookout | undefined) | undefined } = { current: undefined };
+  const noticeRef: { current: ((text: string) => void) | undefined } = { current: undefined };
+  const discovery = attachDiscovery({
+    ctx,
+    law: law.defs,
+    notice: (text) => noticeRef.current?.(text),
+    lookout: () => lookoutRef.current?.(),
+  });
   if (import.meta.env.DEV || params.has('debug')) {
     // `__glpLaw.commit('crime.smuggler_deal', 'region.apostles', 'keeper', 'ship')` commits
     // a crime with one witness; `fileAll()` lands every report now.
@@ -1253,6 +1275,7 @@ async function boot(): Promise<void> {
       close: () => stashRef.current?.actions.close(),
       castOff: () => stashRef.current?.actions.castOff(),
       goAshore: () => stashRef.current?.actions.goAshore(),
+      setCurio: (id, show) => stashRef.current?.actions.setCurio(id, show),
     },
     chart: {
       sail: () => travelRef.current?.setSail(),
@@ -1341,6 +1364,7 @@ async function boot(): Promise<void> {
     smugglerAnchorage: () => smugglerAnchorage(),
     spotted: () => lifeRef.current?.spottedTalk() ?? [],
     eventTalk: () => eventsRef.current?.talk() ?? [],
+    placeTalk: () => placeTalk(state.discovery),
   });
   // The papers (Phase 5 piece F): headlines from the bus's news, Fame from the printing, the
   // newsstand in port, storm signals, and the tier-5 front page once per region.
@@ -1662,6 +1686,7 @@ async function boot(): Promise<void> {
   const ports = attachPorts({
     ctx,
     economy,
+    journal: () => discovery.journal(),
     poker,
     law: portLaw,
     papers,
@@ -2544,6 +2569,10 @@ async function boot(): Promise<void> {
     ctx,
     economy,
     hazards,
+    curios: {
+      view: (hideout) => discovery.hideoutCurios(hideout),
+      set: (id, hideout) => discovery.setCurio(id, hideout),
+    },
     berthPier: (berthId) => sailingOptions.berths.find((b) => b.id === berthId)?.dockId,
     shipPose,
     speedMs: () => sailing.state.speed,
@@ -3149,11 +3178,20 @@ async function boot(): Promise<void> {
   sailingOptions.landSeparation = landSeparation;
   sailingOptions.combat = { step: (dt) => combat.step(dt) };
   sailingOptions.helmHeld = () => aim.steeringLocked();
+  // A charted shoal under her (piece O): the readout warns earlier, as the sounding machine.
+  sailingOptions.chartedWarnDrafts = () => {
+    if (arena || inArenaSpace) return undefined;
+    const at = worldGeo(zoneToChart(shipPose(), zoneFrame(zone, zoneData)));
+    return discovery.overChartedShoal(at) ? CHARTED_SHOAL_WARN_DRAFTS : undefined;
+  };
   const sailingMode = createSailingMode(ctx, sailingOptions);
   machine.register({ id: 'mainMenu', enter: () => (input.context = 'menu') }).register(sailingMode);
   // A refused F or anchor order says why on the HUD for a few seconds.
   let notice: { text: string; untilS: number } | undefined;
   let hudSeconds = 0;
+  let discoveryClock = 0;
+  const DISCOVERY_LOOK_S = 1;
+  noticeRef.current = (text) => showNotice(text);
   const showNotice = (text: string): void => {
     notice = { text, untilS: hudSeconds + NOTICE_S };
     hudClock = HUD_INTERVAL_S;
@@ -3375,6 +3413,13 @@ async function boot(): Promise<void> {
     stations: zoneStations,
     runSeed: () => state.environment.weather.noiseSeed,
     notice: (text) => showNotice(text),
+    // A cache's curio kept, and a lead to it run down (piece O).
+    found: (cacheId) => {
+      const isl = ISLANDS.find((i) => i.onFoot?.caches.some((c) => c.id === cacheId));
+      const cache = isl?.onFoot?.caches.find((c) => c.id === cacheId);
+      if (!isl || !cache) return;
+      discovery.cacheOpened(cacheId, `${cache.name.toLowerCase()} on ${isl.name}`, cache.curio);
+    },
   });
   // Hideout life (Phase 8 piece F): the bunk, the refuge at the anchorage, being spotted
   // and the ruins' salvage.
@@ -3690,6 +3735,11 @@ async function boot(): Promise<void> {
             keeperWeather(ctx.weather.barometerAt(state.environment.clock.gameSeconds)?.trend),
           notice: (text) => showNotice(text),
           changed: () => void stationLights(),
+          // The keepers note the shoals and wrecks near the light (piece O).
+          logbook: () => {
+            const n = discovery.logbookRead(station.def.light).length;
+            return n ? `${n === 1 ? 'One mark' : `${n} marks`} copied onto your chart.` : undefined;
+          },
         },
       });
       if (audio) {
@@ -3857,6 +3907,72 @@ async function boot(): Promise<void> {
       },
     },
   });
+  // The lookout for discovery (Phase 9 piece O): from the deck at the helm (through the
+  // glass when it's up), from your feet ashore, or the lookouts on a chart voyage; nobody
+  // looks from an arena or behind a screen that holds the world.
+  lookoutRef.current = () => {
+    if (arena || inArenaSpace || changingZone || machine.gameplayPaused) return undefined;
+    const t = state.environment.clock.gameSeconds;
+    const base = {
+      daylight: daylight01(sunAt(t).elevationRad),
+      visibilityM: ctx.weather.fogVisibilityAt(t),
+      glassMul: 1 / instruments.spyglassFovMul,
+    };
+    const frame = zoneFrame(zone, zoneData);
+    if (machine.mode === 'chart') {
+      const travel = travelRef.current;
+      if (!travel) return undefined;
+      const at = travel.session.geo.projection.chartToGeo(travel.session.position);
+      return { ...base, at, spyglass: false, onFoot: false };
+    }
+    if (machine.mode === 'onFoot' && ashore.active) {
+      const p = ashore.zoneAt();
+      const at = worldGeo(zoneToChart({ x: p.x, z: p.z }, frame));
+      // In the boat you look from the water: a cove rowed into is sounded too.
+      return { ...base, at, spyglass: false, onFoot: !ashore.inBoat };
+    }
+    if (machine.mode !== 'sailing') return undefined;
+    const at = worldGeo(zoneToChart(shipPose(), frame));
+    return { ...base, at, spyglass: cameraRig?.ship.spyglass ?? false, onFoot: false };
+  };
+  if (import.meta.env.DEV || params.has('debug')) {
+    // `__glpDiscovery.state()` reads what's charted; `.look()` looks round now; `.chart(id)`
+    // charts a place; `.curio(id)` gives a curio; `.lead(legendId)` opens a legend's lead
+    // and `.clue(legendId, text)` adds a clue; `.journal()` reads the journal's pages.
+    const hook = {
+      state: () => discovery.state,
+      leads: () => discovery.leads,
+      curios: () => discovery.curios,
+      look: () => discovery.look(),
+      lookout: () => lookoutRef.current?.(),
+      chart: (id: string, how?: Parameters<typeof discovery.chart>[1]) => discovery.chart(id, how),
+      curio: (id: string, from = 'a dev hook') => discovery.giveCurio(id, from),
+      setCurio: (id: string, hideout?: string) => discovery.setCurio(id, hideout),
+      marks: () => discovery.marks(),
+      journal: () => discovery.journal(),
+      logbook: (lightId: string) => discovery.logbookRead(lightId),
+      lead: (id: string, text = 'A dev hook told you.') => {
+        const area = discoveriesFile().legends.find((l) => l.id === id);
+        if (!area) return undefined;
+        return discovery.lead({
+          id,
+          kind: 'legend',
+          title: rumorDefs().legends.find((l) => l.id === id)?.name ?? id,
+          where: area.where,
+          center: area.at,
+          radiusM: area.radiusM,
+          clue: { text, from: 'a dev hook' },
+        });
+      },
+      clue: (id: string, text: string) => {
+        const area = discoveriesFile().legends.find((l) => l.id === id);
+        const lead = discovery.leads.find((l) => l.id === id);
+        if (!lead) return undefined;
+        return discovery.lead({ ...lead, clue: { text, from: 'a dev hook' } }, area?.at);
+      },
+    };
+    (window as unknown as { __glpDiscovery: typeof hook }).__glpDiscovery = hook;
+  }
   // What the sounds ashore read each frame (piece I): where you stand, and the sky over it.
   audio?.setFootSource(() => {
     const at = ashore.sound();
@@ -4980,12 +5096,18 @@ async function boot(): Promise<void> {
         const m = MARKS.find((x) => x.id === s.mark);
         return m ? [{ at: m.shoal, label: `${s.name}, aground`, kind: 'wreck' as const }] : [];
       }),
-      // Wrecks on the lake (Phase 6 piece F): where each lies, in the chart's sign.
-      ...(state.wrecks?.list ?? []).map((w) => ({
-        at: w.at,
-        label: `Wreck of the ${w.name}`,
-        kind: 'wreck' as const,
-      })),
+      // Wrecks on the lake (Phase 6 piece F): where each lies, in the chart's sign, once
+      // they're on your chart (piece O: yours always; the lake's when seen or read of).
+      ...(state.wrecks?.list ?? [])
+        .filter((w) => discovery.knows(w.id))
+        .map((w) => ({
+          at: w.at,
+          label: `Wreck of the ${w.name}`,
+          kind: 'wreck' as const,
+        })),
+      // What's been found and what's talked of (piece O), and the leads' search circles.
+      ...discovery.marks(),
+      ...discovery.leadMarks().map((l) => ({ ...l, kind: 'lead' as const })),
       // Where the law wants you (piece E), at each region's middle.
       ...portLaw.marks().flatMap((m) => {
         const at = law.defs.regionById.get(m.region)?.anchor;
@@ -5316,6 +5438,12 @@ async function boot(): Promise<void> {
       }
       hudClock += frameSeconds;
       hudSeconds += frameSeconds;
+      // The lookout's look round for discovery (piece O), about once a second.
+      discoveryClock += frameSeconds;
+      if (discoveryClock >= DISCOVERY_LOOK_S) {
+        discoveryClock = 0;
+        if (!run.over) discovery.look();
+      }
       if (notice && hudSeconds > notice.untilS) {
         notice = undefined;
         hudClock = HUD_INTERVAL_S;

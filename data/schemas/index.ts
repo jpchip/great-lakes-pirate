@@ -8,6 +8,7 @@ import { ammoFileSchema, weaponsFileSchema } from './combat';
 import { contractsFileSchema } from './contracts';
 import { itemsFileSchema, recipesFileSchema, stationsFileSchema } from './crafting';
 import { districtsFileSchema, kitFileSchema } from './districts';
+import { curiosFileSchema, discoveriesFileSchema } from './discoveries';
 import { eventsFileSchema } from './events';
 import { factionsFileSchema } from './factions';
 import { feudsFileSchema } from './feuds';
@@ -60,6 +61,8 @@ export const dataFileSchemas: Readonly<Record<string, z.ZodType>> = {
   'crimes.json': crimesFileSchema,
   'districts.json': districtsFileSchema,
   'events.json': eventsFileSchema,
+  'discoveries.json': discoveriesFileSchema,
+  'curios.json': curiosFileSchema,
   'factions.json': factionsFileSchema,
   'feuds.json': feudsFileSchema,
   'fame_tiers.json': fameTiersFileSchema,

@@ -1,3 +1,4 @@
+import type { HideoutCurios } from './discovery';
 import type { Zone, ZoneFrame } from '../core/coords';
 import { advanceGameTime, dayAndHour, WORLD_TICK_GAME_SECONDS } from '../core/time';
 import type { GameContext } from '../modes/context';
@@ -83,6 +84,8 @@ export interface StashActions {
   castOff(): void;
   /** Alongside the hideout's landing: close the screen and step down onto the pier. */
   goAshore(): void;
+  /** Sets a curio out here (`show`), or takes it back aboard (Phase 9 piece O). */
+  setCurio(id: string, show: boolean): string | undefined;
 }
 
 export interface StashControl {
@@ -139,10 +142,15 @@ export interface StashControlOptions {
   toYard?(hideoutId: string): void;
   /** Going ashore from the pier the ship lies at: whether it's offered, and doing it. */
   ashore?: { offered(): boolean; go(): void };
+  /** Curios set out at a hideout (Phase 9 piece O); without it no Curios tab. */
+  curios?: {
+    view(hideout: string): HideoutCurios;
+    set(id: string, hideout: string | undefined): string | undefined;
+  };
 }
 
 /** Which view of the stash screen opens: the shed, the stations, or the slipway. */
-export type StashTab = 'storage' | 'workshop' | 'slipway';
+export type StashTab = 'storage' | 'workshop' | 'slipway' | 'curios';
 
 const REFUSALS: Record<StashRefusal, string> = {
   badQty: 'Choose how many.',
@@ -266,6 +274,7 @@ export function attachStash(opts: StashControlOptions): StashControl {
         shipHere: shipHere(openHideout),
         tab: openTab,
         canGoAshore: canGoAshore(),
+        curios: opts.curios?.view(openHideout),
       }),
     );
   };
@@ -579,6 +588,12 @@ export function attachStash(opts: StashControlOptions): StashControl {
         if (!canGoAshore()) return;
         close();
         opts.ashore?.go();
+      },
+      setCurio(id, show) {
+        if (!openHideout || !opts.curios) return 'Nowhere to set it out.';
+        const why = opts.curios.set(id, show ? openHideout : undefined);
+        refresh();
+        return why;
       },
     },
     dispose() {

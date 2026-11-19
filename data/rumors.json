@@ -98,6 +98,12 @@
       "reliability": 1,
       "label": "Talk of the town",
       "templates": ["{line}"]
+    },
+    "place": {
+      "weight": 3,
+      "reliability": 1,
+      "label": "Local knowledge",
+      "templates": ["{line}"]
     }
   },
   "seasonal": [

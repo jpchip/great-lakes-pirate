@@ -18,6 +18,8 @@ export const RUMOR_KINDS = [
   'spotted',
   // Talk of a sandbox event standing in the region (Phase 9 piece A).
   'event',
+  // Talk of a cove, a shoal, a cave or a camp you haven't found (Phase 9 piece O).
+  'place',
 ] as const;
 export type RumorKind = (typeof RUMOR_KINDS)[number];
 
@@ -106,6 +108,8 @@ export const rumorsFileSchema = z.object({
     spotted: kindSchema,
     /** Talk of a sandbox event standing in the region (Phase 9 piece A). */
     event: kindSchema,
+    /** Talk of a place you haven't found (Phase 9 piece O): it goes on the chart as reported. */
+    place: kindSchema,
   }),
   /** In-season trade at trade-only or seasonal ports (plan 05 §26.5). */
   seasonal: z.array(seasonalSchema),

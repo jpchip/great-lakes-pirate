@@ -70,6 +70,11 @@ export interface StationHooks {
   found?(cents: number): void;
   /** Something at the station changed (a lamp out or lit): the light at sea redraws. */
   changed?(): void;
+  /**
+   * The log read or taken (Phase 9 piece O): the shoals and wrecks it notes go on your
+   * chart; the line to add, when there were any new.
+   */
+  logbook?(): string | undefined;
 }
 
 export interface StationWatchOptions {
@@ -435,7 +440,8 @@ export function createStationWatch(opts: StationWatchOptions): Watch & {
       ? `The ${short} log: ${line}. ${opts.hooks.weather()}`
       : `The ${short} log: nothing passing worth noting. ${opts.hooks.weather()}`;
     const you = yourself ? LOGGED_AS[loggedTie(record(), now(), rules)] : '';
-    opts.hooks.notice(you ? `${news} ${you}` : news);
+    const charted = opts.hooks.logbook?.();
+    opts.hooks.notice([news, you, charted].filter(Boolean).join(' '));
   };
   let readThisLanding = false;
 
@@ -657,7 +663,8 @@ export function createStationWatch(opts: StationWatchOptions): Watch & {
           act: () => {
             rec.logbookTakenAt = now();
             crime(`log:${light.id}`, 'crime.petty_theft');
-            opts.hooks.notice(`The ${short} logbook is yours`);
+            const charted = opts.hooks.logbook?.();
+            opts.hooks.notice(`The ${short} logbook is yours${charted ? `. ${charted}` : ''}`);
           },
         };
       }

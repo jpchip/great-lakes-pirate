@@ -63,13 +63,33 @@ export interface ChartFrame {
   ice?: IcePicture | undefined;
 }
 
-export type ChartMarkKind = 'smuggler' | 'wanted' | 'mostWanted' | 'wreck' | 'wrecking';
+export type ChartMarkKind =
+  | 'smuggler'
+  | 'wanted'
+  | 'mostWanted'
+  | 'wreck'
+  // Discovery (Phase 9 piece O): places found, sites you don't hold, a place only talked
+  // of, and a lead's search circle.
+  | 'poi'
+  | 'wonder'
+  | 'anchorage'
+  | 'shoal'
+  | 'site'
+  | 'reported'
+  | 'lead'
+  // The wrecking marks (Phase 9 piece I).
+  | 'wrecking';
 
 export interface ChartMark {
   pos: Chart;
   label: string;
   kind: ChartMarkKind;
+  /** How far it reaches, chart meters: a shoal's extent, a lead's search circle. */
+  radiusM?: number | undefined;
 }
+
+/** Discovery marks' names are written only zoomed in past this (chart meters per pixel). */
+const DISCOVERY_LABEL_MPP = 70;
 
 const FONT = '"Libre Caslon Text", "Iowan Old Style", Georgia, serif';
 
@@ -616,13 +636,27 @@ export class ChartView {
    */
   private drawMarks(marks: readonly ChartMark[], daylight: number): void {
     const { ctx } = this;
+    // Lead circles under everything else, so the marks inside them stay legible.
+    for (const m of marks) if (m.kind === 'lead') this.drawLead(m);
     for (const m of marks) {
+      if (m.kind === 'lead') continue;
       if (m.kind === 'wreck') {
         this.drawWreck(m);
         continue;
       }
       if (m.kind === 'wrecking') {
         this.drawWreckingMark(m);
+        continue;
+      }
+      if (
+        m.kind === 'poi' ||
+        m.kind === 'wonder' ||
+        m.kind === 'anchorage' ||
+        m.kind === 'shoal' ||
+        m.kind === 'site' ||
+        m.kind === 'reported'
+      ) {
+        this.drawDiscovery(m);
         continue;
       }
       if (m.kind !== 'smuggler') {
@@ -660,6 +694,134 @@ export class ChartView {
       ctx.textAlign = 'left';
       ctx.fillText(m.label, s.x + 9, s.y);
     }
+  }
+
+  /**
+   * A place found (Phase 9 piece O), in the survey's own signs: a point of interest a small
+   * inked building, a natural wonder an asterisk, an anchorage the anchor, a shoal a dotted
+   * line round its extent with rock crosses, a hideout site you don't hold a dashed pencil
+   * square, and a place only talked of a pencilled query. Names are written zoomed in.
+   */
+  private drawDiscovery(m: ChartMark): void {
+    const { ctx } = this;
+    const s = this.toScreen(m.pos);
+    const labels = this.metersPerPx <= DISCOVERY_LABEL_MPP;
+    ctx.save();
+    ctx.strokeStyle = CHART_COLORS.ink;
+    ctx.fillStyle = CHART_COLORS.ink;
+    ctx.lineWidth = 1.1;
+    let below = 7;
+    switch (m.kind) {
+      case 'poi':
+        ctx.fillRect(s.x - 3, s.y - 2, 6, 5);
+        ctx.beginPath();
+        ctx.moveTo(s.x - 4, s.y - 2);
+        ctx.lineTo(s.x, s.y - 5.5);
+        ctx.lineTo(s.x + 4, s.y - 2);
+        ctx.closePath();
+        ctx.fill();
+        break;
+      case 'wonder':
+        ctx.lineWidth = 1.3;
+        for (let k = 0; k < 4; k++) {
+          const a = (k * Math.PI) / 4;
+          ctx.beginPath();
+          ctx.moveTo(s.x - Math.cos(a) * 5, s.y - Math.sin(a) * 5);
+          ctx.lineTo(s.x + Math.cos(a) * 5, s.y + Math.sin(a) * 5);
+          ctx.stroke();
+        }
+        break;
+      case 'anchorage':
+        ctx.strokeStyle = CHART_COLORS.lakeTeal;
+        ctx.fillStyle = CHART_COLORS.lakeTeal;
+        ctx.lineWidth = 1.3;
+        ctx.beginPath();
+        ctx.arc(s.x, s.y - 5, 1.6, 0, Math.PI * 2);
+        ctx.moveTo(s.x, s.y - 3.4);
+        ctx.lineTo(s.x, s.y + 5);
+        ctx.moveTo(s.x - 3, s.y - 1.5);
+        ctx.lineTo(s.x + 3, s.y - 1.5);
+        ctx.moveTo(s.x - 4.5, s.y + 1.5);
+        ctx.quadraticCurveTo(s.x - 3.5, s.y + 5.5, s.x, s.y + 5);
+        ctx.quadraticCurveTo(s.x + 3.5, s.y + 5.5, s.x + 4.5, s.y + 1.5);
+        ctx.stroke();
+        break;
+      case 'shoal': {
+        const r = Math.max(5, (m.radiusM ?? 0) / this.metersPerPx);
+        ctx.setLineDash([1.5, 2.5]);
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, r, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        // Rocks awash: the survey's little crosses.
+        for (const [dx, dy] of [
+          [0, 0],
+          [-0.4, 0.3],
+          [0.35, -0.35],
+        ] as const) {
+          const x = s.x + dx * r;
+          const y = s.y + dy * r;
+          ctx.beginPath();
+          ctx.moveTo(x - 2.2, y);
+          ctx.lineTo(x + 2.2, y);
+          ctx.moveTo(x, y - 2.2);
+          ctx.lineTo(x, y + 2.2);
+          ctx.stroke();
+        }
+        below = Math.min(r, 40) + 3;
+        break;
+      }
+      case 'site':
+        ctx.strokeStyle = CHART_COLORS.fogGray;
+        ctx.fillStyle = CHART_COLORS.ink;
+        ctx.setLineDash([2, 2]);
+        ctx.strokeRect(s.x - 5, s.y - 5, 10, 10);
+        ctx.setLineDash([]);
+        break;
+      case 'reported':
+        ctx.fillStyle = CHART_COLORS.fogGray;
+        ctx.font = `italic 700 12px ${FONT}`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('?', s.x, s.y);
+        break;
+    }
+    if (labels) {
+      ctx.font = `italic ${m.kind === 'shoal' || m.kind === 'anchorage' ? 9 : 10}px ${FONT}`;
+      ctx.textBaseline = 'top';
+      ctx.textAlign = 'center';
+      ctx.fillStyle = m.kind === 'reported' ? CHART_COLORS.fogGray : CHART_COLORS.ink;
+      if (m.kind === 'anchorage') ctx.fillStyle = CHART_COLORS.lakeTeal;
+      haloText(ctx, m.label, s.x, s.y + below);
+    }
+    ctx.restore();
+  }
+
+  /**
+   * A lead's search area (Phase 9 piece O): a dashed brass circle in pencil with the lead's
+   * name across its top, smaller as clues come in.
+   */
+  private drawLead(m: ChartMark): void {
+    const { ctx } = this;
+    const s = this.toScreen(m.pos);
+    const r = Math.max(8, (m.radiusM ?? 0) / this.metersPerPx);
+    ctx.save();
+    // Darker and heavier than the lights' range rings, so a lead reads as a pencilled search.
+    ctx.strokeStyle = '#8a6420';
+    ctx.fillStyle = 'rgba(184, 137, 46, 0.14)';
+    ctx.lineWidth = 2.2;
+    ctx.setLineDash([9, 5]);
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.font = `italic 600 11px ${FONT}`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'bottom';
+    ctx.fillStyle = '#7a5a1c';
+    haloText(ctx, m.label, s.x, s.y - r - 2);
+    ctx.restore();
   }
 
   /**

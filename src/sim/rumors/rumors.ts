@@ -65,6 +65,18 @@ export interface RumorWorld {
   spotted?: (() => readonly SpottedTalk[]) | undefined;
   /** Sandbox events standing now (Phase 9 piece A): talked of in the saloons of their region. */
   eventTalk?: (() => readonly EventTalk[]) | undefined;
+  /**
+   * Places you haven't found or heard of (Phase 9 piece O), with the ports that talk of
+   * them and the lines they use. The rumor's subject is the place's id.
+   */
+  placeTalk?: (() => readonly PlaceTalk[]) | undefined;
+}
+
+/** A place a saloon can tell you of (Phase 9 piece O). */
+export interface PlaceTalk {
+  id: string;
+  ports: readonly string[];
+  lines: readonly string[];
 }
 
 /** A spotted hideout, as the saloons tell it. */
@@ -444,6 +456,23 @@ function eventDrafts(defs: RumorsFile, world: RumorWorld, port: string, now: num
     }));
 }
 
+/** Talk of a place you haven't found (Phase 9 piece O); true, it's on the water to see. */
+function placeDrafts(defs: RumorsFile, world: RumorWorld, port: string): Draft[] {
+  const kind = defs.kinds.place;
+  if (!world.placeTalk) return [];
+  return world
+    .placeTalk()
+    .filter((t) => t.ports.includes(port) && t.lines.length > 0)
+    .map((t) => ({
+      kind: 'place' as const,
+      subject: t.id,
+      alwaysTrue: true,
+      render: (_truth: boolean, rand: Rand) => ({
+        text: fill(pick(rand, kind.templates), { line: pick(rand, t.lines) }),
+      }),
+    }));
+}
+
 function seasonCalendarKey(gameSeconds: number): string {
   const d = calendarDate(gameSeconds);
   return `${d.getUTCFullYear()}-${seasonAt(gameSeconds)}`;
@@ -548,6 +577,7 @@ function heard(rumors: readonly Rumor[], d: Draft, now: number): boolean {
         return r.draft === d.subject;
       case 'spotted':
       case 'event':
+      case 'place':
         return r.draft === d.subject;
     }
   });
@@ -571,6 +601,7 @@ export function rumorDrafts(
     ...seasonalDrafts(defs, world, port, now),
     ...spottedDrafts(defs, world, port, now),
     ...eventDrafts(defs, world, port, now),
+    ...placeDrafts(defs, world, port),
   ].filter((d) => !heard(rumors, d, now));
 }
 

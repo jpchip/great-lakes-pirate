@@ -174,6 +174,11 @@ export interface HazardEnv {
   /** Piers, as obstacles. */
   docks: readonly Dock[];
   berths: readonly MooringBerth[];
+  /**
+   * Over a shoal that's on your chart (Phase 9 piece O): the depth readout warns this many
+   * drafts out, as the sounding machine does; the chart's knowledge makes the approach safer.
+   */
+  chartedWarnDrafts?: number | undefined;
 }
 
 /** One tick of anchor and dock orders. */
@@ -741,6 +746,6 @@ export function stepHazards(
   applyCondition(s, h, c);
 
   h.depth = keelDepth(s, c, env.terrain);
-  h.shallow = h.depth < c.rules.shallowWarnDrafts * h.draft;
+  h.shallow = h.depth < Math.max(c.rules.shallowWarnDrafts, env.chartedWarnDrafts ?? 0) * h.draft;
   return events;
 }

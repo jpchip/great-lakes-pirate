@@ -31,6 +31,8 @@ export const islandCacheSchema = z.object({
   cashCents: z.tuple([z.number().int().nonnegative(), z.number().int().nonnegative()]),
   /** The line when you find it; `{cash}` is the money. */
   found: z.string().min(1),
+  /** A curio found with it (plan 11 §7.1; Phase 9 piece O), kept in `curios[]`. */
+  curio: idOf('curio').optional(),
 });
 
 /** Walking the island (plan 08 §20.4 piece H): its points of interest and its cache. */

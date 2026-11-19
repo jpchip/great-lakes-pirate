@@ -458,9 +458,26 @@ Twenty-six pieces, each sized to be one thread, in three stages by decision 1. A
 - Plan 17 §9's Beta checklist wants the Ojibwe cultural review "well before Beta" and hosting for the first public release. Both are Jared's to start; neither blocks a piece.
 - Phase 8's playtest and 0.8.0 tag, and Phase 7's laptop playtest, are still open.
 
+### 18.8 Piece O as built: discovery and the journal (2026-11-19)
+
+**What the fog of war covers.** The Lake Survey printed western Superior's coast and soundings, so they stay on the chart as plan 03 §5.2 has them. What the fog covers is the places on it: points of interest, natural wonders, the coves you can lie in, shoals the survey didn't sound (or you haven't bought), hideout sites you don't hold, and the lake's wrecks. Each goes on the chart in the survey's own signs (a small inked building, an asterisk for a wonder, a teal anchor, a dotted line with rock crosses round a shoal, a dashed pencil square for a site), with names written once zoomed in. Jared can ask for a visible wash over unvisited water instead; it's a drawing change on the same state.
+
+**Data.** `data/discoveries.json` lists 26 places in the Apostles and Siskiwit Bay: 7 points of interest (the Stockton, Hermit and Basswood quarries, the Outer, Rocky and Manitou fish camps, the Sand Island farms), 4 wonders (the Devils Island, Sand Island and mainland sea caves, Big Bay's spit), 8 anchorages and 7 shoals, each with a by-day sight range or the radius you sail into, the survey sheet that has it, Fame for a wonder, the journal's line, and saloon talk for some. Sites come from `sites.json` and wrecks from the save. It also holds each legend's lead circle and the leads' shrink rule. `data/curios.json` is a catalog of 8 curios.
+
+**Lifting it.** About once a real second the game looks round: from the deck (further through the spyglass, by the instruments' magnification), from your feet ashore, or the lookouts on a chart voyage. Range is the place's by-day range, down to 30% at night, capped by the weather's visibility. Coves and shoals are charted only by sailing (or rowing) into them. A `place` rumor (the new kind, "Local knowledge") puts a place on as reported, a pencilled query, until it's seen. The chandlery sells the **Lake Survey chart of the Apostle Islands** ($12, once), which charts its 14 anchorages and shoals. Reading or taking a station's logbook copies the shoals within 9 km and the wrecks within 12 km of its light. Your own hideouts and wrecks are always on it. Each new place gets a HUD line and a logbook entry, a wonder 2 Fame. A charted shoal under the keel makes the depth readout warn at 3 drafts, as the sounding machine does: the "safer night approach".
+
+**Leads, legends and curios.** `leads[]` keeps each lead's search circle, clues and outcome; a clue shrinks the circle to 55% (no smaller than 400 m) and moves it toward where the clue points, keeping the spot inside. Every legend tale heard opens its legend's lead, so a 0.8 save's rumors count as the first clue. Piece T adds the other clue sources through `discovery.lead()`. `curios[]` keeps each curio, where it came from and the hideout it's set out at; the Stockton cache now holds the brass compass. A hideout's new Curios tab sets them out on its shelving (one a piece), tables (two) and sea chests (one).
+
+**Journal.** Four new tabs in the ledger: Leads (each with its area and its clues, dated), Legends (heard ones with their steps; unheard ones as blanks), Discoveries (by kind, with how and when, and "n of m known"), and Curios (the catalog count and where each is).
+
+**Save.** `discovery`, `leads` and `curios` are optional slices, so no version bump. A run from before them is charted on load with what it has been near (3 km round each port it has prices from, the stations it landed at, the caches it searched, and where it is), and keeps every wreck it already had on the chart.
+
+**Not in piece O:** the curios aren't drawn on the shelves in the world yet (piece P's kits, with the POIs), the legends' steps beyond the first and every other clue source (piece T), salvage finding wrecks by sounding (piece U), a chart-voyage grounding risk on uncharted shoals (the Apostles' shoals all lie inside the zone, where the real depth already grounds you), and charts of the other regions. `__glpDiscovery` reads and drives it.
+
 ---
 
 ## Changelog
+- v0.6: Piece O as built (§18.8): discovery and the fog of war on the chart, leads, the journal's four pages, and curios.
 - v0.5: Phase 9 scope (§18), as proposed 2026-11-17: what Phases 4–8 change, deliverables, exit criteria, 26 work pieces in three stages, smaller calls and two decisions (staging, districts). Both decisions taken the same day: three stages with a playtest each, and Duluth as the one new district.
 - v0.4: Phase 7 as built (§15): Stockton on foot, the quarry, the seeded cache, the rowboat and the posse.
 - v0.3: Gap review: minor islets stay walkable (cut removed), islands load as their own scenes.
