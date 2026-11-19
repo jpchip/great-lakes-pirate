@@ -35,6 +35,7 @@ import { iceStateSchema } from './ice/state';
 import { feudsStateSchema } from './events/feuds';
 import { MOUNTS } from '../../data/schemas/combat';
 import { curiosSchema, discoveryStateSchema, leadsSchema } from './discovery/discovery';
+import { salvageStateSchema } from './salvage';
 
 /**
  * WorldState skeleton (plan 01 §3.1, plan 16 §5.2). Each slice is filled in by its
@@ -700,6 +701,12 @@ export const worldStateSchema = z.object({
   leads: leadsSchema.optional(),
   /** Curios owned and where each is set out (plan 11 §14 `curios[]`; piece O). */
   curios: curiosSchema.optional(),
+  /**
+   * Salvage (plan 11 §6, §14 `wrecks[].salvaged`; Phase 9 piece U): what the grapple has
+   * brought up from each wreck worked, the old ones and the run's, by wreck id. Optional:
+   * absent, nothing's been worked.
+   */
+  salvage: salvageStateSchema.optional(),
   /**
    * Wrecking (plan 06 §6.2, plan 11 §18.4 piece I): false lights burning, ships judged at
    * them this night, ships stranded on the marks' shoals, and the investigations opened.

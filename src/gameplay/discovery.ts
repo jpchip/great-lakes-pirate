@@ -153,6 +153,14 @@ export interface DiscoveryOptions {
   notice(text: string): void;
   /** Where the captain looks from now, or undefined when there's nobody to look (a menu). */
   lookout(): Lookout | undefined;
+  /**
+   * The old wrecks on the bottom (piece U's salvage): not sighted from afar as a wreck with
+   * her masts out is, but charted by salvage when seen on the bottom or sounded, and by a
+   * keeper's log when they're `logged`.
+   */
+  oldWrecks?: () => readonly { id: string; name: string; at: Geo; lore: string; logged: boolean }[];
+  /** A line on what's been brought up from a wreck, for the journal (piece U). */
+  wreckNote?: (id: string) => string | undefined;
 }
 
 export interface GameDiscovery {
@@ -200,6 +208,7 @@ const HOW_TEXT: Record<FoundHow, string> = {
   spyglass: 'Through the glass',
   foot: 'Walked it',
   visit: 'Sounded',
+  sounding: 'Found by the lead',
   survey: 'From the survey',
   logbook: "From a keeper's log",
   yours: 'Your own',
@@ -255,6 +264,7 @@ export function attachDiscovery(opts: DiscoveryOptions): GameDiscovery {
       sightM: WRECK_SIGHT_M,
     }));
   const places = placeTargets();
+  const oldWrecks = () => opts.oldWrecks?.() ?? [];
   const targets = (): DiscoveryTarget[] => [...places, ...siteTargets(), ...wreckTargets()];
 
   const nameOf = (id: string): string => {
@@ -262,7 +272,7 @@ export function attachDiscovery(opts: DiscoveryOptions): GameDiscovery {
     if (p) return p.name;
     const s = SITES.find((x) => x.id === id);
     if (s) return s.name;
-    const w = state.wrecks?.list.find((x) => x.id === id);
+    const w = state.wrecks?.list.find((x) => x.id === id) ?? oldWrecks().find((x) => x.id === id);
     if (w) return `the wreck of the ${w.name}`;
     return id;
   };
@@ -325,7 +335,9 @@ export function attachDiscovery(opts: DiscoveryOptions): GameDiscovery {
       const verb =
         kind === 'anchorage' || kind === 'shoal'
           ? 'Sounded and charted'
-          : how === 'spyglass'
+          : how === 'sounding'
+            ? 'Sounded out'
+            : how === 'spyglass'
             ? 'Made out through the glass'
             : how === 'foot'
               ? 'Came upon'
@@ -495,9 +507,10 @@ export function attachDiscovery(opts: DiscoveryOptions): GameDiscovery {
             add(s.id, s.name, s.blurb);
           }
         } else if (g.kind === 'wreck') {
-          for (const w of state.wrecks?.list ?? []) {
+          for (const w of [...(state.wrecks?.list ?? []), ...oldWrecks()]) {
             total++;
-            add(w.id, `The ${w.name}`, w.lore);
+            const note = opts.wreckNote?.(w.id);
+            add(w.id, `The ${w.name}`, note ? `${w.lore} ${note}` : w.lore);
           }
         } else {
           for (const p of placeDefs()) {
@@ -537,7 +550,10 @@ export function attachDiscovery(opts: DiscoveryOptions): GameDiscovery {
     logbookRead(lightId) {
       const light = LIGHTHOUSES.find((l) => l.id === lightId);
       if (!light) return [];
-      const wrecks = (state.wrecks?.list ?? []).map((w) => ({ id: w.id, at: w.at }));
+      const wrecks = [
+        ...(state.wrecks?.list ?? []),
+        ...oldWrecks().filter((w) => w.logged),
+      ].map((w) => ({ id: w.id, at: w.at }));
       const ids = chartFromLogbook(d, light.at, wrecks, now());
       for (const id of ids) {
         const p = placeDef(id);

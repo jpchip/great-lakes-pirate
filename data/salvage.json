@@ -1,0 +1,146 @@
+{
+  "rules": {
+    "reachM": 35,
+    "maxDepthM": 10,
+    "maxHsM": 1.0,
+    "attemptMinutes": 40,
+    "workRealS": 2.5,
+    "chance": 0.55,
+    "deepFactor": 0.55,
+    "seaFactor": 0.45,
+    "nightFactor": 0.7,
+    "oldYears": 5,
+    "oldFactor": 0.8,
+    "haulCu": [1, 3],
+    "findChance": 0.25,
+    "sight": { "rangeM": 70, "maxDepthM": 12, "maxHsM": 0.7, "daylight": 0.5 },
+    "soundingM": 22,
+    "reliefM": 2.5,
+    "hotHeat": 0.6,
+    "crime": "crime.wreck_plunder",
+    "crimeEveryHours": 24,
+    "ownVictimHeat": 20
+  },
+  "halfLifeDays": {
+    "good.fresh_fish": 3,
+    "good.venison": 5,
+    "good.salt": 6,
+    "good.maple_sugar": 10,
+    "good.grain": 20,
+    "good.flour": 30,
+    "good.wild_rice": 30,
+    "good.powder_shot": 30,
+    "good.provisions": 45,
+    "good.tobacco": 60,
+    "good.furs": 90,
+    "good.salted_fish": 120,
+    "good.dry_goods": 120,
+    "good.rope_canvas": 1500,
+    "good.hardware": 3650,
+    "good.kerosene": 7300
+  },
+  "historical": [
+    {
+      "id": "wreck.lucerne",
+      "name": "Lucerne",
+      "classText": "three-masted schooner",
+      "lost": "1886-11-17",
+      "at": { "lat": 46.7262, "lon": -90.7804 },
+      "where": "off Long Island",
+      "logged": true,
+      "cargo": [{ "good": "good.iron_ore", "qty": 60 }],
+      "papers": {
+        "name": "her log, in an oilskin wallet",
+        "text": "The Lucerne's log, the last page in her master's hand: running for Chequamegon Bay in a northwest gale, the company's box \"stowed aft under my bunk, as agreed.\"",
+        "lead": "legend.lucerne"
+      },
+      "lore": "The three-masted schooner Lucerne, Ashland ore for Cleveland, lost with all hands off Long Island in the gale of November 1886. Her masts stood out of the water that winter; they're gone now.",
+      "confidence": "confirmed"
+    },
+    {
+      "id": "wreck.rg_stewart",
+      "name": "R.G. Stewart",
+      "classText": "wooden steam barge",
+      "lost": "1899-06-01",
+      "at": { "lat": 46.8722, "lon": -90.4705 },
+      "where": "off Michigan Island",
+      "logged": true,
+      "cargo": [
+        { "good": "good.hardware", "qty": 6 },
+        { "good": "good.provisions", "qty": 4 },
+        { "good": "good.kerosene", "qty": 3 }
+      ],
+      "curio": "curio.ships_bell",
+      "lore": "The wooden steam barge R.G. Stewart, burned to the waterline and sunk off Michigan Island in 1899. Her crew got away in the boats.",
+      "confidence": "verify"
+    },
+    {
+      "id": "wreck.antelope",
+      "name": "Antelope",
+      "classText": "schooner-barge",
+      "lost": "1897-10-07",
+      "at": { "lat": 46.9105, "lon": -90.5101 },
+      "where": "north of Michigan Island",
+      "deep": true,
+      "logged": true,
+      "cargo": [{ "good": "good.coal", "qty": 40 }],
+      "lore": "The schooner-barge Antelope, an old sidewheeler cut down to a tow, sprang a leak under the tug's line and went down north of Michigan Island in 1897 with her coal. She lies far deeper than any grapple reaches.",
+      "confidence": "verify"
+    }
+  ],
+  "seeded": {
+    "count": 3,
+    "spots": [
+      { "at": { "lat": 46.9465, "lon": -91.0212 }, "where": "off Eagle Island" },
+      { "at": { "lat": 46.9225, "lon": -90.7425 }, "where": "off the Oak Island sandspit" },
+      { "at": { "lat": 46.9905, "lon": -90.9255 }, "where": "off Sand Island's east shore" },
+      { "at": { "lat": 46.9055, "lon": -90.4325 }, "where": "on the Gull Island shoal" },
+      { "at": { "lat": 47.0905, "lon": -90.4195 }, "where": "on the reef off Outer Island" },
+      { "at": { "lat": 46.9325, "lon": -90.5655 }, "where": "in Presque Isle Bay on Stockton" },
+      { "at": { "lat": 46.8525, "lon": -90.7305 }, "where": "off Basswood Island" },
+      { "at": { "lat": 47.0405, "lon": -90.6745 }, "where": "off Rocky Island" }
+    ],
+    "names": [
+      "Emma Thorsen",
+      "Hiram Bliss",
+      "Clara Belle Ward",
+      "Josephine Dix",
+      "Nellie Gaynor",
+      "Two Brothers",
+      "Annie Larsen",
+      "William Haskell",
+      "Lake Breeze",
+      "Martha Quick"
+    ],
+    "classes": ["schooner", "scow schooner", "fish tug", "steam barge", "lumber hooker"],
+    "years": [1868, 1898],
+    "cargoes": [
+      [
+        { "good": "good.salt", "qty": [4, 8] },
+        { "good": "good.provisions", "qty": [2, 5] }
+      ],
+      [{ "good": "good.whiskey", "qty": [3, 6] }],
+      [
+        { "good": "good.hardware", "qty": [3, 6] },
+        { "good": "good.dry_goods", "qty": [2, 4] }
+      ],
+      [{ "good": "good.lumber", "qty": [8, 14] }],
+      [{ "good": "good.brownstone", "qty": [8, 12] }],
+      [
+        { "good": "good.copper", "qty": [2, 4] },
+        { "good": "good.flour", "qty": [3, 6] }
+      ],
+      [
+        { "good": "good.furs", "qty": [2, 4] },
+        { "good": "good.kerosene", "qty": [2, 3] }
+      ]
+    ],
+    "papers": {
+      "name": "her papers, in a tin box",
+      "other": "The {name}'s papers: a bill of lading, soaked through, and her master's note that she lost sight of the {other} in the snow {where} the night before she struck.",
+      "alone": "The {name}'s papers: a bill of lading you can just read and a crew list, every name on it drowned or long gone."
+    },
+    "curios": ["curio.wreck_lantern"],
+    "lore": "The {classText} {name}, lost {where} in the fall of {year}. Nobody now living remembers just where she went down."
+  }
+}
