@@ -1,4 +1,5 @@
 import { wrecksSchema } from './wrecks';
+import { wreckingStateSchema } from './wrecking';
 import { pokerStateSchema } from './poker/state';
 import { z } from 'zod';
 import { lawShipsSchema } from './law/patrol';
@@ -212,7 +213,7 @@ export const trafficStateSchema = z.object({
        */
       lostAt: z.number().optional(),
       lostUntil: z.number().optional(),
-      lostHow: z.enum(['sunk', 'scuttled', 'disabled']).optional(),
+      lostHow: z.enum(['sunk', 'scuttled', 'disabled', 'stranded', 'wrecked']).optional(),
     }),
   ),
 });
@@ -537,6 +538,17 @@ export const lightStationStateSchema = z.object({
   logbookTakenAt: z.number().optional(),
   /** The last day visit's talk with the keeper (one a day). */
   talkedAt: z.number().optional(),
+  /**
+   * The last time the keepers logged your ship (or you, a visitor by day), and how well
+   * they knew her. The logbook carries it: taken after, it's gone with the book.
+   */
+  logged: z
+    .object({ at: z.number(), ident: z.enum(['unknown', 'schooner', 'ship', 'person']) })
+    .optional(),
+  /** Every keeper here dead and nobody to tell it: he's found then, and the law hears. */
+  unfound: z
+    .object({ diedAt: z.number(), findAt: z.number(), killed: z.number().int().positive() })
+    .optional(),
 });
 export type LightStationState = z.infer<typeof lightStationStateSchema>;
 
@@ -670,6 +682,12 @@ export const worldStateSchema = z.object({
   /** Curios owned and where each is set out (plan 11 §14 `curios[]`; piece O). */
   curios: curiosSchema.optional(),
   /**
+   * Wrecking (plan 06 §6.2, plan 11 §18.4 piece I): false lights burning, ships judged at
+   * them this night, ships stranded on the marks' shoals, and the investigations opened.
+   * Optional: absent, nobody has hung a false light, so no version bump.
+   */
+  wrecking: wreckingStateSchema.optional(),
+  /**
    * The docks districts' own record (plan 08 §15; Phase 7 piece E): which containers were
    * emptied and when they fill again, and which doors were picked or forced on which
    * night. Optional: absent, every district is as its owners left it.
@@ -741,6 +759,15 @@ export function parseWorldState(state: unknown): WorldState {
     parsed.player.captain.background,
     parsed.environment.clock.gameSeconds,
   );
+  // Phase 9 piece I: the false-light rig became a store carried in the lockers; rigs made
+  // in Phase 8 lie in a hideout's storage under their old id.
+  for (const h of Object.values(parsed.hideouts)) {
+    const things = h.storage.things;
+    const old = things?.['item.false_light'];
+    if (!things || old === undefined) continue;
+    delete things['item.false_light'];
+    if (old > 0) things['store.false_light'] = (things['store.false_light'] ?? 0) + old;
+  }
   parsed.player.ship ??= defaultShipState();
   parsed.stats ??= freshStats(parsed.environment.clock.gameSeconds);
   parsed.logbook ??= [];

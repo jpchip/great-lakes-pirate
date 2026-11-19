@@ -25,6 +25,11 @@ export const storeItemSchema = z.object({
    * (`discoveries.json`). It stays in the lockers, so it's bought once.
    */
   charts: idOf('survey').optional(),
+  /**
+   * Made at a hideout's station, never sold (the false-light rig, plan 11 §18.4 piece I):
+   * carried in the lockers from the hideout's storage. `priceCents` is what it's worth.
+   */
+  crafted: z.boolean().optional(),
 });
 
 export const storesFileSchema = z.array(storeItemSchema);
