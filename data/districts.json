@@ -44,7 +44,13 @@
             "mark": "loot.2",
             "table": "loot.packing_floor"
           }
-        ]
+        ],
+        "sabotage": {
+          "mark": "sabotage.brine",
+          "label": "Foul the brine barrels",
+          "holdS": 4,
+          "noiseM": 8
+        }
       },
       {
         "building": "dock_warehouse",

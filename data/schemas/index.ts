@@ -11,6 +11,7 @@ import { districtsFileSchema, kitFileSchema } from './districts';
 import { curiosFileSchema, discoveriesFileSchema } from './discoveries';
 import { eventsFileSchema } from './events';
 import { factionsFileSchema } from './factions';
+import { feudsFileSchema } from './feuds';
 import { fencesFileSchema } from './fences';
 import { pokerFileSchema } from './poker';
 import { gunsFileSchema } from './guns';
@@ -62,6 +63,7 @@ export const dataFileSchemas: Readonly<Record<string, z.ZodType>> = {
   'discoveries.json': discoveriesFileSchema,
   'curios.json': curiosFileSchema,
   'factions.json': factionsFileSchema,
+  'feuds.json': feudsFileSchema,
   'fame_tiers.json': fameTiersFileSchema,
   'flows.json': flowsFileSchema,
   'goods.json': goodsFileSchema,

@@ -1997,6 +1997,14 @@
     { "id": "loot.0", "kind": "loot", "x": -28, "z": -17, "headingDeg": 0 },
     { "id": "loot.1", "kind": "loot", "x": 58, "z": 17, "headingDeg": 0 },
     { "id": "loot.2", "kind": "loot", "x": -40, "z": 30, "headingDeg": 0 },
+    {
+      "id": "sabotage.brine",
+      "kind": "sabotage",
+      "x": -36.5,
+      "z": 26,
+      "headingDeg": 90,
+      "ref": "packing_house"
+    },
     { "id": "loot.3", "kind": "loot", "x": -18, "z": -24, "headingDeg": 0 },
     {
       "id": "loot.chandlery",
