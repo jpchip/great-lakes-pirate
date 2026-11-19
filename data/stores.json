@@ -71,6 +71,14 @@
     "fameTier": 2
   },
   {
+    "id": "store.survey_apostles",
+    "name": "Lake Survey chart, Apostle Islands",
+    "blurb": "The government's survey sheet of the islands: every anchorage and shoal the surveyors sounded, marked on your chart.",
+    "priceCents": 1200,
+    "max": 1,
+    "charts": "survey.apostles"
+  },
+  {
     "id": "store.false_light",
     "name": "False-light rig",
     "blurb": "A lantern on a pole with a pane of colored glass, and kerosene for a night's burning: set on a headland, it shows a light where no light should be.",

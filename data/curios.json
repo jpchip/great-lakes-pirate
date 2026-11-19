@@ -1,0 +1,42 @@
+[
+  {
+    "id": "curio.brass_compass",
+    "name": "A smuggler's brass compass",
+    "text": "A pocket compass in a dented brass case, a name scratched off the lid. Found with a quarryman's cache."
+  },
+  {
+    "id": "curio.ships_bell",
+    "name": "A ship's bell",
+    "text": "A bronze bell with a drowned ship's name cast round it, brought up from a wreck."
+  },
+  {
+    "id": "curio.quarry_pick",
+    "name": "A quarryman's pick",
+    "text": "A stonecutter's pick with a hickory handle worn smooth, from a quarry that shut in '93."
+  },
+  {
+    "id": "curio.lens_prism",
+    "name": "A lighthouse lens prism",
+    "text": "A glass prism from a Fresnel lens, heavy as a brick, that throws the light in colors across a table."
+  },
+  {
+    "id": "curio.glass_float",
+    "name": "A glass net float",
+    "text": "A green glass ball in a twine net, the kind a gill net hangs from. This one came up in a net nobody set."
+  },
+  {
+    "id": "curio.trade_medal",
+    "name": "A fur-trade medal",
+    "text": "A worn silver medal from the old fur-trade days at La Pointe, dug from under a cairn."
+  },
+  {
+    "id": "curio.keepers_spyglass",
+    "name": "A keeper's spyglass",
+    "text": "A brass telescope with a light-station's mark on the barrel. Some keeper is short one."
+  },
+  {
+    "id": "curio.nameboard",
+    "name": "A rival's nameboard",
+    "text": "The carved and gilded nameboard off a copycat's schooner, the last that'll be seen of her."
+  }
+]

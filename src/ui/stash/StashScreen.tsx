@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'preact/hooks';
 import { formatCents } from '../../sim/economy/knowledge';
 import { LIE_CHOICES, type LieUntil } from '../../sim/hideouts/lie-at-anchor';
-import type { StashActions } from '../../gameplay/stash';
+import type { StashActions, StashTab } from '../../gameplay/stash';
+import type { HideoutCurios } from '../../gameplay/discovery';
 import type {
   InputRow,
   RecipeRow,
@@ -639,9 +640,79 @@ export function LieButtons({
   );
 }
 
+/** The Curios tab (Phase 9 piece O): set curios out on the shelves here, or take them aboard. */
+function CuriosShelf({
+  curios,
+  actions,
+  setMessage,
+}: {
+  curios: HideoutCurios;
+  actions: StashActions;
+  setMessage(m: string | undefined): void;
+}) {
+  return (
+    <div class="stash-curios" data-testid="stash-curios">
+      <p class="port-dim">
+        {curios.spaces === 0
+          ? 'Nothing here to set a curio on: build a shelf, a table or a sea chest.'
+          : `Room for ${curios.spaces} on the shelves, tables and sea chests here; ${curios.shown.length} set out.`}
+      </p>
+      <h4 class="ledger-subhead">Set out here</h4>
+      {curios.shown.length === 0 ? (
+        <p class="ledger-empty">Nothing yet.</p>
+      ) : (
+        <ul class="curio-list">
+          {curios.shown.map((c) => (
+            <li key={c.id} data-testid="curio-shown" data-curio={c.id}>
+              <span>
+                <strong>{c.name}</strong>
+                <br />
+                <small>{c.text}</small>
+              </span>
+              <button
+                type="button"
+                class="menu-button"
+                data-testid={`curio-take-${c.id}`}
+                onClick={() => setMessage(actions.setCurio(c.id, false))}
+              >
+                Take aboard
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+      <h4 class="ledger-subhead">Aboard, in your sea chest</h4>
+      {curios.aboard.length === 0 ? (
+        <p class="ledger-empty">No curios aboard.</p>
+      ) : (
+        <ul class="curio-list">
+          {curios.aboard.map((c) => (
+            <li key={c.id} data-testid="curio-aboard" data-curio={c.id}>
+              <span>
+                <strong>{c.name}</strong>
+                <br />
+                <small>{c.text}</small>
+              </span>
+              <button
+                type="button"
+                class="menu-button"
+                data-testid={`curio-show-${c.id}`}
+                disabled={curios.spaces === 0}
+                onClick={() => setMessage(actions.setCurio(c.id, true))}
+              >
+                Set out
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
+    </div>
+  );
+}
+
 export function StashScreen({ stash, actions }: { stash: StashSnapshot; actions: StashActions }) {
   const [message, setMessage] = useState<string | undefined>(undefined);
-  const [view, setView] = useState<'storage' | 'workshop' | 'slipway'>(stash.tab ?? 'storage');
+  const [view, setView] = useState<StashTab>(stash.tab ?? 'storage');
   // Opened again on a tab (F at the slipway with the screen up): follow it.
   useEffect(() => {
     if (stash.tab) setView(stash.tab);
@@ -671,6 +742,7 @@ export function StashScreen({ stash, actions }: { stash: StashSnapshot; actions:
               ['storage', 'Storage'],
               ['workshop', 'Workshop'],
               ['slipway', 'Slipway'],
+              ...(stash.curios ? ([['curios', 'Curios']] as const) : []),
             ] as const
           ).map(([id, label]) => (
             <button
@@ -697,6 +769,9 @@ export function StashScreen({ stash, actions }: { stash: StashSnapshot; actions:
         )}
         {view === 'slipway' && (
           <Slipway slipway={stash.slipway} actions={actions} setMessage={setMessage} />
+        )}
+        {view === 'curios' && stash.curios && (
+          <CuriosShelf curios={stash.curios} actions={actions} setMessage={setMessage} />
         )}
         {view === 'storage' && (
           <div class="port-body stash-body">

@@ -1,5 +1,6 @@
 import { WantedIcon } from '../hud/Wanted';
 import { AmbitionsPage, useAmbitions } from '../hud/Ambitions';
+import { CuriosPage, DiscoveriesPage, LeadsPage, LegendsPage } from './JournalPages';
 import type { LedgerLawSnapshot } from './harbor-model';
 import type { ComponentChildren } from 'preact';
 import { useState } from 'preact/hooks';
@@ -21,7 +22,21 @@ import {
  * are, so color is never the only signal (plan 13 §2.2).
  */
 
-type LedgerTab = 'hold' | 'byPort' | 'byGood' | 'contracts' | 'rumors' | 'standing' | 'ambitions';
+type LedgerTab =
+  | 'hold'
+  | 'byPort'
+  | 'byGood'
+  | 'contracts'
+  | 'rumors'
+  | 'standing'
+  | 'ambitions'
+  | 'leads'
+  | 'legends'
+  | 'discoveries'
+  | 'curios';
+
+/** The discovery pages (Phase 9 piece O): only when the game hands the journal its data. */
+const JOURNAL_TABS: readonly LedgerTab[] = ['leads', 'legends', 'discoveries', 'curios'];
 
 const TABS: [LedgerTab, string][] = [
   ['hold', 'Hold'],
@@ -31,6 +46,10 @@ const TABS: [LedgerTab, string][] = [
   ['rumors', 'Rumors'],
   ['standing', 'Standing & law'],
   ['ambitions', 'Ambitions'],
+  ['leads', 'Leads'],
+  ['legends', 'Legends'],
+  ['discoveries', 'Discoveries'],
+  ['curios', 'Curios'],
 ];
 
 /** One rumor: what was said, who said it and how far to trust it. */
@@ -481,7 +500,9 @@ export function Ledger({ ledger, here }: { ledger: LedgerSnapshot; here?: string
   const [tab, setTab] = useState<LedgerTab>(here ? 'byPort' : 'hold');
   // The Ambitions page needs the game's buttons (Phase 8 piece H): absent, no tab.
   const ambitions = useAmbitions();
-  const tabs = ambitions ? TABS : TABS.filter(([id]) => id !== 'ambitions');
+  const tabs = TABS.filter(
+    ([id]) => (id !== 'ambitions' || ambitions) && (!JOURNAL_TABS.includes(id) || ledger.journal),
+  );
   return (
     <div class="ledger" data-testid="ledger">
       <nav class="ledger-tabs">
@@ -516,6 +537,10 @@ export function Ledger({ ledger, here }: { ledger: LedgerSnapshot; here?: string
       {tab === 'ambitions' && ambitions && (
         <AmbitionsPage ambitions={ambitions.ambitions} actions={ambitions.actions} />
       )}
+      {tab === 'leads' && ledger.journal && <LeadsPage journal={ledger.journal} />}
+      {tab === 'legends' && ledger.journal && <LegendsPage journal={ledger.journal} />}
+      {tab === 'discoveries' && ledger.journal && <DiscoveriesPage journal={ledger.journal} />}
+      {tab === 'curios' && ledger.journal && <CuriosPage journal={ledger.journal} />}
     </div>
   );
 }

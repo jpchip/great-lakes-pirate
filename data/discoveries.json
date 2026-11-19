@@ -1,0 +1,320 @@
+{
+  "leadMinRadiusM": 400,
+  "leadShrink": 0.55,
+  "surveys": [{ "id": "survey.apostles", "name": "Lake Survey chart of the Apostle Islands" }],
+  "places": [
+    {
+      "id": "poi.stockton_quarry",
+      "kind": "poi",
+      "name": "The brownstone quarry, Stockton Island",
+      "at": { "lat": 46.91845, "lon": -90.61117 },
+      "island": "island.stockton",
+      "sightM": 4000,
+      "text": "Cut out and left when the market for brownstone failed: a spoil wharf, a derrick, and dressed blocks nobody came back for."
+    },
+    {
+      "id": "poi.hermit_quarry",
+      "kind": "poi",
+      "name": "The Hermit Island quarry",
+      "at": { "lat": 46.8805, "lon": -90.6955 },
+      "island": "island.hermit",
+      "sightM": 4000,
+      "text": "The quarry company's cut on Hermit Island, idle since the Panic of '93. The men say they were never paid for the last month.",
+      "talk": {
+        "ports": ["port.bayfield", "port.la_pointe"],
+        "lines": [
+          "The old quarry on Hermit Island's southwest shore has a wharf you can lie alongside in a calm. Nobody's worked it since '93."
+        ]
+      }
+    },
+    {
+      "id": "poi.basswood_quarry",
+      "kind": "poi",
+      "name": "The Basswood Island quarry",
+      "at": { "lat": 46.8495, "lon": -90.7575 },
+      "island": "island.basswood",
+      "sightM": 4000,
+      "text": "A brownstone cut on Basswood's west shore that sent stone to Chicago and Milwaukee, now worked only now and then."
+    },
+    {
+      "id": "poi.outer_fish_camp",
+      "kind": "poi",
+      "name": "The fish camp, Outer Island",
+      "at": { "lat": 46.985, "lon": -90.4335 },
+      "island": "island.outer",
+      "sightM": 4000,
+      "text": "Net reels, a shanty and a fish house on the sandspit at Outer Island's south end. Nobody fishes from it anymore."
+    },
+    {
+      "id": "poi.rocky_fish_camp",
+      "kind": "poi",
+      "name": "The fish camp, Rocky Island",
+      "at": { "lat": 47.0345, "lon": -90.6705 },
+      "island": "island.rocky",
+      "sightM": 4000,
+      "text": "Herring fishermen's cabins and net sheds on Rocky Island's east shore, where the tugs lie in the summer.",
+      "talk": {
+        "ports": ["port.bayfield", "port.red_cliff"],
+        "lines": [
+          "The herring men keep a camp on Rocky Island's east side. They don't ask what a boat's carrying, so long as she buys their fish."
+        ]
+      }
+    },
+    {
+      "id": "poi.manitou_fish_camp",
+      "kind": "poi",
+      "name": "The fish camp, Manitou Island",
+      "at": { "lat": 46.9575, "lon": -90.6655 },
+      "island": "island.manitou",
+      "sightM": 4000,
+      "text": "A log cabin and a net shed above a stony beach on Manitou's southwest shore."
+    },
+    {
+      "id": "poi.sand_farms",
+      "kind": "poi",
+      "name": "The farms at East Bay, Sand Island",
+      "at": { "lat": 46.9745, "lon": -90.9425 },
+      "island": "island.sand",
+      "sightM": 4000,
+      "text": "A handful of Norwegian families farm and fish above East Bay, with a schoolhouse and a post office of their own."
+    },
+    {
+      "id": "wonder.devils_caves",
+      "kind": "wonder",
+      "name": "The sea caves of Devils Island",
+      "at": { "lat": 47.0835, "lon": -90.7275 },
+      "island": "island.devils",
+      "sightM": 4500,
+      "fame": 2,
+      "text": "The north end of Devils Island is honeycombed with caves the lake has cut into the sandstone. In a northeaster they boom like cannon.",
+      "talk": {
+        "ports": ["port.bayfield", "port.la_pointe", "port.red_cliff"],
+        "lines": [
+          "Go round the north end of Devils Island in a calm and you'll see caves in the cliff a man could row a boat into. In a blow you'll hear them first."
+        ]
+      }
+    },
+    {
+      "id": "wonder.sand_caves",
+      "kind": "wonder",
+      "name": "The sea caves at Swallow Point, Sand Island",
+      "at": { "lat": 47.0035, "lon": -90.9455 },
+      "island": "island.sand",
+      "sightM": 4500,
+      "fame": 2,
+      "text": "Arches and caves along Sand Island's northeast shore, full of swallows in summer."
+    },
+    {
+      "id": "wonder.mainland_caves",
+      "kind": "wonder",
+      "name": "The mainland sea caves",
+      "at": { "lat": 46.8915, "lon": -91.0185 },
+      "sightM": 4500,
+      "fame": 2,
+      "text": "A mile of red cliff on the mainland shore east of Siskiwit Bay, cut into caves and arches the lake runs right through.",
+      "talk": {
+        "ports": ["port.bayfield", "port.red_cliff", "port.washburn"],
+        "lines": [
+          "West of Sand Island the mainland's all red cliff, and the lake's gone right through it in places. Caves you could hide a boat in, if the sea let you."
+        ]
+      }
+    },
+    {
+      "id": "wonder.big_bay",
+      "kind": "wonder",
+      "name": "Big Bay's sand spit and lagoon, Madeline Island",
+      "at": { "lat": 46.8015, "lon": -90.6625 },
+      "island": "island.madeline",
+      "sightM": 4500,
+      "fame": 2,
+      "text": "A long white beach across the mouth of a lagoon on Madeline's east side, with a bog and pines behind it."
+    },
+    {
+      "id": "anchorage.julian_bay",
+      "kind": "anchorage",
+      "name": "Julian Bay, Stockton Island",
+      "at": { "lat": 46.9505, "lon": -90.537 },
+      "island": "island.stockton",
+      "radiusM": 1400,
+      "survey": "survey.apostles",
+      "text": "Good holding in sand on Stockton's east side, open to the east but snug in a westerly.",
+      "talk": {
+        "ports": ["port.bayfield", "port.la_pointe"],
+        "lines": [
+          "Caught out east of Stockton in a westerly, run into Julian Bay. Sand bottom, and the island takes the sea off you."
+        ]
+      }
+    },
+    {
+      "id": "anchorage.quarry_bay",
+      "kind": "anchorage",
+      "name": "Quarry Bay, Stockton Island",
+      "at": { "lat": 46.913, "lon": -90.6185 },
+      "island": "island.stockton",
+      "radiusM": 1200,
+      "survey": "survey.apostles",
+      "text": "The bay under the old quarry on Stockton's south shore: enough water off the spoil wharf, sheltered from the north."
+    },
+    {
+      "id": "anchorage.little_sand_bay",
+      "kind": "anchorage",
+      "name": "Little Sand Bay",
+      "at": { "lat": 46.9435, "lon": -90.8905 },
+      "radiusM": 1200,
+      "survey": "survey.apostles",
+      "text": "A small bay on the mainland across from Sand Island, shallow at the head, with a fisherman's dock."
+    },
+    {
+      "id": "anchorage.raspberry_bay",
+      "kind": "anchorage",
+      "name": "Raspberry Bay",
+      "at": { "lat": 46.9415, "lon": -90.8065 },
+      "radiusM": 1300,
+      "survey": "survey.apostles",
+      "text": "A wide bay on the mainland under Raspberry Island, out of a northwest sea."
+    },
+    {
+      "id": "anchorage.frog_bay",
+      "kind": "anchorage",
+      "name": "Frog Bay",
+      "at": { "lat": 46.9205, "lon": -90.7705 },
+      "radiusM": 1100,
+      "survey": "survey.apostles",
+      "text": "A quiet bay on the mainland east of Raspberry Bay, out of the way of the Bayfield traffic."
+    },
+    {
+      "id": "anchorage.east_bay",
+      "kind": "anchorage",
+      "name": "East Bay, Sand Island",
+      "at": { "lat": 46.9775, "lon": -90.9295 },
+      "island": "island.sand",
+      "radiusM": 1200,
+      "survey": "survey.apostles",
+      "text": "The Sand Islanders' bay, with their dock at its head. Sheltered from the west."
+    },
+    {
+      "id": "anchorage.rocky_south_twin",
+      "kind": "anchorage",
+      "name": "Between Rocky and South Twin",
+      "at": { "lat": 47.0305, "lon": -90.6615 },
+      "radiusM": 1200,
+      "survey": "survey.apostles",
+      "text": "The sound between Rocky and South Twin Islands, where the herring tugs lie in any weather but a southeaster."
+    },
+    {
+      "id": "anchorage.big_bay",
+      "kind": "anchorage",
+      "name": "Big Bay, Madeline Island",
+      "at": { "lat": 46.8055, "lon": -90.6505 },
+      "island": "island.madeline",
+      "radiusM": 1500,
+      "survey": "survey.apostles",
+      "text": "A broad bay on Madeline's east shore, open to the east and safe from everything else."
+    },
+    {
+      "id": "shoal.sand_island",
+      "kind": "shoal",
+      "name": "Sand Island Shoal",
+      "at": { "lat": 46.9905, "lon": -90.902 },
+      "radiusM": 1500,
+      "survey": "survey.apostles",
+      "text": "A reef of boulders between Sand and York Islands with two fathoms over it in places. Steamers give it a wide berth."
+    },
+    {
+      "id": "shoal.eagle_island",
+      "kind": "shoal",
+      "name": "The shoals off Eagle Island",
+      "at": { "lat": 46.9475, "lon": -91.0245 },
+      "island": "island.eagle",
+      "radiusM": 1300,
+      "survey": "survey.apostles",
+      "text": "Rock all round Eagle Island, the furthest west of the Apostles, and the gulls' own."
+    },
+    {
+      "id": "shoal.gull_island",
+      "kind": "shoal",
+      "name": "Gull Island Shoal",
+      "at": { "lat": 46.9195, "lon": -90.4245 },
+      "island": "island.gull",
+      "radiusM": 1800,
+      "survey": "survey.apostles",
+      "text": "A long reef running out northeast from Gull Island, past Michigan Island's light. The lake trout spawn on it; so do the wrecks.",
+      "talk": {
+        "ports": ["port.bayfield", "port.ashland", "port.la_pointe"],
+        "lines": [
+          "Steer well clear of Gull Island. The shoal runs out a mile and more to the northeast and there's next to nothing over it."
+        ]
+      }
+    },
+    {
+      "id": "shoal.long_island_bar",
+      "kind": "shoal",
+      "name": "The bar off Chequamegon Point",
+      "at": { "lat": 46.7225, "lon": -90.7775 },
+      "island": "island.long",
+      "radiusM": 1500,
+      "survey": "survey.apostles",
+      "text": "Sand building out from the end of Long Island across the mouth of Chequamegon Bay. The range lights lead you round it."
+    },
+    {
+      "id": "shoal.oak_spit",
+      "kind": "shoal",
+      "name": "The sandspit off Oak Island",
+      "at": { "lat": 46.9225, "lon": -90.7425 },
+      "island": "island.oak",
+      "radiusM": 1000,
+      "survey": "survey.apostles",
+      "text": "A spit of sand reaching out from Oak Island's southwest point, barely awash in a low year."
+    },
+    {
+      "id": "shoal.outer_north",
+      "kind": "shoal",
+      "name": "The reef off Outer Island's north end",
+      "at": { "lat": 47.0935, "lon": -90.4205 },
+      "island": "island.outer",
+      "radiusM": 1500,
+      "survey": "survey.apostles",
+      "text": "Rock under the light at Outer Island's north end. In fog the light is no help; the fog signal is."
+    },
+    {
+      "id": "shoal.bark_point",
+      "kind": "shoal",
+      "name": "The shoal off Bark Point",
+      "at": { "lat": 46.8885, "lon": -91.1905 },
+      "radiusM": 1300,
+      "text": "Rock off Bark Point at the mouth of Siskiwit Bay, not on any survey sheet: the logging tugs knew it."
+    }
+  ],
+  "legends": [
+    {
+      "id": "legend.lucerne",
+      "at": { "lat": 46.7172, "lon": -90.77 },
+      "radiusM": 5000,
+      "where": "off Long Island"
+    },
+    {
+      "id": "legend.quarry_payroll",
+      "at": { "lat": 46.8877, "lon": -90.685 },
+      "radiusM": 3500,
+      "where": "on Hermit Island"
+    },
+    {
+      "id": "legend.dark_light",
+      "at": { "lat": 46.7115, "lon": -92.0262 },
+      "radiusM": 3000,
+      "where": "at the old light on Minnesota Point"
+    },
+    {
+      "id": "legend.devils_grotto",
+      "at": { "lat": 47.0715, "lon": -90.7261 },
+      "radiusM": 3000,
+      "where": "in the caves of Devils Island"
+    },
+    {
+      "id": "legend.ghost_net",
+      "at": { "lat": 47.0335, "lon": -90.4304 },
+      "radiusM": 6000,
+      "where": "on Outer Island"
+    }
+  ]
+}
