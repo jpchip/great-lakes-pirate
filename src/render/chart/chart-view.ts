@@ -59,7 +59,7 @@ export interface ChartFrame {
   ashore?: { captain: Chart; boat?: Chart | undefined } | undefined;
 }
 
-export type ChartMarkKind = 'smuggler' | 'wanted' | 'mostWanted' | 'wreck';
+export type ChartMarkKind = 'smuggler' | 'wanted' | 'mostWanted' | 'wreck' | 'wrecking';
 
 export interface ChartMark {
   pos: Chart;
@@ -614,6 +614,10 @@ export class ChartView {
         this.drawWreck(m);
         continue;
       }
+      if (m.kind === 'wrecking') {
+        this.drawWreckingMark(m);
+        continue;
+      }
       if (m.kind !== 'smuggler') {
         this.drawWanted(m);
         continue;
@@ -674,6 +678,35 @@ export class ChartView {
     ctx.textAlign = 'center';
     ctx.fillStyle = CHART_COLORS.ink;
     haloText(ctx, m.label, s.x, s.y + 6);
+    ctx.restore();
+  }
+
+  /**
+   * A wrecking mark (Phase 9 piece I): a headland a false light can be hung on, pencilled
+   * as a small cross over a dotted shoal line, with its name in small italic.
+   */
+  private drawWreckingMark(m: ChartMark): void {
+    const { ctx } = this;
+    const s = this.toScreen(m.pos);
+    ctx.save();
+    ctx.strokeStyle = CHART_COLORS.ink;
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(s.x - 3.5, s.y - 3.5);
+    ctx.lineTo(s.x + 3.5, s.y + 3.5);
+    ctx.moveTo(s.x + 3.5, s.y - 3.5);
+    ctx.lineTo(s.x - 3.5, s.y + 3.5);
+    ctx.stroke();
+    ctx.setLineDash([1.5, 2.5]);
+    ctx.beginPath();
+    ctx.arc(s.x, s.y, 8, 0, Math.PI * 2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    ctx.font = `italic 10px ${FONT}`;
+    ctx.textBaseline = 'middle';
+    ctx.textAlign = 'left';
+    ctx.fillStyle = CHART_COLORS.ink;
+    haloText(ctx, m.label, s.x + 11, s.y);
     ctx.restore();
   }
 

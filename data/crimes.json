@@ -117,6 +117,15 @@
     "fame": 5
   },
   {
+    "id": "crime.false_light",
+    "name": "Showing a false light",
+    "heat": 40,
+    "phase": 9,
+    "news": true,
+    "fame": 12,
+    "notes": "Moon cussing (plan 06 \u00a76.2; Phase 9 piece I): a false light hung on a headland to put a ship on a shoal. Known only if the keeper or her survivors saw the light; any drowned are a killing on top."
+  },
+  {
     "id": "crime.sinking",
     "name": "Sinking a ship",
     "heat": 90,

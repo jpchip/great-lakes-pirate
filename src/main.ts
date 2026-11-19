@@ -121,6 +121,7 @@ import { workSites } from './audio/harbor-mix';
 import { lightsIn, placeLights, viewingSpot } from './sim/lighthouses';
 import { ZoneManager } from './sim/terrain/zone-manager';
 import {
+  APOSTLES_ID,
   defFrame,
   entryPose,
   findEntry,
@@ -166,6 +167,9 @@ import { FEUDS, feudOpen } from './sim/events/feuds';
 import { attachLaw, devWitness } from './gameplay/law';
 import { attachPortLaw } from './gameplay/port-law';
 import { attachPapers } from './gameplay/papers';
+import { attachWrecking } from './gameplay/wrecking';
+import { createFalseLights, type FalseLightView } from './render/wrecking/false-lights';
+import { MARKS } from './sim/wrecking';
 import { pierPort } from './sim/harbors';
 import { attachLawShips } from './gameplay/law-ships';
 import { attachTargets } from './gameplay/targets';
@@ -201,6 +205,7 @@ import { attachAshore, type GameAshore } from './gameplay/ashore';
 import { DISTRICTS, districtFootprint, districtFrame } from './gameplay/district/ground';
 import { createWatch } from './gameplay/onfoot/watch';
 import { createStationWatch, keeperWeather } from './gameplay/onfoot/station-watch';
+import { attachKeeperFound } from './gameplay/keeper-found';
 import {
   emptyStation,
   keepersOnDuty,
@@ -1388,6 +1393,87 @@ async function boot(): Promise<void> {
     };
     (window as unknown as { __glpPapers: typeof hook }).__glpPapers = hook;
   }
+  // Wrecking (Phase 9 piece I): false lights at the marks, ships judged as they pass on the
+  // world tick, the stranded lying on their shoals to be boarded, and the law's inquiry.
+  const wrecking = attachWrecking({
+    ctx,
+    law,
+    seed: trafficSeed,
+    geo: westernSuperiorChart(),
+    traffic,
+    economy: economy.defs,
+    papers,
+    playerAt: () =>
+      machine.mode === 'sailing' && !arena
+        ? { zoneId: zoneData.id, ...shipPose(), lit: !lantern.runningDark() }
+        : undefined,
+  });
+  /** The loaded zone's frame when it's the Apostles (the wrecking marks are all there). */
+  const marksFrame = () =>
+    zone && zoneData.id === APOSTLES_ID ? manifestFrame(zone.manifest) : undefined;
+  traffic.setStranded(() => {
+    const frame = marksFrame();
+    if (!frame) return [];
+    return wrecking.stranded().map((s) => ({
+      shipId: s.shipId,
+      pose: wrecking.shoalPose(s.mark, frame),
+      manifest: wrecking.manifestOf(s),
+    }));
+  });
+  if (import.meta.env.DEV || params.has('debug')) {
+    // `__glpWrecking.state()` reads the slice; `.rig(mark)` puts you at a mark's rig spot
+    // with a rig in the lockers; `.set()` presses F there; `.step()` judges the passing ships
+    // now; `.conditions(mark)` reads the night there; `.night()` the moon-cussing check.
+    const hook = {
+      state: () => wrecking.state,
+      marks: () => MARKS.map((m) => m.id),
+      spots: () => {
+        const f = marksFrame();
+        return f ? Object.fromEntries(wrecking.rigSpots(f)) : {};
+      },
+      shoal: (mark: string) => {
+        const f = marksFrame();
+        return f && wrecking.shoalPose(mark, f);
+      },
+      set: () => {
+        const f = marksFrame();
+        const msg = f ? wrecking.setRig(shipPose(), f) : 'Not in the Apostles';
+        showNotice(msg);
+        return msg;
+      },
+      step: () => wrecking.step(),
+      /** A rig (or `n`) in the lockers. */
+      give: (n = 1) => {
+        state.player.stores['store.false_light'] =
+          (state.player.stores['store.false_light'] ?? 0) + n;
+      },
+      /** Lays the ship off a mark, seaward of its shoal, stopped, within reach of the rig spot. */
+      goto: (mark: string) => {
+        const f = marksFrame();
+        const r = f && wrecking.rigSpots(f).get(mark);
+        if (!f || !r) return false;
+        const sh = wrecking.shoalPose(mark, f);
+        const dx = sh.x - r.x;
+        const dz = sh.z - r.z;
+        const d = Math.hypot(dx, dz) || 1;
+        const off = Math.min(60, d + 30);
+        placeShip({
+          x: r.x + (dx / d) * off,
+          z: r.z + (dz / d) * off,
+          heading: sh.heading + Math.PI / 2,
+        });
+        sailing.state.speed = 0;
+        sailing.state.sailLevel = sailing.state.sailSetting = 0;
+        return true;
+      },
+      strand: (mark: string, witnessed = false) => wrecking.devStrand(mark, witnessed),
+      lit: () => wrecking.lit(),
+      stranded: () => wrecking.stranded(),
+      conditions: (mark: string) => wrecking.conditions(mark),
+      night: () => wrecking.wreckingNight(),
+    };
+    (window as unknown as { __glpWrecking: typeof hook }).__glpWrecking = hook;
+  }
   // Sandbox events and letters (Phase 9 piece A): drawn on the world tick, met on a voyage
   // or on docking as a scene on paper, and letters at the harbor master's.
   let contextBeforeScene: InputContext = 'sailing';
@@ -1399,6 +1485,7 @@ async function boot(): Promise<void> {
     papers,
     traffic,
     gale: (port) => papers.signal(port) !== undefined,
+    wreckingNight: () => wrecking.wreckingNight(),
     onVoyage: () => {
       const travel = travelRef.current;
       return (
@@ -1671,6 +1758,8 @@ async function boot(): Promise<void> {
   });
   // The law asks piece B's watchers who saw a crime at sea (plan 06 §2.1, §7.1).
   law.witnesses = detection;
+  // The keepers' log, and a lone keeper found dead a week or two after (plan 06 §6.2).
+  const keeperFound = attachKeeperFound({ ctx, law, notice: (text) => showNotice(text) });
   // For the console and the e2e tests: who's watching, the witnesses, and the lantern.
   if (import.meta.env.DEV || params.has('debug')) {
     const hook = {
@@ -1855,6 +1944,38 @@ async function boot(): Promise<void> {
     },
   });
   ctx.events.on('ZoneEntered', () => targets.reset());
+  // Wrecking in the zone (Phase 9 piece I): a ship stranded at a mark has struck where she
+  // lies, to be boarded from the deep side; the rigs burning are drawn on their headlands.
+  let falseLights: FalseLightView | undefined;
+  if (scene) {
+    falseLights = createFalseLights();
+    scene.scene.add(falseLights.group);
+  }
+  const syncWrecking = (): void => {
+    for (const s of wrecking.stranded()) {
+      if (traffic.shown.has(s.shipId) && !targets.isStruck(s.shipId)) {
+        targets.strike(s.shipId, 'aground on the shoal');
+      }
+    }
+    if (!falseLights) return;
+    const frame = marksFrame();
+    const z = zone;
+    if (!frame || !z) {
+      falseLights.sync([]);
+      return;
+    }
+    const spots = wrecking.rigSpots(frame);
+    falseLights.sync(
+      wrecking.lit().flatMap((r) => {
+        const p = spots.get(r.mark);
+        if (!p) return [];
+        const groundM = z.terrain.contains(p.x, p.z)
+          ? Math.max(0, z.terrain.heightAt(p.x, p.z))
+          : 0;
+        return [{ id: r.mark, x: p.x, z: p.z, groundM }];
+      }),
+    );
+  };
   ctx.events.on('ArenaEntered', () => targets.reset());
   if (import.meta.env.DEV || params.has('debug')) {
     // `__glpTargets.captains()` reads every target's captain and his meter; `warn(id)` drops
@@ -2934,6 +3055,8 @@ async function boot(): Promise<void> {
     if (machine.mode !== 'sailing' || hazards.state.mooring !== 'free') return [];
     const board = boardingRef.current?.chip();
     if (board) return [board];
+    const rig = rigChip();
+    if (rig) return [rig];
     const near = traffic.nearest(shipPose(), HAIL_RANGE_M);
     if (!near) return [];
     if (smuggler.isSmuggler(near.id)) {
@@ -2942,6 +3065,24 @@ async function boot(): Promise<void> {
     }
     if (!arena && near.distanceM <= lookRangeM()) return ['F look her over · H hail'];
     return ['H to hail'];
+  };
+  /**
+   * At a wrecking mark with a false-light rig in the lockers (Phase 9 piece I): F hangs it,
+   * after dark. Without a rig aboard the mark says nothing.
+   */
+  const rigOffer = () => {
+    const frame = marksFrame();
+    if (!frame || (state.player.stores['store.false_light'] ?? 0) <= 0) return undefined;
+    const o = wrecking.offer(shipPose(), frame);
+    return o && { ...o, frame };
+  };
+  const rigChip = (): string | undefined => {
+    const o = rigOffer();
+    if (!o) return undefined;
+    if (!o.refusal) return `F hang a false light · ${o.mark.name}`;
+    return wrecking.lit().some((r) => r.mark === o.mark.id)
+      ? `Your false light burns at ${o.mark.name}`
+      : `${o.mark.name}: a false light wants the dark`;
   };
   const hideCard = (): void => {
     card = undefined;
@@ -2963,6 +3104,14 @@ async function boot(): Promise<void> {
       }
     }
     if (arena) return;
+    // At a wrecking mark with a rig aboard, F hangs the false light (Phase 9 piece I).
+    if (e.reason === 'noBerth' || e.reason === 'anchored') {
+      const o = rigOffer();
+      if (o) {
+        showNotice(wrecking.setRig(shipPose(), o.frame));
+        return;
+      }
+    }
     const near = e.reason === 'noBerth' ? traffic.nearest(shipPose(), lookRangeM()) : undefined;
     if (near && smuggler.isSmuggler(near.id)) {
       const refused = smuggler.comeAlongside(shipPose(), speedKn(sailing.state));
@@ -4142,6 +4291,11 @@ async function boot(): Promise<void> {
       },
       settle: () =>
         stationLights().map((p) => ({ id: p.def.id, lit: p.def.lit, keepers: p.def.keepers })),
+      /** Jumps the clock `days` on and runs the finding of a keeper nobody was left to tell. */
+      pass(days: number) {
+        state.environment.clock.gameSeconds += days * SECONDS_PER_GAME_DAY;
+        return keeperFound.step();
+      },
     };
     (window as unknown as { __glpStation: typeof stationHook }).__glpStation = stationHook;
     // `?ashore=bayfield` ties up at the fish pier and goes ashore; `?ashore=stockton` anchors
@@ -4670,6 +4824,15 @@ async function boot(): Promise<void> {
         label: `${m.def.anchorage.name} (after dark)`,
         kind: 'smuggler' as const,
       })),
+      // The wrecking marks (Phase 9 piece I), pencilled in once you've a rig aboard or
+      // burning, and the ships your lights put aground there.
+      ...((state.player.stores['store.false_light'] ?? 0) > 0 || wrecking.lit().length > 0
+        ? MARKS.map((m) => ({ at: m.rig, label: m.name, kind: 'wrecking' as const }))
+        : []),
+      ...wrecking.stranded().flatMap((s) => {
+        const m = MARKS.find((x) => x.id === s.mark);
+        return m ? [{ at: m.shoal, label: `${s.name}, aground`, kind: 'wreck' as const }] : [];
+      }),
       // Wrecks on the lake (Phase 6 piece F): where each lies, in the chart's sign.
       ...(state.wrecks?.list ?? []).map((w) => ({
         at: w.at,
@@ -4911,6 +5074,7 @@ async function boot(): Promise<void> {
       if (inZone && !arena && !changingZone) {
         if (traffic.step(hazards.state.berthId)) sailingOptions.berths = freeBerths();
         smuggler.step(shipPose());
+        syncWrecking();
       }
       lantern.step();
       if (sameContext && input.context === 'sailing' && input.pressed('Lantern')) {
@@ -4974,6 +5138,10 @@ async function boot(): Promise<void> {
       input.endTick();
     },
     frame(alpha, frameSeconds) {
+      if (falseLights) {
+        const sun = sunAt(state.environment.clock.gameSeconds).elevationRad;
+        falseLights.update(performance.now() / 1000, Math.min(1, Math.max(0, -sun / 0.15)));
+      }
       machine.render(alpha, frameSeconds);
       audio?.update(frameSeconds, machine.mode, machine.hasOverlay('loading'));
       if (audio) audioCuesToDataset(audio);

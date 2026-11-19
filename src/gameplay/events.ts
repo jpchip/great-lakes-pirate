@@ -119,6 +119,8 @@ export interface EventsOptions {
   traffic?: { defs: TrafficDefs; contacts: readonly Contact[] } | undefined;
   /** The storm signal flies at a port. */
   gale(port: string): boolean;
+  /** A moon-cussing night's ship and mark (Phase 9 piece I), if tonight is one. */
+  wreckingNight?: EventWorld['wreckingNight'];
   /** Under way on a voyage on the chart, with nothing else in front of it. */
   onVoyage(): boolean;
   /** Shows a scene (or puts it away); `open` changes when one opens or closes. */
@@ -161,6 +163,7 @@ export function attachEvents(opts: EventsOptions): GameEvents {
       }),
       hereRegion: playerRegion(opts.law, state),
       dockedPort,
+      ...(opts.wreckingNight ? { wreckingNight: opts.wreckingNight } : {}),
       sailingFrom: (port, days) => {
         const t = opts.traffic;
         if (!t) return undefined;
@@ -189,6 +192,7 @@ export function attachEvents(opts: EventsOptions): GameEvents {
       captain: ctx.state.player.captain.name,
       hideout: ev.hideoutName ?? 'your hideout',
       cost: cost !== undefined ? formatCents(cost, true) : '',
+      mark: ev.markName ?? 'the islands',
     };
   };
   const fill = (ev: ActiveEvent, t: string): string => fillText(t, values(ev));

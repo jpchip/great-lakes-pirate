@@ -44,6 +44,8 @@ export const activeEventSchema = z.object({
   shipName: z.string().optional(),
   sailsAt: z.number().optional(),
   cents: z.number().int().optional(),
+  /** The wrecking mark a moon-cussing night's ship is due past (Phase 9 piece I). */
+  markName: z.string().optional(),
   /** The hideout an informant knows of. */
   hideout: z.string().optional(),
   hideoutName: z.string().optional(),
@@ -117,6 +119,12 @@ export interface EventWorld {
   dockedPort: string | undefined;
   /** The next ship to sail loaded from a port within `days`, for a payroll. */
   sailingFrom?(port: string, days: number): { ship: string; name: string; at: number } | undefined;
+  /**
+   * A moon-cussing night (Phase 9 piece I): the laden ship due past a wrecking mark after
+   * dark, with the moon dark and the weather foul there; undefined when it isn't one.
+   */
+  wreckingNight?():
+    { ship: string; name: string; at: number; mark: string; region: string } | undefined;
 }
 
 /** Where the draw is made: the world tick, a voyage's tick, or docking at a port. */
@@ -170,6 +178,10 @@ export function candidates(
   if (def.ports) {
     places = def.ports.map((p) => ({ port: p, region: world.regionOf(p) }));
     if (moment === 'dock') places = places.filter((p) => p.port === world.dockedPort);
+  } else if (t.wreckingNight) {
+    const w = world.wreckingNight?.();
+    if (!w) return [];
+    places = [{ port: undefined, region: w.region }];
   } else if (def.outcomes.some((o) => o.kind === 'cutter')) {
     places = [{ port: undefined, region: world.topWanted.region }];
   } else if (t.hideout) {
@@ -257,6 +269,16 @@ export function fireEvent(
     ev.cents = Math.round((o.cents[0] + (o.cents[1] - o.cents[0]) * rand()) / 100) * 100;
     // The payroll is aboard until she's well on her way and then some.
     ev.until = Math.max(ev.until, s.at + SECONDS_PER_GAME_DAY);
+  }
+  if (def.triggers.wreckingNight) {
+    const w = world.wreckingNight?.();
+    if (w) {
+      ev.ship = w.ship;
+      ev.shipName = w.name;
+      ev.sailsAt = w.at;
+      ev.markName = w.mark;
+      ev.until = Math.max(ev.until, w.at + 6 * HOUR);
+    }
   }
   if (def.triggers.hideout) {
     const h = [...world.hideouts]

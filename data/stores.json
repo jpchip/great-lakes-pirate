@@ -69,5 +69,13 @@
     "priceCents": 900,
     "max": 1,
     "fameTier": 2
+  },
+  {
+    "id": "store.false_light",
+    "name": "False-light rig",
+    "blurb": "A lantern on a pole with a pane of colored glass, and kerosene for a night's burning: set on a headland, it shows a light where no light should be.",
+    "priceCents": 400,
+    "max": 2,
+    "crafted": true
   }
 ]

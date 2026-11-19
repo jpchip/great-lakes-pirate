@@ -4,6 +4,8 @@
     "restockDays": 14,
     "replaceDays": 21,
     "welcomeMaxTier": 1,
+    "foundDays": [7, 14],
+    "logTieDays": 2,
     "groundsM": 45,
     "climbS": 1.5,
     "douseS": 3,
