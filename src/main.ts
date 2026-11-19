@@ -1431,6 +1431,31 @@ async function boot(): Promise<void> {
         return msg;
       },
       step: () => wrecking.step(),
+      /** A rig (or `n`) in the lockers. */
+      give: (n = 1) => {
+        state.player.stores['store.false_light'] =
+          (state.player.stores['store.false_light'] ?? 0) + n;
+      },
+      /** Lays the ship off a mark, seaward of its shoal, stopped, within reach of the rig spot. */
+      goto: (mark: string) => {
+        const f = marksFrame();
+        const r = f && wrecking.rigSpots(f).get(mark);
+        if (!f || !r) return false;
+        const sh = wrecking.shoalPose(mark, f);
+        const dx = sh.x - r.x;
+        const dz = sh.z - r.z;
+        const d = Math.hypot(dx, dz) || 1;
+        const off = Math.min(60, d + 30);
+        placeShip({
+          x: r.x + (dx / d) * off,
+          z: r.z + (dz / d) * off,
+          heading: sh.heading + Math.PI / 2,
+        });
+        sailing.state.speed = 0;
+        sailing.state.sailLevel = sailing.state.sailSetting = 0;
+        return true;
+      },
+      strand: (mark: string, witnessed = false) => wrecking.devStrand(mark, witnessed),
       lit: () => wrecking.lit(),
       stranded: () => wrecking.stranded(),
       conditions: (mark: string) => wrecking.conditions(mark),

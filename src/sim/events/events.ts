@@ -123,7 +123,8 @@ export interface EventWorld {
    * A moon-cussing night (Phase 9 piece I): the laden ship due past a wrecking mark after
    * dark, with the moon dark and the weather foul there; undefined when it isn't one.
    */
-  wreckingNight?(): { ship: string; name: string; at: number; mark: string; region: string } | undefined;
+  wreckingNight?():
+    { ship: string; name: string; at: number; mark: string; region: string } | undefined;
 }
 
 /** Where the draw is made: the world tick, a voyage's tick, or docking at a port. */

@@ -98,6 +98,11 @@ export interface GameWrecking {
   /** The moon-cussing night's ship and mark, if tonight's one (the events' trigger). */
   wreckingNight():
     { ship: string; name: string; at: number; mark: string; region: string } | undefined;
+  /**
+   * The dev hook: puts a passing ship of the traffic on a mark's shoal now, as if fooled
+   * (`witnessed`: her survivors saw the light). Her name, or why not.
+   */
+  devStrand(markId: string, witnessed?: boolean): string;
   /** The conditions at a mark now (the dev hook). */
   conditions(markId: string): MarkConditions | undefined;
   dispose(): void;
@@ -430,6 +435,43 @@ export function attachWrecking(deps: WreckingDeps): GameWrecking {
         mark: w.mark.name,
         region: world.regionOfLight(w.mark.light),
       };
+    },
+    devStrand(markId, witnessed = false) {
+      const mark = markById(markId);
+      if (!mark) return `No mark ${markId}`;
+      const t = now();
+      const prefer = ['ship.package_steamer', 'ship.schooner_barge', 'ship.fish_tug'];
+      const c = [...deps.traffic.contacts]
+        .filter((x) => x.classId && prefer.includes(x.classId) && !isLostAt(x, t))
+        .sort((a, b) => prefer.indexOf(a.classId ?? '') - prefer.indexOf(b.classId ?? ''))[0];
+      if (!c?.classId) return 'No ship to strand';
+      const st = state();
+      const crew = recordOf(c.classId)?.combat?.crew ?? 6;
+      const stranding: Stranding = {
+        id: `stranding-${st.nextId++}`,
+        shipId: c.id,
+        name: c.name,
+        classId: c.classId,
+        mark: mark.id,
+        at: t,
+        until: t + WRECK_RULES.strandedDays * SECONDS_PER_GAME_DAY,
+        by: 'rig',
+        crew,
+        drowned: 0,
+        cargo: (manifestAt(c.id, t)?.cargo ?? [])
+          .map((l) => ({ good: l.good, qty: Math.round(l.qty) }))
+          .filter((l) => l.qty > 0),
+      };
+      st.strandings.push(stranding);
+      st.count++;
+      apply({
+        type: 'stranded',
+        stranding,
+        region: world.regionOfLight(mark.light),
+        witnesses: witnessed ? [{ kind: 'crew', ident: 'unknown' }] : [],
+        windKn: 0,
+      });
+      return c.name;
     },
     conditions(markId) {
       const m = markById(markId);
