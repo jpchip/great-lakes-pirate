@@ -18,7 +18,7 @@ import type { Witness } from '../sim/law/witness';
 import { STATION_RULES, keepersOnDuty, lightDef } from '../sim/light-stations';
 import { log } from '../sim/run/record';
 import { SHIP_RECORDS } from '../sim/sailing/ships';
-import { currentManifest, type TrafficDefs } from '../sim/traffic/cargo';
+import { currentManifest, type Manifest, type TrafficDefs } from '../sim/traffic/cargo';
 import { cloudAt } from '../sim/weather/weather';
 import { moonAt, sunAt } from '../sim/weather/celestial';
 import { freshWrecks, recordWreck } from '../sim/wrecks';
@@ -93,6 +93,8 @@ export interface GameWrecking {
   /** Rigs burning now, for the lights in the zone. */
   lit(): { mark: string; until: number }[];
   stranded(): Stranding[];
+  /** A stranded ship's hold and crew as she went aground, for boarding her. */
+  manifestOf(s: Stranding): Manifest | undefined;
   /** The moon-cussing night's ship and mark, if tonight's one (the events' trigger). */
   wreckingNight():
     { ship: string; name: string; at: number; mark: string; region: string } | undefined;
@@ -404,6 +406,20 @@ export function attachWrecking(deps: WreckingDeps): GameWrecking {
     },
     lit: () => rigsLit(state(), now()).map((r) => ({ mark: r.mark, until: r.until })),
     stranded: () => strandedNow(state(), now()),
+    manifestOf(s) {
+      const m = manifestAt(s.shipId, s.at);
+      if (!m) return undefined;
+      let valueCents = 0;
+      for (const l of s.cargo) {
+        valueCents += (deps.economy.goods.get(l.good)?.basePriceCents ?? 0) * l.qty;
+      }
+      return {
+        ...m,
+        cargo: s.cargo.map((l) => ({ ...l })),
+        valueCents,
+        crew: Math.max(0, s.crew - s.drowned),
+      };
+    },
     wreckingNight() {
       const w = moonCussingNight(world, now(), moonAt(now()).illumination01);
       if (!w) return undefined;

@@ -1,6 +1,7 @@
 import type { GameContext } from '../modes/context';
 import { spottedRegions } from '../sim/hideouts/life';
 import { cutterOrdered } from '../sim/events/events';
+import { investigated } from '../sim/wrecking';
 import { SITES } from '../sim/hideouts/stash';
 import { METERS_PER_NAUTICAL_MILE, type Chart } from '../core/coords';
 import { toWorldChart, type ChartGeography } from '../sim/chart/geography';
@@ -118,10 +119,13 @@ export function attachLawShips(
     seed,
     tier: (r) => tierIn(defs, ctx.state, r),
     // A hideout of yours seen this week draws her sorties (plan 09 §8; Phase 8 piece F).
-    // So does an order to a region (the Morrill ordered in; Phase 9 piece A).
+    // So does an order to a region (the Morrill ordered in; Phase 9 piece A), and an
+    // inquiry into wrecks there (piece I).
     spotted: (r) =>
       spottedRegions(ctx.state.hideouts, SITES, clock.gameSeconds).has(r) ||
-      cutterOrdered(ctx.state.events, r, clock.gameSeconds),
+      cutterOrdered(ctx.state.events, r, clock.gameSeconds) ||
+      // An inquiry into the wrecks near a light (Phase 9 piece I).
+      investigated(ctx.state.wrecking, r, clock.gameSeconds),
     gale(at) {
       if (at.node) {
         const n = graph.nodes.get(at.node);

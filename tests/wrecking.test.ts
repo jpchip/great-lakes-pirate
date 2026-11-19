@@ -31,7 +31,12 @@ import {
 
 const projection = new ChartProjection();
 const HOUR = 3600;
-const sand = markById('mark.sand_shoal')!;
+function must<T>(x: T | undefined | null): T {
+  if (x === undefined || x === null) throw new Error('missing');
+  return x;
+}
+
+const sand = must(markById('mark.sand_shoal'));
 
 const GALE_NEW_MOON: MarkConditions = { sunDeg: -30, moon01: 0, visM: 800, windKn: 34 };
 const CLEAR_FULL_MOON: MarkConditions = { sunDeg: -30, moon01: 1, visM: 20_000, windKn: 6 };
@@ -237,16 +242,16 @@ describe('wrecking in the rest of the game', () => {
   it('makes the rig a store for the lockers that no chandler sells', () => {
     const rig = storeItems().find((s) => s.id === 'store.false_light');
     expect(rig?.crafted).toBe(true);
-    expect(storeOffered(rig!, 5)).toBe(false);
+    expect(storeOffered(must(rig), 5)).toBe(false);
   });
 
   it('moves a Phase 8 rig in a hideout to the new store on load', () => {
     const s = createWorldState('seed', 0);
     const h = Object.values(s.hideouts ?? {})[0];
     expect(h).toBeDefined();
-    h!.storage.things = { 'item.false_light': 2 };
+    must(h).storage.things = { 'item.false_light': 2 };
     const loaded = parseWorldState(JSON.parse(JSON.stringify(s)));
-    expect(Object.values(loaded.hideouts ?? {})[0]!.storage.things).toEqual({
+    expect(must(Object.values(loaded.hideouts ?? {})[0]).storage.things).toEqual({
       'store.false_light': 2,
     });
   });
@@ -256,7 +261,7 @@ describe('wrecking in the rest of the game', () => {
   });
 
   it('fires the moon-cussing night at the ship and mark the world names', () => {
-    const def = EVENTS.events.find((e) => e.id === 'event.moon_cussing_night')!;
+    const def = must(EVENTS.events.find((e) => e.id === 'event.moon_cussing_night'));
     const st = createEventsState(0);
     const ev = {
       now: 18 * HOUR,
@@ -282,7 +287,7 @@ describe('wrecking in the rest of the game', () => {
     };
     const places = candidates(def, st, night, 'tick');
     expect(places).toEqual([{ port: undefined, region: 'region.apostles' }]);
-    const fired = fireEvent(st, night, def, places[0]!, () => 0.5);
+    const fired = fireEvent(st, night, def, must(places[0]), () => 0.5);
     expect(fired.shipName).toBe('Steamer Hiawatha');
     expect(fired.markName).toBe('Sand Island shoal');
   });
@@ -324,8 +329,8 @@ describe('the marks on the Apostles zone', () => {
       for (const lane of lanes) {
         const pts = laneLonLats(g, lane).map(([lon, lat]) => projection.geoToChart({ lat, lon }));
         for (let i = 0; i + 1 < pts.length; i++) {
-          const a = pts[i]!;
-          const b = pts[i + 1]!;
+          const a = must(pts[i]);
+          const b = must(pts[i + 1]);
           const vx = b.x - a.x;
           const vy = b.y - a.y;
           const k = Math.max(
