@@ -4001,3 +4001,98 @@ button.playing-card.marked {
   overflow-y: auto;
   font-size: 13px;
 }
+
+/* The Hall of Captains (Phase 9 piece B). */
+.menu.hall {
+  width: min(560px, calc(100vw - 32px));
+}
+
+.hall-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.hall-entry {
+  border-bottom: 1px dotted var(--paper-dark);
+}
+
+.hall-row {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  width: 100%;
+  padding: 8px 4px;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.hall-names {
+  display: flex;
+  flex-direction: column;
+}
+
+.hall-name {
+  font-size: 16px;
+}
+
+.hall-nick {
+  font-style: italic;
+}
+
+.hall-meta {
+  font-size: 13px;
+  color: #5a4a38;
+}
+
+.hall-detail {
+  padding: 0 4px 10px 60px;
+  font-size: 13px;
+}
+
+.hall-headline {
+  margin: 0 0 6px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+}
+
+.hall-detail dl {
+  margin: 0;
+}
+
+.hall-detail dl > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 2px 0;
+}
+
+.hall-detail dt {
+  opacity: 0.75;
+}
+
+.hall-detail dd {
+  margin: 0;
+  text-align: right;
+}
+
+.paper-notice-alias {
+  font-style: italic;
+}
+
+.end-epilogue {
+  margin: 10px 0 0;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.end-epilogue h3 {
+  margin: 0 0 4px;
+  font-size: 15px;
+}
