@@ -70,6 +70,8 @@ export interface SailingModeOptions {
    * be at the wheel too (plan 07 §3; Phase 6 piece B).
    */
   helmHeld?: (() => boolean) | undefined;
+  /** Drafts the depth readout warns at over a charted shoal (Phase 9 piece O); absent, none. */
+  chartedWarnDrafts?: (() => number | undefined) | undefined;
 }
 
 export interface SailingArena {
@@ -172,6 +174,9 @@ export function createSailingMode(ctx: GameContext, options: SailingModeOptions)
   const hazardEnv = {
     get terrain() {
       return ctx.terrain;
+    },
+    get chartedWarnDrafts() {
+      return options.chartedWarnDrafts?.();
     },
     // Read each tick: a zone change swaps them (Phase 3 piece A).
     get docks() {

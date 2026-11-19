@@ -1,3 +1,4 @@
+import type { JournalDiscovery } from './discovery';
 import { buyStores } from '../sim/economy/chandlery';
 import { fameTier, gameLaw } from '../sim/law/defs';
 import { portInfo } from '../sim/economy/defs';
@@ -91,6 +92,8 @@ export interface PortControlOptions {
   papers?: GamePapers | undefined;
   /** Sandbox events (Phase 9 piece A): letters on the harbor master's tab, a scene on docking. */
   events?: GameEvents | undefined;
+  /** The journal's Leads, Legends, Discoveries and Curios pages (Phase 9 piece O). */
+  journal?: (() => JournalDiscovery) | undefined;
   /**
    * The back room after dark (Phase 6 piece E): the fence and the shady shipwright, on a
    * tab of their own, and a hint in the saloon by day. Without it neither shows.
@@ -244,6 +247,7 @@ export function attachPorts(opts: PortControlOptions): PortControl {
         snap.harbor.unreadLetters = opts.events.unread();
       }
       snap.ledger.law = opts.law.ledger();
+      if (opts.journal) snap.ledger.journal = opts.journal();
       const region = opts.law.regionOf(port);
       const risk = region ? opts.law.informRisk(region) : undefined;
       for (const h of snap.hold) if (h.offer?.receiver) h.offer.informRisk = risk;
@@ -451,6 +455,7 @@ export function attachPorts(opts: PortControlOptions): PortControl {
         { cargo: ctx.state.player.cargo, capacity: economy.capacity },
       );
       if (opts.law) ledger.law = opts.law.ledger();
+      if (opts.journal) ledger.journal = opts.journal();
       ledger.purseCents = ctx.state.player.purse;
       const stashed = stashedCash(ctx.state.hideouts);
       if (stashed) ledger.stashedCents = stashed;

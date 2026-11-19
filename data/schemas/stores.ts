@@ -20,6 +20,11 @@ export const storeItemSchema = z.object({
    * Known, Fame tier 2). Absent, anyone may buy it.
    */
   fameTier: z.number().int().min(0).optional(),
+  /**
+   * A Lake Survey sheet (Phase 9 piece O): bought, it charts that survey's coves and shoals
+   * (`discoveries.json`). It stays in the lockers, so it's bought once.
+   */
+  charts: idOf('survey').optional(),
 });
 
 export const storesFileSchema = z.array(storeItemSchema);

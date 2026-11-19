@@ -12,6 +12,7 @@ import {
   tellRumor,
   type RumorWorld,
   type SpottedTalk,
+  type PlaceTalk,
   type SaloonTerms,
 } from '../sim/rumors/rumors';
 import type { SmugglerSpot } from '../sim/rumors/sources';
@@ -46,6 +47,8 @@ export interface RumorControlOptions {
   spotted?: (() => readonly SpottedTalk[]) | undefined;
   /** Sandbox events standing now (Phase 9 piece A). */
   eventTalk?: (() => readonly EventTalk[]) | undefined;
+  /** Places not yet found or heard of (Phase 9 piece O). */
+  placeTalk?: (() => readonly PlaceTalk[]) | undefined;
 }
 
 export function attachRumors(opts: RumorControlOptions): RumorControl {
@@ -61,6 +64,7 @@ export function attachRumors(opts: RumorControlOptions): RumorControl {
     smugglerAnchorage: opts.smugglerAnchorage,
     spotted: opts.spotted,
     eventTalk: opts.eventTalk,
+    placeTalk: opts.placeTalk,
   });
 
   const offHail = ctx.events.on('ShipHailed', ({ shipId, news }) => {

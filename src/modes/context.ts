@@ -441,6 +441,15 @@ export interface GameEvents {
     survivors: number;
     reportInS: number | undefined;
   };
+  /**
+   * Discovery (plan 11 §14; Phase 9 piece O): a place, site or wreck went on the chart
+   * (`how`: sight, spyglass, foot, visit, survey, logbook, yours); a natural wonder was
+   * seen first-hand; a lead was opened or got a clue; a curio was found.
+   */
+  PoiDiscovered: { id: string; kind: string; how: string };
+  WonderSeen: { id: string };
+  LeadUpdated: { id: string; opened: boolean };
+  CurioFound: { id: string };
 }
 
 /** Everything a mode needs; built once at boot and handed to each mode. */

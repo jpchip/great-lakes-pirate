@@ -1,3 +1,4 @@
+import type { JournalDiscovery } from '../../gameplay/discovery';
 import type { Good } from '../../../data/schemas/goods';
 import { SECONDS_PER_GAME_DAY } from '../../core/time';
 import type { PortService } from '../../../data/schemas/ports';
@@ -356,6 +357,8 @@ export interface LedgerSnapshot {
   };
   /** Fame, Wanted by region and the reports on their way (Phase 5 piece E). */
   law?: LedgerLawSnapshot | undefined;
+  /** Leads, legends, discoveries and curios (Phase 9 piece O). */
+  journal?: JournalDiscovery | undefined;
 }
 
 /** One port or company on the ledger Standing tab. */

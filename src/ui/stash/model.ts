@@ -1,3 +1,4 @@
+import type { HideoutCurios } from '../../gameplay/discovery';
 import type { EconomyDefs } from '../../sim/economy/defs';
 import type { ShipStores } from '../../sim/economy/chandlery';
 import { holdUsed, type CargoStack, type Hold } from '../../sim/economy/hold';
@@ -169,6 +170,8 @@ export interface StashSnapshot {
   tab: StashTab | undefined;
   /** Alongside the hideout's landing: G steps down onto the pier, no boat needed. */
   canGoAshore?: boolean | undefined;
+  /** The Curios tab (Phase 9 piece O): what's set out here, what's aboard, the room. */
+  curios?: HideoutCurios | undefined;
 }
 
 function rows(
@@ -371,6 +374,8 @@ export function stashSnapshot(opts: {
   shipHere?: boolean;
   tab?: StashTab | undefined;
   canGoAshore?: boolean;
+  /** Curios set out here and aboard (Phase 9 piece O). */
+  curios?: HideoutCurios | undefined;
 }): StashSnapshot {
   const { defs, hideout: h, player } = opts;
   const sources = opts.sources ?? [h.storage.goods];
@@ -414,5 +419,6 @@ export function stashSnapshot(opts: {
     }),
     tab: opts.tab,
     ...(opts.canGoAshore ? { canGoAshore: true } : {}),
+    ...(opts.curios ? { curios: opts.curios } : {}),
   };
 }
