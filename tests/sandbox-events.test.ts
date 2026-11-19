@@ -92,7 +92,7 @@ const seq = (...xs: number[]): (() => number) => {
 };
 
 describe('events.json', () => {
-  it('validates, with the ten of piece A, the poker night of piece C and the scripted three of piece K', () => {
+  it("validates, with piece A's ten, poker night (C), moon-cussing (I) and the scripted three (K)", () => {
     const file = eventsFileSchema.parse(eventsJson);
     expect(
       file.events
@@ -109,6 +109,7 @@ describe('events.json', () => {
         'event.herring_run',
         'event.informant',
         'event.mill_fire',
+        'event.moon_cussing_night',
         'event.morrill_arrives',
         'event.payroll_run',
         'event.storm_bound',
@@ -257,6 +258,17 @@ describe('triggers and the draw', () => {
         hideouts,
         gale: () => rng.next() < 0.2,
         dockedPort: moment === 'dock' ? 'port.bayfield' : undefined,
+        // A dark, stormy night with a ship due past a wrecking mark, now and then (piece I).
+        wreckingNight: () =>
+          rng.next() < 0.4
+            ? {
+                ship: 'ship.x',
+                name: 'Steamer X',
+                at: t + 6 * 3600,
+                mark: 'Sand Island shoal',
+                region: 'region.apostles',
+              }
+            : undefined,
       });
       if (rng.next() > 0.5) continue;
       const d = drawEvent(s, w, moment, () => rng.next());

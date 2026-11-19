@@ -8,10 +8,5 @@
     "id": "item.barrel",
     "name": "Barrel",
     "blurb": "A tight oak barrel off the cooperage: for salting fish and casking whiskey."
-  },
-  {
-    "id": "item.false_light",
-    "name": "False-light rig",
-    "blurb": "A lantern on a pole with a pane of colored glass, to show a light where no light should be. For luring a ship onto the rocks; wrecking comes later."
   }
 ]

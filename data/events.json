@@ -258,6 +258,20 @@
       }
     },
     {
+      "id": "event.moon_cussing_night",
+      "name": "A moon-cussing night",
+      "type": "opportunity",
+      "weight": 1.5,
+      "cooldownDays": 4,
+      "hours": 10,
+      "channels": ["rumor"],
+      "triggers": { "wreckingNight": true, "hours": [10, 22] },
+      "rumor": [
+        "the {ship} is due past {mark} {when}, laden to her marks. The glass is falling and there's no moon. A night for moon-cussers, the old men say, if there were any left.",
+        "no moon tonight and weather coming. They say the {ship} will be feeling her way past {mark} after dark, and her master steers by the lights and nothing else."
+      ]
+    },
+    {
       "id": "event.coal_shortage",
       "name": "A coal shortage",
       "type": "market",

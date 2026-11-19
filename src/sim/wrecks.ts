@@ -11,7 +11,7 @@ import { calendarDate, dayAndHour, SECONDS_PER_GAME_DAY } from '../core/time';
  * a debris field in the world, and a line in the ledger.
  */
 
-export const WRECK_HOWS = ['sunk', 'scuttled', 'foundered', 'abandoned'] as const;
+export const WRECK_HOWS = ['sunk', 'scuttled', 'foundered', 'abandoned', 'wrecked'] as const;
 export type WreckHow = (typeof WRECK_HOWS)[number];
 
 export const wreckSchema = z.object({
@@ -95,6 +95,7 @@ const HOW_WORDS: Record<WreckHow, string> = {
   scuttled: 'scuttled',
   foundered: 'foundered',
   abandoned: 'abandoned and foundered',
+  wrecked: 'driven onto a shoal and broken up',
 };
 
 /** "The fish tug Ada Bell (Hollister Fish & Packing Co.), scuttled in the Apostle Islands…" */

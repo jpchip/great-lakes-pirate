@@ -50,6 +50,10 @@ export const STORY_KINDS = [
   'ambition',
   // A sandbox event's item (Phase 9 piece A): its lines are in events.json.
   'event',
+  // Wrecking (Phase 9 piece I): a ship ashore at a mark that nobody saw a light for, and
+  // the inquiry several of them near one light open.
+  'wreck',
+  'investigation',
 ] as const;
 export type StoryKind = (typeof STORY_KINDS)[number];
 
@@ -124,6 +128,9 @@ export const newspapersFileSchema = z.object({
     recordRun: storySchema,
     firstBoat: storySchema,
     galeRun: storySchema,
+    /** Wrecking (Phase 9 piece I): a ship ashore at a mark, and an inquiry into several. */
+    wreck: storySchema,
+    investigation: storySchema,
     /** An Ambition done (Phase 8 piece H), by its id. */
     ambition: z.record(idOf('ambition'), storySchema),
   }),

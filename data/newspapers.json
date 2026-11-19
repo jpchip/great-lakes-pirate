@@ -182,6 +182,31 @@
   ],
   "stories": {
     "crime": {
+      "crime.false_light": {
+        "fame": 14,
+        "weight": 6,
+        "plain": [
+          {
+            "headline": "A FALSE LIGHT IN {REGION}",
+            "deck": "{Victim} Lured Onto a Shoal; {WHO} Named",
+            "body": "{Victim} went onto a shoal in {region} by night, her master steering for what he took to be the lighthouse. Witnesses say the light was a lantern on a pole, and that {who} hung it there. {Dead} drowned."
+          }
+        ],
+        "lurid": [
+          {
+            "headline": "THE MOON-CUSSER!",
+            "deck": "{WHO} Hangs a Lantern on the Rocks and Lures {Victim} to Her Doom",
+            "body": "Wreckers' work in {region}, and {epithet} {who} behind it. A false light on the point, a ship steering for it, and {dead} drowned in the dark while the wreckers waited with their boats. The lake has not seen such villainy."
+          }
+        ],
+        "unnamed": [
+          {
+            "headline": "A FALSE LIGHT IN {REGION}?",
+            "deck": "{Victim} Ashore; Her Crew Swear They Steered for a Light",
+            "body": "{Victim} went onto a shoal in {region} by night. Her people say they had a light fair on the bow where the lighthouse should be, and the keeper swears his own was burning true. Old hands say 'moon-cussers', and the revenue men are asking who. {Dead} drowned."
+          }
+        ]
+      },
       "crime.smuggler_deal": {
         "fame": 8,
         "weight": 3,
@@ -523,6 +548,33 @@
         }
       ]
     },
+    "wreck": {
+      "fame": 0,
+      "weight": 2,
+      "plain": [
+        {
+          "headline": "ASHORE IN THE NIGHT",
+          "deck": "{Victim} on a Shoal in {region}",
+          "body": "{Victim} went onto a shoal in {region} in the night, in thick weather. Her master says he had the light where it should be. {Dead} drowned. The underwriters have sent a man."
+        },
+        {
+          "headline": "ANOTHER WRECK IN {REGION}",
+          "deck": "{Victim} Lost; The Lake Takes Its Toll",
+          "body": "{Victim} struck in {region} after dark and lies there now. {Dead} drowned. Masters say the islands are a bad place in a blow, lights or no lights."
+        }
+      ]
+    },
+    "investigation": {
+      "fame": 0,
+      "weight": 5,
+      "plain": [
+        {
+          "headline": "WRECKS UNDER INQUIRY",
+          "deck": "Too Many Ships Lost Near One Light in {region}; the Revenue Service Sends the Morrill",
+          "body": "After a run of strandings near the same light in {region}, the Lighthouse Service and the revenue men have opened an inquiry. The cutter Morrill has been ordered to the islands. Old hands whisper of moon-cussers; the keeper swears his light burned true."
+        }
+      ]
+    },
     "galeRun": {
       "fame": 6,
       "weight": 2,
@@ -536,6 +588,24 @@
       ]
     },
     "ambition": {
+      "ambition.moon_cusser": {
+        "fame": 10,
+        "weight": 4,
+        "plain": [
+          {
+            "headline": "MOON-CUSSERS IN THE ISLANDS",
+            "deck": "Wreckers Said to Be at Work Among the Apostles",
+            "body": "Talk on the {town} waterfront has it that {who} has learned the old wreckers' trade: a lantern on the point on a black night, and a ship steering for it onto the rocks."
+          }
+        ],
+        "lurid": [
+          {
+            "headline": "{WHO}, MOON-CUSSER!",
+            "deck": "The Pirate Turns Wrecker; No Light on the Lake Can Be Trusted",
+            "body": "{Epithet} {who}, not content with robbing ships, now lures them to their doom with lights on the rocks. Masters in {region} say they no longer know which lights to trust."
+          }
+        ]
+      },
       "ambition.nest_egg": {
         "fame": 3,
         "weight": 1,
