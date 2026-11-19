@@ -323,6 +323,7 @@ Per-cell grid updates dominate. Everything else (480 markets, 200 ships) costs u
 ---
 
 ## Changelog
+- v1.8: Phase 9 piece M: optional `player.warmth` (`value`, `wet`) and `player.sled` (pose and load); a save without them starts warm and with the sled aboard ([11 §18.9](11-exploration-islands-secrets.md)).
 - v1.7: Phase 9 piece K: the optional `ice` slice (`frozen`, `firstBoat`, `mataafaAt`); the ice itself is worked out from the seed and the date, so a v10 save carries on into winter unchanged ([04 §26](04-water-weather-seasons.md)).
 - v1.6: Phase 8 piece J: the S6 worst case carries seven real v10 hideouts; 210 KB compressed, 2.9 ms p95 on the main thread (§12).
 - v1.5: Phase 8 piece A: save v10 adds each hideout's packed `layout` (palette plus `built` and `planned` arrays of 7 numbers a piece); v9 migrates every hideout to its site's starter shack with its goods and cash kept (§12).

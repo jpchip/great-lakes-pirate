@@ -474,9 +474,38 @@ Twenty-six pieces, each sized to be one thread, in three stages by decision 1. A
 
 **Not in piece O:** the curios aren't drawn on the shelves in the world yet (piece P's kits, with the POIs), the legends' steps beyond the first and every other clue source (piece T), salvage finding wrecks by sounding (piece U), a chart-voyage grounding risk on uncharted shoals (the Apostles' shoals all lie inside the zone, where the real depth already grounds you), and charts of the other regions. `__glpDiscovery` reads and drives it.
 
+### 18.9 Piece M as built: on the ice and in the cold (2026-11-19)
+
+**Data.** `data/cold.json` holds every number: what ice holds a walker (10 cm, plus 1 cm per 25 kg hauled), the thin-ice stress and its stages, warmth rates, the sled, the prints, and the ice road. The pure sim is `src/sim/cold/` (footing, warmth, sled, tracks, road), and `src/gameplay/cold.ts` lays the ice over the on-foot ground.
+
+**Walking on the ice.** In the zone scene, wherever piece K's ice covers at least 70% of a cell and is at least 3 cm thick, the ground is a walkable sheet just above the water. G at anchor or at a frozen non-district pier steps down onto it. Seeded weak spots run thinner. On ice under what holds you, stress builds (faster running, slower standing still). It cracks at 25%, groans at 60%, and gives way at 100%. A hole opens under you, and you have **one chance**: within 14 s, hold F for 2.2 s to haul out onto ice of at least 35% hold. A slip resets the haul, and when the window runs out you're lost (a new run end, "Went through the ice"). Hauled out, you're soaked.
+
+**The ice road.** Once Chequamegon Bay is 20 cm thick (most Februaries), the road runs from Bayfield's city pier head to La Pointe's pier, about 460 m in the zone, marked with spruce boughs every 30 m, with a fire barrel at each end. In the district, at the pier head, "Down onto the ice road to La Pointe" puts you on it in the zone scene, and "Up the ladder into Bayfield" at the far end brings you back. The road's ice is cleared and stays thick, so it never groans under a loaded sled.
+
+**The sled.** Beside a frozen-in ship, F puts the hand sled down, and F again loads it from the hold, the most valuable clean goods first (3 CU; contract cargo stays aboard). It follows on a 2.6 m rope and slows you 10% per CU (down to 60%), and its weight counts against the ice. At La Pointe's end, "Sell the sled's load at La Pointe's trading post" sells clean goods at La Pointe's market price; hot goods stay on the sled. Leaving within 40 m of the ship stows it and its load. `player.sled` is saved.
+
+**Warmth.** `player.warmth {value, wet}`. On foot, value falls with the wind-chilled air below 8 °C, three times faster when wet, much faster in the water, and slower running. Rain wets you, snow a little. It recovers under a roof (any district, a keeper's house) and fast within 4 m of a fire, which also dries you. Aboard it comes back 60 an hour. Stages: chilled at 60, cold at 35, freezing at 15, each with a HUD line. At 0, health drains (0.5/s), and dying of it is "Froze to death". The HUD has a warmth bar with its stage word.
+
+**Tracks.** Walking on snow-covered ice lays a print every 0.9 m (a sled's runners too), up to 600. Snow fills them in over 40 minutes of falling snow, and they go after a day. A print laid within 6 hours of a crime is suspect. When the watch or the island posse loses you on the ice, a guard who comes on suspect prints within 3 m follows them toward their freshest end (`stealth.follow`). Prints are drawn as instanced decals.
+
+**Heists on frozen-in ships.** A ship laid up in a frozen harbor posts no deck watch, so her hold can be robbed in the district, and she's found robbed late.
+
+**Not in piece M:**
+- Bayfield's district harbor isn't walkable ice; the road starts at the pier head and goes into the zone scene.
+- No raids on frozen ships from the zone scene's ice; heists stay in the district.
+- No campfire kit to carry. Heat comes from roofs and the road's fire barrels.
+- No ice caves and no wolves on the ice (plan 11 §6).
+- No winter audio: cracks, groans and footsteps on snow are piece N's job.
+- A sled left on ice that later melts isn't sunk. It's only stowed when you leave within 40 m of the ship.
+- A hole's size follows the ground grid's cell (4 m in the zone).
+- The ice sheet and snow aren't drawn (piece L), so until L lands the figure seems to walk on water.
+
+`__glpCold` reads and drives it.
+
 ---
 
 ## Changelog
+- v0.7: Phase 9 piece M as built (§18.9): walking on the ice, thin ice and the climb out, the ice road to La Pointe, the hand sled, warmth, and tracks in the snow.
 - v0.6: Piece O as built (§18.8): discovery and the fog of war on the chart, leads, the journal's four pages, and curios.
 - v0.5: Phase 9 scope (§18), as proposed 2026-11-17: what Phases 4–8 change, deliverables, exit criteria, 26 work pieces in three stages, smaller calls and two decisions (staging, districts). Both decisions taken the same day: three stages with a playtest each, and Duluth as the one new district.
 - v0.4: Phase 7 as built (§15): Stockton on foot, the quarry, the seeded cache, the rowboat and the posse.

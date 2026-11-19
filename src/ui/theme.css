@@ -241,6 +241,15 @@
   border-radius: 3px;
 }
 
+/* The warmth meter's longer label (Phase 9 piece M). */
+.foot-warmth .hud-label {
+  width: auto;
+}
+
+.foot-warmth .hud-bar-fill {
+  background: #c9874a;
+}
+
 .hud-bar-track {
   position: relative;
   width: 120px;
