@@ -45,7 +45,7 @@
       "name": "Lucerne",
       "classText": "three-masted schooner",
       "lost": "1886-11-17",
-      "at": { "lat": 46.7262, "lon": -90.7804 },
+      "at": { "lat": 46.7289, "lon": -90.7789 },
       "where": "off Long Island",
       "logged": true,
       "cargo": [{ "good": "good.iron_ore", "qty": 60 }],
@@ -91,14 +91,13 @@
   "seeded": {
     "count": 3,
     "spots": [
-      { "at": { "lat": 46.9465, "lon": -91.0212 }, "where": "off Eagle Island" },
-      { "at": { "lat": 46.9225, "lon": -90.7425 }, "where": "off the Oak Island sandspit" },
-      { "at": { "lat": 46.9905, "lon": -90.9255 }, "where": "off Sand Island's east shore" },
-      { "at": { "lat": 46.9055, "lon": -90.4325 }, "where": "on the Gull Island shoal" },
-      { "at": { "lat": 47.0905, "lon": -90.4195 }, "where": "on the reef off Outer Island" },
-      { "at": { "lat": 46.9325, "lon": -90.5655 }, "where": "in Presque Isle Bay on Stockton" },
-      { "at": { "lat": 46.8525, "lon": -90.7305 }, "where": "off Basswood Island" },
-      { "at": { "lat": 47.0405, "lon": -90.6745 }, "where": "off Rocky Island" }
+      { "at": { "lat": 46.9425, "lon": -91.0315 }, "where": "off Eagle Island" },
+      { "at": { "lat": 46.9905, "lon": -90.9204 }, "where": "off Sand Island's east shore" },
+      { "at": { "lat": 46.9046, "lon": -90.4347 }, "where": "on the Gull Island shoal" },
+      { "at": { "lat": 47.0902, "lon": -90.417 }, "where": "on the reef off Outer Island" },
+      { "at": { "lat": 46.9274, "lon": -90.5447 }, "where": "in Presque Isle Bay on Stockton" },
+      { "at": { "lat": 46.8807, "lon": -90.7655 }, "where": "off the north end of Basswood Island" },
+      { "at": { "lat": 47.0396, "lon": -90.6669 }, "where": "off Rocky Island" }
     ],
     "names": [
       "Emma Thorsen",

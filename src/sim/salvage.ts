@@ -268,7 +268,8 @@ export function castRefusal(
   rules: SalvageRules,
   c: { depthM: number; hsM: number; deep: boolean; holdFree: number; pickedClean: boolean },
 ): string | undefined {
-  if (c.deep || c.depthM > rules.maxDepthM) {
+  if (c.deep) return 'She lies far too deep for the grapple. A diving suit would reach her.';
+  if (c.depthM > rules.maxDepthM) {
     return `She lies in ${Math.round(c.depthM)} m: too deep for the grapple. A diving suit would reach her.`;
   }
   if (c.pickedClean) return "There's nothing left in her worth the grapple: she's picked clean.";
