@@ -477,6 +477,7 @@ Twenty-six pieces, each sized to be one thread, in three stages by decision 1. A
 ---
 
 ## Changelog
+- v0.6.1: Piece E (copycat rivals) built; as built in [12 §7.1](12-sandbox-events-character-failure.md).
 - v0.6: Piece O as built (§18.8): discovery and the fog of war on the chart, leads, the journal's four pages, and curios.
 - v0.5: Phase 9 scope (§18), as proposed 2026-11-17: what Phases 4–8 change, deliverables, exit criteria, 26 work pieces in three stages, smaller calls and two decisions (staging, districts). Both decisions taken the same day: three stages with a playtest each, and Duluth as the one new district.
 - v0.4: Phase 7 as built (§15): Stockton on foot, the quarry, the seeded cache, the rowboat and the posse.
