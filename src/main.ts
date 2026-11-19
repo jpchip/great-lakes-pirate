@@ -3587,12 +3587,21 @@ async function boot(): Promise<void> {
     key: '',
     road: undefined,
   };
+  /** Dev hook: thin ice of this thickness within 40 m of a zone point (`__glpCold.thin`). */
+  const thinIceOverride: { at: { x: number; z: number; cm: number } | undefined } = {
+    at: undefined,
+  };
   const ashoreWinter: AshoreWinter = {
     seed: trafficSeed,
-    iceAt: (x, z) =>
-      gameIce.at(
+    iceAt: (x, z) => {
+      const o = thinIceOverride.at;
+      if (o && Math.hypot(x - o.x, z - o.z) < 40) {
+        return { coverage: 1, thicknessCm: o.cm, kind: 'fast' as const };
+      }
+      return gameIce.at(
         fromWorldChart(westernSuperiorChart(), zoneToChart({ x, z }, zoneFrame(zone, zoneData))),
-      ),
+      );
+    },
     air: () => {
       const t = state.environment.clock.gameSeconds;
       const at = ashoreRef.current?.zoneAt() ?? shipPose();
@@ -4546,6 +4555,23 @@ async function boot(): Promise<void> {
         );
         return true;
       },
+      /** Ice `cm` thick within 40 m of where you stand (undefined: the lake's own). */
+      thin: (cm?: number) => {
+        const at = ashore.zoneAt();
+        thinIceOverride.at = cm === undefined ? undefined : { x: at.x, z: at.z, cm };
+      },
+      /** Beside your ship on the ice, `side` 1 starboard or -1 port. */
+      toShip: (side = 1) => {
+        const p = shipPose();
+        const off = shipRecord.buoyancy.beam / 2 + 1.5;
+        ashore.teleport(
+          p.x + Math.cos(p.heading) * off * side,
+          p.z + Math.sin(p.heading) * off * side,
+        );
+      },
+      purse: () => state.player.purse,
+      cargo: () => state.player.cargo.map((c) => ({ good: c.good, qty: c.qty })),
+      health: () => state.player.health,
       warmth: (value: number, wet = 0) => {
         state.player.warmth = { value, wet };
       },

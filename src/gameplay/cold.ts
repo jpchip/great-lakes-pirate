@@ -74,26 +74,32 @@ export function iceGround(base: AshoreGround, winter: AshoreWinter): AshoreGroun
   };
 }
 
-/** Opens a hole in the ice: the heightfield back down to the lake bed within `r` of (x, z). */
-export function punchHole(
-  field: Heightfield,
-  bed: (x: number, z: number) => number,
-  x: number,
-  z: number,
-  r: number,
-): void {
+/** How far a hole's water reaches on a ground grid of `cellM`, m: never less than a cell. */
+export function holeReach(r: number, cellM: number): number {
+  return Math.max(r, cellM) + cellM * 0.5;
+}
+
+/**
+ * Opens a hole in the ice: the heightfield's samples within `holeReach` of (x, z) go down
+ * to deep water, so you swim there (the grid can be coarser than the hole).
+ */
+export function punchHole(field: Heightfield, x: number, z: number, r: number): void {
   const s = field.cellSize;
-  const i0 = Math.floor((x - r - field.originX) / s);
-  const i1 = Math.ceil((x + r - field.originX) / s);
-  const j0 = Math.floor((z - r - field.originZ) / s);
-  const j1 = Math.ceil((z + r - field.originZ) / s);
+  const reach = holeReach(r, s);
+  const i0 = Math.floor((x - reach - field.originX) / s);
+  const i1 = Math.ceil((x + reach - field.originX) / s);
+  const j0 = Math.floor((z - reach - field.originZ) / s);
+  const j1 = Math.ceil((z + reach - field.originZ) / s);
   for (let j = Math.max(0, j0); j <= Math.min(field.samplesZ - 1, j1); j++) {
     for (let i = Math.max(0, i0); i <= Math.min(field.samplesX - 1, i1); i++) {
       const px = field.originX + i * s;
       const pz = field.originZ + j * s;
-      if (Math.hypot(px - x, pz - z) > r + s * 0.5) continue;
+      if (Math.hypot(px - x, pz - z) > reach) continue;
       const k = j * field.samplesX + i;
-      field.heights[k] = Math.min(field.heights[k] ?? 0, bed(px, pz), -2);
+      field.heights[k] = Math.min(field.heights[k] ?? 0, HOLE_DEPTH_M);
     }
   }
 }
+
+/** The water in a hole, m below the lake: deep enough to swim anywhere over it. */
+const HOLE_DEPTH_M = -4;

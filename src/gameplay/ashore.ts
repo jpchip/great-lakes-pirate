@@ -33,7 +33,7 @@ import {
 } from '../sim/cold/sled';
 import { TrackLog } from '../sim/cold/tracks';
 import { roadDistance } from '../sim/cold/road';
-import { iceGround, punchHole, type AshoreWinter } from './cold';
+import { holeReach, iceGround, punchHole, type AshoreWinter } from './cold';
 import type { GameContext } from '../modes/context';
 import type { Mode } from '../modes/machine';
 import { tickOnFootClock } from '../modes/on-foot';
@@ -231,6 +231,9 @@ export interface WinterSnapshot {
   thin: string;
   /** In the water through the ice: seconds left to haul out. */
   climbLeftS: number | undefined;
+  /** The holes broken this landing, and the scene's ground under you (debugging). */
+  holes: { x: number; z: number }[];
+  ground: number | undefined;
   sled:
     | { x: number; z: number; hitched: boolean; cu: number; load: { good: string; qty: number }[] }
     | undefined;
@@ -617,7 +620,7 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
       plants: deps.plants?.(box),
     });
     if (winter) {
-      for (const h of holes) punchHole(built.ground, bedAt, h.x, h.z, COLD.thin.holeM);
+      for (const h of holes) punchHole(built.ground, h.x, h.z, COLD.thin.holeM);
     }
     roadBox = undefined;
     posse =
@@ -1317,7 +1320,7 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
     const p = character.position;
     hole = { x: p.x, z: p.z };
     holes.push({ ...hole });
-    punchHole(scene.ground, bedAt, p.x, p.z, COLD.thin.holeM);
+    punchHole(scene.ground, p.x, p.z, COLD.thin.holeM);
     character.grounded = false;
     character.velocity.y = -2;
     climb = freshClimbOut();
@@ -1346,7 +1349,9 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
     const r = stepClimbOut(c, input.isDown('Interact'), edge, roll, dt);
     if (r === 'out') {
       const a = character.heading;
-      const out = COLD.thin.holeM + 1;
+      // Clear of the hole as the ground grid has it (its cells reach past the radius).
+      const cell = scene?.ground.cellSize ?? 1;
+      const out = holeReach(COLD.thin.holeM, cell) + cell + 0.5;
       placeCharacter(
         character,
         { x: h.x + Math.sin(a) * out, y: COLD.ice.topM + 0.05, z: h.z - Math.cos(a) * out },
@@ -2165,6 +2170,8 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
         stress: thin.stress,
         thin: thin.stage,
         climbLeftS: climb ? Math.max(0, COLD.thin.windowS - climb.inS) : undefined,
+        holes: holes.map((h) => ({ ...h })),
+        ground: scene?.ground.heightAt(c.x, c.z),
         sled: sl && {
           x: sl.x,
           z: sl.z,

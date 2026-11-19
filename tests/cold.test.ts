@@ -52,7 +52,7 @@ describe('ice underfoot', () => {
 
   it('needs thicker ice with a load behind you', () => {
     expect(holdCmFor(0)).toBe(COLD.ice.holdCm);
-    expect(holdCmFor(250)).toBeGreaterThan(COLD.ice.holdCm + 20);
+    expect(holdCmFor(250)).toBeGreaterThan(COLD.ice.holdCm + 8);
   });
 
   it('has weak spots, never thinner than its depth allows', () => {

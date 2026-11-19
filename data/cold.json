@@ -4,7 +4,7 @@
     "minCoverage": 0.7,
     "formsCm": 3,
     "holdCm": 10,
-    "kgPerCm": 10,
+    "kgPerCm": 25,
     "weakSpotM": 24,
     "weakSpotDepth": 0.35,
     "roadClearM": 10
