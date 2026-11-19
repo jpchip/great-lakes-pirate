@@ -355,6 +355,13 @@ export interface GameEvents {
   };
   EventResolved: { id: string; key: string; choice: string | undefined };
   LetterReceived: { key: string; event: string };
+  /** Copycat rivals (plan 12 §10; Phase 9 piece E). */
+  RivalEmerged: { id: string; name: string; region: string; personality: string };
+  RivalRaided: { id: string; method: string; crimes: string[]; victim?: string; pinned: boolean };
+  ParleyOffered: { id: string; kind: 'truce' | 'split'; port: string };
+  ParleyChanged: { id: string; stage: string };
+  RivalDefeated: { id: string; how: 'taken' | 'sunk' };
+  RivalLeft: { id: string; how: 'caught' | 'lost' | 'retired' };
   /**
    * A feud moved on (plan 12 §5.2; Phase 9 piece D): a beat fired its event and the feud is
    * at `stage` now; `gives` names the method that made the company give.

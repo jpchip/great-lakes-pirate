@@ -92,6 +92,11 @@ export interface PapersOptions {
   geo?: ChartGeography | undefined;
   /** A company's name for the piracy headlines (Phase 6 piece F). */
   ownerName?: ((company: string) => string | undefined) | undefined;
+  /**
+   * How the papers name a copycat rival (Phase 9 piece E): "the pirate Patrick 'Red Hand'
+   * Rourke", for a crime of theirs nobody laid at your door, or one of yours put down to them.
+   */
+  rivalWho?: ((rival: string) => string | undefined) | undefined;
 }
 
 const POINT_WORDS: Record<string, string> = { N: 'north', E: 'east', S: 'south', W: 'west' };
@@ -259,6 +264,8 @@ export function attachPapers(opts: PapersOptions): GamePapers {
         return;
       }
       const d = e.details;
+      const rival = e.heatAdded > 0 ? undefined : (e.blamedOn ?? e.by);
+      const who = rival ? opts.rivalWho?.(rival) : undefined;
       const cls = d?.victimClass && SHIP_RECORDS.find((r) => r.id === d.victimClass)?.name;
       add({
         kind: 'crime',
@@ -275,6 +282,7 @@ export function attachPapers(opts: PapersOptions): GamePapers {
         ...(d?.goods ? { goods: d.goods } : {}),
         ...(d?.killed ? { killed: d.killed } : {}),
         ...(d?.cashCents ? { cashCents: d.cashCents } : {}),
+        ...(who ? { words: { who } } : {}),
       });
     }),
     ev.on('HoldSearched', (e) => {

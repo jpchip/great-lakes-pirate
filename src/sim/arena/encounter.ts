@@ -68,6 +68,7 @@ export const CONTACT_CLASS: Readonly<Record<Exclude<ContactKind, 'storm' | 'fog'
   barge: 'ship.schooner_barge',
   tug: 'ship.fish_tug',
   cutter: 'ship.cutter_morrill',
+  rival: 'ship.rival_schooner',
   // A wrecked schooner-barge, the commonest loss on the lake in 1900.
   derelict: 'ship.schooner_barge',
 };

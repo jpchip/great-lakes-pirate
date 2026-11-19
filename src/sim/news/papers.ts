@@ -88,6 +88,8 @@ export interface StoryInput {
   owner?: string | undefined;
   killed?: number | undefined;
   cashCents?: number | undefined;
+  /** Extra `{placeholders}`: a rival's name, or `who` for a crime put down to one. */
+  words?: Record<string, string> | undefined;
 }
 
 const IDENT_ORDER: readonly Identification[] = ['unknown', 'schooner', 'ship', 'person'];
@@ -152,6 +154,7 @@ export function addStory(defs: NewsDefs, news: NewsState, input: StoryInput): St
     ...(input.owner ? { owner: input.owner } : {}),
     ...(input.killed ? { killed: input.killed } : {}),
     ...(input.cashCents ? { cashCents: input.cashCents } : {}),
+    ...(input.words ? { words: input.words } : {}),
     heat: input.heat ?? 0,
     printedIn: [],
     heated: false,
@@ -354,6 +357,7 @@ export function renderStory(
     dead: deadText(story.killed ?? 0, fame, defs),
     cash: story.cashCents ? formatCents(story.cashCents) : '',
     taken: takenText(defs, story, world.goodName, fame),
+    ...story.words,
   };
   return {
     headline: fill(t.headline, values).toUpperCase(),

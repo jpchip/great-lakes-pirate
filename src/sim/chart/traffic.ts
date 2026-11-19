@@ -16,7 +16,16 @@ import { createTraffic, placeTraffic, type LaneSchedule } from './routes';
  */
 
 export type ContactKind =
-  'freighter' | 'steamer' | 'barge' | 'tug' | 'cutter' | 'derelict' | 'storm' | 'fog';
+  | 'freighter'
+  | 'steamer'
+  | 'barge'
+  | 'tug'
+  | 'cutter'
+  /** A copycat rival's schooner (Phase 9 piece E). */
+  | 'rival'
+  | 'derelict'
+  | 'storm'
+  | 'fog';
 
 /** Contacts that are weather, met at their edge and drawn as areas. */
 export function isWeatherContact(c: Pick<Contact, 'kind'>): boolean {

@@ -183,6 +183,7 @@ import { iceSailingSystem } from './gameplay/ice-sailing';
 import { calendarMs, gameSecondsAt } from './sim/ice/season';
 import { crewsIdle } from './sim/events/events';
 import { attachFeuds } from './gameplay/feuds';
+import { attachRivals, createRivalContacts, type GameRivals } from './gameplay/rivals';
 import { FEUDS, feudOpen } from './sim/events/feuds';
 import { attachLaw, devWitness } from './gameplay/law';
 import { attachPortLaw } from './gameplay/port-law';
@@ -853,6 +854,8 @@ async function boot(): Promise<void> {
       state.environment.clock.gameSeconds,
     ),
     ...lawShips.contacts,
+    // Copycat rivals' ships (Phase 9 piece E), off the water until one takes to the lake.
+    ...createRivalContacts(),
   ]);
   const trafficZone = (z: LoadedZone | undefined): TrafficZone | undefined =>
     z
@@ -1400,6 +1403,8 @@ async function boot(): Promise<void> {
     if (cameraRig) cameraRig.suspended = machine.overlayOpen;
     document.body.dataset['frontPage'] = 'closed';
   };
+  // Copycat rivals (Phase 9 piece E), attached once the events are: the papers name them.
+  let rivals: GameRivals | undefined;
   const papers = attachPapers({
     ctx,
     law,
@@ -1407,6 +1412,7 @@ async function boot(): Promise<void> {
     goodName: (good) => economy.defs.goods.get(good)?.name ?? good,
     lawShips,
     ownerName: (id) => traffic.defs.factions.get(id)?.name,
+    rivalWho: (id) => rivals?.who(id),
     // A region gone Most Wanted: its paper's front page fills the screen.
     onFrontPage: () => queueMicrotask(showFrontPage),
   });
@@ -1634,6 +1640,41 @@ async function boot(): Promise<void> {
     companyName: (id) => traffic.defs.factions.get(id)?.short ?? 'The company',
   });
   economy.sellFactor = (port, good) => feuds.sellTerms(port, good)?.factor ?? 1;
+  // Copycat rivals (Phase 9 piece E): from Fame 2 they take to your lanes, copy your methods
+  // and share your blame; a parley comes by letter; beaten, they leave a lead to their stash.
+  rivals = attachRivals({
+    ctx,
+    law,
+    events: sandboxEvents,
+    traffic,
+    projection: westernSuperiorChart().projection,
+    seed: `${trafficSeed}-traffic`,
+    gale: (port) => papers.signal(port) !== undefined,
+    lead: (input) => {
+      discovery.lead(input);
+    },
+    notice: (text) => noticeRef.current?.(text),
+  });
+  const gameRivals = rivals;
+  if (import.meta.env.DEV || params.has('debug')) {
+    // `__glpRivals.list()` reads the rivals; `.emerge()` brings one now; `.raid(id)` has them
+    // rob now; `.parley(id)` has them write; `.defeat(id)` beats them; `.state()` is the slice.
+    const hook = {
+      state: () => gameRivals.state,
+      list: () => gameRivals.list(),
+      check: () => gameRivals.check(),
+      emerge: () => gameRivals.emerge()?.id,
+      raid: (id: string, method?: Parameters<GameRivals['raid']>[1]) => gameRivals.raid(id, method),
+      parley: (id: string) => gameRivals.parley(id),
+      defeat: (id: string, how?: 'taken' | 'sunk') => gameRivals.defeat(id, how),
+      leave: (id: string, how: 'caught' | 'lost' | 'retired') => gameRivals.leave(id, how),
+      contact: (id: string) => {
+        const r = gameRivals.state.list.find((x) => x.id === id);
+        return r ? traffic.contacts.find((c) => c.id === `ship.rival_${r.slot}`) : undefined;
+      },
+    };
+    (window as unknown as { __glpRivals: typeof hook }).__glpRivals = hook;
+  }
   if (import.meta.env.DEV || params.has('debug')) {
     // `__glpFeud.state()` reads the Hollister feud; `.check()` moves it on if a beat is due;
     // `.pressure()` is the pressure by method.
@@ -2326,6 +2367,7 @@ async function boot(): Promise<void> {
     nameOf: shipNameOf,
     ownerOf: (id) => traffic.manifest(contactOf(id))?.owner,
     ownerName: (id) => traffic.defs.factions.get(id)?.name,
+    isRival: (id) => gameRivals.isRival(contactOf(id)),
     cargoOf: (id) => traffic.manifest(contactOf(id))?.cargo ?? [],
     zoneId: () => (arena || inArenaSpace ? undefined : zoneData.id),
     geoAt,

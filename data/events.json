@@ -265,7 +265,10 @@
       "cooldownDays": 4,
       "hours": 10,
       "channels": ["rumor"],
-      "triggers": { "wreckingNight": true, "hours": [10, 22] },
+      "triggers": {
+        "wreckingNight": true,
+        "hours": [10, 22]
+      },
       "rumor": [
         "the {ship} is due past {mark} {when}, laden to her marks. The glass is falling and there's no moon. A night for moon-cussers, the old men say, if there were any left.",
         "no moon tonight and weather coming. They say the {ship} will be feeling her way past {mark} after dark, and her master steers by the lights and nothing else."
@@ -467,7 +470,7 @@
       "letter": {
         "from": "E. T. Hollister, Hollister Fish & Packing Co.",
         "subject": "Your fish",
-        "body": "Captain {captain}, \u2014 It has come to my notice that you have been landing fish on our dock at {port} as though you were one of the Company's own boats. You are not. From this week our buyers will give you sixty cents on the dollar for anything you bring in, and you may take it or carry it elsewhere. The Company's tugs have fished these grounds for twenty years and mean to fish them twenty more. \u2014 E. T. Hollister"
+        "body": "Captain {captain}, — It has come to my notice that you have been landing fish on our dock at {port} as though you were one of the Company's own boats. You are not. From this week our buyers will give you sixty cents on the dollar for anything you bring in, and you may take it or carry it elsewhere. The Company's tugs have fished these grounds for twenty years and mean to fish them twenty more. — E. T. Hollister"
       },
       "rumor": [
         "Hollister's put the word out on Captain {captain}: sixty cents on the dollar for that captain's fish, and the buyers on the {port} dock are to hold to it.",
@@ -540,7 +543,7 @@
       "letter": {
         "from": "E. T. Hollister, Hollister Fish & Packing Co.",
         "subject": "Terms",
-        "body": "Captain {captain}, \u2014 This has gone on long enough, and it costs us both. The Company will buy your fish again at {port}, at eighty-five cents on the dollar, for as long as you care to sell it, on condition that it ends here. Write your answer care of the harbor master. \u2014 E. T. Hollister"
+        "body": "Captain {captain}, — This has gone on long enough, and it costs us both. The Company will buy your fish again at {port}, at eighty-five cents on the dollar, for as long as you care to sell it, on condition that it ends here. Write your answer care of the harbor master. — E. T. Hollister"
       },
       "choices": [
         {
@@ -610,7 +613,7 @@
       "letter": {
         "from": "E. T. Hollister, Hollister Fish & Packing Co.",
         "subject": "Enough",
-        "body": "Captain {captain}, \u2014 I cannot prove what I know, and I have stopped trying. Our buyers at {port} will take your fish again, and pay you the best price on the dock and a little over. I ask only that the Company's sheds be left alone. \u2014 E. T. Hollister"
+        "body": "Captain {captain}, — I cannot prove what I know, and I have stopped trying. Our buyers at {port} will take your fish again, and pay you the best price on the dock and a little over. I ask only that the Company's sheds be left alone. — E. T. Hollister"
       },
       "rumor": [
         "Hollister's given up. Two nights' brine spoiled and his warehouse cleaned out, and now he pays Captain {captain} over the odds for fish just to be let alone."
@@ -646,7 +649,7 @@
       "letter": {
         "from": "E. T. Hollister, Hollister Fish & Packing Co.",
         "subject": "Enough",
-        "body": "Captain {captain}, \u2014 My tug captains will not go out while your sail is on the lake, and I cannot blame them. Our buyers at {port} will take your fish again at the best price on the dock and a little over. Leave the Company's boats alone. \u2014 E. T. Hollister"
+        "body": "Captain {captain}, — My tug captains will not go out while your sail is on the lake, and I cannot blame them. Our buyers at {port} will take your fish again at the best price on the dock and a little over. Leave the Company's boats alone. — E. T. Hollister"
       },
       "rumor": [
         "Hollister's tugs are lying in the slip with their nets dry. Their skippers won't go out while Captain {captain} is about, and the old man's paying that captain over the odds to keep the peace."
@@ -686,7 +689,7 @@
       "letter": {
         "from": "E. T. Hollister, Hollister Fish & Packing Co.",
         "subject": "A proposal",
-        "body": "Captain {captain}, \u2014 You have made your point. The fish you will not sell us has gone to Duluth and Superior at a better price, and the town has taken your side. Our buyers at {port} will take your fish again at the best price on the dock and a little over, if you will bring it to us first. \u2014 E. T. Hollister"
+        "body": "Captain {captain}, — You have made your point. The fish you will not sell us has gone to Duluth and Superior at a better price, and the town has taken your side. Our buyers at {port} will take your fish again at the best price on the dock and a little over, if you will bring it to us first. — E. T. Hollister"
       },
       "rumor": [
         "Captain {captain} beat Hollister fair and square: carried the catch to Duluth and made friends of half of {port} doing it. Now the old man's paying over the odds to get that fish back."
@@ -705,7 +708,9 @@
       "cooldownDays": 3,
       "hours": 30,
       "channels": ["rumor", "paper"],
-      "triggers": { "hours": [15, 20] },
+      "triggers": {
+        "hours": [15, 20]
+      },
       "ports": [
         "port.bayfield",
         "port.ashland",
@@ -722,6 +727,252 @@
         "headline": "High Stakes at {port}",
         "deck": "Captains Wager Whole Cargoes Across the Card Table",
         "body": "It is said along the waterfront at {port} that a card game in one of the saloons is being played for whole cargoes, and that more than one master has gone back to his vessel lighter than he came ashore. The constable is said to take no notice."
+      }
+    },
+    {
+      "id": "event.rival_emerges",
+      "name": "A copycat takes to the lake",
+      "type": "rival",
+      "weight": 1,
+      "cooldownDays": 0,
+      "hours": 120,
+      "channels": ["paper", "rumor"],
+      "draw": false,
+      "outcomes": [
+        {
+          "kind": "log",
+          "text": "The talk is of a new pirate in {region}: {rival}, in {rivalShip}. One who {method}, they say, as I do."
+        }
+      ],
+      "paper": {
+        "headline": "A NEW PIRATE ON THE LAKE",
+        "deck": "{Rival} Takes Up the Black Trade in {Region}",
+        "body": "Not content with one freebooter, the lake has bred another. Masters in {region} report a schooner, {rivalShip}, under one {rival}, who {method}. Old hands say he has read every line printed about Captain {captain} and means to outdo it."
+      },
+      "rumor": [
+        "there's a new one out in {region}: {rival}, sailing {rivalShip}. He {method}, same as the one in the papers.",
+        "{nick}, they're calling him. Lies up somewhere out by {camp}, so the fishermen say, and hunts the boats in {region}."
+      ]
+    },
+    {
+      "id": "event.rival_strikes",
+      "name": "A copycat strikes your lane",
+      "type": "rival",
+      "weight": 1,
+      "cooldownDays": 0,
+      "hours": 48,
+      "channels": ["paper", "rumor"],
+      "draw": false,
+      "paper": {
+        "headline": "{NICK} AGAIN",
+        "deck": "The Pirate {Rival} Strikes in {Region}",
+        "body": "The schooner {rivalShip} was seen again this week in {region}, where {rival} {method}. Whether the lake has one pirate or two, the masters who ply it are past caring."
+      },
+      "rumor": [
+        "{nick}'s been at it again in {region}. Some say it was him; some say it was the other one.",
+        "you hear about {region}? {rivalShip} again. {Nick} {method}, bold as you like."
+      ]
+    },
+    {
+      "id": "event.rival_parley",
+      "name": "A rival proposes a parley",
+      "type": "rival",
+      "weight": 1,
+      "cooldownDays": 0,
+      "hours": 72,
+      "channels": ["letter"],
+      "draw": false,
+      "letter": {
+        "from": "{rival}",
+        "subject": "A word between us",
+        "body": "Captain {captain}, — There is not water enough on this lake for the two of us to go on as we are, crossing each other's wakes and taking each other's blame. I have a proposal. Come to the saloon at {parleyPort} and we will talk it over like men of business. I will be there this week and no longer. — {nick}"
+      },
+      "choices": [
+        {
+          "id": "meet",
+          "label": "Go and hear him out",
+          "result": "You'll meet {nick} in the saloon at {parleyPort}."
+        },
+        {
+          "id": "decline",
+          "label": "Burn the letter",
+          "result": "You burned it. Let him find his own water."
+        }
+      ],
+      "defaultChoice": "decline"
+    },
+    {
+      "id": "event.rival_parley_truce",
+      "name": "A parley in the saloon: a truce",
+      "type": "rival",
+      "weight": 1,
+      "cooldownDays": 0,
+      "hours": 72,
+      "channels": ["scene"],
+      "draw": false,
+      "scene": {
+        "title": "{Rival} at the corner table",
+        "body": "He's where he said he'd be, at the back of the saloon with his hat on the table and a glass he hasn't touched. 'Here's my offer,' says {nick}. 'You don't work like me and I don't work like you. When the crews tell their tale, there's no mistaking which of us it was, and neither hangs for the other's work.' He holds out his hand."
+      },
+      "choices": [
+        {
+          "id": "accept",
+          "label": "Shake on it",
+          "result": "You shook. {Nick} finished his glass in one and was gone out the back."
+        },
+        {
+          "id": "sell",
+          "label": "Send the boy for the constable",
+          "result": "The constable came by the front as {nick} went out the back. But the law has his name now, and his haunts.",
+          "outcomes": [
+            {
+              "kind": "standing",
+              "amount": 3
+            }
+          ]
+        },
+        {
+          "id": "refuse",
+          "label": "Turn him down",
+          "result": "'Suit yourself,' says {nick}, and goes."
+        }
+      ]
+    },
+    {
+      "id": "event.rival_parley_split",
+      "name": "A parley in the saloon: a split",
+      "type": "rival",
+      "weight": 1,
+      "cooldownDays": 0,
+      "hours": 72,
+      "channels": ["scene"],
+      "draw": false,
+      "scene": {
+        "title": "{Rival} at the corner table",
+        "body": "He's waiting at the back of the saloon, a chart of the lake spread out under the lamp. 'Too many of us on too few lanes,' says {nick}. 'I'll take my business elsewhere and leave {region} to you. We stay out of each other's water, and there's prizes enough for both.' He holds out his hand."
+      },
+      "choices": [
+        {
+          "id": "accept",
+          "label": "Shake on it",
+          "result": "You shook. {Nick} rolled up his chart and said you'd not see his topsails in {region} again."
+        },
+        {
+          "id": "sell",
+          "label": "Send the boy for the constable",
+          "result": "The constable came by the front as {nick} went out the back. But the law has his name now, and his haunts.",
+          "outcomes": [
+            {
+              "kind": "standing",
+              "amount": 3
+            }
+          ]
+        },
+        {
+          "id": "refuse",
+          "label": "Turn him down",
+          "result": "'Then we'll see who's left in the spring,' says {nick}, and goes."
+        }
+      ]
+    },
+    {
+      "id": "event.rival_betrays",
+      "name": "A rival breaks his word",
+      "type": "rival",
+      "weight": 1,
+      "cooldownDays": 0,
+      "hours": 72,
+      "channels": ["letter", "paper"],
+      "draw": false,
+      "outcomes": [
+        {
+          "kind": "log",
+          "text": "{rival} broke our bargain and sold my name to the law."
+        }
+      ],
+      "letter": {
+        "from": "{rival}",
+        "subject": "Our bargain",
+        "body": "Captain {captain}, — You'll have noticed the law is closer behind you this week. I thought it only fair to tell you it was me. A man must look after his own. — {nick}"
+      },
+      "paper": {
+        "headline": "PIRATE TURNS INFORMER",
+        "deck": "{Rival} Said to Have Sold a Rival to the Law",
+        "body": "The authorities in {region} acknowledge a tip from an unlikely quarter: the pirate {rival}, it is said, has given up the haunts of Captain {captain}. There is no honor among thieves on Lake Superior either."
+      }
+    },
+    {
+      "id": "event.rival_caught",
+      "name": "A copycat is caught",
+      "type": "rival",
+      "weight": 1,
+      "cooldownDays": 0,
+      "hours": 120,
+      "channels": ["paper", "rumor"],
+      "draw": false,
+      "paper": {
+        "headline": "PIRATE TAKEN",
+        "deck": "{Rival} in Irons; {RivalShip} Seized",
+        "body": "The law in {region} has taken the pirate {rival}, whose schooner {rivalShip} was surprised at anchor off {camp}. He is to be tried at the next term and is expected to hang. The masters of {region} breathe easier; the papers wonder aloud who is next."
+      },
+      "rumor": [
+        "they've got {nick}. Surprised him at anchor off {camp}, they say. He'll hang.",
+        "one less pirate on the lake: {rival}'s in irons."
+      ]
+    },
+    {
+      "id": "event.rival_lost",
+      "name": "A copycat is lost in a gale",
+      "type": "rival",
+      "weight": 1,
+      "cooldownDays": 0,
+      "hours": 120,
+      "channels": ["paper", "rumor"],
+      "draw": false,
+      "paper": {
+        "headline": "PIRATE SCHOONER LOST",
+        "deck": "{RivalShip} Believed Gone Down With All Hands",
+        "body": "Wreckage found on the shore of {region} after the gale is said to be that of {rivalShip}, the schooner of the pirate {rival}. The lake, it seems, has done what the law could not."
+      },
+      "rumor": [
+        "{rivalShip} went down in the blow, they say. {Nick} and all his crew.",
+        "the lake took {nick}. Wreckage all along the beach."
+      ]
+    },
+    {
+      "id": "event.rival_retires",
+      "name": "A copycat gives it up",
+      "type": "rival",
+      "weight": 1,
+      "cooldownDays": 0,
+      "hours": 72,
+      "channels": ["rumor"],
+      "draw": false,
+      "rumor": [
+        "{nick}'s given it up, they say. Sold {rivalShip} and gone west with what he had.",
+        "no more {nick}. The trade's not what it was, he said, and took the train to the Dakotas."
+      ]
+    },
+    {
+      "id": "event.rival_defeated",
+      "name": "You beat a rival",
+      "type": "rival",
+      "weight": 1,
+      "cooldownDays": 0,
+      "hours": 120,
+      "channels": ["paper"],
+      "draw": false,
+      "paperNames": true,
+      "outcomes": [
+        {
+          "kind": "log",
+          "text": "Beat {rival} and took {rivalShip}. His crew talked: he keeps his stash {campWhere}."
+        }
+      ],
+      "paper": {
+        "headline": "PIRATE AGAINST PIRATE",
+        "deck": "{Rival} Beaten on the Open Lake by Captain {captain}",
+        "body": "In an affair the like of which these waters have not seen, the pirate {rival} and his schooner {rivalShip} were run down in {region} by none other than Captain {captain}. Who is to be thanked and who hanged, the authorities have not said."
       }
     }
   ]

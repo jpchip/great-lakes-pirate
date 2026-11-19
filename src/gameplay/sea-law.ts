@@ -71,6 +71,11 @@ export interface SeaLawDeps {
   /** A good's name, for the logbook. */
   goodName?(good: string): string;
   rules?: BoardingRules;
+  /**
+   * A copycat rival's ship (Phase 9 piece E): her crew never goes to the law ("who's going
+   * to report it?"), so only a third party's report counts.
+   */
+  isRival?(id: string): boolean;
 }
 
 export interface SeaLaw {
@@ -207,7 +212,9 @@ export function attachSeaLaw(deps: SeaLawDeps): SeaLaw {
       crime,
       region: inc.region,
       witnesses,
-      pending: crewWitness(shipId, inc.name, crewIdentOf(inc), deps.zoneId()),
+      pending: deps.isRival?.(shipId)
+        ? undefined
+        : crewWitness(shipId, inc.name, crewIdentOf(inc), deps.zoneId()),
       company: inc.owner,
       details: details(inc),
     });
