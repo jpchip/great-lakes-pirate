@@ -57,7 +57,7 @@ import { FollowCamera, ROWING_CAMERA, roofOver } from './onfoot/camera';
 import { createLean, leaning, resetLean, stepLean, type Lean } from './onfoot/lean';
 import { footprintDistance, type Collider, type Push } from './onfoot/colliders';
 import type { Watch } from './onfoot/watch';
-import { keeperSpot, keeperType } from './onfoot/shops';
+import { cardPlayers, keeperSpot, keeperType } from './onfoot/shops';
 import { crewFigures, shipWords } from './onfoot/moored';
 import type { FootToolsSnapshot } from '../ui/hud/foot-tools-model';
 import type { GuardReadout, StealthReadout } from './onfoot/stealth';
@@ -1045,6 +1045,24 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
     if (!deps.shop) return out;
     for (const mark of m.marks) {
       if (mark.kind !== 'shop' || !deps.shop(district, mark)) continue;
+      if (mark.opens === 'cards') {
+        // The captains round the card table after supper (Phase 9 piece C).
+        for (const f of cardPlayers(mark)) {
+          const w = toZone(f.x, f.z);
+          out.push({
+            id: f.id,
+            type: 'npc.townsman',
+            state: 'idle',
+            x: w.x,
+            y: m.floorAt(f.x, f.z),
+            z: w.z,
+            heading: headingToZone(f.heading),
+            crouching: false,
+            lantern: false,
+          });
+        }
+        continue;
+      }
       const spot = keeperSpot(mark);
       const w = toZone(spot.x, spot.z);
       out.push({

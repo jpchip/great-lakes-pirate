@@ -159,7 +159,8 @@ const record = (v: unknown): Record<string, unknown> =>
  * - `ContractCompleted` not late: a contract on time;
  * - `FeatAccomplished` (the papers' feats): an escape from the *Morrill*, a record run, and
  *   making port through a gale, counted in November only;
- * - `ShipLaunched` from a slipway (Phase 8 piece G).
+ * - `ShipLaunched` from a slipway (Phase 8 piece G);
+ * - `PokerPlayed` that won a captain's cargo or contract off him (Phase 9 piece C).
  */
 export function counterForEvent(
   type: string,
@@ -179,6 +180,8 @@ export function counterForEvent(
       return undefined;
     case 'ShipLaunched':
       return p['from'] === 'slipway' ? 'slipwayLaunches' : undefined;
+    case 'PokerPlayed':
+      return p['wonCargo'] === true ? 'pokerCargoes' : undefined;
     default:
       return undefined;
   }

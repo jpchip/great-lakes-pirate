@@ -1,0 +1,165 @@
+{
+  "rules": {
+    "hours": [19, 2],
+    "handsPerNight": 10,
+    "anteCents": {
+      "default": 25,
+      "port.duluth": 50,
+      "port.superior": 50,
+      "port.ashland": 50,
+      "port.la_pointe": 10
+    },
+    "eventAnte": 2,
+    "betAntes": [2, 4],
+    "raisesPerRound": 2,
+    "maxDraw": 3,
+    "seats": [2, 3],
+    "stackAntes": [60, 160],
+    "leaveAntes": 14,
+    "noise": 0.08,
+    "styles": {
+      "tight": { "fold": 0.5, "bet": 0.72, "raise": 0.88, "bluff": 0.03 },
+      "loose": { "fold": 0.22, "bet": 0.55, "raise": 0.8, "bluff": 0.08 },
+      "bold": { "fold": 0.3, "bet": 0.48, "raise": 0.7, "bluff": 0.16 },
+      "cagey": { "fold": 0.4, "bet": 0.8, "raise": 0.75, "bluff": 0.06 }
+    },
+    "markers": {
+      "chance": 0.3,
+      "weights": { "cargo": 5, "contract": 3, "map": 2 },
+      "cargoQty": [8, 24],
+      "matchShare": 0.8
+    },
+    "sleight": {
+      "base": 0.9,
+      "perEye": 0.12,
+      "perCheat": 0.15,
+      "floor": 0.1,
+      "ceiling": 0.9
+    },
+    "caught": {
+      "barredDays": 1,
+      "standing": -6,
+      "beatingShare": 0.1,
+      "crime": "crime.assault"
+    }
+  },
+  "captains": [
+    {
+      "id": "gambler.hale",
+      "name": "Captain Abel Hale",
+      "ship": "the Ida May",
+      "style": "tight",
+      "eye": 0.6,
+      "tells": {
+        "strong": "squares his cards into a neat stack",
+        "weak": "turns his cards over and over in his fingers"
+      },
+      "honesty": 0.8,
+      "ports": ["port.bayfield", "port.washburn", "port.ashland"]
+    },
+    {
+      "id": "gambler.lindqvist",
+      "name": "Captain Nels Lindqvist",
+      "ship": "the Sophie L.",
+      "style": "loose",
+      "eye": 0.3,
+      "tells": {
+        "strong": "hums under his breath",
+        "weak": "pulls at his beard"
+      },
+      "honesty": 0.85,
+      "ports": ["port.bayfield", "port.la_pointe", "port.washburn"]
+    },
+    {
+      "id": "gambler.mcgarry",
+      "name": "Captain Dan McGarry",
+      "ship": "the Kate Kelly",
+      "style": "bold",
+      "eye": 0.4,
+      "tells": {
+        "strong": "goes very still",
+        "weak": "talks a great deal about the weather"
+      },
+      "honesty": 0.65,
+      "ports": ["port.bayfield", "port.ashland", "port.duluth", "port.superior"]
+    },
+    {
+      "id": "gambler.cadotte",
+      "name": "Captain Michel Cadotte",
+      "ship": "the Belle Isle",
+      "style": "cagey",
+      "eye": 0.8,
+      "tells": {
+        "strong": "lets his cigar go out",
+        "weak": "draws hard on his cigar"
+      },
+      "honesty": 0.55,
+      "ports": ["port.la_pointe", "port.bayfield", "port.ashland"]
+    },
+    {
+      "id": "gambler.tregarthen",
+      "name": "Captain Will Tregarthen",
+      "ship": "the Cornish Lass",
+      "style": "tight",
+      "eye": 0.5,
+      "tells": {
+        "strong": "sits back in his chair",
+        "weak": "leans in over his cards"
+      },
+      "honesty": 0.75,
+      "ports": ["port.ashland", "port.washburn", "port.two_harbors"]
+    },
+    {
+      "id": "gambler.boyce",
+      "name": "Captain Harriet Boyce",
+      "ship": "the Wren",
+      "style": "cagey",
+      "eye": 0.9,
+      "tells": {
+        "strong": "smiles at nobody in particular",
+        "weak": "smiles at you"
+      },
+      "honesty": 0.6,
+      "ports": ["port.duluth", "port.superior", "port.two_harbors", "port.bayfield"]
+    },
+    {
+      "id": "gambler.ostrowski",
+      "name": "Captain Jan Ostrowski",
+      "ship": "the Two Brothers",
+      "style": "loose",
+      "eye": 0.25,
+      "tells": {
+        "strong": "orders another whiskey",
+        "weak": "pushes his glass away"
+      },
+      "honesty": 0.9,
+      "ports": ["port.duluth", "port.superior", "port.two_harbors", "port.ashland"]
+    },
+    {
+      "id": "gambler.pettibone",
+      "name": "Captain Silas Pettibone",
+      "ship": "the Ellen Pettibone",
+      "style": "bold",
+      "eye": 0.55,
+      "tells": {
+        "strong": "taps the table twice",
+        "weak": "drums all four fingers on the table"
+      },
+      "honesty": 0.7,
+      "ports": ["port.superior", "port.duluth", "port.washburn"]
+    },
+    {
+      "id": "gambler.brekke",
+      "name": "Captain Ole Brekke",
+      "ship": "the Norden",
+      "style": "tight",
+      "eye": 0.35,
+      "tells": {
+        "strong": "won't look up from his cards",
+        "weak": "looks round the room"
+      },
+      "honesty": 0.85,
+      "ports": ["port.two_harbors", "port.duluth", "port.la_pointe"]
+    }
+  ]
+}

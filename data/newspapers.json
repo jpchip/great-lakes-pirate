@@ -744,6 +744,24 @@
             "body": "{who} has built and launched a schooner off a slipway in the wilds, without a shipyard or a yard bill. Shipwrights in {town} are not pleased."
           }
         ]
+      },
+      "ambition.won_it_at_poker": {
+        "fame": 3,
+        "weight": 2,
+        "plain": [
+          {
+            "headline": "A CARGO WON AT CARDS",
+            "deck": "{WHO} Takes a Vessel's Freight on a Single Hand",
+            "body": "It is told along the waterfront that {who} sat down to a game of draw poker and got up the owner of another captain's cargo. The loser is said to have gone back to his vessel with an empty hold."
+          }
+        ],
+        "lurid": [
+          {
+            "headline": "PIRATE CLEANS OUT THE CARD TABLE!",
+            "deck": "{WHO} Wins a Whole Cargo, and Nobody Dares Ask How",
+            "body": "{epithet} {who} is said to have won a cargo at cards in one sitting. Those who were at the table do not care to say whether the deal was straight."
+          }
+        ]
       }
     }
   },

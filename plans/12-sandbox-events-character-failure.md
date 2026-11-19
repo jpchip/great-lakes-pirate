@@ -142,6 +142,15 @@ There's no win condition, but a run can end on your terms:
 - Cheating option (a sleight check): if caught, there's a brawl or assault heat.
 - **Decided: included.** Poker night is in.
 
+**Result:** built, as [11 §18.4](11-exploration-islands-secrets.md)'s piece C (exit criterion 5), from `data/poker.json`:
+- **The table:** after supper (19:00–01:00) at every port with a saloon, a Card table tab; in Bayfield a table (`shop.card_table`) in the saloon you walk up to. Two or three of nine fictional captains who sit in that port, drawn from the run's seed for the port and night, with stacks in antes. Ten hands a night; a captain short of 14 antes goes up to bed.
+- **The game:** five-card draw, limit betting (a bet is 2 antes before the draw, 4 after, a bet and one raise a round), one draw of up to three (four keeping an ace). You act first; each captain bets on his hand's place among all hands, by his style (tight, loose, bold, cagey), with a little noise and a chance to bluff. A strong or weak hand shows his tell, true at his honesty, else the other one.
+- **Stakes:** cash in the pot; and a captain's marker (a cargo lot sized to your hold, a contract off the port's board, or a map to an unfound cache), offered on 30% of nights and every poker night, matched with cash, a lot of yours or a contract of yours worth 80% of it. The two of you settle it at the showdown; folding forfeits it. A lost contract passes to him without a mark against your name. A map is a true rumor in the ledger naming the cairn: piece O can turn it into a lead.
+- **Cheating:** palm a card at the draw (the best card left in the deck swaps in). Unseen at 90% less 12% for each eye still in the hand (by its sharpness) and 15% for each card palmed at the table that night, between 10% and 90%. Seen: take your licking (pot and stake lost, a tenth of your purse) or swing first (your money back, `crime.assault` witnessed by the saloon). Barred a game day (a week) and Standing −6 at the port either way.
+- **Poker night** (`event.poker_night`): rumor and paper, in the afternoon at a port with a saloon; that night's ante doubles and a marker is certain.
+- **Won It at Poker:** a trade Ambition, the `pokerCargoes` counter, from `PokerPlayed` with a cargo or contract won; it has its line in the papers.
+- Screenshots are in the project files (`poker-night/`).
+
 ---
 
 ## 6. Newspapers

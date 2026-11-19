@@ -12,6 +12,7 @@ import { curiosFileSchema, discoveriesFileSchema } from './discoveries';
 import { eventsFileSchema } from './events';
 import { factionsFileSchema } from './factions';
 import { fencesFileSchema } from './fences';
+import { pokerFileSchema } from './poker';
 import { gunsFileSchema } from './guns';
 import { flowsFileSchema } from './flows';
 import { goodsFileSchema } from './goods';
@@ -77,6 +78,7 @@ export const dataFileSchemas: Readonly<Record<string, z.ZodType>> = {
   'newspapers.json': newspapersFileSchema,
   'npc_types.json': npcTypesFileSchema,
   'pois.json': poisFileSchema,
+  'poker.json': pokerFileSchema,
   'portraits.json': portraitsFileSchema,
   'ports.json': portsFileSchema,
   'recipes.json': recipesFileSchema,

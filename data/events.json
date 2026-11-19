@@ -251,6 +251,33 @@
         }
       ],
       "defaultChoice": "ignore"
+    },
+    {
+      "id": "event.poker_night",
+      "name": "Poker night",
+      "type": "opportunity",
+      "weight": 1,
+      "cooldownDays": 3,
+      "hours": 30,
+      "channels": ["rumor", "paper"],
+      "triggers": { "hours": [15, 20] },
+      "ports": [
+        "port.bayfield",
+        "port.ashland",
+        "port.washburn",
+        "port.la_pointe",
+        "port.duluth",
+        "port.superior",
+        "port.two_harbors"
+      ],
+      "rumor": [
+        "there's a big game at the card table in {port} tonight. The captains are putting up more than money: a cargo, or a contract, or a map. Come with a full purse."
+      ],
+      "paper": {
+        "headline": "High Stakes at {port}",
+        "deck": "Captains Wager Whole Cargoes Across the Card Table",
+        "body": "It is said along the waterfront at {port} that a card game in one of the saloons is being played for whole cargoes, and that more than one master has gone back to his vessel lighter than he came ashore. The constable is said to take no notice."
+      }
     }
   ]
 }
