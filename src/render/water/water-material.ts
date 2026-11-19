@@ -6,6 +6,7 @@ import {
   SHORE_SDF_RANGE_M,
   deepWaterTexture,
 } from './shore';
+import { iceShadeChunk, iceUniformsChunk } from './ice-glsl';
 import { noiseChunk, waveDisplacementChunk, waveUniformsChunk } from './wave-glsl';
 import { GUST_SAMPLES } from './wind-cues';
 
@@ -88,6 +89,8 @@ uniform vec3 uGustOrigin;
 varying vec3 vWorldPos;
 varying vec2 vRestPos;
 varying float vHeight;
+${iceUniformsChunk}
+${iceShadeChunk}
 
 // The normal and crest of every wave, per pixel at the undisplaced position. Short waves
 // the vertex grid can't resolve still shade here, faded by the pixel's footprint
@@ -214,6 +217,11 @@ void main() {
     color = mix(color, uFoamColor, max(wash, surf) * 0.9);
   }
 
+  // The ice over it all in winter (ice-glsl.ts).
+  if (uIceOn > 0.5) {
+    color = shadeIce(color, vRestPos, dist, toShore, footprint, toCamera).rgb;
+  }
+
   gl_FragColor = vec4(color, 1.0);
   #include <tonemapping_fragment>
   #include <colorspace_fragment>
@@ -251,11 +259,26 @@ export interface WaterUniforms {
   uCatsPaws: THREE.IUniform<number>;
   uGustAhead: THREE.IUniform<Float32Array>;
   uGustOrigin: THREE.IUniform<THREE.Vector3>;
+  uIceOn: THREE.IUniform<number>;
+  uIceShelter: THREE.IUniform<THREE.Texture>;
+  uIceShelterRect: THREE.IUniform<THREE.Vector4>;
+  uIceLut: THREE.IUniform<THREE.Texture>;
+  uIceColor: THREE.IUniform<THREE.Color>;
+  uIceDarkColor: THREE.IUniform<THREE.Color>;
+  uIceSnowColor: THREE.IUniform<THREE.Color>;
+  uIceCrackColor: THREE.IUniform<THREE.Color>;
+  uIceSnow: THREE.IUniform<number>;
+  uFloeNear: THREE.IUniform<number>;
 }
 
 /** Shallow-water tints at full daylight; the environment scales them like the rest. */
 export const SHALLOW_HEX = 0x3d8584;
 export const SAND_HEX = 0x9a8a5e;
+/** Ice tones at full daylight (plan 14 §2, winter): clear ice, new ice, snow, cracks. */
+export const ICE_HEX = 0x7d9db0;
+export const ICE_DARK_HEX = 0x34485a;
+export const ICE_SNOW_HEX = 0xe4ecf2;
+export const ICE_CRACK_HEX = 0x3a5064;
 
 export function createWaterMaterial(): THREE.ShaderMaterial & { uniforms: WaterUniforms } {
   const uniforms: WaterUniforms = {
@@ -294,6 +317,17 @@ export function createWaterMaterial(): THREE.ShaderMaterial & { uniforms: WaterU
     uCatsPaws: { value: 0 },
     uGustAhead: { value: new Float32Array(GUST_SAMPLES) },
     uGustOrigin: { value: new THREE.Vector3(0, 0, 20) },
+    // The ice sheet (ice-glsl.ts), set from the zone's ice by render/winter; off in summer.
+    uIceOn: { value: 0 },
+    uIceShelter: { value: new THREE.Texture() },
+    uIceShelterRect: { value: new THREE.Vector4(0, 0, 1, 1) },
+    uIceLut: { value: new THREE.Texture() },
+    uIceColor: { value: new THREE.Color(ICE_HEX) },
+    uIceDarkColor: { value: new THREE.Color(ICE_DARK_HEX) },
+    uIceSnowColor: { value: new THREE.Color(ICE_SNOW_HEX) },
+    uIceCrackColor: { value: new THREE.Color(ICE_CRACK_HEX) },
+    uIceSnow: { value: 0 },
+    uFloeNear: { value: 0 },
   };
   const material = new THREE.ShaderMaterial({
     uniforms,

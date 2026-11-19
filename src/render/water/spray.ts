@@ -40,6 +40,9 @@ const fragmentShader = /* glsl */ `
 #include <fog_pars_fragment>
 uniform vec3 uFoamColor;
 uniform vec3 uCrestColor;
+// Frozen spray (piece L), 0–1: in hard cold the puffs come off as ice, a glitter of
+// crystals that thins to sparks as it ages instead of a soft white puff.
+uniform float uFrozen;
 varying float vAge;
 varying float vSeed;
 
@@ -50,6 +53,12 @@ void main() {
   float r = length(c) + lumps;
   if (r > 1.0 - 0.75 * vAge * vAge) discard;
   vec3 color = r > 0.6 - 0.3 * vAge ? mix(uCrestColor, uFoamColor, 0.55) : uFoamColor;
+  if (uFrozen > 0.0) {
+    vec2 g = floor(gl_PointCoord * 6.0);
+    float spark = fract(sin(dot(g, vec2(12.9898, 78.233)) + vSeed * 91.7) * 43758.5453);
+    if (spark < uFrozen * (0.25 + 0.6 * vAge)) discard;
+    color = mix(color, uFoamColor * vec3(0.92, 0.98, 1.08) * (1.0 + 0.35 * step(0.85, spark)), uFrozen);
+  }
   gl_FragColor = vec4(color, 1.0);
   #include <tonemapping_fragment>
   #include <colorspace_fragment>
@@ -73,6 +82,8 @@ export interface Spray {
   burst(x: number, z: number): void;
   /** Moves the puffs on by `dt` real seconds. */
   update(dt: number): void;
+  /** How frozen the spray comes off, 0–1 (piece L: the air well below freezing). */
+  frozen01: number;
 }
 
 interface Source {
@@ -88,6 +99,7 @@ export function createSpray(capacity: number, water: Water): Spray {
       uScale: { value: 1 },
       uFoamColor: w.uFoamColor,
       uCrestColor: w.uCrestColor,
+      uFrozen: { value: 0 },
     },
     vertexShader,
     fragmentShader,
@@ -115,8 +127,15 @@ export function createSpray(capacity: number, water: Water): Spray {
 
   const sources = new WeakMap<object, Source>();
 
+  const frozen = material.uniforms['uFrozen'] as THREE.IUniform<number>;
   const spray: Spray = {
     points,
+    get frozen01() {
+      return frozen.value;
+    },
+    set frozen01(v) {
+      frozen.value = v;
+    },
     setCapacity(count) {
       n = count;
       positions = new Float32Array(n * 3);

@@ -7,6 +7,7 @@ import type { StyleLighting } from '../style/stylized-material';
 import { createFogBanks, type FogBankView } from './fog-banks';
 import { createLightning, type Lightning } from './lightning';
 import { createRain, type Rain } from './rain';
+import { createSnowfall, type Snowfall } from './snowfall';
 
 /**
  * The weather you see (plan 04 §9–11, Phase 2 piece E), on top of the sky and light the
@@ -26,6 +27,12 @@ export interface Atmosphere {
   readonly fogBanks: FogBankView;
   readonly rain: Rain;
   readonly lightning: Lightning;
+  /** Snow falling instead of rain in cold air (piece L). */
+  readonly snowfall: Snowfall;
+  /** How hard it's snowing now, 0–1 (the precipitation's share that falls as snow). */
+  readonly snowing01: number;
+  /** Overrides the snow falling, 0–1 (the winter hook, for a look); undefined follows the weather. */
+  forceSnow: number | undefined;
   /** How wet surfaces are, 0–1. */
   readonly wetness01: number;
   applyPreset(preset: QualityPreset): void;
@@ -55,26 +62,39 @@ export function createAtmosphere(
   const fogBanks = createFogBanks();
   const rain = createRain(preset.rainStreaks);
   const lightning = createLightning();
-  group.add(fogBanks.group, rain.lines, lightning.group);
+  const snowfall = createSnowfall(preset.snowFlakes);
+  group.add(fogBanks.group, rain.lines, snowfall.points, lightning.group);
   fogBanks.setEnabled(preset.fogBankSlabs);
   let wet = 0;
   let now = 0;
+  let snowing = 0;
 
   return {
     group,
     fogBanks,
     rain,
     lightning,
+    snowfall,
+    forceSnow: undefined,
+    get snowing01() {
+      return snowing;
+    },
     get wetness01() {
       return wet;
     },
     applyPreset(p) {
       fogBanks.setEnabled(p.fogBankSlabs);
       rain.setCapacity(p.rainStreaks);
+      snowfall.setCapacity(p.snowFlakes);
     },
     update(dt, t, camera, focus) {
       now += dt;
-      const rain01 = weather.rainAt(t);
+      // Below freezing the precipitation comes down as snow, with sleet between 0 and 2 °C.
+      const precipitation = weather.rainAt(t);
+      const air = weather.airTempAt(t);
+      const share = Math.min(1, Math.max(0, (2 - air) / 2));
+      snowing = this.forceSnow ?? precipitation * share;
+      const rain01 = this.forceSnow === undefined ? precipitation * (1 - share) : 0;
       const storm01 = weather.stormAt(t);
 
       lightning.update(dt, storm01, rain01, camera);
@@ -98,10 +118,20 @@ export function createAtmosphere(
       const wind = weather.windAt(focus, t);
       const drift = KNOT_MS * 0.7;
       rain.update(camera, rain01, { x: wind.toKn.x * drift, z: -wind.toKn.y * drift }, light, now);
+      // Snow goes with the wind almost entirely.
+      const carry = KNOT_MS * 0.9;
+      snowfall.update(
+        camera,
+        snowing,
+        { x: wind.toKn.x * carry, z: -wind.toKn.y * carry },
+        light,
+        now,
+      );
     },
     dispose() {
       fogBanks.dispose();
       rain.dispose();
+      snowfall.dispose();
       lightning.dispose();
     },
   };

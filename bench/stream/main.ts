@@ -3,6 +3,10 @@ import { createGameWorld } from '../../src/gameplay/ecs';
 import { isQualityId } from '../../src/render/quality';
 import { GameRenderer } from '../../src/render/renderer';
 import { createTestScene } from '../../src/render/test-scene';
+import { westernSuperiorChart } from '../../src/sim/chart/chart-data';
+import { fromWorldChart } from '../../src/sim/chart/geography';
+import { lakeIceFor } from '../../src/sim/ice/ice';
+import { gameSecondsAt } from '../../src/sim/ice/season';
 import { httpBytes, loadZoneTerrain } from '../../src/sim/terrain/load';
 import { APOSTLES_ID, zoneDef } from '../../src/sim/terrain/zones';
 import { createLocalWeather } from '../../src/sim/weather/local-weather';
@@ -83,6 +87,9 @@ const ROUTES: Record<string, { id: string; route: readonly [number, number][] }>
 
 const params = new URLSearchParams(location.search);
 const quality = params.get('quality');
+// `?winter=1` (piece L) runs the route on a February day of a hard winter: the bays fast,
+// snow on everything, snow falling and the winter palette, to price the winter's look.
+const winter = params.get('winter') === '1';
 const speed = Number(params.get('speed') ?? 8) * FULL_SAIL_MS;
 const out = document.getElementById('out') as HTMLPreElement;
 const zoneKey = (params.get('zone') ?? 'apostles').replace(/^zone\./, '');
@@ -100,7 +107,9 @@ async function run(): Promise<unknown> {
   const loadMs = performance.now() - loadStart;
 
   const state = createWorldState('bench');
-  state.environment.clock.gameSeconds = 12 * 3600;
+  state.environment.clock.gameSeconds = winter
+    ? Math.floor(gameSecondsAt(Date.UTC(1901, 1, 12)) / 86_400) * 86_400 + 12 * 3600
+    : 12 * 3600;
   const world = createGameWorld();
   const [x0, z0] = ROUTE[0] as [number, number];
   const transform = { position: { x: x0, y: 0, z: z0 }, heading: 0 };
@@ -127,6 +136,15 @@ async function run(): Promise<unknown> {
     [],
     def.edge,
   );
+  if (winter) {
+    const geo = westernSuperiorChart();
+    const ice = lakeIceFor('run-3');
+    scene.winter.source = {
+      seed: 'run-3',
+      shelterAt: (p) => ice.shelter(fromWorldChart(geo, p)),
+    };
+    scene.winter.overrides.falling = 0.6;
+  }
   const sceneMs = performance.now() - sceneStart;
   const terrain = scene.terrain;
   if (!terrain) throw new Error('no terrain view');
