@@ -1183,6 +1183,10 @@ async function boot(): Promise<void> {
       repair: (place) => portsRef.current?.actions.repair(place),
       fence: (index, qty) => portsRef.current?.actions.fence?.(index, qty),
       buyGun: (gunId) => portsRef.current?.actions.buyGun?.(gunId),
+      pokerDeal: (stake) => portsRef.current?.actions.pokerDeal?.(stake),
+      pokerBet: (action) => portsRef.current?.actions.pokerBet?.(action),
+      pokerDraw: (discards, palm) => portsRef.current?.actions.pokerDraw?.(discards, palm),
+      pokerCaught: (how) => portsRef.current?.actions.pokerCaught?.(how),
       // Piece E's harbor master tab offered Pay but nothing carried it to the game.
       payHarbor: (kind) => portsRef.current?.actions.payHarbor?.(kind),
       buyPaper: (paper) => portsRef.current?.actions.buyPaper?.(paper),

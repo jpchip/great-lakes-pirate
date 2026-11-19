@@ -133,10 +133,16 @@ test('a palmed card seen ends in a brawl, and the table is barred', async ({ pag
 test("Bayfield's card table is walked up to in the saloon", async ({ page }) => {
   test.setTimeout(180_000);
   const errors = collectErrors(page);
-  await evening(page);
-  await page.evaluate(() => (window as unknown as Hooks).__glpFoot.dock('bayfield_city'));
+  await page.goto('/?renderer=null&debug&play');
+  await page.waitForFunction(() => '__glpFoot' in window && '__glpPoker' in window);
+  await page.evaluate(() => {
+    const f = (window as unknown as Hooks).__glpFoot;
+    f.hour(21);
+    f.dock('bayfield_city');
+  });
   // From the ship there's no tab: the saloon says where the game is.
   await page.evaluate(() => (window as unknown as Hooks).__glpPort.open('port.bayfield'));
+  await expect(page.getByTestId('port-screen')).toBeVisible();
   await expect(page.getByTestId('port-tab-cards')).toHaveCount(0);
   await page.getByTestId('port-tab-saloon').click();
   await expect(page.getByTestId('cards-hint')).toContainText('go ashore');

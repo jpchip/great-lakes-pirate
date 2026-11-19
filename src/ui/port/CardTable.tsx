@@ -153,8 +153,10 @@ export function CardTable({
         {formatCents(table.anteCents * 2)} before the draw and {formatCents(table.anteCents * 4)}{' '}
         after.{' '}
         <span class="port-dim">
-          Hand {Math.min(table.hands, table.handsPerNight)} of {table.handsPerNight} tonight ·
-          You're{' '}
+          {table.hands === 0
+            ? `${table.handsPerNight} hands tonight`
+            : `Hand ${Math.min(table.hands, table.handsPerNight)} of ${table.handsPerNight} tonight`}{' '}
+          · You're{' '}
           <span class="hud-num" data-testid="card-net">
             {table.netCents >= 0 ? 'up' : 'down'} {formatCents(Math.abs(table.netCents))}
           </span>

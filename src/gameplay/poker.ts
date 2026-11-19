@@ -3,6 +3,7 @@ import { dayAndHour, SECONDS_PER_GAME_DAY } from '../core/time';
 import type { GameContext } from '../modes/context';
 import {
   adjustStanding,
+  cargoName,
   createContractsState,
   type BoardOffer,
   type ContractDefs,
@@ -136,6 +137,9 @@ export function attachPoker(opts: PokerOptions): GamePoker {
   const goodName = (good: string): string =>
     (economy.defs.goods.get(good)?.name ?? good).toLowerCase();
   const portName = (port: string): string => portInfo(port)?.name ?? port;
+  /** A contract's cargo by name: a good, or the mail. */
+  const cargo = (id: string): string =>
+    opts.contracts ? cargoName(economy.defs, opts.contracts.defs, id).toLowerCase() : goodName(id);
 
   /** A marker for a captain to put up, of a kind, where one can be had here. */
   const markerFor =
@@ -178,7 +182,7 @@ export function attachPoker(opts: PokerOptions): GamePoker {
           qty: t.qty,
           contract: `${port}#poker#${night}`,
           valueCents: t.payCents,
-          label: `his contract: ${t.qty} CU of ${goodName(t.good)} for ${portName(t.to)}, paying ${formatCents(t.payCents)}`,
+          label: `his contract: ${t.qty} CU of ${cargo(t.good)} for ${portName(t.to)}, paying ${formatCents(t.payCents)}`,
           terms: t,
         } satisfies Marker;
       }
@@ -249,7 +253,7 @@ export function attachPoker(opts: PokerOptions): GamePoker {
       if (k.status !== 'active' || k.payCents < need) continue;
       out.push({
         key: `contract:${k.id}`,
-        label: `your contract: ${k.qty} CU of ${goodName(k.good)} for ${portName(k.to)} (${formatCents(k.payCents)})`,
+        label: `your contract: ${k.qty} CU of ${cargo(k.good)} for ${portName(k.to)} (${formatCents(k.payCents)})`,
         refusal: noRoom,
       });
     }
