@@ -1,0 +1,11 @@
+{
+  "id": "voice.ship.aground-crew",
+  "name": "aground-crew",
+  "description": "Her crew as she strikes: men shouting the alarm and the ship's bell rung hard",
+  "kind": "oneshot",
+  "bus": "voice",
+  "bundles": [
+    "sandbox-audio"
+  ],
+  "source": "source.flac"
+}

@@ -1,0 +1,11 @@
+{
+  "id": "voice.station.greeting",
+  "name": "greeting",
+  "description": "A keeper's greeting by day: a friendly call and a \"well, now\" (no words)",
+  "kind": "oneshot",
+  "bus": "voice",
+  "bundles": [
+    "sandbox-audio"
+  ],
+  "source": "source.flac"
+}

@@ -1,0 +1,12 @@
+{
+  "id": "voice.station.snore",
+  "name": "snore",
+  "description": "A keeper asleep in the house (7 s, looped): two slow snoring breaths through the wall",
+  "kind": "loop",
+  "bus": "ambience",
+  "loopCrossfadeS": 0,
+  "bundles": [
+    "sandbox-audio"
+  ],
+  "source": "source.flac"
+}

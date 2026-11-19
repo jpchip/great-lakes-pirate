@@ -28,6 +28,7 @@ import type { Witness } from '../sim/law/witness';
 import type { Chart } from '../core/coords';
 import type { DamagePool } from '../../data/schemas/combat';
 import type { HitLocation } from '../sim/combat/hull';
+import type { PokerBeat } from '../sim/poker/table';
 
 /** Events shared across layers. Each system plan adds its own (plan 01 §3.5). */
 export interface GameEvents {
@@ -53,6 +54,20 @@ export interface GameEvents {
   /** Hazards (plan 02 §6): touching bottom, hitting rock or a pier, knockdown, sinking. */
   ShipGrounded: { shipId: string | undefined; speedKn: number; damage: number; hard: boolean };
   ShipRefloated: { shipId: string | undefined };
+  /**
+   * A passing ship put on a wrecking mark's shoal by a false or doused light (Phase 9 piece
+   * I; raised for piece J's sounds): where she struck in the Apostles zone's meters, and
+   * whether she broke up.
+   */
+  ShipStranded: {
+    shipId: string;
+    name: string;
+    mark: string;
+    zoneId: string;
+    x: number;
+    z: number;
+    broken: boolean;
+  };
   ShipStruck: {
     shipId: string | undefined;
     what: 'rock' | 'pier';
@@ -120,6 +135,8 @@ export interface GameEvents {
     cheated: boolean;
   };
   PokerCheatCaught: { port: string; how: 'licking' | 'swing' };
+  /** What was done at the table since your last move, in order (piece J's sounds). */
+  PokerBeats: { port: string; beats: readonly PokerBeat[] };
   /**
    * Freight contracts (plan 05 §5.2, §11; Phase 4 piece F): taken at a freight agent,
    * delivered at the destination, failed (expired or handed back), or stolen by selling
@@ -355,6 +372,16 @@ export interface GameEvents {
   };
   EventResolved: { id: string; key: string; choice: string | undefined };
   LetterReceived: { key: string; event: string };
+  /** A letter at the harbor master's opened for the first time, and one answered (piece J). */
+  LetterRead: { key: string };
+  LetterAnswered: { key: string; choice: string };
+  /**
+   * A copycat rival's stinger (Phase 9 piece J, for piece E to raise): a rival heard of in
+   * the papers or the saloon (`news`), sighted on the water (`sighted`), met at a parley
+   * (`parley`) or beaten (`beaten`). The audio plays the rival's stinger; nothing else
+   * listens yet.
+   */
+  RivalStinger: { rival: string; why: 'news' | 'sighted' | 'parley' | 'beaten' };
   /**
    * A feud moved on (plan 12 §5.2; Phase 9 piece D): a beat fired its event and the feud is
    * at `stage` now; `gives` names the method that made the company give.

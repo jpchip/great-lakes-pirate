@@ -745,6 +745,131 @@
       "type": "audio",
       "url": "ui/telegraph.ogg",
       "bytes": 17958
+    },
+    "sfx.ship.aground": {
+      "type": "audio",
+      "url": "sandbox/aground.ogg",
+      "bytes": 40850
+    },
+    "voice.ship.aground-crew": {
+      "type": "audio",
+      "url": "sandbox/aground-crew.ogg",
+      "bytes": 27820
+    },
+    "sfx.poker.chips-1": {
+      "type": "audio",
+      "url": "sandbox/chips-1.ogg",
+      "bytes": 6230
+    },
+    "sfx.poker.chips-2": {
+      "type": "audio",
+      "url": "sandbox/chips-2.ogg",
+      "bytes": 6318
+    },
+    "amb.station.clockwork": {
+      "type": "audio",
+      "url": "sandbox/clockwork.ogg",
+      "bytes": 44779
+    },
+    "sfx.poker.deal-1": {
+      "type": "audio",
+      "url": "sandbox/deal-1.ogg",
+      "bytes": 3517
+    },
+    "sfx.poker.deal-2": {
+      "type": "audio",
+      "url": "sandbox/deal-2.ogg",
+      "bytes": 3577
+    },
+    "sfx.station.douse": {
+      "type": "audio",
+      "url": "sandbox/douse.ogg",
+      "bytes": 19682
+    },
+    "sfx.poker.fold": {
+      "type": "audio",
+      "url": "sandbox/fold.ogg",
+      "bytes": 7036
+    },
+    "voice.station.greeting": {
+      "type": "audio",
+      "url": "sandbox/greeting.ogg",
+      "bytes": 11269
+    },
+    "ui.harbor.bell": {
+      "type": "audio",
+      "url": "sandbox/harbor-bell.ogg",
+      "bytes": 30190
+    },
+    "sfx.poker.knock": {
+      "type": "audio",
+      "url": "sandbox/knock.ogg",
+      "bytes": 4222
+    },
+    "ui.letter.open": {
+      "type": "audio",
+      "url": "sandbox/letter-open.ogg",
+      "bytes": 8139
+    },
+    "ui.letter.seal": {
+      "type": "audio",
+      "url": "sandbox/letter-seal.ogg",
+      "bytes": 12881
+    },
+    "sfx.station.light": {
+      "type": "audio",
+      "url": "sandbox/light.ogg",
+      "bytes": 20472
+    },
+    "sfx.station.oil-can": {
+      "type": "audio",
+      "url": "sandbox/oil-can.ogg",
+      "bytes": 15571
+    },
+    "sfx.poker.rake": {
+      "type": "audio",
+      "url": "sandbox/rake.ogg",
+      "bytes": 19358
+    },
+    "music.saloon.night": {
+      "type": "audio",
+      "url": "sandbox/saloon-night.ogg",
+      "bytes": 437030
+    },
+    "sfx.poker.show": {
+      "type": "audio",
+      "url": "sandbox/show.ogg",
+      "bytes": 9676
+    },
+    "sfx.poker.shuffle": {
+      "type": "audio",
+      "url": "sandbox/shuffle.ogg",
+      "bytes": 19895
+    },
+    "sfx.station.slosh": {
+      "type": "audio",
+      "url": "sandbox/slosh.ogg",
+      "bytes": 5551
+    },
+    "voice.station.snore": {
+      "type": "audio",
+      "url": "sandbox/snore.ogg",
+      "bytes": 62669
+    },
+    "sfx.station.stair": {
+      "type": "audio",
+      "url": "sandbox/stair.ogg",
+      "bytes": 32177
+    },
+    "music.stinger.rival": {
+      "type": "audio",
+      "url": "sandbox/stinger-rival.ogg",
+      "bytes": 73185
+    },
+    "sfx.station.wind": {
+      "type": "audio",
+      "url": "sandbox/wind.ogg",
+      "bytes": 30422
     }
   },
   "bundles": {
@@ -922,6 +1047,33 @@
       "ui.page",
       "ui.stamp",
       "ui.telegraph"
+    ],
+    "sandbox-audio": [
+      "sfx.ship.aground",
+      "voice.ship.aground-crew",
+      "sfx.poker.chips-1",
+      "sfx.poker.chips-2",
+      "amb.station.clockwork",
+      "sfx.poker.deal-1",
+      "sfx.poker.deal-2",
+      "sfx.station.douse",
+      "sfx.poker.fold",
+      "voice.station.greeting",
+      "ui.harbor.bell",
+      "sfx.poker.knock",
+      "ui.letter.open",
+      "ui.letter.seal",
+      "sfx.station.light",
+      "sfx.station.oil-can",
+      "sfx.poker.rake",
+      "music.saloon.night",
+      "sfx.poker.show",
+      "sfx.poker.shuffle",
+      "sfx.station.slosh",
+      "voice.station.snore",
+      "sfx.station.stair",
+      "music.stinger.rival",
+      "sfx.station.wind"
     ]
   }
 }

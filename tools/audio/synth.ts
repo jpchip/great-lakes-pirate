@@ -6,7 +6,9 @@
 // traveling theme, the encounter stingers and the fade-to-fog sound (piece J, part 2),
 // and the harbors' mill saw and ore dump (Phase 4 piece J), and the law's sounds (Phase 5
 // piece H: Wanted stingers, the cutter's engine, bell and gun, the lockup's door), and the
-// combat sounds and the chase layer (Phase 6 piece G). The package steamer's chime
+// combat sounds and the chase layer (Phase 6 piece G), the on-foot, build and craft sets
+// (Phases 7 and 8), and stage 1 of Phase 9 (piece J: the saloon by night, the poker table,
+// the lighthouse station, the harbor master's letters, a rival's stinger, a ship aground). The package steamer's chime
 // whistle is a recording since Phase 4 (raw-assets/audio/ships/whistle-chime), so it is
 // no longer rendered here.
 //
@@ -142,6 +144,35 @@ import {
   telegraph,
   workYard,
 } from './lib/synth-hideout.ts';
+import {
+  CLOCKWORK_LOOP_S,
+  NIGHT_WALTZ,
+  NIGHT_WALTZ_S,
+  SNORE_LOOP_S,
+  agroundCrew,
+  cardDealt,
+  cardsFolded,
+  cardsShown,
+  chipsDown,
+  clockwork,
+  clockworkWound,
+  deskBell,
+  keeperGreeting,
+  keeperSnore,
+  lampDoused,
+  lampLit,
+  letterOpened,
+  letterSealed,
+  nightWaltz,
+  oilCan,
+  oilSlosh,
+  potRaked,
+  rivalStinger,
+  shipAground,
+  shuffle,
+  tableKnock,
+  towerStair,
+} from './lib/synth-sandbox.ts';
 
 const ROOT = resolve(fileURLToPath(import.meta.url), '..', '..', '..');
 const RAW = join(ROOT, 'raw-assets', 'audio');
@@ -155,6 +186,7 @@ const TODAY_P5H = '2026-11-07';
 const TODAY_P6G = '2026-11-09';
 const TODAY_P7I = '2026-11-15';
 const TODAY_P8I = '2026-11-17';
+const TODAY_P9J = '2026-11-19';
 /** Render only this category (e.g. `ships`), leaving the other sources untouched. */
 const ONLY = process.argv[2];
 
@@ -469,6 +501,7 @@ function main(): void {
   renderCombat();
   renderFoot();
   renderHideout();
+  renderSandbox();
 }
 
 function renderLaw(): void {
@@ -1219,6 +1252,226 @@ function renderHideout(): void {
     'A counter bell struck twice, the second a fourth higher',
     chimeBright(RATE),
     'Five inharmonic hand-bell partials on 1.18 and 1.57 kHz',
+  );
+}
+
+/**
+ * Phase 9 piece J: stage 1's sounds (plan 11 §18.4 row J): the saloon by night, the poker
+ * table, the lighthouse station on foot, the harbor master and the letters, a copycat
+ * rival's stinger, and a ship aground. All in bundle `sandbox-audio`.
+ */
+function renderSandbox(): void {
+  const sound = (
+    id: string,
+    name: string,
+    description: string,
+    samples: Float32Array,
+    how: string,
+    bus: SoundHints['bus'] = 'sfx',
+    loopCrossfadeS?: number,
+  ): void =>
+    writeSound(
+      'sandbox',
+      {
+        id,
+        name,
+        description,
+        kind: loopCrossfadeS === undefined ? 'oneshot' : 'loop',
+        bus,
+        ...(loopCrossfadeS === undefined ? {} : { loopCrossfadeS }),
+        bundles: ['sandbox-audio'],
+      },
+      samples,
+      how,
+      TODAY_P9J,
+    );
+
+  // The saloon by night.
+  sound(
+    'music.saloon.night',
+    'saloon-night',
+    `"The Late Boat Waltz" (${NIGHT_WALTZ.bars} bars of 3/4 in D at ${NIGHT_WALTZ.bpm}, ${NIGHT_WALTZ_S.toFixed(2)} s, looped): the saloon's upright piano and a fiddle after dark`,
+    nightWaltz(RATE),
+    'Original tune; additive piano (three detuned strings, stretched partials, hammer thump) and a bowed sawtooth through fiddle body resonances, a little reverb, the tail folded onto the head',
+    // A bed (64 kbps) like the polka, played on the music bus.
+    'ambience',
+    0,
+  );
+
+  // The poker table.
+  sound(
+    'sfx.poker.shuffle',
+    'shuffle',
+    'A riffle shuffle and a bridge, twice, and the deck squared on the table',
+    shuffle(RATE),
+    'Dense band-passed noise ticks for the card edges, noise swishes, small sine thuds',
+  );
+  for (const v of [1, 2]) {
+    sound(
+      `sfx.poker.deal-${v}`,
+      `deal-${v}`,
+      `A card dealt across the baize: the flick, the slide, the stop (variant ${v})`,
+      cardDealt(v, RATE),
+      'A band-passed noise tick, a noise swish and a low-passed sine thud',
+    );
+    sound(
+      `sfx.poker.chips-${v}`,
+      `chips-${v}`,
+      `Clay chips set down on the pile and settling (variant ${v}, ${3 + v} chips)`,
+      chipsDown(v, RATE),
+      'Three-partial damped sine clicks near 3–4 kHz with noise grit',
+    );
+  }
+  sound(
+    'sfx.poker.rake',
+    'rake',
+    'The pot raked in across the baize and stacked',
+    potRaked(RATE),
+    'A noise swish under dense chip clicks, then clicks in threes',
+  );
+  sound(
+    'sfx.poker.knock',
+    'knock',
+    'A check: two knuckle raps on the baize-covered table',
+    tableKnock(RATE),
+    'Low-passed sine thuds and noise',
+  );
+  sound(
+    'sfx.poker.fold',
+    'fold',
+    'A hand folded: the cards gathered and tossed face down',
+    cardsFolded(RATE),
+    'Noise swishes, card-edge ticks and a soft thud',
+  );
+  sound(
+    'sfx.poker.show',
+    'show',
+    'Hands shown: five cards turned up one after another',
+    cardsShown(RATE),
+    'Noise swishes, card-edge ticks and soft thuds',
+  );
+
+  // The lighthouse station.
+  sound(
+    'amb.station.clockwork',
+    'clockwork',
+    `The lamp's clockwork turning the lens (${CLOCKWORK_LOOP_S} s, looped): the escapement's tick and tock, the gear train's whir, the lens carriage rumbling round, a chain link over its sprocket`,
+    clockwork(RATE),
+    'Low-passed noise rumble with value-noise flutter, band-passed noise whir at a tooth rate, noise clicks with damped sines, struck-plate clinks, reverb',
+    'ambience',
+    0,
+  );
+  sound(
+    'sfx.station.wind',
+    'wind',
+    "The keeper winding the clockwork: the crank's ratchet, the drum taking up the weight, the iron groaning",
+    clockworkWound(RATE),
+    'Band-passed noise ratchet clicks in crank strokes, a stick-slip creak, low noise, a struck-plate clang, reverb',
+  );
+  sound(
+    'sfx.station.douse',
+    'douse',
+    'The lamp put out: the wick screwed down, the flame guttering out with a puff, the glass ticking, the clockwork running down',
+    lampDoused(RATE),
+    'Noise clicks, gated low-passed noise flame and puff, damped sine glass partials, slowing ticks, reverb',
+  );
+  sound(
+    'sfx.station.light',
+    'light',
+    'The lamp lit: a match struck and flaring, the wick taking with a whoomp, the flame drawing, the chimney glass set down',
+    lampLit(RATE),
+    'Band-passed noise scratch and hiss, low-passed noise whoomp and draw, damped sine glass partials, reverb',
+  );
+  sound(
+    'sfx.station.oil-can',
+    'oil-can',
+    'A can of kerosene taken from the oil house: a tinny knock, the oil sloshing, the bail clinking',
+    oilCan(RATE),
+    'Four-partial damped sine tin rings, band-passed noise slosh with rising-sine bubbles',
+  );
+  sound(
+    'sfx.station.slosh',
+    'slosh',
+    'The kerosene sloshing in its can as you carry it',
+    oilSlosh(RATE),
+    'Band-passed noise slosh with rising-sine bubbles, a sine clink',
+  );
+  sound(
+    'sfx.station.stair',
+    'stair',
+    "The tower's iron stair climbed or come down: a dozen treads ringing in the tower",
+    towerStair(RATE),
+    'Struck-plate clangs and sine thuds per tread, a long reverb',
+  );
+  sound(
+    'voice.station.snore',
+    'snore',
+    `A keeper asleep in the house (${SNORE_LOOP_S} s, looped): two slow snoring breaths through the wall`,
+    keeperSnore(RATE),
+    'Noise gated at a soft-palate flutter rate through three resonances, a band-passed breath, low-passed',
+    'ambience',
+    0,
+  );
+  sound(
+    'voice.station.greeting',
+    'greeting',
+    "A keeper's greeting by day: a friendly call and a \"well, now\" (no words)",
+    keeperGreeting(RATE),
+    'Formant-synthesized syllables in a low voice, a little reverb',
+    'voice',
+  );
+
+  // The harbor master and the letters.
+  sound(
+    'ui.harbor.bell',
+    'harbor-bell',
+    "The harbor master's desk bell, struck once",
+    deskBell(RATE),
+    'Five inharmonic damped sines on 2.18 kHz, a noise strike',
+    'ui',
+  );
+  sound(
+    'ui.letter.open',
+    'letter-open',
+    'A letter opened: the flap torn, the sheet drawn out and unfolded',
+    letterOpened(RATE),
+    'Granular band-passed noise tear, noise swishes and crackles',
+    'ui',
+  );
+  sound(
+    'ui.letter.seal',
+    'letter-seal',
+    'An answer folded twice, slid into its envelope and pressed shut',
+    letterSealed(RATE),
+    'Noise swishes and crackles, a low-passed sine thud',
+    'ui',
+  );
+
+  // A copycat rival.
+  sound(
+    'music.stinger.rival',
+    'stinger-rival',
+    'A copycat rival: the fiddle plays a bold figure, the concertina mocks it a half step flat, over a drum and a low drone, ending on a question',
+    rivalStinger(RATE),
+    'Original motif; synthesized fiddle, concertina, frame drum and drone, Freeverb-style reverb',
+    'music',
+  );
+
+  // A ship aground.
+  sound(
+    'sfx.ship.aground',
+    'aground',
+    'A ship going aground: the strike, the keel dragging over rock and slowing, the timbers groaning, a plank cracking',
+    shipAground(RATE),
+    'A low pitch-dropping sine boom, low-passed and band-passed noise drag with rock-grain bursts, stick-slip creaks, reverb',
+  );
+  sound(
+    'voice.ship.aground-crew',
+    'aground-crew',
+    "Her crew as she strikes: men shouting the alarm and the ship's bell rung hard",
+    agroundCrew(RATE),
+    "Formant-synthesized shouts in four voices (no words), a ship's bell's partials, reverb",
+    'voice',
   );
 }
 

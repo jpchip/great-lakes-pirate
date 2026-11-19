@@ -87,6 +87,20 @@ export interface HandResult {
   side?: 'you' | 'him' | 'split' | undefined;
 }
 
+/**
+ * What happened at the table, in order, for the sounds (Phase 9 piece J): the shuffle and
+ * the deal, each check, call, bet, raise and fold with the cash that went in, each draw,
+ * the hands shown and the pot taken. `you`: it was yours.
+ */
+export interface PokerBeat {
+  kind: 'deal' | 'check' | 'call' | 'bet' | 'raise' | 'fold' | 'draw' | 'show' | 'won';
+  you: boolean;
+  /** Cash into the pot (a call, bet or raise; the antes on a deal), or the pot taken. */
+  cents?: number;
+  /** Cards dealt (all of them, on a deal) or drawn. */
+  cards?: number;
+}
+
 export interface HandState {
   n: number;
   phase: HandPhase;
@@ -106,6 +120,8 @@ export interface HandState {
   side?: { captain: string; his: Marker; yours: Marker } | undefined;
   /** What happened this hand, a line each. */
   log: string[];
+  /** The same, as beats for the sounds (piece J); optional for hands dealt before it. */
+  beats?: PokerBeat[];
   /** Each captain's tell this round. */
   tells: Record<string, string>;
   /** Cards each seat drew. */
@@ -259,6 +275,7 @@ export function dealHand(
     raises: 0,
     toAct: [],
     log: [],
+    beats: [],
     tells: {},
     drew: {},
   };
@@ -270,6 +287,12 @@ export function dealHand(
     pay(table, hand, player, id, table.anteCents);
   }
   hand.log.push(`Everyone antes ${formatCents(table.anteCents)}.`);
+  beat(hand, {
+    kind: 'deal',
+    you: true,
+    cents: table.anteCents * hand.inHand.length,
+    cards: 5 * hand.inHand.length,
+  });
   if (side) {
     hand.side = { captain: side.his.owner, his: side.his, yours: side.yours };
     if (table.offer && table.offer.owner === side.his.owner) table.offer = undefined;
@@ -279,6 +302,10 @@ export function dealHand(
   }
   startRound(table, hand, file);
   return hand;
+}
+
+function beat(hand: HandState, b: PokerBeat): void {
+  (hand.beats ??= []).push(b);
 }
 
 function pay(
@@ -387,21 +414,26 @@ function act(
   switch (action) {
     case 'check':
       hand.log.push(id === YOU ? 'You check.' : `${who} checks.`);
+      beat(hand, { kind: 'check', you: id === YOU });
       return;
     case 'call':
       pay(table, hand, player, id, owe);
       hand.log.push(id === YOU ? `You call ${formatCents(owe)}.` : `${who} calls.`);
+      beat(hand, { kind: 'call', you: id === YOU, cents: owe });
       return;
     case 'fold':
       hand.inHand = hand.inHand.filter((x) => x !== id);
       hand.log.push(id === YOU ? 'You fold.' : `${who} folds.`);
+      beat(hand, { kind: 'fold', you: id === YOU });
       return;
     case 'bet':
     case 'raise': {
       const size = betSize(table, hand, file);
       hand.level += size;
       hand.raises += 1;
-      pay(table, hand, player, id, hand.level - (hand.paid[id] ?? 0));
+      const put = hand.level - (hand.paid[id] ?? 0);
+      pay(table, hand, player, id, put);
+      beat(hand, { kind: action, you: id === YOU, cents: put });
       const verb = action === 'bet' ? 'bets' : 'raises';
       hand.log.push(
         id === YOU ? `You ${action} ${formatCents(size)}.` : `${who} ${verb} ${formatCents(size)}.`,
@@ -462,6 +494,7 @@ function endRound(table: TableState, hand: HandState, file: PokerFile): void {
       const out = captainDiscards(cards, Math.min(max, 4));
       hand.cards[id] = replace(cards, out, hand.deck);
       hand.drew[id] = out.length;
+      beat(hand, { kind: 'draw', you: false, cards: out.length });
     }
     // You folded out before the draw and the rest are still in: play it out without you.
     if (!hand.inHand.includes(YOU)) {
@@ -549,6 +582,7 @@ export function yourDraw(
   }
   hand.cards[YOU] = replace(mine, uniq, hand.deck);
   hand.drew[YOU] = uniq.length;
+  beat(hand, { kind: 'draw', you: true, cards: uniq.length });
   if (palm) {
     const best = bestPalm(hand.cards[YOU] ?? [], hand.deck);
     const cards = hand.cards[YOU] ?? [];
@@ -613,6 +647,8 @@ function showdown(table: TableState, hand: HandState, file: PokerFile): void {
   const verb = winners.length > 1 ? 'split' : winners[0] === YOU ? 'take' : 'takes';
   const text = `${cap(names.join(' and '))} ${verb} ${formatCents(hand.potCents)}${how}.`;
   hand.result = { winners, potCents: hand.potCents, shown, text, netCents, side };
+  if (contested) beat(hand, { kind: 'show', you: hand.inHand.includes(YOU), cards: 5 * ranks.size });
+  beat(hand, { kind: 'won', you: winners.includes(YOU), cents: hand.potCents });
   hand.log.push(text);
   hand.phase = 'done';
   hand.toAct = [];

@@ -1,0 +1,11 @@
+{
+  "id": "sfx.station.oil-can",
+  "name": "oil-can",
+  "description": "A can of kerosene taken from the oil house: a tinny knock, the oil sloshing, the bail clinking",
+  "kind": "oneshot",
+  "bus": "sfx",
+  "bundles": [
+    "sandbox-audio"
+  ],
+  "source": "source.flac"
+}
