@@ -137,6 +137,19 @@ export function attachRecord(ctx: GameContext, defs: LawDefs): () => void {
       ),
     ),
     ev.on('HideoutSpotted', (e) => write(`Seen lying at ${place(e.hideout)}. There'll be talk.`)),
+    // Poker night (Phase 9 piece C): a side stake won or lost, and a palmed card seen.
+    ev.on('PokerPlayed', (e) => {
+      if (e.side === 'you' && e.stake)
+        write(`Won ${e.stake} at the card table in ${port(e.port)}.`);
+      if (e.side === 'him' && e.stake) write(`Lost ${e.stake} at cards in ${port(e.port)}.`);
+    }),
+    ev.on('PokerCheatCaught', (e) =>
+      write(
+        e.how === 'swing'
+          ? `Caught palming a card at ${port(e.port)}, and fought my way out of the saloon.`
+          : `Caught palming a card at ${port(e.port)}, and thrown out on my ear.`,
+      ),
+    ),
     ev.on('SalvageTaken', (e) =>
       write(`Carried ${e.qty} CU of ${good(e.good).toLowerCase()} out of the ruins.`),
     ),

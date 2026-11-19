@@ -432,6 +432,33 @@
         "deck": "The Mataafa Ashore at the Ship Canal; Her Crew Lost Within Sight of the City",
         "body": "A northeast gale of unexampled fury swept the head of the lakes on Monday and Tuesday. The steel steamer Mataafa, turning back for shelter, struck the north pier at the ship canal and broke in two; nine of her crew froze to death in her stern within a few hundred yards of the thousands gathered on the shore. Vessels are reported ashore from Two Harbors to the Apostles, and the loss to shipping is beyond reckoning."
       }
+    },
+    {
+      "id": "event.poker_night",
+      "name": "Poker night",
+      "type": "opportunity",
+      "weight": 1,
+      "cooldownDays": 3,
+      "hours": 30,
+      "channels": ["rumor", "paper"],
+      "triggers": { "hours": [15, 20] },
+      "ports": [
+        "port.bayfield",
+        "port.ashland",
+        "port.washburn",
+        "port.la_pointe",
+        "port.duluth",
+        "port.superior",
+        "port.two_harbors"
+      ],
+      "rumor": [
+        "there's a big game at the card table in {port} tonight. The captains are putting up more than money: a cargo, or a contract, or a map. Come with a full purse."
+      ],
+      "paper": {
+        "headline": "High Stakes at {port}",
+        "deck": "Captains Wager Whole Cargoes Across the Card Table",
+        "body": "It is said along the waterfront at {port} that a card game in one of the saloons is being played for whole cargoes, and that more than one master has gone back to his vessel lighter than he came ashore. The constable is said to take no notice."
+      }
     }
   ]
 }

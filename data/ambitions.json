@@ -90,6 +90,15 @@
       "logbook": "A friend of the house in three ports."
     },
     {
+      "id": "ambition.won_it_at_poker",
+      "category": "trade",
+      "name": "Won it at poker",
+      "text": "Win a captain's cargo off him at the card table",
+      "goal": { "kind": "counter", "counter": "pokerCargoes", "target": 1 },
+      "reward": { "cents": 2500, "fame": 1 },
+      "logbook": "Won a whole cargo at cards, on the turn of one card."
+    },
+    {
       "id": "ambition.smart_passages",
       "category": "seamanship",
       "name": "Smart passages",

@@ -52,10 +52,7 @@ const MIN_SLEEP_S = 3600;
  * Seconds from `now` until the next waking hour: sunrise, noon, sunset, or eight hours on.
  * Always at least an hour and at most a day, so lying down at dawn for dawn sleeps round.
  */
-export function sleepSeconds(
-  until: Exclude<SleepUntil, 'iceOut'>,
-  now: number,
-): number {
+export function sleepSeconds(until: Exclude<SleepUntil, 'iceOut'>, now: number): number {
   if (until === 'eight') return 8 * 3600;
   if (until === 'noon') {
     const into = ((now % SECONDS_PER_GAME_DAY) + SECONDS_PER_GAME_DAY) % SECONDS_PER_GAME_DAY;

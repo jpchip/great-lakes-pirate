@@ -160,9 +160,8 @@ export function Harbor({
         {h.frozenUntil && (
           <div class="harbor-deal" data-testid="harbor-frozen">
             <p class="menu-note">
-              The harbor's frozen in. Nothing goes in or out until the ice goes out,{' '}
-              {h.frozenUntil}. He'll see her laid up at the coal dock for the winter, and the town
-              will put you up.
+              The harbor's frozen in. Nothing goes in or out until the ice goes out, {h.frozenUntil}
+              . He'll see her laid up at the coal dock for the winter, and the town will put you up.
             </p>
             <button
               type="button"

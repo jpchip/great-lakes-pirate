@@ -106,6 +106,21 @@ export interface GameEvents {
   /** A gun mounted by the shady shipwright (Phase 6 piece E). */
   GunBought: GunBoughtEvent;
   /**
+   * Poker night (plan 12 §5.3; Phase 9 piece C): a hand played out at a saloon's card table,
+   * your net cash on it, and a side stake's winner (`you`, `him`, `split`) with its marker's
+   * kind and what changed hands; and a palmed card seen, settled by a licking or a swing.
+   */
+  PokerPlayed: {
+    port: string;
+    netCents: number;
+    side: 'you' | 'him' | 'split' | undefined;
+    marker: 'cargo' | 'contract' | 'map' | 'cash' | undefined;
+    stake: string | undefined;
+    wonCargo: boolean;
+    cheated: boolean;
+  };
+  PokerCheatCaught: { port: string; how: 'licking' | 'swing' };
+  /**
    * Freight contracts (plan 05 §5.2, §11; Phase 4 piece F): taken at a freight agent,
    * delivered at the destination, failed (expired or handed back), or stolen by selling
    * the cargo, which Phase 5 turns into Wanted.

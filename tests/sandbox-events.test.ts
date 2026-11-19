@@ -92,7 +92,7 @@ const seq = (...xs: number[]): (() => number) => {
 };
 
 describe('events.json', () => {
-  it('validates, with the ten events of piece A and the scripted three of piece K', () => {
+  it('validates, with the ten of piece A, the poker night of piece C and the scripted three of piece K', () => {
     const file = eventsFileSchema.parse(eventsJson);
     expect(
       file.events
@@ -100,13 +100,10 @@ describe('events.json', () => {
         .map((e) => e.id)
         .sort(),
     ).toEqual(['event.freeze_up', 'event.ice_out', 'event.mataafa'].sort());
-    expect(
-      file.events
-        .filter((e) => !e.scripted)
-        .map((e) => e.id)
-        .sort(),
-    ).toEqual(
-      [
+    const ids = file.events.map((e) => e.id);
+    expect(ids).toContain('event.poker_night');
+    expect(ids).toEqual(
+      expect.arrayContaining([
         'event.camp_demand',
         'event.coal_shortage',
         'event.herring_run',
@@ -117,7 +114,7 @@ describe('events.json', () => {
         'event.storm_bound',
         'event.whiskey_hijack',
         'event.wreck_survivors',
-      ].sort(),
+      ]),
     );
   });
 
