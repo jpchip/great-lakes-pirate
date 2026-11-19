@@ -92,9 +92,11 @@ const seq = (...xs: number[]): (() => number) => {
 };
 
 describe('events.json', () => {
-  it('validates, with the ten events of piece A', () => {
+  it('validates, with the ten events of piece A drawn on the tick', () => {
     const file = eventsFileSchema.parse(eventsJson);
-    expect(file.events.map((e) => e.id).sort()).toEqual(
+    // Beats fired by their own systems (the Hollister feud's, piece D) aren't drawn.
+    const drawn = file.events.filter((e) => e.draw !== false);
+    expect(drawn.map((e) => e.id).sort()).toEqual(
       [
         'event.camp_demand',
         'event.coal_shortage',
@@ -256,7 +258,7 @@ describe('triggers and the draw', () => {
       fireEvent(s, w, d.def, d, () => rng.next());
       fires.push({ id: d.def.id, at: w.now });
     }
-    for (const e of EVENTS.events) {
+    for (const e of EVENTS.events.filter((x) => x.draw !== false)) {
       const mine = fires.filter((f) => f.id === e.id);
       expect(mine.length, e.id).toBeGreaterThan(0);
       for (let i = 1; i < mine.length; i++) {

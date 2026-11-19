@@ -65,6 +65,15 @@
     "grudge": 10
   },
   {
+    "id": "crime.sabotage",
+    "name": "Sabotage",
+    "heat": 25,
+    "phase": 9,
+    "standing": 8,
+    "notes": "Spoiling a company's stock where it lies: Hollister's brine vats fouled in the packing house (Phase 9 piece D). Found at dawn as a burglary is; named to you, the owner's grudge rises.",
+    "grudge": 15
+  },
+  {
     "id": "crime.assault",
     "name": "Assault",
     "heat": 30,

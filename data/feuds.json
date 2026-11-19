@@ -1,0 +1,43 @@
+[
+  {
+    "id": "feud.hollister",
+    "company": "company.hollister_fish",
+    "ports": ["port.bayfield"],
+    "goods": ["good.fresh_fish", "good.salted_fish"],
+    "notice": { "sales": 3, "withinDays": 3 },
+    "undercut": 0.6,
+    "refuse": { "afterSales": 2, "afterDays": 2 },
+    "terms": { "afterDays": 2, "againDays": 4 },
+    "pressure": {
+      "gives": 100,
+      "crimes": {
+        "crime.sabotage": { "method": "sheds", "points": 40 },
+        "crime.burglary": { "method": "sheds", "points": 25 },
+        "crime.piracy": { "method": "tugs", "points": 35 },
+        "crime.firing_on_ship": { "method": "tugs", "points": 10 },
+        "crime.sinking": { "method": "tugs", "points": 45 },
+        "crime.contract_theft": { "method": "tugs", "points": 25 }
+      },
+      "perCuElsewhere": 1,
+      "perStanding": 5,
+      "rewardAt": 50
+    },
+    "ends": {
+      "won": { "factor": 1.15 },
+      "yielded": { "factor": 0.85 }
+    },
+    "events": {
+      "undercut": "event.hollister_undercut",
+      "refuses": "event.hollister_refuses",
+      "reward": "event.hollister_reward",
+      "terms": "event.hollister_terms",
+      "acceptChoice": "accept",
+      "yielded": "event.hollister_yielded",
+      "gives": {
+        "sheds": "event.hollister_gives_sheds",
+        "tugs": "event.hollister_gives_tugs",
+        "trade": "event.hollister_gives_trade"
+      }
+    }
+  }
+]

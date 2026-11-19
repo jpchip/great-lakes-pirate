@@ -133,6 +133,13 @@ export const eventDefSchema = z.object({
   choices: z.array(choiceSchema).optional(),
   /** The choice taken if a letter goes unanswered until the event ends. */
   defaultChoice: z.string().optional(),
+  /**
+   * False for a beat another system fires (a feud's, Phase 9 piece D): never drawn on the
+   * tick, only fired by its system. Absent, it's drawn.
+   */
+  draw: z.boolean().optional(),
+  /** The papers' item is about you: printed as news that names you. */
+  paperNames: z.boolean().optional(),
 });
 export type EventDef = z.infer<typeof eventDefSchema>;
 

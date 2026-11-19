@@ -334,6 +334,26 @@ export function createFootLaw(
       case 'LockForced':
         burglary(e.building);
         return;
+      case 'Sabotaged': {
+        // Found at dawn by whoever opens up, as a burglary is (Phase 9 piece D).
+        if (!heist) return;
+        const name = heist.buildingName(e.building) ?? e.building;
+        incident(
+          `sabotage:${e.mark}:${heist.now()}`,
+          'crime.sabotage',
+          [
+            heist.evidence?.(e.building, heist.now()) ??
+              evidenceWitness(e.building, `whoever opens up the ${name}`, heist.now()),
+          ],
+          {
+            victim: name,
+            ...(e.owner ? { owner: e.owner } : {}),
+            goods: Object.entries(e.spoiled).map(([good, qty]) => ({ good, qty })),
+          },
+          e.owner,
+        );
+        return;
+      }
       default:
         return;
     }

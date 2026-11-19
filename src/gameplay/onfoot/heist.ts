@@ -76,7 +76,16 @@ export interface Crate {
 }
 
 export type HeistVerb =
-  'pick' | 'force' | 'unbolt' | 'openBox' | 'forceBox' | 'lift' | 'rifle' | 'stow' | 'putDown';
+  | 'pick'
+  | 'force'
+  | 'unbolt'
+  | 'openBox'
+  | 'forceBox'
+  | 'lift'
+  | 'rifle'
+  | 'stow'
+  | 'putDown'
+  | 'sabotage';
 
 export interface HeistOffer {
   verb: HeistVerb;
@@ -104,6 +113,14 @@ export type HeistEvent =
       documents?: boolean;
     }
   | { type: 'CrateLifted'; good: string; building: string }
+  /** A feud's company's stock spoiled where it lies (Phase 9 piece D): its crates, by good. */
+  | {
+      type: 'Sabotaged';
+      mark: string;
+      building: string;
+      owner: string | undefined;
+      spoiled: Record<string, number>;
+    }
   | { type: 'CrateStowed'; good: string; owner: string | undefined }
   | { type: 'CrateDropped'; good: string; sunk: boolean };
 
@@ -116,6 +133,11 @@ export interface HeistHooks {
   readPapers?(): string | undefined;
   /** Where you can stow a crate (the gangway), district-local meters. */
   stowPoints(): readonly { x: number; y: number; z: number }[];
+  /**
+   * A sabotage spot is offered: a feud with the building's owner is on (Phase 9 piece D).
+   * Without it none is.
+   */
+  canSabotage?(owner: string | undefined): boolean;
   /** The captain has a perk (the Poacher's boot pick, the Lumberjack's back). */
   perk?(id: string): boolean;
   notice?(text: string): void;
@@ -310,6 +332,35 @@ export function createHeist(opts: HeistOptions): Heist {
   }
 
   containers.push(...(opts.extra ?? []));
+
+  /** Where an owner's stock can be spoiled (Phase 9 piece D). */
+  const spots: {
+    mark: string;
+    building: string;
+    owner: string | undefined;
+    label: string;
+    holdS: number;
+    noiseM: number;
+    x: number;
+    y: number;
+    z: number;
+  }[] = [];
+  for (const t of opts.targets) {
+    const sab = t.sabotage;
+    const m = sab && model.marks.find((k) => k.id === sab.mark);
+    if (!sab || !m) continue;
+    spots.push({
+      mark: sab.mark,
+      building: t.building,
+      owner: t.owner,
+      label: sab.label,
+      holdS: sab.holdS,
+      noiseM: sab.noiseM,
+      x: m.x,
+      y: model.floorAt(m.x, m.z),
+      z: m.z,
+    });
+  }
   const here = (): readonly HeistContainer[] =>
     opts.extra?.length ? containers.filter((c) => c.live?.() ?? true) : containers;
 
@@ -500,6 +551,19 @@ export function createHeist(opts: HeistOptions): Heist {
         done01: 0,
       };
     }
+    const spot = near(spots, p, HEIST_REACH_M);
+    if (spot && (hooks.canSabotage?.(spot.owner) ?? false)) {
+      const done = world.sabotaged?.[spot.mark] === nightOf(t);
+      return {
+        key: `sabotage:${spot.mark}`,
+        verb: 'sabotage',
+        label: done ? `${spot.label}: done tonight` : spot.label,
+        ok: !done,
+        ...(done ? { why: 'Done tonight' } : {}),
+        holdS: spot.holdS,
+        done01: 0,
+      };
+    }
     const door = near(doors, p, HEIST_REACH_M);
     if (door && doorLocked(door, t)) {
       if (inside(door.building, p)) {
@@ -650,7 +714,46 @@ export function createHeist(opts: HeistOptions): Heist {
       case 'openBox':
         openLock(o.key, ctx, 'picked');
         return;
+      case 'sabotage': {
+        const spot = spots.find((k) => `sabotage:${k.mark}` === o.key);
+        if (spot) sabotage(spot, t, p);
+        return;
+      }
     }
+  };
+
+  /** Spoils the building's crates where they lie: gone from its stock and the port's. */
+  const sabotage = (
+    spot: (typeof spots)[number],
+    t: number,
+    p: { x: number; y: number; z: number },
+  ): void => {
+    (world.sabotaged ??= {})[spot.mark] = nightOf(t);
+    const spoiled: Record<string, number> = {};
+    for (const box of containers) {
+      if (box.building !== spot.building) continue;
+      const c = contents(box, t);
+      const r = record(box, t);
+      for (const [good, n] of Object.entries(c.crates)) {
+        r.taken[good] = (r.taken[good] ?? 0) + n;
+        spoiled[good] = (spoiled[good] ?? 0) + n;
+        hooks.takeStock?.(good, n);
+      }
+    }
+    noiseAt(spot.noiseM, 'crate', p);
+    emit({
+      type: 'Sabotaged',
+      mark: spot.mark,
+      building: spot.building,
+      owner: spot.owner,
+      spoiled,
+    });
+    const n = Object.values(spoiled).reduce((a, b) => a + b, 0);
+    hooks.notice?.(
+      n > 0
+        ? `The brine's fouled: ${n} ${n === 1 ? 'crate' : 'crates'} of their stock will spoil`
+        : "The brine's fouled: whatever they pack this week will spoil",
+    );
   };
 
   const rng = Rng.fromSeed(`${opts.seed}:heist:${model.layout.id}`);

@@ -286,7 +286,7 @@ export function attachEvents(opts: EventsOptions): GameEvents {
         at: t,
         region: ev.region,
         port: ev.port,
-        ident: 'unknown',
+        ident: def.paperNames ? 'person' : 'unknown',
       });
     }
     if (def.channels.includes('letter') && def.letter) {

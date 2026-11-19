@@ -150,6 +150,7 @@ export function candidates(
   moment: EventMoment,
 ): { port: string | undefined; region: string | undefined }[] {
   const now = world.now;
+  if (def.draw === false) return [];
   if (momentOf(def) !== moment) return [];
   if (state.active.some((a) => a.id === def.id)) return [];
   const last = state.cooldowns[def.id];
