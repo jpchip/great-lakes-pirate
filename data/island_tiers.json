@@ -1,0 +1,30 @@
+{
+  "prefabTriangles": 8000,
+  "caveDrawCalls": 40,
+  "tiers": {
+    "hero": {
+      "drawCalls": 150,
+      "triangles": 1500000,
+      "poiTriangles": 40000,
+      "maxPois": 10,
+      "people": 6,
+      "animals": 4
+    },
+    "standard": {
+      "drawCalls": 140,
+      "triangles": 1300000,
+      "poiTriangles": 15000,
+      "maxPois": 3,
+      "people": 4,
+      "animals": 4
+    },
+    "minor": {
+      "drawCalls": 130,
+      "triangles": 1200000,
+      "poiTriangles": 4000,
+      "maxPois": 1,
+      "people": 0,
+      "animals": 2
+    }
+  }
+}
