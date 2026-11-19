@@ -638,6 +638,38 @@ describe('the stealth HUD', () => {
     expect(
       stealthHud(readout, { x: 0, z: 0 }, project, { width: 800, height: 600 }, NIGHT_GAME_S)
         .danger,
+    ).toBe('seen');
+  });
+
+  it('reads a search separately from a witness who will not pursue you', () => {
+    const base = {
+      light: { level01: 0.2, ambient01: 0.1 },
+      exposure01: 0.2,
+      noiseM: 0,
+      pursued: false,
+      searched: true,
+      captured: false,
+    };
+    const readout = {
+      ...base,
+      guards: [
+        {
+          id: 'k',
+          name: 'keeper',
+          type: 'npc.keeper',
+          state: 'alerted' as const,
+          meter: 1,
+          identified: false,
+          x: 5,
+          y: 2,
+          z: 0,
+        },
+      ],
+    };
+    const project = (p: { x: number }) => ({ x: 400 + p.x * 20, y: 300, behind: false });
+    expect(
+      stealthHud(readout, { x: 0, z: 0 }, project, { width: 800, height: 600 }, NIGHT_GAME_S)
+        .danger,
     ).toBe('searching');
   });
 

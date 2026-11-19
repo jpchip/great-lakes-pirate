@@ -38,6 +38,8 @@ export interface FootLawHooks {
   addWitness(crimeId: string, witness: Witness): LawEvent[];
   /** The latest of what was taken, for the papers (an open crime's details). */
   detail?(crimeId: string, details: CrimeDetails): void;
+  /** A guard learned your face after he'd already sent word. */
+  identifyWitness?(witnessId: string, identification: Identification): void;
 }
 
 /** The hour the law's dawn comes (`law_actors.json` `dawnHour`). */
@@ -178,6 +180,7 @@ export function createFootLaw(
     switch (e.type) {
       case 'PlayerIdentified':
         faceKnown = true;
+        hooks.identifyWitness?.(e.npc, 'person');
         return;
       case 'PlayerSpotted': {
         const carried = tools?.carrying ? guard(tools.carrying) : undefined;

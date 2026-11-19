@@ -1,4 +1,5 @@
 import { FootTools } from './FootTools';
+import { ReportChip } from './Wanted';
 import type { EyeView, GemView, NoiseView, StealthHudSnapshot } from './stealth-model';
 import './stealth.css';
 
@@ -127,6 +128,7 @@ export function GuardEye({ eye }: { eye: EyeView }) {
 const DANGER_WORDS: Record<StealthHudSnapshot['danger'], string> = {
   none: '',
   suspicious: 'Someone is suspicious',
+  seen: "You've been seen",
   searching: 'They are searching',
   pursued: 'Pursued!',
 };
@@ -137,6 +139,11 @@ export function StealthHud({ hud }: { hud: StealthHudSnapshot }) {
       {hud.eyes.map((e) => (
         <GuardEye key={e.id} eye={e} />
       ))}
+      {hud.report && (
+        <div class="stealth-law" data-testid="stealth-law">
+          <ReportChip report={hud.report} />
+        </div>
+      )}
       {hud.dawn && (
         <div
           class={`hud-chip stealth-dawn${hud.dawn.urgent ? ' urgent' : ''}`}

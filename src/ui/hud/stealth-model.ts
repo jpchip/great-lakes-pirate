@@ -2,6 +2,7 @@ import { R_ON_FOOT } from '../../core/time';
 import { gemLevel, SUSPICIOUS, type GemLevel } from '../../gameplay/onfoot/perception';
 import type { GuardState, StealthReadout } from '../../gameplay/onfoot/stealth';
 import { sunAt } from '../../sim/weather/celestial';
+import type { ReportSnapshot } from '../port/harbor-model';
 import type { FootToolsSnapshot } from './foot-tools-model';
 
 /**
@@ -63,9 +64,11 @@ export interface StealthHudSnapshot {
   eyes: EyeView[];
   dawn: DawnView | undefined;
   /** The worst any guard is at: drives a banner line and the music (piece I). */
-  danger: 'none' | 'suspicious' | 'searching' | 'pursued';
+  danger: 'none' | 'suspicious' | 'seen' | 'searching' | 'pursued';
   /** The tool belt, conduct and the F prompt (piece E), when there are tools to show. */
   tools?: FootToolsSnapshot;
+  /** A report on its way ashore (plan 06 §2.4), same chip as at the helm. */
+  report?: ReportSnapshot;
 }
 
 const GEM_WORDS: Record<GemLevel, string> = {
@@ -252,11 +255,13 @@ export function stealthHud(
   const eyes = eyeViews(readout, player, project, vp);
   const danger = readout.pursued
     ? 'pursued'
-    : readout.searched || eyes.some((e) => e.state === 'searching' || e.state === 'alerted')
+    : readout.searched || eyes.some((e) => e.state === 'searching')
       ? 'searching'
-      : eyes.some((e) => e.state === 'suspicious')
-        ? 'suspicious'
-        : 'none';
+      : eyes.some((e) => e.state === 'alerted')
+        ? 'seen'
+        : eyes.some((e) => e.state === 'suspicious')
+          ? 'suspicious'
+          : 'none';
   return {
     gem: gemView(readout.exposure01),
     noise: noiseView(readout.noiseM),
