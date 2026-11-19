@@ -170,10 +170,10 @@ export class SandboxSounds {
   // --- The port screen -------------------------------------------------------------------
 
   /** The port screen's tab now (undefined: closed), and whether it's the harbor master's. */
-  portTab(tab: string | undefined): void {
+  portTab(tab: string | undefined, audible = true): void {
     if (tab === this.tab) return;
     this.tab = tab;
-    if (tab === 'harbor') this.sound(SANDBOX_SOUND.harborBell, 'ui', 0.45, 1, 0.1);
+    if (tab === 'harbor' && audible) this.sound(SANDBOX_SOUND.harborBell, 'ui', 0.45, 1, 0.1);
   }
 
   /** A letter at the harbor master's opened for the first time. */

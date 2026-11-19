@@ -579,7 +579,12 @@ export function clockworkWound(rate: number, seed = 9310): Float32Array {
     k++;
   }
   mixInto(out, creak(rate, random, 2.6, 60, 140), secs(0.2, rate), 0.25);
-  mixInto(out, lowpass(noise(secs(2.8, rate), random), 160, rate), secs(0.05, rate), 0.6);
+  const drum = lowpass(
+    lowpass(lowpass(noise(secs(2.8, rate), random), 160, rate), 160, rate),
+    160,
+    rate,
+  );
+  mixInto(out, drum, secs(0.05, rate), 2.5);
   mixInto(out, clang(rate, random, 520, 0.6).slice(0, secs(0.5, rate)), secs(3, rate), 0.35);
   return trimTail(reverb(out, rate, 0.25, 0.75, 0.45), rate);
 }

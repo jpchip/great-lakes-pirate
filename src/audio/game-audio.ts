@@ -553,7 +553,7 @@ export async function createGameAudio(options: GameAudioOptions): Promise<GameAu
       else trade.closed();
     },
     portTab(tab) {
-      sandbox.portTab(running() ? tab : undefined);
+      sandbox.portTab(tab, running());
     },
     get mood() {
       return mood;

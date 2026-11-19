@@ -8,12 +8,12 @@
   "attribution": "Great Lakes Pirate contributors",
   "modifications": [],
   "description": "The keeper winding the clockwork: the crank's ratchet, the drum taking up the weight, the iron groaning",
-  "durationS": 4.115,
+  "durationS": 4.068,
   "pipeline": [
     "decoded to mono 48000 Hz",
     "edge fades",
-    "peak-normalized toward -1 dB (+12.0 dB)",
+    "peak-normalized toward -1 dB (+7.9 dB)",
     "Opus 56 kbps mono in Ogg (ffmpeg libopus)"
   ],
-  "inputHash": "0bccf4b3955ae0e7"
+  "inputHash": "c2a06b70f9767962"
 }

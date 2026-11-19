@@ -474,9 +474,16 @@ Twenty-six pieces, each sized to be one thread, in three stages by decision 1. A
 
 **Not in piece O:** the curios aren't drawn on the shelves in the world yet (piece P's kits, with the POIs), the legends' steps beyond the first and every other clue source (piece T), salvage finding wrecks by sounding (piece U), a chart-voyage grounding risk on uncharted shoals (the Apostles' shoals all lie inside the zone, where the real depth already grounds you), and charts of the other regions. `__glpDiscovery` reads and drives it.
 
+### 18.9 Piece J as built: stage 1 audio (2026-11-19)
+
+Plan 15 §22 has the detail. The saloon plays "The Late Boat Waltz" on piano and fiddle from 7 PM (on foot in Bayfield and at any port screen's saloon or card table); the card table is heard move by move as cards and chips from beats the table now records; a lighthouse station's lamp turns its clockwork while it burns at night, and its keepers snore, greet and are heard at their stair, lamp and oil house; the harbor master rings his bell and letters tear open and seal; a ship put on a wrecking mark's shoal is heard going aground from up to 3 km (`ShipStranded`), and your own ship touching bottom; a rival's stinger waits for piece E on the bus (`RivalStinger { rival, why }`). 25 synthesized sounds, 0.93 MB; the decoded audio is 6.13 MB of 8 MB.
+
+**Not in piece J:** the stinger raised by anything but the dev hook until piece E lands, a fixed light's lamp without clockwork, a letter's arrival heard, the moon-cussing night's music. **For Jared:** the listen by ear (row J).
+
 ---
 
 ## Changelog
+- v0.7: Piece J as built (§18.9): stage 1 audio.
 - v0.6: Piece O as built (§18.8): discovery and the fog of war on the chart, leads, the journal's four pages, and curios.
 - v0.5: Phase 9 scope (§18), as proposed 2026-11-17: what Phases 4–8 change, deliverables, exit criteria, 26 work pieces in three stages, smaller calls and two decisions (staging, districts). Both decisions taken the same day: three stages with a playtest each, and Duluth as the one new district.
 - v0.4: Phase 7 as built (§15): Stockton on foot, the quarry, the seeded cache, the rowboat and the posse.
