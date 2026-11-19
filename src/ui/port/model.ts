@@ -30,6 +30,7 @@ import {
   type ShipStores,
 } from '../../sim/economy/chandlery';
 import { maxBuyable, type Trader } from '../../sim/economy/trade';
+import type { CardTableSnapshot } from './cards-model';
 import { isStale, reliabilityWord, rumorDefs, type SaloonTerms } from '../../sim/rumors/rumors';
 import type { Rumor } from '../../sim/world-state';
 import { clockLabel, weekLabel } from '../hud/model';
@@ -66,6 +67,7 @@ export type PortTab =
   | 'shipyard'
   | 'saloon'
   | 'backRoom'
+  | 'cards'
   | 'papers'
   | 'harbor'
   | 'ledger';
@@ -261,6 +263,9 @@ export interface PortSnapshot {
   backRoom?: BackRoomSnapshot | undefined;
   /** A line for the saloon when the back room is shut till dark. */
   backRoomHint?: string | undefined;
+  /** The card table after supper (Phase 9 piece C), and the saloon's line about it. */
+  cards?: CardTableSnapshot | undefined;
+  cardsHint?: string | undefined;
   /** The port is flying the storm signal (plan 04 §5.4): the flag by day, the light at night. */
   stormSignal?: 'flag' | 'light' | undefined;
   /**

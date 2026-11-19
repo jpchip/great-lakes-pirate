@@ -3,8 +3,10 @@ import { formatCents } from '../../sim/economy/knowledge';
 import type { TradeSide } from '../../sim/economy/market';
 import type { LieUntil } from '../../sim/hideouts/lie-at-anchor';
 import type { FitSource } from '../../sim/shipyard/shipyard';
+import type { BetAction } from '../../sim/poker/table';
 import { LieButtons } from '../stash/StashScreen';
 import { BackRoom } from './BackRoom';
+import { CardTable } from './CardTable';
 import { Harbor } from './Harbor';
 import { Help } from './Help';
 import { Ledger, RumorItem } from './Ledger';
@@ -61,6 +63,15 @@ export interface PortActions {
   fence?(index: number, qty: number): string | undefined;
   /** Mounts a gun from the shady shipwright's back room (Phase 6 piece E). */
   buyGun?(gunId: string): string | undefined;
+  /**
+   * The card table (Phase 9 piece C): deal me in (with a side stake's key, or none), bet,
+   * draw (with a palmed card or not), and settle being caught. Each returns the refusal or
+   * what came of it, in a line.
+   */
+  pokerDeal?(stake?: string): string | undefined;
+  pokerBet?(action: BetAction): string | undefined;
+  pokerDraw?(discards: readonly number[], palm: boolean): string | undefined;
+  pokerCaught?(how: 'licking' | 'swing'): string | undefined;
   /** The harbor master (Phase 5 piece E): pay the fine or bribe on offer; what came of it. */
   payHarbor?(kind: 'fine' | 'bribe'): string | undefined;
   /** Letters at the harbor master's (Phase 9 piece A): one opened, and one answered. */
@@ -86,6 +97,7 @@ const TAB_LABELS: Record<PortTab, string> = {
   chandlery: 'Chandlery',
   saloon: 'Saloon',
   backRoom: 'Back room',
+  cards: 'Card table',
   papers: 'Papers',
   freight: 'Freight agent',
   shipyard: 'Shipyard',
@@ -796,6 +808,11 @@ function Saloon({
           {port.backRoomHint}
         </p>
       )}
+      {port.cardsHint && (
+        <p class="menu-note" data-testid="cards-hint">
+          {port.cardsHint}
+        </p>
+      )}
       {s.heard.length === 0 ? (
         <p class="port-dim">Nobody's said anything worth writing down yet.</p>
       ) : (
@@ -929,6 +946,9 @@ export function PortScreen({
           {shown === 'saloon' && <Saloon port={port} actions={actions} setMessage={setMessage} />}
           {shown === 'backRoom' && port.backRoom && (
             <BackRoom room={port.backRoom} actions={actions} setMessage={setMessage} />
+          )}
+          {shown === 'cards' && port.cards && (
+            <CardTable table={port.cards} actions={actions} setMessage={setMessage} />
           )}
           {shown === 'freight' && (
             <>

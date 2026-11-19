@@ -1,4 +1,5 @@
 import { wrecksSchema } from './wrecks';
+import { pokerStateSchema } from './poker/state';
 import { z } from 'zod';
 import { lawShipsSchema } from './law/patrol';
 import { RUMOR_KINDS } from '../../data/schemas/rumors';
@@ -600,6 +601,11 @@ export const worldStateSchema = z.object({
    * Absent until the first landing at one, so no version bump.
    */
   lightStations: z.record(z.string(), lightStationStateSchema).optional(),
+  /**
+   * Poker night (plan 12 §5.3; Phase 9 piece C): the tables you're barred from, the maps
+   * won and the tallies. Absent until the first hand, so no version bump.
+   */
+  poker: pokerStateSchema.optional(),
   knowledge: knowledgeSchema,
   /**
    * The Captain's First Week checklist (plan 12 §3, Phase 4 piece C). Only a run made in
