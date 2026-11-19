@@ -4435,6 +4435,29 @@ async function boot(): Promise<void> {
     };
     (window as unknown as { __glpFoot: typeof hook }).__glpFoot = hook;
     /**
+     * The POI kits on this zone's walkable islands (Phase 9 piece P): `marks('fire')` lists
+     * the named points of that kind (all without one), `pois()` each placed prefab with its
+     * piece count, and `curios()` what's set out at each hideout and drawn on its shelves.
+     */
+    const poiHook = {
+      marks: (kind?: string) =>
+        zoneIslands()
+          .placed.flatMap((i) => i.marks.map((m) => ({ island: i.id, ...m })))
+          .filter((m) => !kind || m.kind === kind),
+      pois: () =>
+        zoneIslands().placed.flatMap((i) => {
+          const ids = [...new Set(i.pieces.map((p) => p.poi))];
+          return ids.map((poi) => ({
+            island: i.id,
+            poi,
+            pieces: i.pieces.filter((p) => p.poi === poi).length,
+          }));
+        }),
+      curios: () =>
+        discovery.curios.flatMap((c) => (c.shownAt ? [{ id: c.id, at: c.shownAt }] : [])),
+    };
+    (window as unknown as { __glpPoi: typeof poiHook }).__glpPoi = poiHook;
+    /**
      * Lighthouse stations on foot (plan 11 §18.4 piece H): `list()` the zone's stations,
      * `land(id)` anchors off one and lands on its beach, `goto('tower' | 'house' | 'oil' |
      * 'gallery' | 'landing')` stands you there, `here()` reads the station you're at (its

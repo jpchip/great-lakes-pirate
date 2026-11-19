@@ -4,7 +4,7 @@
   "tiers": {
     "hero": {
       "drawCalls": 150,
-      "triangles": 1500000,
+      "triangles": 400000,
       "poiTriangles": 40000,
       "maxPois": 10,
       "people": 6,
@@ -12,7 +12,7 @@
     },
     "standard": {
       "drawCalls": 140,
-      "triangles": 1300000,
+      "triangles": 300000,
       "poiTriangles": 15000,
       "maxPois": 3,
       "people": 4,
@@ -20,7 +20,7 @@
     },
     "minor": {
       "drawCalls": 130,
-      "triangles": 1200000,
+      "triangles": 250000,
       "poiTriangles": 4000,
       "maxPois": 1,
       "people": 0,

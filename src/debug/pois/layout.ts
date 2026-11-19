@@ -36,7 +36,7 @@ function siteGround(site: PoiSite, dx: number, dz: number): number {
       return Math.max(MEADOW_Y, 14 - Math.hypot(dx, dz) * 0.25);
     case 'cliff':
       // Level in front, a steep bank rising behind the face.
-      return dz < 1.5 ? MEADOW_Y : Math.min(18, MEADOW_Y + (dz - 1.5) * 2.2);
+      return dz < 3 ? MEADOW_Y : Math.min(18, MEADOW_Y + (dz - 3) * 2.2);
     case 'clearing':
       return MEADOW_Y + Math.sin(dx * 0.08) * 0.4 + Math.cos(dz * 0.11) * 0.3;
   }
