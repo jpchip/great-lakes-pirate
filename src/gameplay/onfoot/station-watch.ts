@@ -570,9 +570,7 @@ export function createStationWatch(opts: StationWatchOptions): Watch & {
     if (nearPt(p, st.doors.house)) {
       if (keeperWatching()) {
         if (night() && sleepers.length && !sleepersTied()) {
-          return blockedByWatcher(
-            `Tie up the sleeping keeper${sleepers.length > 1 ? 's' : ''}`,
-          );
+          return blockedByWatcher(`Tie up the sleeping keeper${sleepers.length > 1 ? 's' : ''}`);
         }
         if (!readThisLanding && logbookHere(rec, t, rules)) {
           return blockedByWatcher('Read the logbook');

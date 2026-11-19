@@ -467,7 +467,8 @@ export function identifyInFlightReports(
 ): void {
   if (identification === 'unknown') return;
   for (const r of law.reports.inProgress) {
-    if (r.witness.id === witnessId && r.identification === 'unknown') r.identification = identification;
+    if (r.witness.id === witnessId && r.identification === 'unknown')
+      r.identification = identification;
   }
 }
 

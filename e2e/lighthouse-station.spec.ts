@@ -107,9 +107,7 @@ test('by day the keepers welcome you: their news, the logbook and a can of keros
   expect(errors).toEqual([]);
 });
 
-test('by night: knife the keeper on watch, douse the lamp and light it again', async ({
-  page,
-}) => {
+test('by night: knife the keeper on watch, douse the lamp and light it again', async ({ page }) => {
   test.setTimeout(180_000);
   const errors = collectErrors(page);
   await landAt(page, 23);

@@ -194,7 +194,12 @@ describe('the crime pipeline (plan 06 §2.1)', () => {
 
   it('names an in-flight report when the witness learns who you are', () => {
     const w = world();
-    const k: Witness = { id: 'light.raspberry.k1', kind: 'keeper', name: 'the keeper', identification: 'unknown' };
+    const k: Witness = {
+      id: 'light.raspberry.k1',
+      kind: 'keeper',
+      name: 'the keeper',
+      identification: 'unknown',
+    };
     commitCrime(defs, w, { crime: 'crime.trespass', region: APOSTLES, witnesses: [k] }, NOON);
     const report = must(w.law.reports.inProgress[0]);
     expect(report.identification).toBe('unknown');
