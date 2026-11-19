@@ -57,7 +57,9 @@ function load(): { model: DistrictModel; nav: DistrictNav } {
   return loaded;
 }
 
-function scene(opts: { at?: number; pockets?: Partial<Pockets>; perks?: string[] } = {}) {
+function scene(
+  opts: { at?: number; pockets?: Partial<Pockets>; perks?: string[]; feud?: boolean } = {},
+) {
   const { model, nav } = load();
   const clock = { t: opts.at ?? NIGHT };
   const state = createWorldState('heist', clock.t);
@@ -116,6 +118,7 @@ function scene(opts: { at?: number; pockets?: Partial<Pockets>; perks?: string[]
           return 'The Hiawatha sails Thursday with flour';
         },
         perk: (id) => (opts.perks ?? []).includes(id),
+        canSabotage: (owner) => !!opts.feud && owner === 'company.hollister_fish',
       },
     },
   });
@@ -224,6 +227,10 @@ describe('locks, loot and evidence (pure)', () => {
           c.mark,
         ).toBe(true);
         expect(gameHeist().tables.has(c.table), c.table).toBe(true);
+      }
+      if (t.sabotage) {
+        const m = layout.marks.find((k) => k.id === t.sabotage?.mark);
+        expect(m?.kind, t.sabotage.mark).toBe('sabotage');
       }
     }
   });
@@ -455,5 +462,45 @@ describe('a guard who sees you with the crates (foot-law)', () => {
     }
     expect(commits.map((c) => c.crime)).toEqual(['crime.burglary']);
     expect(witnesses).toEqual([expect.objectContaining({ id: guard.id, kind: 'watchman' })]);
+  });
+});
+
+describe.skipIf(!baked)("sabotage at Hollister's packing house (Phase 9 piece D)", () => {
+  /** Inside the packing house at the brine barrels, its door already open. */
+  function atBrine(s: ReturnType<typeof scene>) {
+    const m = s.model.mark('sabotage.brine');
+    s.stand(m.x, m.z);
+    expect(s.model.buildingAt(m.x, s.player.position.y + 0.5, m.z)?.def.id).toBe('packing_house');
+  }
+
+  it('is offered only while the feud is on', () => {
+    const s = scene();
+    atBrine(s);
+    expect(s.prompt()?.label).not.toBe('Foul the brine barrels');
+    const f = scene({ feud: true });
+    atBrine(f);
+    expect(f.prompt()?.label).toBe('Foul the brine barrels');
+  });
+
+  it("spoils the packing house's crates, out of the port's stock, and is found at dawn", () => {
+    const s = scene({ feud: true });
+    const before = s.heist.contents('loot.2', NIGHT);
+    const crates = Object.values(before?.crates ?? {}).reduce((a, b) => a + b, 0);
+    atBrine(s);
+    s.hold(4.2);
+    const sab = s.events.find((e) => e.type === 'Sabotaged');
+    expect(sab).toMatchObject({ building: 'packing_house', owner: 'company.hollister_fish' });
+    const after = s.heist.contents('loot.2', NIGHT);
+    expect(Object.keys(after?.crates ?? {})).toHaveLength(0);
+    const spoiled = Object.values(s.stock).reduce((a, b) => a - b, 0);
+    expect(spoiled).toBe(crates);
+    const c = s.commits.find((k) => k.crime === 'crime.sabotage');
+    expect(c?.company).toBe('company.hollister_fish');
+    expect(c?.witnesses[0]?.reportAt).toBe(nextDawn(NIGHT));
+    // Once a night.
+    expect(s.prompt()).toMatchObject({ label: 'Foul the brine barrels', why: 'Done tonight' });
+    s.hold(4.2);
+    expect(s.events.filter((e) => e.type === 'Sabotaged')).toHaveLength(1);
+    expect(s.world.sabotaged?.['sabotage.brine']).toBe(nightOf(NIGHT));
   });
 });

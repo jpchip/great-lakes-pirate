@@ -331,7 +331,18 @@ function Market({
                   )}
                 </td>
                 <td class="num hud-num">{formatCents(r.buyCents)}</td>
-                <td class="num hud-num">{formatCents(r.sellCents)}</td>
+                <td class="num hud-num">
+                  {r.feud?.refused ? '—' : formatCents(r.sellCents)}
+                  {r.feud && (
+                    <small
+                      class={`port-feud${r.feud.refused ? ' refused' : ''}`}
+                      data-testid={`feud-${r.good}`}
+                      title={r.feud.refused ?? r.feud.note}
+                    >
+                      {r.feud.note}
+                    </small>
+                  )}
+                </td>
                 <td class="num hud-num">{r.stock}</td>
                 <td class="num hud-num">
                   {r.held || ''}
@@ -360,8 +371,8 @@ function Market({
                     type="button"
                     class="port-mini"
                     data-testid={`sell-${r.good}`}
-                    disabled={r.held <= 0}
-                    title="Sell (shift-click: all, ctrl-click: one)"
+                    disabled={r.held <= 0 || !!r.feud?.refused}
+                    title={r.feud?.refused ?? 'Sell (shift-click: all, ctrl-click: one)'}
                     onClick={(e) => quick(r, 'sell', e)}
                   >
                     Sell

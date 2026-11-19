@@ -344,6 +344,16 @@ export interface GameEvents {
   EventResolved: { id: string; key: string; choice: string | undefined };
   LetterReceived: { key: string; event: string };
   /**
+   * A feud moved on (plan 12 §5.2; Phase 9 piece D): a beat fired its event and the feud is
+   * at `stage` now; `gives` names the method that made the company give.
+   */
+  FeudChanged: {
+    feud: string;
+    beat: 'undercut' | 'refuses' | 'reward' | 'terms' | 'gives' | 'yielded';
+    stage: string;
+    method?: 'sheds' | 'tugs' | 'trade' | undefined;
+  };
+  /**
    * A schooner built at a hideout's slipway and launched (Phase 8 piece G raises it; the
    * builder Ambition counts it).
    */

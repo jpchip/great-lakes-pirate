@@ -76,7 +76,11 @@ export function buy(
   };
 }
 
-/** Sells clean goods only; hot goods (piece H) and contract cargo (piece F) are kept. */
+/**
+ * Sells clean goods only; hot goods (piece H) and contract cargo (piece F) are kept.
+ * `factor` scales what the buyers pay (a feud's undercut, Phase 9 piece D); the market moves
+ * as for any sale.
+ */
 export function sell(
   defs: EconomyDefs,
   markets: MarketsState,
@@ -85,13 +89,15 @@ export function sell(
   good: string,
   qty: number,
   gameSeconds: number,
+  factor = 1,
 ): TradeResult {
   if (!Number.isInteger(qty) || qty <= 0) return { ok: false, reason: 'badQty' };
   if (!defs.markets.get(port)?.goods.has(good)) return { ok: false, reason: 'notTraded' };
   if (cleanQty(trader.cargo, good) < qty) return { ok: false, reason: 'noCargo' };
   const q = quote(defs, markets, port, good, qty, 'sell', gameSeconds);
+  const total = Math.floor(q.totalCents * factor);
   takeCleanFromHold(trader.cargo, good, qty);
-  trader.purse += q.totalCents;
+  trader.purse += total;
   applyTrade(markets, port, good, qty, 'sell', gameSeconds);
   return {
     ok: true,
@@ -100,8 +106,8 @@ export function sell(
       good,
       side: 'sell',
       qty,
-      totalCents: q.totalCents,
-      nextUnitCents: nextUnit(defs, markets, port, good, 'sell', gameSeconds),
+      totalCents: total,
+      nextUnitCents: Math.floor(nextUnit(defs, markets, port, good, 'sell', gameSeconds) * factor),
     },
   };
 }
