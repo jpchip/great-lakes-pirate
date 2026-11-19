@@ -173,6 +173,7 @@ import { attachAmbitions } from './gameplay/ambitions';
 import { attachDiscovery, placeTalk } from './gameplay/discovery';
 import {
   CHARTED_SHOAL_WARN_DRAFTS,
+  curioSlots,
   discoveriesFile,
   worldGeo,
   type Lookout,
@@ -4455,6 +4456,15 @@ async function boot(): Promise<void> {
         }),
       curios: () =>
         discovery.curios.flatMap((c) => (c.shownAt ? [{ id: c.id, at: c.shownAt }] : [])),
+      /** The places each hideout's display pieces offer, zone meters, in the order filled. */
+      shelves: () =>
+        hideouts.draw().flatMap((s) =>
+          curioSlots(s.pieces).map((sl) => ({
+            hideout: s.key,
+            ...siteToZone(s.frame, sl.x, sl.z),
+            y: s.frame.baseM + sl.y,
+          })),
+        ),
     };
     (window as unknown as { __glpPoi: typeof poiHook }).__glpPoi = poiHook;
     /**

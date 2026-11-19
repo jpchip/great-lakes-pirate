@@ -286,7 +286,7 @@ This is a lot for one developer, which is why the pipeline is automated, kits ar
 | 4–6 | NPC ships, character base plus animations, props |
 | 7 | Docks-district kit, characters' period variants. **Built as 0.7.0:** the kit is 56 parametric pieces in `data/kit.json` (`src/sim/district/kit.ts`, `src/render/district/kit-meshes.ts`), instanced and merged per block, laid out in `data/districts/bayfield.json` with the dev placement editor on `district.html` and baked to ground and a navmesh by `npm run district:bake`; lamps are emissive with fake pools. The characters are §20. In the game Bayfield at night draws 61–179 calls with twelve guards ([08 §20.8](08-docks-district-stealth.md)) |
 | 8 | Hideout grid pieces (all materials), crafting stations. **Built in Phase 8 piece B:** 63 procedural pieces in log, plank, brownstone and tarpaper walls and shingle, plank, tarpaper and turf roofs (`src/render/hideout/pieces.ts`), one instanced mesh per piece and material with glass as a glow attribute, and a merged proxy for the distant view ([09 §16.4](09-hideouts-building-crafting.md)) |
-| 9 | POI kits, caves, animals, curios, season palettes, aurora and VFX polish |
+| 9 | POI kits, caves, animals, curios, season palettes, aurora and VFX polish. **POI kits built (piece P):** 22 procedural kinds in `src/render/onfoot/poi-kit.ts` and eight prefabs in `pois.json`, merged into one mesh with the quarry, the curios drawn on hideout shelves, `/pois.html` to look them over ([11 §18.9](11-exploration-islands-secrets.md)) |
 | 11 | Art polish pass, consistency review |
 
 ---
@@ -446,6 +446,7 @@ Plan 08 §20 piece B. Every on-foot character, the player and the NPCs, is one C
 **Open:** the look is Jared's call. The outfit is a belted work tunic, so the "jacket" reads as a longer tunic in the coat color rather than a reefer; lapels and buttons, or a period coat model, would fix it. The female outfit is a bodice over trousers, not a skirt.
 
 ## Changelog
+- v1.3: Phase 9 piece P: the POI kits and curio models (§13, plan 11 §18.9).
 - v1.2: Phase 7 as built (§13): the docks kit and where Bayfield's draw calls stand.
 - v1.1: Phase 7 piece B (§20): the CC0 humanoid, its pipeline, palette regions, code-built hats and props, 37 retargeted clips, LODs and animation LOD.
 - v1.0: The T2 schooner from the hull generator (§5): `rigScale`, deck layouts and the yawl boat.
