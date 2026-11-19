@@ -230,7 +230,8 @@ export function attachHideoutLife(deps: HideoutLifeDeps): HideoutLife {
         deps.showSleep(view());
         return message;
       }
-      seconds = Math.max(3600, at - now());
+      // A tick past it, so she wakes with the ice gone out.
+      seconds = Math.max(3600, at - now() + 600);
     } else {
       seconds = sleepSeconds(until, now());
     }

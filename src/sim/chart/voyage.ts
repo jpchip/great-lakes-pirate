@@ -183,15 +183,12 @@ export function planCourse(
     const leg: CourseLeg = { from: a, to, lengthM: distance(a, to), heading: bearing(a, to) };
     if (leg.lengthM > 0) {
       const hit = firstLandHit(geo, a, to);
-      if (hit !== undefined) {
-        leg.landAt = hit;
-        problem ??= 'aground';
-      }
       const ice = iceClosed ? firstIceHit(iceClosed, a, to) : undefined;
-      if (ice !== undefined) {
-        leg.iceAt = ice;
-        problem ??= 'ice';
-      }
+      if (hit !== undefined) leg.landAt = hit;
+      if (ice !== undefined) leg.iceAt = ice;
+      // The leg's first obstacle names the problem: ice off a shore before the shore.
+      if (ice !== undefined && (hit === undefined || ice < hit)) problem ??= 'ice';
+      else if (hit !== undefined) problem ??= 'aground';
       legs.push(leg);
     }
   }

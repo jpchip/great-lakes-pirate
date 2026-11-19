@@ -1192,6 +1192,7 @@ async function boot(): Promise<void> {
       buyGun: (gunId) => portsRef.current?.actions.buyGun?.(gunId),
       // Piece E's harbor master tab offered Pay but nothing carried it to the game.
       payHarbor: (kind) => portsRef.current?.actions.payHarbor?.(kind),
+      layUp: () => portsRef.current?.actions.layUp?.(),
       buyPaper: (paper) => portsRef.current?.actions.buyPaper?.(paper),
       readLetter: (key) => portsRef.current?.actions.readLetter?.(key),
       answerLetter: (key, choice) => portsRef.current?.actions.answerLetter?.(key, choice),
@@ -1441,7 +1442,7 @@ async function boot(): Promise<void> {
   /** Runs the clock on by world ticks, as sleeping does (the dev hook and laying up). */
   const passWorldTime = (seconds: number): void => {
     const clock = state.environment.clock;
-    const ticks = Math.max(1, Math.round(seconds / WORLD_TICK_GAME_SECONDS));
+    const ticks = Math.max(1, Math.ceil(seconds / WORLD_TICK_GAME_SECONDS));
     for (let k = 0; k < ticks; k++) {
       const n = advanceGameTime(clock, WORLD_TICK_GAME_SECONDS);
       for (let i = 0; i < n; i++) ctx.events.emit('WorldTick', { gameSeconds: clock.gameSeconds });

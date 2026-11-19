@@ -1,5 +1,6 @@
 import { cycleAt, cycleStartS, sailsInCycle } from '../chart/routes';
 import type { Contact } from '../chart/traffic';
+import { calendarMs, gameSecondsAt } from './season';
 
 /**
  * The first-boat-in race (plan 05 §3, plan 12 §5.2; piece K): the first ship of the traffic
@@ -14,6 +15,8 @@ export function firstArrivalAfter(
   until: number,
 ): { ship: string; at: number } | undefined {
   let best: { ship: string; at: number } | undefined;
+  // A year on at most: the next ice-out is another race.
+  until = Math.min(until, gameSecondsAt(calendarMs(after) + 365 * 86_400_000));
   for (const c of contacts) {
     const s = c.schedule;
     if (!s?.ice || c.hostile) continue;
@@ -21,8 +24,9 @@ export function firstArrivalAfter(
     if (home.port !== port && away.port !== port) continue;
     const transit = s.lengthM / s.speedMs;
     for (let k = cycleAt(s, after) - 1; k <= cycleAt(s, until); k++) {
-      if (!sailsInCycle(s, k)) continue;
       const t0 = cycleStartS(s, k);
+      if (best && t0 > best.at) break;
+      if (!sailsInCycle(s, k)) continue;
       const arrivals: number[] = [];
       if (away.port === port) arrivals.push(t0 + transit);
       if (home.port === port) arrivals.push(t0 + 2 * transit + s.dwellAwayS);

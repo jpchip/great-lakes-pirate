@@ -238,7 +238,7 @@ Numbers are draft tuning values. ★ = visible on the model.
 - **Phase 4:** shipyard buying and trading in (T1 → T2), ~10 upgrades (quality canvas, reinforced planking, expanded hold, barometer, sounding, spyglass, improved blocks), repairs.
 - **Phase 6:** weapons and weapon mods, hidden compartments, the shady shipwright. **Built (2026-11-08, [07 §14.10](07-combat-boarding-targets.md)):** the shady shipwright in the back room after dark sells the bow swivel ($75, any Fame, T1+) and the light cannon ($240 a pair, Known, T2), mounted straight into `player.ship.weapons`; four weapon mods in the `weaponMods` slot (gun sights, bored-out barrels, improved carriages, hidden gun ports), each needing a gun aboard; a trade-in moves a gun to a new hull that has its mount. The hidden compartment shipped in 0.5.0. Powder and shot are cargo from the chandlery, refused from Wanted tier 2. Abandoning a foundering ship loses her guns, and the yard sells a worn T1 at 40% of a new one (07 §14.12).
 - **Phase 8:** hideout-crafted upgrades, drydock installs, shipless shipbuilding.
-- **Phase 9+:** ice bow, T3, hull variants, cosmetic editor polish.
+- **Phase 9+:** ice bow (built in Phase 9 piece K: `upgrade.ice_bow`, $90, breaks ice to 20 cm, −70% ice damage, −40% ice drag; [04 §26](04-water-weather-seasons.md)), T3, hull variants, cosmetic editor polish.
 
 ---
 
@@ -366,6 +366,7 @@ The four instruments and the anchor move to a new hull; sails, planking, the hol
 Hideout repairs (§8) and shipless shipbuilding (§9) are built at a hideout's slipway; the details are in [09 §16.10](09-hideouts-building-crafting.md). In numbers: a full hull's repair is 10 lumber, 2 hardware and 2 rope and canvas (tar folded in) and 16 game hours solo, a rig 4 rope and canvas and 8 hours, scaled by what's missing; the crafted repair stores and improved carriages are fitted there in their install hours; and §9's T1 is 30 lumber, 6 hardware and 6 rope and canvas over three game days (09 §16.5's smaller numbers, not §9's ~40/10/8/8/4). A schooner launched there is a new hull to the law.
 
 ## Changelog
+- v0.7: Phase 9 piece K: the ice bow at the shipyard.
 - v0.6: Phase 8 piece G (§18): slipway repairs, installs of crafted upgrades and shipless shipbuilding.
 - v0.6: Phase 6 as built (§13): the shady shipwright's guns and weapon mods, powder at the chandlery, the worn hull after abandoning ship.
 - v0.5: Phase 4 piece G, second half (§17): the shipyard, trade-in, ten upgrades, repairs and kits, `player.ship` in the save.

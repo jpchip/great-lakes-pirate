@@ -2,7 +2,8 @@ import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import { EventBus } from '../src/core/events';
-import { migrateSave } from '../src/core/save/migrations';
+import { migrateSave } from '../src/core/save/migrate';
+import type { SavePayload } from '../src/core/save/migrations';
 import { westernSuperiorChart } from '../src/sim/chart/chart-data';
 import { createContacts } from '../src/sim/chart/traffic';
 import { cycleStartS, iceKeepsIn, sailsInCycle } from '../src/sim/chart/routes';
@@ -136,11 +137,17 @@ describe('ice and a hull (plan 02 §5.2, plan 10 §5.1)', () => {
   });
 
   it('drags and holes her, and the ice bow takes 70% off the damage', () => {
-    const plain = hullInIce(thin, false);
-    const bow = hullInIce(thin, true);
+    // Ice past what either hull can break: hardness the same, the bow's own numbers tell.
+    const hard: IceSample = { coverage: 1, thicknessCm: 30, kind: 'fast' };
+    const plain = hullInIce(hard, false);
+    const bow = hullInIce(hard, true);
     expect(plain.drag).toBeLessThan(1);
     expect(bow.drag).toBeGreaterThan(plain.drag);
     expect(bow.damagePerKn).toBeCloseTo(plain.damagePerKn * 0.3);
+    // In thin ice the bow, rated for thicker, finds it softer still.
+    expect(hullInIce(thin, true).damagePerKn).toBeLessThan(
+      hullInIce(thin, false).damagePerKn * 0.3,
+    );
     expect(hullInIce(floes, false).damagePerKn).toBeGreaterThan(0);
     expect(hullInIce({ coverage: 0, thicknessCm: 0, kind: 'open' }, false)).toEqual({
       drag: 1,
@@ -162,13 +169,18 @@ describe('ice and a hull (plan 02 §5.2, plan 10 §5.1)', () => {
       hazards: { cls, state: createHazardState(cls) },
       playerControlled: true,
     });
-    // Ice to the north (negative z) of z = -10; the bow probe reaches it after a step.
-    let edge = -10;
+    // Ice to the north (negative z) of z = -5; the bow probe reaches it after a step.
+    let edge = -5;
     const sample = (_x: number, z: number): IceSample => (z < edge ? thick : thin);
     const events: string[] = [];
     s.z = -1;
     e.transform.position.z = -1;
-    iceSailingSystem(world, { sample, iceBow: () => false, onEvent: (_e, ev) => events.push(ev.kind) }, 0.1, 0);
+    iceSailingSystem(
+      world,
+      { sample, iceBow: () => false, onEvent: (_e, ev) => events.push(ev.kind) },
+      0.1,
+      0,
+    );
     expect(s.z).toBe(0);
     expect(s.speed).toBe(0);
     expect(events).toContain('stopped');
@@ -209,7 +221,12 @@ describe('winter on the lake (plan 05 §3, plan 06 §5.1)', () => {
   it('brings the first boat into Duluth only after its ice-out', () => {
     const duluth = ice.harborSeason('port.duluth', at(1901, 0, 15));
     const open = duluth.openAt as number;
-    const first = firstArrivalAfter(contacts, 'port.duluth', duluth.closeAt as number, open + 30 * 86_400);
+    const first = firstArrivalAfter(
+      contacts,
+      'port.duluth',
+      duluth.closeAt as number,
+      open + 30 * 86_400,
+    );
     expect(first).toBeDefined();
     expect((first as { at: number }).at).toBeGreaterThanOrEqual(open);
   });
@@ -219,7 +236,7 @@ describe('winter on the lake (plan 05 §3, plan 06 §5.1)', () => {
     const t = at(1901, 0, 15);
     const markets = createMarkets(defs, t);
     const open = createMarkets(defs, t);
-    for (let i = 0; i < 300; i++) {
+    for (let i = 0; i < 1500; i++) {
       tickMarkets(defs, markets, t + i * 600, 600, (p) => p === 'port.duluth');
       tickMarkets(defs, open, t + i * 600, 600);
     }
@@ -237,11 +254,14 @@ describe('winter on the lake (plan 05 §3, plan 06 §5.1)', () => {
 
   it('refuses a course into ice she cannot break', () => {
     const t = at(1901, 1, 10);
-    const from = lonLat(-90.6, 46.98);
-    const to = port('port.ashland');
-    const course = planCourse(geo, from, [to], (p) => closesHull(ice.at(p, t), ICE.hull.stopCm));
+    // Out of the open lake for Duluth: the western arm's ice stops her short of the shore.
+    const from = OPEN_LAKE;
+    const course = planCourse(geo, from, [port('port.duluth')], (p) =>
+      closesHull(ice.at(p, t), ICE.hull.stopCm),
+    );
     expect(course.problem).toBe('ice');
     expect(course.legs[0]?.iceAt).toBeGreaterThan(0);
+    expect(course.legs[0]?.iceAt).toBeLessThan(course.legs[0]?.landAt ?? 1);
     const summer = planCourse(geo, from, [OPEN_LAKE], (p) =>
       closesHull(ice.at(p, at(1901, 6, 1)), ICE.hull.stopCm),
     );
@@ -260,7 +280,7 @@ describe('the Mataafa storm (November 27–28, 1905)', () => {
     const wind = windAt(w, duluth, peakAt);
     expect(wind.speedKn).toBeGreaterThanOrEqual(28);
     // From the north-east quarter.
-    const fromDeg = (((wind.fromRad * 180) / Math.PI) % 360 + 360) % 360;
+    const fromDeg = ((((wind.fromRad * 180) / Math.PI) % 360) + 360) % 360;
     expect(fromDeg).toBeGreaterThan(0);
     expect(fromDeg).toBeLessThan(110);
   });
@@ -353,7 +373,7 @@ describe('saves (plan 16 §12)', () => {
   it('carries an autumn 0.8 (v10) save on into winter', () => {
     const fixture = JSON.parse(
       readFileSync(join(import.meta.dirname, 'fixtures', 'saves', 'v10.json'), 'utf8'),
-    ) as { saveVersion: number; state: unknown };
+    ) as { saveVersion: number; state: SavePayload };
     const state = parseWorldState(migrateSave(fixture.state, fixture.saveVersion));
     expect(state.ice).toBeUndefined();
     // Late October of its year: the run sails on, and the winter comes to it.

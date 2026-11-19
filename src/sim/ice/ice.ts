@@ -51,9 +51,13 @@ export class LakeIce {
     return iceForShelter(this.seed, harborShelter(this, portId), gameSeconds);
   }
 
-  /** The port is frozen in: no ship can make it or leave it. */
+  /**
+   * The port is frozen in: no ship can make it or leave it. From its freeze-up to its
+   * ice-out (`harborSeason`), the floes of the break-up and a midwinter thaw included.
+   */
   harborClosed(portId: string, gameSeconds: number): boolean {
-    return harborClosedSample(this.harbor(portId, gameSeconds));
+    const { closeAt, openAt } = this.harborSeason(portId, gameSeconds);
+    return closeAt !== undefined && gameSeconds >= closeAt && gameSeconds < (openAt ?? Infinity);
   }
 
   /** The winter a game time falls in (or, in summer, the coming one). */
@@ -66,8 +70,17 @@ export class LakeIce {
    * game seconds. A port that never closes that winter has neither.
    */
   harborSeason(portId: string, gameSeconds: number): { closeAt?: number; openAt?: number } {
-    return harborSeasonOf(harborShelter(this, portId), this.winter(gameSeconds));
+    const w = this.winter(gameSeconds);
+    const key = `${portId}|${w.year}`;
+    let season = this.seasons.get(key);
+    if (!season) {
+      season = harborSeasonOf(harborShelter(this, portId), w);
+      this.seasons.set(key, season);
+    }
+    return season;
   }
+
+  private readonly seasons = new Map<string, { closeAt?: number; openAt?: number }>();
 
   /**
    * When the port next opens after the ice (its ice-out), if it's closed now; undefined
