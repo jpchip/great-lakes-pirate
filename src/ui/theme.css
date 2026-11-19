@@ -3683,3 +3683,227 @@ body[data-mode='chart'] .chart-layer {
   opacity: 0.85;
   font-size: 0.9em;
 }
+
+/*
+ * The card table (Phase 9 piece C): the captains across a green baize, the pot in the
+ * middle, your hand below; cards are paper with the suit's glyph, red or black.
+ */
+.menu.port:has(.card-table) {
+  background:
+    radial-gradient(ellipse at 50% 30%, rgba(255, 196, 110, 0.12), rgba(40, 24, 8, 0.24) 100%),
+    var(--paper);
+}
+
+.card-table {
+  flex: 1;
+  min-width: 0;
+}
+
+.card-baize {
+  padding: 12px 14px 14px;
+  color: var(--hud-text);
+  background: radial-gradient(ellipse at 50% 40%, #2f5a3c, #1d3a27 80%);
+  border: 6px solid #5b3a20;
+  border-radius: 40px;
+  box-shadow: inset 0 0 0 1px rgba(0, 0, 0, 0.35);
+}
+
+.card-seats {
+  display: flex;
+  gap: 12px;
+  justify-content: space-around;
+}
+
+.card-seat {
+  flex: 1;
+  min-width: 0;
+  max-width: 230px;
+  padding: 6px 8px;
+  text-align: center;
+  border-radius: 8px;
+  background: rgba(0, 0, 0, 0.18);
+}
+
+.card-seat.gone,
+.card-seat.folded {
+  opacity: 0.55;
+}
+
+.card-seat.won {
+  outline: 2px solid var(--brass-light);
+}
+
+.card-seat-name {
+  font-weight: 600;
+}
+
+.card-seat-ship {
+  color: rgba(241, 231, 204, 0.7);
+  font-size: 12px;
+  font-style: italic;
+}
+
+.card-seat-cards {
+  display: flex;
+  justify-content: center;
+  gap: 3px;
+  min-height: 44px;
+  margin: 6px 0 4px;
+}
+
+.card-seat-cards .playing-card {
+  width: 26px;
+  height: 38px;
+  font-size: 12px;
+}
+
+.card-seat-stack {
+  font-size: 13px;
+  color: var(--brass-light);
+}
+
+.card-seat-shown {
+  margin-top: 2px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.card-seat-status,
+.card-seat-tell,
+.card-seat-marker {
+  font-size: 12px;
+}
+
+.card-seat-status {
+  color: rgba(241, 231, 204, 0.7);
+}
+
+.card-seat-tell {
+  margin-top: 3px;
+  font-style: italic;
+}
+
+.card-seat-marker {
+  margin-top: 3px;
+  color: var(--brass-light);
+}
+
+.card-pot {
+  margin: 12px 0;
+  font-size: 15px;
+  text-align: center;
+}
+
+.card-side {
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--brass-light);
+}
+
+.card-yours {
+  text-align: center;
+}
+
+.card-hand {
+  display: flex;
+  justify-content: center;
+  gap: 8px;
+}
+
+.card-hand-name {
+  margin-top: 6px;
+  font-weight: 600;
+}
+
+.playing-card {
+  position: relative;
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 54px;
+  height: 78px;
+  padding: 0;
+  font-family: var(--serif);
+  font-size: 20px;
+  line-height: 1.1;
+  color: var(--ink);
+  background: #f7f1e1;
+  border: 1px solid #8b7a5a;
+  border-radius: 6px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+}
+
+.playing-card.red {
+  color: var(--signal-red);
+}
+
+.playing-card.back {
+  background: repeating-linear-gradient(45deg, #7a2d26 0 4px, #8f3a31 4px 8px);
+  border-color: #3a1612;
+}
+
+button.playing-card {
+  cursor: pointer;
+  pointer-events: auto;
+}
+
+button.playing-card.marked {
+  transform: translateY(-8px);
+  opacity: 0.6;
+  border: 2px dashed var(--ink);
+}
+
+.playing-card-suit {
+  font-size: 1.3em;
+}
+
+.playing-card-mark {
+  position: absolute;
+  bottom: -18px;
+  font-size: 11px;
+  color: var(--hud-text);
+}
+
+.card-controls {
+  margin-top: 10px;
+}
+
+.card-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin: 8px 0;
+}
+
+.card-row .menu-button:disabled {
+  cursor: default;
+  opacity: 0.5;
+}
+
+.card-offer {
+  flex-basis: 100%;
+}
+
+.card-offer p {
+  margin: 0 0 6px;
+}
+
+.card-palm {
+  font-size: 14px;
+}
+
+.card-caught p {
+  flex-basis: 100%;
+  margin: 0;
+  color: var(--signal-red);
+}
+
+.card-log {
+  max-height: 150px;
+  margin: 6px 0 0;
+  padding-left: 20px;
+  overflow-y: auto;
+  font-size: 13px;
+}

@@ -52,9 +52,10 @@ const at = (hour: number, backRoomOpen = false) => ({
 describe("Bayfield's counters (the layout's shop marks)", () => {
   const shops = layout.marks.filter((m) => m.kind === 'shop');
 
-  it('has the bar, the back room, the chandlery, the store and the harbor office', () => {
+  it('has the bar, the back room, the card table, the chandlery, the store and the harbor office', () => {
     expect(shops.map((m) => m.id).sort()).toEqual([
       'shop.back_room',
+      'shop.card_table',
       'shop.chandlery',
       'shop.general_store',
       'shop.harbor_office',

@@ -31,6 +31,7 @@ import type { GamePapers } from './papers';
 import type { GameEvents } from './events';
 import type { GameFeuds } from './feuds';
 import type { BackRoom } from './back-room';
+import type { GamePoker } from './poker';
 import { papersSnapshot } from '../ui/port/papers-model';
 
 /**
@@ -104,6 +105,11 @@ export interface PortControlOptions {
    * the port screen keeps no tab for it: the saloon says where it is.
    */
   walkInBackRoom?(port: string): boolean;
+  /**
+   * The card table after supper (Phase 9 piece C): a tab where the port has a saloon, or
+   * walked up to in the saloon where the district is built (`walkInBackRoom`).
+   */
+  poker?: GamePoker | undefined;
   /** The pier a berth belongs to, from the zone's berths. */
   berthPier(berthId: string): string | undefined;
   /** When "Go ashore" should show on the port screen (built landing only). */
@@ -299,6 +305,19 @@ export function attachPorts(opts: PortControlOptions): PortControl {
       } else {
         snap.backRoomHint = opts.backRoom.hint(port);
       }
+    }
+    if (opts.poker) {
+      const walkIn = (opts.walkInBackRoom?.(port) ?? false) && shop?.tab !== 'cards';
+      snap.cards = walkIn ? undefined : opts.poker.snapshot(port);
+      if (snap.cards) {
+        const after = Math.max(snap.tabs.indexOf('backRoom'), snap.tabs.indexOf('saloon'));
+        snap.tabs.splice(after >= 0 ? after + 1 : snap.tabs.indexOf('ledger'), 0, 'cards');
+      }
+      const hint = opts.poker.hint(port);
+      snap.cardsHint =
+        walkIn && hint && opts.poker.isOpen(port)
+          ? `${hint} ${shop ? 'They play at the table by the stove.' : "The table's at the back of the saloon: go ashore."}`
+          : hint;
     }
     if (shop) {
       // At a counter ashore: that tab alone, and nothing of the ship's.
@@ -579,6 +598,35 @@ export function attachPorts(opts: PortControlOptions): PortControl {
       },
       repair(place) {
         return yardWork((y, port) => y.repair(port, place));
+      },
+      pokerDeal(stake) {
+        const port = openPort;
+        if (!port || !opts.poker) return 'Nobody is playing.';
+        const r = opts.poker.deal(port, stake);
+        refresh();
+        return r;
+      },
+      pokerBet(action) {
+        const port = openPort;
+        if (!port || !opts.poker) return 'Nobody is playing.';
+        const r = opts.poker.bet(port, action);
+        refresh();
+        return r;
+      },
+      pokerDraw(discards, palm) {
+        const port = openPort;
+        if (!port || !opts.poker) return 'Nobody is playing.';
+        const r = opts.poker.draw(port, discards, palm);
+        refresh();
+        return r;
+      },
+      pokerCaught(how) {
+        const port = openPort;
+        if (!port || !opts.poker) return 'Nobody is playing.';
+        const r = opts.poker.caught(port, how);
+        economy.syncLoad();
+        refresh();
+        return r;
       },
       payHarbor(kind) {
         const port = openPort;

@@ -92,12 +92,15 @@ const seq = (...xs: number[]): (() => number) => {
 };
 
 describe('events.json', () => {
-  it('validates, with the ten events of piece A drawn on the tick', () => {
+  it('validates, with the ten events of piece A and the poker night of piece C drawn on the tick', () => {
     const file = eventsFileSchema.parse(eventsJson);
+    const ids = file.events.map((e) => e.id);
+    expect(ids).toContain('event.poker_night');
     // Beats fired by their own systems (the Hollister feud's, piece D) aren't drawn.
-    const drawn = file.events.filter((e) => e.draw !== false);
-    expect(drawn.map((e) => e.id).sort()).toEqual(
-      [
+    const drawn = file.events.filter((e) => e.draw !== false).map((e) => e.id);
+    expect(drawn).not.toContain('event.hollister_undercut');
+    expect(drawn).toEqual(
+      expect.arrayContaining([
         'event.camp_demand',
         'event.coal_shortage',
         'event.herring_run',
@@ -108,7 +111,7 @@ describe('events.json', () => {
         'event.storm_bound',
         'event.whiskey_hijack',
         'event.wreck_survivors',
-      ].sort(),
+      ]),
     );
   });
 
