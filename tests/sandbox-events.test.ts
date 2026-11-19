@@ -92,17 +92,18 @@ const seq = (...xs: number[]): (() => number) => {
 };
 
 describe('events.json', () => {
-  it("validates, with piece A's ten, poker night (C), moon-cussing (I) and the scripted three (K)", () => {
+  it("validates, with piece A's ten, poker night (C), moon-cussing (I), the feud (D) and the year (K)", () => {
     const file = eventsFileSchema.parse(eventsJson);
-    expect(
-      file.events
-        .filter((e) => e.scripted)
-        .map((e) => e.id)
-        .sort(),
-    ).toEqual(['event.freeze_up', 'event.ice_out', 'event.mataafa'].sort());
+    // The year's three (piece K) are fired by the ice and the weather on their dates, never drawn.
+    for (const id of ['event.freeze_up', 'event.ice_out', 'event.mataafa']) {
+      expect(file.events.find((e) => e.id === id)?.draw, id).toBe(false);
+    }
     const ids = file.events.map((e) => e.id);
     expect(ids).toContain('event.poker_night');
-    expect(ids).toEqual(
+    // Beats fired by their own systems (the Hollister feud's, piece D) aren't drawn.
+    const drawn = file.events.filter((e) => e.draw !== false).map((e) => e.id);
+    expect(drawn).not.toContain('event.hollister_undercut');
+    expect(drawn).toEqual(
       expect.arrayContaining([
         'event.camp_demand',
         'event.coal_shortage',
@@ -276,13 +277,8 @@ describe('triggers and the draw', () => {
       fireEvent(s, w, d.def, d, () => rng.next());
       fires.push({ id: d.def.id, at: w.now });
     }
-    for (const e of EVENTS.events) {
+    for (const e of EVENTS.events.filter((x) => x.draw !== false)) {
       const mine = fires.filter((f) => f.id === e.id);
-      // The scripted ones come from the ice and the weather on their dates, never the draw.
-      if (e.scripted) {
-        expect(mine, e.id).toHaveLength(0);
-        continue;
-      }
       expect(mine.length, e.id).toBeGreaterThan(0);
       for (let i = 1; i < mine.length; i++) {
         const gap = must(mine[i]).at - must(mine[i - 1]).at;

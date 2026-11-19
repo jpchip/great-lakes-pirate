@@ -91,11 +91,6 @@ export const eventDefSchema = z.object({
   cooldownDays: z.number().nonnegative(),
   /** How long it stands, game hours (the price, the payroll, the talk). */
   hours: z.number().positive(),
-  /**
-   * Fired by its own system, never drawn (piece K: freeze-up, ice-out and the Mataafa
-   * storm come from the ice and the weather, on their dates).
-   */
-  scripted: z.boolean().optional(),
   /** At most this many times a run; unlimited when absent. */
   maxPerRun: z.number().int().positive().optional(),
   channels: z.array(z.enum(EVENT_CHANNELS)).min(1),
@@ -143,6 +138,13 @@ export const eventDefSchema = z.object({
   choices: z.array(choiceSchema).optional(),
   /** The choice taken if a letter goes unanswered until the event ends. */
   defaultChoice: z.string().optional(),
+  /**
+   * False for a beat another system fires (a feud's, Phase 9 piece D): never drawn on the
+   * tick, only fired by its system. Absent, it's drawn.
+   */
+  draw: z.boolean().optional(),
+  /** The papers' item is about you: printed as news that names you. */
+  paperNames: z.boolean().optional(),
 });
 export type EventDef = z.infer<typeof eventDefSchema>;
 

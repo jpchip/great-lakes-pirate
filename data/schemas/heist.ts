@@ -101,5 +101,19 @@ export const heistTargetSchema = z.object({
     hours: z.tuple([z.number().min(0).max(24), z.number().min(0).max(24)]),
   }),
   containers: z.array(heistContainerSchema).min(1),
+  /**
+   * A spot inside where the owner's stock can be spoiled (Phase 9 piece D: the packing
+   * house's brine vats), offered only while a feud with the owner is on. Hold F for `holdS`,
+   * heard `noiseM` off: the building's crates are spoiled and it's a sabotage, found at dawn.
+   */
+  sabotage: z
+    .object({
+      /** A `sabotage` mark in the layout. */
+      mark: z.string(),
+      label: z.string().min(1),
+      holdS: z.number().positive(),
+      noiseM: z.number().nonnegative(),
+    })
+    .optional(),
 });
 export type HeistTarget = z.infer<typeof heistTargetSchema>;

@@ -45,6 +45,11 @@ export interface GameEconomy {
    * port's Wanted tier); none by default.
    */
   informChance: (port: string) => number;
+  /**
+   * What the buyers pay you for a good at a port, as a share of the market's price (a feud's
+   * undercut, Phase 9 piece D); 1 by default.
+   */
+  sellFactor: (port: string, good: string) => number;
   /** Marks clean cargo hot, as if just stolen in `region` (the dev command until Phase 6). */
   makeHot(good: string, qty: number, region: string, heat?: number): number;
   /** Sets the ship's load from the hold; call after anything else changes the hold. */
@@ -90,6 +95,7 @@ export function attachEconomy(
   const economy: GameEconomy = {
     defs,
     informChance: () => 0,
+    sellFactor: () => 1,
     get capacity() {
       return capacity;
     },
@@ -99,8 +105,15 @@ export function attachEconomy(
     },
     buy: (port, good, qty) =>
       settle(buy(defs, markets(), player(), capacity, port, good, qty, now())),
-    sell: (port, good, qty) => settle(sell(defs, markets(), player(), port, good, qty, now())),
-    quote: (port, good, qty, side) => quote(defs, markets(), port, good, qty, side, now()),
+    sell: (port, good, qty) =>
+      settle(
+        sell(defs, markets(), player(), port, good, qty, now(), economy.sellFactor(port, good)),
+      ),
+    quote(port, good, qty, side) {
+      const q = quote(defs, markets(), port, good, qty, side, now());
+      if (side !== 'sell') return q;
+      return { ...q, totalCents: Math.floor(q.totalCents * economy.sellFactor(port, good)) };
+    },
     maxBuyable: (port, good) => maxBuyable(defs, markets(), player(), capacity, port, good, now()),
     prices(port) {
       const pm = defs.markets.get(port);
@@ -110,7 +123,7 @@ export function attachEconomy(
         return {
           good,
           buyCents: p?.buyCents ?? 0,
-          sellCents: p?.sellCents ?? 0,
+          sellCents: Math.floor((p?.sellCents ?? 0) * economy.sellFactor(port, good)),
           stock: markets()[port]?.[good]?.stock ?? 0,
         };
       });

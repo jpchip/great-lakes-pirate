@@ -10,6 +10,7 @@ import { itemsFileSchema, recipesFileSchema, stationsFileSchema } from './crafti
 import { districtsFileSchema, kitFileSchema } from './districts';
 import { eventsFileSchema } from './events';
 import { factionsFileSchema } from './factions';
+import { feudsFileSchema } from './feuds';
 import { fencesFileSchema } from './fences';
 import { pokerFileSchema } from './poker';
 import { gunsFileSchema } from './guns';
@@ -60,6 +61,7 @@ export const dataFileSchemas: Readonly<Record<string, z.ZodType>> = {
   'districts.json': districtsFileSchema,
   'events.json': eventsFileSchema,
   'factions.json': factionsFileSchema,
+  'feuds.json': feudsFileSchema,
   'fame_tiers.json': fameTiersFileSchema,
   'flows.json': flowsFileSchema,
   'goods.json': goodsFileSchema,

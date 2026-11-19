@@ -29,6 +29,7 @@ import type { GameShipyard } from './shipyard';
 import type { PortLaw } from './port-law';
 import type { GamePapers } from './papers';
 import type { GameEvents } from './events';
+import type { GameFeuds } from './feuds';
 import type { BackRoom } from './back-room';
 import type { GamePoker } from './poker';
 import { papersSnapshot } from '../ui/port/papers-model';
@@ -92,6 +93,8 @@ export interface PortControlOptions {
   papers?: GamePapers | undefined;
   /** Sandbox events (Phase 9 piece A): letters on the harbor master's tab, a scene on docking. */
   events?: GameEvents | undefined;
+  /** Feuds (Phase 9 piece D): a company's buyers undercutting your goods or turning them away. */
+  feuds?: Pick<GameFeuds, 'sellTerms'> | undefined;
   /**
    * The back room after dark (Phase 6 piece E): the fence and the shady shipwright, on a
    * tab of their own, and a hint in the saloon by day. Without it neither shows.
@@ -267,6 +270,20 @@ export function attachPorts(opts: PortControlOptions): PortControl {
         if (r.restricted) r.maxBuy = 0;
       }
     }
+    if (opts.feuds) {
+      // A feud's buyers pay you their share of the price, or turn you away (piece D).
+      for (const r of snap.market) {
+        const terms = opts.feuds.sellTerms(port, r.good);
+        if (!terms) continue;
+        r.sellCents = Math.floor(r.sellCents * terms.factor);
+        r.feud = { note: terms.note, refused: terms.refused };
+      }
+      for (const h of snap.hold) {
+        const terms = h.sellCents !== undefined ? opts.feuds.sellTerms(port, h.good) : undefined;
+        if (terms && h.sellCents !== undefined)
+          h.sellCents = Math.floor(h.sellCents * terms.factor);
+      }
+    }
     if (opts.papers) {
       const stand = opts.papers.stand(port);
       if (stand.papers.length > 0) {
@@ -398,6 +415,8 @@ export function attachPorts(opts: PortControlOptions): PortControl {
   });
   // A zone change takes the ship off the pier without a cast-off.
   const offZone = ctx.events.on('ZoneExited', () => (dockedPort = undefined));
+  // A feud moved on (Hollister turns your fish away): the market's prices change under you.
+  const offFeud = ctx.events.on('FeudChanged', () => refresh());
 
   /** Deliveries and handed-back cargo on arriving, in a line each. */
   const arrivalNotices = (port: string): string[] => {
@@ -420,7 +439,10 @@ export function attachPorts(opts: PortControlOptions): PortControl {
   const trade = (side: TradeSide, good: string, qty: number): string | undefined => {
     const port = openPort;
     if (!port) return 'The market is closed.';
-    const restricted = side === 'buy' ? opts.law?.restricted(port, good) : undefined;
+    const restricted =
+      side === 'buy'
+        ? opts.law?.restricted(port, good)
+        : opts.feuds?.sellTerms(port, good)?.refused;
     if (restricted) return restricted;
     const r = side === 'buy' ? economy.buy(port, good, qty) : economy.sell(port, good, qty);
     if (!r.ok) return TRADE_REFUSALS[r.reason];
@@ -673,6 +695,7 @@ export function attachPorts(opts: PortControlOptions): PortControl {
       offDocked();
       offCastOff();
       offZone();
+      offFeud();
     },
   };
 }

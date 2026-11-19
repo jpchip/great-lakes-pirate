@@ -1,3 +1,4 @@
+import { FEUDS, shunsYou } from '../sim/events/feuds';
 import {
   abandonContract,
   acceptContract,
@@ -78,11 +79,16 @@ export function attachContracts(
       shunned: shunned(),
     };
   };
-  /** Companies whose grudge keeps their agents from dealing with you (Phase 6 piece F). */
+  /**
+   * Companies whose grudge keeps their agents from dealing with you (Phase 6 piece F), and
+   * a feud's company while it turns your goods away (Phase 9 piece D).
+   */
   const shunned = (): Set<string> => {
     const from = gameLaw().actors.companies.refuseContractsFrom;
     const g = ctx.state.player.grudges ?? {};
-    return new Set(Object.keys(g).filter((id) => (g[id] ?? 0) >= from));
+    const out = new Set(Object.keys(g).filter((id) => (g[id] ?? 0) >= from));
+    for (const f of FEUDS) if (shunsYou(ctx.state.feuds?.[f.id])) out.add(f.company);
+    return out;
   };
   const failed = (events: ReturnType<typeof expireContracts>): void => {
     for (const e of events) ctx.events.emit('ContractFailed', e);

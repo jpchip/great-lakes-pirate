@@ -32,6 +32,7 @@ import { freshStats, logbookSchema, statsSchema } from './run/record';
 import { newsSchema } from './news/state';
 import { eventsStateSchema, mailSchema } from './events/events';
 import { iceStateSchema } from './ice/state';
+import { feudsStateSchema } from './events/feuds';
 import { MOUNTS } from '../../data/schemas/combat';
 
 /**
@@ -469,6 +470,11 @@ export const districtWorldSchema = z.object({
   crews: z
     .record(z.string(), z.object({ night: z.number().int(), passOutAt: z.number() }))
     .optional(),
+  /**
+   * Sabotage spots done (Phase 9 piece D: Hollister's brine vats), by mark: the night. Once a
+   * night each. Optional: absent in saves before it.
+   */
+  sabotaged: z.record(z.string(), z.number().int()).optional(),
 });
 export type DistrictWorld = z.infer<typeof districtWorldSchema>;
 
@@ -672,6 +678,12 @@ export const worldStateSchema = z.object({
    * and the date. Optional: absent, a run picks its winter up from the clock.
    */
   ice: iceStateSchema.optional(),
+  /**
+   * Feuds (plan 12 §10 `feuds {hollister: stage}`; Phase 9 piece D), by feud id: the stage,
+   * the sales that started it and the pressure on the company. Optional: absent, no company
+   * has noticed you yet.
+   */
+  feuds: feudsStateSchema.optional(),
   /**
    * Wreck sites (plan 07 §7.3; Phase 6 piece F): ships gone to the bottom, yours among
    * them. Optional: absent, the lake has none yet.

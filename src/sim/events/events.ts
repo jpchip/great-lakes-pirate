@@ -158,7 +158,8 @@ export function candidates(
   moment: EventMoment,
 ): { port: string | undefined; region: string | undefined }[] {
   const now = world.now;
-  if (def.scripted || momentOf(def) !== moment) return [];
+  if (def.draw === false) return [];
+  if (momentOf(def) !== moment) return [];
   if (state.active.some((a) => a.id === def.id)) return [];
   const last = state.cooldowns[def.id];
   if (last !== undefined && now - last < def.cooldownDays * SECONDS_PER_GAME_DAY) return [];

@@ -130,6 +130,11 @@ export interface MarketRow {
    * here (Phase 6 piece E); `maxBuy` is 0 while it is.
    */
   restricted?: string | undefined;
+  /**
+   * A feud's buyers (Phase 9 piece D): what they pay you, in a word, and why they won't buy
+   * it from you at all when they won't. `sellCents` is already theirs.
+   */
+  feud?: { note: string; refused: string | undefined } | undefined;
 }
 
 export interface HoldRow {
