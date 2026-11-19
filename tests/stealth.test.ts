@@ -643,7 +643,7 @@ describe('the stealth HUD', () => {
 
   it('reads a search separately from a witness who will not pursue you', () => {
     const base = {
-      light: { level01: 0.2, ambient01: 0.1 },
+      light: { level01: 0.2, ambient01: 0.1, lamps01: 0.1, brightest: undefined },
       exposure01: 0.2,
       noiseM: 0,
       pursued: false,

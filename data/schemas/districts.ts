@@ -127,8 +127,11 @@ export const districtBuildingKindSchema = z.enum([
 /** A port-screen tab a shop door opens by day (plan 08 §20.6 decision 3). */
 export const portTabSchema = z.enum(['market', 'chandlery', 'ledger', 'contracts', 'backRoom']);
 
-/** What a `shop` mark opens when you walk up to it (piece F): a shop's tab, or the saloon's bar. */
-export const shopTabSchema = z.enum([...portTabSchema.options, 'saloon']);
+/**
+ * What a `shop` mark opens when you walk up to it (piece F): a shop's tab, the saloon's bar,
+ * or the saloon's card table after supper (Phase 9 piece C).
+ */
+export const shopTabSchema = z.enum([...portTabSchema.options, 'saloon', 'cards']);
 export type ShopTab = z.infer<typeof shopTabSchema>;
 
 /** A building: a rectangle of cells with walls round it and a roof over it. */

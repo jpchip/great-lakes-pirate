@@ -36,6 +36,7 @@ import { npcParade } from './gameplay/npc-ships';
 import { attachEconomy } from './gameplay/economy';
 import { attachPorts, type PortControl } from './gameplay/port';
 import { attachBackRoom } from './gameplay/back-room';
+import { attachPoker } from './gameplay/poker';
 import { fameTier, gameLaw, wantedTier } from './sim/law/defs';
 import { identifyInFlightReports } from './sim/law/law';
 import { attachRumors } from './gameplay/rumors';
@@ -1183,6 +1184,10 @@ async function boot(): Promise<void> {
       repair: (place) => portsRef.current?.actions.repair(place),
       fence: (index, qty) => portsRef.current?.actions.fence?.(index, qty),
       buyGun: (gunId) => portsRef.current?.actions.buyGun?.(gunId),
+      pokerDeal: (stake) => portsRef.current?.actions.pokerDeal?.(stake),
+      pokerBet: (action) => portsRef.current?.actions.pokerBet?.(action),
+      pokerDraw: (discards, palm) => portsRef.current?.actions.pokerDraw?.(discards, palm),
+      pokerCaught: (how) => portsRef.current?.actions.pokerCaught?.(how),
       // Piece E's harbor master tab offered Pay but nothing carried it to the game.
       payHarbor: (kind) => portsRef.current?.actions.payHarbor?.(kind),
       buyPaper: (paper) => portsRef.current?.actions.buyPaper?.(paper),
@@ -1446,9 +1451,37 @@ async function boot(): Promise<void> {
       return region ? portLaw.informRisk(region) : undefined;
     },
   });
+  // Poker night (Phase 9 piece C): a card table in every saloon after supper.
+  const poker = attachPoker({
+    ctx,
+    economy,
+    contracts,
+    seed: trafficSeed,
+    runSeed: () => state.environment.weather.noiseSeed,
+    commit: (input) => law.commit(input),
+    regionOf: (port) => portLaw.regionOf(port),
+  });
+  if (import.meta.env.DEV || params.has('debug')) {
+    // `__glpPoker.table('port.bayfield')` reads tonight's table; `.state()` the save's slice;
+    // `.give(cents)` and `.cheats(port, n)` set up a test.
+    const hook = {
+      table: (port: string) => poker.table(port),
+      state: () => poker.state,
+      open: (port: string) => poker.isOpen(port),
+      /** Puts cash in your purse, to sit a big game. */
+      give: (cents: number) => (ctx.state.player.purse += cents),
+      /** Sets the palmed cards already tried at a port's table tonight (the odds of being seen). */
+      cheats: (port: string, n: number) => {
+        const t = poker.table(port);
+        if (t) t.cheats = n;
+      },
+    };
+    (window as unknown as { __glpPoker: typeof hook }).__glpPoker = hook;
+  }
   const ports = attachPorts({
     ctx,
     economy,
+    poker,
     law: portLaw,
     papers,
     events: sandboxEvents,
@@ -3224,6 +3257,7 @@ async function boot(): Promise<void> {
         hour: dayAndHour(state.environment.clock.gameSeconds).hour,
         backRoomOpen: backRoom.isOpen(def.port),
         fenceName: backRoom.fenceAt(def.port)?.name,
+        cardsOpen: poker.isOpen(def.port),
       });
       if (!found) return undefined;
       return {
