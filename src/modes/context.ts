@@ -314,6 +314,18 @@ export interface GameEvents {
   };
   NewspaperBought: { port: string; paper: string; cents: number };
   /**
+   * The year turning (Phase 9 piece K): a port's harbor frozen in (freeze-up) and open again
+   * (ice-out); the first boat of the season into Duluth, `you` when it was yours; a ship
+   * stopped at the edge of ice too thick for her, and ice grinding at her hull.
+   */
+  HarborFrozen: { port: string };
+  /** A chart voyage stopped short of its course (piece K: ice closed the way). */
+  VoyageStopped: { reason: 'ice' };
+  HarborOpened: { port: string };
+  FirstBoatIn: { port: string; you: boolean; ship: string };
+  IceStopped: { shipId: string | undefined; thicknessCm: number };
+  IceGrinding: { shipId: string | undefined; damage: number };
+  /**
    * A feat the papers print (Phase 8 piece H raises it from the papers for Ambitions): an
    * escape from a law ship that gave chase (`by`), a record run, making port through a gale
    * with the storm signal up, or the first boat in after the ice.

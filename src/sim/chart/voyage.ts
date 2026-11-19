@@ -105,9 +105,25 @@ export interface CourseLeg {
   heading: number;
   /** Fraction along the leg where it runs aground, if it does. */
   landAt?: number;
+  /** Fraction along the leg where it meets ice she can't make way through (piece K). */
+  iceAt?: number;
 }
 
-export type CourseProblem = 'tooShort' | 'aground' | 'insideDestination';
+export type CourseProblem = 'tooShort' | 'aground' | 'insideDestination' | 'ice';
+
+/** Course legs are checked against the ice every this many meters. */
+export const ICE_STEP_M = 500;
+
+/** Where along a→b the ice first closes the way, as a fraction; undefined when clear. */
+export function firstIceHit(closed: (p: Chart) => boolean, a: Chart, b: Chart): number | undefined {
+  const len = distance(a, b);
+  const n = Math.max(1, Math.ceil(len / ICE_STEP_M));
+  for (let i = 0; i <= n; i++) {
+    const t = i / n;
+    if (closed(lerpChart(a, b, t))) return t;
+  }
+  return undefined;
+}
 
 export interface PlannedCourse {
   /** The ship's position followed by the player's waypoints. */
@@ -133,6 +149,8 @@ export function planCourse(
   geo: ChartGeography,
   from: Chart,
   waypoints: readonly Chart[],
+  /** Ice she can't make way through at a point now (piece K); none when absent. */
+  iceClosed?: (p: Chart) => boolean,
 ): PlannedCourse {
   const points = [from, ...waypoints];
   const last = points.at(-1) as Chart;
@@ -165,10 +183,12 @@ export function planCourse(
     const leg: CourseLeg = { from: a, to, lengthM: distance(a, to), heading: bearing(a, to) };
     if (leg.lengthM > 0) {
       const hit = firstLandHit(geo, a, to);
-      if (hit !== undefined) {
-        leg.landAt = hit;
-        problem ??= 'aground';
-      }
+      const ice = iceClosed ? firstIceHit(iceClosed, a, to) : undefined;
+      if (hit !== undefined) leg.landAt = hit;
+      if (ice !== undefined) leg.iceAt = ice;
+      // The leg's first obstacle names the problem: ice off a shore before the shore.
+      if (ice !== undefined && (hit === undefined || ice < hit)) problem ??= 'ice';
+      else if (hit !== undefined) problem ??= 'aground';
       legs.push(leg);
     }
   }

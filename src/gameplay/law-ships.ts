@@ -1,5 +1,6 @@
 import type { GameContext } from '../modes/context';
 import { spottedRegions } from '../sim/hideouts/life';
+import { lakeIceFor } from '../sim/ice/ice';
 import { cutterOrdered } from '../sim/events/events';
 import { investigated } from '../sim/wrecking';
 import { SITES } from '../sim/hideouts/stash';
@@ -118,6 +119,7 @@ export function attachLawShips(
     lanes,
     seed,
     tier: (r) => tierIn(defs, ctx.state, r),
+    iced: () => lakeIceFor(seed).harborClosed('port.duluth', clock.gameSeconds),
     // A hideout of yours seen this week draws her sorties (plan 09 §8; Phase 8 piece F).
     // So does an order to a region (the Morrill ordered in; Phase 9 piece A), and an
     // inquiry into wrecks there (piece I).

@@ -68,6 +68,11 @@ export interface HarborSnapshot {
   /** Letters waiting here, as at every harbor master's (Phase 9 piece A), newest first. */
   letters?: LetterView[] | undefined;
   unreadLetters?: number | undefined;
+  /**
+   * Frozen in (Phase 9 piece K): the harbor's shut by the ice until its ice-out, "about
+   * April 21", and she can be laid up here till then. Undefined while the harbor's open.
+   */
+  frozenUntil?: string | undefined;
 }
 
 /** The HUD's regional Wanted indicator (plan 13 §4.1). */

@@ -1,6 +1,9 @@
 {
   "pressHour": 6,
-  "delayHours": { "home": 6, "away": 20 },
+  "delayHours": {
+    "home": 6,
+    "away": 20
+  },
   "staleDays": 4,
   "keepEditions": 2,
   "briefs": 3,
@@ -14,7 +17,6 @@
   "feats": {
     "fameCap": 340,
     "recordShare": 0.5,
-    "iceOutMonths": [2, 3],
     "galeKn": 28
   },
   "units": {

@@ -31,6 +31,7 @@ import { lanternStateSchema } from './law/lantern';
 import { freshStats, logbookSchema, statsSchema } from './run/record';
 import { newsSchema } from './news/state';
 import { eventsStateSchema, mailSchema } from './events/events';
+import { iceStateSchema } from './ice/state';
 import { feudsStateSchema } from './events/feuds';
 import { MOUNTS } from '../../data/schemas/combat';
 import { curiosSchema, discoveryStateSchema, leadsSchema } from './discovery/discovery';
@@ -672,6 +673,12 @@ export const worldStateSchema = z.object({
   events: eventsStateSchema.optional(),
   /** Letters waiting at the harbor masters' (plan 12 §10 `mail[]`; piece A). */
   mail: mailSchema.optional(),
+  /**
+   * The year turning (plan 16 §12 `ice`; Phase 9 piece K): harbors seen frozen in, each
+   * spring's first boat in, the Mataafa storm told. The ice itself follows from the seed
+   * and the date. Optional: absent, a run picks its winter up from the clock.
+   */
+  ice: iceStateSchema.optional(),
   /**
    * Feuds (plan 12 §10 `feuds {hollister: stage}`; Phase 9 piece D), by feud id: the stage,
    * the sales that started it and the pressure on the company. Optional: absent, no company

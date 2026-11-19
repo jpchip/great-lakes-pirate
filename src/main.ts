@@ -91,7 +91,12 @@ import { jumpPlacesShip } from './debug/jump-panel';
 import type { SaveControls } from './debug/overlay';
 import type { GameContext, GameEvents } from './modes/context';
 import { ModeMachine } from './modes/machine';
-import { createSailingMode, type SailingModeOptions, type SailingView } from './modes/sailing';
+import {
+  createSailingMode,
+  emitHazard,
+  type SailingModeOptions,
+  type SailingView,
+} from './modes/sailing';
 import { createChartTravel, type ChartTravel } from './modes/chart-travel';
 import { allContacts } from './modes/chart';
 import { loadAssets } from './render/assets';
@@ -173,6 +178,9 @@ import {
   type Lookout,
 } from './sim/discovery/discovery';
 import { attachEvents, type GameEvents as SandboxEvents } from './gameplay/events';
+import { aboutDate, attachIce, ICE_BOW_UPGRADE } from './gameplay/ice';
+import { iceSailingSystem } from './gameplay/ice-sailing';
+import { calendarMs, gameSecondsAt } from './sim/ice/season';
 import { crewsIdle } from './sim/events/events';
 import { attachFeuds } from './gameplay/feuds';
 import { FEUDS, feudOpen } from './sim/events/feuds';
@@ -1221,6 +1229,7 @@ async function boot(): Promise<void> {
       pokerCaught: (how) => portsRef.current?.actions.pokerCaught?.(how),
       // Piece E's harbor master tab offered Pay but nothing carried it to the game.
       payHarbor: (kind) => portsRef.current?.actions.payHarbor?.(kind),
+      layUp: () => portsRef.current?.actions.layUp?.(),
       buyPaper: (paper) => portsRef.current?.actions.buyPaper?.(paper),
       readLetter: (key) => portsRef.current?.actions.readLetter?.(key),
       answerLetter: (key, choice) => portsRef.current?.actions.answerLetter?.(key, choice),
@@ -1540,6 +1549,67 @@ async function boot(): Promise<void> {
     },
   });
   eventsRef.current = sandboxEvents;
+  // The year turning (Phase 9 piece K): the run's ice, freeze-up and ice-out, the first boat
+  // into Duluth after the ice, and the Mataafa storm.
+  const gameIce = attachIce({
+    ctx,
+    seed: trafficSeed,
+    contacts: () => traffic.contacts,
+    economy: economy.defs,
+    fire: (id, port) => {
+      sandboxEvents.fire(id, port);
+    },
+  });
+  /** Runs the clock on by world ticks, as sleeping does (the dev hook and laying up). */
+  const passWorldTime = (seconds: number): void => {
+    const clock = state.environment.clock;
+    const ticks = Math.max(1, Math.ceil(seconds / WORLD_TICK_GAME_SECONDS));
+    for (let k = 0; k < ticks; k++) {
+      const n = advanceGameTime(clock, WORLD_TICK_GAME_SECONDS);
+      for (let i = 0; i < n; i++) ctx.events.emit('WorldTick', { gameSeconds: clock.gameSeconds });
+    }
+  };
+  if (import.meta.env.DEV || params.has('debug')) {
+    const geoIce = westernSuperiorChart();
+    const hook = {
+      /** The ice at a lon/lat now. */
+      at: (lon: number, lat: number) => gameIce.at(geoIce.projection.geoToChart({ lat, lon })),
+      /** A port's harbor: frozen in now, and its freeze-up and ice-out this winter (ISO dates). */
+      harbor: (port: string) => {
+        const t = state.environment.clock.gameSeconds;
+        const season = gameIce.ice.harborSeason(port, t);
+        const iso = (x?: number) =>
+          x === undefined ? undefined : new Date(calendarMs(x)).toISOString().slice(0, 10);
+        return {
+          closed: gameIce.harborClosed(port),
+          freezeUp: iso(season.closeAt),
+          iceOut: iso(season.openAt),
+        };
+      },
+      /** This winter's roll. */
+      winter: () => {
+        const w = gameIce.ice.winter(state.environment.clock.gameSeconds);
+        return { year: w.year, severity: w.severity, fallStorms: w.fallStorms };
+      },
+      state: () => gameIce.state,
+      /** Runs the clock on to a calendar date (`'1900-12-20'`), world tick by world tick. */
+      skipTo: (iso: string) => {
+        const target = gameSecondsAt(Date.parse(`${iso}T00:00:00Z`));
+        const t = state.environment.clock.gameSeconds;
+        if (target > t) passWorldTime(target - t);
+        ctx.weather.tick(state.environment.clock.gameSeconds, shipPose(), ctx.sea);
+        return new Date(calendarMs(state.environment.clock.gameSeconds)).toISOString();
+      },
+      /** Fits (or takes off) the ice bow without a yard. */
+      iceBow: (on = true) => {
+        const ship = state.player.ship;
+        if (!ship) return;
+        ship.upgrades = ship.upgrades.filter((u) => u !== ICE_BOW_UPGRADE);
+        if (on) ship.upgrades.push(ICE_BOW_UPGRADE);
+      },
+    };
+    (window as unknown as { __glpIce: typeof hook }).__glpIce = hook;
+  }
   if (import.meta.env.DEV || params.has('debug')) {
     // `__glpEvents.fire('event.herring_run')` fires one now (`fire(id, 'port.bayfield')` at a
     // port); `.check()` runs a draw; `.state()` and `.letters()` read them back.
@@ -1621,6 +1691,20 @@ async function boot(): Promise<void> {
     law: portLaw,
     papers,
     events: sandboxEvents,
+    // Frozen in (piece K): the harbor master lays her up until the ice goes out.
+    winter: {
+      frozenUntil: (port) =>
+        gameIce.harborClosed(port) ? aboutDate(gameIce.openAgainAt(port)) : undefined,
+      layUp: (port) => {
+        const at = gameIce.openAgainAt(port);
+        const t = state.environment.clock.gameSeconds;
+        if (at === undefined || at <= t) return "The harbor's open.";
+        passWorldTime(at - t);
+        ctx.weather.tick(state.environment.clock.gameSeconds, shipPose(), ctx.sea);
+        void saveControls.saveNow();
+        return 'The winter passes ashore. The ice is going out of the harbor, and she lies ready at the dock.';
+      },
+    },
     feuds,
     backRoom,
     contracts,
@@ -3021,9 +3105,59 @@ async function boot(): Promise<void> {
   };
   // A Most Wanted harbor asks first (plan 06 §3.2): the first F at its berth only warns.
   let topTierAsked: { berthId: string; untilS: number } | undefined;
-  sailingOptions.dockGate = (berthId) => {
+  /** The port a berth belongs to, if any. */
+  const berthPort = (berthId: string): string | undefined => {
     const pier = sailingOptions.berths.find((b) => b.id === berthId)?.dockId;
-    const port = pier ? pierPort(pier) : undefined;
+    return pier ? pierPort(pier) : undefined;
+  };
+  // A harbor frozen in (piece K) keeps a ship from its berths, and one at a berth on it.
+  sailingOptions.castOffGate = (berthId) => {
+    const port = berthPort(berthId);
+    if (!port || !gameIce.harborClosed(port)) return true;
+    showNotice(
+      `Frozen in at ${portInfo(port)?.name ?? 'the pier'} until the ice goes out, ${aboutDate(gameIce.openAgainAt(port))}`,
+    );
+    return false;
+  };
+  // Ice under the hull (piece K): drag, damage and an edge she can't pass, in a zone.
+  sailingOptions.ice = {
+    step: (dt) => {
+      if (arena) return;
+      const frame = zoneFrame(zone, zoneData);
+      const geoIce = westernSuperiorChart();
+      iceSailingSystem(
+        ctx.world,
+        {
+          sample: (x, z) => gameIce.at(fromWorldChart(geoIce, zoneToChart({ x, z }, frame))),
+          iceBow: (e) => !!e.playerControlled && gameIce.iceBow(),
+          onEvent: (e, ev) => {
+            if (ev.kind === 'hazard') emitHazard(ctx.events, e.id, ev.event);
+            else if (ev.kind === 'stopped') {
+              ctx.events.emit('IceStopped', { shipId: e.id, thicknessCm: ev.thicknessCm });
+              if (e.playerControlled) {
+                const cm = Math.round(ev.thicknessCm);
+                showNotice(
+                  gameIce.iceBow()
+                    ? `Ice ahead, ${cm} cm: too thick even for the ice bow. Bear away.`
+                    : `Ice ahead, ${cm} cm: too thick for her bow. Bear away, or fit an ice bow.`,
+                );
+              }
+            }
+          },
+        },
+        dt,
+        hudSeconds,
+      );
+    },
+  };
+  sailingOptions.dockGate = (berthId) => {
+    const port = berthPort(berthId);
+    if (port && gameIce.harborClosed(port)) {
+      showNotice(
+        `${portInfo(port)?.name ?? 'The harbor'} is frozen in until the ice goes out, ${aboutDate(gameIce.openAgainAt(port))}`,
+      );
+      return false;
+    }
     if (!port || !portLaw.topTierAt(port)) return true;
     if (topTierAsked?.berthId === berthId && hudSeconds <= topTierAsked.untilS) {
       topTierAsked = undefined;
@@ -3320,6 +3454,13 @@ async function boot(): Promise<void> {
       return { x: p.x, y: p.y, z: p.z };
     },
     islandPieces: () => zoneIslands().placed.flatMap((i) => i.pieces),
+    // The winter at a hideout (piece K): frozen in, the bunk sleeps it through to ice-out.
+    iceOutAt: (id) => {
+      const site = siteDef(state.hideouts?.[id]?.siteId ?? '');
+      const at = site ? siteGeo(site) : undefined;
+      if (!at) return undefined;
+      return gameIce.openAgainAtPoint(westernSuperiorChart().projection.geoToChart(at));
+    },
     blocked: () => {
       if (run.inDanger || ashoreRef.current?.pursued || pursuitOn.size > 0)
         return 'Not with the law on your tail';
@@ -4905,6 +5046,12 @@ async function boot(): Promise<void> {
     sailTick: (dt) => sailingMode.update?.(dt),
     forecastHours: () => instruments.forecastHours,
     chartSpeedMul: () => instruments.chartSpeedMul,
+    // The winter's ice (piece K): drawn on the chart, closing courses, slowing her in floes.
+    ice: {
+      closed: (p) => gameIce.closesHere(p),
+      drag: (p) => gameIce.drag(p),
+      picture: () => gameIce.picture(),
+    },
     // A look at the chart from on foot (plan 08 §20.4 follow-up): where you stand ashore,
     // and the rowboat if you left it, alongside the schooner.
     ashorePositions: () => ashoreRef.current?.chartPositions(),

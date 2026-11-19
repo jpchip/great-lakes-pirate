@@ -28,7 +28,7 @@ import type { LawDefs } from './defs';
  *   port at her lane's ends and lies there (storms are windows of opportunity).
  * - **Away to Lake Michigan.** With nothing above `away.maxTier` she sometimes leaves by
  *   the lower lakes for a few game days, off the chart.
- * - **Winter quarters** at Duluth while the ice closes the lake.
+ * - **Winter quarters** at Duluth, December to March and while the ice holds Duluth (piece K).
  *
  * Each leg is saved (`lawShips` in the world state), so a reload finds her where she was;
  * the draws come from the run's seed and the sortie count.
@@ -79,6 +79,11 @@ export interface PatrolWorld {
   tier(region: string): number;
   /** A gale blows at a route node (or at her position while under way). */
   gale(at: { node?: string; lane?: string; alongM?: number }): boolean;
+  /**
+   * Her winter port is frozen in (piece K): she lies up there until the ice goes out, even
+   * past March. Absent: the months alone decide.
+   */
+  iced?(): boolean;
   /** A hideout was spotted in this region this week (Phase 8 piece F): she leans that way. */
   spotted?(region: string): boolean;
 }
@@ -184,7 +189,7 @@ export function planMorrill(world: PatrolWorld, s: PatrolState, now: number): Pa
   }
 
   // Winter quarters at the coaling port while the ice is in.
-  if (c.winterMonths.includes(monthAt(now))) {
+  if (c.winterMonths.includes(monthAt(now)) || world.iced?.()) {
     if (here !== c.coalingNode) {
       return legFrom(transfer, here, now, SECONDS_PER_GAME_DAY, 'winter') as PatrolLeg;
     }

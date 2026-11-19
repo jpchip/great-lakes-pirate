@@ -1,0 +1,152 @@
+{
+  "year": {
+    "severityC": 2.0,
+    "severityMax": 2,
+    "anomalyC": 2.5,
+    "anomalyKeep": 0.8,
+    "fallStorms": [0.75, 1.3]
+  },
+  "growth": {
+    "coolShelteredFdd": 90,
+    "coolOpenFdd": 1100,
+    "coolPower": 1.5,
+    "warmBack": 0.5,
+    "stefanCm": 2.2,
+    "meltCm": 0.7,
+    "coverCm": 4,
+    "packBelow": 0.35,
+    "packMaxCoverage": 0.85,
+    "breakup": {
+      "month": 2,
+      "day": 10,
+      "underCm": 30,
+      "clearDays": [8, 20]
+    }
+  },
+  "hull": {
+    "stopCm": 8,
+    "stopCoverage": 0.7,
+    "drag": 0.8,
+    "floeDrag": 0.45,
+    "damagePerKn": 0.35,
+    "damageFromKn": 1,
+    "floeDamagePerKn": 0.25,
+    "floeFromKn": 2.5
+  },
+  "harbor": {
+    "closedCoverage": 0.7,
+    "closedCm": 5,
+    "openCoverage": 0.3
+  },
+  "field": {
+    "cellM": 1000,
+    "deepFathoms": 80,
+    "shoreM": 7000,
+    "depthWeight": 0.5,
+    "shoreWeight": 0.45
+  },
+  "basins": [
+    {
+      "id": "basin.chequamegon_bay",
+      "name": "Chequamegon Bay",
+      "shelter": 0.95,
+      "ring": [
+        [-90.99, 46.56],
+        [-90.7, 46.56],
+        [-90.7, 46.69],
+        [-90.78, 46.715],
+        [-90.86, 46.725],
+        [-90.93, 46.72],
+        [-90.99, 46.69]
+      ]
+    },
+    {
+      "id": "basin.apostles_inner",
+      "name": "The inner Apostles, behind Madeline and Stockton",
+      "shelter": 0.6,
+      "ring": [
+        [-90.86, 46.79],
+        [-90.8, 46.86],
+        [-90.74, 46.92],
+        [-90.62, 46.95],
+        [-90.52, 46.9],
+        [-90.55, 46.8],
+        [-90.66, 46.72],
+        [-90.76, 46.72]
+      ]
+    },
+    {
+      "id": "basin.la_pointe_channel",
+      "name": "The channel between Bayfield and Madeline Island",
+      "shelter": 0.8,
+      "ring": [
+        [-90.845, 46.755],
+        [-90.765, 46.755],
+        [-90.745, 46.79],
+        [-90.775, 46.835],
+        [-90.83, 46.84],
+        [-90.85, 46.8]
+      ]
+    },
+    {
+      "id": "basin.twin_ports_harbor",
+      "name": "Duluth-Superior Harbor",
+      "shelter": 0.95,
+      "ring": [
+        [-92.23, 46.65],
+        [-91.99, 46.65],
+        [-92.0, 46.715],
+        [-92.06, 46.765],
+        [-92.095, 46.79],
+        [-92.23, 46.77]
+      ]
+    }
+  ],
+  "harbors": {
+    "port.duluth": {
+      "shelter": 0.92,
+      "radiusM": 2500
+    },
+    "port.superior": {
+      "shelter": 0.95,
+      "radiusM": 2500
+    },
+    "port.two_harbors": {
+      "shelter": 0.5,
+      "radiusM": 1500
+    },
+    "port.ashland": {
+      "shelter": 0.97,
+      "radiusM": 3000
+    },
+    "port.washburn": {
+      "shelter": 0.95,
+      "radiusM": 3000
+    },
+    "port.bayfield": {
+      "shelter": 0.82,
+      "radiusM": 2000
+    },
+    "port.la_pointe": {
+      "shelter": 0.82,
+      "radiusM": 2000
+    },
+    "port.red_cliff": {
+      "shelter": 0.65,
+      "radiusM": 1500
+    },
+    "port.siskiwit": {
+      "shelter": 0.6,
+      "radiusM": 2000
+    }
+  },
+  "firstBoat": {
+    "port": "port.duluth",
+    "premium": 1.5
+  },
+  "mataafa": {
+    "peak": "1905-11-28T09:00",
+    "peakHpa": 40,
+    "radiusKm": 700
+  }
+}

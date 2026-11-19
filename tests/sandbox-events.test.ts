@@ -92,8 +92,12 @@ const seq = (...xs: number[]): (() => number) => {
 };
 
 describe('events.json', () => {
-  it('validates, with the ten events of piece A, the poker night of piece C and the moon-cussing night of piece I drawn on the tick', () => {
+  it("validates, with piece A's ten, poker night (C), moon-cussing (I), the feud (D) and the year (K)", () => {
     const file = eventsFileSchema.parse(eventsJson);
+    // The year's three (piece K) are fired by the ice and the weather on their dates, never drawn.
+    for (const id of ['event.freeze_up', 'event.ice_out', 'event.mataafa']) {
+      expect(file.events.find((e) => e.id === id)?.draw, id).toBe(false);
+    }
     const ids = file.events.map((e) => e.id);
     expect(ids).toContain('event.poker_night');
     // Beats fired by their own systems (the Hollister feud's, piece D) aren't drawn.

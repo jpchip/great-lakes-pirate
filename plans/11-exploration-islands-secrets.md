@@ -452,7 +452,7 @@ Twenty-six pieces, each sized to be one thread, in three stages by decision 1. A
 ### 18.7 Housekeeping found along the way
 
 - The master plan's Phase 9 row should name the three stages and decision 2's districts once this is approved, and plan 17's Beta row should match decision 2.
-- Plan 04 §15 says the MVP ends at freeze-up; that stop was never built (§18.1), and stage 2 makes it moot. 04 should say so.
+- Plan 04 §15 says the MVP ends at freeze-up; that stop was never built (§18.1), and stage 2 makes it moot. 04 says so now (piece K, [04 §26](04-water-weather-seasons.md)).
 - Plan 12 §11's Phase 8 row still lists events and letters; 09 §16.6 moved them here.
 - Plan 09 has two sections numbered 16.11 (the slipway and build audio); the slipway's should be 16.12.
 - Plan 17 §9's Beta checklist wants the Ojibwe cultural review "well before Beta" and hosting for the first public release. Both are Jared's to start; neither blocks a piece.

@@ -12,6 +12,7 @@ import { calendarDate } from '../../core/time';
 import { SHIP_RECORDS, serviceSpeedKn } from '../sailing/ships';
 import { bearing, distance, lerpChart } from './geography';
 import { placePatrol } from './patrol';
+import { closesHull, ICE, lakeIceFor } from '../ice/ice';
 import type { Contact, ContactKind } from './traffic';
 
 /**
@@ -122,6 +123,37 @@ export interface LaneSchedule {
   /** The route nodes at the ship's home end and far end (Phase 4 piece D: cargo). */
   homeNode: string;
   awayNode: string;
+  /**
+   * The ice (piece K): the run's seed and the lane's two ends, home first. A cycle that
+   * would find either end frozen in (on leaving, arriving or coming home) isn't sailed.
+   */
+  ice?: { seed: string; ends: [IceEnd, IceEnd] };
+}
+
+/** A lane's end as the ice sees it: a port's harbor, or open water at a point. */
+export interface IceEnd {
+  port?: string | undefined;
+  lonLat: readonly [number, number];
+}
+
+function endClosed(seed: string, end: IceEnd, t: number): boolean {
+  const ice = lakeIceFor(seed);
+  if (end.port) return ice.harborClosed(end.port, t);
+  const [lon, lat] = end.lonLat;
+  return closesHull(ice.at(ice.geo.projection.geoToChart({ lat, lon }), t), ICE.hull.stopCm);
+}
+
+/** The ice keeps her in this cycle: an end of her lane is frozen when she'd be there. */
+export function iceKeepsIn(s: LaneSchedule, k: number): boolean {
+  if (!s.ice) return false;
+  const t0 = cycleStartS(s, k);
+  const transit = s.lengthM / s.speedMs;
+  const [home, away] = s.ice.ends;
+  return (
+    endClosed(s.ice.seed, home, t0) ||
+    endClosed(s.ice.seed, away, t0 + transit) ||
+    endClosed(s.ice.seed, home, t0 + 2 * transit + s.dwellAwayS)
+  );
 }
 
 /** One cycle's length: out, lie away, back, lie at home. */
@@ -167,7 +199,8 @@ export function cycleAt(s: LaneSchedule, gameSeconds: number): number {
 
 /** Each cycle begins with the run out from home; the month then decides if she goes. */
 export function sailsInCycle(s: LaneSchedule, k: number): boolean {
-  return hash01(`${s.key}:${k}`) < (s.season[monthAt(cycleStartS(s, k))] ?? 0);
+  if (hash01(`${s.key}:${k}`) >= (s.season[monthAt(cycleStartS(s, k))] ?? 0)) return false;
+  return !iceKeepsIn(s, k);
 }
 
 export function lanePlace(s: LaneSchedule, gameSeconds: number): LanePlace {
@@ -225,6 +258,12 @@ export function createTraffic(
   projection: ChartProjection,
   seed: string,
   graph: RouteGraph = westernSuperiorRoutes(),
+  /**
+   * The run's seed for the ice (piece K), which keeps ships in port while their lanes'
+   * ends are frozen: the run's own (the traffic's seed less its `-traffic`), so the
+   * timetable and the rest of the game see the same winter. False for no ice.
+   */
+  iceSeed: string | false = seed.replace(/-traffic$/, ''),
 ): Contact[] {
   const toChart = ([lon, lat]: [number, number]): Chart => projection.geoToChart({ lat, lon });
   const contacts: Contact[] = [];
@@ -265,6 +304,13 @@ export function createTraffic(
           homeNode: flip ? lane.to : lane.from,
           awayNode: flip ? lane.from : lane.to,
         };
+        if (iceSeed !== false) {
+          const end = (n: RouteNode): IceEnd => ({ port: n.port, lonLat: n.at });
+          const ends: [IceEnd, IceEnd] = flip
+            ? [end(toNode), end(fromNode)]
+            : [end(fromNode), end(toNode)];
+          schedule.ice = { seed: iceSeed, ends };
+        }
         schedule.phaseS = hash01(`${key}:phase`) * cycleS(schedule);
         const kind = CLASS_KIND[entry.classId] ?? 'freighter';
         const contact: Contact = {

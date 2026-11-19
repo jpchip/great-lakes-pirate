@@ -100,7 +100,7 @@
     "baseH": [3, 8],
     "galeKn": 34,
     "shelterH": 6,
-    "winterMonths": [0, 1, 2],
+    "winterMonths": [11, 0, 1, 2],
     "baseWeight": 1,
     "pull": [0, 0.6, 2, 6, 10, 16],
     "away": {

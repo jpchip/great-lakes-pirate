@@ -111,8 +111,6 @@ export const newspapersFileSchema = z.object({
     fameCap: z.number().nonnegative(),
     /** A delivery inside this share of the time allowed is a record run. */
     recordShare: z.number().min(0).max(1),
-    /** Months (0 = January) when the first boat in after the ice is news. */
-    iceOutMonths: z.array(z.number().int().min(0).max(11)).min(1),
     /** Docking with the storm signal up and the wind at least this, knots. */
     galeKn: z.number().positive(),
   }),

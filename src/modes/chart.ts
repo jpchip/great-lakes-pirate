@@ -97,7 +97,15 @@ export interface ChartSession {
   hunter?: EncounterCheck['hunter'];
   /** Game seconds still to lose standing off something steered clear of (S8 finding 4). */
   detourS?: number;
+  /**
+   * The ice (piece K): where it closes the way to her (a course into it is refused and a
+   * voyage stops at its edge), and what it does to her speed where she can make way.
+   */
+  ice?: { closed(p: Chart): boolean; drag(p: Chart): number } | undefined;
 }
+
+/** A voyage stops this far short of ice that closes the way, meters. */
+export const ICE_STOP_AHEAD_M = 800;
 
 export type EncounterChoice = 'engage' | 'avoid' | 'ignore';
 
@@ -105,6 +113,8 @@ export interface ChartHooks {
   onEncounter?(enc: Encounter): void;
   /** `zone` is undefined when the course ended in open water. */
   onArrived?(zone: ChartZone | undefined): void;
+  /** The voyage stopped at the edge of ice that closed the way since it was plotted. */
+  onIceAhead?(): void;
 }
 
 export interface ChartMode extends Mode {
@@ -187,8 +197,13 @@ export const FOG_SPEED = 0.8;
 /** The ship as the weather here lets her sail: slower inside a squall or a fog bank. */
 export function sessionShip(session: ChartSession): ChartShip {
   const sky = session.sky;
-  if (!sky) return session.ship;
-  let f = 1;
+  const iceDrag = session.ice?.drag(session.position) ?? 1;
+  if (!sky) {
+    return iceDrag === 1
+      ? session.ship
+      : { ...session.ship, cruiseKn: session.ship.cruiseKn * iceDrag };
+  }
+  let f = iceDrag;
   for (const c of sky.contacts) {
     if (Math.hypot(session.position.x - c.pos.x, session.position.y - c.pos.y) >= (c.radiusM ?? 0))
       continue;
@@ -230,7 +245,12 @@ export function createChartMode(
       ctx.input.context = 'chart';
     },
     replot() {
-      session.course = planCourse(session.geo, session.position, session.waypoints);
+      session.course = planCourse(
+        session.geo,
+        session.position,
+        session.waypoints,
+        session.ice ? (p) => session.ice?.closed(p) ?? false : undefined,
+      );
       return session.course;
     },
     setSail() {
@@ -303,6 +323,23 @@ export function createChartMode(
       if (worldTicks > 0) readSky(session, clock.gameSeconds);
       const dayAfter = dayAndHour(clock.gameSeconds).day;
       if (dayAfter !== dayBefore) ctx.events.emit('DayChanged', { day: dayAfter });
+
+      // Ice that has closed the way since she sailed: she stops short of it (piece K).
+      const ice = session.ice;
+      if (ice && !voyage.arrived && worldTicks > 0) {
+        const ahead = {
+          x: voyage.position.x + Math.sin(voyage.heading) * ICE_STOP_AHEAD_M,
+          y: voyage.position.y + Math.cos(voyage.heading) * ICE_STOP_AHEAD_M,
+        };
+        if (ice.closed(ahead)) {
+          session.voyage = undefined;
+          session.waypoints = [];
+          session.course = undefined;
+          ctx.events.emit('VoyageStopped', { reason: 'ice' });
+          hooks.onIceAhead?.();
+          return;
+        }
+      }
 
       if (voyage.arrived) {
         session.voyage = undefined;

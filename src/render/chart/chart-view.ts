@@ -1,3 +1,5 @@
+import type { IcePicture } from '../../sim/ice/ice';
+import { IceLayer } from './ice-layer';
 import { METERS_PER_NAUTICAL_MILE, type Chart } from '../../core/coords';
 import { Rng } from '../../core/rng';
 import { simplifyRing } from '../../core/simplify';
@@ -57,6 +59,8 @@ export interface ChartFrame {
    * with the schooner (plan 08 §20.4 follow-up).
    */
   ashore?: { captain: Chart; boat?: Chart | undefined } | undefined;
+  /** The winter's ice (piece K): hatched where solid, stippled where it's broken to floes. */
+  ice?: IcePicture | undefined;
 }
 
 export type ChartMarkKind =
@@ -117,6 +121,8 @@ export class ChartView {
   layerDraws = 0;
   /** The weather overlay, cached in its own canvas. */
   readonly weatherLayer = new WeatherLayer();
+  /** The winter's ice, cached in its own canvas (piece K). */
+  readonly iceLayer = new IceLayer();
   /**
    * The static layer with the weather drawn over it, so a frame is one copy with the
    * weather up too. Rebuilt when either changes; shifted like the static layer while the
@@ -249,6 +255,7 @@ export class ChartView {
       ctx.fillStyle = `rgba(18, 28, 46, ${0.42 * (1 - frame.daylight)})`;
       ctx.fillRect(0, 0, w, h);
     }
+    if (frame.ice) this.iceLayer.draw(ctx, this, frame.ice, dpr);
     if (frame.weather) this.weatherLayer.drawLive(ctx, this, frame.weather, 1 - frame.daylight);
     this.drawLights(geo, frame.daylight);
     this.drawPorts(geo);
@@ -1068,14 +1075,20 @@ export class ChartView {
       ctx.save();
       ctx.setLineDash([8, 6]);
       ctx.lineWidth = 2;
-      if (leg.landAt === undefined) {
+      const stopAt =
+        leg.landAt === undefined
+          ? leg.iceAt
+          : leg.iceAt === undefined
+            ? leg.landAt
+            : Math.min(leg.landAt, leg.iceAt);
+      if (stopAt === undefined) {
         ctx.strokeStyle = CHART_COLORS.ink;
         ctx.beginPath();
         ctx.moveTo(a.x, a.y);
         ctx.lineTo(b.x, b.y);
         ctx.stroke();
       } else {
-        const hit = { x: a.x + (b.x - a.x) * leg.landAt, y: a.y + (b.y - a.y) * leg.landAt };
+        const hit = { x: a.x + (b.x - a.x) * stopAt, y: a.y + (b.y - a.y) * stopAt };
         ctx.strokeStyle = CHART_COLORS.ink;
         ctx.beginPath();
         ctx.moveTo(a.x, a.y);

@@ -27,6 +27,20 @@
     }
   },
   {
+    "id": "upgrade.ice_bow",
+    "name": "Ice-strengthened bow",
+    "category": "hull",
+    "blurb": "Iron plates on the stem and a greenheart sheathing at the waterline: ice does a third of the damage and drags less, and she can push through ice two and a half times as thick before it stops her. A tenth of a knot slower.",
+    "priceCents": 9000,
+    "sources": ["shipyard"],
+    "installHours": 16,
+    "transferable": false,
+    "effects": {
+      "iceBow": true,
+      "speedKn": -0.1
+    }
+  },
+  {
     "id": "upgrade.repair_stores",
     "name": "Repair stores",
     "category": "utility",

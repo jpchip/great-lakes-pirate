@@ -16,6 +16,8 @@ import {
   inPolygon,
 } from './geography';
 import { fractalNoise, valueNoise } from './noise';
+import { airOffsetC, fallStormsAt, gameSecondsAt, ICE } from '../ice/season';
+import { WORLD_PROJECTION_REF } from './world-ref';
 
 /**
  * The weather sim (plan 04 §5): a handful of moving pressure systems and fog banks on
@@ -360,7 +362,8 @@ export function airTempAt(state: WeatherState, p: Chart, t: number): number {
   const base = baseWind(state, climate, p, t);
   // Southerly flow brings warm air; northerly flow brings cold.
   const advection = Math.max(-7, Math.min(7, 0.3 * base.y));
-  return mean + diurnal + advection;
+  // The winter's roll (piece K): a hard winter runs colder than the normals, a mild one warmer.
+  return mean + diurnal + advection + airOffsetC(weatherSeed(state), t);
 }
 
 /** Rain or snow rate, 0–1, from lows. Heaviest just ahead (east and north) of the center. */
@@ -598,7 +601,13 @@ const TRACKS: Record<
   high: { from: [-1000, -500, 600, 850], kmh: [25, 40] },
 };
 
-function spawnSystem(state: WeatherState, rng: Rng, climate: Climate, kind: 'low' | 'high'): void {
+function spawnSystem(
+  state: WeatherState,
+  rng: Rng,
+  climate: Climate,
+  kind: 'low' | 'high',
+  fallStorms = 1,
+): void {
   const track = kind === 'high' ? 'high' : pickTrack(rng, climate.tracks);
   const def = TRACKS[track];
   const sx = LAKE_CENTER.x + rng.range(def.from[0], def.from[1]) * 1000;
@@ -617,7 +626,7 @@ function spawnSystem(state: WeatherState, rng: Rng, climate: Climate, kind: 'low
   if (kind === 'high') {
     peakHpa = rng.range(6, 16) + (climate.airMaxC < 5 ? 4 : 0);
     radius = rng.range(1000, 1500) * 1000;
-  } else if (rng.chance(climate.deepShare)) {
+  } else if (rng.chance(Math.min(1, climate.deepShare * fallStorms))) {
     peakHpa = -rng.range(22, 34);
     radius = rng.range(650, 850) * 1000;
   } else {
@@ -757,6 +766,59 @@ function updateFog(state: WeatherState, climate: Climate, t: number, dt: number)
   state.fogBanks = state.fogBanks.filter((b) => b.age < b.life);
 }
 
+/** The run's seed for the year's roll (the same string the game's `runSeed` makes). */
+export function weatherSeed(state: WeatherState): string {
+  return `run-${state.noiseSeed}`;
+}
+
+/**
+ * The Mataafa storm (plan 04 §18, plan 11 §18.4 piece K): the northeaster of November 27–28,
+ * 1905, a deep low out of the southwest passing south-east of the western lake, so the
+ * gale blows from the north-east down the lake onto Duluth. A run that reaches it meets it
+ * on its date, whatever else the weather is doing.
+ */
+const MATAAFA_LIFE_H = 36;
+const MATAAFA_KMH = 40;
+let mataafaCache: { spawnAt: number; peakAt: number } | undefined;
+export function mataafa(): { spawnAt: number; peakAt: number } {
+  if (!mataafaCache) {
+    const [d, hm] = ICE.mataafa.peak.split('T') as [string, string];
+    const [y, mo, da] = d.split('-').map(Number) as [number, number, number];
+    const [h, mi] = hm.split(':').map(Number) as [number, number];
+    const peakAt = gameSecondsAt(Date.UTC(y, mo - 1, da, h, mi));
+    mataafaCache = { peakAt, spawnAt: peakAt - 0.475 * MATAAFA_LIFE_H * HOUR };
+  }
+  return mataafaCache;
+}
+
+/** The storm's low as it forms, aimed to be at its height over Wisconsin at its peak. */
+export function mataafaSystem(state: WeatherState, t: number): PressureSystem {
+  const { peakAt } = mataafa();
+  // At its height the low lies about 250 km south-east of Duluth, moving north-east.
+  const peak = {
+    x: WORLD_PROJECTION_REF.duluth.x + 200_000,
+    y: WORLD_PROJECTION_REF.duluth.y - 250_000,
+  };
+  const speed = (MATAAFA_KMH * 1000) / HOUR;
+  const vx = speed * Math.SQRT1_2;
+  const vy = speed * Math.SQRT1_2;
+  const age = Math.max(0, t - (peakAt - 0.475 * MATAAFA_LIFE_H * HOUR));
+  const toPeak = peakAt - t;
+  return {
+    id: state.nextId++,
+    kind: 'low',
+    track: 'panhandle',
+    x: peak.x - vx * toPeak,
+    y: peak.y - vy * toPeak,
+    vx,
+    vy,
+    radius: ICE.mataafa.radiusKm * 1000,
+    peakHpa: -ICE.mataafa.peakHpa,
+    age,
+    life: MATAAFA_LIFE_H * HOUR,
+  };
+}
+
 /** Advance the weather to `t` (game seconds). Call once per world tick. */
 export function weatherTick(state: WeatherState, t: number): void {
   const dt = t - state.tickSeconds;
@@ -777,8 +839,10 @@ export function weatherTick(state: WeatherState, t: number): void {
   state.tickSeconds = t;
 
   if (livingSystems(state) < MAX_SYSTEMS && rng.chance(perTick(climate.lowsPerDay, dt))) {
-    spawnSystem(state, rng, climate, 'low');
+    spawnSystem(state, rng, climate, 'low', fallStormsAt(weatherSeed(state), t));
   }
+  const storm = mataafa();
+  if (t - dt < storm.spawnAt && storm.spawnAt <= t) state.systems.push(mataafaSystem(state, t));
   if (livingSystems(state) < MAX_SYSTEMS && rng.chance(perTick(climate.highsPerDay, dt))) {
     spawnSystem(state, rng, climate, 'high');
   }

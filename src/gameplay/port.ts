@@ -122,6 +122,13 @@ export interface PortControlOptions {
   showJournal(snapshot: LedgerSnapshot | undefined): void;
   /** A screen opened (true) or the last one closed (false): pause and take the keys. */
   onOpen(open: boolean): void;
+  /**
+   * The winter (Phase 9 piece K): when the port's harbor is frozen in, "about April 21" for
+   * its ice-out, and laying her up there until then (the refusal, or undefined).
+   */
+  winter?:
+    | { frozenUntil(port: string): string | undefined; layUp(port: string): string | undefined }
+    | undefined;
   /** "Cast off" on the port screen: press F at the helm for the next tick. */
   castOff(): void;
   /**
@@ -251,6 +258,8 @@ export function attachPorts(opts: PortControlOptions): PortControl {
     if (opts.law) {
       snap.harbor = opts.law.harbor(port);
       if (snap.harbor) snap.tabs.splice(snap.tabs.indexOf('ledger'), 0, 'harbor');
+      if (snap.harbor && opts.winter && !shop)
+        snap.harbor.frozenUntil = opts.winter.frozenUntil(port);
       if (snap.harbor && opts.events && !shop) {
         snap.harbor.letters = opts.events.letters();
         snap.harbor.unreadLetters = opts.events.unread();
@@ -639,6 +648,13 @@ export function attachPorts(opts: PortControlOptions): PortControl {
         const port = openPort;
         if (!port || !opts.law) return 'The harbor master is out.';
         const r = opts.law.pay(port, kind);
+        refresh();
+        return r;
+      },
+      layUp() {
+        const port = openPort;
+        if (!port || !opts.winter) return 'The harbor master is out.';
+        const r = opts.winter.layUp(port);
         refresh();
         return r;
       },

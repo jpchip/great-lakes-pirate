@@ -185,16 +185,21 @@ export function tickMarkets(
   markets: MarketsState,
   gameSeconds: number,
   dtSeconds: number,
+  /** Ports frozen in now (piece K): their imports run short and their exports pile up. */
+  frozen?: (portId: string) => boolean,
 ): void {
   const season = seasonAt(gameSeconds);
   const k = 1 - Math.exp((-defs.rules.recoveryPerDay * dtSeconds) / SECONDS_PER_GAME_DAY);
   for (const [portId, pm] of defs.markets) {
     const port = markets[portId];
     if (!port) continue;
+    const iced = frozen?.(portId) ?? false;
     for (const [goodId, mg] of pm.goods) {
       const s = port[goodId];
       if (!s) continue;
-      const target = seasonalTarget(defs, mg, season);
+      let target = seasonalTarget(defs, mg, season);
+      if (iced && mg.role === 'import') target *= defs.rules.frozenImportStock;
+      else if (iced && mg.role === 'export') target *= defs.rules.frozenExportStock;
       s.stock = Math.max(defs.rules.minStockCu, s.stock + (target - s.stock) * k);
     }
   }

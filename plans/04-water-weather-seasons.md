@@ -293,7 +293,7 @@ At each new year (and at game start), roll seeded variation: ice-out date, freez
 | **5 (Law)** | Visibility feeds stealth and detection, moon phase, storm warnings at ports |
 | **9 (Seasons & secrets)** | Full seasonal cycle, ice sim and rendering, walkable ice, snow, aurora, year variation, the Mataafa event. *Scoped in [11 §18](11-exploration-islands-secrets.md) as stage 2 (pieces K–N).* |
 
-**The MVP ends at freeze-up (decided 2026-10-22).** Until Phase 9 ships winter, a run that reaches the first freeze-up reaches the end of MVP content: the game says winter arrives in a later build and the run stops there. Spring at the start (May 7) has no ice; floes come with the Phase 9 ice sim.
+**The MVP ends at freeze-up (decided 2026-10-22).** Until Phase 9 ships winter, a run that reaches the first freeze-up reaches the end of MVP content: the game says winter arrives in a later build and the run stops there. Spring at the start (May 7) has no ice; floes come with the Phase 9 ice sim. *(The stop was never built, and Phase 9 piece K (§26) makes it moot: a run lives through the winter.)*
 
 ---
 
@@ -719,7 +719,45 @@ On the software renderer, only counts mean anything: Medium draws 43–45 calls 
 
 ---
 
+## 26. Phase 9 Piece K: The Year Turns (2026-11-19)
+
+Stage 2's sim half ([plan 11 §18.4](11-exploration-islands-secrets.md)): the lake freezes and opens, and the run carries on through it.
+
+### What was built
+
+- **The ice is a pure function of the run's seed and the date,** not a saved grid. `src/sim/ice/` works out each winter (October 1 to June 30) once: its severity and day-to-day air anomaly, then for 21 shelter classes the day's cover by freezing and thawing degree-days (a cooling need to reach before any ice, Stefan growth, melt), the break-up into floes from mid-March under 30 cm, and the floes clearing over one to three weeks. A winter takes 1.3 ms; six are cached. Nothing about the ice goes in the save but what the game has already told the player.
+- **The shelter field** (§8.1): a 1 km grid over the chart, worked out once per chart (270 ms in Node). Shallow water from the soundings and water near the shore freeze first; `data/ice.json`'s basins (Chequamegon Bay, the La Pointe channel, the Twin Ports' harbor, the water inside the Apostles) and each port's harbor radius raise it. The open lake rarely closes; Chequamegon Bay is fast every winter.
+- **The year's roll** (§4): a severity from −2 (mild) to 2 (hard) per winter, which moves freeze-up, ice-out and the extent; a fall storm index that raises the share of deep lows in October and November; and the air itself, a few degrees colder or warmer through the winter, so the weather and the ice agree.
+- **Harbors frozen in.** A port is closed from its freeze-up to its ice-out. The berths refuse a ship in or out and the harbor master says when the ice goes out ("about April 21"); you can lay up there until then. Sleeping in a hideout's bunk offers "until ice-out". `HarborFrozen` and `HarborOpened` go on the bus; Duluth's and Bayfield's go in the papers and the saloons.
+- **Sailing in ice** (`iceAt`, 02 §5.2): ice drags a hull (the controller's `iceFactor`) and grinds it over a walking pace; floes at ice-out knock at her too. Ice closed over its water and thicker than 8 cm stops a plain hull at its edge. The **ice bow** (`upgrade.ice_bow`, $90 at the shipyard) breaks 20 cm, takes 70% off the damage and 40% off the drag.
+- **Ice on the chart:** fast ice hatched, floes stippled, redrawn once a calendar day. A course into ice she can't break is refused with the red cross at the ice edge, and a voyage under way stops short of it.
+- **Winter traffic and markets:** a lane isn't sailed in a cycle that finds either end frozen in; a frozen port's imports run down to 40% and its exports pile up to 140%. The *Morrill* lies up December to March and while Duluth is frozen in.
+- **The first boat in:** after Duluth's ice-out, the first ship to tie up there wins, by the traffic's timetable or you. If you, the papers say so (the `firstBoat` feat) and Duluth pays half again for what it went without.
+- **The Mataafa storm:** a run that reaches November 1905 meets it, a deep low tracking up the lake with a north-east gale onto Duluth at its height on the 28th; the papers tell of it.
+
+### Numbers (Duluth harbor, first winter, closed–open)
+
+| Seed | Severity | Ashland | Bayfield | Duluth | Lake ice, Feb 15 |
+|---|---|---|---|---|---|
+| run-1 | 0.57 | 12-17–04-28 | 12-31–04-27 | 12-22–04-28 | 0.27 |
+| run-2 | −1.26 | 01-02–04-09 | 01-14–04-06 | 01-05–04-08 | 0.08 |
+| run-3 | 2.00 | 12-03–05-05 | 12-10–05-04 | 12-04–05-05 | 0.61 |
+| run-5 | 0.01 | 12-10–04-22 | 12-25–04-21 | 12-13–04-22 | 0.31 |
+| run-8 | −1.49 | 01-15–03-24 | 01-28–03-23 | 01-19–03-24 | 0.03 |
+
+The historical ranges are freeze-up in Duluth harbor in December, ice-out mid-April to early May ([R1](R1-western-superior-1900-research.md)).
+
+### The save
+
+`ice {frozen, firstBoat, mataafaAt}` is an optional slice (no version bump): what the game has already announced. A save from before it (a v10 autumn save) takes the harbors as they stand when loaded, without announcing them, and carries on into winter.
+
+### Not covered yet
+
+- The ice's look in the zone, snow and winter palettes (piece L).
+- Walking on the ice, the ice road, warmth (piece M); winter audio (piece N).
+
 ## Changelog
+- v0.12: Phase 9 piece K (§26): the ice sim, the year's roll, harbors frozen in, sailing and voyages in ice, the ice bow, winter traffic and markets, the first boat in and the Mataafa storm; §15's freeze-up stop marked moot.
 - v0.11: Phase 3 piece E ([03 §28](03-world-scale-chart-travel.md)): `squallAt` (summer thunder and cold squalls in a gale's rain), the climate normals cached per game time, and the chart's weather built from §12 and §15.
 - v0.10: Phase 2 piece E (§25): lighting LUTs (clear, overcast, storm, fog), two cloud layers, fog bank walls, rain streaks and wetness, summer thunderstorms and lightning, all from the weather sim; Rain and Thunderstorm in the dev panel.
 - v0.9: Phase 2 piece D (§24): the S9 sim drives the zone's wind, visibility and cloud; weather in the save (v2, with a migration from v1); climate in `data/climate.json`, checked against NOAA normals and Devils Island wind and retuned; a barometer on the HUD; the dev panel as an override.
