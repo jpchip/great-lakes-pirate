@@ -259,7 +259,21 @@ export function airOffsetC(seed: string, gameSeconds: number): number {
   const w = winterOf(seed, wd.year);
   const d = Math.max(0, Math.min(WINTER_DAYS - 1, Math.floor(wd.day)));
   const c = climateAt(new Date(Date.UTC(wd.year, 9, 1) + (d + 0.5) * DAY_MS));
-  return (w.airC[d] as number) - (c.airMaxC + c.airMinC) / 2;
+  return ((w.airC[d] as number) - (c.airMaxC + c.airMinC) / 2) * offsetWeight(wd.day);
+}
+
+/**
+ * How much of the winter's anomaly reaches the weather: none in October, all of it from
+ * November 1 to April 15, none again from May 1, so the sailing season's weather is the
+ * normals' alone (and a run's summer the same as it was before the ice).
+ */
+function offsetWeight(day: number): number {
+  const NOV_1 = 31;
+  const APR_15 = 196;
+  const MAY_1 = 212;
+  if (day < NOV_1) return day / NOV_1;
+  if (day <= APR_15) return 1;
+  return Math.max(0, (MAY_1 - day) / (MAY_1 - APR_15));
 }
 
 /** The fall storms' multiplier on gales, October to December; 1 otherwise. */

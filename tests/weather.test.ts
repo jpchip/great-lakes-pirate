@@ -229,7 +229,7 @@ describe('the weather tick', () => {
 });
 
 describe('a simulated season (prototype S9)', () => {
-  const seeds = ['t1', 't2', 't3', 't4'];
+  const seeds = ['t1', 't2', 't3', 't4', 't5', 't6', 't7', 't8'];
   const runs = seeds.map((s) => runSeason(s, 30));
   const months = runs.flatMap((r) => monthStats(r, r.probes[0] as (typeof r.probes)[number]));
   const avg = (month: string, f: (m: (typeof months)[number]) => number) => {
