@@ -780,11 +780,13 @@ async function boot(): Promise<void> {
         region = law.region() ?? 'region.chequamegon',
         kind: WitnessKind | 'none' = 'keeper',
         identification: Identification = 'ship',
+        company?: string,
       ) =>
         law.commit({
           crime,
           region,
           witnesses: kind === 'none' ? [] : [devWitness(kind, identification)],
+          ...(company ? { company } : {}),
         }),
       fileAll: () => law.fileAll(),
       harbor: (port: string) => portLaw.harbor(port),
