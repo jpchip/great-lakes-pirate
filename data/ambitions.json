@@ -63,6 +63,15 @@
       "logbook": "Slipped the Morrill a third time. Her captain will be hearing about it."
     },
     {
+      "id": "ambition.moon_cusser",
+      "category": "infamy",
+      "name": "The Moon-Cusser",
+      "text": "Put a ship on a shoal with a false light",
+      "goal": { "kind": "counter", "counter": "moonCussings", "target": 1 },
+      "reward": { "cents": 5000, "fame": 10 },
+      "logbook": "A lantern on the point, and a ship steering for it in the dark. Moon-cussing, the old hands call it."
+    },
+    {
       "id": "ambition.most_wanted_at_large",
       "category": "infamy",
       "name": "At large",

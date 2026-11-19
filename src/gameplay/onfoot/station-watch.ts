@@ -9,6 +9,9 @@ import {
   lampOut,
   living,
   logbookHere,
+  logSighting,
+  loggedTie,
+  noteLoneDeath,
   oilLeft,
   onDuty,
   stationKeepers,
@@ -17,7 +20,7 @@ import {
   type PlacedStation,
 } from '../../sim/light-stations';
 import type { LightStationState } from '../../sim/world-state';
-import type { Witness } from '../../sim/law/witness';
+import type { Identification, Witness } from '../../sim/law/witness';
 import { footToolsHud, type FootToolsSnapshot } from '../../ui/hud/foot-tools-model';
 import type { AshoreScene } from './ashore-scene';
 import { CONDUCT_WORDS, isNight, type Conduct, type ConductReason } from './conduct';
@@ -133,6 +136,15 @@ const REACH_M = 1.9;
 const ALOFT_M = 4;
 /** A can of kerosene is a load: slower, no running. */
 const CAN_SPEED = 0.75;
+
+/** Your own entry in a station's log, as you read it there. */
+const LOGGED_AS: Record<Identification, string> = {
+  unknown: '',
+  schooner:
+    "There's a schooner in it, near enough to be yours. Take the book and it's gone with you.",
+  ship: "Your ship is in it, by name. Take the book and it's gone with you.",
+  person: "You're in it, by name, a visitor. Take the book and it's gone with you.",
+};
 
 function spotNoticeForReporting(reporting: LighthouseDef['reporting']): string {
   switch (reporting) {
@@ -390,6 +402,8 @@ export function createStationWatch(opts: StationWatchOptions): Watch & {
       else if (g.state === 'bribed') f.bribedUntil = g.untilGame;
       if (Object.keys(f).length === 0) Reflect.deleteProperty(rec.keepers, g.id);
     }
+    // The last of them dead: nobody tells it until he's found.
+    noteLoneDeath(light, rec, t, opts.seed, rules);
   };
 
   const toolContext = (player: CharacterState): ToolContext => {
@@ -414,13 +428,14 @@ export function createStationWatch(opts: StationWatchOptions): Watch & {
   };
 
   const sleepersTied = (): boolean => sleepers.every((id) => !onDuty(record(), id, now(), rules));
-  const readLog = (): void => {
+  /** The log's news; read from the book yourself, you see your own entry too. */
+  const readLog = (yourself = false): void => {
     const line = opts.hooks.schedule();
-    opts.hooks.notice(
-      line
-        ? `The ${short} log: ${line}. ${opts.hooks.weather()}`
-        : `The ${short} log: nothing passing worth noting. ${opts.hooks.weather()}`,
-    );
+    const news = line
+      ? `The ${short} log: ${line}. ${opts.hooks.weather()}`
+      : `The ${short} log: nothing passing worth noting. ${opts.hooks.weather()}`;
+    const you = yourself ? LOGGED_AS[loggedTie(record(), now(), rules)] : '';
+    opts.hooks.notice(you ? `${news} ${you}` : news);
   };
   let readThisLanding = false;
 
@@ -509,6 +524,8 @@ export function createStationWatch(opts: StationWatchOptions): Watch & {
         holdS: 0,
         act: () => {
           rec.talkedAt = now();
+          // A visitor goes in the log, by name.
+          logSighting(rec, now(), 'person');
           const c = opts.conditions();
           stealth.faceToFace(talk.id, stealth.readout().light.level01, c.fame01);
           readLog();
@@ -611,7 +628,7 @@ export function createStationWatch(opts: StationWatchOptions): Watch & {
           holdS: rules.readS,
           act: () => {
             readThisLanding = true;
-            readLog();
+            readLog(true);
           },
         };
       }

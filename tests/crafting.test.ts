@@ -121,7 +121,7 @@ describe('crafting data', () => {
       'store.crowbar',
       'item.crate',
       'item.barrel',
-      'item.false_light',
+      'store.false_light',
       'good.untaxed_whiskey',
       'upgrade.improved_carriages',
       'upgrade.repair_stores',
@@ -135,7 +135,7 @@ describe('crafting data', () => {
 
   it('names every thing', () => {
     expect(thingName('store.patch_kit')).toBe('Patch kit');
-    expect(thingName('item.false_light')).toBe('False-light rig');
+    expect(thingName('store.false_light')).toBe('False-light rig');
     expect(thingName('upgrade.improved_carriages')).toBe('Improved carriages');
   });
 });
@@ -227,14 +227,13 @@ describe('crafting at an active station', () => {
     expect(hold).toEqual([]);
   });
 
-  it('stores the false-light rig as an item for Phase 9', () => {
+  it('makes the false-light rig to be carried aboard in the lockers (Phase 9 piece I)', () => {
     const h = hideout([lot('good.hardware', 1), lot('good.kerosene', 1), lot('good.lumber', 1)]);
     expect(craft(h, 'recipe.false_light', 1, [h.storage.goods], opts).ok).toBe(true);
-    expect(h.storage.things).toEqual({ 'item.false_light': 1 });
-    expect(takeThing(h, { stores: {} }, 'item.false_light', 1)).toEqual({
-      ok: false,
-      reason: 'notStore',
-    });
+    expect(h.storage.things).toEqual({ 'store.false_light': 1 });
+    const ship = { stores: {} as Record<string, number> };
+    expect(takeThing(h, ship, 'store.false_light', 1).ok).toBe(true);
+    expect(ship.stores).toEqual({ 'store.false_light': 1 });
   });
 });
 

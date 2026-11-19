@@ -129,8 +129,25 @@ export interface GameTraffic {
    * (Phase 6 piece D): call after recording one, or after a load.
    */
   syncLost(): void;
+  /**
+   * Ships lying stranded on a shoal (Phase 9 piece I): off their timetables, shown where
+   * they lie, still and listing, with the hold they went aground with.
+   */
+  setStranded(list: (() => readonly StrandedShip[]) | undefined): void;
   dispose(): void;
 }
+
+/** A ship aground where a false light put her (Phase 9 piece I). */
+export interface StrandedShip {
+  shipId: string;
+  /** Zone meters, in the loaded zone's frame. */
+  pose: { x: number; z: number; heading: number };
+  /** Her hold as she went aground. */
+  manifest?: Manifest | undefined;
+}
+
+/** A stranded ship's list, radians: hard over on the shoal. */
+const STRANDED_LIST_RAD = 0.14;
 
 function recordOf(id: string): ShipRecord {
   const r = SHIP_RECORDS.find((s) => s.id === id);
@@ -172,6 +189,7 @@ export function attachTraffic(
 
   /** Ships off their timetables in this zone (the law steers them). */
   const held = new Set<string>();
+  let stranded: (() => readonly StrandedShip[]) | undefined;
   const clear = (): void => {
     for (const s of shown.values()) ctx.world.remove(s.entity);
     shown.clear();
@@ -297,6 +315,15 @@ export function attachTraffic(
     const key =
       [...inPort.values()].map((l) => l.map((s) => s.id).join(',')).join(';') +
       `|${[...taken].join(',')}`;
+    // Ships aground on a shoal (Phase 9 piece I), where they lie.
+    for (const st of stranded?.() ?? []) {
+      const c = byId.get(st.shipId);
+      if (!c?.classId || !zone.terrain?.contains(st.pose.x, st.pose.z)) continue;
+      show(st.shipId, c, recordOf(c.classId), st.pose, 0, false);
+      const npc = shown.get(st.shipId)?.entity.npc;
+      if (npc) npc.listRad = STRANDED_LIST_RAD;
+      seen.add(st.shipId);
+    }
     if (key !== berthKey) {
       berthKey = key;
       berths = new Map();
@@ -327,6 +354,8 @@ export function attachTraffic(
 
   /** Her manifest now, short whatever was taken from her on this passage (piece D). */
   const manifest = (contactId: string): Manifest | undefined => {
+    const aground = stranded?.().find((x) => x.shipId === contactId)?.manifest;
+    if (aground) return afterRobbery(aground, traffic().ships, contactId, economy);
     const c = byId.get(contactId);
     const m = c ? currentManifest(defs, economy, c, clock.gameSeconds) : undefined;
     return m && afterRobbery(m, traffic().ships, contactId, economy);
@@ -375,6 +404,9 @@ export function attachTraffic(
   return {
     contacts,
     defs,
+    setStranded(list) {
+      stranded = list;
+    },
     get shown() {
       return shown;
     },

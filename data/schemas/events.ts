@@ -13,7 +13,7 @@ import { idOf } from './common';
  * meeting and a scene can carry choices, each with its own outcomes.
  *
  * Text fills `{placeholders}`: `{port}`, `{region}`, `{ship}`, `{good}`, `{cash}`,
- * `{when}`, `{captain}`, `{hideout}`, `{cost}`.
+ * `{when}`, `{captain}`, `{hideout}`, `{cost}`, `{mark}` (a wrecking mark's name).
  */
 
 export const EVENT_CHANNELS = ['rumor', 'paper', 'letter', 'chart', 'scene'] as const;
@@ -111,6 +111,11 @@ export const eventDefSchema = z.object({
         .optional(),
       /** You hold a hideout. */
       hideout: z.boolean().optional(),
+      /**
+       * A moon-cussing night (Phase 9 piece I): the moon dark, the weather foul at a
+       * wrecking mark, and a laden ship due past it after dark.
+       */
+      wreckingNight: z.boolean().optional(),
       /** Game hours of the day it fires in, [from, to) (wraps past midnight). */
       hours: z.tuple([z.number().min(0).max(24), z.number().min(0).max(24)]).optional(),
     })

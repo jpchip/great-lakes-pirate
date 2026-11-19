@@ -34,8 +34,10 @@ export function storePriceCents(defs: EconomyDefs, portId: string, item: StoreIt
 
 export type StoreRefusal = 'badQty' | 'unknown' | 'full' | 'noMoney' | 'notKnown';
 
-/** Whether the chandler will sell this to a captain of this Fame tier (the pistol at Known). */
+/** Whether the chandler will sell this to a captain of this Fame tier (the pistol at Known).
+ * Things made only at a hideout (the false-light rig) are never for sale. */
 export function storeOffered(item: StoreItem, fameTier: number): boolean {
+  if (item.crafted) return false;
   return item.fameTier === undefined || fameTier >= item.fameTier;
 }
 

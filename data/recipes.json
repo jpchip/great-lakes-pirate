@@ -33,7 +33,7 @@
     "blurb": "A lantern on a pole with colored glass, kerosene for a night's burning.",
     "hours": 2,
     "inputs": { "goods": { "good.hardware": 1, "good.kerosene": 1, "good.lumber": 1 } },
-    "output": { "things": { "item.false_light": 1 } }
+    "output": { "things": { "store.false_light": 1 } }
   },
   {
     "id": "recipe.repair_stores",

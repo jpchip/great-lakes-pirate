@@ -42,6 +42,7 @@ import { storesFileSchema } from './stores';
 import { startersFileSchema, structuresFileSchema } from './structures';
 import { toolsFileSchema } from './tools';
 import { upgradesFileSchema } from './upgrades';
+import { wreckingFileSchema } from './wrecking';
 import { zonesFileSchema } from './zones';
 
 /** Every data/*.json file and the schema that validates it. */
@@ -95,5 +96,6 @@ export const dataFileSchemas: Readonly<Record<string, z.ZodType>> = {
   'upgrades.json': upgradesFileSchema,
   'wanted_tiers.json': wantedTiersFileSchema,
   'weapons.json': weaponsFileSchema,
+  'wrecking.json': wreckingFileSchema,
   'zones.json': zonesFileSchema,
 };
