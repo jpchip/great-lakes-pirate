@@ -72,6 +72,48 @@
       "searchS": 25,
       "bribeChance": 0.35,
       "armed": "none"
+    },
+    {
+      "id": "npc.fisherman",
+      "name": "Fisherman",
+      "witness": "townsfolk",
+      "onAlert": "report",
+      "pursues": false,
+      "sight": { "rangeM": 24, "fovDeg": 110, "peripheralDeg": 200 },
+      "hearing": 1,
+      "vigilance": { "day": 0.45, "night": 0.6 },
+      "speed": { "walk": 1.3, "run": 4.2 },
+      "searchS": 15,
+      "bribeChance": 0.55,
+      "armed": "none"
+    },
+    {
+      "id": "npc.farmer",
+      "name": "Farmer",
+      "witness": "townsfolk",
+      "onAlert": "report",
+      "pursues": false,
+      "sight": { "rangeM": 24, "fovDeg": 110, "peripheralDeg": 200 },
+      "hearing": 1,
+      "vigilance": { "day": 0.45, "night": 0.6 },
+      "speed": { "walk": 1.25, "run": 4 },
+      "searchS": 15,
+      "bribeChance": 0.45,
+      "armed": "none"
+    },
+    {
+      "id": "npc.villager",
+      "name": "Villager",
+      "witness": "townsfolk",
+      "onAlert": "report",
+      "pursues": false,
+      "sight": { "rangeM": 24, "fovDeg": 110, "peripheralDeg": 200 },
+      "hearing": 1,
+      "vigilance": { "day": 0.5, "night": 0.65 },
+      "speed": { "walk": 1.3, "run": 4.2 },
+      "searchS": 20,
+      "bribeChance": 0.4,
+      "armed": "none"
     }
   ],
   "tiers": [

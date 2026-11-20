@@ -564,7 +564,71 @@ Plan 15 §22 has the detail. The saloon plays "The Late Boat Waltz" on piano and
 
 `__glpCold` reads and drives it.
 
+### 18.17 Piece Q as built: hero islands (2026-11-20)
+
+**The seven.** Madeline (with La Pointe), Hermit, Basswood, Devils, Sand, Outer and Raspberry are `tier: "hero"` in `islands.json`, each walked whole on the baked 4 m zone terrain as Stockton is. Their `onFoot` entries hold the POIs (P's prefabs, set with `placePoi`), named **landings** (`{ name, x, z }`, where `__glpIslands.land` brings the rowboat in), the **residents**, how fast word leaves the island (`reporting`), and for Madeline the **village**. The POIs:
+- **Sand:** the East Bay fish camp, the Hansen and Johnson farmsteads, a cave mouth at the swallow caves (closed, as P left it), a beach wreck on the west shore, and a viewpoint.
+- **Devils:** a cave mouth on the north cliffs, a south-beach wreck and a viewpoint. There's no fish camp, because the shore is cliff all round.
+- **Raspberry:** a fish camp on the sandspit and a viewpoint, round the light station.
+- **Hermit:** the brownstone quarry, Wilson's trapper cabin (empty), a fish camp on the north shore and a viewpoint.
+- **Basswood:** the old quarry, the Becker farm, a fish camp on the east shore and a viewpoint.
+- **Outer:** an empty fish camp on the sandspit, a trapper cabin, a viewpoint and a wreck on the west beach.
+- **Madeline:** the Haskell and Nygaard farms on the Big Bay road, the north end fish camp, a trapper cabin, a viewpoint and the Big Bay wreck. **La Pointe** is the harbor layout already there (pier, store, church, mission, fish sheds), now walkable as part of the island. At the store's front door, F offers "Trade at the trading post", which opens La Pointe's market.
+
+The fish camps and quarries were placed by a search for the lowest shore near each spot, scored on dock height and dry footings. The trees are the zone's own, cleared round each piece as before. Every island fits its hero budget in `tests/poi-kits.test.ts`.
+
+**Growing round the stations.** An island's scene now includes its light station's solids, landing and ladder (the keeper's stairs stay H's), so landing anywhere on Sand or Raspberry walks you to the light, and the keepers nearest your landing are on duty. Where baked boxes overlap (Basswood's lies inside Madeline's, and Madeline's reaches Bayfield), the island under you is the one whose land is nearest. `placeZoneIslands` works this out on an 8 m grid from the island's chart position (`PlacedIsland.land`, `landDistanceM`). In winter, the ice road's far end at La Pointe offers "Up the ladder onto La Pointe's dock", which builds Madeline's scene there.
+
+**Residents.** There are three new NPC types, `npc.fisherman`, `npc.farmer` and `npc.villager`, with the keepers' sight and hearing. They don't chase. They are witness kind `townsfolk`, and `law_actors.json` gives that kind a `byReporting` delay: fast 0.5–1.5 h, medium 2–5 h, slow at dawn plus 1–3 h. Raspberry is fast, Sand and Madeline medium, and Hermit and Basswood slow. A resident's round is his home POI's `resident` marks (P), then any `round` points, snapped to walkable ground on a 1 m grid of his own (`LocalNavs`), so a whole island is never gridded at a meter.
+
+The residents by island:
+- **Sand:** four (the Hansen and Johnson farmers, and the Brekkes of the fish camp).
+- **Madeline:** five (two farmers, the north end fisherman, and a villager and a fisherman in La Pointe).
+- **Basswood:** three.
+- **Hermit and Raspberry:** one each.
+
+With a keeper, no island has more than six people. Residents are out from dawn to dusk and indoors at night. Their fates (dead, out cold, bribed) are saved in an optional `residents` slice, as the keepers' are. On an island with a station, they join `createStationWatch`. Elsewhere, `createIslandWatch` (`src/gameplay/onfoot/island-watch.ts`) runs them with the same tool belt, foot law and HUD.
+
+By day at Wanted tier 1 or below, F next to a resident is "Talk with …": one of his own lines, a line a day. At higher tiers or at night, standing in his yard is trespass, and carrying a body or showing a weapon is suspect anywhere. What he sees goes through `createFootLaw` as a `townsfolk` witness with the island's reporting speed, and a notice tells you how soon word will reach town.
+
+**Lit windows.** The shanties, cabins and fish houses where someone lives get amber panes, drawn as one more mesh (`island-pois-windows`) whose glow follows `lampLevel` from dusk, as the towns' windows do.
+
+**Hooks and tests.** `__glpIslands`:
+- `list()` returns each walkable island with its landings, residents and village.
+- `land(id, k)` anchors off a landing, rows in and steps ashore.
+- `here()` returns the island under you, its people as the watch has them, and their fates.
+- `meet(id)` stands you in front of a resident.
+
+`tests/hero-islands.test.ts` checks:
+- the data and budgets;
+- every landing at the water and resolving to its own island;
+- each resident's round snapped on the real terrain, with people out by day and none at night;
+- townsfolk reports at their island's speed.
+
+`e2e/hero-islands.spec.ts` lands on all seven, finds the residents about, and walks.
+
+**Not in piece Q:**
+- La Pointe's light is on Long Island (`light_stations.json`), so Madeline has no station or keeper.
+- La Pointe is not a district: it has no watch, lockup, or houses to rob.
+- No hunting or wildlife (V).
+- Caves stay closed (S).
+- No digging or caches on these islands (T).
+- No new hideout sites (W).
+- Residents don't row to town on screen: a report is a timer, as a keeper's is.
+- Hermit and Basswood's quarry wharves and Basswood's fish camp dock stand 4–5 m over the water, because their shores are steep in the baked terrain.
+
+**For Jared:**
+- The residents' names and lines, all invented.
+- Their looks: the fisherman's oilskin, the farmer's straw hat, the villager's coat.
+- Where each POI sits, especially the high quarry wharves.
+- Each island's reporting speed.
+- The residents' vigilance and bribe odds (0.45–0.65; 55% / 45% / 40%).
+- The trading post's title.
+
+Screenshots are in `hero-islands/`.
+
 ## Changelog
+- v0.15: Piece Q as built (§18.17): the seven hero islands walked whole with their POIs, landings and residents, La Pointe's trading post on foot, islanders who see and report as townsfolk, and lit windows at night.
 - v0.13: Phase 9 piece M as built (§18.15): walking on the ice, thin ice and the climb out, the ice road to La Pointe, the hand sled, warmth, and tracks in the snow.
 - v0.12: Piece P as built (§18.14): the POI kits, `placePoi` and marks, the tier budgets and `bench.island` per tier, and curios on the shelves.
 - v0.11: Piece J as built (§18.13): stage 1 audio.

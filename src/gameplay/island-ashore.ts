@@ -3,12 +3,14 @@ import type { GridField } from '../sim/terrain/grid-field';
 import type { Hideouts } from './hideouts';
 import {
   caveMouthBlocks,
+  landDistanceM,
   pieceToZone,
   rollCache,
   signalFeet,
   type PlacedIsland,
   type PlacedPoiPiece,
 } from '../sim/islands/on-foot';
+import type { HarborLayout, PlacedBuilding } from '../sim/harbors';
 import type { PlacedSolid, PlacedStation } from '../sim/light-stations';
 import { bearingBox, type AshoreGround } from './onfoot/ashore-scene';
 import type { BoxCollider, Collider } from './onfoot/colliders';
@@ -19,6 +21,11 @@ import type { ControllerParams, Ladder } from './onfoot/controller';
  * baked 1 m tiles, its quarry solid, its cache cairns to search, and the hideout's pieces
  * standing where they're built, its storage opened at them (Phase 8 piece C). Off the
  * island's tiles the ground is the zone's 4 m terrain, as every other landing's is.
+ *
+ * Phase 9 piece Q: the hero islands walked whole the same way, a lighthouse station's pad
+ * part of its island (the keepers' station with the rest of it round it), the island's
+ * residents in its scene for the watch to put on their rounds, which island a landing is on
+ * told by its own land where the baked boxes overlap, and La Pointe's trading post on foot.
  */
 
 /** The island's scene: what `buildAshoreScene` takes for it. */
@@ -30,6 +37,8 @@ export interface IslandScene {
   ladders: Ladder[];
   /** The lighthouse station this landing is at (plan 11 §18.4 piece H), if any. */
   station?: PlacedStation;
+  /** The island walked, with its residents (piece Q); absent on a station's pad alone. */
+  placed?: PlacedIsland;
 }
 
 export interface IslandPrompt {
@@ -68,6 +77,10 @@ export interface IslandAshoreDeps {
    * round its light, before the rest of its island walks (pieces Q and R).
    */
   stations?(): readonly PlacedStation[];
+  /** The zone's harbors: a village's buildings, for its trading post (piece Q). */
+  harbors?(): readonly HarborLayout[];
+  /** Opens a port's market at a counter on foot (La Pointe's trading post); the refusal. */
+  trade?(port: string, title: string): string | undefined;
   /** The run's seed for what's hidden where (the weather's noise seed). */
   runSeed(): number;
   notice(text: string): void;
@@ -112,6 +125,19 @@ export const STATION_LAND_M = 450;
 export const STATION_PAD_M = 520;
 /** Reach to a cairn or the strongbox. */
 const REACH_M = 2.2;
+/** From this far off a building's front you're at its counter (the trading post). */
+const COUNTER_M = 3.2;
+
+/** Within reach of a harbor building's front door (its -z side faces `facing`). */
+export function atFrontDoor(b: PlacedBuilding, x: number, z: number, reachM = COUNTER_M): boolean {
+  const fx = Math.sin(b.facing);
+  const fz = -Math.cos(b.facing);
+  const dx = x - b.x;
+  const dz = z - b.z;
+  const out = dx * fx + dz * fz;
+  const across = Math.abs(dx * -fz + dz * fx);
+  return out > b.depthM / 2 - 0.5 && out < b.depthM / 2 + reachM && across < b.widthM / 2;
+}
 
 /** A placed piece as solids for the controller. */
 export function pieceColliders(p: PlacedPoiPiece): Collider[] {
@@ -276,10 +302,16 @@ export function stationNear(
 export function attachIslandAshore(deps: IslandAshoreDeps): IslandAshore {
   const { state } = deps;
 
+  /**
+   * The island a point is on or off: within its tiles' box (and a pad), and where boxes
+   * overlap (Basswood's inside Madeline's), the one whose own land is nearest (piece Q).
+   */
   const islandAt = (
     x: number,
     z: number,
   ): { island: PlacedIsland; field: GridField } | undefined => {
+    let best: { island: PlacedIsland; field: GridField } | undefined;
+    let bestD = Number.POSITIVE_INFINITY;
     for (const island of deps.islands()) {
       const field = deps.ground(island.id);
       if (!field) continue;
@@ -289,10 +321,14 @@ export function attachIslandAshore(deps: IslandAshoreDeps): IslandAshore {
         z > field.z0 - LAND_PAD_M &&
         z < field.maxZ + LAND_PAD_M
       ) {
-        return { island, field };
+        // Without its land worked out, the box is the island, as before.
+        const d = island.land ? landDistanceM(island.land, x, z) : 0;
+        if (d > ISLAND_PAD_M || d >= bestD) continue;
+        bestD = d;
+        best = { island, field };
       }
     }
-    return undefined;
+    return best;
   };
 
   const stationScene = (st: PlacedStation): IslandScene => {
@@ -331,6 +367,18 @@ export function attachIslandAshore(deps: IslandAshoreDeps): IslandAshore {
     const extra: Collider[] = [];
     for (const p of island.pieces) extra.push(...pieceColliders(p));
     if (deps.hideouts) extra.push(...deps.hideouts.colliders());
+    // A light station on the island stands in its scene as on its own pad (piece Q): the
+    // nearest one to where you land is the one whose keepers are about.
+    const ladders: Ladder[] = island.ladders.map((l) => ({ ...l }));
+    const stations = (deps.stations?.() ?? []).filter((st) => st.island === island.id);
+    for (const st of stations) {
+      for (const s of st.solids) extra.push(...stationColliders(s));
+      if (st.landing) extra.push(...stationColliders(st.landing));
+      if (st.landingLadder) ladders.push({ ...st.landingLadder });
+    }
+    const station = stations
+      .map((st) => ({ st, d: Math.hypot(st.light.x - at.x, st.light.z - at.z) }))
+      .sort((a, b) => a.d - b.d)[0]?.st;
     return {
       island: island.id,
       // Walked ground is the zone's 4 m terrain everywhere now, the same heights the mesh,
@@ -350,7 +398,9 @@ export function attachIslandAshore(deps: IslandAshoreDeps): IslandAshore {
         maxZ: field.maxZ + ISLAND_PAD_M,
       },
       extra,
-      ladders: island.ladders.map((l) => ({ ...l })),
+      ladders,
+      ...(station ? { station } : {}),
+      placed: island,
     };
   };
 
@@ -398,7 +448,28 @@ export function attachIslandAshore(deps: IslandAshoreDeps): IslandAshore {
         }
       }
     }
-    return deps.salvage?.prompt(at) ?? deps.hideouts?.prompt(at);
+    return deps.salvage?.prompt(at) ?? deps.hideouts?.prompt(at) ?? tradingPost(at);
+  };
+
+  /** At a village's trading post counter (La Pointe's general store): its market (piece Q). */
+  const tradingPost = (at: { x: number; z: number }): IslandPrompt | undefined => {
+    if (!deps.trade || !deps.harbors) return undefined;
+    for (const island of deps.islands()) {
+      const v = island.village;
+      if (!v) continue;
+      const layout = deps.harbors().find((l) => l.def.id === v.harbor);
+      const b = layout?.buildings.find((k) => k.name === v.tradingPost);
+      if (!b || !atFrontDoor(b, at.x, at.z)) continue;
+      const trade = deps.trade;
+      return {
+        text: 'Trade at the trading post',
+        act: () => {
+          const refused = trade(v.port, `The ${layout?.def.name ?? ''} trading post`);
+          if (refused) deps.notice(refused);
+        },
+      };
+    }
+    return undefined;
   };
 
   return {

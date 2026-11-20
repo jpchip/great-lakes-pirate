@@ -6,6 +6,118 @@
     "at": {
       "lat": 46.9827,
       "lon": -90.9588
+    },
+    "tier": "hero",
+    "onFoot": {
+      "pois": [
+        {
+          "id": "sand_east_bay_camp",
+          "poi": "poi.fish_camp",
+          "x": 510,
+          "z": 356,
+          "facingDeg": 108
+        },
+        {
+          "id": "sand_hansen_farm",
+          "poi": "poi.farmstead",
+          "x": 447,
+          "z": 465,
+          "facingDeg": 120
+        },
+        {
+          "id": "sand_johnson_farm",
+          "poi": "poi.farmstead",
+          "x": 390,
+          "z": 540,
+          "facingDeg": 150
+        },
+        {
+          "id": "sand_swallow_caves",
+          "poi": "poi.cave_mouth",
+          "x": 620,
+          "z": 263,
+          "facingDeg": 85
+        },
+        {
+          "id": "sand_west_wreck",
+          "poi": "poi.beach_wreck",
+          "x": 174,
+          "z": 481,
+          "facingDeg": 211
+        },
+        {
+          "id": "sand_lookout",
+          "poi": "poi.viewpoint",
+          "x": 300,
+          "z": 400,
+          "facingDeg": 270
+        }
+      ],
+      "caches": [],
+      "landings": [
+        {
+          "name": "the East Bay dock",
+          "x": 510,
+          "z": 356
+        },
+        {
+          "name": "the west beach",
+          "x": 174,
+          "z": 481
+        }
+      ],
+      "residents": [
+        {
+          "id": "nils_hansen",
+          "name": "Nils Hansen",
+          "kind": "farmer",
+          "home": "sand_hansen_farm",
+          "talk": [
+            "Potatoes and hay, and the cow. The ground's sandy but it grows if you work it.",
+            "The schoolteacher comes over from Bayfield in the fall. Seven children this year.",
+            "The light keeper rows across to us for milk. He sees everything from up there."
+          ]
+        },
+        {
+          "id": "ole_johnson",
+          "name": "Ole Johnson",
+          "kind": "farmer",
+          "home": "sand_johnson_farm",
+          "talk": [
+            "We came over from Norway in '85. Same lake, colder than the fjord.",
+            "Strawberries in June, if the frost leaves them. Bayfield buys all we pick.",
+            "A schooner lay off East Bay a week back, at night, no lights. Not mine to ask."
+          ]
+        },
+        {
+          "id": "anders_brekke",
+          "name": "Anders Brekke",
+          "kind": "fisherman",
+          "home": "sand_east_bay_camp",
+          "talk": [
+            "Herring's running off the shoal. The nets come up heavy if you're out before light.",
+            "The Booth boat takes our fish to Bayfield twice a week, salted in the barrel.",
+            "Keep clear of the reef between here and York. It's taken better boats than yours."
+          ]
+        },
+        {
+          "id": "knut_brekke",
+          "name": "Knut Brekke",
+          "kind": "fisherman",
+          "home": "sand_east_bay_camp",
+          "round": [
+            {
+              "x": 560,
+              "z": 380
+            }
+          ],
+          "talk": [
+            "Father says I mend nets like a girl. The nets don't complain.",
+            "There are caves at the north end, full of swallows. You can row in on a flat day."
+          ]
+        }
+      ],
+      "reporting": "medium"
     }
   },
   {
@@ -33,6 +145,47 @@
     "at": {
       "lat": 46.975,
       "lon": -90.7942
+    },
+    "tier": "hero",
+    "onFoot": {
+      "pois": [
+        {
+          "id": "raspberry_fish_camp",
+          "poi": "poi.fish_camp",
+          "x": 193,
+          "z": 209,
+          "facingDeg": 141
+        },
+        {
+          "id": "raspberry_lookout",
+          "poi": "poi.viewpoint",
+          "x": 150,
+          "z": 175,
+          "facingDeg": 30
+        }
+      ],
+      "caches": [],
+      "landings": [
+        {
+          "name": "the fish camp beach",
+          "x": 193,
+          "z": 209
+        }
+      ],
+      "residents": [
+        {
+          "id": "charlie_dahl",
+          "name": "Charlie Dahl",
+          "kind": "fisherman",
+          "home": "raspberry_fish_camp",
+          "talk": [
+            "Trout on the hooks this week. The keeper's wife buys one when she can.",
+            "From the light they can signal Bayfield. Folks out here don't keep secrets long.",
+            "Sandspit's good for drawing a boat up. Mind the rocks at the end."
+          ]
+        }
+      ],
+      "reporting": "fast"
     }
   },
   {
@@ -60,6 +213,42 @@
     "at": {
       "lat": 47.0715,
       "lon": -90.7261
+    },
+    "tier": "hero",
+    "onFoot": {
+      "pois": [
+        {
+          "id": "devils_north_caves",
+          "poi": "poi.cave_mouth",
+          "x": 138,
+          "z": 111,
+          "facingDeg": 60
+        },
+        {
+          "id": "devils_south_wreck",
+          "poi": "poi.beach_wreck",
+          "x": 123,
+          "z": 312,
+          "facingDeg": 174
+        },
+        {
+          "id": "devils_lookout",
+          "poi": "poi.viewpoint",
+          "x": 126,
+          "z": 228,
+          "facingDeg": 90
+        }
+      ],
+      "caches": [],
+      "landings": [
+        {
+          "name": "the south beach",
+          "x": 123,
+          "z": 312
+        }
+      ],
+      "residents": [],
+      "reporting": "slow"
     }
   },
   {
@@ -132,6 +321,54 @@
     "at": {
       "lat": 47.0335,
       "lon": -90.4304
+    },
+    "tier": "hero",
+    "onFoot": {
+      "pois": [
+        {
+          "id": "outer_fish_camp",
+          "poi": "poi.fish_camp",
+          "x": 148,
+          "z": 1148,
+          "facingDeg": 316
+        },
+        {
+          "id": "outer_trapper_cabin",
+          "poi": "poi.trapper_cabin",
+          "x": 450,
+          "z": 800,
+          "facingDeg": 180
+        },
+        {
+          "id": "outer_lookout",
+          "poi": "poi.viewpoint",
+          "x": 500,
+          "z": 540,
+          "facingDeg": 90
+        },
+        {
+          "id": "outer_west_wreck",
+          "poi": "poi.beach_wreck",
+          "x": 216,
+          "z": 803,
+          "facingDeg": 265
+        }
+      ],
+      "caches": [],
+      "landings": [
+        {
+          "name": "the sandspit fish camp",
+          "x": 148,
+          "z": 1148
+        },
+        {
+          "name": "the west beach",
+          "x": 216,
+          "z": 803
+        }
+      ],
+      "residents": [],
+      "reporting": "slow"
     }
   },
   {
@@ -212,6 +449,66 @@
     "at": {
       "lat": 46.8877,
       "lon": -90.685
+    },
+    "tier": "hero",
+    "onFoot": {
+      "pois": [
+        {
+          "id": "hermit_quarry",
+          "poi": "poi.quarry",
+          "x": 105,
+          "z": 165,
+          "facingDeg": 320
+        },
+        {
+          "id": "hermit_cabin",
+          "poi": "poi.trapper_cabin",
+          "x": 260,
+          "z": 190,
+          "facingDeg": 200
+        },
+        {
+          "id": "hermit_fish_camp",
+          "poi": "poi.fish_camp",
+          "x": 188,
+          "z": 123,
+          "facingDeg": 336
+        },
+        {
+          "id": "hermit_lookout",
+          "poi": "poi.viewpoint",
+          "x": 205,
+          "z": 175,
+          "facingDeg": 0
+        }
+      ],
+      "caches": [],
+      "landings": [
+        {
+          "name": "the quarry wharf",
+          "x": 105,
+          "z": 165
+        },
+        {
+          "name": "the north shore camp",
+          "x": 188,
+          "z": 123
+        }
+      ],
+      "residents": [
+        {
+          "id": "gus_lindquist",
+          "name": "Gus Lindquist",
+          "kind": "fisherman",
+          "home": "hermit_fish_camp",
+          "talk": [
+            "The quarry company left in '97. Left the derrick, and the men's pay too, they say.",
+            "Old Wilson lived up in that cabin alone forty years ago. Folks still say he hid his money.",
+            "Nobody comes here but me and the gulls. I'd notice a stranger."
+          ]
+        }
+      ],
+      "reporting": "slow"
     }
   },
   {
@@ -221,6 +518,92 @@
     "at": {
       "lat": 46.8522,
       "lon": -90.7434
+    },
+    "tier": "hero",
+    "onFoot": {
+      "pois": [
+        {
+          "id": "basswood_quarry",
+          "poi": "poi.quarry",
+          "x": 126,
+          "z": 372,
+          "facingDeg": 294
+        },
+        {
+          "id": "basswood_farm",
+          "poi": "poi.farmstead",
+          "x": 250,
+          "z": 330,
+          "facingDeg": 160
+        },
+        {
+          "id": "basswood_fish_camp",
+          "poi": "poi.fish_camp",
+          "x": 338,
+          "z": 428,
+          "facingDeg": 124
+        },
+        {
+          "id": "basswood_lookout",
+          "poi": "poi.viewpoint",
+          "x": 300,
+          "z": 210,
+          "facingDeg": 270
+        }
+      ],
+      "caches": [],
+      "landings": [
+        {
+          "name": "the old quarry",
+          "x": 126,
+          "z": 372
+        },
+        {
+          "name": "the east shore camp",
+          "x": 338,
+          "z": 428
+        }
+      ],
+      "residents": [
+        {
+          "id": "henry_becker",
+          "name": "Henry Becker",
+          "kind": "farmer",
+          "home": "basswood_farm",
+          "talk": [
+            "This was the first quarry in the islands. Now it's my sheep that walk the cut.",
+            "Oats and potatoes. We take them across to Bayfield in the skiff.",
+            "There's a watch on the Bayfield dock now. Times are getting harder for some."
+          ]
+        },
+        {
+          "id": "will_becker",
+          "name": "Will Becker",
+          "kind": "farmer",
+          "home": "basswood_farm",
+          "round": [
+            {
+              "x": 270,
+              "z": 300
+            }
+          ],
+          "talk": [
+            "Pa wants the north field cleared before snow. Stumps, stumps and more stumps.",
+            "You can see clear to Madeline from the top of the island."
+          ]
+        },
+        {
+          "id": "tom_ryan",
+          "name": "Tom Ryan",
+          "kind": "fisherman",
+          "home": "basswood_fish_camp",
+          "talk": [
+            "Whitefish, mostly, and a few trout. Sells better in Duluth, if you can get it there.",
+            "A boat out of Bayfield looks in here now and then. The marshal's, I'd say."
+          ]
+        }
+      ],
+      "reporting": "slow"
     }
   },
   {
@@ -230,6 +613,161 @@
     "at": {
       "lat": 46.8133,
       "lon": -90.7005
+    },
+    "tier": "hero",
+    "onFoot": {
+      "pois": [
+        {
+          "id": "madeline_haskell_farm",
+          "poi": "poi.farmstead",
+          "x": 600,
+          "z": 1190,
+          "facingDeg": 200
+        },
+        {
+          "id": "madeline_nygaard_farm",
+          "poi": "poi.farmstead",
+          "x": 900,
+          "z": 1160,
+          "facingDeg": 180
+        },
+        {
+          "id": "madeline_north_camp",
+          "poi": "poi.fish_camp",
+          "x": 1945,
+          "z": 259,
+          "facingDeg": 57
+        },
+        {
+          "id": "madeline_trapper_cabin",
+          "poi": "poi.trapper_cabin",
+          "x": 1750,
+          "z": 330,
+          "facingDeg": 160
+        },
+        {
+          "id": "madeline_lookout",
+          "poi": "poi.viewpoint",
+          "x": 1830,
+          "z": 210,
+          "facingDeg": 120
+        },
+        {
+          "id": "madeline_big_bay_wreck",
+          "poi": "poi.beach_wreck",
+          "x": 1181,
+          "z": 1091,
+          "facingDeg": 53
+        }
+      ],
+      "caches": [],
+      "landings": [
+        {
+          "name": "La Pointe's village dock",
+          "x": 112,
+          "z": 1390
+        },
+        {
+          "name": "Big Bay beach",
+          "x": 1181,
+          "z": 1091
+        },
+        {
+          "name": "the north end fish camp",
+          "x": 1945,
+          "z": 259
+        }
+      ],
+      "residents": [
+        {
+          "id": "amos_haskell",
+          "name": "Amos Haskell",
+          "kind": "farmer",
+          "home": "madeline_haskell_farm",
+          "talk": [
+            "Hay to Bayfield for the livery, potatoes for the camps. A living, just.",
+            "The road to Big Bay runs past my fence. Plenty walk it these days.",
+            "In February the ice road's the best road we have. Bayfield's an hour's walk."
+          ]
+        },
+        {
+          "id": "nils_nygaard",
+          "name": "Nils Nygaard",
+          "kind": "farmer",
+          "home": "madeline_nygaard_farm",
+          "talk": [
+            "The old fur company's warehouse is down by the dock. Not much fur left to keep in it.",
+            "My cows don't care who's in the papers. I do, a little."
+          ]
+        },
+        {
+          "id": "pete_larsen",
+          "name": "Pete Larsen",
+          "kind": "fisherman",
+          "home": "madeline_north_camp",
+          "talk": [
+            "Herring off the north end in the fall. I salt them here and take them down to the village.",
+            "From up here you see every sail that rounds the point. I keep a tally."
+          ]
+        },
+        {
+          "id": "agnes_moreau",
+          "name": "Agnes Moreau",
+          "kind": "villager",
+          "round": [
+            {
+              "x": 185,
+              "z": 1430
+            },
+            {
+              "x": 232,
+              "z": 1452
+            },
+            {
+              "x": 212,
+              "z": 1500
+            },
+            {
+              "x": 176,
+              "z": 1394
+            }
+          ],
+          "talk": [
+            "The trading post buys and sells most anything. Ask at the counter.",
+            "Father Chebul says Mass on Sunday at St. Joseph's. Everyone comes, sooner or later.",
+            "The steamer brings the papers from Bayfield. We read about everyone."
+          ]
+        },
+        {
+          "id": "frank_duval",
+          "name": "Frank Duval",
+          "kind": "fisherman",
+          "round": [
+            {
+              "x": 115,
+              "z": 1305
+            },
+            {
+              "x": 122,
+              "z": 1333
+            },
+            {
+              "x": 128,
+              "z": 1370
+            }
+          ],
+          "talk": [
+            "Fish dock's mine most mornings. Mind the nets on the planks.",
+            "The Bayfield boats come over for our catch. They pay less than Duluth."
+          ]
+        }
+      ],
+      "reporting": "medium",
+      "village": {
+        "harbor": "harbor.la_pointe",
+        "port": "port.la_pointe",
+        "tradingPost": "General store"
+      }
     }
   },
   {
