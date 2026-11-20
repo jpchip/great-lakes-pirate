@@ -392,10 +392,9 @@ export function renderStory(
 }
 
 /** The paper's WANTED column: a notice for each region it covers with a poster up. */
-export function wantedColumn(world: PressWorld, paper: PaperDef, fame: number): WantedNotice[] {
+export function wantedColumn(world: PressWorld, paper: PaperDef, _fame: number): WantedNotice[] {
   const { law } = world;
-  const all = paper.coversAllFromFameTier !== undefined && fame >= paper.coversAllFromFameTier;
-  const regions = all ? law.regions.map((r) => r.id) : paper.covers;
+  const regions = paper.covers;
   const out: WantedNotice[] = [];
   for (const region of regions) {
     const p = posterFor(law, world.lawWorld.law, region);

@@ -1,6 +1,60 @@
 import { useState } from 'preact/hooks';
+import type { WantedNotice } from '../../sim/news/state';
 import type { PortActions } from './PortScreen';
 import { priceEar, type PaperView, type PapersSnapshot } from './papers-model';
+
+const CHARGE_PREFIX = 'For crimes against the law in ';
+
+function placeName(charge: string): string {
+  return charge.startsWith(CHARGE_PREFIX) ? charge.slice(CHARGE_PREFIX.length) : charge;
+}
+
+function WantedNotices({ wanted }: { wanted: WantedNotice[] }) {
+  if (wanted.length === 0) {
+    return <p class="paper-dim">No notices this week.</p>;
+  }
+  if (wanted.length === 1) {
+    const w = wanted[0];
+    return (
+      <div class={`paper-notice tier-${w.tier}`} data-testid="paper-wanted-notice">
+        <h5>{w.headline}</h5>
+        <p class="paper-notice-subject">{w.subject}</p>
+        {w.alias && (
+          <p class="paper-notice-alias" data-testid="paper-wanted-alias">
+            {w.alias}
+          </p>
+        )}
+        <p>{w.detail}</p>
+        <p>{w.charge}.</p>
+        {w.reward && <p class="paper-notice-reward">{w.reward}</p>}
+      </div>
+    );
+  }
+  const lead = wanted[0];
+  const maxTier = Math.max(...wanted.map((w) => w.tier));
+  return (
+    <div class={`paper-notice tier-${maxTier}`} data-testid="paper-wanted-notice">
+      <h5>{lead.headline}</h5>
+      <p class="paper-notice-subject">{lead.subject}</p>
+      {lead.alias && (
+        <p class="paper-notice-alias" data-testid="paper-wanted-alias">
+          {lead.alias}
+        </p>
+      )}
+      <p>{lead.detail}</p>
+      <p data-testid="paper-wanted-places">
+        {wanted.map((w, i) => (
+          <span key={w.region}>
+            {i > 0 && '; '}
+            {placeName(w.charge)}
+            {w.reward ? ` — ${w.reward}` : ''}
+          </span>
+        ))}
+        .
+      </p>
+    </div>
+  );
+}
 
 /**
  * The newsstand (plan 13 §12 "newspaper reader v1", plan 12 §6.2; Phase 5 piece F): the
@@ -80,24 +134,7 @@ function Front({ p, buy }: { p: PaperView; buy(): void }) {
             </section>
             <section class="paper-col paper-wanted" data-testid="paper-wanted">
               <h4>Wanted</h4>
-              {e.wanted.length === 0 ? (
-                <p class="paper-dim">No notices this week.</p>
-              ) : (
-                e.wanted.map((w) => (
-                  <div class={`paper-notice tier-${w.tier}`} key={w.region}>
-                    <h5>{w.headline}</h5>
-                    <p class="paper-notice-subject">{w.subject}</p>
-                    {w.alias && (
-                      <p class="paper-notice-alias" data-testid="paper-wanted-alias">
-                        {w.alias}
-                      </p>
-                    )}
-                    <p>{w.detail}</p>
-                    <p>{w.charge}.</p>
-                    {w.reward && <p class="paper-notice-reward">{w.reward}</p>}
-                  </div>
-                ))
-              )}
+              <WantedNotices wanted={e.wanted} />
             </section>
             <section class="paper-col">
               <h4>The Revenue Cutter</h4>

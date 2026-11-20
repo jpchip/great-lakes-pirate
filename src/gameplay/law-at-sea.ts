@@ -41,7 +41,8 @@ import { TUG_ID } from './law-ships';
  * hold (confiscation and the crime it is), and the capture, which piece D takes over.
  *
  * In an arena her helm is the arena's. In a zone she sails her timetable until her
- * captain takes an interest; then she's taken off it (`hold`) and steered here.
+ * captain takes an interest; then she's taken off it (`hold`) and steered here. A ship
+ * lying at a berth is not in this list: she is in port, and `hold` will not cast her off.
  */
 
 /** Below this tier she's never after you (decided 2026-10-21); she pursues from here. */

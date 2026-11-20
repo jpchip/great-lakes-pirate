@@ -2123,7 +2123,10 @@ async function boot(): Promise<void> {
         land: arena.land,
         hunting: arena.encounter.hunting,
       },
-    zoneShips: () => [...traffic.shown.values()].map((s) => s.entity),
+    // Alongside a pier she is in port (coaling, a gale, winter quarters), not on a sortie.
+    // hold() will not cast a berthed ship off, so leaving her in this list let her work
+    // her gun from the dock.
+    zoneShips: () => [...traffic.shown.values()].filter((s) => !s.berthed).map((s) => s.entity),
     refuge: () => lifeRef.current?.refuge(),
     hold: (id) => traffic.hold(id),
     zoneLand: () => {

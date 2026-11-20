@@ -363,6 +363,46 @@ describe('the ship card', () => {
     expect(card.cargo[0]).toMatch(/CU (lumber|salt pork & provisions|dry goods|hardware)$/);
     expect(card.value).toMatch(/^Cargo worth about \$/);
   });
+
+  it('calls the cutter’s empty hold government stores, and an armed pirate in ballast', () => {
+    const empty = {
+      shipId: 'ship.x',
+      owner: undefined,
+      from: 'node.ashland',
+      to: 'node.duluth',
+      fromPort: 'port.ashland',
+      toPort: 'port.duluth',
+      cargo: [],
+      valueCents: 0,
+      crew: 6,
+      armed: true,
+      cycle: 0,
+      outbound: true,
+    };
+    const pirate = shipCard({
+      shipId: 'ship.rival_1',
+      name: 'Gypsy',
+      className: 'Pirate schooner',
+      manifest: empty,
+      owner: undefined,
+      nodes: graph.nodes,
+      goodNames: (id) => id,
+    });
+    expect(pirate.cargo).toEqual(['In ballast']);
+    expect(pirate.crew).toBe('6 crew, armed');
+
+    const cutter = shipCard({
+      shipId: 'ship.morrill',
+      name: 'Morrill',
+      className: 'Revenue cutter',
+      manifest: { ...empty, crew: 40 },
+      owner: must(defs.factions.get('company.revenue_service')),
+      nodes: graph.nodes,
+      goodNames: (id) => id,
+    });
+    expect(cutter.cargo).toEqual(['Government stores']);
+    expect(cutter.crew).toBe('40 crew, armed');
+  });
 });
 
 describe('the save', () => {
