@@ -134,6 +134,9 @@ export class WinterSounds {
     chatters: 0,
     booms: 0,
     steps: 0,
+    /** Thin ice's cracks, groans and breaks, and the sled's handling, heard. */
+    ice: 0,
+    sled: 0,
   };
   private readonly beds = new Map<BedId, Bed>();
   private frame: WinterFrame | undefined;
@@ -162,6 +165,7 @@ export class WinterSounds {
 
   /** Piece M's thin ice moved a stage: the warning, or through. */
   iceGave(stage: 'cracking' | 'groaning' | 'broken'): void {
+    this.levels.ice++;
     if (stage === 'cracking') {
       this.play(this.pick(WINTER_SOUND.crack), 'sfx', 0.9, { rate: 0.95 + 0.1 * this.random() });
       this.caption('winter.ice', 'The ice cracks');
@@ -192,6 +196,7 @@ export class WinterSounds {
 
   /** The sled put down, loaded, unloaded, stowed, sold from, or its rope taken or dropped. */
   sled(act: SledAct): void {
+    this.levels.sled++;
     switch (act) {
       case 'loaded':
       case 'unloaded':
