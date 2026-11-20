@@ -226,12 +226,12 @@ describe('landing on and walking every island', () => {
       for (const p of island.pieces) {
         expect(p.maxY, `${p.poi} ${p.kind}`).toBeGreaterThan(heightAt(p.x, p.z) - 1e-6);
       }
-      // Who could be ashore: the station keepers and the prefabs' residents (piece Q).
+      // Who could be ashore: the station keepers and the island's residents (piece Q).
       const keepers = LIGHT_STATIONS.filter((st) => st.island === def.id).reduce(
         (n, st) => n + st.keepers.length,
         0,
       );
-      const residents = island.marks.filter((m) => m.kind === 'resident').length;
+      const residents = island.residents.length;
       expect(keepers + residents).toBeLessThanOrEqual(tier.people);
       expect(tier.people).toBeLessThanOrEqual(TIERS.tiers.hero.people);
       expect(tier.animals).toBeLessThanOrEqual(TIERS.tiers.hero.animals);

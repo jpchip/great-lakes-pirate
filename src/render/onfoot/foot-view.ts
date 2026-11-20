@@ -74,7 +74,7 @@ export interface FootFrame {
 
 export interface GuardFrame {
   id: string;
-  /** `npc.watchman`, `npc.constable`, `npc.sailor`, `npc.marshal`, `npc.keeper`. */
+  /** `npc.watchman`, `npc.constable`, `npc.sailor`, `npc.marshal`, `npc.keeper`, a resident's. */
   type: string;
   /** The FSM state: down ones lie on the ground. */
   state: string;
@@ -138,6 +138,11 @@ const GUARD_LOOKS: Record<string, { coat: number; hat: number; front: number; ta
   // The daytime crowd (0.7.1): a townsman in a brown coat, a dockhand in a blue shirt and cap.
   'npc.townsman': { coat: 0x5e4e3c, hat: 0x3a3028, front: 0x9c9284, tall: false },
   'npc.dockhand': { coat: 0x3d5068, hat: 0x2a2d33, front: 0xb8b0a0, tall: false },
+  // The islands' people (Phase 9 piece Q): a fisherman in a tarred oilskin and sou'wester,
+  // a farmer in a canvas coat and straw hat, a villager in a gray coat and cap.
+  'npc.fisherman': { coat: 0x9a7f3c, hat: 0x6e5a2a, front: 0xd8cfb8, tall: false },
+  'npc.farmer': { coat: 0x6f6448, hat: 0xc2a867, front: 0x5b4a39, tall: false },
+  'npc.villager': { coat: 0x5a5a58, hat: 0x2e2c2a, front: 0xa59a88, tall: false },
 };
 const LANTERN_GLOW = 0xffc46b;
 

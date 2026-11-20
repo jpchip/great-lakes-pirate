@@ -6,13 +6,13 @@ import {
   type IslandDef,
   type IslandPoi,
 } from '../../../data/schemas/islands';
+import { chartToZone, ChartProjection, type ZoneFrame } from '../../core/coords';
 import {
   poisFileSchema,
   type PoiDef,
   type PoiMarkKind,
   type PoiPieceKind,
 } from '../../../data/schemas/pois';
-import { ChartProjection, chartToZone, type ZoneFrame } from '../../core/coords';
 import { Rng } from '../../core/rng';
 import type { Clearing } from '../terrain/vegetation';
 
@@ -60,6 +60,8 @@ export interface PlacedPoiPiece {
   posts?: { x: number; z: number; y: number; r: number }[];
   /** Phase 9 piece P: which look of its kind (`pois.json` `variant`); absent is 0. */
   variant?: number;
+  /** Phase 9 piece Q: someone lives here, so its windows are lit through the evening. */
+  lit?: boolean;
 }
 
 /**
@@ -102,9 +104,52 @@ export interface PlacedCache {
   spots: PlacedCacheSpot[];
 }
 
+/** A beach or dock a boat comes in at (Phase 9 piece Q), zone meters. */
+export interface PlacedLanding {
+  name: string;
+  x: number;
+  y: number;
+  z: number;
+}
+
+export type ResidentKind = 'fisherman' | 'farmer' | 'villager';
+/** A resident's NPC type in `npc_types.json`. */
+export type ResidentType = `npc.${ResidentKind}`;
+
+/** Someone who lives on the island (Phase 9 piece Q), set down in zone meters. */
+export interface PlacedResident {
+  id: string;
+  name: string;
+  kind: ResidentKind;
+  type: ResidentType;
+  /** The placed prefab they live at, if any. */
+  home?: string;
+  /** Their round by day, in order: the home's `resident` marks, then their own stops. */
+  route: { x: number; z: number; waitS: number; face?: number }[];
+  /** Their yard: the home prefab's clear ground, where a known face isn't welcome. */
+  grounds?: { x: number; z: number; radiusM: number };
+  talk: readonly string[];
+}
+
+/**
+ * Where an island's own land lies (Phase 9 piece Q), for telling which island a landing is
+ * on where the baked boxes overlap (Basswood's lies inside Madeline's): each cell's distance
+ * to the island's land in cells, 0 on it, up to its reach and 255 past it.
+ */
+export interface IslandLand {
+  x0: number;
+  z0: number;
+  cellM: number;
+  cols: number;
+  rows: number;
+  dist: Uint8Array;
+}
+
 export interface PlacedIsland {
   id: string;
   name: string;
+  /** Plan 11 §2's tier. */
+  tier?: 'hero' | 'standard' | 'minor';
   /** A walkable pad on the mainland (the Siskiwit logging camp), not an island. */
   mainland?: boolean;
   pieces: PlacedPoiPiece[];
@@ -114,11 +159,19 @@ export interface PlacedIsland {
   clearings: Clearing[];
   /** Every prefab's named points (Phase 9 piece P). */
   marks: PlacedPoiMark[];
+  /** Beaches and docks to come in at (Phase 9 piece Q). */
+  landings: PlacedLanding[];
+  /** Who lives there (Phase 9 piece Q). */
+  residents: PlacedResident[];
+  /** How fast the residents' word reaches the law, where no keeper carries it. */
+  reporting: 'fast' | 'medium' | 'slow';
+  /** The harbor village standing on it, with its trading post (La Pointe). */
+  village?: { harbor: string; port: string; tradingPost: string };
+  /** The island's own land, when its baked box and the zone's frame were given. */
+  land?: IslandLand;
   /**
-   * A point on the island's land, zone meters (Phase 9 piece R): its `islands.json` point,
-   * where the zone's frame was given. Islands' tile boxes overlap (Rocky and South Twin,
-   * Gull and Michigan), so a landing goes to the island whose land, grown from here, is
-   * nearest (`island-land.ts`).
+   * Its `islands.json` point in zone meters, where the frame was given (piece R): where
+   * `findLanding` looks out from for a shore to come in at.
    */
   anchor?: { x: number; z: number };
 }
@@ -135,7 +188,19 @@ export interface PlacedPoi {
 export interface IslandOrigin {
   x0: number;
   z0: number;
+  /** The tiles' extent (manifest `width`/`height`), for finding the island's own land. */
+  width?: number;
+  height?: number;
 }
+
+/** Buildings someone lives in: their windows light up through the evening (piece Q). */
+const LIVED_IN: ReadonlySet<PoiPieceKind> = new Set<PoiPieceKind>([
+  'shanty',
+  'cabin',
+  'fish_house',
+]);
+/** Seconds a resident stands at a mark of his home, and at a stop of his own. */
+const RESIDENT_WAIT_S = { mark: 14, round: 8 };
 
 /** How far down a wharf ladder reaches below the lake. */
 const LADDER_DEPTH_M = 1.2;
@@ -440,16 +505,67 @@ export function placeIsland(
   const ladders: PlacedPoiLadder[] = [];
   const clearings: Clearing[] = [];
   const marks: PlacedPoiMark[] = [];
-  const onFoot = def.onFoot ?? { pois: [], caches: [] };
+  const onFoot = def.onFoot ?? {
+    pois: [],
+    caches: [],
+    landings: [],
+    residents: [],
+    reporting: 'slow' as const,
+  };
+  const homes = new Set(onFoot.residents.flatMap((r) => (r.home ? [r.home] : [])));
+  const clearingOf = new Map<string, Clearing>();
   for (const at of onFoot.pois) {
     const poi = poiDef(at.poi);
     if (!poi) throw new Error(`islands: ${def.id} places unknown ${at.poi}`);
     const one = placePoi(poi, at, origin, heightAt, pieces);
+    // Someone lives here: the windows of its cabins, shanties and fish house are lit.
+    if (homes.has(at.id)) {
+      for (const p of one.pieces) if (LIVED_IN.has(p.kind)) p.lit = true;
+    }
     pieces.push(...one.pieces);
     ladders.push(...one.ladders);
     marks.push(...one.marks);
     clearings.push(one.clearing);
+    clearingOf.set(at.id, one.clearing);
   }
+
+  const landings: PlacedLanding[] = onFoot.landings.map((l) => {
+    const x = origin.x0 + l.x;
+    const z = origin.z0 + l.z;
+    return { name: l.name, x, y: floorAt(pieces, heightAt, x, z), z };
+  });
+
+  const residents: PlacedResident[] = onFoot.residents.map((r) => {
+    const route: PlacedResident['route'] = [];
+    const home = r.home ? clearingOf.get(r.home) : undefined;
+    for (const m of marks) {
+      if (m.poi === r.home && m.kind === 'resident') {
+        route.push({ x: m.x, z: m.z, waitS: RESIDENT_WAIT_S.mark, face: m.facing });
+      }
+    }
+    for (const p of r.round) {
+      route.push({ x: origin.x0 + p.x, z: origin.z0 + p.z, waitS: RESIDENT_WAIT_S.round });
+    }
+    const type: ResidentType = `npc.${r.kind}`;
+    return {
+      id: r.id,
+      name: r.name,
+      kind: r.kind,
+      type,
+      ...(r.home ? { home: r.home } : {}),
+      route,
+      ...(home
+        ? {
+            grounds: {
+              x: home.x,
+              z: home.z,
+              radiusM: Math.max(home.halfAlong, home.halfAcross),
+            },
+          }
+        : {}),
+      talk: r.talk,
+    };
+  });
 
   const caches: PlacedCache[] = onFoot.caches.map((cache) => ({
     def: cache,
@@ -476,25 +592,23 @@ export function placeIsland(
   return {
     id: def.id,
     name: def.name,
+    ...(def.tier ? { tier: def.tier } : {}),
     ...(def.mainland ? { mainland: true } : {}),
     pieces,
     ladders,
     caches,
     clearings,
     marks,
+    landings,
+    residents,
+    reporting: onFoot.reporting,
+    ...(onFoot.village ? { village: onFoot.village } : {}),
   };
-}
-
-const LAKE = new ChartProjection();
-
-/** An island's `islands.json` point in a zone's meters (Phase 9 piece R). */
-export function islandAnchor(def: IslandDef, frame: ZoneFrame): { x: number; z: number } {
-  return chartToZone(LAKE.geoToChart(def.at), frame);
 }
 
 /**
  * Every walkable island of a zone placed, given the manifest's tile corners. With the
- * zone's `frame`, each also gets its `anchor` (Phase 9 piece R).
+ * zone's frame and the tiles' extent, each also knows where its own land lies (piece Q).
  */
 export function placeZoneIslands(
   zoneId: string,
@@ -507,10 +621,130 @@ export function placeZoneIslands(
     const origin = origins.find((o) => o.id === def.id);
     if (!origin) continue;
     const placed = placeIsland(def, origin, heightAt);
-    if (frame) placed.anchor = islandAnchor(def, frame);
+    if (frame && origin.width && origin.height && !def.mainland) {
+      const center = chartToZone(GEO.geoToChart(def.at), frame);
+      placed.anchor = center;
+      placed.land = islandLand(
+        heightAt,
+        { x0: origin.x0, z0: origin.z0, width: origin.width, height: origin.height },
+        center,
+        LAND_CELL_M,
+        !!def.clip,
+      );
+    }
     out.push(placed);
   }
   return out;
+}
+
+const GEO = new ChartProjection();
+
+/** Cells of an island's land grid, meters, and how far out its distances run. */
+export const LAND_CELL_M = 8;
+const LAND_REACH_CELLS = 40;
+
+/**
+ * The island's own land in its baked box (Phase 9 piece Q): the land joined to the point
+ * nearest its center, sampled every 8 m, and every cell's distance to it. Other land in
+ * the box (a neighbor, the mainland) isn't the island's.
+ */
+export function islandLand(
+  heightAt: (x: number, z: number) => number,
+  box: { x0: number; z0: number; width: number; height: number },
+  center: { x: number; z: number },
+  cellM = LAND_CELL_M,
+  allLand = false,
+): IslandLand {
+  const cols = Math.max(1, Math.ceil(box.width / cellM));
+  const rows = Math.max(1, Math.ceil(box.height / cellM));
+  const n = cols * rows;
+  const land = new Uint8Array(n);
+  for (let r = 0; r < rows; r++) {
+    for (let c = 0; c < cols; c++) {
+      const h = heightAt(box.x0 + (c + 0.5) * cellM, box.z0 + (r + 0.5) * cellM);
+      if (h > 0) land[r * cols + c] = 1;
+    }
+  }
+  // The land cell nearest the island's center seeds its component.
+  const cc = Math.floor((center.x - box.x0) / cellM);
+  const cr = Math.floor((center.z - box.z0) / cellM);
+  let seed = -1;
+  let best = Number.POSITIVE_INFINITY;
+  for (let i = 0; i < n; i++) {
+    if (!land[i]) continue;
+    const d = (Math.floor(i / cols) - cr) ** 2 + ((i % cols) - cc) ** 2;
+    if (d < best) {
+      best = d;
+      seed = i;
+    }
+  }
+  const dist = new Uint8Array(n).fill(255);
+  if (seed < 0) return { x0: box.x0, z0: box.z0, cellM, cols, rows, dist };
+  const queue = new Int32Array(n);
+  let head = 0;
+  let tail = 0;
+  dist[seed] = 0;
+  queue[tail++] = seed;
+  // An island cut out by a clip box (Long Island's broken spit, piece R) is all the land in it.
+  if (allLand) {
+    for (let i = 0; i < n; i++) {
+      if (!land[i] || i === seed) continue;
+      dist[i] = 0;
+      queue[tail++] = i;
+    }
+  }
+  // The component, 8-connected over land, at distance 0.
+  while (head < tail) {
+    const i = queue[head++] as number;
+    const c = i % cols;
+    const r = (i - c) / cols;
+    for (let dr = -1; dr <= 1; dr++) {
+      for (let dc = -1; dc <= 1; dc++) {
+        const nr = r + dr;
+        const nc = c + dc;
+        if (nr < 0 || nc < 0 || nr >= rows || nc >= cols) continue;
+        const j = nr * cols + nc;
+        if (!land[j] || dist[j] === 0) continue;
+        dist[j] = 0;
+        queue[tail++] = j;
+      }
+    }
+  }
+  // Out from it over everything else, a cell a step.
+  head = 0;
+  while (head < tail) {
+    const i = queue[head++] as number;
+    const d = dist[i] as number;
+    if (d >= LAND_REACH_CELLS) continue;
+    const c = i % cols;
+    const r = (i - c) / cols;
+    for (const [dr, dc] of STEPS4) {
+      const nr = r + dr;
+      const nc = c + dc;
+      if (nr < 0 || nc < 0 || nr >= rows || nc >= cols) continue;
+      const j = nr * cols + nc;
+      if ((dist[j] as number) <= d + 1) continue;
+      dist[j] = d + 1;
+      queue[tail++] = j;
+    }
+  }
+  return { x0: box.x0, z0: box.z0, cellM, cols, rows, dist };
+}
+
+const STEPS4: readonly (readonly [number, number])[] = [
+  [0, 1],
+  [0, -1],
+  [1, 0],
+  [-1, 0],
+];
+
+/** Meters from (x, z) to the island's own land; Infinity off its grid or past its reach. */
+export function landDistanceM(land: IslandLand, x: number, z: number): number {
+  const c = Math.floor((x - land.x0) / land.cellM);
+  const r = Math.floor((z - land.z0) / land.cellM);
+  if (c < 0 || r < 0 || c >= land.cols || r >= land.rows) return Number.POSITIVE_INFINITY;
+  const d = land.dist[r * land.cols + c] as number;
+  return d === 255 ? Number.POSITIVE_INFINITY : d * land.cellM;
 }
 
 /**

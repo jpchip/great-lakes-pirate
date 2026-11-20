@@ -208,7 +208,10 @@ export const lawActorsFileSchema = z.object({
     z.enum(WITNESS_KINDS),
     z.object({
       delay: delaySchema,
-      /** A keeper's delay by `lighthouses.json` `reporting`. */
+      /**
+       * A keeper's delay by `lighthouses.json` `reporting`; an island resident's (townsfolk,
+       * Phase 9 piece Q) by the island's or its light's, as word has to cross the water.
+       */
       byReporting: z.record(z.enum(['fast', 'medium', 'slow']), delaySchema).optional(),
     }),
   ),

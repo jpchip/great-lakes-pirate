@@ -1,112 +1,9 @@
 import type { PlacedIsland } from './on-foot';
 
 /**
- * Whose land a landing is on, and where to come ashore on an island (Phase 9 piece R).
- * Pure: the ashore glue, the islands test, the dev hooks and the bench share it.
- *
- * Islands' baked tile boxes overlap (Rocky's holds South Twin, Gull's the tip of Michigan,
- * Oak's a corner of Manitou), so a box alone can't say which island you're landing on.
- * Each island's land is grown from its `anchor` (its `islands.json` point) over the zone's
- * ground, and a landing goes to the island whose land is nearest.
+ * Where to come ashore on an island (Phase 9 piece R). Pure: the islands test, the dev
+ * hooks and the bench share it. Which island a point is on is piece Q's `islandLand`.
  */
-
-/** An island's land: the cells of ground above the lake joined to its anchor. */
-export interface LandMask {
-  x0: number;
-  z0: number;
-  step: number;
-  width: number;
-  height: number;
-  cells: Uint8Array;
-}
-
-/** How far from its point the bake looks for an island's land (tools/geo `searchM`). */
-const ANCHOR_SEARCH_M = 60;
-
-/**
- * The land joined to `anchor` inside `box`, sampled every `step` m (8-connected, as the bake
- * finds islands). Undefined when there's no land within 60 m of the anchor.
- */
-export function growLand(
-  heightAt: (x: number, z: number) => number,
-  anchor: { x: number; z: number },
-  box: { minX: number; minZ: number; maxX: number; maxZ: number },
-  step = 4,
-): LandMask | undefined {
-  const width = Math.max(1, Math.ceil((box.maxX - box.minX) / step) + 1);
-  const height = Math.max(1, Math.ceil((box.maxZ - box.minZ) / step) + 1);
-  const dry = new Uint8Array(width * height);
-  for (let j = 0; j < height; j++) {
-    for (let i = 0; i < width; i++) {
-      if (heightAt(box.minX + i * step, box.minZ + j * step) > 0) dry[j * width + i] = 1;
-    }
-  }
-  const ai = Math.round((anchor.x - box.minX) / step);
-  const aj = Math.round((anchor.z - box.minZ) / step);
-  const r = Math.ceil(ANCHOR_SEARCH_M / step);
-  let start = -1;
-  let best = Number.POSITIVE_INFINITY;
-  for (let dj = -r; dj <= r; dj++) {
-    for (let di = -r; di <= r; di++) {
-      const i = ai + di;
-      const j = aj + dj;
-      if (i < 0 || j < 0 || i >= width || j >= height || !dry[j * width + i]) continue;
-      const d = di * di + dj * dj;
-      if (d < best) {
-        best = d;
-        start = j * width + i;
-      }
-    }
-  }
-  if (start < 0) return undefined;
-  const cells = new Uint8Array(width * height);
-  const stack = [start];
-  cells[start] = 1;
-  while (stack.length) {
-    const k = stack.pop() ?? 0;
-    const i = k % width;
-    const j = (k - i) / width;
-    for (let dj = -1; dj <= 1; dj++) {
-      for (let di = -1; di <= 1; di++) {
-        const ni = i + di;
-        const nj = j + dj;
-        if (ni < 0 || nj < 0 || ni >= width || nj >= height) continue;
-        const nk = nj * width + ni;
-        if (cells[nk] || !dry[nk]) continue;
-        cells[nk] = 1;
-        stack.push(nk);
-      }
-    }
-  }
-  return { x0: box.minX, z0: box.minZ, step, width, height, cells };
-}
-
-/**
- * Meters from (x, z) to the nearest cell of the land, searched outward ring by ring up to
- * `maxM`; Infinity if there's none that close.
- */
-export function landDistance(mask: LandMask, x: number, z: number, maxM: number): number {
-  const ci = Math.round((x - mask.x0) / mask.step);
-  const cj = Math.round((z - mask.z0) / mask.step);
-  const rings = Math.ceil(maxM / mask.step);
-  let best = Number.POSITIVE_INFINITY;
-  for (let r = 0; r <= rings; r++) {
-    // Once a ring is past the best found, nothing further out can beat it.
-    if ((r - 1) * mask.step > best) break;
-    for (let dj = -r; dj <= r; dj++) {
-      const edge = Math.abs(dj) === r;
-      for (let di = -r; di <= r; di += edge ? 1 : 2 * r || 1) {
-        const i = ci + di;
-        const j = cj + dj;
-        if (i < 0 || j < 0 || i >= mask.width || j >= mask.height) continue;
-        if (!mask.cells[j * mask.width + i]) continue;
-        const d = Math.hypot(mask.x0 + i * mask.step - x, mask.z0 + j * mask.step - z);
-        if (d < best) best = d;
-      }
-    }
-  }
-  return best <= maxM ? best : Number.POSITIVE_INFINITY;
-}
 
 /** Where to come ashore on an island: the boat's water, the beach and the way inland. */
 export interface IslandLanding {
@@ -197,8 +94,32 @@ export function findLanding(
   island: PlacedIsland,
   heightAt: (x: number, z: number) => number,
 ): IslandLanding | undefined {
+  // The island's own landings (piece Q's beaches and docks): out to the nearest water.
+  for (const l of island.landings) {
+    let best: { s: number; bearing: number } | undefined;
+    for (let k = 0; k < 32; k++) {
+      const bearing = (k / 32) * Math.PI * 2;
+      const { dx, dz } = dirOf(bearing);
+      for (let s = 0; s <= 40; s += 0.5) {
+        if (heightAt(l.x + dx * s, l.z + dz * s) < 0) {
+          if (!best || s < best.s) best = { s, bearing };
+          break;
+        }
+      }
+    }
+    if (!best) continue;
+    const { dx, dz } = dirOf(best.bearing);
+    const ex = l.x + dx * best.s;
+    const ez = l.z + dz * best.s;
+    const along = landingAlong(heightAt, ex, ez, best.bearing);
+    if (along && steppable(heightAt, ex + dx, ez + dz, best.bearing + Math.PI)) {
+      return { island: island.id, ...along, inland: best.bearing + Math.PI, by: 'mark' };
+    }
+  }
   for (const m of island.marks) {
     if (m.kind !== 'landing') continue;
+    // A cave mouth's landing is for the boat into the cave (piece S), not the shore.
+    if (island.pieces.some((p) => p.poi === m.poi && p.kind === 'cave_mouth')) continue;
     // Out from the mark to the water's edge (a dock's end is already over it).
     const { dx, dz } = dirOf(m.facing);
     let s = 0;

@@ -35,10 +35,51 @@ export const islandCacheSchema = z.object({
   curio: idOf('curio').optional(),
 });
 
+/** A beach or a dock where a boat comes in (Phase 9 piece Q): named, for the jump menu. */
+export const islandLandingSchema = islandPointSchema.extend({ name: z.string().min(1) });
+
+/**
+ * Someone who lives on the island (plan 11 §3.3; Phase 9 piece Q): a fisherman, a farmer
+ * or one of La Pointe's villagers, on the keepers' perception (`npc_types.json`
+ * `npc.<kind>`), who sees and reports. By day they walk their round, the `resident` marks
+ * of their home's prefab and then their own points; by night they're indoors asleep, and
+ * their windows are lit through the evening.
+ */
+export const islandResidentSchema = z.object({
+  id: z.string().regex(/^[a-z0-9_]+$/),
+  name: z.string().min(1),
+  kind: z.enum(['fisherman', 'farmer', 'villager']),
+  /** The placed prefab (an `onFoot.pois` id) they live and work at. */
+  home: z
+    .string()
+    .regex(/^[a-z0-9_]+$/)
+    .optional(),
+  /** More stops on their round, on the island's tiles. */
+  round: z.array(islandPointSchema).default([]),
+  /** What they say to a visitor by day, a line a day in turn. */
+  talk: z.array(z.string().min(1)).min(1),
+});
+
+/** A village of the zone's harbor kit standing on the island (La Pointe on Madeline). */
+export const islandVillageSchema = z.object({
+  harbor: idOf('harbor'),
+  port: idOf('port'),
+  /** The harbor building (by its name) whose counter is the trading post. */
+  tradingPost: z.string().min(1),
+});
+
 /** Walking the island (plan 08 §20.4 piece H): its points of interest and its cache. */
 export const islandOnFootSchema = z.object({
   pois: z.array(islandPoiSchema).default([]),
   caches: z.array(islandCacheSchema).default([]),
+  landings: z.array(islandLandingSchema).default([]),
+  residents: z.array(islandResidentSchema).default([]),
+  /**
+   * How fast the residents' word reaches the law (as a keeper's `reporting`): a light's
+   * keeper carries it where there's one; otherwise a boat to town (Phase 9 piece Q).
+   */
+  reporting: z.enum(['fast', 'medium', 'slow']).default('slow'),
+  village: islandVillageSchema.optional(),
 });
 
 export const islandSchema = z
@@ -79,10 +120,24 @@ export const islandSchema = z
     /** What there is to find on foot, where the island is walkable (Phase 7: Stockton). */
     onFoot: islandOnFootSchema.optional(),
   })
-  .refine((i) => !i.mainland || !!i.clip, 'A mainland pad needs a clip box: its extent');
+  .refine((i) => !i.mainland || !!i.clip, 'A mainland pad needs a clip box: its extent')
+  .superRefine((i, ctx) => {
+    const pois = new Set(i.onFoot?.pois.map((p) => p.id) ?? []);
+    const ids = new Set<string>();
+    for (const r of i.onFoot?.residents ?? []) {
+      if (ids.has(r.id))
+        ctx.addIssue({ code: 'custom', message: `${i.id}: resident ${r.id} twice` });
+      ids.add(r.id);
+      if (r.home && !pois.has(r.home)) {
+        ctx.addIssue({ code: 'custom', message: `${i.id}: ${r.id}'s home ${r.home} isn't placed` });
+      }
+    }
+  });
 
 export const islandsFileSchema = z.array(islandSchema);
 export type IslandDef = z.infer<typeof islandSchema>;
 export type IslandOnFoot = z.infer<typeof islandOnFootSchema>;
 export type IslandCache = z.infer<typeof islandCacheSchema>;
 export type IslandPoi = z.infer<typeof islandPoiSchema>;
+export type IslandResident = z.infer<typeof islandResidentSchema>;
+export type IslandLanding = z.infer<typeof islandLandingSchema>;
