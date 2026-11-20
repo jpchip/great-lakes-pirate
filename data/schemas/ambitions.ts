@@ -30,6 +30,8 @@ export const AMBITION_COUNTERS = [
   'pokerCargoes',
   // Ships put on a shoal with a false light or a doused one (Phase 9 piece I).
   'moonCussings',
+  // CU of venison sold, fresh or smoked, to fences, smugglers or on the quiet (piece V).
+  'venisonSold',
 ] as const;
 export type AmbitionCounter = (typeof AMBITION_COUNTERS)[number];
 

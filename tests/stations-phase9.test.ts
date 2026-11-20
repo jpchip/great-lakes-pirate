@@ -85,7 +85,10 @@ describe('the four Phase 9 stations', () => {
     const made = RECIPES.filter((r) => (NEW as readonly string[]).includes(r.station)).flatMap(
       (r) => Object.keys(r.output.goods ?? {}),
     );
-    expect(new Set(made)).toEqual(new Set(['good.salted_fish', 'good.powder_shot']));
+    // Piece V's smoked venison is the one new good (plan 11 §18.20).
+    expect(new Set(made)).toEqual(
+      new Set(['good.salted_fish', 'good.powder_shot', 'good.smoked_venison']),
+    );
   });
 });
 

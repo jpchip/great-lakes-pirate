@@ -100,6 +100,8 @@ import { crewFigures, shipWords } from './onfoot/moored';
 import type { FootToolsSnapshot } from '../ui/hud/foot-tools-model';
 import type { GuardReadout, StealthReadout } from './onfoot/stealth';
 import { Footsteps, type Surface } from './onfoot/noise';
+import type { IslandWildlife } from './onfoot/wildlife';
+import { WILDLIFE } from '../sim/wildlife/defs';
 import type { Gait } from './onfoot/controller';
 import { withinHours } from './onfoot/conduct';
 import { gameTools } from './onfoot/tools';
@@ -203,6 +205,17 @@ export interface AshoreDeps {
    */
   islandWatch?(island: PlacedIsland, scene: AshoreScene): Watch | undefined;
   /**
+   * The island's animals and the hunt (plan 11 §18.4 piece V): deer, a bear or wolves about
+   * on this landing, the rifle, dressing and carrying a carcass, the sign and the traps.
+   * `hurt` is a bite or a mauling; `noise` a shot, for the island's people to hear.
+   */
+  wildlife?(
+    island: PlacedIsland,
+    scene: AshoreScene,
+    landing: XZ,
+    hooks: { hurt(amount: number): void; shot(at: { x: number; y: number; z: number }): void },
+  ): IslandWildlife | undefined;
+  /**
    * The trees and shore rocks the renderer plants over a rectangle (zone meters), and the
    * share the quality preset draws: they get trunks you walk around.
    */
@@ -232,7 +245,7 @@ export interface AshoreDeps {
 }
 
 /** What ends a run on foot. */
-export type FootDeath = 'drowned' | 'fell' | 'froze' | 'through_ice';
+export type FootDeath = 'drowned' | 'fell' | 'froze' | 'through_ice' | 'mauled';
 
 /** What the winter readout shows (piece M), for the HUD and the dev hooks. */
 export interface WinterSnapshot {
@@ -385,6 +398,8 @@ export interface GameAshore {
   readonly island: string | undefined;
   /** The marshal posse on the island you're on, if any (piece H). */
   readonly posse: IslandPosse | undefined;
+  /** The animals about on the island you're on, and the hunt (piece V). */
+  readonly wildlife: IslandWildlife | undefined;
   /** Its night watch: piece E's tools act on `watch.stealth`. */
   readonly watch: Watch | undefined;
   /** A guard is chasing you ashore: the danger snapshot, no autosave. */
@@ -472,6 +487,8 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
   let landedTold = false;
   /** Your strides, counted for the footstep sounds (piece I). */
   const strides = new Footsteps();
+  /** This tick's stride, its footstep radius (0 between strides): for the animals' ears. */
+  let strideM = 0;
   const strideFrom = { x: 0, z: 0, fresh: false };
   let underRoof = false;
   /** The docks district this landing walks (local meters), or none (zone meters). */
@@ -486,6 +503,8 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
   let sceneIsland: string | undefined;
   /** The marshal posse on the island the scene is built on, if any. */
   let posse: IslandPosse | undefined;
+  /** The island's animals on this landing (piece V). */
+  let wild: IslandWildlife | undefined;
 
   // --- Winter on foot (piece M) ----------------------------------------------------------
   const winter = deps.winter;
@@ -588,6 +607,7 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
   /** Into a district: its scene, and its watch on duty. */
   const enterDistrict = (landing: DistrictLanding, breaking?: JailbreakStart): void => {
     posse = undefined;
+    wild = undefined;
     district = landing;
     scene = landing.scene;
     taken = false;
@@ -671,6 +691,24 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
         : island?.placed?.residents.length && deps.islandWatch
           ? deps.islandWatch(island.placed, built)
           : undefined;
+    // The island's animals (piece V): a rebuild for a hideout's pieces keeps those about.
+    if (!island?.placed || wild?.island !== island.placed.id) {
+      wild =
+        island?.placed && deps.wildlife
+          ? deps.wildlife(island.placed, built, center, {
+              hurt: (amount) => hurt(amount, 'mauled'),
+              shot: (at) =>
+                watch?.stealth.noise({
+                  kind: 'gunshot',
+                  x: at.x,
+                  y: at.y,
+                  z: at.z,
+                  radiusM: WILDLIFE.hunt.noiseM,
+                  source: 'player',
+                }),
+            })
+          : undefined;
+    }
     return built;
   };
 
@@ -991,6 +1029,9 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
       winter.holdChanged();
       state.player.sled = undefined;
     }
+    // A carcass over your shoulders comes aboard with you, into the hold (piece V).
+    if (wild?.carrying && from !== 'wreck' && !taken) wild.boatPrompt()?.act();
+    wild = undefined;
     hitched = false;
     climb = undefined;
     hole = undefined;
@@ -1162,7 +1203,7 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
       // A load of salvage in your arms goes in the boat first (Phase 8 piece F).
       const load =
         !district && !c.swimming
-          ? (deps.island?.boatPrompt() ?? watch?.station?.boatPrompt())
+          ? (wild?.boatPrompt() ?? deps.island?.boatPrompt() ?? watch?.station?.boatPrompt())
           : undefined;
       if (load) return load;
       if (boatState === 'beached' && !c.swimming) return { text: 'Shove off', act: shoveOff };
@@ -1170,7 +1211,9 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
     }
     // An island's cairns and the stash's strongbox (zone meters: never in a district).
     if (!district && c.grounded && !c.swimming) {
-      const found = deps.island?.prompt(c.position);
+      // A carcass on your shoulders: the only thing to do with it is put it down (piece V).
+      if (wild?.carrying) return wild.prompt(c);
+      const found = deps.island?.prompt(c.position) ?? wild?.prompt(c);
       if (found) return found;
       const cold = winterPrompt();
       if (cold) return cold;
@@ -1784,16 +1827,19 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
             input.isDown('Crouch') &&
             !watch?.heist?.carrying &&
             !watch?.station?.carrying &&
-            !deps.island?.carrying(),
+            !deps.island?.carrying() &&
+            !wild?.carrying,
           jump: input.pressed('Jump'),
         },
         walkCamera.yaw,
         scene,
         dt,
         hauling(
-          watch
-            ? watch.params(DEFAULT_CONTROLLER)
-            : (deps.island?.params(DEFAULT_CONTROLLER) ?? DEFAULT_CONTROLLER),
+          (wild?.params ?? ((p: ControllerParams) => p))(
+            watch
+              ? watch.params(DEFAULT_CONTROLLER)
+              : (deps.island?.params(DEFAULT_CONTROLLER) ?? DEFAULT_CONTROLLER),
+          ),
         ),
       );
       // Q/E: lean round a corner, standing still with your hands free.
@@ -1834,7 +1880,7 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
         character.position.z = cz;
         character.velocity.x = character.velocity.z = 0;
       }
-      if (deps.sounds) {
+      if (deps.sounds || wild) {
         const p = character.position;
         const moved = strideFrom.fresh ? Math.hypot(p.x - strideFrom.x, p.z - strideFrom.z) : 0;
         strideFrom.x = p.x;
@@ -1851,10 +1897,11 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
             surface === 'water' ? 'dirt' : surface,
             carrying,
           );
-          if (r > 0) deps.sounds.step(surface, character.gait, r, winterGround(surface));
+          if (r > 0) deps.sounds?.step(surface, character.gait, r, winterGround(surface));
+          strideM = r;
         }
         if (character.landedSpeed > 0) {
-          deps.sounds.landed(character.landedSpeed, character.landedInWater);
+          deps.sounds?.landed(character.landedSpeed, character.landedInWater);
         }
       }
       if (character.landedSpeed > 0) {
@@ -1902,6 +1949,15 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
       posse.step(dt, character, true, scene.surfaceAt?.(p.x, p.z), leanNow);
       if (posse.captured) takenBy('npc.marshal');
     }
+    // The island's animals look, listen and sniff after you've moved (piece V).
+    if (wild && !taken) {
+      wild.step(dt, character, {
+        strideM,
+        interactDown: input.isDown('Interact'),
+        beyond: inBoat || character.swimming,
+      });
+    }
+    strideM = 0;
     if (!active || taken) return;
 
     // F is the tool's when a guard is in reach of it (or a man who's down), else the
@@ -2089,6 +2145,7 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
         boat: boatFrame,
         shipGone: from === 'wreck',
         winter: winterFrame(),
+        wildlife: wild?.frame(),
       };
       view.render(alpha, ctx.sea.time - (1 - alpha) * lastDt, frameSeconds);
     },
@@ -2222,6 +2279,9 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
     },
     get island() {
       return district ? undefined : sceneIsland;
+    },
+    get wildlife() {
+      return wild;
     },
     get posse() {
       return posse;

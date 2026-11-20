@@ -747,6 +747,17 @@ export const worldStateSchema = z.object({
    */
   salvage: salvageStateSchema.optional(),
   /**
+   * Hunting and trapping (plan 11 §14 `traps[]`; Phase 9 piece V): when each deer was taken,
+   * by island (the herd grows back), and the traps set, by spot. Optional: absent, nothing's
+   * been shot or set.
+   */
+  wildlife: z
+    .object({
+      taken: z.record(z.string(), z.array(z.number())),
+      traps: z.record(z.string(), z.object({ setAt: z.number() })),
+    })
+    .optional(),
+  /**
    * Wrecking (plan 06 §6.2, plan 11 §18.4 piece I): false lights burning, ships judged at
    * them this night, ships stranded on the marks' shoals, and the investigations opened.
    * Optional: absent, nobody has hung a false light, so no version bump.

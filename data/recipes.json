@@ -185,6 +185,17 @@
     "output": { "goods": { "good.salted_fish": 3 } }
   },
   {
+    "id": "recipe.smoked_venison",
+    "name": "Smoked venison",
+    "station": "station.smokehouse",
+    "blurb": "Poached venison cut in strips, salted and hung in the smoke a week: it keeps through the summer, travels light, and nobody can say which island it walked on.",
+    "hours": 24,
+    "inputs": {
+      "goods": { "good.venison": 3, "good.salt": 1, "good.lumber": 1 }
+    },
+    "output": { "goods": { "good.smoked_venison": 2 } }
+  },
+  {
     "id": "recipe.powder_kegs",
     "name": "Powder and shot by the keg",
     "station": "station.powder_room",

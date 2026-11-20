@@ -19,6 +19,7 @@ import { freshStats, type LogEntry } from './record';
 /** `drowned` and `fell`: health ran out ashore, in the water or from a fall (Phase 7 piece A). */
 /** `retired` and `lawman`: the voluntary endings, taken by letter (Phase 9 piece B). */
 /** `froze` and `through_ice`: the cold, or the ice giving way (Phase 9 piece M). */
+/** `mauled`: a bear or the wolves ashore (Phase 9 piece V). */
 export type RunEndCause =
   | 'executed'
   | 'abandoned'
@@ -28,7 +29,8 @@ export type RunEndCause =
   | 'retired'
   | 'lawman'
   | 'froze'
-  | 'through_ice';
+  | 'through_ice'
+  | 'mauled';
 
 /** What a death needs for the papers: the ship she died boarding; a retirement's place. */
 export interface RunEndDetail {
@@ -230,6 +232,22 @@ function frontPage(
       ],
     };
   }
+  if (cause === 'mauled') {
+    return {
+      paper,
+      town,
+      dateline: dateline(now),
+      headline: `${titled} KILLED BY WILD BEASTS`,
+      deck: `Master of the Schooner ${ship} Found Mauled on the Islands`,
+      body: [
+        `${called} master of the schooner ${ship}, was found dead in the woods of the islands, torn by some wild animal. A rifle lay near, and the tracks in the ground round about told of a struggle.`,
+        `The ${ship} was found lying at anchor off the island with nobody aboard. What the captain was hunting there, out of season or in it, nobody would say.`,
+        famous
+          ? 'The waterfront knew the name. The woods, they say, keep no accounts at all.'
+          : 'Few on the waterfront knew the name. The islands keep their own accounts.',
+      ],
+    };
+  }
   if (cause === 'fell') {
     return {
       paper,
@@ -288,6 +306,7 @@ const ENDINGS: Readonly<Record<RunEndCause, string>> = {
   lawman: 'Turned lawman',
   froze: 'Froze to death',
   through_ice: 'Went through the ice',
+  mauled: 'Mauled by a wild animal',
 };
 
 /** "How it ended", a voluntary ending's from `endings.json`. */
@@ -406,6 +425,8 @@ function epitaphText(state: WorldState, cause: RunEndCause, detail: RunEndDetail
       return 'Drowned in the cold water';
     case 'fell':
       return 'Killed in a fall ashore';
+    case 'mauled':
+      return 'Mauled on the islands';
     case 'retired':
       return (
         retirementDef(detail.retirement)?.page.epitaph ??

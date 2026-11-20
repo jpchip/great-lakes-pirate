@@ -357,5 +357,19 @@
       "name": "venison",
       "unit": "carcass"
     }
+  },
+  {
+    "id": "good.smoked_venison",
+    "name": "Smoked venison",
+    "category": "contraband",
+    "basePriceCents": 4500,
+    "weightFactor": 0.5,
+    "legal": "contraband",
+    "seasons": ["spring", "summer", "fall", "winter"],
+    "traceability": 0.1,
+    "talk": {
+      "name": "smoked venison",
+      "unit": "bale"
+    }
   }
 ]
