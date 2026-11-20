@@ -1,6 +1,6 @@
 # 08 — Docks District Stealth (Night)
 
-Status: DRAFT v0.13 (decisions made; gap review applied; spike S5 written up; Phase 7 built, pieces A–J, and checked in the container for 0.7.0)
+Status: DRAFT v0.17 (decisions made; gap review applied; spike S5 written up; Phase 7 built, pieces A–J, and checked in the container for 0.7.0; Duluth's district built, §21)
 Parent: [00-master-plan.md](00-master-plan.md)
 Inputs:
 - Master plan: compact docks-district scenes, no full towns; lockpicks, distractions, bribes, the whiskey trick; carry limits
@@ -607,7 +607,26 @@ Piece E's stretch (§20.4 row E, §20.5), which missed 0.7.0 (§20.8 "Scope that
 
 **Not in piece F:** tracks in snow (piece M); a posse on the mainland camp pad (still none, as Phase 8 decided). Screenshots are in the project files (`posse-search/`).
 
+## 21. Duluth as built (Phase 9 piece X, 2026-11-20)
+
+**Result:** built, from [11 §18](11-exploration-islands-secrets.md)'s piece X (§18.4 criterion 17). It is Duluth's docks district, the second after Bayfield. You go ashore at the merchandise dock from the Twin Ports zone. The layout is a first draft for Jared to review in the district editor.
+
+| Piece | Where | Notes |
+|---|---|---|
+| Layout | `data/districts/duluth.json`, `districts.json` `district.duluth` | 140 × 90 cells (280 × 180 m) at `setpiece.duluth` in `zone.twin_ports`, with 32 buildings, 275 props and 88 marks. Along the dock line are the merchandise dock (the gangway), the coal dock and a ferry landing. Behind it run two tracks, then Michigan St, Superior St, Lake Ave and 5th Ave W. The buildings are the Northern Range freight house, the Bellwether Transit warehouse, Zenith Flour & Feed, a coal shed and its office, Elevator D, the Union depot, a fish house, a net shed, the Columbia Saloon, a boarding house and fourteen houses. Five interiors are Bayfield's own, renamed: the Lake Avenue Saloon, Hansen & Lind (chandlers), Kruger Bros. (ship grocers), the harbor office and the police station's lockup |
+| Ground | `districts.ts` `fills`, `ground.ts` `sampleGround` | The zone's heightmap has old slips and creek beds under the street grid, so a district can raise rectangles to a set height (made land, raise only). Duluth fills its town and the Rice's Point quay to 2 m. The bake reads each district's own zone (`bake.run.ts`) |
+| Heists | `districts.json` `targets`, `loot_tables.json` | The freight house (Northern Range, tier 2, `loot.freight_shed`), the transit warehouse (Bellwether Transit, tier 2, the new `loot.merchandise`), the flour house (tier 1, the new `loot.flour_store`), the chandlery (tier 2) and the harbor office's strongbox (tier 3). Four watchmen keep posts at the freight house, the transit warehouse, the flour house and the coal office |
+| The watch | `district-guards.ts` `patrolRoutes`, `planDistrictWatch(…, names)`, `districts.json` `watchNames` | "Many police": a constable walks each patrol route (the waterfront, Lake Avenue and Michigan Street, ids `constable.<route>`) and another keeps the station. Their names come from the district's data (Patrolmen Olson, Byrne and Lindquist, and Sergeant Hegg). The extra beats go to `rosterForTier`'s extra constables and marshals, still capped at 12 |
+| Lockups | `jail.json` `lockups[]`, `jail.ts` `lockupFor`, `lockupAt`, `jailbreakRules` | `lockup` is now a list of lockups. Each has a port, a region, the regions it `holds`, a pier, a dock and a cell door. Duluth's police station holds `region.duluth`, `region.superior` and `region.north_shore`; anywhere else goes to Bayfield. The capture, the jailbreak, the release (the `Released` event carries the port), the promise and the papers all read the lockup a captain is held in. The ship waits at that lockup's pier |
+| Back room and shops | `shop` marks | Counters at the saloon's bar and card table, the general store, the chandlery and the harbor office. After dark the back-room table is Duluth's fence and shipwright, from the same `fences.json` data. `walkInBackRoom` retires Duluth's port-screen tab now that the district exists (§20.5's "Duluth keeps its tab" is closed) |
+| Dev | `?harbor=duluth&ashore=duluth`, the Jump menu's "Duluth (merchandise dock, on foot)", `district.html?d=duluth` (`district.camera`, `showNav`) | |
+| Bench | `npm run bench:docks` (both districts, `last-run-duluth.json`) | Duluth: 99 draw calls at the median and 130 at most, against §14's 200. 317k triangles, 1543 colliders and 0.34 ms a path |
+| Tests | `tests/district.test.ts`, `district-watch.test.ts`, `jail.test.ts`, `e2e/duluth.spec.ts` | The marks and targets; the navmesh baked from the current layout; every door and the cell reachable from the gangway; named constables on three beats, with marshals at tier 5; lockups by region. The e2e picks the transit warehouse at night and carries a crate aboard hot as Bellwether's. A second e2e takes a captain in the Duluth region and breaks him out of the station's lockup on a promise to the jailer |
+
+**First drafts for Jared:** the layout and all its names; which regions Duluth holds; the lock tiers; the two new loot tables; and the fills. The fence's `where` still says "the back room of a Superior Street saloon", while the saloon stands on Lake Avenue. **Not done:** the harbor kit's piers are drawn with 2.0–2.4 m decks against the district's 1.6 m, and the made land differs from the shore seen when sailing. Screenshots are in the project files (`duluth-district/`).
+
 ## Changelog
+- v0.17: Phase 9 piece X (2026-11-20): Duluth's district as built (§21). The waterfront layout, made land, three police beats and a station constable with names, a list of lockups by region with Duluth's police station holding the Duluth, Superior and North Shore regions, and the back room replacing Duluth's port-screen tab.
 - v0.16: Phase 9 piece F (2026-11-17): the island posse searches (§20.10). The marshals land by your boat, sweep outward, give up and put off, and break off at a hideout's build bounds without setting foot in them.
 - v0.15.1: 0.7.2 (2026-11-16), from Jared's play of 0.7.1: `render/district/signs.ts` hangs a painted board (a canvas texture, one material per building) over each building's first door, on the wall that door is set in and clear of its battens. It says the building's `name`, or else its use by kind. A false front's blank board (kit-meshes `roofGeometry`) gets the words instead. The salt sacks at (-27, 0) and the net reel at (-74, 0) moved off the track to z = 2, and the navmesh was rebaked. Parked at Jared's call: a soft disc on the ground that follows the player by day, cause not yet found.
 - v0.15: Lean, peek and putting out lamps (§20.9): §17's cuts #2 and #3 taken back.

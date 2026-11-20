@@ -1,10 +1,23 @@
 {
-  "lockup": {
-    "name": "the Bayfield lockup",
-    "port": "port.bayfield",
-    "region": "region.chequamegon",
-    "pier": "pier.bayfield_city"
-  },
+  "lockups": [
+    {
+      "name": "the Bayfield lockup",
+      "port": "port.bayfield",
+      "region": "region.chequamegon",
+      "pier": "pier.bayfield_city",
+      "dock": "the city dock",
+      "cellDoor": "door.84_60_0"
+    },
+    {
+      "name": "the Duluth police station",
+      "port": "port.duluth",
+      "region": "region.duluth",
+      "holds": ["region.superior", "region.north_shore"],
+      "pier": "pier.duluth_city",
+      "dock": "the merchandise dock",
+      "cellDoor": "door.62_69_0"
+    }
+  ],
   "sentences": [
     {
       "tier": 0,
@@ -60,7 +73,6 @@
   "jailbreak": {
     "startHour": 23,
     "dawnHour": 6,
-    "cellDoor": "door.84_60_0",
     "cellLock": 2,
     "recaptureWeeks": 2,
     "jailer": {

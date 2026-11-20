@@ -1,4 +1,4 @@
-import type { JailFile } from '../../data/schemas/jail';
+import type { JailFile, Lockup } from '../../data/schemas/jail';
 import type { Chart } from '../core/coords';
 import {
   advanceGameTime,
@@ -39,6 +39,7 @@ import {
   wordRefusal,
   type Jailed,
   type WordRefusal,
+  lockupAt,
 } from '../sim/law/jail';
 import { regionAtChart } from '../sim/law/regions';
 import { dateText } from '../sim/run/run-end';
@@ -123,8 +124,8 @@ const WORD_REFUSALS: Record<WordRefusal, string> = {
 
 const NO_BREAKOUT_HERE = 'There is no breaking out of this lockup.';
 const BREAKOUT_MINOR = "A night for a fine isn't worth breaking out of.";
-const ONE_CHANCE =
-  'Tonight, in irons, with nothing in your pockets: past the jailer, another constable and the marshal come for the hanging, and down to your ship at the city dock before dawn. Fail, and you hang.';
+const oneChance = (dock: string): string =>
+  `Tonight, in irons, with nothing in your pockets: past the jailer, another constable and the marshal come for the hanging, and down to your ship at ${dock} before dawn. Fail, and you hang.`;
 const CHANCE_SPENT = 'You had your one chance.';
 
 function byName(by: string): string {
@@ -155,7 +156,13 @@ export function attachCapture(opts: CaptureOptions): CaptureControl {
   const state = ctx.state;
   const now = (): number => state.environment.clock.gameSeconds;
   const regionName = (id: string): string => defs.regionById.get(id)?.name ?? id;
-  const lockupName = (): string => jail.lockup.name;
+  /** The lockup you're held in (or were, until the release screen closes). */
+  let heldAt: string | undefined;
+  const lockup = (): Lockup => {
+    if (state.jail) heldAt = state.jail.port;
+    return lockupAt(jail, heldAt);
+  };
+  const lockupName = (): string => lockup().name;
   let pending: CaptureEvent | undefined;
   let open = false;
   let released: ReleaseSnapshot | undefined;
@@ -206,7 +213,7 @@ export function attachCapture(opts: CaptureOptions): CaptureControl {
           ? NO_BREAKOUT_HERE
           : breakoutRefusal(j) === 'spent'
             ? CHANCE_SPENT
-            : ONE_CHANCE,
+            : oneChance(lockup().dock),
         canBreakOut: !!opts.breakOut && !breakoutRefusal(j),
       };
     }
@@ -237,7 +244,7 @@ export function attachCapture(opts: CaptureOptions): CaptureControl {
         ? NO_BREAKOUT_HERE
         : j.minor
           ? BREAKOUT_MINOR
-          : `Tonight, with nothing in your pockets: out of the cell, past the jailer, and down to your ship at the city dock before dawn. Away, you're free, with a jailbreak on your name and the ship out of the impound. Caught, it's ${weeks(jail.jailbreak.recaptureWeeks)} more.`,
+          : `Tonight, with nothing in your pockets: out of the cell, past the jailer, and down to your ship at ${lockup().dock} before dawn. Away, you're free, with a jailbreak on your name and the ship out of the impound. Caught, it's ${weeks(jail.jailbreak.recaptureWeeks)} more.`,
       canBreakOut: !!opts.breakOut && !breakoutRefusal(j),
       ...(breakoutNote ? { breakoutNote } : {}),
     };
@@ -304,7 +311,7 @@ export function attachCapture(opts: CaptureOptions): CaptureControl {
 
   /** The prices at the lockup's port, to tell what moved while you were inside. */
   const pricesAt = (): Map<string, number> =>
-    new Map(opts.economy.prices(jail.lockup.port).map((p) => [p.good, p.sellCents]));
+    new Map(opts.economy.prices(lockup().port).map((p) => [p.good, p.sellCents]));
   const tiers = (): Map<string, number> =>
     new Map(Object.entries(state.wanted).map(([r, w]) => [r, wantedTier(defs, w.heat)]));
 
@@ -317,7 +324,7 @@ export function attachCapture(opts: CaptureOptions): CaptureControl {
     const r = release(defs, jail, state, now());
     for (const e of r.events) emitLaw(ctx, e);
     const served = Math.max(1, Math.round(r.insideS / SECONDS_PER_GAME_DAY));
-    ctx.events.emit('Released', { how: r.how, region: r.region, weeks: served });
+    ctx.events.emit('Released', { how: r.how, region: r.region, weeks: served, port: r.port });
     released = {
       kind: 'released',
       title: r.how === 'bail' ? 'Out on bail' : 'Time served',
@@ -328,7 +335,7 @@ export function attachCapture(opts: CaptureOptions): CaptureControl {
       inside: insideNews(before),
       ship:
         r.how === 'bail'
-          ? `The ${state.player.captain.shipName} is alongside at ${portInfo(jail.lockup.port)?.name ?? 'the pier'}, paid out of the impound with the bail.`
+          ? `The ${state.player.captain.shipName} is alongside at ${portInfo(lockup().port)?.name ?? 'the pier'}, paid out of the impound with the bail.`
           : paidFrom
             ? `The ${state.player.captain.shipName} is alongside, the impound fee paid out of the strongbox at ${siteDef(state.hideouts?.[paidFrom]?.siteId ?? '')?.shortName ?? 'the stash'}.`
             : r.workOffDays > 0
@@ -355,7 +362,7 @@ export function attachCapture(opts: CaptureOptions): CaptureControl {
       .filter((m) => m.was > 0 && Math.abs(m.cents - m.was) / m.was >= 0.1)
       .sort((a, b) => Math.abs(b.cents - b.was) / b.was - Math.abs(a.cents - a.was) / a.was)
       .slice(0, 3);
-    const port = portInfo(jail.lockup.port)?.name ?? 'port';
+    const port = portInfo(lockup().port)?.name ?? 'port';
     if (moves.length === 0) lines.push(`Prices at ${port} are much as they were.`);
     for (const m of moves) {
       lines.push(
@@ -452,6 +459,7 @@ export function attachCapture(opts: CaptureOptions): CaptureControl {
         execution: j.execution,
         promiseCents: promiseCents(jail, j),
         dawnAt: breakoutDawn(jail, now()),
+        dock: lockup().dock,
       };
       ctx.events.emit('JailbreakStarted', { port: j.port, execution: j.execution });
       opts.show(undefined);
@@ -540,17 +548,18 @@ export function attachCapture(opts: CaptureOptions): CaptureControl {
       const { dawnAt } = breaking;
       breaking = undefined;
       breakoutNote = undefined;
+      const held = lockup();
       const was = escapeJail(state);
       // Nobody saw you go: the empty cell is found at dawn, and it can only be you.
       law.commit({
         crime: 'crime.jailbreak',
-        region: jail.lockup.region,
-        port: jail.lockup.port,
+        region: held.region,
+        port: held.port,
         witnesses: [
           {
             id: 'evidence.lockup',
             kind: 'constable',
-            name: `the jailer at ${lockupName()}`,
+            name: `the jailer at ${held.name}`,
             identification: 'person',
             reportAt: Math.max(dawnAt, now()),
           },
@@ -558,7 +567,7 @@ export function attachCapture(opts: CaptureOptions): CaptureControl {
       });
       ctx.events.emit('JailbreakSucceeded', {
         port: was.port,
-        region: jail.lockup.region,
+        region: held.region,
         execution: was.execution,
       });
       opts.notice?.("You're out. Cast off: the empty cell is found at dawn.");

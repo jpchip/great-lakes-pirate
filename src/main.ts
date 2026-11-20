@@ -237,7 +237,7 @@ import { attachDetection, awarenessChip } from './gameplay/detection';
 import type { PlacedLight } from './sim/lighthouses';
 import { attachRecord } from './gameplay/record';
 import { attachCapture } from './gameplay/capture';
-import { gameJail } from './sim/law/jail';
+import { gameJail, jailbreakRules, lockupAt } from './sim/law/jail';
 import { buildLastRun, type LastRun, type RunEndCause, type RunEndDetail } from './sim/run/run-end';
 import { showTabLocked } from './ui/menu/tab-locked';
 import { attachAshore, type GameAshore } from './gameplay/ashore';
@@ -1477,7 +1477,7 @@ async function boot(): Promise<void> {
   // A front page held back for a fight shows once the arena is left.
   ctx.events.on('ArenaExited', () => queueMicrotask(showFrontPage));
   // Out of the lockup, you don't find the *Morrill* alongside: she's off on a sortie.
-  ctx.events.on('Released', () => lawShips.awayFromPort(gameJail().lockup.port));
+  ctx.events.on('Released', (e) => lawShips.awayFromPort(e.port));
   if (import.meta.env.DEV || params.has('debug')) {
     // `__glpPapers.press()` prints today's editions now (`press(1)` tomorrow's); `.state()` shows the stories.
     const hook = {
@@ -3009,9 +3009,12 @@ async function boot(): Promise<void> {
   // Capture, jail and the run's end (Phase 5 piece D). Piece C's cutter raises
   // PlayerCaptured; once any arena has ended the captain is jailed (or bound for the rope),
   // with the jail screen over the game.
-  const lockup = gameJail().lockup;
+  /** The lockup you're held in, or were last (the ship goes back to its pier on release). */
+  let heldPort = state.jail?.port;
+  ctx.events.on('Jailed', (e) => (heldPort = e.port));
+  const lockup = () => lockupAt(gameJail(), state.jail?.port ?? heldPort);
   /** Back alongside the lockup's pier, out of the impound: docked, so the port screen opens. */
-  const backAboard = (): Promise<void> => dockAt(lockup.port, lockup.pier);
+  const backAboard = (): Promise<void> => dockAt(lockup().port, lockup().pier);
   /** Alongside a port's pier, the zone loaded if it must be: docked, so the port screen opens. */
   const dockAt = async (port: string, pier: string): Promise<void> => {
     if (machine.mode === 'chart') travelRef.current?.towed();
@@ -3108,9 +3111,10 @@ async function boot(): Promise<void> {
     breakOut: async (start) => {
       const a = ashoreRef.current;
       if (!a) return 'Not now';
-      await dockAt(lockup.port, lockup.pier);
+      const held = lockup();
+      await dockAt(held.port, held.pier);
       const h = hazards.state;
-      if (!h.berthId) return 'Your ship is not at the city dock';
+      if (!h.berthId) return `Your ship is not at ${held.dock}`;
       h.mooring = 'docked';
       h.mooringS = 0;
       Object.assign(sailing.state, { speed: 0, sailLevel: 0, sailSetting: 0 });
@@ -3355,7 +3359,7 @@ async function boot(): Promise<void> {
         const at = zoneToChart(shipPose(), zoneFrame(zone, zoneData));
         ctx.events.emit('PlayerCaptured', {
           by: 'law.morrill',
-          region: region ?? law.region() ?? lockup.region,
+          region: region ?? law.region() ?? lockup().region,
           how,
           at,
         });
@@ -4171,6 +4175,7 @@ async function boot(): Promise<void> {
       const watch = createWatch({
         model: landing.model,
         nav: landing.nav,
+        names: landing.def.watchNames,
         tier: tierNow(),
         seed: trafficSeed,
         conditions: () => {
@@ -4193,7 +4198,7 @@ async function boot(): Promise<void> {
         ...(jailbreak
           ? {
               jailbreak: {
-                rules: gameJail().jailbreak,
+                rules: jailbreakRules(gameJail(), lockupAt(gameJail(), landing.def.port)),
                 execution: jailbreak.execution,
                 promiseCents: jailbreak.promiseCents,
                 dawnAt: jailbreak.dawnAt,
@@ -5048,12 +5053,18 @@ async function boot(): Promise<void> {
       },
     };
     (window as unknown as { __glpStation: typeof stationHook }).__glpStation = stationHook;
-    // `?ashore=bayfield` ties up at the fish pier and goes ashore; `?ashore=stockton` anchors
+    // `?ashore=bayfield` ties up at the fish pier and goes ashore (`?harbor=duluth&ashore=duluth`
+    // at Duluth's merchandise dock, Phase 9 piece X); `?ashore=stockton` anchors
     // off the quarry and lands on the island; `?ashore=siskiwit` anchors off the logging
     // camp's dock and lands on its mainland pad (Phase 8 piece D). The dev jump menu uses
     // them (plan 08 §20.8).
     const jumpTo = params.get('ashore');
-    if (jumpTo === 'bayfield' || jumpTo === 'stockton' || jumpTo === 'siskiwit') {
+    if (
+      jumpTo === 'bayfield' ||
+      jumpTo === 'duluth' ||
+      jumpTo === 'stockton' ||
+      jumpTo === 'siskiwit'
+    ) {
       const wait = (ms: number) => new Promise((done) => setTimeout(done, ms));
       const campDock = () =>
         harborLayouts.flatMap((l) => l.piers).find((p) => p.id === 'pier.siskiwit_dock');
@@ -5062,6 +5073,9 @@ async function boot(): Promise<void> {
           await wait(500);
           if (jumpTo === 'bayfield') {
             if (!hook.dock('bayfield_fish')) continue;
+          } else if (jumpTo === 'duluth') {
+            // `?harbor=duluth` starts in the Twin Ports; tie up at the merchandise dock.
+            if (!hook.dock('duluth_city')) continue;
           } else if (jumpTo === 'siskiwit') {
             const dock = campDock();
             if (!dock) continue;

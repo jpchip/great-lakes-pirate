@@ -3,6 +3,7 @@ import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import districtsJson from '../data/districts.json';
 import bayfieldJson from '../data/districts/bayfield.json';
+import duluthJson from '../data/districts/duluth.json';
 import { createCharacter, stepCharacter, type MoveInput } from '../src/gameplay/onfoot/controller';
 import { Heightfield } from '../src/gameplay/onfoot/heightfield';
 import { buildDistrict, type DistrictModel } from '../src/gameplay/district/district';
@@ -322,5 +323,49 @@ describe('Bayfield', () => {
     expect(model.lamps.length).toBeGreaterThan(15);
     // Shop doors open their port tabs by day.
     expect(model.doors.find((d) => d.building === 'general_store')?.opens).toBe('market');
+  });
+});
+
+describe('Duluth (Phase 9 piece X)', () => {
+  const dir = join(import.meta.dirname, '..', 'public', 'districts', 'duluth');
+  const groundPath = join(dir, 'ground.bin');
+  const baked = existsSync(groundPath) && readFileSync(groundPath).byteLength > 200;
+  const layout = parseLayout(duluthJson);
+  const load = () => ({
+    model: buildDistrict(layout, decodeGround(new Uint8Array(readFileSync(groundPath)))),
+    nav: new NavMesh(JSON.parse(readFileSync(join(dir, 'navmesh.json'), 'utf8')) as NavMeshData),
+  });
+
+  it('has the warehouses, the saloon, the shops and the lockup, with their marks', () => {
+    const ids = new Set(layout.marks.map((m) => m.id));
+    expect(ids.size).toBe(layout.marks.length);
+    const def = findDistrict('duluth');
+    expect(ids.has(def?.gangway ?? '')).toBe(true);
+    for (const id of ['shop.saloon_bar', 'shop.back_room', 'shop.general_store', 'jail.cell'])
+      expect(ids.has(id), id).toBe(true);
+    for (const t of def?.targets ?? []) {
+      expect(layout.buildings.map((b) => b.id)).toContain(t.building);
+    }
+  });
+
+  it.skipIf(!baked)('has a navmesh baked from the current layout', () => {
+    const data = JSON.parse(readFileSync(join(dir, 'navmesh.json'), 'utf8')) as NavMeshData;
+    expect(data.layoutHash, 'run npm run district:bake').toBe(layoutHash(layout));
+  });
+
+  it.skipIf(!baked)('lets a guard reach every door and the cells from the gangway', () => {
+    const { model, nav } = load();
+    expect(nav.links.map((l) => l.door).sort()).toEqual(model.doors.map((d) => d.id).sort());
+    const g = model.mark('gangway.merchandise_dock');
+    const from = { x: g.x, y: model.floorAt(g.x, g.z), z: g.z };
+    for (const d of model.doors) {
+      const to = { x: d.x, y: model.floorAt(d.x, d.z), z: d.z };
+      expect(nav.findPath(from, to).length, d.id).toBeGreaterThan(0);
+    }
+    const cell = model.mark('jail.cell');
+    expect(
+      nav.findPath(from, { x: cell.x, y: model.floorAt(cell.x, cell.z), z: cell.z }).length,
+    ).toBeGreaterThan(2);
+    expect(model.doors.some((d) => d.id === 'door.62_69_0')).toBe(true);
   });
 });

@@ -105,6 +105,8 @@ export interface WatchOptions {
   tier: number;
   seed: string;
   defs?: NpcDefs;
+  /** The watch's names by guard id (the district's `watchNames`). */
+  names?: Readonly<Record<string, string>>;
   /** Overrides conduct when it returns a value (the dev hook `__glpFoot.suspect`). */
   suspect?(c: SuspectContext): boolean | undefined;
   /** The purse and stores the tool belt spends (the player's). Absent, no tools. */
@@ -244,7 +246,7 @@ const QUIET: Conduct = { suspect: false, reason: undefined, words: '', area: und
 export function createWatch(opts: WatchOptions): Watch {
   const { model, nav } = opts;
   const defs = opts.defs ?? gameNpcs();
-  const plan = planDistrictWatch(model, nav);
+  const plan = planDistrictWatch(model, nav, opts.names);
   const crowd = createCrowd(model, nav, opts.seed);
   // Moored ships (piece F): solid hulls, and a sailor at each gangway ahead of the tier's extras.
   const moored = opts.moored ? placeMoored(model, nav, opts.moored.ships) : [];

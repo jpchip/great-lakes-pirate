@@ -564,7 +564,12 @@ Plan 15 §22 has the detail. The saloon plays "The Late Boat Waltz" on piano and
 
 `__glpCold` reads and drives it.
 
+### 18.19 Piece X as built: Duluth (2026-11-20)
+
+Built as scoped; the write-up is [08 §21](08-docks-district-stealth.md). You go ashore at the merchandise dock from the Twin Ports zone. Duluth's waterfront has a police constable on each of three beats and a fourth at the station, five buildings worth burgling, and counters at the saloon, general store, chandlery and harbor office. The fence's back room after dark replaces its port-screen tab. A captain taken in the Duluth, Superior or North Shore region is held in the police station's lockup and can break out of it. Criterion 17 is checked by `e2e/duluth.spec.ts`. The layout is a first draft for Jared to review in the district editor.
+
 ## Changelog
+- v0.17: Piece X as built (§18.19): the Duluth district.
 - v0.13: Phase 9 piece M as built (§18.15): walking on the ice, thin ice and the climb out, the ice road to La Pointe, the hand sled, warmth, and tracks in the snow.
 - v0.12: Piece P as built (§18.14): the POI kits, `placePoi` and marks, the tier budgets and `bench.island` per tier, and curios on the shelves.
 - v0.11: Piece J as built (§18.13): stage 1 audio.

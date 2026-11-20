@@ -74,15 +74,42 @@ function beatRound(b: DistrictBuilding, post: Waypoint, nav: NavQuery): Waypoint
   return [post, ...sides.slice(start), ...sides.slice(0, start)];
 }
 
-export function planDistrictWatch(model: DistrictModel, nav: NavQuery): DistrictWatchPlan {
+/** Bayfield's two constables, and the names any district falls back on. */
+const DEFAULT_NAMES: Readonly<Record<string, string>> = {
+  'constable.waterfront': 'Constable Duffy',
+  'constable.lockup': 'Constable Ryan',
+};
+
+/** The district's patrol routes: the waterfront first, then the rest by name. */
+export function patrolRoutes(model: DistrictModel): string[] {
+  const refs = new Set<string>();
+  for (const m of model.marks) if (m.kind === 'patrol' && m.ref) refs.add(m.ref);
+  return [...refs].sort((a, b) =>
+    a === 'route.waterfront' ? -1 : b === 'route.waterfront' ? 1 : a.localeCompare(b),
+  );
+}
+
+export function planDistrictWatch(
+  model: DistrictModel,
+  nav: NavQuery,
+  names: Readonly<Record<string, string>> = {},
+): DistrictWatchPlan {
   const base: GuardSpawn[] = [];
+  const nameOf = (id: string): string | undefined => names[id] ?? DEFAULT_NAMES[id];
   const waterfront = routePoints(model, 'route.waterfront');
-  if (waterfront.length > 1) {
+  // A constable on each beat (Phase 9 piece X: Duluth has three): the waterfront's is
+  // `constable.waterfront`, another's `constable.<route>`.
+  const beats = patrolRoutes(model)
+    .map((route) => ({ route, points: routePoints(model, route) }))
+    .filter((b) => b.points.length > 1);
+  for (const b of beats) {
+    const id = `constable.${b.route.replace(/^route\./, '')}`;
+    const name = nameOf(id);
     base.push({
-      id: 'constable.waterfront',
+      id,
       type: 'npc.constable',
-      name: 'Constable Duffy',
-      route: { points: waterfront, loop: true },
+      ...(name ? { name } : {}),
+      route: { points: b.points, loop: true },
     });
   }
   let lawPost: XZ | undefined;
@@ -106,10 +133,11 @@ export function planDistrictWatch(model: DistrictModel, nav: NavQuery): District
         .sort((a, b) => a.d - b.d)
         .slice(0, 2)
         .map((q) => ({ ...q.p, waitS: BEAT_WAIT_S }));
+      const name = nameOf('constable.lockup');
       base.push({
         id: 'constable.lockup',
         type: 'npc.constable',
-        name: 'Constable Ryan',
+        ...(name ? { name } : {}),
         route: { points: [post, ...near.flatMap((p) => [p, post])], loop: true },
       });
       continue;
@@ -131,6 +159,11 @@ export function planDistrictWatch(model: DistrictModel, nav: NavQuery): District
           { points: waterfront.slice(half - 1), loop: false },
         ]
       : [];
+  // The other beats the other way round, for the tier's extra men.
+  for (const b of beats) {
+    if (b.route !== 'route.waterfront')
+      spareBeats.push({ points: [...b.points].reverse(), loop: true });
+  }
   return { base, spareBeats, lawPost };
 }
 
