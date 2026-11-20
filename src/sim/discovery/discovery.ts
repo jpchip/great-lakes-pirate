@@ -36,6 +36,8 @@ export const FOUND_HOWS = [
   'foot',
   /** Sailed into the cove or over the shoal. */
   'visit',
+  /** The lead line's spike over a wreck on the bottom (piece U). */
+  'sounding',
   /** From a Lake Survey sheet. */
   'survey',
   /** Noted in a light station's log. */
