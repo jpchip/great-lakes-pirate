@@ -18,6 +18,7 @@ import { CaptionFeed, type CaptionView } from './captions';
 import { FOOT_AUDIO_BUNDLE, FootSounds, type FootFrame } from './foot-audio';
 import { HARBOR_AUDIO_BUNDLE, HarborWorks } from './harbor-audio';
 import { HIDEOUT_AUDIO_BUNDLE, HideoutSounds, UI_AUDIO_BUNDLE, UiCues } from './hideout-audio';
+import { SANDBOX_AUDIO_BUNDLE, SandboxSounds } from './sandbox-audio';
 import { LAW_AUDIO_BUNDLE, LawSounds, type LawShipId, type LawShipView } from './law-audio';
 import {
   COMBAT_AUDIO_BUNDLE,
@@ -53,7 +54,9 @@ import { fogMix, musicMood, type MusicMood } from './world-mix';
  * Phase 6 piece G, combat: the guns, the round in flight and where it lands, the boiler,
  * the grapple and the boarding vignette, her crew as she strikes, and the chase layer;
  * since Phase 7 piece I, the captain ashore: footsteps, the burglar's kit, the watch's
- * voices, the stealth layer and the places he walks, with the weather still over him.
+ * voices, the stealth layer and the places he walks, with the weather still over him;
+ * since Phase 9 piece J, stage 1's sounds: the saloon by night, the card table, the
+ * lighthouse station on foot, the harbor master's letters, a rival's stinger, a ship aground.
  */
 
 export const SAILING_AUDIO_BUNDLE = 'sailing-audio';
@@ -88,11 +91,15 @@ export interface GameAudio {
   hideout: HideoutSounds;
   /** The rest of the UI set: the stamp, the paper, the telegraph and the bells (piece I). */
   ui: UiCues;
+  /** Stage 1's sounds (Phase 9 piece J). */
+  sandbox: SandboxSounds;
   captions: CaptionFeed;
   /** The captions showing now, with arrows from the listener's view (plan 15 §5). */
   captionsNow(): CaptionView[];
   /** The port screen or the journal opened (true) or the last one closed (false). */
   portScreen(open: boolean): void;
+  /** The port screen's tab now, or undefined when it's closed (piece J). */
+  portTab(tab: string | undefined): void;
   /** The music mood now, for the dev panel. */
   readonly mood: MusicMood;
   /**
@@ -137,6 +144,8 @@ export interface GameAudioOptions {
   sites?: readonly WorkSite[];
   /** The player's Wanted region now, for which tier falls get a stinger (piece H). */
   region?: () => string | undefined;
+  /** The zone you're in, so a ship aground elsewhere goes unheard (piece J). */
+  zoneId?: () => string | undefined;
   /** Show captions for directional cues (Settings → Sound); on by default. */
   captions?: boolean;
   /** Each lock-state change, e.g. for a "click to enable sound" hint. */
@@ -177,6 +186,7 @@ export async function createGameAudio(options: GameAudioOptions): Promise<GameAu
         FOOT_AUDIO_BUNDLE,
         HIDEOUT_AUDIO_BUNDLE,
         UI_AUDIO_BUNDLE,
+        SANDBOX_AUDIO_BUNDLE,
       ],
       baseUrl,
     ),
@@ -201,6 +211,8 @@ export async function createGameAudio(options: GameAudioOptions): Promise<GameAu
   foot.captions = captions;
   const hideout = new HideoutSounds(mixer, bank);
   const ui = new UiCues(mixer, bank, () => nowS);
+  const sandbox = new SandboxSounds(mixer, bank);
+  sandbox.captions = captions;
   const records = new Map(SHIP_RECORDS.map((r) => [r.id, r]));
   const whistleShips: WhistleShip[] = [];
   const players: Partial<Record<Exclude<MusicMood, 'quiet'>, MusicPlayer>> = {};
@@ -263,6 +275,30 @@ export async function createGameAudio(options: GameAudioOptions): Promise<GameAu
   });
   game.events.on('RumorHeard', ({ rumor }) => {
     if (running() && rumor.kind === 'price') ui.play('telegraph');
+  });
+
+  // Stage 1 (Phase 9 piece J): the card table, the letters, a rival, ships aground.
+  game.events.on('PokerBeats', ({ beats }) => {
+    if (running()) sandbox.poker(beats);
+  });
+  game.events.on('PokerCheatCaught', ({ how }) => {
+    if (running()) sandbox.pokerCaught(how);
+  });
+  game.events.on('LetterRead', () => {
+    if (running()) sandbox.letterRead();
+  });
+  game.events.on('LetterAnswered', () => {
+    if (running()) sandbox.letterAnswered();
+  });
+  game.events.on('RivalStinger', ({ why }) => {
+    if (!running()) return;
+    if (sandbox.rival(why)) chartMusic.duck(4.5);
+  });
+  game.events.on('ShipStranded', (e) => {
+    if (running() && e.zoneId === options.zoneId?.()) sandbox.stranded(e);
+  });
+  game.events.on('ShipGrounded', ({ shipId, speedKn, hard }) => {
+    if (running() && isPlayer(shipId) && (hard || speedKn > 1.5)) sandbox.grounded(speedKn, hard);
   });
 
   // The law (Phase 5 piece H).
@@ -426,6 +462,7 @@ export async function createGameAudio(options: GameAudioOptions): Promise<GameAu
     }
     const fogVisibilityM = game.weather.fogVisibilityAt(gameSeconds);
     const storm01 = game.weather.stormAt(gameSeconds);
+    const { hour } = dayAndHour(gameSeconds);
     // Under a roof the rain is on the shingles, not on you.
     const rain01 = f.rain01 * (f.inside ? 0.45 : 1);
     world.update(
@@ -447,7 +484,6 @@ export async function createGameAudio(options: GameAudioOptions): Promise<GameAu
       },
       frameSeconds,
     );
-    const { hour } = dayAndHour(gameSeconds);
     harbor.update(
       {
         listener: pose.at,
@@ -459,7 +495,19 @@ export async function createGameAudio(options: GameAudioOptions): Promise<GameAu
       },
       frameSeconds,
     );
-    foot.update({ ...f, listener: pose.at, nowS }, frameSeconds);
+    foot.update({ ...f, listener: pose.at, nowS, hour }, frameSeconds);
+    sandbox.update(
+      {
+        nowS,
+        listener: pose.at,
+        player: at,
+        station: f.station,
+        hour,
+        ashore: true,
+        damping: fogMix(fogVisibilityM, f.windKn).damping,
+      },
+      frameSeconds,
+    );
     hideout.update(pose.at, f.stills ?? [], frameSeconds);
     mood = musicMood({
       sunElevationDeg: f.sunElevationDeg,
@@ -492,15 +540,20 @@ export async function createGameAudio(options: GameAudioOptions): Promise<GameAu
     foot,
     hideout,
     ui,
+    sandbox,
     captions,
     captionsNow() {
       if (!lastPose || !outside) return [];
       return captions.visible(nowS, lastPose.at, lastPose.forward);
     },
     portScreen(open) {
+      if (!open) sandbox.portTab(undefined);
       if (!running()) return;
       if (open) trade.opened();
       else trade.closed();
+    },
+    portTab(tab) {
+      sandbox.portTab(tab, running());
     },
     get mood() {
       return mood;
@@ -534,6 +587,7 @@ export async function createGameAudio(options: GameAudioOptions): Promise<GameAu
       }
       foot.setActive(ashore !== undefined);
       if (ashore === undefined) hideout.stop();
+      if (!outsideNow) sandbox.stop();
       if (!player || !outsideNow || ctx.state !== 'running') return;
 
       const { state, cls } = player.sailing;
@@ -598,6 +652,18 @@ export async function createGameAudio(options: GameAudioOptions): Promise<GameAu
       );
 
       const { hour } = dayAndHour(gameSeconds);
+      sandbox.update(
+        {
+          nowS,
+          listener: pose.at,
+          player: undefined,
+          station: undefined,
+          hour,
+          ashore: false,
+          damping: fogMix(fogVisibilityM, state.windKn).damping,
+        },
+        frameSeconds,
+      );
       harbor.update(
         {
           listener: pose.at,

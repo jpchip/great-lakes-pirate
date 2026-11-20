@@ -1,0 +1,11 @@
+{
+  "id": "sfx.poker.shuffle",
+  "name": "shuffle",
+  "description": "A riffle shuffle and a bridge, twice, and the deck squared on the table",
+  "kind": "oneshot",
+  "bus": "sfx",
+  "bundles": [
+    "sandbox-audio"
+  ],
+  "source": "source.flac"
+}

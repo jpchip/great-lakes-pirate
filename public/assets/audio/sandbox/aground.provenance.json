@@ -1,0 +1,19 @@
+{
+  "source": "procedural",
+  "tool": "tools/audio/synth.ts (tools/audio/lib/synth.ts)",
+  "author": "Great Lakes Pirate contributors",
+  "reference": "A low pitch-dropping sine boom, low-passed and band-passed noise drag with rock-grain bursts, stick-slip creaks, reverb",
+  "date": "2026-11-19",
+  "license": "CC BY 4.0",
+  "attribution": "Great Lakes Pirate contributors",
+  "modifications": [],
+  "description": "A ship going aground: the strike, the keel dragging over rock and slowing, the timbers groaning, a plank cracking",
+  "durationS": 5.299,
+  "pipeline": [
+    "decoded to mono 48000 Hz",
+    "edge fades",
+    "peak-normalized toward -1 dB (+0.2 dB)",
+    "Opus 56 kbps mono in Ogg (ffmpeg libopus)"
+  ],
+  "inputHash": "fdedce7519bd1024"
+}

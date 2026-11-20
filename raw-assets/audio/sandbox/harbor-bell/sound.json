@@ -1,0 +1,11 @@
+{
+  "id": "ui.harbor.bell",
+  "name": "harbor-bell",
+  "description": "The harbor master's desk bell, struck once",
+  "kind": "oneshot",
+  "bus": "ui",
+  "bundles": [
+    "sandbox-audio"
+  ],
+  "source": "source.flac"
+}

@@ -1,0 +1,12 @@
+{
+  "id": "music.saloon.night",
+  "name": "saloon-night",
+  "description": "\"The Late Boat Waltz\" (24 bars of 3/4 in D at 104, 41.54 s, looped): the saloon's upright piano and a fiddle after dark",
+  "kind": "loop",
+  "bus": "ambience",
+  "loopCrossfadeS": 0,
+  "bundles": [
+    "sandbox-audio"
+  ],
+  "source": "source.flac"
+}

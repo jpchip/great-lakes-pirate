@@ -1,0 +1,18 @@
+{
+  "source": "procedural",
+  "tool": "tools/audio/synth.ts (tools/audio/lib/synth.ts)",
+  "author": "Great Lakes Pirate contributors",
+  "reference": "Original tune; additive piano (three detuned strings, stretched partials, hammer thump) and a bowed sawtooth through fiddle body resonances, a little reverb, the tail folded onto the head",
+  "date": "2026-11-19",
+  "license": "CC BY 4.0",
+  "attribution": "Great Lakes Pirate contributors",
+  "modifications": [],
+  "description": "\"The Late Boat Waltz\" (24 bars of 3/4 in D at 104, 41.54 s, looped): the saloon's upright piano and a fiddle after dark",
+  "durationS": 41.538,
+  "pipeline": [
+    "decoded to mono 48000 Hz",
+    "RMS-normalized toward -24 dB (-7.3 dB)",
+    "Opus 64 kbps mono in Ogg (ffmpeg libopus)"
+  ],
+  "inputHash": "ee3a8a968421268a"
+}

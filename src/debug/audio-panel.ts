@@ -1,4 +1,5 @@
 import type { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js';
+import { SANDBOX_SOUND } from '../audio/sandbox-audio';
 import type { GameAudio } from '../audio/game-audio';
 import { CHART_SOUND, type StingerId } from '../audio/chart-audio';
 import { BUS_IDS, type VolumeId } from '../audio/settings';
@@ -143,6 +144,14 @@ export function createAudioPanel(options: AudioPanelOptions): { update(): void }
   events
     .add({ play: () => audio.hideout.audition(hideoutPick.sound) }, 'play')
     .name('Hideout: play it');
+
+  // Phase 9 piece J: stage 1's sounds, by ear.
+  const sandboxIds = Object.values(SANDBOX_SOUND).flat().sort();
+  const sandboxPick = { sound: sandboxIds[0] ?? '' };
+  events.add(sandboxPick, 'sound', sandboxIds).name('Stage 1: sound');
+  events
+    .add({ play: () => audio.sandbox.audition(sandboxPick.sound) }, 'play')
+    .name('Stage 1: play it');
 
   const status = {
     context: '',

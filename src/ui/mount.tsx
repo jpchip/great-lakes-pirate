@@ -1,5 +1,5 @@
 import { render } from 'preact';
-import { computed, signal } from '@preact/signals';
+import { computed, effect, signal } from '@preact/signals';
 import type { Action } from '../core/input';
 import type { SettingsStore } from '../core/settings';
 import { Hud } from './hud/Hud';
@@ -85,6 +85,8 @@ export interface GameUiOptions {
   stash?: StashActions | undefined;
   /** The game's sound volumes, when it has Web Audio. */
   audio?: AudioVolumes | undefined;
+  /** The port screen's tab as shown, or undefined when it's closed (piece J's sounds). */
+  onPortTab?: ((tab: PortTab | undefined) => void) | undefined;
   /** The jail screens' buttons (Phase 5 piece D). */
   jail?: JailActions | undefined;
   /** "Abandon run" on the pause menu, confirmed (plan 16 §3). */
@@ -178,6 +180,7 @@ export function mountGameUi({
   onEndMenu = () => window.location.assign(window.location.pathname),
   onFrontPageClosed = () => undefined,
   eventScene: sceneActions,
+  onPortTab,
 }: GameUiOptions): GameUi {
   const frontPage = signal<FrontPageModel | undefined>(undefined);
   const eventScene = signal<EventSceneView | undefined>(undefined);
@@ -204,6 +207,14 @@ export function mountGameUi({
   );
   const port = signal<PortSnapshot | undefined>(undefined);
   const portTab = signal<PortTab>('market');
+  // The tab the port screen shows (as PortScreen picks it), for the sounds.
+  if (onPortTab) {
+    const onTab = onPortTab;
+    effect(() => {
+      const p = port.value;
+      onTab(p ? (p.tabs.includes(portTab.value) ? portTab.value : p.tabs[0]) : undefined);
+    });
+  }
   const journal = signal<LedgerSnapshot | undefined>(undefined);
   const journalSailing = signal<boolean | undefined>(undefined);
   const hud = signal<HudSnapshot | undefined>(undefined);

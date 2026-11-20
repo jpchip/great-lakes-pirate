@@ -1,0 +1,11 @@
+{
+  "id": "music.stinger.rival",
+  "name": "stinger-rival",
+  "description": "A copycat rival: the fiddle plays a bold figure, the concertina mocks it a half step flat, over a drum and a low drone, ending on a question",
+  "kind": "oneshot",
+  "bus": "music",
+  "bundles": [
+    "sandbox-audio"
+  ],
+  "source": "source.flac"
+}

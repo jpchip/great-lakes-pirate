@@ -75,6 +75,25 @@ export interface StationHooks {
    * chart; the line to add, when there were any new.
    */
   logbook?(): string | undefined;
+  /** Something done at the station, heard (Phase 9 piece J). */
+  sound?(cue: StationCue): void;
+}
+
+/** What the station's sounds play for (piece J). */
+export type StationCue =
+  'light' | 'douse' | 'climb' | 'talk' | 'oil' | 'tie' | 'search' | 'logbook' | 'stow';
+
+/**
+ * What the station's beds read each frame (piece J), offsets from you in meters: the lamp
+ * (its clockwork turns while it burns at night), and the house with any keepers asleep in it.
+ */
+export interface StationSoundView {
+  lamp: { dx: number; dy: number; dz: number };
+  turning: boolean;
+  aloft: boolean;
+  house: { dx: number; dy: number; dz: number };
+  sleepers: number;
+  carrying: boolean;
 }
 
 export interface StationWatchOptions {
@@ -113,6 +132,8 @@ export interface StationOnFoot {
   boatPrompt(): { text: string; act(): void } | undefined;
   /** Up on the gallery. */
   aloft(player: CharacterState): boolean;
+  /** What the station's beds read (piece J). */
+  sound(player: CharacterState): StationSoundView;
 }
 
 /** What a keeper reads in his glass for tomorrow (plan 11 §10: weather knowledge). */
@@ -487,6 +508,7 @@ export function createStationWatch(opts: StationWatchOptions): Watch & {
             holdS: rules.lightS,
             act: () => {
               delete rec.dousedAt;
+              opts.hooks.sound?.('light');
               opts.hooks.notice(`${short} burns again`);
             },
           };
@@ -506,6 +528,7 @@ export function createStationWatch(opts: StationWatchOptions): Watch & {
           holdS: rules.douseS,
           act: () => {
             rec.dousedAt = now();
+            opts.hooks.sound?.('douse');
             stealth.noiseAt('douse', lamp);
             crime(`douse:${light.id}`, 'crime.light_doused');
             opts.hooks.notice(`${short} is dark`);
@@ -516,7 +539,10 @@ export function createStationWatch(opts: StationWatchOptions): Watch & {
         label: st.ladder ? 'Climb down the ladder' : 'Go down the stair',
         ok: true,
         holdS: rules.climbS,
-        act: () => teleport(p, st.doors.tower, headingTo(st.gallery.lamp, st.doors.tower)),
+        act: () => {
+          opts.hooks.sound?.('climb');
+          teleport(p, st.doors.tower, headingTo(st.gallery.lamp, st.doors.tower));
+        },
       };
     }
     const talk = keeperToTalk(p);
@@ -530,6 +556,7 @@ export function createStationWatch(opts: StationWatchOptions): Watch & {
         holdS: 0,
         act: () => {
           rec.talkedAt = now();
+          opts.hooks.sound?.('talk');
           // A visitor goes in the log, by name.
           logSighting(rec, now(), 'person');
           const c = opts.conditions();
@@ -562,8 +589,10 @@ export function createStationWatch(opts: StationWatchOptions): Watch & {
           : 'Climb the stair to the lantern room',
         ok: true,
         holdS: rules.climbS,
-        act: () =>
-          teleport(p, st.gallery.stand, headingTo(st.gallery.stand, st.gallery.lamp) + Math.PI),
+        act: () => {
+          opts.hooks.sound?.('climb');
+          teleport(p, st.gallery.stand, headingTo(st.gallery.stand, st.gallery.lamp) + Math.PI);
+        },
       };
     }
     if (nearPt(p, st.doors.oil)) {
@@ -583,6 +612,7 @@ export function createStationWatch(opts: StationWatchOptions): Watch & {
               ? { count: o.count + 1, since: o.since }
               : { count: 1, since: tt };
           carrying = { good: KEROSENE, owner: undefined, building: light.id, since: tt };
+          opts.hooks.sound?.('oil');
           stealth.noiseAt('crate', st.doors.oil);
           crime(`oil:${light.id}`, 'crime.petty_theft', {
             goods: [{ good: KEROSENE, qty: rec.oilTaken.count }],
@@ -622,6 +652,7 @@ export function createStationWatch(opts: StationWatchOptions): Watch & {
               const f = (rec.keepers[id] ??= {});
               f.downUntil = tt + 6 * 3600;
             }
+            opts.hooks.sound?.('tie');
             stealth.noiseAt('blow', st.doors.house);
             crime(`sleepers:${light.id}`, 'crime.assault', { victim: `the ${short} keepers` });
           },
@@ -634,6 +665,7 @@ export function createStationWatch(opts: StationWatchOptions): Watch & {
           holdS: rules.readS,
           act: () => {
             readThisLanding = true;
+            opts.hooks.sound?.('logbook');
             readLog(true);
           },
         };
@@ -648,6 +680,7 @@ export function createStationWatch(opts: StationWatchOptions): Watch & {
             const cents = houseCash(st.def, opts.runSeed(), tt, rules);
             rec.houseRobbedAt = tt;
             opts.pockets.purse += cents;
+            opts.hooks.sound?.('search');
             opts.hooks.found?.(cents);
             stealth.noiseAt('crate', st.doors.house);
             crime(`house:${light.id}`, 'crime.burglary', { cashCents: cents });
@@ -662,6 +695,7 @@ export function createStationWatch(opts: StationWatchOptions): Watch & {
           holdS: rules.takeS,
           act: () => {
             rec.logbookTakenAt = now();
+            opts.hooks.sound?.('logbook');
             crime(`log:${light.id}`, 'crime.petty_theft');
             const charted = opts.hooks.logbook?.();
             opts.hooks.notice(`The ${short} logbook is yours${charted ? `. ${charted}` : ''}`);
@@ -691,6 +725,19 @@ export function createStationWatch(opts: StationWatchOptions): Watch & {
     },
     offer,
     aloft,
+    sound(p) {
+      const at = p.position;
+      const off = (q: PlacedPoint) => ({ dx: q.x - at.x, dy: q.y - at.y, dz: q.z - at.z });
+      const t = now();
+      return {
+        lamp: off(st.gallery.lamp),
+        turning: night() && !lampOut(record()),
+        aloft: aloft(p),
+        house: off(st.doors.house),
+        sleepers: night() ? sleepers.filter((id) => onDuty(record(), id, t, rules)).length : 0,
+        carrying: carrying !== undefined,
+      };
+    },
     boatPrompt() {
       if (!carrying) return undefined;
       const crate = carrying;
@@ -699,7 +746,10 @@ export function createStationWatch(opts: StationWatchOptions): Watch & {
         act: () => {
           const refused = opts.hooks.stow(crate);
           if (refused) opts.hooks.notice(refused);
-          else carrying = undefined;
+          else {
+            carrying = undefined;
+            opts.hooks.sound?.('stow');
+          }
         },
       };
     },

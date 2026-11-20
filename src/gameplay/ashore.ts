@@ -67,6 +67,7 @@ import type { DistrictDef, DistrictMark } from '../../data/schemas/districts';
 import type { IslandAshore } from './island-ashore';
 import type { IslandPosse } from './island-posse';
 import type { PlacedStation } from '../sim/light-stations';
+import type { StationSoundView } from './onfoot/station-watch';
 import type { XZ } from './onfoot/nav';
 import {
   districtBerthPiers,
@@ -255,6 +256,8 @@ export interface AshoreSound {
   guards: GuardReadout[];
   /** F held on a lock with a pick: how far it's got, 0–1. */
   picking: number | undefined;
+  /** A lighthouse station's lamp and house, offsets from you (Phase 9 piece J). */
+  station?: StationSoundView | undefined;
 }
 
 /** A jailbreak begun (piece G): what the lockup's night is made with. */
@@ -2223,6 +2226,7 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
           prompt && prompt.label.startsWith('Pick') && prompt.hold01 > 0
             ? prompt.hold01
             : undefined,
+        station: watch?.station?.sound(character),
       };
     },
     stealthReadout() {

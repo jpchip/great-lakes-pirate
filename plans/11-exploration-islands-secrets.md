@@ -514,6 +514,14 @@ Built as scoped; the write-up is [04 §27](04-water-weather-seasons.md). The ice
 
 **For Jared (the look):** the ice and snow tones (`ICE_*_HEX` in `water-material.ts`, the snow color in `stylized-material.ts`), how white the land goes, the crack density, the winter palette's strength (`winter-palette.ts`), the aurora's color, height and frequency (`data/winter.json`), and whether snow should come off the decks of a ship under way.
 
+### 18.13 Piece J as built: stage 1 audio (2026-11-19)
+
+Plan 15 §22 has the detail. The saloon plays "The Late Boat Waltz" on piano and fiddle from 7 PM (on foot in Bayfield and at any port screen's saloon or card table); the card table is heard move by move as cards and chips from beats the table now records; a lighthouse station's lamp turns its clockwork while it burns at night, and its keepers snore, greet and are heard at their stair, lamp and oil house; the harbor master rings his bell and letters tear open and seal; a ship put on a wrecking mark's shoal is heard going aground from up to 3 km (`ShipStranded`), and your own ship touching bottom; a rival's stinger waits for piece E on the bus (`RivalStinger { rival, why }`). 25 synthesized sounds, 0.93 MB; the decoded audio is 6.13 MB of 8 MB.
+
+**Not in piece J:** the stinger raised by anything but the dev hook until piece E lands, a fixed light's lamp without clockwork, a letter's arrival heard, the moon-cussing night's music. **For Jared:** the listen by ear (row J).
+
+## Changelog
+- v0.11: Piece J as built (§18.13): stage 1 audio.
 ### 18.15 Piece M as built: on the ice and in the cold (2026-11-19)
 
 **Data.** `data/cold.json` holds every number: what ice holds a walker (10 cm, plus 1 cm per 25 kg hauled), the thin-ice stress and its stages, warmth rates, the sled, the prints, and the ice road. The pure sim is `src/sim/cold/` (footing, warmth, sled, tracks, road), and `src/gameplay/cold.ts` lays the ice over the on-foot ground.

@@ -1,0 +1,10 @@
+{
+  "source": "procedural",
+  "tool": "tools/audio/synth.ts (tools/audio/lib/synth.ts)",
+  "author": "Great Lakes Pirate contributors",
+  "reference": "Original tune; additive piano (three detuned strings, stretched partials, hammer thump) and a bowed sawtooth through fiddle body resonances, a little reverb, the tail folded onto the head",
+  "date": "2026-11-19",
+  "license": "CC BY 4.0",
+  "attribution": "Great Lakes Pirate contributors",
+  "modifications": []
+}
