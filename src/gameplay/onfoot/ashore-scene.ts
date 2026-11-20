@@ -346,3 +346,41 @@ export function beachStep(
   }
   return undefined;
 }
+
+/** The highest you climb out of the boat up a steep rock (Phase 9 piece R). */
+export const ROCK_CLIMB_M = 4.5;
+
+/**
+ * Where a rock with no beach is climbed onto from the boat (Phase 9 piece R: Gull Island's
+ * bird rock, steep all round): up from her bow to the water's edge, then on up the rock to
+ * the first ground gentle enough to stand on, no more than `ROCK_CLIMB_M` above the water
+ * and 8 m in. Only tried where `beachStep` finds nothing.
+ */
+export function rockStep(
+  heightAt: (x: number, z: number) => number,
+  bow: { x: number; z: number },
+  heading: number,
+  maxSlope = (36 * Math.PI) / 180,
+): { x: number; y: number; z: number } | undefined {
+  const fx = Math.sin(heading);
+  const fz = -Math.cos(heading);
+  let edge = -1;
+  for (let d = 0; d <= 14; d += 0.5) {
+    if (heightAt(bow.x + fx * d, bow.z + fz * d) >= 0.15) {
+      edge = d;
+      break;
+    }
+  }
+  if (edge < 0) return undefined;
+  for (let d = edge; d <= edge + 8; d += 0.5) {
+    const x = bow.x + fx * d;
+    const z = bow.z + fz * d;
+    const h = heightAt(x, z);
+    if (h > ROCK_CLIMB_M) return undefined;
+    const g =
+      Math.hypot(heightAt(x + 1, z) - heightAt(x - 1, z), heightAt(x, z + 1) - heightAt(x, z - 1)) /
+      2;
+    if (Math.atan(g) <= maxSlope) return { x, y: h, z };
+  }
+  return undefined;
+}

@@ -295,6 +295,7 @@ export async function createTestScene(
       zone.manifest.zone,
       zone.manifest.islands ?? [],
       (x, z) => terrainHeight.heightAt(x, z),
+      frame,
     );
     const clearings = zoneClearings(zone, harborLayouts, placedIslands);
     const pois = createPoiView(placedIslands, lighting);

@@ -86,6 +86,7 @@ import { buoyancySystem } from './buoyancy';
 import {
   ASHORE_HALF_M,
   beachStep,
+  rockStep,
   buildAshoreScene,
   gangwayAt,
   type AshoreScene,
@@ -1037,6 +1038,11 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
     for (const turn of [0.5, -0.5, 1, -1, 1.5, -1.5, 2, -2]) {
       if (step || !terrain) break;
       step = beachStep(heightAt, boat, boat.heading + (turn * Math.PI) / 2);
+    }
+    // No beach: climb out onto the rock if it's low enough (piece R; Gull Island).
+    for (const turn of [0, 0.5, -0.5, 1, -1, 1.5, -1.5, 2, -2]) {
+      if (step || !terrain) break;
+      step = rockStep(heightAt, turn ? boat : bowPoint(boat), boat.heading + (turn * Math.PI) / 2);
     }
     if (!step) return 'No place to step ashore here';
     busy = true;
