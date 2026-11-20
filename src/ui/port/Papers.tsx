@@ -10,11 +10,12 @@ function placeName(charge: string): string {
 }
 
 function WantedNotices({ wanted }: { wanted: WantedNotice[] }) {
-  if (wanted.length === 0) {
+  const lead = wanted[0];
+  if (!lead) {
     return <p class="paper-dim">No notices this week.</p>;
   }
   if (wanted.length === 1) {
-    const w = wanted[0];
+    const w = lead;
     return (
       <div class={`paper-notice tier-${w.tier}`} data-testid="paper-wanted-notice">
         <h5>{w.headline}</h5>
@@ -30,7 +31,6 @@ function WantedNotices({ wanted }: { wanted: WantedNotice[] }) {
       </div>
     );
   }
-  const lead = wanted[0];
   const maxTier = Math.max(...wanted.map((w) => w.tier));
   return (
     <div class={`paper-notice tier-${maxTier}`} data-testid="paper-wanted-notice">

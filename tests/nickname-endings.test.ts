@@ -179,7 +179,6 @@ describe('the nickname in the papers', () => {
     const col = wantedColumn(
       { ...press, lawWorld: { law: s } as unknown as PressWorld['lawWorld'] },
       paper,
-      0,
     );
     expect(col[0]?.alias).toBe('Called "Bloody Ida"');
   });

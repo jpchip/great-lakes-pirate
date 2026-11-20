@@ -392,7 +392,7 @@ export function renderStory(
 }
 
 /** The paper's WANTED column: a notice for each region it covers with a poster up. */
-export function wantedColumn(world: PressWorld, paper: PaperDef, _fame: number): WantedNotice[] {
+export function wantedColumn(world: PressWorld, paper: PaperDef): WantedNotice[] {
   const { law } = world;
   const regions = paper.covers;
   const out: WantedNotice[] = [];
@@ -478,7 +478,7 @@ export function pressDay(
       at,
       lead: articles[0] ?? localLead(world, paper, day),
       briefs: articles.slice(1),
-      wanted: wantedColumn(world, paper, fame),
+      wanted: wantedColumn(world, paper),
       cutter,
       weather: world.weather(paper),
       ad: pick(rng, paper.ads),
