@@ -187,7 +187,13 @@ export function createFootView(
   const material = createStylizedMaterial('toon', lighting, { vertexColors: true, pools });
   const standGeo = captainGeometry(DEFAULT_CONTROLLER.standHeight);
   const crouchGeo = captainGeometry(DEFAULT_CONTROLLER.crouchHeight);
-  const captain = new THREE.Mesh(standGeo, material);
+  // Snow lies on the boat but not on a walking figure's shoulders (piece L).
+  const figure = createStylizedMaterial('toon', lighting, {
+    vertexColors: true,
+    pools,
+    noSnow: true,
+  });
+  const captain = new THREE.Mesh(standGeo, figure);
   captain.name = 'captain';
   const boat = new THREE.Mesh(boatGeometry(), material);
   boat.name = 'rowboat';
@@ -291,6 +297,7 @@ export function createFootView(
       crouchGeo.dispose();
       boat.geometry.dispose();
       material.dispose();
+      figure.dispose();
     },
   };
 }

@@ -1,0 +1,21 @@
+{
+  "snow": {
+    "fallsBelowC": 0.5,
+    "dayChance": [0.32, 0.26, 0.22, 0.14, 0.03, 0, 0, 0, 0.01, 0.06, 0.2, 0.3],
+    "cmPerDay": [1, 5],
+    "meltCm": 0.9,
+    "settle": 0.02,
+    "coverCm": 10
+  },
+  "aurora": {
+    "nightChance": [0.14, 0.14, 0.18, 0.14, 0.04, 0, 0, 0.03, 0.16, 0.18, 0.12, 0.12],
+    "cycle": {
+      "maxYear": 1906.1,
+      "periodYears": 11.5,
+      "minShare": 0.45
+    },
+    "strength": [0.35, 1],
+    "startHour": [20.5, 24.5],
+    "hours": [1.5, 5]
+  }
+}

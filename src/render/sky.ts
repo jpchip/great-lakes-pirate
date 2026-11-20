@@ -40,6 +40,9 @@ export interface SkyUniforms {
   /** Lightning: strength 0–1 and the direction it came from. */
   uFlash: THREE.IUniform<number>;
   uFlashDirection: THREE.IUniform<THREE.Vector3>;
+  /** The aurora as seen, 0–1 (piece L), and its clock, real seconds. */
+  uAurora: THREE.IUniform<number>;
+  uAuroraTime: THREE.IUniform<number>;
 }
 
 export type Sky = THREE.Mesh<
@@ -89,6 +92,8 @@ export function createSky(
     uCloudShade: { value: new THREE.Color(0x9aa6b0) },
     uFlash: { value: 0 },
     uFlashDirection: { value: new THREE.Vector3(0, 0.3, -1).normalize() },
+    uAurora: { value: 0 },
+    uAuroraTime: { value: 0 },
   };
   const material = new THREE.ShaderMaterial({
     uniforms,
@@ -121,6 +126,8 @@ export function createSky(
       uniform vec3 uCloudShade;
       uniform float uFlash;
       uniform vec3 uFlashDirection;
+      uniform float uAurora;
+      uniform float uAuroraTime;
       varying vec3 vDirection;
 
       float hash3(vec3 p) {
@@ -188,6 +195,36 @@ export function createSky(
           float star = step(0.985, hash3(cell)) * (1.0 - smoothstep(0.12, 0.22, length(fract(grid) - 0.5)));
           float fadeLow = smoothstep(0.02, 0.2, dir.y);
           color += vec3(0.8, 0.85, 1.0) * star * uStars * fadeLow * (0.5 + 0.5 * hash3(cell + 7.0));
+        }
+
+        // The aurora (plan 04 §9, piece L): curtains hanging low in the north (-z), their
+        // lower edge folding along the horizon, green at the foot fading to violet above,
+        // with fine rays that drift. Only evaluated on a night that has one.
+        if (uAurora > 0.001 && dir.y > 0.0) {
+          float az = atan(dir.x, -dir.z);
+          float north = 1.0 - smoothstep(0.5, 1.9, abs(az));
+          float t = uAuroraTime;
+          vec3 aurora = vec3(0.0);
+          for (int k = 0; k < 2; k++) {
+            float fk = float(k);
+            float fold = 0.5 * sin(az * 2.7 + t * 0.05 + fk * 2.1)
+              + 0.3 * sin(az * 6.1 - t * 0.09 + fk * 4.3)
+              + 0.2 * sin(az * 13.0 + t * 0.21);
+            float foot = 0.035 + 0.045 * fk + 0.025 * fold;
+            float above = dir.y - foot;
+            float height = 0.14 + 0.08 * sin(az * 3.3 + t * 0.03 + fk);
+            float curtain = smoothstep(-0.006, 0.012, above) * exp(-max(above, 0.0) / height * 2.2);
+            float rays = 0.5 + 0.5 * sin(az * 110.0 + 5.0 * sin(az * 9.0 + t * 0.17) + t * 0.4 + fk * 9.0);
+            rays = 0.2 + 0.8 * rays * rays * rays;
+            // The curtain comes and goes along its length.
+            float along = smoothstep(0.25, 0.65, 0.5 + 0.3 * sin(az * 4.1 - t * 0.04 + fk * 2.7) + 0.2 * sin(az * 9.7 + t * 0.07));
+            float pulse = 0.75 + 0.25 * sin(t * 0.3 + az * 2.0 + fk * 3.0);
+            vec3 col = mix(vec3(0.22, 1.0, 0.52), vec3(0.62, 0.28, 0.8), smoothstep(0.03, 0.3, above));
+            aurora += col * curtain * rays * pulse * along * (1.0 - 0.45 * fk);
+          }
+          color += aurora * north * uAurora * 0.75;
+          // A soft green glow low along the northern sky.
+          color += vec3(0.1, 0.45, 0.25) * 0.06 * uAurora * north * (1.0 - smoothstep(0.0, 0.12, dir.y));
         }
 
         // Sun disc with a soft halo.

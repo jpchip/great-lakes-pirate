@@ -215,7 +215,10 @@ void main() {
   if (t < vNear || t >= vFar) discard;
   vec3 b = texture2D(uNormalMap, vUv).xyz * 2.0 - 1.0;
   vec3 n = normalize(vRight * b.x + vec3(0.0, b.y, 0.0) + vToward * b.z);
-  gl_FragColor = vec4(albedo.rgb * vTint * styleLight(n, vWorldPos), 1.0);
+  // Snow on the upper boughs (piece L), less than on the ground: a far tree is mostly green.
+  vec3 tree = albedo.rgb * vTint;
+  tree = mix(tree, uSnowColor, styleSnowAmount(n, vWorldPos) * 0.6);
+  gl_FragColor = vec4(tree * styleLight(n, vWorldPos), 1.0);
   #include <tonemapping_fragment>
   #include <colorspace_fragment>
   #include <fog_fragment>
