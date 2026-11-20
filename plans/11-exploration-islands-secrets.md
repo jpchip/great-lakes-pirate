@@ -490,14 +490,6 @@ Twenty-six pieces, each sized to be one thread, in three stages by decision 1. A
 
 **Not in piece B:** the ending music (piece Y); rivals' names (piece E); Abandon recorded as "Abandoned" was already in the Hall; no journal page shows the nickname yet (the papers, the end page and the Hall do).
 
-### 18.11 Piece L as built: winter's look (2026-11-19)
-
-Built as scoped; the write-up is [04 §27](04-water-weather-seasons.md). The ice sheet over the water comes from K's ice through the zone's shelter and a daily lookup strip (and calms the sea under it), floes are instanced at ice-out, snow lies on the terrain, the trees, Bayfield, the hideouts and the decks by a snow series worked out from each winter's air, cold air turns rain to snow, spray freezes, the palettes go to winter, and the aurora is in (04 cut #3 lifted; it is cheap). Not in L: shore ice ridges, rime on hulls, tracks (M), ice caves (S), sea smoke.
-
-**For Jared (the look):** the ice and snow tones (`ICE_*_HEX` in `water-material.ts`, the snow color in `stylized-material.ts`), how white the land goes, the crack density, the winter palette's strength (`winter-palette.ts`), the aurora's color, height and frequency (`data/winter.json`), and whether snow should come off the decks of a ship under way.
-
-## Changelog
-- v0.9: Piece L as built (§18.11): winter's look; the aurora is in.
 ### 18.10 Piece U as built: salvage (2026-11-19)
 
 **The wrecks.** `data/salvage.json` holds the old wrecks of the record and the rules. The record's three, all in the Apostles zone: the ***Lucerne*** (three-masted schooner, iron ore, lost with all hands off Long Island, November 1886; R1 ✅), the ***R.G. Stewart*** (wooden steam barge burned off Michigan Island, 1899) and the ***Antelope*** (schooner-barge, coal, sank north of Michigan Island in 1897; deep, so out of the grapple's reach until the diving suit). R1's other names (*Coffinberry*, *Fedora*, *Ottawa*, *Pretoria*, *Noquebay*, *Sevona*) were lost after 1900, so by R1's rule they stay live ships. Each run also places three invented old wrecks (1868–1898, schooners, scows, tugs, a steam barge, a lumber hooker) at three of seven shallow spots off Eagle, Sand, Gull, Outer, Stockton, Basswood and Rocky islands, drawn by the run's seed. The spots and the *Lucerne*'s place were set where the baked terrain is 5–8 m deep. The run's own wrecks (`state.wrecks`) are worked the same way.
@@ -516,6 +508,12 @@ Built as scoped; the write-up is [04 §27](04-water-weather-seasons.md). The ice
 
 **For Jared:** the wreck names, lore and papers wording; whether the seeded wrecks should be more than three; the chance and time per cast (40 min, about one CU an hour in good conditions); whether seeing the hull on the bottom wants a clearer water look.
 
+### 18.11 Piece L as built: winter's look (2026-11-19)
+
+Built as scoped; the write-up is [04 §27](04-water-weather-seasons.md). The ice sheet over the water comes from K's ice through the zone's shelter and a daily lookup strip (and calms the sea under it), floes are instanced at ice-out, snow lies on the terrain, the trees, Bayfield, the hideouts and the decks by a snow series worked out from each winter's air, cold air turns rain to snow, spray freezes, the palettes go to winter, and the aurora is in (04 cut #3 lifted; it is cheap). Not in L: shore ice ridges, rime on hulls, tracks (M), ice caves (S), sea smoke.
+
+**For Jared (the look):** the ice and snow tones (`ICE_*_HEX` in `water-material.ts`, the snow color in `stylized-material.ts`), how white the land goes, the crack density, the winter palette's strength (`winter-palette.ts`), the aurora's color, height and frequency (`data/winter.json`), and whether snow should come off the decks of a ship under way.
+
 ### 18.13 Piece J as built: stage 1 audio (2026-11-19)
 
 Plan 15 §22 has the detail. The saloon plays "The Late Boat Waltz" on piano and fiddle from 7 PM (on foot in Bayfield and at any port screen's saloon or card table); the card table is heard move by move as cards and chips from beats the table now records; a lighthouse station's lamp turns its clockwork while it burns at night, and its keepers snore, greet and are heard at their stair, lamp and oil house; the harbor master rings his bell and letters tear open and seal; a ship put on a wrecking mark's shoal is heard going aground from up to 3 km (`ShipStranded`), and your own ship touching bottom; a rival's stinger waits for piece E on the bus (`RivalStinger { rival, why }`). 25 synthesized sounds, 0.93 MB; the decoded audio is 6.13 MB of 8 MB.
@@ -524,9 +522,9 @@ Plan 15 §22 has the detail. The saloon plays "The Late Boat Waltz" on piano and
 
 ## Changelog
 - v0.11: Piece J as built (§18.13): stage 1 audio.
+- v0.9: Piece L as built (§18.11): winter's look; the aurora is in.
 - v0.8: Piece U as built (§18.10): old wrecks of the record and the seed, found by sight or the lead line, worked by grapple and hook at anchor, hot recent cargo, papers as leads.
 - v0.7: Piece B as built (§18.9): the nickname, Retire and Turn Lawman, and the Hall of Captains.
-## Changelog
 - v0.6: Piece O as built (§18.8): discovery and the fog of war on the chart, leads, the journal's four pages, and curios.
 - v0.5: Phase 9 scope (§18), as proposed 2026-11-17: what Phases 4–8 change, deliverables, exit criteria, 26 work pieces in three stages, smaller calls and two decisions (staging, districts). Both decisions taken the same day: three stages with a playtest each, and Duluth as the one new district.
 - v0.4: Phase 7 as built (§15): Stockton on foot, the quarry, the seeded cache, the rowboat and the posse.
