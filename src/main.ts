@@ -182,6 +182,7 @@ import { attachSalvage, type GameSalvage } from './gameplay/salvage';
 import { oldWrecks } from './sim/salvage';
 import {
   CHARTED_SHOAL_WARN_DRAFTS,
+  curioSlots,
   discoveriesFile,
   worldChart,
   worldGeo,
@@ -4412,10 +4413,17 @@ async function boot(): Promise<void> {
   const syncHideoutsView = (): void => {
     if (!scene) return;
     const cut = buildMode.cut();
-    const key = `${hideouts.version}|${zone ? zoneData.id : '-'}|${arena ? 'a' : ''}|${JSON.stringify(cut ?? '')}`;
+    // The curios set out at each hideout, drawn on its shelves (Phase 9 piece P).
+    const shown = discovery.curios.flatMap((c) => (c.shownAt ? [`${c.shownAt}:${c.id}`] : []));
+    const key = `${hideouts.version}|${zone ? zoneData.id : '-'}|${arena ? 'a' : ''}|${JSON.stringify(cut ?? '')}|${shown.join(',')}`;
     if (key === hideoutsDrawn) return;
     hideoutsDrawn = key;
-    scene.hideouts.sync(hideouts.draw(cut));
+    scene.hideouts.sync(
+      hideouts.draw(cut).map((s) => ({
+        ...s,
+        curios: discovery.curios.filter((c) => c.shownAt === s.key).map((c) => c.id),
+      })),
+    );
   };
   if (import.meta.env.DEV || params.has('debug')) {
     /**
@@ -4778,6 +4786,38 @@ async function boot(): Promise<void> {
       save: () => saveControls.saveNow(),
     };
     (window as unknown as { __glpFoot: typeof hook }).__glpFoot = hook;
+    /**
+     * The POI kits on this zone's walkable islands (Phase 9 piece P): `marks('fire')` lists
+     * the named points of that kind (all without one), `pois()` each placed prefab with its
+     * piece count, and `curios()` what's set out at each hideout and drawn on its shelves.
+     */
+    const poiHook = {
+      marks: (kind?: string) =>
+        zoneIslands()
+          .placed.flatMap((i) => i.marks.map((m) => ({ island: i.id, ...m })))
+          .filter((m) => !kind || m.kind === kind),
+      pois: () =>
+        zoneIslands().placed.flatMap((i) => {
+          const ids = [...new Set(i.pieces.map((p) => p.poi))];
+          return ids.map((poi) => ({
+            island: i.id,
+            poi,
+            pieces: i.pieces.filter((p) => p.poi === poi).length,
+          }));
+        }),
+      curios: () =>
+        discovery.curios.flatMap((c) => (c.shownAt ? [{ id: c.id, at: c.shownAt }] : [])),
+      /** The places each hideout's display pieces offer, zone meters, in the order filled. */
+      shelves: () =>
+        hideouts.draw().flatMap((s) =>
+          curioSlots(s.pieces).map((sl) => ({
+            hideout: s.key,
+            ...siteToZone(s.frame, sl.x, sl.z),
+            y: s.frame.baseM + sl.y,
+          })),
+        ),
+    };
+    (window as unknown as { __glpPoi: typeof poiHook }).__glpPoi = poiHook;
     /**
      * Winter on foot (Phase 9 piece M): `__glpCold.state()` reads warmth, the ice under you,
      * the sled and your prints; `.road()` the ice road; `.toRoad()` goes down onto it;

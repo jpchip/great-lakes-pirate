@@ -1,7 +1,17 @@
 import islandsJson from '../../../data/islands.json';
 import poisJson from '../../../data/pois.json';
-import { islandsFileSchema, type IslandCache, type IslandDef } from '../../../data/schemas/islands';
-import { poisFileSchema, type PoiDef, type PoiPieceKind } from '../../../data/schemas/pois';
+import {
+  islandsFileSchema,
+  type IslandCache,
+  type IslandDef,
+  type IslandPoi,
+} from '../../../data/schemas/islands';
+import {
+  poisFileSchema,
+  type PoiDef,
+  type PoiMarkKind,
+  type PoiPieceKind,
+} from '../../../data/schemas/pois';
 import { Rng } from '../../core/rng';
 import type { Clearing } from '../terrain/vegetation';
 
@@ -40,6 +50,31 @@ export interface PlacedPoiPiece {
   /** Its foot and its top, m above the lake. */
   minY: number;
   maxY: number;
+  /**
+   * Phase 9 piece P: the ground under a `field`, sampled on a grid across (`nx`) and along
+   * (`nz`) it, row by row from its back-left corner, so it's drawn lying on the ground.
+   */
+  drape?: { nx: number; nz: number; heights: number[] };
+  /** Phase 9 piece P: each of a `stumps` piece's stumps, standing on the ground there. */
+  posts?: { x: number; z: number; y: number; r: number }[];
+  /** Phase 9 piece P: which look of its kind (`pois.json` `variant`); absent is 0. */
+  variant?: number;
+}
+
+/**
+ * A named point of a placed prefab (Phase 9 piece P), zone meters: where a resident
+ * stands, a fire warms, a cache is dug for, a cave is entered. Pieces Q–V read these.
+ */
+export interface PlacedPoiMark {
+  /** The placed prefab's id (`stockton_quarry`), and the mark's own id in it. */
+  poi: string;
+  id: string;
+  kind: PoiMarkKind;
+  x: number;
+  y: number;
+  z: number;
+  /** Radians clockwise from north. */
+  facing: number;
 }
 
 /** A ladder down a wharf's face into the water, in the ashore scene's shape. */
@@ -76,6 +111,16 @@ export interface PlacedIsland {
   caches: PlacedCache[];
   /** Kept clear of trees and shore rocks: the prefabs' grounds and the cache cairns. */
   clearings: Clearing[];
+  /** Every prefab's named points (Phase 9 piece P). */
+  marks: PlacedPoiMark[];
+}
+
+/** One prefab set down (Phase 9 piece P's `placePoi`). */
+export interface PlacedPoi {
+  pieces: PlacedPoiPiece[];
+  ladders: PlacedPoiLadder[];
+  clearing: Clearing;
+  marks: PlacedPoiMark[];
 }
 
 /** The corner of an island's 1 m tiles, zone meters (manifest `islands[]`). */
@@ -91,8 +136,26 @@ const CAIRN = { widthM: 1.4, heightM: 0.8 };
 /** No `steps` tread rises more than this: well under the controller's step height. */
 const STEP_RISE_M = 0.3;
 
+/**
+ * Pieces you stand on, placed before the rest so those stand on them: the quarry's cut
+ * ledges and spoil wharf, and (piece P) the fish camp's dock.
+ */
+const PLATFORMS: ReadonlySet<PoiPieceKind> = new Set<PoiPieceKind>(['ledge', 'dock']);
+/** Pieces drawn lying on the ground and walked over: no solid, no floor of their own. */
+export const FLAT_KINDS: ReadonlySet<PoiPieceKind> = new Set<PoiPieceKind>([
+  'field',
+  'planks',
+  'dig',
+]);
+
+/** A small deterministic hash in [0, 1), for scattering stumps the same way every time. */
+function hash01(n: number): number {
+  const s = Math.sin(n * 12.9898 + 78.233) * 43758.5453;
+  return s - Math.floor(s);
+}
+
 /** Unit vectors of a facing: forward (out) and right, zone x/z. */
-function axes(bearing: number): { fx: number; fz: number; rx: number; rz: number } {
+export function axes(bearing: number): { fx: number; fz: number; rx: number; rz: number } {
   const fx = Math.sin(bearing);
   const fz = -Math.cos(bearing);
   return { fx, fz, rx: -fz, rz: fx };
@@ -144,14 +207,221 @@ function floorAt(
 ): number {
   let y = heightAt(x, z);
   for (const p of pieces) {
-    if (p.kind === 'ledge' && insideBox(p, x, z)) y = Math.max(y, p.maxY);
+    if (PLATFORMS.has(p.kind) && insideBox(p, x, z)) y = Math.max(y, p.maxY);
   }
   return y;
 }
 
 /**
+ * One prefab set down on the ground drawn (Phase 9 piece P, from Phase 7's quarry): the
+ * one way a point of interest is put anywhere. `at` is where its origin goes, in the
+ * island's 1 m tile meters (`origin` is their corner in zone meters, as the manifest has
+ * it), with the bearing it faces; `heightAt` is the zone's drawn ground. Platforms (ledges,
+ * a dock) go first, so blocks, the derrick and the sheds stand on them. `placed` is what's
+ * already down on this island, so one prefab can stand on another's ledge.
+ */
+export function placePoi(
+  poi: PoiDef,
+  at: Pick<IslandPoi, 'id' | 'x' | 'z' | 'facingDeg'>,
+  origin: IslandOrigin,
+  heightAt: (x: number, z: number) => number,
+  placed: readonly PlacedPoiPiece[] = [],
+): PlacedPoi {
+  const pieces: PlacedPoiPiece[] = [];
+  const ladders: PlacedPoiLadder[] = [];
+  const marks: PlacedPoiMark[] = [];
+  const bearing = (at.facingDeg * Math.PI) / 180;
+  const { fx, fz, rx, rz } = axes(bearing);
+  const ox = origin.x0 + at.x;
+  const oz = origin.z0 + at.z;
+  const baseY = heightAt(ox, oz);
+  const point = (right: number, out: number): { x: number; z: number } => ({
+    x: ox + rx * right + fx * out,
+    z: oz + rz * right + fz * out,
+  });
+  const floor = (x: number, z: number): number =>
+    floorAt(placed.length ? [...placed, ...pieces] : pieces, heightAt, x, z);
+  const ordered = [...poi.pieces].sort(
+    (a, b) => Number(PLATFORMS.has(b.kind)) - Number(PLATFORMS.has(a.kind)),
+  );
+  for (const piece of ordered) {
+    const c = point(piece.right, piece.out);
+    const pb = bearing + (piece.yawDeg * Math.PI) / 180;
+    if (PLATFORMS.has(piece.kind)) {
+      const g = groundRange(heightAt, c.x, c.z, pb, piece.widthM, piece.depthM);
+      const top =
+        piece.clearM === undefined
+          ? baseY + piece.heightM
+          : Math.max(baseY + piece.heightM, g.hi + piece.clearM);
+      pieces.push({
+        kind: piece.kind,
+        poi: at.id,
+        x: c.x,
+        z: c.z,
+        bearing: pb,
+        widthM: piece.widthM,
+        depthM: piece.depthM,
+        minY: Math.min(g.lo, top) - 1,
+        maxY: top,
+      });
+      // A wharf or a dock standing in the water gets a ladder down its far end.
+      if (piece.clearM === undefined) {
+        const a = axes(pb);
+        const hx = c.x + a.fx * (piece.depthM / 2 + 0.02);
+        const hz = c.z + a.fz * (piece.depthM / 2 + 0.02);
+        if (heightAt(hx + a.fx, hz + a.fz) < 0) {
+          ladders.push({
+            x: hx,
+            z: hz,
+            facing: pb + Math.PI,
+            bottomY: -LADDER_DEPTH_M,
+            topY: top,
+            topX: hx - a.fx * 0.7,
+            topZ: hz - a.fz * 0.7,
+          });
+        }
+      }
+      continue;
+    }
+    if (piece.kind === 'steps') {
+      // A flight from the ground at its foot to wherever `depthM` ahead lands: the top
+      // of the ledge standing there, once ledges are placed (they go first, above), or
+      // just the rise of the ground itself if there's no ledge to climb onto.
+      const a = axes(pb);
+      const foot = floor(c.x, c.z);
+      const topX = c.x + a.fx * piece.depthM;
+      const topZ = c.z + a.fz * piece.depthM;
+      const top = floor(topX, topZ);
+      const rise = top - foot;
+      if (rise > 0.05) {
+        const n = Math.max(1, Math.ceil(rise / STEP_RISE_M));
+        const treadDepth = piece.depthM / n;
+        const treadRise = rise / n;
+        for (let k = 1; k <= n; k++) {
+          pieces.push({
+            kind: 'steps',
+            poi: at.id,
+            x: c.x + a.fx * treadDepth * (k - 0.5),
+            z: c.z + a.fz * treadDepth * (k - 0.5),
+            bearing: pb,
+            widthM: piece.widthM,
+            depthM: treadDepth,
+            minY: foot - 0.3,
+            maxY: foot + treadRise * k,
+          });
+        }
+      }
+      continue;
+    }
+    if (piece.kind === 'field') {
+      // Laid over the ground on a grid about every 2 m, so it follows the slope.
+      const a = axes(pb);
+      const nx = Math.max(2, Math.ceil(piece.widthM / 2) + 1);
+      const nz = Math.max(2, Math.ceil(piece.depthM / 2) + 1);
+      const heights: number[] = [];
+      let lo = Number.POSITIVE_INFINITY;
+      let hi = Number.NEGATIVE_INFINITY;
+      for (let j = 0; j < nz; j++) {
+        const o = (0.5 - j / (nz - 1)) * piece.depthM;
+        for (let i = 0; i < nx; i++) {
+          const r = (i / (nx - 1) - 0.5) * piece.widthM;
+          const h = heightAt(c.x + a.rx * r + a.fx * o, c.z + a.rz * r + a.fz * o);
+          heights.push(h);
+          lo = Math.min(lo, h);
+          hi = Math.max(hi, h);
+        }
+      }
+      pieces.push({
+        kind: 'field',
+        poi: at.id,
+        x: c.x,
+        z: c.z,
+        bearing: pb,
+        widthM: piece.widthM,
+        depthM: piece.depthM,
+        minY: lo,
+        maxY: hi + piece.heightM,
+        drape: { nx, nz, heights },
+        ...(piece.variant ? { variant: piece.variant } : {}),
+      });
+      continue;
+    }
+    if (piece.kind === 'stumps') {
+      // About one stump every 30 m², scattered by a hash of where the piece is.
+      const a = axes(pb);
+      const n = Math.max(1, Math.round((piece.widthM * piece.depthM) / 30));
+      const posts: { x: number; z: number; y: number; r: number }[] = [];
+      const seed = Math.round(c.x * 7 + c.z * 13);
+      for (let k = 0; k < n; k++) {
+        const r = (hash01(seed + k * 3.1) - 0.5) * piece.widthM;
+        const o = (hash01(seed + k * 5.7 + 1) - 0.5) * piece.depthM;
+        const x = c.x + a.rx * r + a.fx * o;
+        const z = c.z + a.rz * r + a.fz * o;
+        posts.push({ x, z, y: heightAt(x, z), r: 0.22 + hash01(seed + k) * 0.18 });
+      }
+      const ys = posts.map((q) => q.y);
+      pieces.push({
+        kind: 'stumps',
+        poi: at.id,
+        x: c.x,
+        z: c.z,
+        bearing: pb,
+        widthM: piece.widthM,
+        depthM: piece.depthM,
+        minY: Math.min(...ys) - 0.3,
+        maxY: Math.max(...ys) + piece.heightM,
+        posts,
+      });
+      continue;
+    }
+    const flat = FLAT_KINDS.has(piece.kind);
+    const foot = (flat ? heightAt(c.x, c.z) : floor(c.x, c.z)) + piece.yM;
+    pieces.push({
+      kind: piece.kind,
+      poi: at.id,
+      x: c.x,
+      z: c.z,
+      bearing: pb,
+      widthM: piece.widthM,
+      depthM: piece.depthM,
+      minY: foot - (piece.yM > 0 ? 0 : 0.3),
+      maxY: foot + piece.heightM,
+      ...(piece.variant ? { variant: piece.variant } : {}),
+    });
+  }
+  for (const m of poi.marks) {
+    const c = point(m.right, m.out);
+    marks.push({
+      poi: at.id,
+      id: m.id,
+      kind: m.kind,
+      x: c.x,
+      y: floor(c.x, c.z) + m.yM,
+      z: c.z,
+      facing: bearing + (m.facingDeg * Math.PI) / 180,
+    });
+  }
+  const [r0, r1] = poi.clear.rightM;
+  const [o0, o1] = poi.clear.outM;
+  const mid = point((r0 + r1) / 2, (o0 + o1) / 2);
+  return {
+    pieces,
+    ladders,
+    marks,
+    clearing: {
+      x: mid.x,
+      z: mid.z,
+      ux: rx,
+      uz: rz,
+      halfAlong: (r1 - r0) / 2,
+      halfAcross: (o1 - o0) / 2,
+    },
+  };
+}
+
+/**
  * An island's prefabs and caches set down on the ground drawn (`heightAt`, the zone's
- * sailing terrain): ledges first, so blocks, the derrick and the shack stand on them.
+ * sailing terrain), each prefab by `placePoi`, then the caches' cairns.
  */
 export function placeIsland(
   def: IslandDef,
@@ -161,116 +431,16 @@ export function placeIsland(
   const pieces: PlacedPoiPiece[] = [];
   const ladders: PlacedPoiLadder[] = [];
   const clearings: Clearing[] = [];
+  const marks: PlacedPoiMark[] = [];
   const onFoot = def.onFoot ?? { pois: [], caches: [] };
   for (const at of onFoot.pois) {
     const poi = poiDef(at.poi);
     if (!poi) throw new Error(`islands: ${def.id} places unknown ${at.poi}`);
-    const bearing = (at.facingDeg * Math.PI) / 180;
-    const { fx, fz, rx, rz } = axes(bearing);
-    const ox = origin.x0 + at.x;
-    const oz = origin.z0 + at.z;
-    const baseY = heightAt(ox, oz);
-    const point = (right: number, out: number): { x: number; z: number } => ({
-      x: ox + rx * right + fx * out,
-      z: oz + rz * right + fz * out,
-    });
-    const ordered = [...poi.pieces].sort(
-      (a, b) => Number(b.kind === 'ledge') - Number(a.kind === 'ledge'),
-    );
-    for (const piece of ordered) {
-      const c = point(piece.right, piece.out);
-      const pb = bearing + (piece.yawDeg * Math.PI) / 180;
-      if (piece.kind === 'ledge') {
-        const g = groundRange(heightAt, c.x, c.z, pb, piece.widthM, piece.depthM);
-        const top =
-          piece.clearM === undefined
-            ? baseY + piece.heightM
-            : Math.max(baseY + piece.heightM, g.hi + piece.clearM);
-        const ledge: PlacedPoiPiece = {
-          kind: 'ledge',
-          poi: at.id,
-          x: c.x,
-          z: c.z,
-          bearing: pb,
-          widthM: piece.widthM,
-          depthM: piece.depthM,
-          minY: Math.min(g.lo, top) - 1,
-          maxY: top,
-        };
-        pieces.push(ledge);
-        // A wharf standing in the water gets a ladder down its face.
-        if (piece.clearM === undefined) {
-          const a = axes(pb);
-          const hx = c.x + a.fx * (piece.depthM / 2 + 0.02);
-          const hz = c.z + a.fz * (piece.depthM / 2 + 0.02);
-          if (heightAt(hx + a.fx, hz + a.fz) < 0) {
-            ladders.push({
-              x: hx,
-              z: hz,
-              facing: pb + Math.PI,
-              bottomY: -LADDER_DEPTH_M,
-              topY: top,
-              topX: hx - a.fx * 0.7,
-              topZ: hz - a.fz * 0.7,
-            });
-          }
-        }
-        continue;
-      }
-      if (piece.kind === 'steps') {
-        // A flight from the ground at its foot to wherever `depthM` ahead lands: the top
-        // of the ledge standing there, once ledges are placed (they go first, above), or
-        // just the rise of the ground itself if there's no ledge to climb onto.
-        const a = axes(pb);
-        const foot = floorAt(pieces, heightAt, c.x, c.z);
-        const topX = c.x + a.fx * piece.depthM;
-        const topZ = c.z + a.fz * piece.depthM;
-        const top = floorAt(pieces, heightAt, topX, topZ);
-        const rise = top - foot;
-        if (rise > 0.05) {
-          const n = Math.max(1, Math.ceil(rise / STEP_RISE_M));
-          const treadDepth = piece.depthM / n;
-          const treadRise = rise / n;
-          for (let k = 1; k <= n; k++) {
-            pieces.push({
-              kind: 'steps',
-              poi: at.id,
-              x: c.x + a.fx * treadDepth * (k - 0.5),
-              z: c.z + a.fz * treadDepth * (k - 0.5),
-              bearing: pb,
-              widthM: piece.widthM,
-              depthM: treadDepth,
-              minY: foot - 0.3,
-              maxY: foot + treadRise * k,
-            });
-          }
-        }
-        continue;
-      }
-      const foot = floorAt(pieces, heightAt, c.x, c.z) + piece.yM;
-      pieces.push({
-        kind: piece.kind,
-        poi: at.id,
-        x: c.x,
-        z: c.z,
-        bearing: pb,
-        widthM: piece.widthM,
-        depthM: piece.depthM,
-        minY: foot - (piece.yM > 0 ? 0 : 0.3),
-        maxY: foot + piece.heightM,
-      });
-    }
-    const [r0, r1] = poi.clear.rightM;
-    const [o0, o1] = poi.clear.outM;
-    const mid = point((r0 + r1) / 2, (o0 + o1) / 2);
-    clearings.push({
-      x: mid.x,
-      z: mid.z,
-      ux: rx,
-      uz: rz,
-      halfAlong: (r1 - r0) / 2,
-      halfAcross: (o1 - o0) / 2,
-    });
+    const one = placePoi(poi, at, origin, heightAt, pieces);
+    pieces.push(...one.pieces);
+    ladders.push(...one.ladders);
+    marks.push(...one.marks);
+    clearings.push(one.clearing);
   }
 
   const caches: PlacedCache[] = onFoot.caches.map((cache) => ({
@@ -303,6 +473,7 @@ export function placeIsland(
     ladders,
     caches,
     clearings,
+    marks,
   };
 }
 
@@ -331,4 +502,76 @@ export function rollCache(cache: IslandCache, runSeed: number): { spot: number; 
   const [lo, hi] = cache.cashCents;
   const cents = Math.round(lo + (hi - lo) * rng.next());
   return { spot: Math.min(spot, cache.spots.length - 1), cents };
+}
+
+/**
+ * A box in a piece's own frame (Phase 9 piece P): centered `right` and `out` of the piece's
+ * middle, `w` across and `d` along, from `y0` to `y1` above its foot. Shared by the
+ * renderer and the colliders, so what's drawn is what's solid.
+ */
+export interface LocalBlock {
+  right: number;
+  out: number;
+  w: number;
+  d: number;
+  y0: number;
+  y1: number;
+  /** The mouth's dark lining: drawn, not solid. */
+  dark?: boolean;
+}
+
+type PieceSize = Pick<PlacedPoiPiece, 'widthM' | 'depthM' | 'minY' | 'maxY'>;
+
+/** How wide and high a cave mouth's opening is, for a face this big. */
+export function caveOpening(p: PieceSize): { w: number; h: number } {
+  const h = p.maxY - p.minY;
+  return { w: Math.min(p.widthM * 0.42, 6), h: Math.min(h * 0.62, 5) };
+}
+
+/**
+ * A cave mouth's rock and its dark lining: two jambs either side of the opening, the
+ * lintel over it with a stepped (corbelled) underside, and the back wall that closes it
+ * 0.8 m short of the face's back until piece S opens the cave. The opening faces out (the
+ * frame's forward); its floor is the ground, walkable to the back wall.
+ */
+export function caveMouthBlocks(p: PieceSize): LocalBlock[] {
+  const W = p.widthM;
+  const D = p.depthM;
+  const H = p.maxY - p.minY;
+  const o = caveOpening(p);
+  const side = (W - o.w) / 2;
+  const back = 0.8;
+  const step = Math.min(0.5, o.w / 6);
+  return [
+    { right: -(o.w / 2 + side / 2), out: 0, w: side, d: D, y0: 0, y1: H },
+    { right: o.w / 2 + side / 2, out: 0, w: side, d: D, y0: 0, y1: H },
+    { right: 0, out: 0, w: o.w, d: D, y0: o.h, y1: H },
+    // The arch's steps, each course in a little from the jambs.
+    { right: -(o.w / 2 - step / 2), out: 0, w: step, d: D, y0: o.h - 0.55, y1: o.h },
+    { right: o.w / 2 - step / 2, out: 0, w: step, d: D, y0: o.h - 0.55, y1: o.h },
+    { right: -(o.w / 2 - step * 1.5), out: 0, w: step, d: D, y0: o.h - 0.25, y1: o.h },
+    { right: o.w / 2 - step * 1.5, out: 0, w: step, d: D, y0: o.h - 0.25, y1: o.h },
+    { right: 0, out: -(D / 2 - back / 2), w: o.w, d: back, y0: 0, y1: o.h },
+    // The dark lining over the back wall's face: the cave going on into the dark.
+    { right: 0, out: -(D / 2 - back - 0.01), w: o.w, d: 0.02, y0: 0, y1: o.h, dark: true },
+  ];
+}
+
+/** A survey signal's three feet in its frame, `widthM` across, one leg pointing out. */
+export function signalFeet(widthM: number): { right: number; out: number }[] {
+  const r = widthM / 2;
+  return [0, 1, 2].map((k) => {
+    const a = (k / 3) * Math.PI * 2;
+    return { right: Math.sin(a) * r, out: Math.cos(a) * r };
+  });
+}
+
+/** A point in a placed piece's frame, in zone meters. */
+export function pieceToZone(
+  p: Pick<PlacedPoiPiece, 'x' | 'z' | 'bearing'>,
+  right: number,
+  out: number,
+): { x: number; z: number } {
+  const { fx, fz, rx, rz } = axes(p.bearing);
+  return { x: p.x + rx * right + fx * out, z: p.z + rz * right + fz * out };
 }

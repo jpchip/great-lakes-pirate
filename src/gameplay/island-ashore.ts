@@ -1,10 +1,17 @@
 import type { WorldState } from '../sim/world-state';
 import type { GridField } from '../sim/terrain/grid-field';
 import type { Hideouts } from './hideouts';
-import { rollCache, type PlacedIsland, type PlacedPoiPiece } from '../sim/islands/on-foot';
+import {
+  caveMouthBlocks,
+  pieceToZone,
+  rollCache,
+  signalFeet,
+  type PlacedIsland,
+  type PlacedPoiPiece,
+} from '../sim/islands/on-foot';
 import type { PlacedSolid, PlacedStation } from '../sim/light-stations';
 import { bearingBox, type AshoreGround } from './onfoot/ashore-scene';
-import type { Collider } from './onfoot/colliders';
+import type { BoxCollider, Collider } from './onfoot/colliders';
 import type { ControllerParams, Ladder } from './onfoot/controller';
 
 /**
@@ -133,14 +140,98 @@ export function pieceColliders(p: PlacedPoiPiece): Collider[] {
   if (p.kind === 'logs' || p.kind === 'lumber' || p.kind === 'wall') {
     return [{ ...box, surface: 'wood', spot: height <= 1.6 ? 'vault' : 'climb' }];
   }
-  if (p.kind === 'ledge') {
+  if (p.kind === 'ledge' || p.kind === 'dock') {
     // A ledge's `minY` sits 1 m under the lower of its top and the ground around it (so its
     // face never shows a gap underneath), which isn't its real rise: that's its top over
-    // the ground it stands above.
+    // the ground it stands above. A dock is the same, in timber.
     const rise = p.maxY - (p.minY + 1);
-    return [{ ...box, spot: rise <= 1.6 ? 'vault' : 'climb' }];
+    const surface = p.kind === 'dock' ? ('wood' as const) : ('stone' as const);
+    return [{ ...box, surface, spot: rise <= 1.6 ? 'vault' : 'climb' }];
   }
-  return [box];
+  return kitColliders(p, box, height);
+}
+
+const lowSpot = (height: number): 'vault' | 'climb' | undefined =>
+  height <= 1.6 ? 'vault' : height <= 3.2 ? 'climb' : undefined;
+
+/** Phase 9 piece P's kit pieces as solids: the same shapes the renderer draws. */
+function kitColliders(p: PlacedPoiPiece, box: BoxCollider, height: number): Collider[] {
+  switch (p.kind) {
+    case 'field':
+    case 'planks':
+    case 'dig':
+      // Walked over.
+      return [];
+    case 'shanty':
+    case 'fish_house':
+    case 'cabin':
+    case 'barn':
+      return [{ ...box, surface: 'wood' }];
+    case 'net_reel':
+    case 'barrels':
+    case 'boat':
+    case 'woodpile':
+    case 'spar': {
+      const spot = lowSpot(height);
+      return [{ ...box, surface: 'wood', ...(spot ? { spot } : {}) }];
+    }
+    case 'drying_rack':
+    case 'hide_rack':
+    case 'ribs':
+      return [{ ...box, surface: 'wood', blocksSight: false }];
+    case 'fence':
+      return [{ ...box, surface: 'wood', blocksSight: false, spot: 'vault' }];
+    case 'stumps':
+      return (p.posts ?? []).map((s) => ({
+        kind: 'cylinder' as const,
+        x: s.x,
+        z: s.z,
+        radius: s.r,
+        minY: s.y - 0.3,
+        maxY: s.y + 0.5,
+        surface: 'wood' as const,
+        spot: 'vault' as const,
+      }));
+    case 'blaze':
+      return [{ kind: 'cylinder', x: p.x, z: p.z, radius: 0.12, minY: p.minY, maxY: p.maxY }];
+    case 'boulder': {
+      const spot = lowSpot(height);
+      return [
+        {
+          kind: 'cylinder',
+          x: p.x,
+          z: p.z,
+          radius: Math.min(p.widthM, p.depthM) / 2,
+          minY: p.minY,
+          maxY: p.maxY,
+          surface: 'rock',
+          ...(spot ? { spot } : {}),
+        },
+      ];
+    }
+    case 'signal':
+      return signalFeet(p.widthM).map((f) => {
+        const at = pieceToZone(p, f.right, f.out);
+        return {
+          kind: 'cylinder' as const,
+          x: at.x,
+          z: at.z,
+          radius: 0.25,
+          minY: p.minY,
+          maxY: p.maxY,
+          blocksSight: false,
+        };
+      });
+    case 'cave_mouth':
+      return caveMouthBlocks(p)
+        .filter((b) => !b.dark)
+        .map((b) => {
+          const at = pieceToZone(p, b.right, b.out);
+          return bearingBox(at.x, at.z, p.bearing, b.w, b.d, p.minY + b.y0, p.minY + b.y1, 'stone');
+        });
+    default:
+      return [box];
+  }
 }
 
 /** A station's solid as the controller's collider. */

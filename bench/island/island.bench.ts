@@ -1,6 +1,7 @@
 import { writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { expect, test, type Page } from '@playwright/test';
+import tiers from '../../data/island_tiers.json' with { type: 'json' };
 
 /**
  * bench.island (plan 08 §20.3 criterion 10; plan 17): Stockton on foot, the whole island
@@ -75,5 +76,7 @@ test('Stockton on foot: the island built, walked round its shore', async ({
   const text = JSON.stringify(report, null, 2);
   console.log(text);
   writeFileSync(join(import.meta.dirname, 'last-run.json'), text + '\n');
-  expect(report.drawCallsMax).toBeLessThanOrEqual(150);
+  // The hero tier's whole-frame budget (island_tiers.json, Phase 9 piece P).
+  expect(report.drawCallsMax).toBeLessThanOrEqual(tiers.tiers.hero.drawCalls);
+  expect(report.trianglesMax).toBeLessThanOrEqual(tiers.tiers.hero.triangles);
 });

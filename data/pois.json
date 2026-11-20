@@ -102,7 +102,8 @@
         "heightM": 3,
         "yawDeg": 4
       }
-    ]
+    ],
+    "site": "shore"
   },
   {
     "id": "poi.logging_camp",
@@ -202,6 +203,607 @@
         "depthM": 5,
         "heightM": 0.9,
         "yawDeg": 8
+      }
+    ]
+  },
+  {
+    "id": "poi.fish_camp",
+    "name": "Fish camp",
+    "site": "shore",
+    "clear": {
+      "rightM": [-22, 22],
+      "outM": [-14, 24]
+    },
+    "pieces": [
+      {
+        "kind": "dock",
+        "right": 4,
+        "out": 14,
+        "widthM": 2.6,
+        "depthM": 16,
+        "heightM": 1.0
+      },
+      {
+        "kind": "fish_house",
+        "right": 4,
+        "out": 2,
+        "widthM": 6,
+        "depthM": 5,
+        "heightM": 5.2
+      },
+      {
+        "kind": "shanty",
+        "right": -8,
+        "out": -2,
+        "widthM": 3.5,
+        "depthM": 3,
+        "heightM": 3.0
+      },
+      {
+        "kind": "shanty",
+        "right": -14,
+        "out": -6,
+        "widthM": 3,
+        "depthM": 3,
+        "heightM": 2.8,
+        "yawDeg": 12,
+        "variant": 1
+      },
+      {
+        "kind": "net_reel",
+        "right": -12,
+        "out": 5,
+        "widthM": 3,
+        "depthM": 1.8,
+        "heightM": 1.9
+      },
+      {
+        "kind": "net_reel",
+        "right": -7.5,
+        "out": 5.5,
+        "widthM": 3,
+        "depthM": 1.8,
+        "heightM": 1.9,
+        "yawDeg": 4
+      },
+      {
+        "kind": "net_reel",
+        "right": -3,
+        "out": 5,
+        "widthM": 3,
+        "depthM": 1.8,
+        "heightM": 1.9,
+        "yawDeg": -3
+      },
+      {
+        "kind": "drying_rack",
+        "right": 14,
+        "out": -3,
+        "widthM": 9,
+        "depthM": 0.6,
+        "heightM": 2.2,
+        "yawDeg": 80
+      },
+      {
+        "kind": "barrels",
+        "right": 8.5,
+        "out": 6,
+        "widthM": 2,
+        "depthM": 1.5,
+        "heightM": 1.0
+      },
+      {
+        "kind": "boat",
+        "right": 1.5,
+        "out": 7,
+        "widthM": 1.8,
+        "depthM": 7,
+        "heightM": 1.2,
+        "yawDeg": 20
+      },
+      {
+        "kind": "woodpile",
+        "right": -10.5,
+        "out": -4.5,
+        "widthM": 2.4,
+        "depthM": 0.8,
+        "heightM": 1.2
+      }
+    ],
+    "marks": [
+      {
+        "id": "stove",
+        "kind": "fire",
+        "right": -8,
+        "out": -2
+      },
+      {
+        "id": "fish_house_door",
+        "kind": "resident",
+        "right": 3,
+        "out": 5.5
+      },
+      {
+        "id": "net_reels",
+        "kind": "resident",
+        "right": -7.5,
+        "out": 7,
+        "facingDeg": 180
+      },
+      {
+        "id": "dock_end",
+        "kind": "landing",
+        "right": 4,
+        "out": 21.5
+      },
+      {
+        "id": "fish_house",
+        "kind": "search",
+        "right": 6,
+        "out": 5
+      }
+    ]
+  },
+  {
+    "id": "poi.farmstead",
+    "name": "Farmstead",
+    "site": "clearing",
+    "clear": {
+      "rightM": [-30, 30],
+      "outM": [-24, 25]
+    },
+    "pieces": [
+      {
+        "kind": "cabin",
+        "right": -6,
+        "out": 4,
+        "widthM": 6,
+        "depthM": 4.5,
+        "heightM": 4.4
+      },
+      {
+        "kind": "barn",
+        "right": 10,
+        "out": -10,
+        "widthM": 10,
+        "depthM": 7,
+        "heightM": 7.5
+      },
+      {
+        "kind": "field",
+        "right": -8,
+        "out": -16,
+        "widthM": 20,
+        "depthM": 12,
+        "heightM": 0.3,
+        "variant": 1
+      },
+      {
+        "kind": "field",
+        "right": 0,
+        "out": 16,
+        "widthM": 16,
+        "depthM": 10,
+        "heightM": 0.3,
+        "variant": 2
+      },
+      {
+        "kind": "field",
+        "right": 20,
+        "out": 5,
+        "widthM": 12,
+        "depthM": 14,
+        "heightM": 0.3,
+        "variant": 0
+      },
+      {
+        "kind": "fence",
+        "right": 0,
+        "out": 22.5,
+        "widthM": 22,
+        "depthM": 1,
+        "heightM": 1.3
+      },
+      {
+        "kind": "fence",
+        "right": -19.5,
+        "out": 0,
+        "widthM": 30,
+        "depthM": 1,
+        "heightM": 1.3,
+        "yawDeg": 90
+      },
+      {
+        "kind": "woodpile",
+        "right": -1,
+        "out": 3,
+        "widthM": 2.4,
+        "depthM": 0.8,
+        "heightM": 1.3,
+        "yawDeg": 90
+      },
+      {
+        "kind": "stumps",
+        "right": 21,
+        "out": 18,
+        "widthM": 14,
+        "depthM": 10,
+        "heightM": 0.6
+      }
+    ],
+    "marks": [
+      {
+        "id": "hearth",
+        "kind": "fire",
+        "right": -3,
+        "out": 4
+      },
+      {
+        "id": "door",
+        "kind": "resident",
+        "right": -7,
+        "out": 7.5
+      },
+      {
+        "id": "field",
+        "kind": "resident",
+        "right": 0,
+        "out": 14,
+        "facingDeg": 180
+      },
+      {
+        "id": "barn",
+        "kind": "search",
+        "right": 10,
+        "out": -5.5
+      }
+    ]
+  },
+  {
+    "id": "poi.trapper_cabin",
+    "name": "Trapper's cabin",
+    "site": "clearing",
+    "clear": {
+      "rightM": [-10, 10],
+      "outM": [-8, 10]
+    },
+    "pieces": [
+      {
+        "kind": "cabin",
+        "right": 0,
+        "out": 0,
+        "widthM": 4,
+        "depthM": 3.5,
+        "heightM": 3.8,
+        "variant": 1
+      },
+      {
+        "kind": "woodpile",
+        "right": -4,
+        "out": 1,
+        "widthM": 1.8,
+        "depthM": 0.7,
+        "heightM": 1.1,
+        "yawDeg": 90
+      },
+      {
+        "kind": "hide_rack",
+        "right": 4.5,
+        "out": 3.5,
+        "widthM": 2.8,
+        "depthM": 0.4,
+        "heightM": 1.9,
+        "yawDeg": -20
+      },
+      {
+        "kind": "hide_rack",
+        "right": -2.5,
+        "out": 5,
+        "widthM": 1.9,
+        "depthM": 0.4,
+        "heightM": 1.7,
+        "yawDeg": 15
+      },
+      {
+        "kind": "stumps",
+        "right": 0,
+        "out": 7.5,
+        "widthM": 12,
+        "depthM": 4,
+        "heightM": 0.5
+      }
+    ],
+    "marks": [
+      {
+        "id": "stove",
+        "kind": "fire",
+        "right": 1,
+        "out": 0
+      },
+      {
+        "id": "door",
+        "kind": "resident",
+        "right": -1,
+        "out": 3
+      },
+      {
+        "id": "under_the_floor",
+        "kind": "cache",
+        "right": -1,
+        "out": 2.2
+      },
+      {
+        "id": "behind",
+        "kind": "dig",
+        "right": 3,
+        "out": -5
+      }
+    ]
+  },
+  {
+    "id": "poi.viewpoint",
+    "name": "Viewpoint",
+    "site": "hilltop",
+    "clear": {
+      "rightM": [-7, 7],
+      "outM": [-7, 6]
+    },
+    "pieces": [
+      {
+        "kind": "signal",
+        "right": 0,
+        "out": -1.5,
+        "widthM": 4.5,
+        "depthM": 4.5,
+        "heightM": 9
+      },
+      {
+        "kind": "cairn",
+        "right": 2.8,
+        "out": 2.8,
+        "widthM": 2,
+        "depthM": 2,
+        "heightM": 1.4
+      },
+      {
+        "kind": "logs",
+        "right": -2.6,
+        "out": 2.6,
+        "widthM": 0.6,
+        "depthM": 3,
+        "heightM": 0.6,
+        "yawDeg": 70
+      },
+      {
+        "kind": "boulder",
+        "right": -4,
+        "out": -3,
+        "widthM": 1.8,
+        "depthM": 1.4,
+        "heightM": 1.1
+      }
+    ],
+    "marks": [
+      {
+        "id": "lookout",
+        "kind": "view",
+        "right": 0,
+        "out": 3.5
+      },
+      {
+        "id": "cairn",
+        "kind": "cache",
+        "right": 2.8,
+        "out": 2.8
+      }
+    ]
+  },
+  {
+    "id": "poi.beach_wreck",
+    "name": "Beach wreckage",
+    "site": "beach",
+    "clear": {
+      "rightM": [-12, 12],
+      "outM": [-8, 10]
+    },
+    "pieces": [
+      {
+        "kind": "ribs",
+        "right": 0,
+        "out": 2,
+        "widthM": 5,
+        "depthM": 14,
+        "heightM": 2.6,
+        "yawDeg": 70
+      },
+      {
+        "kind": "spar",
+        "right": -6,
+        "out": -3,
+        "widthM": 2,
+        "depthM": 9,
+        "heightM": 0.6,
+        "yawDeg": -25
+      },
+      {
+        "kind": "planks",
+        "right": 5,
+        "out": -3,
+        "widthM": 6,
+        "depthM": 4,
+        "heightM": 0.1
+      },
+      {
+        "kind": "planks",
+        "right": -3,
+        "out": 6.5,
+        "widthM": 5,
+        "depthM": 3,
+        "heightM": 0.1
+      },
+      {
+        "kind": "barrels",
+        "right": 7.5,
+        "out": 4,
+        "widthM": 1.4,
+        "depthM": 1.4,
+        "heightM": 1.0
+      },
+      {
+        "kind": "boulder",
+        "right": 9.5,
+        "out": 7,
+        "widthM": 1.5,
+        "depthM": 1.2,
+        "heightM": 0.8
+      }
+    ],
+    "marks": [
+      {
+        "id": "timber",
+        "kind": "search",
+        "right": 5,
+        "out": -3
+      },
+      {
+        "id": "spar",
+        "kind": "search",
+        "right": -6.5,
+        "out": -0.5
+      },
+      {
+        "id": "beach",
+        "kind": "landing",
+        "right": 0,
+        "out": 9
+      }
+    ]
+  },
+  {
+    "id": "poi.cairn",
+    "name": "Cairn",
+    "site": "hilltop",
+    "clear": {
+      "rightM": [-4, 4],
+      "outM": [-4, 4]
+    },
+    "pieces": [
+      {
+        "kind": "cairn",
+        "right": 0,
+        "out": 0,
+        "widthM": 2.2,
+        "depthM": 2.2,
+        "heightM": 1.8
+      },
+      {
+        "kind": "blaze",
+        "right": 3,
+        "out": 0,
+        "widthM": 0.2,
+        "depthM": 0.2,
+        "heightM": 1.8
+      }
+    ],
+    "marks": [
+      {
+        "id": "cairn",
+        "kind": "cache",
+        "right": 0,
+        "out": 0
+      }
+    ]
+  },
+  {
+    "id": "poi.dig_spot",
+    "name": "Dig spot",
+    "site": "clearing",
+    "clear": {
+      "rightM": [-4, 4],
+      "outM": [-4, 4]
+    },
+    "pieces": [
+      {
+        "kind": "dig",
+        "right": 0,
+        "out": 0,
+        "widthM": 1.6,
+        "depthM": 1.4,
+        "heightM": 0.4
+      },
+      {
+        "kind": "blaze",
+        "right": -2,
+        "out": -1,
+        "widthM": 0.2,
+        "depthM": 0.2,
+        "heightM": 1.6
+      }
+    ],
+    "marks": [
+      {
+        "id": "dig",
+        "kind": "dig",
+        "right": 0,
+        "out": 0
+      }
+    ]
+  },
+  {
+    "id": "poi.cave_mouth",
+    "name": "Cave mouth",
+    "site": "cliff",
+    "clear": {
+      "rightM": [-10, 10],
+      "outM": [-4, 10]
+    },
+    "pieces": [
+      {
+        "kind": "cave_mouth",
+        "right": 0,
+        "out": 0,
+        "widthM": 12,
+        "depthM": 5,
+        "heightM": 8
+      },
+      {
+        "kind": "boulder",
+        "right": -4.5,
+        "out": 4,
+        "widthM": 1.6,
+        "depthM": 1.3,
+        "heightM": 1.2
+      },
+      {
+        "kind": "boulder",
+        "right": 5,
+        "out": 5,
+        "widthM": 2.4,
+        "depthM": 1.8,
+        "heightM": 1.6
+      },
+      {
+        "kind": "boulder",
+        "right": 2.2,
+        "out": 6.5,
+        "widthM": 0.9,
+        "depthM": 0.8,
+        "heightM": 0.6
+      }
+    ],
+    "marks": [
+      {
+        "id": "mouth",
+        "kind": "cave",
+        "right": 0,
+        "out": 1,
+        "facingDeg": 180
+      },
+      {
+        "id": "below",
+        "kind": "landing",
+        "right": 0,
+        "out": 8
       }
     ]
   }
