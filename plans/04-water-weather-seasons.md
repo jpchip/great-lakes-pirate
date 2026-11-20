@@ -756,8 +756,57 @@ The historical ranges are freeze-up in Duluth harbor in December, ice-out mid-Ap
 - The ice's look in the zone, snow and winter palettes (piece L).
 - Winter audio (piece N). Walking on the ice, the ice road and warmth are built (piece M, [plan 11 §18.15](11-exploration-islands-secrets.md)).
 
+## 27. Phase 9 Piece L: Winter's Look (2026-11-19)
+
+Stage 2's look ([plan 11 §18.4](11-exploration-islands-secrets.md)): piece K's ice, and the winter around it, drawn. 04 cut #3 (the aurora) is lifted: it costs one branch in the sky shader on a night without one.
+
+### What was built
+
+| Part | Where | How it works |
+|---|---|---|
+| The zone's ice | `src/sim/ice/zone-ice.ts` | K's ice at a place is a function of its shelter and the date, so a zone needs its shelter on a 32 m grid (built once a zone, about 57k texels for the Apostles) and the day's ice by shelter as a 64-entry strip (once a calendar day): sheet cover, thickness, floe cover and fast or not. |
+| The ice sheet | `src/render/water/ice-glsl.ts`, in the water shader | A masked layer over the water from those two textures (§8.3). The 1 km cells are broken up: the edge wanders by two octaves of noise and water near the shore freezes a little ahead of its cell, so ice hugs the shore first. New ice is dark nilas with pale pancake rims; pack is plates on a cellular noise with leads of open water, the plate there when its cell's hash is under the cover; fast ice is a whole sheet with snow drifted across it, swept patches of blue-gray clear ice, and thin warped cracks on some cell borders with a pale ridge of snow beside them. Clear ice glints. All inside one uniform branch and a cover test, so summer water pays nothing. |
+| The sea under the ice | `LocalWeather.setSeaCalm` | The same strip calms the sea scale (a sheet stills it, floes damp it to 40–100%), so buoyancy and the drawn waves agree and a ship frozen in sits still. |
+| Floes | `src/render/water/floes.ts` | At the break-up, up to 90 / 220 / 420 instanced nine-sided slabs (Low / Medium / High) in one draw, on 11 m cells round the camera, each cell's floe a pure function of its indices, riding the calmed swell. The water shader draws the far floes past the meshes' reach. |
+| Snow on the ground | `src/sim/ice/snow.ts`, `data/winter.json` | Worked out a calendar day at a time over each winter's air (K's `Winter.airC`): snow days by month, snow below 0.5 °C and rain (eating into it) above, settling and melting by thawing degree-days. A pure function of the seed and the date, nothing saved. Depth on Feb 15 runs 25–45 cm across seeds, gone by late April in a mild year and early May in a hard one. |
+| Snow on everything | `stylized-material.ts` (`styleSnowAmount`), terrain, impostors | One shared uniform: snow lies on what faces up, flat ground first and steeper faces as it deepens, in patches while thin, off the wave-washed waterline. So the terrain, the trees (less on far impostors), Bayfield's roofs and boardwalks, the hideouts and the ships' decks all whiten together. Red sandstone cliffs stay red under white tops. Snow glows faintly at night, as the ice does, so a snowy shore reads under the stars. It fades off while you're inside a district building (its floors would otherwise show snow with the roof faded), and the captain's figure never takes it. |
+| Falling snow | `src/render/atmosphere/snowfall.ts` | Below 2 °C the weather's precipitation comes down as snow (sleet between 0 and 2): up to 1,200 / 3,000 / 6,000 point flakes in one draw, wrapped round the camera in the vertex shader like the rain, falling slowly, swaying, going with the wind, and closing the air in. |
+| Frozen spray | `spray.ts` `frozen01` | From −3 °C to −12 °C the bow spray comes off as a glitter of ice crystals that thins to sparks instead of a soft puff. |
+| Winter palettes | `src/render/style/winter-palette.ts`, `environment.ts` | After the lighting LUTs: a paler, colder day sky and a white-gray horizon haze, a rose and salmon winter dusk, a deeper blue night, a whiter sun, darker steel water against the ice, and snow cover bouncing light back up (the hemisphere's ground color and the ambient rise). The blend is `winterLookAt`: the colder of the day's air and the snow cover. |
+| The aurora | `src/sim/weather/aurora.ts`, `sky.ts` | A night's chance by month (none in June and July, most in September, October and March) times the sunspot cycle (cycle 14 peaked early in 1906: 45% of the chance at the minimum, all of it at the maximum), rolled per night from the seed; a display starts between 8:30 PM and 12:30 AM, builds over an hour, lasts 1.5–5 hours. Shown only in the full dark (sun under −8°) through a clear sky. Two curtains low in the north, their foot folding along the horizon, green at the foot to violet above, with drifting rays; the clouds hide them. It lights the snow and the water faintly green. |
+| Switches | `main.ts` | `?date=1901-02-10` (with `?hour`) puts the clock on a date without running the world through it. `__glpWinter.state()` reads the look; `.set({ snow, aurora, look, falling })` forces parts of it; `.jump(iso, hour)`, `.place(x, z, deg)` and `.iceAt(x, z)` for screenshots. `npm run bench:stream` with `WINTER=1` runs the route on a February day of a hard winter with snow falling. |
+
+### Cost
+
+On the software renderer (headless SwiftShader), only counts and relative times mean anything; the laptop rerun is the real check.
+
+`npm run bench:stream` (Apostles, Medium, the zone route at 8 knots, SwiftShader at 1280 × 720):
+
+| Run | Frame p50 | Frame p95 | Draw calls (max) | Stream p95 |
+|---|---|---|---|---|
+| Summer (noon, May) | 117 ms | 183 ms | 23 | 0.2 ms |
+| Winter (noon, February, run-3: the bays fast, snow cover 1, snow falling at 0.6) | 150 ms | 217 ms | 23 | 0.2 ms |
+
+SwiftShader rasterizes on the CPU, so the 28% at the median is fill cost: the ice layer's cellular noise (one evaluation over a closed sheet, two over pack) and the snow term on every lit pixel. On a GPU that share of a frame should be well under a millisecond, but the laptop's water-bench rerun in winter is the real check (budget: water ≤ 3 ms on Medium). The shelter grid is built once a zone (57k texels, tens of milliseconds behind the zone load) and the day's strip and the sea's calm once a calendar day (about 3.4 game hours). `bench:docks` and `bench:hideout` run their dev pages, which stay in summer.
+
+The ice layer adds no draw call (it's in the water shader); floes and falling snow add one each when there are any. On a summer day the water pays one uniform branch and the style one `uSnow` test per pixel.
+
+### Screenshots
+
+`/mnt/project-files/winters-look/`: the ice edge by day and by night, Bayfield's frozen harbor by day, night and in falling snow, Bayfield's waterfront on foot under snow by day and night, the aurora over the lake, and floes at ice-out.
+
+### Not in piece L
+
+1. **Shore ice ridges and pressure ridges** (cut #4) as meshes: the cracks have a pale snow ridge drawn on the sheet only.
+2. **Ice caves and icicles** on the sandstone (piece S's ice caves).
+3. **Tracks in the snow** and a trodden path on the piers: piece M (warmth, tracks for the watch).
+4. **Rime on hulls and rigging** from freezing spray: the spray freezes as it flies; the ship takes snow on her deck but no glaze.
+5. **The district's and hideout dev pages** (`district.html`, `hideout.html`) stay in summer, so `bench:docks` and `bench:hideout` don't see winter; the game's own Bayfield does.
+6. **Sea smoke** (steam fog over open water in hard cold) would suit the lake; not built.
+
 ## Changelog
-- v0.13: §26 Not covered yet: piece M built (plan 11 §18.15).
+- v0.14: §26 Not covered yet: piece M built (plan 11 §18.15).
+- v0.13: Phase 9 piece L (§27): the ice sheet, floes, snow on the ground and on everything, falling snow, frozen spray, winter palettes and the aurora (cut #3 lifted).
 - v0.12: Phase 9 piece K (§26): the ice sim, the year's roll, harbors frozen in, sailing and voyages in ice, the ice bow, winter traffic and markets, the first boat in and the Mataafa storm; §15's freeze-up stop marked moot.
 - v0.11: Phase 3 piece E ([03 §28](03-world-scale-chart-travel.md)): `squallAt` (summer thunder and cold squalls in a gale's rain), the climate normals cached per game time, and the chart's weather built from §12 and §15.
 - v0.10: Phase 2 piece E (§25): lighting LUTs (clear, overcast, storm, fog), two cloud layers, fog bank walls, rain streaks and wetness, summer thunderstorms and lightning, all from the weather sim; Rain and Thunderstorm in the dev panel.

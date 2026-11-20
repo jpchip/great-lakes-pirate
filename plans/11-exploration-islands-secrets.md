@@ -508,6 +508,12 @@ Twenty-six pieces, each sized to be one thread, in three stages by decision 1. A
 
 **For Jared:** the wreck names, lore and papers wording; whether the seeded wrecks should be more than three; the chance and time per cast (40 min, about one CU an hour in good conditions); whether seeing the hull on the bottom wants a clearer water look.
 
+### 18.11 Piece L as built: winter's look (2026-11-19)
+
+Built as scoped; the write-up is [04 §27](04-water-weather-seasons.md). The ice sheet over the water comes from K's ice through the zone's shelter and a daily lookup strip (and calms the sea under it), floes are instanced at ice-out, snow lies on the terrain, the trees, Bayfield, the hideouts and the decks by a snow series worked out from each winter's air, cold air turns rain to snow, spray freezes, the palettes go to winter, and the aurora is in (04 cut #3 lifted; it is cheap). Not in L: shore ice ridges, rime on hulls, tracks (M), ice caves (S), sea smoke.
+
+**For Jared (the look):** the ice and snow tones (`ICE_*_HEX` in `water-material.ts`, the snow color in `stylized-material.ts`), how white the land goes, the crack density, the winter palette's strength (`winter-palette.ts`), the aurora's color, height and frequency (`data/winter.json`), and whether snow should come off the decks of a ship under way.
+
 ### 18.15 Piece M as built: on the ice and in the cold (2026-11-19)
 
 **Data.** `data/cold.json` holds every number: what ice holds a walker (10 cm, plus 1 cm per 25 kg hauled), the thin-ice stress and its stages, warmth rates, the sled, the prints, and the ice road. The pure sim is `src/sim/cold/` (footing, warmth, sled, tracks, road), and `src/gameplay/cold.ts` lays the ice over the on-foot ground.
@@ -538,6 +544,7 @@ Twenty-six pieces, each sized to be one thread, in three stages by decision 1. A
 
 ## Changelog
 - v0.13: Phase 9 piece M as built (§18.15): walking on the ice, thin ice and the climb out, the ice road to La Pointe, the hand sled, warmth, and tracks in the snow.
+- v0.9: Piece L as built (§18.11): winter's look; the aurora is in.
 - v0.8: Piece U as built (§18.10): old wrecks of the record and the seed, found by sight or the lead line, worked by grapple and hook at anchor, hot recent cargo, papers as leads.
 - v0.7: Piece B as built (§18.9): the nickname, Retire and Turn Lawman, and the Hall of Captains.
 - v0.6: Piece O as built (§18.8): discovery and the fog of war on the chart, leads, the journal's four pages, and curios.

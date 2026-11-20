@@ -38,6 +38,14 @@ export interface StyleLightingUniforms {
   uLampRange: THREE.IUniform<number>;
   /** How wet surfaces are, 0–1: rain darkens everything lit by the style (plan 04 §11). */
   uWet: THREE.IUniform<number>;
+  /**
+   * Snow lying on upward faces, 0–1 (plan 04 §11; piece L): the ground, roofs, decks and
+   * the tops of trees whiten by season. `uSnowColor` is its color at full daylight.
+   */
+  uSnow: THREE.IUniform<number>;
+  uSnowColor: THREE.IUniform<THREE.Color>;
+  /** Snow's own glow at night, 0–1: snow shows under the stars, as the ice does. */
+  uSnowNight: THREE.IUniform<number>;
 }
 
 export class StyleLighting {
@@ -51,6 +59,9 @@ export class StyleLighting {
     uLampColor: { value: new THREE.Color(0, 0, 0) },
     uLampRange: { value: 40 },
     uWet: { value: 0 },
+    uSnow: { value: 0 },
+    uSnowColor: { value: new THREE.Color(0xdfe6ee) },
+    uSnowNight: { value: 0 },
   };
 
   apply(tod: TimeOfDay): void {
@@ -157,6 +168,9 @@ uniform vec3 uLampPosition;
 uniform vec3 uLampColor;
 uniform float uLampRange;
 uniform float uWet;
+uniform float uSnow;
+uniform vec3 uSnowColor;
+uniform float uSnowNight;
 #ifdef LAMP_POOLS
   // The nearest street lamps and lanterns (docks districts, plan 08 §14): xyz and range,
   // and color times intensity. Unused slots have zero color.
@@ -205,6 +219,42 @@ vec3 styleLight(vec3 n, vec3 worldPos) {
   #endif
   // Wet surfaces are darker (rain, spray and wet rock), and so are their colors' lights.
   return (ambient + uKeyColor * key + uLampColor * lamp * falloff * falloff + pools) * (1.0 - 0.22 * uWet);
+}
+
+// Snow lying on what faces up (plan 04 §11, piece L): an albedo blend, before the light.
+// It starts on flat ground and spreads to steeper faces as it deepens, in patches while
+// it's thin, and stays off the wave-washed waterline. Pitched roofs hold it; walls don't.
+float snowHash(vec2 p) {
+  vec3 p3 = fract(vec3(p.xyx) * 0.1031);
+  p3 += dot(p3, p3.yzx + 33.33);
+  return fract((p3.x + p3.y) * p3.z);
+}
+
+float snowNoise(vec2 p) {
+  vec2 i = floor(p);
+  vec2 f = fract(p);
+  vec2 u = f * f * (3.0 - 2.0 * f);
+  return mix(mix(snowHash(i), snowHash(i + vec2(1.0, 0.0)), u.x),
+             mix(snowHash(i + vec2(0.0, 1.0)), snowHash(i + vec2(1.0, 1.0)), u.x), u.y);
+}
+
+float styleSnowAmount(vec3 n, vec3 worldPos) {
+  if (uSnow <= 0.001) return 0.0;
+  float grain = snowNoise(worldPos.xz * 0.37) * 0.6 + snowNoise(worldPos.xz * 0.061) * 0.4;
+  float lie = n.y + (grain - 0.5) * 0.3;
+  float edge = mix(0.93, 0.45, uSnow);
+  float s = smoothstep(edge, edge + 0.1, lie);
+  s *= smoothstep(0.0, 0.3, uSnow + (grain - 0.5) * 0.5 * (1.0 - uSnow));
+  return s * smoothstep(0.3, 0.9, worldPos.y);
+}
+
+vec3 styleSnow(vec3 albedo, vec3 n, vec3 worldPos) {
+  return mix(albedo, uSnowColor, styleSnowAmount(n, worldPos));
+}
+
+// Snow at night: a faint light of its own, so a snowy shore reads under the stars.
+vec3 styleSnowGlow(float amount) {
+  return uSnowColor * vec3(0.8, 0.88, 1.0) * amount * uSnowNight;
 }
 `;
 
@@ -261,7 +311,15 @@ void main() {
     rim = smoothstep(0.5, 0.55, rim);
   #endif
 
-  vec3 color = vColor * light + uRimColor * rim + uEmissive;
+  #ifdef NO_SNOW
+    vec3 albedo = vColor;
+    vec3 snowGlow = vec3(0.0);
+  #else
+    float snowAmount = styleSnowAmount(n, vWorldPos);
+    vec3 albedo = mix(vColor, uSnowColor, snowAmount);
+    vec3 snowGlow = styleSnowGlow(snowAmount);
+  #endif
+  vec3 color = albedo * light + snowGlow + uRimColor * rim + uEmissive;
   #ifdef USE_GLOW
     color = mix(color, vColor * (light * uGlowDim + uGlow), vGlow);
   #endif
@@ -294,6 +352,8 @@ export interface StylizedMaterialOptions {
    * day (`uGlowDim`) and glows by `uGlow` at night (the hideout kit, plan 09 §10).
    */
   glow?: boolean;
+  /** Never take snow (a deck under cover, a lamp's glass): plan 04 §11's snow term off. */
+  noSnow?: boolean;
 }
 
 export interface LampPoolUniforms {
@@ -333,6 +393,7 @@ export function createStylizedMaterial(
       ...(options.fade ? { USE_DISTANCE_FADE: '' } : {}),
       ...(options.pools ? { LAMP_POOLS: options.pools.uPoolPosition.value.length } : {}),
       ...(options.glow ? { USE_GLOW: '' } : {}),
+      ...(options.noSnow ? { NO_SNOW: '' } : {}),
     },
     vertexShader,
     fragmentShader,
