@@ -723,6 +723,113 @@
         "deck": "Captains Wager Whole Cargoes Across the Card Table",
         "body": "It is said along the waterfront at {port} that a card game in one of the saloons is being played for whole cargoes, and that more than one master has gone back to his vessel lighter than he came ashore. The constable is said to take no notice."
       }
+    },
+    {
+      "id": "event.nickname_letter",
+      "name": "The papers give you a name",
+      "type": "flavor",
+      "weight": 1,
+      "cooldownDays": 0,
+      "hours": 72,
+      "channels": ["letter"],
+      "draw": false,
+      "letter": {
+        "from": "The Editor, {paper}",
+        "subject": "{nick}",
+        "body": "Captain {captain}, \u2014 Our readers have taken a lively interest in your doings, and this paper has taken the liberty of giving you the name by which the lake will know you: {nick}. Should the name displease you, our columns are open to a letter from you, which we will print in full on the fourth page. We do not undertake to print a second. \u2014 The Editor"
+      },
+      "choices": [
+        {
+          "id": "write",
+          "label": "Write to the editor",
+          "result": "Your letter runs on the fourth page under the heading \u201cA Correction.\u201d The editor prints it in full, and the next week the papers have another name for you: {nick}.",
+          "outcomes": [
+            {
+              "kind": "log",
+              "text": "Wrote to the editor about the name the papers gave me."
+            }
+          ]
+        },
+        {
+          "id": "let_stand",
+          "label": "Let it stand",
+          "result": "You let it stand. There are worse things to be called on the waterfront.",
+          "outcomes": []
+        }
+      ],
+      "defaultChoice": "let_stand"
+    },
+    {
+      "id": "event.retirement_offer",
+      "name": "A land agent's letter",
+      "type": "opportunity",
+      "weight": 1,
+      "cooldownDays": 6,
+      "hours": 72,
+      "channels": ["letter"],
+      "draw": false,
+      "letter": {
+        "from": "H. L. Dahl, Land Agent and Notary Public, Bayfield",
+        "subject": "Coming ashore",
+        "body": "Captain {captain}, \u2014 It is said along the waterfront that you have done well for yourself, {wealth} or near it, and that the law has no particular quarrel with you at present. A captain so placed might think of coming ashore while the going is good. I have three properties on my books that would suit: forty acres and a house at Peshtigo, cleared and fenced; a saloon with a good bar and rooms over it on St. Croix Avenue, Duluth; and a fisherman's cabin with a dock and a net house on Sand Island. Any one of them for cash, and no questions asked as to where the cash came from. Write me care of the harbor master. \u2014 H. L. Dahl"
+      },
+      "choices": [
+        {
+          "id": "retire_farm",
+          "label": "Buy the farm at Peshtigo",
+          "result": "You write Mr. Dahl that you'll take the farm, and pay him in gold.",
+          "outcomes": []
+        },
+        {
+          "id": "retire_saloon",
+          "label": "Buy the saloon in Duluth",
+          "result": "You write Mr. Dahl that you'll take the saloon, and pay him in gold.",
+          "outcomes": []
+        },
+        {
+          "id": "retire_cabin",
+          "label": "Buy the cabin on Sand Island",
+          "result": "You write Mr. Dahl that you'll take the cabin, and pay him in gold.",
+          "outcomes": []
+        },
+        {
+          "id": "not_yet",
+          "label": "Not yet",
+          "result": "You put the letter in your coat. The lake isn't done with you yet.",
+          "outcomes": []
+        }
+      ],
+      "defaultChoice": "not_yet"
+    },
+    {
+      "id": "event.lawman_offer",
+      "name": "A letter from the marshal",
+      "type": "opportunity",
+      "weight": 1,
+      "cooldownDays": 6,
+      "hours": 72,
+      "channels": ["letter"],
+      "draw": false,
+      "letter": {
+        "from": "J. C. Merriam, United States Marshal, Western District of Wisconsin",
+        "subject": "A proposal",
+        "body": "Captain {captain}, \u2014 I will be plain. There is nobody on the south shore who knows the islands, and the ways of the people who work them, honestly or otherwise, as you do, and the Government has a use for that knowledge. The district wants a deputy on the lake. The pay is a deputy's fees and mileage; the badge comes with it, and so does a clean slate so far as this office is concerned. I am told you have friends in the ports and no warrant out against you worth the paper. That is rare enough in your line that I mean to take advantage of it. Reply care of the harbor master. \u2014 J. C. Merriam"
+      },
+      "choices": [
+        {
+          "id": "accept",
+          "label": "Pin on the badge",
+          "result": "You write the marshal that you accept, and take the train for Superior to be sworn.",
+          "outcomes": []
+        },
+        {
+          "id": "decline",
+          "label": "Decline the honor",
+          "result": "You write the marshal a polite refusal. He will ask again, his kind always does.",
+          "outcomes": []
+        }
+      ],
+      "defaultChoice": "decline"
     }
   ]
 }

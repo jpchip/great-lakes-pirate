@@ -43,7 +43,9 @@ export function EndScreen({
         <header class="newsprint-masthead">
           <div class="newsprint-ears">
             <span>Price two cents</span>
-            <span>{page.town}, Wis.</span>
+            <span>
+              {page.town}, {page.town === 'Duluth' ? 'Minn.' : 'Wis.'}
+            </span>
           </div>
           <h1 class="newsprint-paper">{page.paper}</h1>
           <div class="newsprint-dateline">{page.dateline}</div>
@@ -62,6 +64,11 @@ export function EndScreen({
         <h2>
           Captain {run.captain} of the <i>{run.shipName}</i>
         </h2>
+        {run.nickname && (
+          <p class="hall-nick" data-testid="end-nickname">
+            &ldquo;{run.nickname}&rdquo;
+          </p>
+        )}
         <dl>
           {run.summary.map((r) => (
             <div key={r.label}>
@@ -70,6 +77,14 @@ export function EndScreen({
             </div>
           ))}
         </dl>
+        {run.epilogue && (
+          <div class="end-epilogue" data-testid="end-epilogue">
+            <h3>What became of the captain</h3>
+            {run.epilogue.map((p) => (
+              <p key={p}>{p}</p>
+            ))}
+          </div>
+        )}
         <p class="end-note">The run is over. Nothing carries over to the next captain.</p>
         <nav class="end-buttons">
           <button
