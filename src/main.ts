@@ -186,6 +186,9 @@ import { attachEvents, type GameEvents as SandboxEvents } from './gameplay/event
 import { aboutDate, attachIce, ICE_BOW_UPGRADE } from './gameplay/ice';
 import { iceSailingSystem } from './gameplay/ice-sailing';
 import { calendarMs, gameSecondsAt } from './sim/ice/season';
+import { snowAt, winterLookAt } from './sim/ice/snow';
+import { auroraAt } from './sim/weather/aurora';
+import type { WinterOverrides } from './render/winter';
 import { crewsIdle } from './sim/events/events';
 import { attachFeuds } from './gameplay/feuds';
 import { FEUDS, feudOpen } from './sim/events/feuds';
@@ -406,7 +409,7 @@ async function loadSettings(): Promise<SettingsStore> {
  * panel preset over the sim, `?gale` starts the scripted gale, `?wind=45` sets where it
  * comes from, `?knots=30` its speed, `?rain=0.8` the rain, `?storm=1` a thunderstorm (with
  * rain), `?fog=800` the visibility in meters, `?cloud=0.9` the cover, and `?day=1&hour=19.5`
- * the game day and time of day. Any of the wind and sky switches takes the weather off the
+ * the game day and time of day (`?date=1901-02-10` a calendar date). Any of the wind and sky switches takes the weather off the
  * sim (plan 04 §24).
  */
 function applyWeatherParams(params: URLSearchParams, ctx: GameContext): void {
@@ -447,6 +450,13 @@ function applyWeatherParams(params: URLSearchParams, ctx: GameContext): void {
   const hour = params.has('hour') ? Number(params.get('hour')) : now.hour;
   if ((params.has('day') || params.has('hour')) && Number.isFinite(day + hour)) {
     clock.gameSeconds = day * SECONDS_PER_GAME_DAY + hour * 3600;
+  }
+  // `?date=1901-02-10` (piece L) puts the clock on a calendar date, keeping `?hour`: for a
+  // look at the winter without running the world through it (no freeze-up news).
+  const date = Date.parse(`${params.get('date') ?? ''}T00:00:00Z`);
+  if (Number.isFinite(date)) {
+    const d = Math.floor(gameSecondsAt(date) / SECONDS_PER_GAME_DAY);
+    clock.gameSeconds = d * SECONDS_PER_GAME_DAY + hour * 3600;
   }
   if (params.has('gale')) ctx.weather.startGale(clock.gameSeconds);
 }
@@ -1649,6 +1659,60 @@ async function boot(): Promise<void> {
       },
     };
     (window as unknown as { __glpIce: typeof hook }).__glpIce = hook;
+  }
+  // Winter's look (Phase 9 piece L): the zone's ice, snow, palettes and aurora from the ice.
+  if (scene) {
+    const geoLook = westernSuperiorChart();
+    scene.winter.source = {
+      seed: trafficSeed,
+      shelterAt: (p) => gameIce.ice.shelter(fromWorldChart(geoLook, p)),
+    };
+  }
+  if (import.meta.env.DEV || params.has('debug')) {
+    // `__glpWinter.state()` reads the look; `.set({ snow: 1, aurora: 1 })` forces parts of it
+    // for a screenshot (`.set({})` hands back to the season); `.jump('1901-02-01', 22)` puts
+    // the clock on a date and hour at once, without running the world between.
+    const look = scene?.winter;
+    const hook = {
+      state: () => {
+        const t = state.environment.clock.gameSeconds;
+        return {
+          date: new Date(calendarMs(t)).toISOString(),
+          snow: snowAt(trafficSeed, t),
+          look: winterLookAt(trafficSeed, t),
+          aurora: auroraAt(trafficSeed, t),
+          airC: ctx.weather.airTempAt(t),
+          view: look?.stats(),
+        };
+      },
+      set: (o: WinterOverrides) => {
+        if (!look) return;
+        const v = look.overrides;
+        v.snow = o.snow;
+        v.aurora = o.aurora;
+        v.look = o.look;
+        v.falling = o.falling;
+      },
+      /** Where the ship lies, and puts her somewhere else in the zone (zone meters, degrees). */
+      ship: () => shipPose(),
+      /** The ice at a zone point (the ship's when left out). */
+      iceAt: (x?: number, z?: number) => {
+        const p = shipPose();
+        const chart = zoneToChart({ x: x ?? p.x, z: z ?? p.z }, zoneFrame(zone, zoneData));
+        return gameIce.at(fromWorldChart(westernSuperiorChart(), chart));
+      },
+      place: (x: number, z: number, headingDeg: number) =>
+        placeShip({ x, z, heading: (headingDeg * Math.PI) / 180 }),
+      jump: (iso: string, hour?: number) => {
+        const clock = state.environment.clock;
+        const at = gameSecondsAt(Date.parse(`${iso}T00:00:00Z`));
+        const h = hour ?? dayAndHour(clock.gameSeconds).hour;
+        clock.gameSeconds = Math.floor(at / SECONDS_PER_GAME_DAY) * SECONDS_PER_GAME_DAY + h * 3600;
+        ctx.weather.tick(clock.gameSeconds, shipPose(), ctx.sea);
+        return new Date(calendarMs(clock.gameSeconds)).toISOString();
+      },
+    };
+    (window as unknown as { __glpWinter: typeof hook }).__glpWinter = hook;
   }
   if (import.meta.env.DEV || params.has('debug')) {
     // `__glpEvents.fire('event.herring_run')` fires one now (`fire(id, 'port.bayfield')` at a
