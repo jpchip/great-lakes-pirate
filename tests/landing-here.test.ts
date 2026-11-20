@@ -69,6 +69,9 @@ describe('walkableAt', () => {
       caches: [],
       clearings: [],
       marks: [],
+      landings: [],
+      residents: [],
+      reporting: 'slow',
     };
     const state = createWorldState('landing-here');
     const island = attachIslandAshore({

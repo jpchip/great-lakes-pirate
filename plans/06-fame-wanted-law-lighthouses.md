@@ -79,6 +79,7 @@ Crime committed ──► Witnessed? ──no──► (nothing, unless evidence
 |---|---|---|
 | Docks guard / watchman | Runs or whistles for police | Seconds to minutes (immediate if a constable is nearby) |
 | Townsperson | Tells the police | ~30–60 min |
+| Islander (fisherman, farmer, villager) | Rows or sails to town, as fast as word leaves his island | 0.5–1.5 h (fast), 2–5 h (medium), or at dawn and 1–3 h after (slow) |
 | Lighthouse keeper | Signal lamp or flag if it's visible from town; otherwise rows to town at dawn | ~1–8 h (by distance; R1 light data) |
 | Freighter / ship crew | Reports on arrival at its next port | Hours to days (voyage time) |
 | Life-Saving surfmen | Telephone from the Duluth station (✅ the station on Minnesota Point was built in 1894 and manned in 1895; the telephone is a game assumption ❓) | ~15–30 min |
@@ -613,6 +614,7 @@ So by day the T1 on auto-trim outruns her only from outside 800 m; once she's fi
 ---
 
 ## Changelog
+- v1.5: Islanders as witnesses (Phase 9 piece Q, [11 §18.17](11-exploration-islands-secrets.md)): the `townsfolk` witness kind reports at its island's speed (§2.4).
 - v1.4: Phase 7 as built (§14.6): the watch on foot, crimes ashore, minor arrests, the jailbreak and the jailer's debt; launches and lighthouse raids still to come.
 - v1.4: A slower cutter, a chase she gives up, and her sent away from the lockup port (§14.14.6, Jared's playtest).
 - v1.3: Bail clears heat to tier 1, as time served does (Jared's decision, §14.14.3 item 1).

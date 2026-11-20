@@ -244,6 +244,7 @@ import { attachAshore, type GameAshore } from './gameplay/ashore';
 import { DISTRICTS, districtFootprint, districtFrame } from './gameplay/district/ground';
 import { createWatch } from './gameplay/onfoot/watch';
 import { createStationWatch, keeperWeather } from './gameplay/onfoot/station-watch';
+import { createIslandWatch } from './gameplay/onfoot/island-watch';
 import { attachKeeperFound } from './gameplay/keeper-found';
 import {
   emptyStation,
@@ -3684,8 +3685,12 @@ async function boot(): Promise<void> {
     let hit = islandCache.get(zone);
     if (!hit) {
       const z = zone;
-      const placed = placeZoneIslands(z.manifest.zone, z.manifest.islands ?? [], (x, zz) =>
-        z.terrain.heightAt(x, zz),
+      // With the frame, each island knows its own land where the baked boxes overlap (piece Q).
+      const placed = placeZoneIslands(
+        z.manifest.zone,
+        z.manifest.islands ?? [],
+        (x, zz) => z.terrain.heightAt(x, zz),
+        manifestFrame(z.manifest),
       );
       hit = { placed, clearings: zoneClearings(z, harborLayouts, placed) };
       islandCache.set(zone, hit);
@@ -3726,6 +3731,13 @@ async function boot(): Promise<void> {
       },
     },
     stations: zoneStations,
+    // La Pointe's trading post on foot (piece Q).
+    harbors: () => harborLayouts,
+    trade: (port, title) => {
+      const refused = ports.openShop(port, 'market', title);
+      if (!refused) ui.setPortTab('market');
+      return refused;
+    },
     runSeed: () => state.environment.weather.noiseSeed,
     notice: (text) => showNotice(text),
     // A cache's curio kept, and a lead to it run down (piece O).
@@ -4093,7 +4105,7 @@ async function boot(): Promise<void> {
     },
     // A lighthouse station's keepers (plan 11 §18.4 piece H): the watch's machinery on the
     // station's pad, its doings remembered in the save for the light at sea.
-    stationWatch: (station, scene) => {
+    stationWatch: (station, scene, island) => {
       const region = (): string => law.region() ?? '';
       const tierNow = (): number => wantedTier(law.defs, state.wanted[region()]?.heat ?? 0);
       const fameTiers = Math.max(1, law.defs.fame.tiers.length - 1);
@@ -4119,6 +4131,9 @@ async function boot(): Promise<void> {
         suspect: () => suspectOverride.value,
         pockets: state.player,
         hasWeapon: (id) => !!state.player.ship?.weapons.some((w) => w.weapon === id),
+        // The rest of the island's people round the station (piece Q).
+        ...(island ? { residents: island.residents } : {}),
+        residentFates: () => (state.residents ??= {}),
         law: {
           commit: (input) => law.commit(input),
           addWitness: (id, w) => law.addWitness(id, w),
@@ -4144,6 +4159,57 @@ async function boot(): Promise<void> {
             const n = discovery.logbookRead(station.def.light).length;
             return n ? `${n === 1 ? 'One mark' : `${n} marks`} copied onto your chart.` : undefined;
           },
+        },
+      });
+      if (audio) {
+        watch.on((e) => audio.foot.stealth(e));
+        watch.onTool((e) => {
+          if (e.type !== 'StoneThrown') return audio.foot.tool(e);
+          audio.foot.tool(e, { x: e.x, y: e.y, z: e.z });
+        });
+      }
+      return watch;
+    },
+    // An island's people where there's no station (plan 11 §18.4 piece Q): Madeline's,
+    // Hermit's and Basswood's fishermen, farmers and villagers, who see and report.
+    islandWatch: (island, scene) => {
+      const region = (): string => law.region() ?? '';
+      const tierNow = (): number => wantedTier(law.defs, state.wanted[region()]?.heat ?? 0);
+      const fameTiers = Math.max(1, law.defs.fame.tiers.length - 1);
+      const watch = createIslandWatch({
+        island,
+        scene,
+        tier: tierNow(),
+        seed: trafficSeed,
+        conditions: () => {
+          const t = state.environment.clock.gameSeconds;
+          return {
+            gameSeconds: t,
+            cloud01: ctx.weather.cloudAt(t),
+            fogM: ctx.weather.fogVisibilityAt(t),
+            rain01: ctx.weather.rainAt(t),
+            wantedTier: tierNow(),
+            fame01: fameTier(law.defs, state.fame.value) / fameTiers,
+          };
+        },
+        suspect: () => suspectOverride.value,
+        pockets: state.player,
+        hasWeapon: (id) => !!state.player.ship?.weapons.some((w) => w.weapon === id),
+        fates: () => (state.residents ??= {}),
+        law: {
+          commit: (input) => law.commit(input),
+          addWitness: (id, w) => law.addWitness(id, w),
+          detail: (id, details) => {
+            const open = state.reports.crimes.find((c) => c.id === id);
+            if (open) open.details = details;
+          },
+          identifyWitness: (witnessId, identification) =>
+            identifyInFlightReports(state, witnessId, identification),
+          region,
+        },
+        hooks: {
+          notice: (text) => showNotice(text),
+          talked: () => audio?.sandbox.station('talk'),
         },
       });
       if (audio) {
@@ -5036,14 +5102,17 @@ async function boot(): Promise<void> {
           at: { ...ashore.character.position },
           aloft: w.aloft(ashore.character),
           carrying: w.carrying?.good,
-          keepers: (ashore.watch?.stealth.guards ?? []).map((g) => ({
-            id: g.id,
-            name: g.name,
-            state: g.state,
-            x: g.body.position.x,
-            y: g.body.position.y,
-            z: g.body.position.z,
-          })),
+          // The keepers only: the island's residents are `__glpIslands.here().people`.
+          keepers: (ashore.watch?.stealth.guards ?? [])
+            .filter((g) => !g.id.startsWith('resident.'))
+            .map((g) => ({
+              id: g.id,
+              name: g.name,
+              state: g.state,
+              x: g.body.position.x,
+              y: g.body.position.y,
+              z: g.body.position.z,
+            })),
           record: state.lightStations?.[w.station.def.light],
           conduct: ashore.watch?.conduct?.words,
         };
@@ -5069,6 +5138,108 @@ async function boot(): Promise<void> {
       },
     };
     (window as unknown as { __glpStation: typeof stationHook }).__glpStation = stationHook;
+    /**
+     * The hero islands on foot (plan 11 §18.4 piece Q): `list()` each walkable island with
+     * its landings and residents, `land(id, k)` anchors off its `k`th landing, rows in and
+     * steps ashore there, and `here()` reads the island you're on, its residents as the watch
+     * has them, and what F offers.
+     */
+    const islandsHook = {
+      list: () =>
+        zoneIslands().placed.map((i) => ({
+          id: i.id,
+          name: i.name,
+          tier: i.tier,
+          landings: i.landings,
+          pois: [...new Set(i.pieces.map((p) => p.poi))],
+          residents: i.residents.map((r) => ({
+            id: r.id,
+            name: r.name,
+            type: r.type,
+            home: r.home,
+            stops: r.route.length,
+          })),
+          lit: i.pieces.filter((p) => p.lit).length,
+          village: i.village,
+        })),
+      async land(id: string, k = 0): Promise<string | undefined> {
+        const island = zoneIslands().placed.find((i) => i.id === id);
+        const terrain = zone?.terrain;
+        const at = island?.landings[k];
+        if (!island || !terrain || !at) return 'No such landing';
+        // The water's edge nearest the landing, and open water a cable out beyond it.
+        let edge: { x: number; z: number } | undefined;
+        for (let r = 0; r < 200 && !edge; r += 2) {
+          for (let a = 0; a < 32; a++) {
+            const x = at.x + Math.sin((a / 32) * Math.PI * 2) * r;
+            const z = at.z - Math.cos((a / 32) * Math.PI * 2) * r;
+            if (terrain.heightAt(x, z) <= 0.1) {
+              edge = { x, z };
+              break;
+            }
+          }
+        }
+        if (!edge) return 'No water near it';
+        const ux = (edge.x - at.x) / (Math.hypot(edge.x - at.x, edge.z - at.z) || 1);
+        const uz = (edge.z - at.z) / (Math.hypot(edge.x - at.x, edge.z - at.z) || 1);
+        let off = { x: edge.x + ux * 60, z: edge.z + uz * 60 };
+        for (let d = 40; d < 400; d += 10) {
+          const p = { x: edge.x + ux * d, z: edge.z + uz * d };
+          if (terrain.heightAt(p.x, p.z) < -5) {
+            off = p;
+            break;
+          }
+        }
+        const heading = (Math.atan2(at.x - off.x, -(at.z - off.z)) * 180) / Math.PI;
+        let why: string | undefined = 'Not yet';
+        for (let tries = 0; tries < 12 && why; tries++) {
+          hook.place(off.x, off.z, heading);
+          hook.anchor();
+          await new Promise((done) => setTimeout(done, 800));
+          why = await hook.land();
+        }
+        if (why) return why;
+        await new Promise((done) => setTimeout(done, 1200));
+        hook.teleport(edge.x + ux * 1.5, edge.z + uz * 1.5);
+        await new Promise((done) => setTimeout(done, 800));
+        return (await hook.stepAshore()) ?? undefined;
+      },
+      here() {
+        const w = ashore.watch;
+        const at = ashore.zoneAt();
+        const island = islandAshore.sceneFor(at);
+        return {
+          island: island?.island,
+          station: island?.station?.def.light,
+          at,
+          prompt: hook.state().prompt,
+          people: (w?.stealth.guards ?? []).map((g) => ({
+            id: g.id,
+            name: g.name,
+            type: g.type.id,
+            state: g.state,
+            x: g.body.position.x,
+            y: g.body.position.y,
+            z: g.body.position.z,
+          })),
+          fates: state.residents,
+          conduct: w?.conduct?.words,
+        };
+      },
+      /** Stands you `distM` in front of a resident (by guard id), facing him. */
+      meet(guardId: string, distM = 1.5): boolean {
+        const g = ashore.watch?.stealth.guards.find((k) => k.id === guardId);
+        if (!g) return false;
+        const p = g.body.position;
+        const h = g.body.heading;
+        const x = p.x + Math.sin(h) * distM;
+        const z = p.z - Math.cos(h) * distM;
+        ashore.teleport(x, z);
+        ashore.face(Math.atan2(p.x - x, -(p.z - z)));
+        return true;
+      },
+    };
+    (window as unknown as { __glpIslands: typeof islandsHook }).__glpIslands = islandsHook;
     // `?ashore=bayfield` ties up at the fish pier and goes ashore; `?ashore=stockton` anchors
     // off the quarry and lands on the island; `?ashore=siskiwit` anchors off the logging
     // camp's dock and lands on its mainland pad (Phase 8 piece D). The dev jump menu uses

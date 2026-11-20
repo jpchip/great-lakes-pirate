@@ -66,7 +66,10 @@ export interface FootLawPlace {
   /** The region the district is in (`region.apostles` for Bayfield). */
   region: string;
   port?: string;
-  /** A lighthouse keeper's report goes as his station's does (plan 06 §6.1; piece H). */
+  /**
+   * A lighthouse keeper's report goes as his station's does (plan 06 §6.1; piece H), and an
+   * island resident's as word leaves the island (piece Q).
+   */
   reporting?: Reporting;
 }
 
@@ -106,7 +109,10 @@ export function guardWitness(
     kind: g.type.witness,
     name: guardNoun(g),
     identification: identification ?? (g.identified ? 'person' : 'unknown'),
-    ...(reporting && g.type.witness === 'keeper' ? { reporting } : {}),
+    // A keeper's report goes as his station's does; an islander's as word leaves his island.
+    ...(reporting && (g.type.witness === 'keeper' || g.type.witness === 'townsfolk')
+      ? { reporting }
+      : {}),
   };
 }
 

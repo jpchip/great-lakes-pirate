@@ -20,6 +20,7 @@ import {
   type PlacedStation,
 } from '../../sim/light-stations';
 import type { LightStationState } from '../../sim/world-state';
+import type { PlacedResident } from '../../sim/islands/on-foot';
 import type { Identification, Witness } from '../../sim/law/witness';
 import { footToolsHud, type FootToolsSnapshot } from '../../ui/hud/foot-tools-model';
 import type { AshoreScene } from './ashore-scene';
@@ -29,7 +30,19 @@ import { createFootLaw, nextDawn, type FootLawHooks } from './foot-law';
 import { compileNpcs, gameNpcs, type GuardSpawn, type NpcDefs, type Route } from './guards';
 import type { Crate } from './heist';
 import { LampSet } from './light';
-import { NavGrid, type XZ } from './nav';
+import { NavGrid, type NavQuery, type XZ } from './nav';
+import {
+  LocalNavs,
+  ownName,
+  residentGrids,
+  residentLine,
+  residentSpawns,
+  residentsAbout,
+  residentToTalk,
+  residentYard,
+  syncResidentFates,
+  type ResidentFate,
+} from './residents';
 import { createStealth, isDown, type Guard } from './stealth';
 import { createTools, gameTools, type Pockets, type ToolContext } from './tools';
 import { skyAt, type Watch, type WatchConditions } from './watch';
@@ -56,6 +69,9 @@ import { skyAt, type Watch, type WatchConditions } from './watch';
  *   the weather and the ships, and lets you look at the log.
  * - **What becomes of a keeper** (coshed, tied, drunk, bribed or killed) is the save's,
  *   so the light at sea goes unwatched, and dark when doused, until he's back.
+ * - **The island's residents** (piece Q): with the rest of the island walkable round the
+ *   station, its fishermen and farmers are out on their rounds by day on the same
+ *   machinery, and what they see goes to the law as the keepers' word does.
  */
 
 export interface StationHooks {
@@ -112,6 +128,10 @@ export interface StationWatchOptions {
   rules?: LightStationRules;
   /** Overrides conduct when it returns a value (the dev hook `__glpFoot.suspect`). */
   suspect?(): boolean | undefined;
+  /** The island's residents (piece Q): on their rounds by day, seeing and reporting. */
+  residents?: readonly PlacedResident[];
+  /** Their fates in the save (`residents`), made if absent. */
+  residentFates?(): Record<string, ResidentFate>;
 }
 
 /** What F does at the station now. */
@@ -261,7 +281,7 @@ export function createStationWatch(opts: StationWatchOptions): Watch & {
   const t0 = now();
   const nightAtLanding = isNight(skyAt(t0, opts.conditions().cloud01));
 
-  const nav = new NavGrid(scene, {
+  const stationNav = new NavGrid(scene, {
     minX: st.light.x - NAV_HALF_M,
     minZ: st.light.z - NAV_HALF_M,
     maxX: st.light.x + NAV_HALF_M,
@@ -270,6 +290,13 @@ export function createStationWatch(opts: StationWatchOptions): Watch & {
     // The gallery is a floor too, for the keeper on watch (not joined to the ground).
     maxRiseM: light.tower.heightM + 2,
   });
+  // The island's people up and about by day (piece Q), each on his own patch of ground.
+  const residents = nightAtLanding
+    ? []
+    : residentsAbout(opts.residents ?? [], opts.residentFates?.(), t0);
+  const nav: NavQuery = residents.length
+    ? new LocalNavs([stationNav, ...residentGrids(scene, residents)])
+    : stationNav;
 
   // Who's where: living keepers at their posts. By night one keeps the lamp, the rest sleep.
   const keepers = stationKeepers(light).filter((k) => living(record(), k.id, t0, rules));
@@ -279,7 +306,7 @@ export function createStationWatch(opts: StationWatchOptions): Watch & {
   });
   const spawns: GuardSpawn[] = [];
   const sleepers: string[] = [];
-  const round = dayRound(st, nav);
+  const round = dayRound(st, stationNav);
   if (nightAtLanding) {
     const [onWatch, ...rest] = fit;
     if (onWatch) {
@@ -302,6 +329,7 @@ export function createStationWatch(opts: StationWatchOptions): Watch & {
       }),
     );
   }
+  spawns.push(...residentSpawns(residents, nav, nightAtLanding));
   const defs = stationNpcs(opts.station.def.loyalty);
   const stealth = createStealth(
     {
@@ -364,7 +392,8 @@ export function createStationWatch(opts: StationWatchOptions): Watch & {
   const seenNow = (): Witness[] =>
     stealth.witnessAct().map((g) => ({
       id: g.id,
-      kind: 'keeper' as const,
+      // A keeper, or one of the island's people who carries word to him.
+      kind: g.type.witness,
       name: g.name,
       identification: g.identified ? ('person' as const) : ('unknown' as const),
       reporting: light.reporting,
@@ -412,6 +441,8 @@ export function createStationWatch(opts: StationWatchOptions): Watch & {
     else if (tools.armed()) reason = 'armed';
     else if (aloft(p)) reason = 'trespass';
     else if (onGrounds(p) && !welcome()) reason = 'trespass';
+    // A known face in a resident's yard isn't welcome there either (piece Q).
+    else if (!welcome() && residentYard(residents, p.position)) reason = 'trespass';
     return reason
       ? { suspect: true, reason, words: CONDUCT_WORDS[reason], area: undefined }
       : { suspect: false, reason: undefined, words: '', area: undefined };
@@ -420,7 +451,10 @@ export function createStationWatch(opts: StationWatchOptions): Watch & {
   /** Keepers' fates into the save, as they happen: the light at sea reads them. */
   const syncFates = (t: number): void => {
     const rec = record();
+    const fates = opts.residentFates?.();
+    if (fates) syncResidentFates(stealth.guards, fates, t, nextDawn);
     for (const g of stealth.guards) {
+      if (g.type.id !== 'npc.keeper') continue;
       const f = (rec.keepers[g.id] ??= {});
       if (g.state === 'dead') f.diedAt ??= t;
       else if (isDown(g.state)) f.downUntil = Math.max(g.untilGame, t + 60);
@@ -480,6 +514,7 @@ export function createStationWatch(opts: StationWatchOptions): Watch & {
   const keeperToTalk = (p: CharacterState): Guard | undefined => {
     if (!welcome()) return undefined;
     for (const g of stealth.guards) {
+      if (g.type.id !== 'npc.keeper') continue;
       if (g.state !== 'patrol' && g.state !== 'return') continue;
       const gp = g.body.position;
       if (Math.hypot(gp.x - p.position.x, gp.z - p.position.z) > 2.2) continue;
@@ -487,6 +522,8 @@ export function createStationWatch(opts: StationWatchOptions): Watch & {
     }
     return undefined;
   };
+  /** The residents you've had a word with this landing. */
+  const talkedTo = new Set<string>();
 
   const offer = (p: CharacterState): StationOffer | undefined => {
     if (carrying || tools.carrying || !p.grounded || p.swimming) return undefined;
@@ -562,6 +599,23 @@ export function createStationWatch(opts: StationWatchOptions): Watch & {
           const c = opts.conditions();
           stealth.faceToFace(talk.id, stealth.readout().light.level01, c.fame01);
           readLog();
+        },
+      };
+    }
+    // A word with a fisherman or a farmer at his work, by day (piece Q).
+    const local = welcome() ? residentToTalk(stealth, residents, p.position) : undefined;
+    if (local && !talkedTo.has(local.resident.id)) {
+      const { guard, resident } = local;
+      return {
+        label: `Talk with ${ownName(guard.name)}`,
+        ok: true,
+        holdS: 0,
+        act: () => {
+          talkedTo.add(resident.id);
+          opts.hooks.sound?.('talk');
+          const c = opts.conditions();
+          stealth.faceToFace(guard.id, stealth.readout().light.level01, c.fame01);
+          opts.hooks.notice(`${ownName(guard.name)}: "${residentLine(resident, today)}"`);
         },
       };
     }

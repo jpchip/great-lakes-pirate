@@ -68,6 +68,7 @@ import type { DistrictDef, DistrictMark } from '../../data/schemas/districts';
 import type { IslandAshore } from './island-ashore';
 import type { IslandPosse } from './island-posse';
 import type { PlacedStation } from '../sim/light-stations';
+import type { PlacedIsland } from '../sim/islands/on-foot';
 import type { StationSoundView } from './onfoot/station-watch';
 import type { XZ } from './onfoot/nav';
 import {
@@ -190,7 +191,16 @@ export interface AshoreDeps {
    * A lighthouse station's keepers on its pad (plan 11 §18.4 piece H), answering the
    * district watch's shape so the tool belt and the HUD work there.
    */
-  stationWatch?(station: PlacedStation, scene: AshoreScene): Watch | undefined;
+  stationWatch?(
+    station: PlacedStation,
+    scene: AshoreScene,
+    island?: PlacedIsland,
+  ): Watch | undefined;
+  /**
+   * An island's residents where it has no light station (plan 11 §18.4 piece Q): Madeline's
+   * farmers and villagers, Hermit's and Basswood's people, on the same shape.
+   */
+  islandWatch?(island: PlacedIsland, scene: AshoreScene): Watch | undefined;
   /**
    * The trees and shore rocks the renderer plants over a rectangle (zone meters), and the
    * share the quality preset draws: they get trunks you walk around.
@@ -649,10 +659,15 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
             return { x: at.x, z: at.z };
           })
         : undefined;
-    // A lighthouse station's keepers (plan 11 §18.4 piece H): the tools work on them.
+    // A lighthouse station's keepers (plan 11 §18.4 piece H) and the island's residents
+    // (piece Q): the tools work on them, and they see and report.
     watch?.footLaw?.dispose();
     watch =
-      island?.station && deps.stationWatch ? deps.stationWatch(island.station, built) : undefined;
+      island?.station && deps.stationWatch
+        ? deps.stationWatch(island.station, built, island.placed)
+        : island?.placed?.residents.length && deps.islandWatch
+          ? deps.islandWatch(island.placed, built)
+          : undefined;
     return built;
   };
 
@@ -1543,6 +1558,36 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
   };
 
   /**
+   * Up La Pointe's village dock from the road's far end (piece Q): Madeline is walked whole
+   * now, so the road lands you in the village, the sled left on the ice below.
+   */
+  const upOntoTheIsland = async (): Promise<void> => {
+    const road = winter?.road();
+    if (!road || busy) return;
+    busy = true;
+    try {
+      await deps.fade('La Pointe', 'Up the ladder onto the village dock', () => {
+        hitched = false;
+        watch?.footLaw?.dispose();
+        watch = undefined;
+        posse = undefined;
+        scene = build(road.toHead);
+        const h = Math.atan2(road.toHead.x - road.from.x, -(road.toHead.z - road.from.z));
+        placeCharacter(
+          character,
+          { x: road.toHead.x, y: road.toHead.y + 0.05, z: road.toHead.z },
+          h,
+        );
+        walkCamera.yaw = h;
+        copyPrevious();
+        tracks.lift();
+      });
+    } finally {
+      busy = false;
+    }
+  };
+
+  /**
    * What a stride is on in winter, for its sound (piece N): bare lake ice, snow over it, or
    * snow lying on the ground (not on planks, stone or under a roof). Undefined otherwise.
    */
@@ -1576,6 +1621,14 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
       }
       if (Math.hypot(c.x - road.from.x, c.z - road.from.z) < end) {
         return { text: 'Up the ladder into Bayfield', act: () => void upIntoTown() };
+      }
+      // Off the road's own scene, onto Madeline's at La Pointe (piece Q).
+      if (
+        !sceneIsland &&
+        Math.hypot(c.x - road.to.x, c.z - road.to.z) < end &&
+        deps.island?.walkableAt(road.toHead)
+      ) {
+        return { text: "Up the ladder onto La Pointe's dock", act: () => void upOntoTheIsland() };
       }
     }
     const nearShip = !!scene.ship && toHull(c.x, c.z) < 4 && (bedAt?.(c.x, c.z) ?? 1) < 0;

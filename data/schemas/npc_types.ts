@@ -17,8 +17,11 @@ const lanternSchema = z.object({
 export const npcTypeSchema = z.object({
   id: idOf('npc'),
   name: z.string().min(1),
-  /** Who they are to the law when they report (plan 06 §2.4). */
-  witness: z.enum(['watchman', 'constable', 'sailor', 'keeper']),
+  /**
+   * Who they are to the law when they report (plan 06 §2.4). Island residents (Phase 9
+   * piece Q: fishermen, farmers, La Pointe's villagers) are `townsfolk`.
+   */
+  witness: z.enum(['watchman', 'constable', 'sailor', 'keeper', 'townsfolk']),
   /**
    * What they do once alerted: `report` files with the law there and then (a constable),
    * `fetch` runs for a constable first (a watchman), `shout` cries for help and keeps clear
