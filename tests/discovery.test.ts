@@ -398,7 +398,7 @@ describe('discovery in the game', () => {
     expect(j.leads[0]?.clues[0]?.from).toBe('saloon talk in Bayfield');
     const legend = must(j.legends.find((l) => l.id === 'legend.lucerne'));
     expect(legend.status).toBe('Unsolved');
-    expect(legend.steps[0]).toEqual({ text: 'Heard the tale', done: true });
+    expect(legend.steps[0]).toEqual({ text: 'Heard the tale, or found a clue', done: true });
     expect(j.legends.filter((l) => !l.status)).toHaveLength(4);
     expect(j.discoveries.find((x) => x.kind === 'site')?.rows[0]?.howText).toBe('Your own');
   });

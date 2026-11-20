@@ -82,6 +82,8 @@ export interface StoryInput {
   ambition?: string | undefined;
   /** A sandbox event's id (Phase 9 piece A). */
   event?: string | undefined;
+  /** A legend's id (Phase 9 piece T). */
+  legend?: string | undefined;
   goods?: { good: string; qty: number }[] | undefined;
   tier?: number | undefined;
   heat?: number | undefined;
@@ -106,12 +108,13 @@ export function named(ident: Identification): boolean {
 /** The story's template set, or undefined for a crime the papers have no lines for. */
 export function storyDef(
   defs: NewsDefs,
-  s: Pick<Story, 'kind' | 'crime' | 'ambition' | 'event'>,
+  s: Pick<Story, 'kind' | 'crime' | 'ambition' | 'event' | 'legend'>,
 ): StoryDef | undefined {
   const st = defs.file.stories;
   if (s.kind === 'event') return eventStoryDef(s.event);
   if (s.kind === 'crime') return s.crime ? st.crime[s.crime] : undefined;
   if (s.kind === 'ambition') return s.ambition ? st.ambition[s.ambition] : undefined;
+  if (s.kind === 'legend') return s.legend ? st.legend[s.legend] : undefined;
   return st[s.kind];
 }
 
@@ -153,6 +156,7 @@ export function addStory(defs: NewsDefs, news: NewsState, input: StoryInput): St
     ...(input.crime ? { crime: input.crime } : {}),
     ...(input.ambition ? { ambition: input.ambition } : {}),
     ...(input.event ? { event: input.event } : {}),
+    ...(input.legend ? { legend: input.legend } : {}),
     ...(input.goods ? { goods: input.goods } : {}),
     ...(input.tier !== undefined ? { tier: input.tier } : {}),
     ...(input.victim ? { victim: input.victim } : {}),

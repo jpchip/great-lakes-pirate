@@ -97,6 +97,21 @@ export interface StationRow {
   /** A passive station in a sentence ("the still", "the smokehouse"), and its button. */
   vessel: string;
   loadText: string;
+  /**
+   * The cartography table's maps (Phase 9 piece T): the open leads, three clues to a map.
+   * Absent at any other station.
+   */
+  maps?: MapRowView[];
+}
+
+/** A lead that could be drawn into a map at the cartography table. */
+export interface MapRowView {
+  lead: string;
+  title: string;
+  where: string;
+  /** "2 of 3 clues". */
+  cluesText: string;
+  refusal: string | undefined;
 }
 
 export interface ThingRow {
@@ -209,6 +224,7 @@ function workshop(opts: {
   stores: ShipStores;
   crewTier: number;
   gameSeconds: number;
+  maps?: readonly MapRowView[] | undefined;
 }): WorkshopSnapshot {
   const { defs, hideout: h } = opts;
   const built = builtStations(h);
@@ -223,6 +239,7 @@ function workshop(opts: {
     queueMax: st.passive?.queueMax ?? 0,
     vessel: st.passive?.vessel ?? st.name.toLowerCase(),
     loadText: st.passive?.load ?? 'Make',
+    ...(st.id === 'station.cartography' ? { maps: [...(opts.maps ?? [])] } : {}),
     queue: (h.stations?.[st.id]?.queue ?? []).map((b) => ({
       name: recipesAt(st.id).find((r) => r.id === b.recipe)?.name ?? b.recipe,
       readyText:
@@ -376,6 +393,8 @@ export function stashSnapshot(opts: {
   canGoAshore?: boolean;
   /** Curios set out here and aboard (Phase 9 piece O). */
   curios?: HideoutCurios | undefined;
+  /** Leads to draw into maps at the cartography table (Phase 9 piece T). */
+  maps?: readonly MapRowView[] | undefined;
 }): StashSnapshot {
   const { defs, hideout: h, player } = opts;
   const sources = opts.sources ?? [h.storage.goods];
@@ -405,6 +424,7 @@ export function stashSnapshot(opts: {
       stores: opts.stores ?? {},
       crewTier: opts.crewTier ?? 1,
       gameSeconds: opts.gameSeconds,
+      maps: opts.maps,
     }),
     slipway: slipway({
       defs,

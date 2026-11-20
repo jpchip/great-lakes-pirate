@@ -686,7 +686,38 @@ Built as scoped; the write-up is [08 §21](08-docks-district-stealth.md). You go
 
 The character isn't darkened inside a cave. `__glpCaves` lists, rows to, walks, freezes and reads the caves, and `tests/caves.test.ts` checks the data, the placement, rowing in and turned back, the walls, the ice cache and the draw budget.
 
+### 18.21 Piece T as built: clues and legends (2026-11-20)
+
+**The data.** `data/legends.json`, `data/clues.json` and `data/caches.json` (schema `data/schemas/legends.ts`). Six legends, each with a spot of one kind:
+- the _Lucerne_'s strongbox is grappled up from her wreck;
+- the quarry payroll is dug behind the Hermit's cabin;
+- the Dark Light's cache is dug on Minnesota Point, on a pad walked round the spot on the mainland, with a clue on the dead tower's door;
+- the Devil's Grotto is searched at the Grotto's ledge, only at the dark of the moon (under 0.3) or on the ice;
+- the Ghost Net's cache is in the Outer Island fish house;
+- the Copycat's Hoard is dug above a beaten rival's camp.
+
+Ten clues are found in a light's logbook, among the papers rifled from a box in Bayfield or Duluth (half the boxes bear on a legend while its clues are still to find), at a carving or a net reel read with F, at a cave's mark or at the pad. Eight seeded caches lie at prefab marks on the standard islands; each run stocks 60% of them, and a box's papers are a note about a stocked one 35% of the time.
+
+**The lead to the payoff.** Every clue shrinks the lead's circle (piece O). With three clues, counting the tale, the cartography table draws a map in 3 game hours: the circle goes to 250 m round the spot, with a red X on the chart. At the spot you hold F for 3 s to dig or search (`Prompt.holdS`, with the progress on the HUD). The _Lucerne_'s strongbox comes up on a hooked cast once her lead has three clues, in place of that cast's cargo. The payoff:
+- the cash, rolled from the run's seed in each legend's range ($600–1,800);
+- the legend's curio (new: the captain's watch and the dark lantern);
+- the journal's `told` line;
+- a story in the papers with its Fame;
+- for the Dark Light, an introduction to Carrow, Duluth's fence, who deals with you whatever your Fame.
+
+The hoard is the rival's stash, taken into the hold where it fits. `legends` (clues, maps, done, notes, contacts) is saved; a run from before it starts with none.
+
+**For Jared to check.** These are first drafts:
+- the legends' wording, the clue texts, the `found` and `told` lines and the papers' stories;
+- the payoffs ($900–1,400 _Lucerne_, $1,200–1,800 payroll, $700–1,100 Dark Light, $600–1,000 Grotto, $800–1,200 Ghost Net) and the caches' ($15–120);
+- three clues to a map, 3 hours at the table, and the 60% stocked share;
+- the dark-moon rule for the Grotto;
+- the odds that a box's papers hold a clue.
+
+**Left for later.** The legends' `site` field is unset until piece W adds the sites. There's no e2e per legend (§18 criterion 13); `tests/legends.test.ts` covers each kind of spot and clue at the data, placement and gameplay levels. `__glpLegends` reads the state, gives a clue, draws a map, goes to a lead's spot and forces the dark of the moon.
+
 ## Changelog
+- v0.19: Piece T as built (§18.21): legends, clues, maps at the cartography table, digging and seeded caches.
 - v0.18: Piece S as built (§18.20): the sea caves at Devils, Sand and the mainland, rowing, swimming and walking in, ice caves, caches and the Grotto's mark.
 - v0.17: Piece X as built (§18.19): the Duluth district.
 - v0.16: Piece R as built (§18.18): the fourteen standard and minor islands walkable with their prefabs, landings, stations inside their islands, the overlapping-box fix, the rock climb out of the boat, `tests/islands.test.ts` over all 22 and `bench.island` per tier.

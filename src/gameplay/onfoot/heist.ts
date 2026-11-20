@@ -131,6 +131,11 @@ export interface HeistHooks {
   takeStock?(good: string, qty: number): void;
   /** Reads a shipping schedule: the rumor it gave, in words, or nothing worth knowing. */
   readPapers?(): string | undefined;
+  /**
+   * A clue among a box's papers (Phase 9 piece T): a legend's, or a note about a cache, in
+   * words ("a note about a cache: …"), tried before the schedule. `box` names the box.
+   */
+  readClue?(box: string): string | undefined;
   /** Where you can stow a crate (the gangway), district-local meters. */
   stowPoints(): readonly { x: number; y: number; z: number }[];
   /**
@@ -588,9 +593,11 @@ export function createHeist(opts: HeistOptions): Heist {
       if (c.cashCents > 0) pockets.purse += c.cashCents;
       r.cash = true;
       let read: string | undefined;
+      let clue: string | undefined;
       if (c.documents) {
         r.documents = true;
-        read = hooks.readPapers?.();
+        clue = hooks.readClue?.(`${box.building}:${box.mark}:${nightOf(t)}`);
+        if (!clue) read = hooks.readPapers?.();
       }
       emit({
         type: 'ItemStolen',
@@ -600,7 +607,9 @@ export function createHeist(opts: HeistOptions): Heist {
         ...(c.documents ? { documents: true } : {}),
       });
       const cash = c.cashCents > 0 ? `$${(c.cashCents / 100).toFixed(2)}` : '';
-      const papers = c.documents ? (read ? `a schedule: ${read}` : 'papers of no use') : '';
+      const papers = c.documents
+        ? (clue ?? (read ? `a schedule: ${read}` : 'papers of no use'))
+        : '';
       hooks.notice?.(`You take ${[cash, papers].filter(Boolean).join(' and ') || 'nothing'}`);
       return;
     }

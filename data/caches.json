@@ -1,0 +1,107 @@
+{
+  "stockedShare": 0.6,
+  "leadRadiusM": 2500,
+  "noteChance": 0.35,
+  "caches": [
+    {
+      "id": "cache.otter_trapper",
+      "name": "The trapper's cache on Otter",
+      "island": "island.otter",
+      "where": "on Otter Island",
+      "spots": [
+        { "poi": "otter_cairn", "mark": "cairn", "name": "the cairn on the high ground" },
+        { "poi": "otter_cabin", "mark": "under_the_floor", "name": "under the cabin floor" }
+      ],
+      "cashCents": [3000, 9000],
+      "found": "Wrapped in a beaver pelt, {cash} and an old silver medal from the fur-trade days.",
+      "curio": "curio.trade_medal",
+      "note": "A trapper's letter to his brother: \"What I have put by is on Otter, where you and I went in '91. Under the stones or under the floor, you know which.\""
+    },
+    {
+      "id": "cache.cat_cairn",
+      "name": "The cache on Cat Island",
+      "island": "island.cat",
+      "where": "on Cat Island",
+      "spots": [{ "poi": "cat_cairn", "mark": "cairn", "name": "the cairn" }],
+      "cashCents": [2000, 6000],
+      "found": "A tobacco tin under the stones: {cash} in banknotes, gone soft with damp.",
+      "note": "A fish buyer's tally with a line under it: \"Cat Isl. — under the stones — till spring.\""
+    },
+    {
+      "id": "cache.gull_rock",
+      "name": "The cache on Gull Island",
+      "island": "island.gull",
+      "where": "on Gull Island's rock",
+      "spots": [{ "poi": "gull_cairn", "mark": "cairn", "name": "the cairn on the rock" }],
+      "cashCents": [1500, 5000],
+      "found": "Wedged under the cairn among the gull droppings, a canvas bag: {cash}.",
+      "note": "A smuggler's receipt with \"Gull rock — the cairn\" pencilled on the back."
+    },
+    {
+      "id": "cache.oak_summit",
+      "name": "The cache on Oak Island",
+      "island": "island.oak",
+      "where": "on Oak Island",
+      "spots": [
+        { "poi": "oak_lookout", "mark": "cairn", "name": "the summit cairn" },
+        { "poi": "oak_cabin", "mark": "under_the_floor", "name": "under the cabin floor" }
+      ],
+      "cashCents": [4000, 12000],
+      "found": "An oilcloth packet: {cash}, and a note in a hand you don't know: \"For whoever finds it. I won't be back.\"",
+      "note": "A letter from a lumber camp foreman: \"The money's on Oak, high up. If I'm taken, get it before the company does.\""
+    },
+    {
+      "id": "cache.manitou_cabin",
+      "name": "The cache on Manitou",
+      "island": "island.manitou",
+      "where": "on Manitou Island",
+      "spots": [
+        { "poi": "manitou_cabin", "mark": "under_the_floor", "name": "under the cabin floor" },
+        { "poi": "manitou_cabin", "mark": "behind", "name": "the ground behind the cabin" }
+      ],
+      "cashCents": [2500, 7000],
+      "found": "A crock with a wooden lid: {cash}, a fisherman's savings.",
+      "note": "A pawn ticket, and on the back: \"Manitou. The cabin. Floor or behind it.\""
+    },
+    {
+      "id": "cache.michigan_lookout",
+      "name": "The cache on Michigan Island",
+      "island": "island.michigan",
+      "where": "on Michigan Island",
+      "spots": [{ "poi": "michigan_lookout", "mark": "cairn", "name": "the lookout cairn" }],
+      "cashCents": [2000, 8000],
+      "found": "Under the cairn's top stones, a powder flask stuffed with {cash} in banknotes.",
+      "note": "A sailor's letter, never posted: \"Left it on Michigan Island, at the lookout, under the stones.\""
+    },
+    {
+      "id": "cache.basswood_lookout",
+      "name": "The cache on Basswood",
+      "island": "island.basswood",
+      "where": "on Basswood Island",
+      "spots": [
+        { "poi": "basswood_lookout", "mark": "cairn", "name": "the lookout cairn" },
+        { "poi": "basswood_farm", "mark": "barn", "name": "the barn's back corner" }
+      ],
+      "cashCents": [3000, 9000],
+      "found": "In a jar sealed with wax: {cash}, a quarryman's last wages kept from the company.",
+      "note": "A quarryman's letter home: \"I kept back what I could. It's on Basswood, high up or in the barn.\""
+    },
+    {
+      "id": "cache.madeline_north",
+      "name": "The cache on Madeline's north end",
+      "island": "island.madeline",
+      "where": "on the north end of Madeline Island",
+      "spots": [
+        { "poi": "madeline_lookout", "mark": "cairn", "name": "the lookout cairn" },
+        {
+          "poi": "madeline_trapper_cabin",
+          "mark": "under_the_floor",
+          "name": "under the trapper's cabin floor"
+        }
+      ],
+      "cashCents": [3500, 10000],
+      "found": "Under the stones, an old cartridge box: {cash} and a pair of gold cufflinks, sold later for their weight.",
+      "note": "A La Pointe trader's ledger with a corner turned down: \"North end. Lookout or Joe's cabin.\""
+    }
+  ]
+}

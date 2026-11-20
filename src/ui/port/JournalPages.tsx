@@ -71,6 +71,7 @@ export function LegendsPage({ journal }: { journal: JournalDiscovery }) {
                 </li>
               ))}
             </ul>
+            {l.told && <p class="journal-told">{l.told}</p>}
           </li>
         ) : (
           <li key={l.id} class="journal-entry blank" data-testid="journal-legend-blank">

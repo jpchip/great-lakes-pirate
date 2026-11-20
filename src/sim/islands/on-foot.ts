@@ -1,3 +1,4 @@
+import cachesJson from '../../../data/caches.json';
 import cavesJson from '../../../data/caves.json';
 import islandsJson from '../../../data/islands.json';
 import poisJson from '../../../data/pois.json';
@@ -105,6 +106,8 @@ export interface PlacedCacheSpot {
 export interface PlacedCache {
   def: IslandCache;
   spots: PlacedCacheSpot[];
+  /** One of `caches.json`'s (piece T): stocked or not by the run's seed. */
+  seeded?: boolean;
 }
 
 /** A beach or dock a boat comes in at (Phase 9 piece Q), zone meters. */
@@ -212,6 +215,22 @@ const RESIDENT_WAIT_S = { mark: 14, round: 8 };
 const OPEN_MOUTHS: ReadonlySet<string> = new Set(
   (cavesJson.caves as { mouth?: string }[]).flatMap((c) => (c.mouth ? [c.mouth] : [])),
 );
+
+/**
+ * The seeded caches (Phase 9 piece T, `caches.json`): hidden at the islands' prefab marks
+ * (a lookout's cairn, under a cabin's floor), so no cairn of their own is drawn. Read
+ * straight from the file, as the cave mouths are.
+ */
+interface SeededCacheJson {
+  id: string;
+  name: string;
+  island: string;
+  spots: { poi: string; mark: string; name: string }[];
+  cashCents: [number, number];
+  found: string;
+  curio?: string;
+}
+const SEEDED_CACHES_JSON = cachesJson.caches as unknown as SeededCacheJson[];
 
 /** How far down a wharf ladder reaches below the lake. */
 const LADDER_DEPTH_M = 1.2;
@@ -603,6 +622,29 @@ export function placeIsland(
       return { name: s.name, x, y, z };
     }),
   }));
+
+  // The seeded caches hidden at this island's prefab marks (piece T).
+  for (const seeded of SEEDED_CACHES_JSON) {
+    if (seeded.island !== def.id) continue;
+    const spots: PlacedCacheSpot[] = [];
+    for (const s of seeded.spots) {
+      const m = marks.find((k) => k.poi === s.poi && k.id === s.mark);
+      if (m) spots.push({ name: s.name, x: m.x, y: m.y, z: m.z });
+    }
+    if (!spots.length) continue;
+    caches.push({
+      def: {
+        id: seeded.id,
+        name: seeded.name,
+        spots: spots.map((k) => ({ name: k.name, x: k.x - origin.x0, z: k.z - origin.z0 })),
+        cashCents: seeded.cashCents,
+        found: seeded.found,
+        ...(seeded.curio ? { curio: seeded.curio } : {}),
+      },
+      spots,
+      seeded: true,
+    });
+  }
 
   return {
     id: def.id,

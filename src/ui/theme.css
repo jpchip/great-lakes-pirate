@@ -2297,6 +2297,33 @@ body[data-mode='chart'] .chart-layer {
   background: rgba(43, 33, 24, 0.06);
 }
 
+.craft-maps {
+  margin-bottom: 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--paper-dark);
+}
+
+.craft-maps h3 {
+  margin: 0 0 4px;
+  font-size: 15px;
+}
+
+.craft-maps ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.craft-maps li {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 4px 8px;
+  margin-bottom: 4px;
+  background: rgba(43, 33, 24, 0.06);
+}
+
 .craft-lockers {
   margin: 6px 0 0;
   font-size: 13px;
@@ -3733,6 +3760,11 @@ body[data-mode='chart'] .chart-layer {
 
 .journal-clues li {
   margin-bottom: 4px;
+}
+
+.journal-told {
+  margin: 6px 0 0;
+  font-size: 13px;
 }
 
 .journal-quote {

@@ -540,6 +540,16 @@ export interface GameEvents {
   LeadUpdated: { id: string; opened: boolean };
   CurioFound: { id: string };
   /**
+   * Clues and legends (plan 11 §7–8, §14; Phase 9 piece T): a clue found for a lead (a
+   * legend's or a seeded cache's), a lead made a map at a cartography table, the ground
+   * dug at a spot (found or not), and a legend run down (`lead`: the copycat's stash lead
+   * for a hoard).
+   */
+  ClueFound: { clue: string; lead: string };
+  MapDrawn: { lead: string };
+  Dug: { lead: string; found: boolean };
+  LegendCompleted: { id: string; lead: string; cents: number };
+  /**
    * Salvage (plan 11 §6.2; Phase 9 piece U): the grapple went down on a wreck and came up
    * (`kind`: nothing, cargo with `qty` sound and `spoiled` CU of `good`, her papers, a curio).
    * The line goes down at `GrappleCast` (the sound of it, piece Y).

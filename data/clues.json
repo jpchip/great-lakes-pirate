@@ -1,0 +1,94 @@
+[
+  {
+    "id": "clue.lucerne_logbook",
+    "lead": "legend.lucerne",
+    "source": { "kind": "logbook", "light": "light.lapointe" },
+    "text": "The La Pointe log, November '86: \"Schooner Lucerne's masts showing above water a mile and a half off, all hands lost. A boat seen working over her by night, no light shown.\"",
+    "from": "the La Pointe light's log"
+  },
+  {
+    "id": "clue.lucerne_letter",
+    "lead": "legend.lucerne",
+    "source": { "kind": "document", "district": "district.bayfield" },
+    "text": "An underwriter's letter, never answered: the company's strongbox aboard the Lucerne, gold coin for the Ashland ore docks' payroll, was \"not recovered by the salvors, nor any trace of it.\"",
+    "from": "papers in a Bayfield desk"
+  },
+  {
+    "id": "clue.payroll_ledger",
+    "lead": "legend.quarry_payroll",
+    "source": { "kind": "document", "district": "district.bayfield" },
+    "text": "A page torn from the Hermit Island Brownstone Co.'s cash book, October '93: \"Last payroll, in gold, carried out by the clerk E. Wilkes. No receipt returned.\"",
+    "from": "papers in a Bayfield desk"
+  },
+  {
+    "id": "clue.payroll_carving",
+    "lead": "legend.quarry_payroll",
+    "source": {
+      "kind": "mark",
+      "island": "island.hermit",
+      "poi": "hermit_lookout",
+      "mark": "lookout",
+      "name": "the carving in the lookout's rock"
+    },
+    "text": "Cut into the rock at Hermit's lookout: a pick, the letters E.W., and an arrow pointing to the cabin in the woods to the east.",
+    "from": "a carving on Hermit Island"
+  },
+  {
+    "id": "clue.dark_light_note",
+    "lead": "legend.dark_light",
+    "source": { "kind": "document", "district": "district.duluth" },
+    "text": "A note in a warehouse desk, unsigned: \"Point light. New moon. Two short, one long. Leave it where we left the last, at the foot.\"",
+    "from": "papers in a Duluth desk"
+  },
+  {
+    "id": "clue.dark_light_door",
+    "lead": "legend.dark_light",
+    "source": {
+      "kind": "pad",
+      "legend": "legend.dark_light",
+      "name": "the dead tower's door"
+    },
+    "text": "Fresh lamp soot inside the old tower's door, though no lamp's been lit there in fifteen years, and boot prints going round its foot in the sand.",
+    "from": "the old light on Minnesota Point"
+  },
+  {
+    "id": "clue.grotto_logbook",
+    "lead": "legend.devils_grotto",
+    "source": { "kind": "logbook", "light": "light.devils" },
+    "text": "The Devils Island log, August '97: \"A skiff seen going into the third cave west of the light after dark. None came out by morning. Moon new.\"",
+    "from": "the Devils Island light's log"
+  },
+  {
+    "id": "clue.grotto_carving",
+    "lead": "legend.devils_grotto",
+    "source": {
+      "kind": "caveMark",
+      "cave": "cave.devils_first",
+      "mark": "back",
+      "name": "the marks cut in the back wall"
+    },
+    "text": "Cut into the back of the first cave on Devils Island: III, an arrow pointing south along the shore, and a crescent moon struck through.",
+    "from": "a carving in a Devils Island cave"
+  },
+  {
+    "id": "clue.ghost_net_logbook",
+    "lead": "legend.ghost_net",
+    "source": { "kind": "logbook", "light": "light.outer" },
+    "text": "The Outer Island log: \"Pedersen of the sandspit camp went out the 3rd; his boat came ashore empty. His nets, hauled since, bring up brass and glass from no wreck we know of.\"",
+    "from": "the Outer Island light's log"
+  },
+  {
+    "id": "clue.ghost_net_reel",
+    "lead": "legend.ghost_net",
+    "source": {
+      "kind": "mark",
+      "island": "island.outer",
+      "poi": "outer_fish_camp",
+      "mark": "net_reels",
+      "name": "the old net on the reel"
+    },
+    "text": "Tangled in Pedersen's old net on the reel: a green glass float, a brass hinge, and a sliver of lighthouse glass. Whatever he was raising, he kept it close to the fish house.",
+    "from": "Pedersen's net on Outer Island",
+    "curio": "curio.glass_float"
+  }
+]

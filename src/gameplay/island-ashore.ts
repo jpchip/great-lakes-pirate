@@ -89,6 +89,10 @@ export interface IslandAshoreDeps {
    * mouth, as a light station does, so a boat can land you at it.
    */
   caves?(): readonly PlacedCave[];
+  /** Legends' pads on the mainland (piece T): the Dark Light's, on Minnesota Point. */
+  pads?(): readonly { id: string; x: number; z: number }[];
+  /** A seeded cache stocked this run (piece T); undefined: every cache is. */
+  stocked?(cacheId: string): boolean;
   /** The run's seed for what's hidden where (the weather's noise seed). */
   runSeed(): number;
   notice(text: string): void;
@@ -374,24 +378,36 @@ export function attachIslandAshore(deps: IslandAshoreDeps): IslandAshore {
       (c) => !c.island && Math.hypot(c.frame.x - x, c.frame.z - z) < CAVE_LAND_M,
     );
 
-  const caveScene = (cave: PlacedCave): IslandScene => {
+  /** A legend's pad on the mainland whose ground a landing here walks (piece T). */
+  const legendPadNear = (x: number, z: number) =>
+    (deps.pads?.() ?? []).find((p) => Math.hypot(p.x - x, p.z - z) < CAVE_LAND_M);
+
+  /**
+   * The zone's own ground round a point on the mainland (a cave's mouth, a legend's pad),
+   * with whatever pieces stand on it.
+   */
+  const padScene = (id: string, x: number, z: number): IslandScene => {
     const grid = deps.grid();
+    const extra: Collider[] = [];
+    const placed = deps.islands().find((i) => i.id === id);
+    for (const p of placed?.pieces ?? []) extra.push(...pieceColliders(p));
     return {
-      island: cave.id,
+      island: id,
       ground: {
         heightAt: deps.heightAt,
-        x0: grid?.x0 ?? cave.frame.x - CAVE_PAD_M,
-        z0: grid?.z0 ?? cave.frame.z - CAVE_PAD_M,
+        x0: grid?.x0 ?? x - CAVE_PAD_M,
+        z0: grid?.z0 ?? z - CAVE_PAD_M,
         step: grid?.step ?? 4,
       },
       box: {
-        minX: cave.frame.x - CAVE_PAD_M,
-        minZ: cave.frame.z - CAVE_PAD_M,
-        maxX: cave.frame.x + CAVE_PAD_M,
-        maxZ: cave.frame.z + CAVE_PAD_M,
+        minX: x - CAVE_PAD_M,
+        minZ: z - CAVE_PAD_M,
+        maxX: x + CAVE_PAD_M,
+        maxZ: z + CAVE_PAD_M,
       },
-      extra: [],
+      extra,
       ladders: [],
+      ...(placed ? { placed } : {}),
     };
   };
 
@@ -401,7 +417,9 @@ export function attachIslandAshore(deps: IslandAshoreDeps): IslandAshore {
       const st = stationNear(deps.stations?.() ?? [], at.x, at.z);
       if (st) return stationScene(st);
       const cave = mainlandCaveNear(at.x, at.z);
-      return cave && caveScene(cave);
+      if (cave) return padScene(cave.id, cave.frame.x, cave.frame.z);
+      const pad = legendPadNear(at.x, at.z);
+      return pad && padScene(pad.id, pad.x, pad.z);
     }
     const { island, field } = hit;
     const grid = deps.grid() ?? { x0: field.x0, z0: field.z0, step: field.step };
@@ -465,7 +483,8 @@ export function attachIslandAshore(deps: IslandAshoreDeps): IslandAshore {
     if (s.looted || s.searched.includes(spot)) return;
     s.searched.push(spot);
     const roll = rollCache(cache.def, deps.runSeed());
-    if (roll.spot !== spot) {
+    // A seeded cache not stocked this run is stones all the way down (piece T).
+    if (roll.spot !== spot || (cache.seeded && deps.stocked?.(id) === false)) {
       deps.notice('Only stones under the stones');
       return;
     }
@@ -517,7 +536,8 @@ export function attachIslandAshore(deps: IslandAshoreDeps): IslandAshore {
     walkableAt: (at) =>
       islandAt(at.x, at.z) !== undefined ||
       stationNear(deps.stations?.() ?? [], at.x, at.z) !== undefined ||
-      mainlandCaveNear(at.x, at.z) !== undefined,
+      mainlandCaveNear(at.x, at.z) !== undefined ||
+      legendPadNear(at.x, at.z) !== undefined,
     sceneFor,
     prompt,
     boatPrompt: () => deps.salvage?.boatPrompt(),
