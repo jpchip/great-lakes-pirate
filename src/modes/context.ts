@@ -553,6 +553,15 @@ export interface GameEvents {
     spoiled: number;
     hot: boolean;
   };
+  /**
+   * Sea caves (plan 11 §5; Phase 9 piece S): you came in under a cave's roof (`ice` in an
+   * ice cave, `by` in the boat, swimming or on foot) or went out from under it. For the
+   * caves' echo, drips and surf (piece Y).
+   */
+  CaveEntered: { cave: string; by: 'boat' | 'swimming' | 'foot'; ice: boolean };
+  CaveLeft: { cave: string };
+  /** The surge threw you on the rock, swimming in a cave in a sea. */
+  CaveSurge: { cave: string };
 }
 
 /** Everything a mode needs; built once at boot and handed to each mode. */

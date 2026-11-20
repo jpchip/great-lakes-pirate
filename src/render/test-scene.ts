@@ -64,8 +64,12 @@ import { createDistrictView, createLampPools, type DistrictView } from './distri
 import { createHideoutSitesView, type HideoutSitesView } from './hideout/site-views';
 import type { DistrictModel } from '../gameplay/district/district';
 import { createWinterView, type WinterView } from './winter';
+import { createCaveView, type CaveView } from './onfoot/cave-view';
+import { placeZoneCaves } from '../sim/caves/caves';
+import { setCaveClips } from './terrain/cave-clip';
 
 const HORIZON = new THREE.Color(0xb7c6cf);
+const NO_CAVES: ReadonlySet<string> = new Set();
 const ZENITH = new THREE.Color(0x6f8ea3);
 
 export interface TestScene {
@@ -126,6 +130,10 @@ export interface TestScene {
   readonly hideouts: HideoutSitesView;
   /** Ice, snow, winter palettes and the aurora (Phase 9 piece L); main sets its source. */
   readonly winter: WinterView;
+  /** The zone's sea caves drawn (Phase 9 piece S), when the zone has any. */
+  readonly caves: CaveView | undefined;
+  /** Which caves are ice caves now (Phase 9 piece S); main sets it. */
+  caveFrozen: (() => ReadonlySet<string>) | undefined;
 }
 
 export interface SceneArena {
@@ -144,6 +152,7 @@ interface ZoneLayer {
   harbors: HarborView;
   harborLayouts: HarborLayout[];
   pois: PoiView;
+  caves: CaveView;
   dispose(): void;
 }
 
@@ -300,6 +309,18 @@ export async function createTestScene(
     const clearings = zoneClearings(zone, harborLayouts, placedIslands);
     const pois = createPoiView(placedIslands, lighting);
     scene.add(pois.group);
+    // The sea caves (Phase 9 piece S): their rock drawn, the cliff cut away round them, and
+    // the water under their roofs dark and still.
+    const placedCaves = placeZoneCaves(
+      zone.manifest.zone,
+      zone.manifest.islands ?? [],
+      placedIslands,
+      frame,
+    );
+    const caves = createCaveView(placedCaves, lighting);
+    scene.add(caves.group);
+    setCaveClips(terrainMaterial.uniforms, placedCaves);
+    setCaveClips(water.material.uniforms, placedCaves);
     const vegetation = createVegetationView(
       terrain,
       createPlantModels(renderer.renderer),
@@ -325,11 +346,21 @@ export async function createTestScene(
       harbors,
       harborLayouts,
       pois,
+      caves,
       dispose() {
         for (const off of unsubscribe) off();
-        scene.remove(terrain.group, vegetation.group, lighthouses.group, harbors.group, pois.group);
+        scene.remove(
+          terrain.group,
+          vegetation.group,
+          lighthouses.group,
+          harbors.group,
+          pois.group,
+          caves.group,
+        );
         vegetation.dispose();
         pois.dispose();
+        caves.dispose();
+        setCaveClips(water.material.uniforms, []);
         terrain.dispose();
         lighthouses.dispose();
         harbors.dispose();
@@ -537,7 +568,17 @@ export async function createTestScene(
   let now = 0;
   const fxWind = { x: 0, z: 0 };
   let aimSource: TestScene['aimSource'];
+  let caveFrozen: TestScene['caveFrozen'];
   return {
+    get caves() {
+      return layer?.caves;
+    },
+    get caveFrozen() {
+      return caveFrozen;
+    },
+    set caveFrozen(source) {
+      caveFrozen = source;
+    },
     aim: aimView,
     get aimSource() {
       return aimSource;
@@ -708,6 +749,7 @@ export async function createTestScene(
       }
       layer?.harbors.update(environment.sunElevationDeg);
       layer?.pois.update(environment.sunElevationDeg);
+      layer?.caves.setFrozen(caveFrozen?.() ?? NO_CAVES);
       // A district has the lamp pools while you walk it; elsewhere the nearest hideout does.
       hideouts.update(camera.position, lampLevel(environment.sunElevationDeg), !districtView);
       layer?.lighthouses.update(now, camera.position, environment.sunElevationDeg, f?.density ?? 0);

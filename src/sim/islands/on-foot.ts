@@ -1,3 +1,4 @@
+import cavesJson from '../../../data/caves.json';
 import islandsJson from '../../../data/islands.json';
 import poisJson from '../../../data/pois.json';
 import {
@@ -62,6 +63,8 @@ export interface PlacedPoiPiece {
   variant?: number;
   /** Phase 9 piece Q: someone lives here, so its windows are lit through the evening. */
   lit?: boolean;
+  /** Phase 9 piece S: a cave mouth that opens into its cave (no back wall). */
+  open?: boolean;
 }
 
 /**
@@ -201,6 +204,14 @@ const LIVED_IN: ReadonlySet<PoiPieceKind> = new Set<PoiPieceKind>([
 ]);
 /** Seconds a resident stands at a mark of his home, and at a stop of his own. */
 const RESIDENT_WAIT_S = { mark: 14, round: 8 };
+
+/**
+ * Cave mouth prefabs that open into a cave (Phase 9 piece S, `caves.json` `mouth`): read
+ * straight from the file, so this module needn't load the caves' own.
+ */
+const OPEN_MOUTHS: ReadonlySet<string> = new Set(
+  (cavesJson.caves as { mouth?: string }[]).flatMap((c) => (c.mouth ? [c.mouth] : [])),
+);
 
 /** How far down a wharf ladder reaches below the lake. */
 const LADDER_DEPTH_M = 1.2;
@@ -522,6 +533,10 @@ export function placeIsland(
     if (homes.has(at.id)) {
       for (const p of one.pieces) if (LIVED_IN.has(p.kind)) p.lit = true;
     }
+    // A cave mouth that piece S opens: its back wall gives onto the cave.
+    if (OPEN_MOUTHS.has(at.id)) {
+      for (const p of one.pieces) if (p.kind === 'cave_mouth') p.open = true;
+    }
     pieces.push(...one.pieces);
     ladders.push(...one.ladders);
     marks.push(...one.marks);
@@ -776,7 +791,7 @@ export interface LocalBlock {
   dark?: boolean;
 }
 
-type PieceSize = Pick<PlacedPoiPiece, 'widthM' | 'depthM' | 'minY' | 'maxY'>;
+type PieceSize = Pick<PlacedPoiPiece, 'widthM' | 'depthM' | 'minY' | 'maxY' | 'open'>;
 
 /** How wide and high a cave mouth's opening is, for a face this big. */
 export function caveOpening(p: PieceSize): { w: number; h: number } {
@@ -788,7 +803,8 @@ export function caveOpening(p: PieceSize): { w: number; h: number } {
  * A cave mouth's rock and its dark lining: two jambs either side of the opening, the
  * lintel over it with a stepped (corbelled) underside, and the back wall that closes it
  * 0.8 m short of the face's back until piece S opens the cave. The opening faces out (the
- * frame's forward); its floor is the ground, walkable to the back wall.
+ * frame's forward); its floor is the ground, walkable to the back wall. An open mouth
+ * (piece S) has no back wall: its cave goes on behind it (`caves.json`).
  */
 export function caveMouthBlocks(p: PieceSize): LocalBlock[] {
   const W = p.widthM;
@@ -798,7 +814,7 @@ export function caveMouthBlocks(p: PieceSize): LocalBlock[] {
   const side = (W - o.w) / 2;
   const back = 0.8;
   const step = Math.min(0.5, o.w / 6);
-  return [
+  const blocks: LocalBlock[] = [
     { right: -(o.w / 2 + side / 2), out: 0, w: side, d: D, y0: 0, y1: H },
     { right: o.w / 2 + side / 2, out: 0, w: side, d: D, y0: 0, y1: H },
     { right: 0, out: 0, w: o.w, d: D, y0: o.h, y1: H },
@@ -807,6 +823,10 @@ export function caveMouthBlocks(p: PieceSize): LocalBlock[] {
     { right: o.w / 2 - step / 2, out: 0, w: step, d: D, y0: o.h - 0.55, y1: o.h },
     { right: -(o.w / 2 - step * 1.5), out: 0, w: step, d: D, y0: o.h - 0.25, y1: o.h },
     { right: o.w / 2 - step * 1.5, out: 0, w: step, d: D, y0: o.h - 0.25, y1: o.h },
+  ];
+  if (p.open) return blocks;
+  return [
+    ...blocks,
     { right: 0, out: -(D / 2 - back / 2), w: o.w, d: back, y0: 0, y1: o.h },
     // The dark lining over the back wall's face: the cave going on into the dark.
     { right: 0, out: -(D / 2 - back - 0.01), w: o.w, d: 0.02, y0: 0, y1: o.h, dark: true },
