@@ -1,0 +1,12 @@
+{
+  "id": "sfx.sled.runners",
+  "name": "sled-runners",
+  "description": "A hand sled's runners over snow and ice behind you (6 s, looped): the hiss, a ridge's knock, the rope",
+  "kind": "loop",
+  "bus": "sfx",
+  "loopCrossfadeS": 0.5,
+  "bundles": [
+    "winter-audio"
+  ],
+  "source": "source.flac"
+}

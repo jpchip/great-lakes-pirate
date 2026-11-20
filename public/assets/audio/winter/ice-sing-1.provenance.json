@@ -1,0 +1,19 @@
+{
+  "source": "procedural",
+  "tool": "tools/audio/synth.ts (tools/audio/lib/synth.ts)",
+  "author": "Great Lakes Pirate contributors",
+  "reference": "A low sine thud and long dispersive falling sine chirps, low-passed, a large reverb",
+  "date": "2026-11-20",
+  "license": "CC BY 4.0",
+  "attribution": "Great Lakes Pirate contributors",
+  "modifications": [],
+  "description": "The lake's ice booming far off on a cold night: a deep thump and the long falling \"pew\" across the ice (variant 1)",
+  "durationS": 2.208,
+  "pipeline": [
+    "decoded to mono 48000 Hz",
+    "edge fades",
+    "RMS-normalized toward -24 dB (-8.4 dB)",
+    "Opus 64 kbps mono in Ogg (ffmpeg libopus)"
+  ],
+  "inputHash": "d1ab3806af33a661"
+}

@@ -1,0 +1,12 @@
+{
+  "id": "amb.winter.frozen-night",
+  "name": "frozen-night",
+  "description": "A harbor frozen in, at night (20 s, looped): still air, a ship's timbers ticking in the ice, a rope's end on a mast, the ice far off",
+  "kind": "loop",
+  "bus": "ambience",
+  "loopCrossfadeS": 0,
+  "bundles": [
+    "winter-audio"
+  ],
+  "source": "source.flac"
+}
