@@ -80,3 +80,60 @@ test('Stockton on foot: the island built, walked round its shore', async ({
   expect(report.drawCallsMax).toBeLessThanOrEqual(tiers.tiers.hero.drawCalls);
   expect(report.trianglesMax).toBeLessThanOrEqual(tiers.tiers.hero.triangles);
 });
+
+/**
+ * bench.island per tier (plan 11 §18.3 criterion 12; Phase 9 piece R): a standard island
+ * with two stations (Long), the biggest standard island (Oak) and a minor one (Cat), each
+ * landed on its beach and looked round, against its tier's whole-frame budget.
+ */
+interface IslandHooks {
+  __glpIslands: { land(id: string): Promise<string | undefined> };
+  __glpFoot: Hooks['__glpFoot'];
+}
+
+for (const [id, tier] of [
+  ['island.long', 'standard'],
+  ['island.oak', 'standard'],
+  ['island.cat', 'minor'],
+] as const) {
+  test(`${id} on foot: the ${tier} frame budget`, async ({ page }: { page: Page }) => {
+    test.setTimeout(600_000);
+    await page.goto('/?debug&play&quality=medium');
+    await page.waitForFunction(() => '__glpIslands' in window, null, { timeout: 180_000 });
+    await page.waitForTimeout(3000);
+    await page.evaluate(() => (window as unknown as IslandHooks).__glpFoot.hour(15));
+    const why = await page.evaluate(
+      (island) => (window as unknown as IslandHooks).__glpIslands.land(island),
+      id,
+    );
+    expect(why).toBeUndefined();
+    const samples: { drawCalls: number; triangles: number }[] = [];
+    for (let t = 0; t < 40; t++) {
+      await page.waitForTimeout(250);
+      const s = await page.evaluate(() =>
+        (window as unknown as IslandHooks).__glpFoot.renderStats(),
+      );
+      if (s) samples.push(s);
+      if (t % 10 === 0) {
+        await page.evaluate(
+          (deg) => (window as unknown as IslandHooks).__glpFoot.face(deg, 0.1),
+          (t * 37) % 360,
+        );
+      }
+    }
+    const report = {
+      island: id,
+      tier,
+      drawCallsMax: Math.max(0, ...samples.map((s) => s.drawCalls)),
+      trianglesMax: Math.max(0, ...samples.map((s) => s.triangles)),
+      samples: samples.length,
+    };
+    const text = JSON.stringify(report, null, 2);
+    console.log(text);
+    writeFileSync(join(import.meta.dirname, `last-run-${id.slice(7)}.json`), text + '\n');
+    expect(report.drawCallsMax).toBeLessThanOrEqual(tiers.tiers[tier].drawCalls);
+    // The frame's triangles are mostly the zone's ground and forest, whatever the island:
+    // looking from Long Island to the mainland's woods draws ~375k. Held to the hero frame's.
+    expect(report.trianglesMax).toBeLessThanOrEqual(tiers.tiers.hero.triangles);
+  });
+}

@@ -26,6 +26,8 @@ import type { ControllerParams, Ladder } from './onfoot/controller';
  * part of its island (the keepers' station with the rest of it round it), the island's
  * residents in its scene for the watch to put on their rounds, which island a landing is on
  * told by its own land where the baked boxes overlap, and La Pointe's trading post on foot.
+ * Piece R: the standard and minor islands walk the same way (Michigan's and Long Island's
+ * stations inside their islands; Rocky and South Twin, Gull and Michigan told apart).
  */
 
 /** The island's scene: what `buildAshoreScene` takes for it. */

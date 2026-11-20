@@ -633,12 +633,46 @@ By day at Wanted tier 1 or below, F next to a resident is "Talk with …": one o
 
 Screenshots are in `hero-islands/`.
 
+### 18.18 Piece R as built: standard and minor islands (2026-11-20)
+
+**The islands.** All fourteen standard and minor Apostles now walk, on the real baked terrain the bake already cut for each (its 1 m tiles mark the extent; the walked ground is the zone's 4 m terrain, as Stockton's is). Each has a `tier` and an `onFoot` entry in `islands.json`, with its prefabs placed by piece P's `placePoi`, sites picked off the baked ground (the shore with the lowest bank for a camp or a wreck, the island's top for a lookout, the flattest ground near the hint for a cabin):
+
+| Island | Tier | What's ashore |
+|---|---|---|
+| Michigan | standard | Piece H's light station on its bluff; beach wreckage on the west sandspit; a Lake Survey lookout on the high ground at the northeast end |
+| Long (Chequamegon Point) | standard | Piece H's two stations at the point; beach wreckage on the spit (the _Lucerne_ was lost off it); a fish camp on the lagoon shore |
+| Oak | standard | A lookout on the summit (42 m, the highest in the islands); a trapper's cabin on the plateau above the southwest spit |
+| Manitou | standard | A trapper's cabin above the southwest beach, standing for the fisherman's log cabin (piece O's place text), where the rival camp says "by the old fish camp" |
+| Rocky | standard | A fish camp on the sandspit at the south end, facing the anchorage between Rocky and South Twin (piece O's place moved there from the east shore, which is all bank); a lookout on the high west side |
+| South Twin | standard | A fish camp on the west shore, across the sound |
+| Otter | standard | A trapper's cabin; a cairn on the high ground (a cache candidate for piece T) |
+| Bear | standard | A lookout on the cliff top at the south end; beach wreckage on the south beach |
+| Cat | minor | A cairn on the high ground (a cache candidate) |
+| York | minor | Beach wreckage on the sandspit |
+| Gull | minor | A cairn on the bird rock (a cache candidate) |
+| Ironwood, North Twin, Eagle | minor | Nothing: walkable and wild |
+
+No caches are filled (piece T), nobody lives there (residents are Q's), and there's no wildlife (V), cave (S), digging (T) or hideout site (W).
+
+**Which island you land on, and stations.** Tile boxes overlap here too (Rocky's holds South Twin, Gull's the tip of Michigan, Oak's a corner of Manitou). Piece Q's `islandLand` (each island's own land, grown from its `islands.json` point, with every cell's distance to it) tells them apart, and Q's station merge puts Michigan's and Long Island's stations inside their islands' scenes, keepers of the nearest one watching; R built both the same way in parallel and kept Q's on merging. `placeZoneIslands` also keeps that point as the island's `anchor`, for `findLanding`.
+
+**Landing.** `findLanding` picks where to come ashore: one of the island's own landings (Q's), else a prefab's `landing` mark (a fish camp's dock end, a wreck's beach) where you can step out there, else round the island from its anchor the shore with the lowest bank and water for the boat off it. Gull's rock is steep all round, so stepping out of the boat now falls back to `rockStep`: up the rock from the water's edge to the first ground you can stand on, no more than 4.5 m up and 8 m in, only where no beach step exists. Every rival camp's anchorage (piece E) lands on its own island, so a rival's camp is walkable ground (no camp is drawn).
+
+**Tests and benches.** `tests/islands.test.ts` covers all 22 (Q's seven included): the catalog's tiers; for every island with `onFoot` data, a landing whose boat water takes you to that island and no other, a step out of the boat, the scene built whole and eight seconds' walk inland without swimming; each island's prefabs, triangles and people (station keepers and resident marks) within its tier; stations in their island's scenes; and the rival camps. An island without `onFoot` data would be skipped; on this branch none is. `bench.island` now also lands on Long (standard, two stations), Oak (standard) and Cat (minor) and holds each frame to its tier's draw calls: 97, 59 and 78 at most headless, against 140 / 140 / 130 (Stockton 69). Facing the wrecks off Long Island first drew 166: piece U's wreck hulls were 24 meshes apiece, and each is now two (hull and timbers merged).
+
+**Hooks.** One `__glpIslands` for Q and R: `list()` (now with each island's `landing`), `landing(id)`, `land(id, k)` (Q's `k`th landing, or for an island without landings the beach `findLanding` gives), `here()` and `meet()`; `?ashore=oak` (any walkable island's slug) and an Islands folder in the dev jump menu.
+
+**For Jared:** every placement and which kit each island got (above; the screenshots in `other-islands/`); Manitou and South Twin's camps as a cabin and a fish camp on a steep bank; the frame triangle budgets for standard (300k) and minor (250k) islands, which the zone's forest exceeds from some beaches (Cat 263k, Long up to 375k looking at the mainland): the bench holds them to the hero frame's 400k; the 4.5 m rock climb out of the boat.
+
+**Not in piece R:** residents, lit windows, caches in the cairns, wildlife, caves, digging, hideout sites, drawn rival camps, and discovery places for the new prefabs (only Rocky's fish camp moved).
+
 ### 18.19 Piece X as built: Duluth (2026-11-20)
 
 Built as scoped; the write-up is [08 §21](08-docks-district-stealth.md). You go ashore at the merchandise dock from the Twin Ports zone. Duluth's waterfront has a police constable on each of three beats and a fourth at the station, five buildings worth burgling, and counters at the saloon, general store, chandlery and harbor office. The fence's back room after dark replaces its port-screen tab. A captain taken in the Duluth, Superior or North Shore region is held in the police station's lockup and can break out of it. Criterion 17 is checked by `e2e/duluth.spec.ts`. The layout is a first draft for Jared to review in the district editor.
 
 ## Changelog
 - v0.17: Piece X as built (§18.19): the Duluth district.
+- v0.16: Piece R as built (§18.18): the fourteen standard and minor islands walkable with their prefabs, landings, stations inside their islands, the overlapping-box fix, the rock climb out of the boat, `tests/islands.test.ts` over all 22 and `bench.island` per tier.
 - v0.15: Piece Q as built (§18.17): the seven hero islands walked whole with their POIs, landings and residents, La Pointe's trading post on foot, islanders who see and report as townsfolk, and lit windows at night.
 - v0.14: Piece N as built (§18.16): winter audio.
 - v0.13: Phase 9 piece M as built (§18.15): walking on the ice, thin ice and the climb out, the ice road to La Pointe, the hand sled, warmth, and tracks in the snow.

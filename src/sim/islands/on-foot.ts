@@ -169,6 +169,11 @@ export interface PlacedIsland {
   village?: { harbor: string; port: string; tradingPost: string };
   /** The island's own land, when its baked box and the zone's frame were given. */
   land?: IslandLand;
+  /**
+   * Its `islands.json` point in zone meters, where the frame was given (piece R): where
+   * `findLanding` looks out from for a shore to come in at.
+   */
+  anchor?: { x: number; z: number };
 }
 
 /** One prefab set down (Phase 9 piece P's `placePoi`). */
@@ -618,10 +623,13 @@ export function placeZoneIslands(
     const placed = placeIsland(def, origin, heightAt);
     if (frame && origin.width && origin.height && !def.mainland) {
       const center = chartToZone(GEO.geoToChart(def.at), frame);
+      placed.anchor = center;
       placed.land = islandLand(
         heightAt,
         { x0: origin.x0, z0: origin.z0, width: origin.width, height: origin.height },
         center,
+        LAND_CELL_M,
+        !!def.clip,
       );
     }
     out.push(placed);
@@ -645,6 +653,7 @@ export function islandLand(
   box: { x0: number; z0: number; width: number; height: number },
   center: { x: number; z: number },
   cellM = LAND_CELL_M,
+  allLand = false,
 ): IslandLand {
   const cols = Math.max(1, Math.ceil(box.width / cellM));
   const rows = Math.max(1, Math.ceil(box.height / cellM));
@@ -676,6 +685,14 @@ export function islandLand(
   let tail = 0;
   dist[seed] = 0;
   queue[tail++] = seed;
+  // An island cut out by a clip box (Long Island's broken spit, piece R) is all the land in it.
+  if (allLand) {
+    for (let i = 0; i < n; i++) {
+      if (!land[i] || i === seed) continue;
+      dist[i] = 0;
+      queue[tail++] = i;
+    }
+  }
   // The component, 8-connected over land, at distance 0.
   while (head < tail) {
     const i = queue[head++] as number;

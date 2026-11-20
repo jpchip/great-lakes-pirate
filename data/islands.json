@@ -127,6 +127,11 @@
     "at": {
       "lat": 46.9435,
       "lon": -91.036
+    },
+    "tier": "minor",
+    "onFoot": {
+      "pois": [],
+      "caches": []
     }
   },
   {
@@ -136,6 +141,19 @@
     "at": {
       "lat": 46.9839,
       "lon": -90.8604
+    },
+    "tier": "minor",
+    "onFoot": {
+      "pois": [
+        {
+          "id": "york_wreckage",
+          "poi": "poi.beach_wreck",
+          "x": 166,
+          "z": 165,
+          "facingDeg": 15
+        }
+      ],
+      "caches": []
     }
   },
   {
@@ -195,6 +213,26 @@
     "at": {
       "lat": 46.9388,
       "lon": -90.7276
+    },
+    "tier": "standard",
+    "onFoot": {
+      "pois": [
+        {
+          "id": "oak_lookout",
+          "poi": "poi.viewpoint",
+          "x": 428,
+          "z": 416,
+          "facingDeg": 235
+        },
+        {
+          "id": "oak_cabin",
+          "poi": "poi.trapper_cabin",
+          "x": 360,
+          "z": 562,
+          "facingDeg": 255
+        }
+      ],
+      "caches": []
     }
   },
   {
@@ -204,6 +242,26 @@
     "at": {
       "lat": 47.0172,
       "lon": -90.7575
+    },
+    "tier": "standard",
+    "onFoot": {
+      "pois": [
+        {
+          "id": "bear_lookout",
+          "poi": "poi.viewpoint",
+          "x": 220,
+          "z": 460,
+          "facingDeg": 160
+        },
+        {
+          "id": "bear_wreckage",
+          "poi": "poi.beach_wreck",
+          "x": 320,
+          "z": 536,
+          "facingDeg": 100
+        }
+      ],
+      "caches": []
     }
   },
   {
@@ -258,6 +316,26 @@
     "at": {
       "lat": 46.9959,
       "lon": -90.693
+    },
+    "tier": "standard",
+    "onFoot": {
+      "pois": [
+        {
+          "id": "otter_cabin",
+          "poi": "poi.trapper_cabin",
+          "x": 212,
+          "z": 278,
+          "facingDeg": 90
+        },
+        {
+          "id": "otter_cairn",
+          "poi": "poi.cairn",
+          "x": 272,
+          "z": 250,
+          "facingDeg": 270
+        }
+      ],
+      "caches": []
     }
   },
   {
@@ -267,6 +345,26 @@
     "at": {
       "lat": 47.0368,
       "lon": -90.682
+    },
+    "tier": "standard",
+    "onFoot": {
+      "pois": [
+        {
+          "id": "rocky_fish_camp",
+          "poi": "poi.fish_camp",
+          "x": 183,
+          "z": 541,
+          "facingDeg": 115
+        },
+        {
+          "id": "rocky_lookout",
+          "poi": "poi.viewpoint",
+          "x": 104,
+          "z": 396,
+          "facingDeg": 100
+        }
+      ],
+      "caches": []
     }
   },
   {
@@ -276,6 +374,19 @@
     "at": {
       "lat": 47.0328,
       "lon": -90.6456
+    },
+    "tier": "standard",
+    "onFoot": {
+      "pois": [
+        {
+          "id": "south_twin_fish_camp",
+          "poi": "poi.fish_camp",
+          "x": 75,
+          "z": 160,
+          "facingDeg": 265
+        }
+      ],
+      "caches": []
     }
   },
   {
@@ -285,6 +396,11 @@
     "at": {
       "lat": 47.0674,
       "lon": -90.5874
+    },
+    "tier": "minor",
+    "onFoot": {
+      "pois": [],
+      "caches": []
     }
   },
   {
@@ -294,6 +410,19 @@
     "at": {
       "lat": 46.9656,
       "lon": -90.6554
+    },
+    "tier": "standard",
+    "onFoot": {
+      "pois": [
+        {
+          "id": "manitou_cabin",
+          "poi": "poi.trapper_cabin",
+          "x": 156,
+          "z": 407,
+          "facingDeg": 75
+        }
+      ],
+      "caches": []
     }
   },
   {
@@ -303,6 +432,11 @@
     "at": {
       "lat": 46.9989,
       "lon": -90.6137
+    },
+    "tier": "minor",
+    "onFoot": {
+      "pois": [],
+      "caches": []
     }
   },
   {
@@ -312,6 +446,19 @@
     "at": {
       "lat": 47.0183,
       "lon": -90.5591
+    },
+    "tier": "minor",
+    "onFoot": {
+      "pois": [
+        {
+          "id": "cat_cairn",
+          "poi": "poi.cairn",
+          "x": 224,
+          "z": 460,
+          "facingDeg": 195
+        }
+      ],
+      "caches": []
     }
   },
   {
@@ -431,6 +578,19 @@
       "widthM": 24,
       "bearingDeg": 60,
       "heightM": 6
+    },
+    "tier": "minor",
+    "onFoot": {
+      "pois": [
+        {
+          "id": "gull_cairn",
+          "poi": "poi.cairn",
+          "x": 79,
+          "z": 75,
+          "facingDeg": 235
+        }
+      ],
+      "caches": []
     }
   },
   {
@@ -440,6 +600,26 @@
     "at": {
       "lat": 46.8847,
       "lon": -90.4813
+    },
+    "tier": "standard",
+    "onFoot": {
+      "pois": [
+        {
+          "id": "michigan_wreckage",
+          "poi": "poi.beach_wreck",
+          "x": 150,
+          "z": 405,
+          "facingDeg": 190
+        },
+        {
+          "id": "michigan_lookout",
+          "poi": "poi.viewpoint",
+          "x": 546,
+          "z": 160,
+          "facingDeg": 110
+        }
+      ],
+      "caches": []
     }
   },
   {
@@ -783,6 +963,26 @@
       "north": 46.738,
       "west": -90.82,
       "east": -90.625
+    },
+    "tier": "standard",
+    "onFoot": {
+      "pois": [
+        {
+          "id": "long_wreckage",
+          "poi": "poi.beach_wreck",
+          "x": 1002,
+          "z": 876,
+          "facingDeg": 245
+        },
+        {
+          "id": "long_fish_camp",
+          "poi": "poi.fish_camp",
+          "x": 796,
+          "z": 1022,
+          "facingDeg": 345
+        }
+      ],
+      "caches": []
     }
   },
   {
