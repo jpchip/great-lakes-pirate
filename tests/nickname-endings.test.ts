@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import ambitionsJson from '../data/ambitions.json';
 import eventsJson from '../data/events.json';
 import { eventsFileSchema } from '../data/schemas/events';
 import { gameLaw, tierDef } from '../src/sim/law/defs';
@@ -192,6 +193,12 @@ describe('the voluntary endings (plan 12 §4.2)', () => {
     const rich = { ...base, wealthCents: ENDINGS.retire.wealthCents };
     expect(retireEligibility(rich).ok).toBe(true);
     expect(retireEligibility({ ...rich, wantedTiers: [3] }).missing).toEqual(['wanted']);
+  });
+
+  it('Retire asks the same strongbox money as the "Money in the strongbox" Ambition', () => {
+    const goal = ambitionsJson.ambitions.find((a) => a.id === 'ambition.money_in_the_bank')?.goal;
+    expect(goal?.kind).toBe('hideoutCash');
+    expect(ENDINGS.retire.wealthCents).toBe(goal?.cents);
   });
 
   it('Turn Lawman needs Fame high, every region at 1 or below, and good Standing', () => {

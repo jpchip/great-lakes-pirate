@@ -44,7 +44,8 @@ export function attachEndings(opts: EndingsOptions): GameEndings {
   const world = (): EndingWorld => {
     const s = ctx.state;
     return {
-      wealthCents: s.player.purse + stashedCash(s.hideouts),
+      // Counted as the wealth Ambitions count it: cash in your hideouts' strongboxes.
+      wealthCents: stashedCash(s.hideouts),
       fameTier: fameTier(opts.law, s.fame.value),
       wantedTiers: Object.values(s.wanted).map((w) => wantedTier(opts.law, w.heat)),
       standing: s.player.standing ?? {},

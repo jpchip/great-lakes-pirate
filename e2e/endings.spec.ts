@@ -26,6 +26,7 @@ interface Hooks {
     current(): string | undefined;
   };
   __glpEndings: { offer(kind: 'retire' | 'lawman', force?: boolean): boolean };
+  __glpStash: { open(): void; stashCash(c: number): unknown; close(): void };
 }
 
 test('the papers name you, the land agent retires you, and the Hall keeps you', async ({
@@ -53,12 +54,17 @@ test('the papers name you, the land agent retires you, and the Hall keeps you', 
   });
   expect(coined).toBeTruthy();
 
-  // Money enough to come ashore, and the land agent's letter.
-  await page.evaluate(() => {
+  // Money enough to come ashore, put by in the strongbox (as the wealth Ambition counts it),
+  // and the land agent's letter.
+  const offered = await page.evaluate(() => {
     const w = window as unknown as Hooks;
-    w.__glpPoker.give(600_000);
-    w.__glpEndings.offer('retire');
+    w.__glpPoker.give(1_100_000);
+    w.__glpStash.open();
+    w.__glpStash.stashCash(1_000_000);
+    w.__glpStash.close();
+    return w.__glpEndings.offer('retire');
   });
+  expect(offered).toBe(true);
   await page.evaluate(() => (window as unknown as Hooks).__glpPort.dock('bayfield_city'));
   await expect(page.getByTestId('port-screen')).toBeVisible({ timeout: 15_000 });
   await page.getByTestId('port-tab-harbor').click();
