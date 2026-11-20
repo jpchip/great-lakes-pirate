@@ -1,0 +1,11 @@
+{
+  "id": "sfx.foot.step-ice-2",
+  "name": "step-ice-2",
+  "description": "A footstep on bare lake ice: the heel's tick, a scuff, the hollow knock of the sheet (variant 2)",
+  "kind": "oneshot",
+  "bus": "sfx",
+  "bundles": [
+    "winter-audio"
+  ],
+  "source": "source.flac"
+}

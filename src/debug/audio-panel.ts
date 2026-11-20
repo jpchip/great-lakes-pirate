@@ -1,5 +1,6 @@
 import type { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js';
 import { SANDBOX_SOUND } from '../audio/sandbox-audio';
+import { WINTER_SOUND } from '../audio/winter-audio';
 import type { GameAudio } from '../audio/game-audio';
 import { CHART_SOUND, type StingerId } from '../audio/chart-audio';
 import { BUS_IDS, type VolumeId } from '../audio/settings';
@@ -152,6 +153,14 @@ export function createAudioPanel(options: AudioPanelOptions): { update(): void }
   events
     .add({ play: () => audio.sandbox.audition(sandboxPick.sound) }, 'play')
     .name('Stage 1: play it');
+
+  // Phase 9 piece N: winter's sounds, by ear.
+  const winterIds = Object.values(WINTER_SOUND).flat().sort();
+  const winterPick = { sound: winterIds[0] ?? '' };
+  events.add(winterPick, 'sound', winterIds).name('Winter: sound');
+  events
+    .add({ play: () => audio.winter.audition(winterPick.sound) }, 'play')
+    .name('Winter: play it');
 
   const status = {
     context: '',

@@ -8,7 +8,9 @@
 // piece H: Wanted stingers, the cutter's engine, bell and gun, the lockup's door), and the
 // combat sounds and the chase layer (Phase 6 piece G), the on-foot, build and craft sets
 // (Phases 7 and 8), and stage 1 of Phase 9 (piece J: the saloon by night, the poker table,
-// the lighthouse station, the harbor master's letters, a rival's stinger, a ship aground). The package steamer's chime
+// the lighthouse station, the harbor master's letters, a rival's stinger, a ship aground),
+// and winter (piece N: thin ice, the ice booming, footsteps on ice and squeaking snow, the
+// sled, chattering teeth, gusts, the winter wind, a frozen harbor's night). The package steamer's chime
 // whistle is a recording since Phase 4 (raw-assets/audio/ships/whistle-chime), so it is
 // no longer rendered here.
 //
@@ -173,6 +175,24 @@ import {
   tableKnock,
   towerStair,
 } from './lib/synth-sandbox.ts';
+import {
+  FROZEN_NIGHT_S,
+  RUNNERS_LOOP_S,
+  WINTER_WIND_S,
+  frozenNight,
+  iceBreak,
+  iceCrack,
+  iceGroan,
+  iceHaul,
+  iceSing,
+  sledLoad,
+  sledRunners,
+  stepIce,
+  stepSqueak,
+  teethChatter,
+  winterGust,
+  winterWind,
+} from './lib/synth-winter.ts';
 
 const ROOT = resolve(fileURLToPath(import.meta.url), '..', '..', '..');
 const RAW = join(ROOT, 'raw-assets', 'audio');
@@ -187,6 +207,7 @@ const TODAY_P6G = '2026-11-09';
 const TODAY_P7I = '2026-11-15';
 const TODAY_P8I = '2026-11-17';
 const TODAY_P9J = '2026-11-19';
+const TODAY_P9N = '2026-11-20';
 /** Render only this category (e.g. `ships`), leaving the other sources untouched. */
 const ONLY = process.argv[2];
 
@@ -502,6 +523,7 @@ function main(): void {
   renderFoot();
   renderHideout();
   renderSandbox();
+  renderWinter();
 }
 
 function renderLaw(): void {
@@ -1472,6 +1494,155 @@ function renderSandbox(): void {
     agroundCrew(RATE),
     "Formant-synthesized shouts in four voices (no words), a ship's bell's partials, reverb",
     'voice',
+  );
+}
+
+/**
+ * Phase 9 piece N: winter's sounds (plan 11 §18.4 row N): thin ice cracking, groaning and
+ * giving way and the haul out, the lake's ice booming far off, footsteps on ice and on
+ * squeaking snow, the sled, chattering teeth, gusts and the winter wind, and a frozen
+ * harbor's night. All in bundle `winter-audio`.
+ */
+function renderWinter(): void {
+  const sound = (
+    id: string,
+    name: string,
+    description: string,
+    samples: Float32Array,
+    how: string,
+    bus: SoundHints['bus'] = 'sfx',
+    loopCrossfadeS?: number,
+  ): void =>
+    writeSound(
+      'winter',
+      {
+        id,
+        name,
+        description,
+        kind: loopCrossfadeS === undefined ? 'oneshot' : 'loop',
+        bus,
+        ...(loopCrossfadeS === undefined ? {} : { loopCrossfadeS }),
+        bundles: ['winter-audio'],
+      },
+      samples,
+      how,
+      TODAY_P9N,
+    );
+
+  // Thin ice.
+  for (const v of [1, 2]) {
+    sound(
+      `sfx.ice.crack-${v}`,
+      `ice-crack-${v}`,
+      `Thin lake ice cracking underfoot: the snap, the sheet settling, the crack running off as a falling "pew" (variant ${v})`,
+      iceCrack(v, RATE),
+      'Band-passed noise snaps, a low sine thud, a dispersive falling sine chirp, noise ticks, a little reverb',
+    );
+  }
+  sound(
+    'sfx.ice.groan',
+    'ice-groan',
+    'Thin ice groaning under you: a low rising moan as the sheet bends, its stick-slip, a deep pew and a snap',
+    iceGroan(RATE),
+    'A wandering low sine with harmonics, a stick-slip creak, low noise, falling sine chirps, reverb',
+  );
+  sound(
+    'sfx.ice.break',
+    'ice-break',
+    'The ice giving way: a great crack, the plates breaking up and knocking, shards tinkling, the plunge',
+    iceBreak(RATE),
+    'Band-passed noise cracks, sine thuds, a falling chirp, short high pings, low-passed noise plunge and wash',
+  );
+  sound(
+    'sfx.ice.haul',
+    'ice-haul',
+    'Hauling out over the edge of the ice: wet wool dragged up, a grunt, the water pouring off, a knee and a hand down',
+    iceHaul(RATE),
+    'Band-passed noise drag, a formant grunt (no words), a decaying noise pour and drips, sine thuds',
+  );
+  for (const v of [1, 2]) {
+    sound(
+      `amb.ice.sing-${v}`,
+      `ice-sing-${v}`,
+      `The lake's ice booming far off on a cold night: a deep thump and the long falling "pew" across the ice (variant ${v})`,
+      iceSing(v, RATE),
+      'A low sine thud and long dispersive falling sine chirps, low-passed, a large reverb',
+      'ambience',
+    );
+  }
+
+  // Footsteps.
+  for (const v of [1, 2]) {
+    sound(
+      `sfx.foot.step-ice-${v}`,
+      `step-ice-${v}`,
+      `A footstep on bare lake ice: the heel's tick, a scuff, the hollow knock of the sheet (variant ${v})`,
+      stepIce(v, RATE),
+      'Band-passed noise ticks, a short sine ping and thud, a high-band noise scuff',
+    );
+    sound(
+      `sfx.foot.step-squeak-${v}`,
+      `step-squeak-${v}`,
+      `A footstep on snow at hard frost: the crunch and the squeak (variant ${v})`,
+      stepSqueak(v, RATE),
+      'Band-passed noise crunch, a rising stick-slip pulse train through a resonance',
+    );
+  }
+
+  // The sled.
+  sound(
+    'sfx.sled.runners',
+    'sled-runners',
+    `A hand sled's runners over snow and ice behind you (${RUNNERS_LOOP_S} s, looped): the hiss, a ridge's knock, the rope`,
+    sledRunners(RATE),
+    'Band-passed noise under value-noise grain and pull, low noise, sine thuds, stick-slip creaks',
+    'sfx',
+    0.5,
+  );
+  sound(
+    'sfx.sled.load',
+    'sled-load',
+    "A load set down on the sled's slats and lashed: the thump, a slide, the rope drawn tight",
+    sledLoad(RATE),
+    'Sine thuds, band-passed noise, stick-slip creaks',
+  );
+
+  // The cold.
+  sound(
+    'voice.cold.chatter',
+    'chatter',
+    'Teeth chattering in the cold: rapid clicks in uneven bursts and a shuddering breath',
+    teethChatter(RATE),
+    'Band-passed noise clicks and short sine pings at 12–16 a second, a gated band-passed breath',
+    'voice',
+  );
+  for (const v of [1, 2]) {
+    sound(
+      `amb.winter.gust-${v}`,
+      `gust-${v}`,
+      `A gust of winter wind swelling round you, whistling, with blown snow in it (variant ${v})`,
+      winterGust(v, RATE),
+      'Low-passed noise under a swell, a retuned two-pole resonator whistle, band-passed snow hiss',
+      'ambience',
+    );
+  }
+  sound(
+    'amb.winter.wind',
+    'wind',
+    `Winter wind over the ice and the bare shore (${WINTER_WIND_S} s, looped): dry and hollow, a moan rising and falling, drifting snow hissing`,
+    winterWind(RATE),
+    'Low-passed noise and a wandering two-pole resonator under slow value-noise gusts, band-passed snow hiss',
+    'ambience',
+    1.5,
+  );
+  sound(
+    'amb.winter.frozen-night',
+    'frozen-night',
+    `A harbor frozen in, at night (${FROZEN_NIGHT_S} s, looped): still air, a ship's timbers ticking in the ice, a rope's end on a mast, the ice far off`,
+    frozenNight(RATE),
+    'Very low noise, sparse stick-slip creaks and ticks, sine taps, a far dispersive chirp, a large reverb, the tail folded onto the head',
+    'ambience',
+    0,
   );
 }
 

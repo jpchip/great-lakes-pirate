@@ -564,7 +564,14 @@ Plan 15 §22 has the detail. The saloon plays "The Late Boat Waltz" on piano and
 
 `__glpCold` reads and drives it.
 
+### 18.16 Piece N as built: winter audio (2026-11-20)
+
+Plan 15 §23 has the detail. Piece M's thin ice cracks at 25% (with more cracks after that, coming faster as it builds), groans at 60%, and gives way with a crash; the haul out (`IceClimbed`) and an edge breaking away are heard too. Strides on bare ice tick, on snow they crunch, and below −10 °C they squeak. The sled is heard as it's handled (`SledHandled`), and its runners hiss behind you, following its speed and load. As warmth drops, a shiver comes from chilled, teeth chatter at cold and freezing, and gusts come harder and more often. A winter wind blows by the season, the air and the ice cover. Where the lake is frozen over, the lapping and the gulls stop. A harbor frozen in at night goes still, with the ice booming far off. Snowfall makes no sound. 18 synthesized sounds, 0.46 MB; the decoded audio is 6.59 MB of 8 MB.
+
+**Not in piece N:** a sound for the ice grinding on a hull (piece K's `IceGrinding`), wind in a frozen-in ship's rigging, and any change to the noise radius on snow and ice (sound only). **For Jared:** the listen by ear (row N).
+
 ## Changelog
+- v0.14: Piece N as built (§18.16): winter audio.
 - v0.13: Phase 9 piece M as built (§18.15): walking on the ice, thin ice and the climb out, the ice road to La Pointe, the hand sled, warmth, and tracks in the snow.
 - v0.12: Piece P as built (§18.14): the POI kits, `placePoi` and marks, the tier budgets and `bench.island` per tier, and curios on the shelves.
 - v0.11: Piece J as built (§18.13): stage 1 audio.

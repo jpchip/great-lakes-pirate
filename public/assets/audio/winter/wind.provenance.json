@@ -1,0 +1,19 @@
+{
+  "source": "procedural",
+  "tool": "tools/audio/synth.ts (tools/audio/lib/synth.ts)",
+  "author": "Great Lakes Pirate contributors",
+  "reference": "Low-passed noise and a wandering two-pole resonator under slow value-noise gusts, band-passed snow hiss",
+  "date": "2026-11-20",
+  "license": "CC BY 4.0",
+  "attribution": "Great Lakes Pirate contributors",
+  "modifications": [],
+  "description": "Winter wind over the ice and the bare shore (16 s, looped): dry and hollow, a moan rising and falling, drifting snow hissing",
+  "durationS": 14.5,
+  "pipeline": [
+    "decoded to mono 48000 Hz",
+    "loop seam crossfaded over 1.5 s",
+    "RMS-normalized toward -24 dB (-7.8 dB)",
+    "Opus 64 kbps mono in Ogg (ffmpeg libopus)"
+  ],
+  "inputHash": "690619cf743e631a"
+}

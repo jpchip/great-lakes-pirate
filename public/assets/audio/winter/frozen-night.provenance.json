@@ -1,0 +1,18 @@
+{
+  "source": "procedural",
+  "tool": "tools/audio/synth.ts (tools/audio/lib/synth.ts)",
+  "author": "Great Lakes Pirate contributors",
+  "reference": "Very low noise, sparse stick-slip creaks and ticks, sine taps, a far dispersive chirp, a large reverb, the tail folded onto the head",
+  "date": "2026-11-20",
+  "license": "CC BY 4.0",
+  "attribution": "Great Lakes Pirate contributors",
+  "modifications": [],
+  "description": "A harbor frozen in, at night (20 s, looped): still air, a ship's timbers ticking in the ice, a rope's end on a mast, the ice far off",
+  "durationS": 20,
+  "pipeline": [
+    "decoded to mono 48000 Hz",
+    "RMS-normalized toward -24 dB (+3.8 dB)",
+    "Opus 64 kbps mono in Ogg (ffmpeg libopus)"
+  ],
+  "inputHash": "77b116c12dd4c8f4"
+}
