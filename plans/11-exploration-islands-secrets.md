@@ -490,14 +490,6 @@ Twenty-six pieces, each sized to be one thread, in three stages by decision 1. A
 
 **Not in piece B:** the ending music (piece Y); rivals' names (piece E); Abandon recorded as "Abandoned" was already in the Hall; no journal page shows the nickname yet (the papers, the end page and the Hall do).
 
-### 18.11 Piece L as built: winter's look (2026-11-19)
-
-Built as scoped; the write-up is [04 §27](04-water-weather-seasons.md). The ice sheet over the water comes from K's ice through the zone's shelter and a daily lookup strip (and calms the sea under it), floes are instanced at ice-out, snow lies on the terrain, the trees, Bayfield, the hideouts and the decks by a snow series worked out from each winter's air, cold air turns rain to snow, spray freezes, the palettes go to winter, and the aurora is in (04 cut #3 lifted; it is cheap). Not in L: shore ice ridges, rime on hulls, tracks (M), ice caves (S), sea smoke.
-
-**For Jared (the look):** the ice and snow tones (`ICE_*_HEX` in `water-material.ts`, the snow color in `stylized-material.ts`), how white the land goes, the crack density, the winter palette's strength (`winter-palette.ts`), the aurora's color, height and frequency (`data/winter.json`), and whether snow should come off the decks of a ship under way.
-
-## Changelog
-- v0.9: Piece L as built (§18.11): winter's look; the aurora is in.
 ### 18.10 Piece U as built: salvage (2026-11-19)
 
 **The wrecks.** `data/salvage.json` holds the old wrecks of the record and the rules. The record's three, all in the Apostles zone: the ***Lucerne*** (three-masted schooner, iron ore, lost with all hands off Long Island, November 1886; R1 ✅), the ***R.G. Stewart*** (wooden steam barge burned off Michigan Island, 1899) and the ***Antelope*** (schooner-barge, coal, sank north of Michigan Island in 1897; deep, so out of the grapple's reach until the diving suit). R1's other names (*Coffinberry*, *Fedora*, *Ottawa*, *Pretoria*, *Noquebay*, *Sevona*) were lost after 1900, so by R1's rule they stay live ships. Each run also places three invented old wrecks (1868–1898, schooners, scows, tugs, a steam barge, a lumber hooker) at three of seven shallow spots off Eagle, Sand, Gull, Outer, Stockton, Basswood and Rocky islands, drawn by the run's seed. The spots and the *Lucerne*'s place were set where the baked terrain is 5–8 m deep. The run's own wrecks (`state.wrecks`) are worked the same way.
@@ -516,10 +508,45 @@ Built as scoped; the write-up is [04 §27](04-water-weather-seasons.md). The ice
 
 **For Jared:** the wreck names, lore and papers wording; whether the seeded wrecks should be more than three; the chance and time per cast (40 min, about one CU an hour in good conditions); whether seeing the hull on the bottom wants a clearer water look.
 
+### 18.11 Piece L as built: winter's look (2026-11-19)
+
+Built as scoped; the write-up is [04 §27](04-water-weather-seasons.md). The ice sheet over the water comes from K's ice through the zone's shelter and a daily lookup strip (and calms the sea under it), floes are instanced at ice-out, snow lies on the terrain, the trees, Bayfield, the hideouts and the decks by a snow series worked out from each winter's air, cold air turns rain to snow, spray freezes, the palettes go to winter, and the aurora is in (04 cut #3 lifted; it is cheap). Not in L: shore ice ridges, rime on hulls, tracks (M), ice caves (S), sea smoke.
+
+**For Jared (the look):** the ice and snow tones (`ICE_*_HEX` in `water-material.ts`, the snow color in `stylized-material.ts`), how white the land goes, the crack density, the winter palette's strength (`winter-palette.ts`), the aurora's color, height and frequency (`data/winter.json`), and whether snow should come off the decks of a ship under way.
+
+### 18.15 Piece M as built: on the ice and in the cold (2026-11-19)
+
+**Data.** `data/cold.json` holds every number: what ice holds a walker (10 cm, plus 1 cm per 25 kg hauled), the thin-ice stress and its stages, warmth rates, the sled, the prints, and the ice road. The pure sim is `src/sim/cold/` (footing, warmth, sled, tracks, road), and `src/gameplay/cold.ts` lays the ice over the on-foot ground.
+
+**Walking on the ice.** In the zone scene, wherever piece K's ice covers at least 70% of a cell and is at least 3 cm thick, the ground is a walkable sheet just above the water. G at anchor or at a frozen non-district pier steps down onto it. Seeded weak spots run thinner. On ice under what holds you, stress builds (faster running, slower standing still). It cracks at 25%, groans at 60%, and gives way at 100%. A hole opens under you, and you have **one chance**: within 14 s, hold F for 2.2 s to haul out onto ice of at least 35% hold. A slip resets the haul, and when the window runs out you're lost (a new run end, "Went through the ice"). Hauled out, you're soaked.
+
+**The ice road.** Once Chequamegon Bay is 20 cm thick (most Februaries), the road runs from Bayfield's city pier head to La Pointe's pier, about 460 m in the zone, marked with spruce boughs every 30 m, with a fire barrel at each end. In the district, at the pier head, "Down onto the ice road to La Pointe" puts you on it in the zone scene, and "Up the ladder into Bayfield" at the far end brings you back. The road's ice is cleared and stays thick, so it never groans under a loaded sled.
+
+**The sled.** Beside a frozen-in ship, F puts the hand sled down, and F again loads it from the hold, the most valuable clean goods first (3 CU; contract cargo stays aboard). It follows on a 2.6 m rope and slows you 10% per CU (down to 60%), and its weight counts against the ice. At La Pointe's end, "Sell the sled's load at La Pointe's trading post" sells clean goods at La Pointe's market price; hot goods stay on the sled. Leaving within 40 m of the ship stows it and its load. `player.sled` is saved.
+
+**Warmth.** `player.warmth {value, wet}`. On foot, value falls with the wind-chilled air below 8 °C, three times faster when wet, much faster in the water, and slower running. Rain wets you, snow a little. It recovers under a roof (any district, a keeper's house) and fast within 4 m of a fire, which also dries you. Aboard it comes back 60 an hour. Stages: chilled at 60, cold at 35, freezing at 15, each with a HUD line. At 0, health drains (0.5/s), and dying of it is "Froze to death". The HUD has a warmth bar with its stage word.
+
+**Tracks.** Walking on snow-covered ice lays a print every 0.9 m (a sled's runners too), up to 600. Snow fills them in over 40 minutes of falling snow, and they go after a day. A print laid within 6 hours of a crime is suspect. When the watch or the island posse loses you on the ice, a guard who comes on suspect prints within 3 m follows them toward their freshest end (`stealth.follow`). Prints are drawn as instanced decals.
+
+**Heists on frozen-in ships.** A ship laid up in a frozen harbor posts no deck watch, so her hold can be robbed in the district, and she's found robbed late.
+
+**Not in piece M:**
+- Bayfield's district harbor isn't walkable ice; the road starts at the pier head and goes into the zone scene.
+- No raids on frozen ships from the zone scene's ice; heists stay in the district.
+- No campfire kit to carry. Heat comes from roofs and the road's fire barrels.
+- No ice caves and no wolves on the ice (plan 11 §6).
+- No winter audio: cracks, groans and footsteps on snow are piece N's job.
+- A sled left on ice that later melts isn't sunk. It's only stowed when you leave within 40 m of the ship.
+- A hole's size follows the ground grid's cell (4 m in the zone).
+- The ice sheet and snow aren't drawn (piece L), so until L lands the figure seems to walk on water.
+
+`__glpCold` reads and drives it.
+
 ## Changelog
+- v0.13: Phase 9 piece M as built (§18.15): walking on the ice, thin ice and the climb out, the ice road to La Pointe, the hand sled, warmth, and tracks in the snow.
+- v0.9: Piece L as built (§18.11): winter's look; the aurora is in.
 - v0.8: Piece U as built (§18.10): old wrecks of the record and the seed, found by sight or the lead line, worked by grapple and hook at anchor, hot recent cargo, papers as leads.
 - v0.7: Piece B as built (§18.9): the nickname, Retire and Turn Lawman, and the Hall of Captains.
-## Changelog
 - v0.6: Piece O as built (§18.8): discovery and the fog of war on the chart, leads, the journal's four pages, and curios.
 - v0.5: Phase 9 scope (§18), as proposed 2026-11-17: what Phases 4–8 change, deliverables, exit criteria, 26 work pieces in three stages, smaller calls and two decisions (staging, districts). Both decisions taken the same day: three stages with a playtest each, and Duluth as the one new district.
 - v0.4: Phase 7 as built (§15): Stockton on foot, the quarry, the seeded cache, the rowboat and the posse.

@@ -297,6 +297,10 @@ export interface GameEvents {
   NicknameChanged: { from: string | undefined; to: string; reroll: boolean };
   /** A voluntary ending offered by letter (Phase 9 piece B). */
   EndingOffered: { kind: 'retire' | 'lawman' };
+  /** Thin ice under you moved a stage (Phase 9 piece M): a crack, a groan, or through. */
+  IceGave: { stage: 'cracking' | 'groaning' | 'broken' };
+  /** Your warmth fell into a worse stage on foot (plan 11 §14 `WarmthCritical`; piece M). */
+  WarmthCritical: { stage: 'chilled' | 'cold' | 'freezing' | 'frozen' };
   /**
    * Abandon ship (Phase 6 piece F, plan 07 §14.6 decision 2): your ship foundered and you
    * took to the boat. She went down with her cargo and her guns.
