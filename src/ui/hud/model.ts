@@ -188,6 +188,8 @@ export interface HudSources {
   chartOffered?: boolean | undefined;
   /** Standing chips from the mode, e.g. an arena's pursuit lock (Phase 3 piece G). */
   extraStatus?: readonly string[] | undefined;
+  /** A wreck under the keel (Phase 9 piece U): the lead line reads her hull's relief, meters. */
+  depthSpikeM?: number | undefined;
   /** The port the ship lies docked at, by name. */
   portName?: string | undefined;
   /** Whether the ship lies where she can wait; worked out from the hazards when absent. */
@@ -256,7 +258,9 @@ export function sampleHud(src: HudSources): HudSnapshot | undefined {
   const onTerrain = src.terrain?.contains(s.x, s.z) ?? false;
   // The hazards' keel probes when there are any; otherwise the terrain under the ship.
   const probed = hz && Number.isFinite(hz.state.depth) ? hz.state.depth : undefined;
-  const depthM = probed ?? (onTerrain ? src.terrain?.depthAt(s.x, s.z) : undefined);
+  const sounded = probed ?? (onTerrain ? src.terrain?.depthAt(s.x, s.z) : undefined);
+  const depthM =
+    sounded !== undefined && src.depthSpikeM ? Math.max(0, sounded - src.depthSpikeM) : sounded;
   const draftM = hz ? hz.state.draft : src.draftM;
   const status = hz ? hazardStatus(hz.state) : [];
   const atEdge =
