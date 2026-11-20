@@ -8,9 +8,10 @@ import { idOf } from './common';
  *
  * Templates fill `{placeholders}` from the story: `{who}` (the captain, the ship, "a
  * schooner" or "persons unknown", as the witness saw it), `{WHO}` (the same in capitals,
- * for headlines), `{captain}`, `{ship}`, `{region}`, `{port}`, `{goods}` (quantities
- * exaggerated by Fame), `{reward}`, `{epithet}` ("the notorious") and `{town}` (the
- * paper's own).
+ * for headlines; once the papers have named you, your nickname), `{captain}`, `{ship}`,
+ * `{region}`, `{port}`, `{goods}` (quantities exaggerated by Fame), `{reward}`, `{epithet}`
+ * ("the notorious"), `{town}` (the paper's own), and `{nick}` and `{oldnick}` (your nickname
+ * and the one before it).
  */
 
 const templateSchema = z.object({
@@ -54,6 +55,10 @@ export const STORY_KINDS = [
   // the inquiry several of them near one light open.
   'wreck',
   'investigation',
+  // Your nickname (Phase 9 piece B): coined by the papers, and changed (by your record, or
+  // by your letter to the editor).
+  'nickname',
+  'renamed',
 ] as const;
 export type StoryKind = (typeof STORY_KINDS)[number];
 
@@ -81,6 +86,52 @@ const paperSchema = z.object({
   ads: z.array(z.string().min(1)).min(1),
 });
 export type PaperDef = z.infer<typeof paperSchema>;
+
+/**
+ * A nickname's form (plan 12 §6.3): `{first}` and `{last}` are the captain's names, `{haunt}`
+ * the place you're most seen at. A form with `{haunt}` needs one; `ofHaunt` adds " of
+ * {haunt}" when you have one.
+ */
+const nicknameFormSchema = z.object({
+  form: z.string().min(1),
+  ofHaunt: z.boolean().default(false),
+});
+export type NicknameForm = z.infer<typeof nicknameFormSchema>;
+
+/** A kind of deed the papers name you by, and how notorious it is. */
+const nicknameDeedSchema = z.object({
+  id: z.string().regex(/^[a-z_]+$/),
+  /** The crimes the papers have named you for that count as it. */
+  crimes: z.array(idOf('crime')).default([]),
+  /** Honest feats (a record run, a gale, the first boat in) count as it. */
+  feats: z.boolean().default(false),
+  /** A deed's count times this is its score: the most frequent and most notorious leads. */
+  notoriety: z.number().positive(),
+  /** Only while the papers know of nobody killed by your hand (the Gentleman). */
+  noKilling: z.boolean().default(false),
+  names: z.array(nicknameFormSchema).min(1),
+});
+export type NicknameDeedDef = z.infer<typeof nicknameDeedSchema>;
+
+export const nicknamesSchema = z.object({
+  /** The papers coin it once your Fame reaches this tier. */
+  fromFameTier: z.number().int().min(0),
+  /** Another deed takes over the name once its score is this many times the current one's. */
+  switchMargin: z.number().min(1),
+  /** Your haunt: the place you're most seen at, by port calls, nights at a hideout and crimes. */
+  haunt: z.object({
+    /** The least score that makes a place your haunt. */
+    min: z.number().positive(),
+    margin: z.number().min(1),
+    visit: z.number().nonnegative(),
+    sleep: z.number().nonnegative(),
+    crime: z.number().nonnegative(),
+  }),
+  deeds: z.array(nicknameDeedSchema).min(1),
+  /** Fame with no deed the papers can name: a name all the same. */
+  fallback: z.array(nicknameFormSchema).min(1),
+});
+export type NicknamesDef = z.infer<typeof nicknamesSchema>;
 
 export const newspapersFileSchema = z.object({
   papers: z.array(paperSchema).min(1),
@@ -131,6 +182,9 @@ export const newspapersFileSchema = z.object({
     /** Wrecking (Phase 9 piece I): a ship ashore at a mark, and an inquiry into several. */
     wreck: storySchema,
     investigation: storySchema,
+    /** Your nickname coined, and changed (Phase 9 piece B): `{nick}` and `{oldnick}`. */
+    nickname: storySchema,
+    renamed: storySchema,
     /** An Ambition done (Phase 8 piece H), by its id. */
     ambition: z.record(idOf('ambition'), storySchema),
   }),
@@ -138,5 +192,7 @@ export const newspapersFileSchema = z.object({
   cutter: z.record(z.string(), z.string().min(1)),
   /** The tier-5 tug, out after you. */
   tug: z.string().min(1),
+  /** Your nickname's pools (plan 12 §6.3; Phase 9 piece B). */
+  nicknames: nicknamesSchema,
 });
 export type NewspapersFile = z.infer<typeof newspapersFileSchema>;
