@@ -9,6 +9,7 @@ import {
   type PlacedIsland,
   type PlacedPoiPiece,
 } from '../sim/islands/on-foot';
+import { growLand, landDistance, type LandMask } from '../sim/islands/island-land';
 import type { PlacedSolid, PlacedStation } from '../sim/light-stations';
 import { bearingBox, type AshoreGround } from './onfoot/ashore-scene';
 import type { BoxCollider, Collider } from './onfoot/colliders';
@@ -19,6 +20,11 @@ import type { ControllerParams, Ladder } from './onfoot/controller';
  * baked 1 m tiles, its quarry solid, its cache cairns to search, and the hideout's pieces
  * standing where they're built, its storage opened at them (Phase 8 piece C). Off the
  * island's tiles the ground is the zone's 4 m terrain, as every other landing's is.
+ *
+ * Phase 9 piece R: every island with `onFoot` data walks the same way, and a lighthouse
+ * station on a walkable island (Michigan's, Long Island's two) is part of its scene: its
+ * buildings solid, its landing stage's ladder, and the keepers of the one nearest where you
+ * land watching. Where tile boxes overlap, the island whose land is nearest takes the landing.
  */
 
 /** The island's scene: what `buildAshoreScene` takes for it. */
@@ -273,13 +279,42 @@ export function stationNear(
   return best;
 }
 
+/** How far out to look for an island's land when tile boxes overlap. */
+const LAND_SEARCH_M = 400;
+
 export function attachIslandAshore(deps: IslandAshoreDeps): IslandAshore {
   const { state } = deps;
+
+  // Each island's land, grown from its anchor once (piece R); `null` where it has none.
+  const lands = new WeakMap<PlacedIsland, LandMask | null>();
+  const landOf = (island: PlacedIsland, field: GridField): LandMask | undefined => {
+    let mask = lands.get(island);
+    if (mask === undefined) {
+      const grid = deps.grid();
+      mask =
+        (island.anchor &&
+          growLand(
+            deps.heightAt,
+            island.anchor,
+            {
+              minX: field.x0 - LAND_PAD_M,
+              minZ: field.z0 - LAND_PAD_M,
+              maxX: field.maxX + LAND_PAD_M,
+              maxZ: field.maxZ + LAND_PAD_M,
+            },
+            grid?.step ?? 4,
+          )) ??
+        null;
+      lands.set(island, mask);
+    }
+    return mask ?? undefined;
+  };
 
   const islandAt = (
     x: number,
     z: number,
   ): { island: PlacedIsland; field: GridField } | undefined => {
+    const hits: { island: PlacedIsland; field: GridField }[] = [];
     for (const island of deps.islands()) {
       const field = deps.ground(island.id);
       if (!field) continue;
@@ -289,10 +324,22 @@ export function attachIslandAshore(deps: IslandAshoreDeps): IslandAshore {
         z > field.z0 - LAND_PAD_M &&
         z < field.maxZ + LAND_PAD_M
       ) {
-        return { island, field };
+        hits.push({ island, field });
       }
     }
-    return undefined;
+    if (hits.length < 2) return hits[0];
+    // Overlapping boxes (piece R): the island whose own land is nearest.
+    let best = hits[0];
+    let bestD = Number.POSITIVE_INFINITY;
+    for (const hit of hits) {
+      const mask = landOf(hit.island, hit.field);
+      const d = mask ? landDistance(mask, x, z, LAND_SEARCH_M) : Number.POSITIVE_INFINITY;
+      if (d < bestD) {
+        bestD = d;
+        best = hit;
+      }
+    }
+    return best;
   };
 
   const stationScene = (st: PlacedStation): IslandScene => {
@@ -331,6 +378,18 @@ export function attachIslandAshore(deps: IslandAshoreDeps): IslandAshore {
     const extra: Collider[] = [];
     for (const p of island.pieces) extra.push(...pieceColliders(p));
     if (deps.hideouts) extra.push(...deps.hideouts.colliders());
+    // The island's lighthouse stations (piece R, round piece H's pads): solid, with their
+    // landing stages' ladders, and the keepers of the nearest one watching.
+    const stations = (deps.stations?.() ?? []).filter((st) => st.island === island.id);
+    const ladders: Ladder[] = island.ladders.map((l) => ({ ...l }));
+    for (const st of stations) {
+      for (const s of st.solids) extra.push(...stationColliders(s));
+      if (st.landing) extra.push(...stationColliders(st.landing));
+      if (st.landingLadder) ladders.push({ ...st.landingLadder });
+    }
+    const station = stations
+      .map((st) => ({ st, d: Math.hypot(at.x - st.light.x, at.z - st.light.z) }))
+      .sort((a, b) => a.d - b.d)[0]?.st;
     return {
       island: island.id,
       // Walked ground is the zone's 4 m terrain everywhere now, the same heights the mesh,
@@ -350,7 +409,8 @@ export function attachIslandAshore(deps: IslandAshoreDeps): IslandAshore {
         maxZ: field.maxZ + ISLAND_PAD_M,
       },
       extra,
-      ladders: island.ladders.map((l) => ({ ...l })),
+      ladders,
+      ...(station ? { station } : {}),
     };
   };
 

@@ -12,6 +12,7 @@ import {
   type PoiMarkKind,
   type PoiPieceKind,
 } from '../../../data/schemas/pois';
+import { ChartProjection, chartToZone, type ZoneFrame } from '../../core/coords';
 import { Rng } from '../../core/rng';
 import type { Clearing } from '../terrain/vegetation';
 
@@ -113,6 +114,13 @@ export interface PlacedIsland {
   clearings: Clearing[];
   /** Every prefab's named points (Phase 9 piece P). */
   marks: PlacedPoiMark[];
+  /**
+   * A point on the island's land, zone meters (Phase 9 piece R): its `islands.json` point,
+   * where the zone's frame was given. Islands' tile boxes overlap (Rocky and South Twin,
+   * Gull and Michigan), so a landing goes to the island whose land, grown from here, is
+   * nearest (`island-land.ts`).
+   */
+  anchor?: { x: number; z: number };
 }
 
 /** One prefab set down (Phase 9 piece P's `placePoi`). */
@@ -477,16 +485,30 @@ export function placeIsland(
   };
 }
 
-/** Every walkable island of a zone placed, given the manifest's tile corners. */
+const LAKE = new ChartProjection();
+
+/** An island's `islands.json` point in a zone's meters (Phase 9 piece R). */
+export function islandAnchor(def: IslandDef, frame: ZoneFrame): { x: number; z: number } {
+  return chartToZone(LAKE.geoToChart(def.at), frame);
+}
+
+/**
+ * Every walkable island of a zone placed, given the manifest's tile corners. With the
+ * zone's `frame`, each also gets its `anchor` (Phase 9 piece R).
+ */
 export function placeZoneIslands(
   zoneId: string,
   origins: readonly ({ id: string } & IslandOrigin)[],
   heightAt: (x: number, z: number) => number,
+  frame?: ZoneFrame,
 ): PlacedIsland[] {
   const out: PlacedIsland[] = [];
   for (const def of walkableIslands(zoneId)) {
     const origin = origins.find((o) => o.id === def.id);
-    if (origin) out.push(placeIsland(def, origin, heightAt));
+    if (!origin) continue;
+    const placed = placeIsland(def, origin, heightAt);
+    if (frame) placed.anchor = islandAnchor(def, frame);
+    out.push(placed);
   }
   return out;
 }

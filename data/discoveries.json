@@ -49,10 +49,10 @@
       "id": "poi.rocky_fish_camp",
       "kind": "poi",
       "name": "The fish camp, Rocky Island",
-      "at": { "lat": 47.0345, "lon": -90.6705 },
+      "at": { "lat": 47.0203, "lon": -90.6789 },
       "island": "island.rocky",
       "sightM": 4000,
-      "text": "Herring fishermen's cabins and net sheds on Rocky Island's east shore, where the tugs lie in the summer.",
+      "text": "Herring fishermen's cabins and net sheds on the sandspit at Rocky Island's south end, where the tugs lie in the summer.",
       "talk": {
         "ports": ["port.bayfield", "port.red_cliff"],
         "lines": [

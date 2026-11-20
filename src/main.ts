@@ -121,6 +121,7 @@ import {
   walkableIslands,
   type PlacedIsland,
 } from './sim/islands/on-foot';
+import { findLanding, type IslandLanding } from './sim/islands/island-land';
 import { zoneClearings } from './sim/terrain/clearings';
 import { plantTile, TREE_CELL_M } from './sim/terrain/vegetation';
 import { attachBuildMode } from './gameplay/build-mode';
@@ -3672,8 +3673,11 @@ async function boot(): Promise<void> {
     let hit = islandCache.get(zone);
     if (!hit) {
       const z = zone;
-      const placed = placeZoneIslands(z.manifest.zone, z.manifest.islands ?? [], (x, zz) =>
-        z.terrain.heightAt(x, zz),
+      const placed = placeZoneIslands(
+        z.manifest.zone,
+        z.manifest.islands ?? [],
+        (x, zz) => z.terrain.heightAt(x, zz),
+        manifestFrame(z.manifest),
       );
       hit = { placed, clearings: zoneClearings(z, harborLayouts, placed) };
       islandCache.set(zone, hit);
@@ -4829,6 +4833,57 @@ async function boot(): Promise<void> {
     };
     (window as unknown as { __glpFoot: typeof hook }).__glpFoot = hook;
     /**
+     * The walkable islands (Phase 9 piece R): `list()` each with its tier, prefabs and
+     * landing (zone meters), `land('island.oak')` anchors off its landing, rows in and steps
+     * ashore on its beach (undefined when ashore, else why not).
+     */
+    const landingOf = (id: string): IslandLanding | undefined => {
+      const island = zoneIslands().placed.find((p) => p.id === id);
+      return island && findLanding(island, (x, z) => ctx.terrain?.heightAt(x, z) ?? -100);
+    };
+    const islandsHook = {
+      list: () =>
+        zoneIslands().placed.map((p) => {
+          const def = ISLANDS.find((i) => i.id === p.id);
+          return {
+            id: p.id,
+            name: p.name,
+            tier: def?.tier,
+            pois: def?.onFoot?.pois.map((q) => q.id) ?? [],
+            landing: landingOf(p.id),
+          };
+        }),
+      landing: landingOf,
+      async land(id: string): Promise<string | undefined> {
+        const l = landingOf(id);
+        if (!l) return `No landing on ${id}`;
+        const wait = (ms: number) => new Promise((done) => setTimeout(done, ms));
+        const len = Math.hypot(l.boat.x - l.shore.x, l.boat.z - l.shore.z) || 1;
+        const ux = (l.boat.x - l.shore.x) / len;
+        const uz = (l.boat.z - l.shore.z) / len;
+        // The ship anchored 30 m beyond the boat's water, lying across the way in.
+        hook.place(
+          l.boat.x + ux * 30,
+          l.boat.z + uz * 30,
+          ((Math.atan2(ux, -uz) * 180) / Math.PI + 450) % 360,
+        );
+        hook.anchor();
+        await wait(800);
+        const why = await hook.land();
+        if (why) return why;
+        await wait(1200);
+        // Rowed in to the water's edge, then over the bow onto the beach.
+        let s = 0;
+        const h = (k: number) =>
+          ctx.terrain?.heightAt(l.shore.x + ux * k, l.shore.z + uz * k) ?? -1;
+        while (s < len && h(s) > -0.25) s += 0.5;
+        hook.teleport(l.shore.x + ux * (s + 1), l.shore.z + uz * (s + 1));
+        await wait(800);
+        return ashore.stepAshore();
+      },
+    };
+    (window as unknown as { __glpIslands: typeof islandsHook }).__glpIslands = islandsHook;
+    /**
      * The POI kits on this zone's walkable islands (Phase 9 piece P): `marks('fire')` lists
      * the named points of that kind (all without one), `pois()` each placed prefab with its
      * piece count, and `curios()` what's set out at each hideout and drawn on its shelves.
@@ -5053,6 +5108,25 @@ async function boot(): Promise<void> {
     // camp's dock and lands on its mainland pad (Phase 8 piece D). The dev jump menu uses
     // them (plan 08 §20.8).
     const jumpTo = params.get('ashore');
+    // `?ashore=oak` (any other walkable island's slug, piece R) lands on its beach.
+    const islandJump =
+      jumpTo &&
+      jumpTo !== 'stockton' &&
+      ISLANDS.some((i) => i.id === `island.${jumpTo}` && i.onFoot)
+        ? `island.${jumpTo}`
+        : undefined;
+    if (islandJump) {
+      void (async () => {
+        for (let tries = 0; tries < 120; tries++) {
+          await new Promise((done) => setTimeout(done, 500));
+          if (!islandsHook.landing(islandJump)) continue;
+          const why = await islandsHook.land(islandJump);
+          if (why) console.warn(`Going ashore: ${why}`);
+          return;
+        }
+        console.warn(`Going ashore to ${islandJump} timed out`);
+      })();
+    }
     if (jumpTo === 'bayfield' || jumpTo === 'stockton' || jumpTo === 'siskiwit') {
       const wait = (ms: number) => new Promise((done) => setTimeout(done, ms));
       const campDock = () =>

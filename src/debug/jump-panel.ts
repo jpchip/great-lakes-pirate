@@ -1,6 +1,7 @@
 import type { GUI } from 'three/examples/jsm/libs/lil-gui.module.min.js';
 import { DEV_ENCOUNTERS } from '../sim/arena/encounter';
 import { HARBORS } from '../sim/harbors';
+import { ISLANDS } from '../sim/islands/on-foot';
 import { LIGHTHOUSES } from '../sim/lighthouses';
 import { PLAYER_SHIP_IDS } from '../sim/sailing/ships';
 import { ZONE_DEFS } from '../sim/terrain/zones';
@@ -168,6 +169,13 @@ export function createJumpPanel(options: JumpPanelOptions): void {
   button(ashore, 'Bayfield (fish pier, on foot)', { ashore: 'bayfield' });
   button(ashore, 'Stockton (anchored off the quarry, landed)', { ashore: 'stockton' });
   button(ashore, 'Siskiwit Bay (anchored off the logging camp, landed)', { ashore: 'siskiwit' });
+  // Every other walkable island, landed on its beach (Phase 9 piece R).
+  const islands = ashore.addFolder('Islands').close();
+  for (const def of ISLANDS) {
+    if (!def.onFoot || def.mainland || def.id === 'island.stockton') continue;
+    const slug = def.id.slice('island.'.length);
+    button(islands, `${def.name} (${def.tier ?? 'walkable'})`, { ashore: slug });
+  }
 
   const encounters = root.addFolder('Encounters').close();
   for (const id of DEV_ENCOUNTERS) button(encounters, id, { encounter: id });
