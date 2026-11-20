@@ -8,7 +8,7 @@ import { createCoastMesh, disposeCoastMesh } from './arena/coast-view';
 import { manifestFrame } from '../sim/terrain/zones';
 import { zoneClearings } from '../sim/terrain/clearings';
 import { placeZoneIslands } from '../sim/islands/on-foot';
-import { createPoiView } from './onfoot/poi-view';
+import { createPoiView, type PoiView } from './onfoot/poi-view';
 import { interpolateTransform, type Entity, type GameWorld, type Transform } from '../gameplay/ecs';
 import { sceneSpeed, DEFAULT_COMPRESSION } from '../core/coords';
 import { R_SAILING, type ClockState } from '../core/time';
@@ -143,6 +143,7 @@ interface ZoneLayer {
   lighthouses: LighthouseView;
   harbors: HarborView;
   harborLayouts: HarborLayout[];
+  pois: PoiView;
   dispose(): void;
 }
 
@@ -322,6 +323,7 @@ export async function createTestScene(
       lighthouses,
       harbors,
       harborLayouts,
+      pois,
       dispose() {
         for (const off of unsubscribe) off();
         scene.remove(terrain.group, vegetation.group, lighthouses.group, harbors.group, pois.group);
@@ -704,6 +706,7 @@ export async function createTestScene(
         if (Number.isFinite(v)) f.density = Math.max(f.density, fogDensity(v));
       }
       layer?.harbors.update(environment.sunElevationDeg);
+      layer?.pois.update(environment.sunElevationDeg);
       // A district has the lamp pools while you walk it; elsewhere the nearest hideout does.
       hideouts.update(camera.position, lampLevel(environment.sunElevationDeg), !districtView);
       layer?.lighthouses.update(now, camera.position, environment.sunElevationDeg, f?.density ?? 0);

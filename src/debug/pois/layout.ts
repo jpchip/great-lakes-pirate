@@ -100,6 +100,9 @@ export function showcaseIsland(cells: readonly ShowcaseCell[]): {
     caches: [],
     clearings: [],
     marks: [],
+    landings: [],
+    residents: [],
+    reporting: 'slow',
   };
   for (const c of cells) {
     const one = placePoi(

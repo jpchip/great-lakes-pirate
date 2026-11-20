@@ -864,3 +864,27 @@ export function caveMouthGeometry(p: PlacedPoiPiece): THREE.BufferGeometry[] {
   out.push(box(W + 0.4, 0.25, D + 0.3, 0, H, 0, TURF));
   return framed(p, out);
 }
+
+// ---- Lit windows (Phase 9 piece Q).
+
+const LAMPLIGHT = PALETTE.windowAmber;
+
+/**
+ * The glass of a lived-in cabin, shanty or fish house lit from inside: a pane over each
+ * window the kit draws dark, a hair proud of it, for the evening's glow mesh. Nothing for
+ * a building nobody lives in.
+ */
+export function litWindowsGeometry(p: PlacedPoiPiece): THREE.BufferGeometry[] {
+  if (!p.lit) return [];
+  const { widthM: w, depthM: d } = p;
+  switch (p.kind) {
+    case 'shanty':
+      return framed(p, [box(0.62, 0.52, 0.04, w / 4 + 0.2, 1.14, -d / 2 - 0.07, LAMPLIGHT)]);
+    case 'cabin':
+      return framed(p, [box(0.62, 0.52, 0.04, w / 4, 1.44, -d / 2 - 0.07, LAMPLIGHT)]);
+    case 'fish_house':
+      return framed(p, [box(0.04, 0.52, 0.52, -w / 2 - 0.07, 0.45 + 1.34, d / 5, LAMPLIGHT)]);
+    default:
+      return [];
+  }
+}

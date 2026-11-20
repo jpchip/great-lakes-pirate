@@ -2,7 +2,12 @@ import * as THREE from 'three';
 import type { PlacedIsland, PlacedPoiPiece } from '../../sim/islands/on-foot';
 import { PALETTE } from '../style/palette';
 import { box, frustum, gable, merged, part, strut } from '../style/parts';
-import { createStylizedMaterial, type StyleLighting } from '../style/stylized-material';
+import {
+  createStylizedMaterial,
+  type StyleLighting,
+  type StylizedMaterial,
+} from '../style/stylized-material';
+import { lampLevel } from '../../sim/lighthouses';
 import type { PoiPieceKind } from '../../../data/schemas/pois';
 import * as kit from './poi-kit';
 
@@ -17,6 +22,8 @@ import * as kit from './poi-kit';
 export interface PoiView {
   readonly group: THREE.Group;
   readonly triangles: number;
+  /** The lived-in buildings' windows glow from dusk (piece Q). */
+  update(sunElevationDeg: number): void;
   dispose(): void;
 }
 
@@ -254,12 +261,30 @@ export function createPoiView(islands: readonly PlacedIsland[], lighting: StyleL
     group.add(mesh);
     triangles = geometry.getAttribute('position').count / 3;
   }
+  // Windows where someone lives (piece Q): one more mesh, lit from dusk as the towns' are.
+  const panes = islands.flatMap((i) => i.pieces.flatMap(kit.litWindowsGeometry));
+  let windows: THREE.BufferGeometry | undefined;
+  let lit: StylizedMaterial | undefined;
+  if (panes.length > 0) {
+    windows = merged(panes);
+    lit = createStylizedMaterial('toon', lighting, { vertexColors: true }) as StylizedMaterial;
+    const mesh = new THREE.Mesh(windows, lit);
+    mesh.name = 'island-pois-windows';
+    group.add(mesh);
+    triangles += windows.getAttribute('position').count / 3;
+  }
+  const glow = new THREE.Color(PALETTE.windowAmber);
   return {
     group,
     triangles,
+    update(sunElevationDeg) {
+      lit?.uniforms.uEmissive.value.copy(glow).multiplyScalar(0.95 * lampLevel(sunElevationDeg));
+    },
     dispose() {
       geometry?.dispose();
       material?.dispose();
+      windows?.dispose();
+      lit?.dispose();
     },
   };
 }

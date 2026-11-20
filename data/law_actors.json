@@ -37,6 +37,21 @@
       "delay": {
         "minH": 0.5,
         "maxH": 1
+      },
+      "byReporting": {
+        "fast": {
+          "minH": 0.5,
+          "maxH": 1.5
+        },
+        "medium": {
+          "minH": 2,
+          "maxH": 5
+        },
+        "slow": {
+          "minH": 1,
+          "maxH": 3,
+          "atDawn": true
+        }
       }
     },
     "merchant": {

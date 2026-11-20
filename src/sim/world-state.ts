@@ -644,6 +644,12 @@ export const worldStateSchema = z.object({
    */
   lightStations: z.record(z.string(), lightStationStateSchema).optional(),
   /**
+   * What's become of the islands' residents (plan 11 §3.3; Phase 9 piece Q), by resident
+   * id, as a keeper's fate is kept: dead, or down (coshed, tied, drunk) until a time, or
+   * bribed. Absent until the first, so no version bump.
+   */
+  residents: z.record(z.string(), keeperFateSchema).optional(),
+  /**
    * Poker night (plan 12 §5.3; Phase 9 piece C): the tables you're barred from, the maps
    * won and the tallies. Absent until the first hand, so no version bump.
    */
