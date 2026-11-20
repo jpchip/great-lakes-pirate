@@ -207,6 +207,7 @@ export function attachPapers(opts: PapersOptions): GamePapers {
     lawWorld: lawWorld(ctx.state, opts.seed),
     captain: ctx.state.player.captain.name,
     ship: ctx.state.player.captain.shipName,
+    nickname: ctx.state.nickname?.current,
     seed: opts.seed,
     goodName: opts.goodName,
     cutter: () =>

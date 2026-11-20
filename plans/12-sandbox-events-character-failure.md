@@ -304,6 +304,7 @@ All resolved.
 ---
 
 ## Changelog
+- v0.12: The nickname (§6.3), the voluntary endings (§4.2) and the Hall of Captains (§9) built as Phase 9 piece B ([11 §18.9](11-exploration-islands-secrets.md)).
 - v0.11: §11's Phase 8 row is Ambitions only; the event system and letters move to Phase 9, matching the master plan (09 §16.6 decision 1).
 - v0.10: Ambitions as built (§4.1; Phase 8 piece H): 14 goals, pinning up to three on the HUD, themed marks in the ledger, rewards and the papers' stories.
 - v0.9: Phase 7 as built (§11): the First Week's sixth step, the on-foot perks, minor arrests and the jailbreak.

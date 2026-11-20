@@ -61,7 +61,12 @@ export function attachRecord(ctx: GameContext, defs: LawDefs): () => void {
       );
     }),
     ev.on('CrimeCommitted', (e) => {
-      if (!e.by) stats().crimes += 1;
+      // A rival's crime isn't yours to count (Phase 9 piece E).
+      if (e.by) return;
+      const s = stats();
+      s.crimes += 1;
+      // Lives taken (Phase 9 piece B): the run summary's count.
+      if (e.crime === 'crime.killing') s.killed = (s.killed ?? 0) + (e.details?.killed ?? 1);
     }),
     ev.on('ReportFiled', (e) => {
       if (e.heatAdded <= 0) return;

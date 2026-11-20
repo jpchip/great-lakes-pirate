@@ -92,6 +92,11 @@ export async function endRun(db: GlpDatabase, summary: unknown, hall: unknown): 
   await db.add('hall', hall);
 }
 
+/** Every Hall of Captains record (plan 16 §2), unvalidated; `sim/run/hall.ts` reads them. */
+export function readHall(db: GlpDatabase): Promise<unknown[]> {
+  return db.getAll('hall');
+}
+
 /** The ended run's summary, until a new run starts (plan 16 §2). */
 export function readLastRun(db: GlpDatabase): Promise<unknown> {
   return db.get('lastRun', 'summary');

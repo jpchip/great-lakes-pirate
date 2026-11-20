@@ -204,6 +204,17 @@ export function attachEvents(opts: EventsOptions): GameEvents {
       hideout: ev.hideoutName ?? 'your hideout',
       cost: cost !== undefined ? formatCents(cost, true) : '',
       mark: ev.markName ?? 'the islands',
+      // Piece B's letters: the papers' name for you, the paper that coined it, your money.
+      nick: ctx.state.nickname?.current ?? `Captain ${ctx.state.player.captain.name}`,
+      paper:
+        (ctx.state.nickname?.paper &&
+          opts.papers?.defs.paperById.get(ctx.state.nickname.paper)?.name) ||
+        'the papers',
+      wealth: formatCents(
+        ctx.state.player.purse +
+          Object.values(ctx.state.hideouts ?? {}).reduce((t, h) => t + h.storage.cash, 0),
+        true,
+      ),
       ...(words?.(ev) ?? {}),
     };
   };

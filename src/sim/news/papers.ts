@@ -61,6 +61,8 @@ export interface PressWorld {
   lawWorld: LawWorld;
   captain: string;
   ship: string;
+  /** The name the papers have given you (Phase 9 piece B), once they have. */
+  nickname?: string | undefined;
   seed: string;
   goodName(good: string): string;
   /** The cutter sightings column as it stands at press time. */
@@ -88,6 +90,9 @@ export interface StoryInput {
   owner?: string | undefined;
   killed?: number | undefined;
   cashCents?: number | undefined;
+  /** Your nickname, and the one before it (the nickname stories). */
+  nick?: string | undefined;
+  oldNick?: string | undefined;
   /** Extra `{placeholders}`: a rival's name, or `who` for a crime put down to one. */
   words?: Record<string, string> | undefined;
 }
@@ -154,6 +159,8 @@ export function addStory(defs: NewsDefs, news: NewsState, input: StoryInput): St
     ...(input.owner ? { owner: input.owner } : {}),
     ...(input.killed ? { killed: input.killed } : {}),
     ...(input.cashCents ? { cashCents: input.cashCents } : {}),
+    ...(input.nick ? { nick: input.nick } : {}),
+    ...(input.oldNick ? { oldNick: input.oldNick } : {}),
     ...(input.words ? { words: input.words } : {}),
     heat: input.heat ?? 0,
     printedIn: [],
@@ -248,6 +255,14 @@ export function whoText(ident: Identification, captain: string, ship: string): s
   }
 }
 
+/**
+ * You by name with the papers' name for you set in (Phase 9 piece B), as the period's
+ * papers put it: `Captain Ida Bergquist, "Bloody Ida," of the schooner Hope`.
+ */
+export function calledText(captain: string, nickname: string | undefined): string {
+  return nickname ? `Captain ${captain}, "${nickname},"` : `Captain ${captain}`;
+}
+
 /** "120 cases of untaxed whiskey": the quantities, exaggerated by Fame. */
 export function goodsText(
   defs: NewsDefs,
@@ -340,8 +355,14 @@ export function renderStory(
   const region = regionName(world.law, story.region);
   const seat = world.law.regionById.get(story.region)?.seat;
   const poster = posterFor(world.law, world.lawWorld.law, story.region);
+  // Once the papers have named you, a story about you by name calls you by it in the
+  // headline and deck (`{WHO}`) and sets it in beside your name in the body (`{who}`).
+  const nick = story.ident === 'person' ? world.nickname : undefined;
   const values: Record<string, string> = {
-    who: whoText(story.ident, world.captain, world.ship),
+    who: nick
+      ? `${calledText(world.captain, nick)} of the schooner ${world.ship}`
+      : whoText(story.ident, world.captain, world.ship),
+    ...(nick ? { WHO: nick } : {}),
     captain: world.captain,
     ship: world.ship,
     region,
@@ -357,6 +378,8 @@ export function renderStory(
     dead: deadText(story.killed ?? 0, fame, defs),
     cash: story.cashCents ? formatCents(story.cashCents) : '',
     taken: takenText(defs, story, world.goodName, fame),
+    nick: story.nick ?? world.nickname ?? `Captain ${world.captain}`,
+    oldnick: story.oldNick ?? '',
     ...story.words,
   };
   return {
@@ -387,6 +410,7 @@ export function wantedColumn(world: PressWorld, paper: PaperDef, fame: number): 
       detail: p.subject === 'ship' ? `Master: ${captain}` : `Of the schooner ${world.ship}`,
       charge: `For crimes against the law in ${regionName(law, region)}`,
       ...(p.rewardCents > 0 ? { reward: `${formatCents(p.rewardCents, true)} reward` } : {}),
+      ...(world.nickname ? { alias: `Called "${world.nickname}"` } : {}),
     });
   }
   return out.sort((a, b) => b.tier - a.tier);
@@ -535,9 +559,9 @@ export function mostWantedPage(
     state: paper.state,
     dateline: dateline(now),
     headline: 'WANTED: DEAD OR ALIVE',
-    deck: `Captain ${world.captain} of the Schooner ${world.ship}${reward ? `; ${capitalize(reward)}` : ''}`,
+    deck: `${calledText(world.captain, world.nickname)} of the Schooner ${world.ship}${reward ? `; ${capitalize(reward)}` : ''}`,
     body: [
-      `The authorities in ${name} have declared Captain ${world.captain}, master of the schooner ${world.ship}, an outlaw. Any officer of the law may take the captain dead or alive, and the revenue cutter Morrill and a chartered tug with deputies aboard are out after the vessel.`,
+      `The authorities in ${name} have declared ${world.nickname ? calledText(world.captain, world.nickname) : `Captain ${world.captain},`} master of the schooner ${world.ship}, an outlaw. Any officer of the law may take the captain dead or alive, and the revenue cutter Morrill and a chartered tug with deputies aboard are out after the vessel.`,
       `Taken in ${name} now, the captain will not see a courtroom: capture means the rope. The harbor masters have orders to take no fine and no money for the matter.`,
       `Citizens with knowledge of the schooner's whereabouts are asked to come forward. The waterfront has not seen such a hue and cry in a generation.`,
     ],
