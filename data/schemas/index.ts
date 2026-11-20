@@ -20,6 +20,7 @@ import { flowsFileSchema } from './flows';
 import { goodsFileSchema } from './goods';
 import { harborsFileSchema } from './harbors';
 import { iceFileSchema } from './ice';
+import { winterFileSchema } from './winter';
 import { locksFileSchema, lootTablesFileSchema } from './heist';
 import { islandsFileSchema } from './islands';
 import { islandTiersFileSchema } from './island_tiers';
@@ -74,6 +75,7 @@ export const dataFileSchemas: Readonly<Record<string, z.ZodType>> = {
   'goods.json': goodsFileSchema,
   'harbors.json': harborsFileSchema,
   'ice.json': iceFileSchema,
+  'winter.json': winterFileSchema,
   'islands.json': islandsFileSchema,
   'island_tiers.json': islandTiersFileSchema,
   'items.json': itemsFileSchema,

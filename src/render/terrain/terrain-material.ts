@@ -126,7 +126,12 @@ void main() {
   float canopy = smoothstep(uCanopyStart, uCanopyEnd, dist) * smoothstep(0.25, 0.6, vForest);
   col = mix(col, uCanopy * (0.9 + 0.2 * grain), canopy * (1.0 - steep));
 
-  gl_FragColor = vec4(col * styleLight(n, vWorldPos), 1.0);
+  // Snow (piece L), on the ground and the open shore; far forest stays mostly dark, the
+  // snow on the ground between the trees showing through as a pale speckle.
+  float snow = styleSnowAmount(n, vWorldPos) * (1.0 - 0.6 * canopy) * (0.9 + 0.1 * grain);
+  col = mix(col, uSnowColor, snow);
+
+  gl_FragColor = vec4(col * styleLight(n, vWorldPos) + styleSnowGlow(snow), 1.0);
   #include <tonemapping_fragment>
   #include <colorspace_fragment>
   #include <fog_fragment>

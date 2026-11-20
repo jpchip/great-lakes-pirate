@@ -19,7 +19,9 @@ import { moonAt, sunAt } from './celestial';
 import {
   CLEAR_VISIBILITY_M,
   advanceWeather,
+  airTempAt as simAirTempAt,
   barometerAt,
+  climateAtTime,
   cloudAt,
   fogBanksAt,
   precipitationAt,
@@ -31,7 +33,7 @@ import {
   type Wind,
   type WeatherState,
 } from './weather';
-import { seaScaleAt, type PackedWave, type Sea } from './waves';
+import { seaScaleAt, type PackedWave, type Sea, type SeaScaleGrid } from './waves';
 
 /**
  * The zone's weather (plan 02 §11, plan 04 §15): one wind for the whole zone with gusts,
@@ -264,6 +266,17 @@ export interface LocalWeather {
   tick(gameSeconds: number, anchor: { x: number; z: number }, sea: Sea): void;
   /** Rebake the shelter scale now (after swapping `shelter`). */
   invalidate(): void;
+  /**
+   * The air at the player, °C (the sim's, with the winter's roll; the normals without a
+   * sim). The panel doesn't override it: snow or rain is the sim's call.
+   */
+  airTempAt(gameSeconds: number): number;
+  /**
+   * Ice calming the sea (piece L): the share of the sea's motion left at a zone point,
+   * multiplied into the shelter scale so buoyancy and the water shader both see it. Set a
+   * new function (or undefined) whenever the ice changes; the next tick applies it.
+   */
+  setSeaCalm(calm: ((x: number, z: number) => number) | undefined): void;
 }
 
 /** A fog bank in zone meters. */
@@ -357,6 +370,23 @@ export function createLocalWeather(
   let lastTick: number | undefined;
   let baker: { fromRad: number; baker: SeaScaleBaker } | undefined;
   let seaRef: Sea | undefined;
+  /** The shelter scale as baked, before the ice's calm, and the calm to apply to it. */
+  let rawScale: SeaScaleGrid | undefined;
+  let seaCalm: ((x: number, z: number) => number) | undefined;
+  let calmDirty = false;
+  const calmed = (grid: SeaScaleGrid): SeaScaleGrid => {
+    if (!seaCalm) return grid;
+    const data = new Uint8Array(grid.data.length);
+    for (let j = 0; j < grid.height; j++) {
+      const z = grid.minZ + (j + 0.5) * grid.cellM;
+      for (let i = 0; i < grid.width; i++) {
+        const k = j * grid.width + i;
+        const x = grid.minX + (i + 0.5) * grid.cellM;
+        data[k] = Math.round((grid.data[k] as number) * Math.max(0, Math.min(1, seaCalm(x, z))));
+      }
+    }
+    return { ...grid, data };
+  };
 
   const baseAt = (t: number): Base => {
     if (galeStart !== undefined) {
@@ -548,7 +578,9 @@ export function createLocalWeather(
       const open = openWind(t);
 
       const apply = (fromRad: number, bake: SeaScaleBake): void => {
-        sea.scale = bake.grid;
+        rawScale = bake.grid;
+        calmDirty = false;
+        sea.scale = calmed(bake.grid);
         sea.scaleVersion++;
         referenceFetchM = bake.referenceFetchM;
         bakedFromRad = fromRad;
@@ -574,6 +606,12 @@ export function createLocalWeather(
         }
       }
 
+      if (calmDirty && rawScale) {
+        calmDirty = false;
+        sea.scale = calmed(rawScale);
+        sea.scaleVersion++;
+      }
+
       const target = targetSeaShape(open.speedKn, open.fromRad, referenceFetchM, settings.seaGain);
       const next = shape
         ? easeSeaShape(shape, target, dtGame, settings.seaLagMin * 60)
@@ -586,6 +624,17 @@ export function createLocalWeather(
 
     invalidate() {
       bakedFromRad = undefined;
+    },
+
+    airTempAt(t) {
+      if (sim) return simAirTempAt(sim.state, zoneToChart(probe, sim.frame), t);
+      const c = climateAtTime(t);
+      return (c.airMaxC + c.airMinC) / 2;
+    },
+
+    setSeaCalm(calm) {
+      seaCalm = calm;
+      calmDirty = true;
     },
   };
 

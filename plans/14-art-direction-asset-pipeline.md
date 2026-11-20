@@ -445,8 +445,13 @@ Plan 08 §20 piece B. Every on-foot character, the player and the NPCs, is one C
 
 **Open:** the look is Jared's call. The outfit is a belted work tunic, so the "jacket" reads as a longer tunic in the coat color rather than a reefer; lapels and buttons, or a period coat model, would fix it. The female outfit is a bodice over trousers, not a skirt.
 
+## 21. Phase 9 Piece L: Winter's Look (2026-11-19)
+
+The winter palette and the snow and ice tones are a first draft for Jared ([04 §27](04-water-weather-seasons.md)): clear ice `#7d9db0`, new ice `#34485a`, snow on ice `#e4ecf2`, cracks `#3a5064`, snow on land `#dfe6ee`, and the day, dusk and night shifts in `src/render/style/winter-palette.ts` (a colder day sky, a rose winter dusk, a deeper blue night, snow bouncing light up). The unified material gained its season uniform (§4's "season and weather uniforms"): `uSnow`, with `noSnow` for figures, and `uSnowNight`.
+
 ## Changelog
-- v1.3: Phase 9 piece P: the POI kits and curio models (§13, plan 11 §18.14).
+- v1.4: Phase 9 piece P: the POI kits and curio models (§13, plan 11 §18.14).
+- v1.3: Phase 9 piece L (§21): winter tones, the winter palette and the material's snow uniform.
 - v1.2: Phase 7 as built (§13): the docks kit and where Bayfield's draw calls stand.
 - v1.1: Phase 7 piece B (§20): the CC0 humanoid, its pipeline, palette regions, code-built hats and props, 37 retargeted clips, LODs and animation LOD.
 - v1.0: The T2 schooner from the hull generator (§5): `rigScale`, deck layouts and the yawl boat.

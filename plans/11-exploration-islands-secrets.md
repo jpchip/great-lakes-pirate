@@ -508,6 +508,12 @@ Twenty-six pieces, each sized to be one thread, in three stages by decision 1. A
 
 **For Jared:** the wreck names, lore and papers wording; whether the seeded wrecks should be more than three; the chance and time per cast (40 min, about one CU an hour in good conditions); whether seeing the hull on the bottom wants a clearer water look.
 
+### 18.11 Piece L as built: winter's look (2026-11-19)
+
+Built as scoped; the write-up is [04 §27](04-water-weather-seasons.md). The ice sheet over the water comes from K's ice through the zone's shelter and a daily lookup strip (and calms the sea under it), floes are instanced at ice-out, snow lies on the terrain, the trees, Bayfield, the hideouts and the decks by a snow series worked out from each winter's air, cold air turns rain to snow, spray freezes, the palettes go to winter, and the aurora is in (04 cut #3 lifted; it is cheap). Not in L: shore ice ridges, rime on hulls, tracks (M), ice caves (S), sea smoke.
+
+**For Jared (the look):** the ice and snow tones (`ICE_*_HEX` in `water-material.ts`, the snow color in `stylized-material.ts`), how white the land goes, the crack density, the winter palette's strength (`winter-palette.ts`), the aurora's color, height and frequency (`data/winter.json`), and whether snow should come off the decks of a ship under way.
+
 ### 18.14 Piece P as built: POI kits (2026-11-19)
 
 **The kits.** Twenty-two new piece kinds in `data/schemas/pois.ts`, built in the quarry's way (procedural parts in palette colors, `src/render/onfoot/poi-kit.ts`) and merged with every other point of interest on the zone into the one toon-lit mesh `poi-view.ts` already drew, so the kits add no draw calls: the **fish camp**'s timber dock on rock-filled cribs, board shanties with stovepipes, the fish house on its posts, gill-net reels, net-drying racks, barrels and a Mackinaw boat turned over on blocks; the **farmstead**'s log cabin with its fieldstone chimney, a board-and-batten barn, fields draped over the ground (plowed, oats, potatoes or hay), split-rail fences, a woodpile and stumps; the **trapper's cabin** (the cabin's stovepipe-and-lean-to variant) with its pelt-stretching racks; the **viewpoint**'s Lake Survey signal tripod; **beach wreckage** (a hull's ribs and keel in the sand, a broken spar and its rigging, strewn planks); **cairns and dig spots** (a dig spot is a hump of turned earth and a blazed stake; a cairn scales from the cache cairn); boulders; and the **cave mouth**, an arch in bedded sandstone, black inside, closed 0.8 m in by a back wall until piece S opens the cave. `pois.json` lays them out as eight prefabs: `poi.fish_camp`, `poi.farmstead`, `poi.trapper_cabin`, `poi.viewpoint`, `poi.beach_wreck`, `poi.cairn`, `poi.dig_spot` and `poi.cave_mouth` (from about 100 triangles for a dig spot to 3,700 for the fish camp). Each kind is solid where it's drawn (`pieceColliders`): buildings as boxes, barrels, reels, the boat, woodpiles, fences and stumps to vault, racks, fences, ribs and the signal to see through, fields, planks and dig spots walked over; the cave mouth's jambs, lintel and back wall come from the same `caveMouthBlocks` the renderer draws, so its opening is walkable to the back wall.
@@ -526,6 +532,7 @@ Twenty-six pieces, each sized to be one thread, in three stages by decision 1. A
 
 ## Changelog
 - v0.12: Piece P as built (§18.14): the POI kits, `placePoi` and marks, the tier budgets and `bench.island` per tier, and curios on the shelves.
+- v0.9: Piece L as built (§18.11): winter's look; the aurora is in.
 - v0.8: Piece U as built (§18.10): old wrecks of the record and the seed, found by sight or the lead line, worked by grapple and hook at anchor, hot recent cargo, papers as leads.
 - v0.7: Piece B as built (§18.9): the nickname, Retire and Turn Lawman, and the Hall of Captains.
 - v0.6: Piece O as built (§18.8): discovery and the fog of war on the chart, leads, the journal's four pages, and curios.

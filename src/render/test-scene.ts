@@ -63,6 +63,7 @@ import { createFootView, type FootFrame } from './onfoot/foot-view';
 import { createDistrictView, createLampPools, type DistrictView } from './district/district-view';
 import { createHideoutSitesView, type HideoutSitesView } from './hideout/site-views';
 import type { DistrictModel } from '../gameplay/district/district';
+import { createWinterView, type WinterView } from './winter';
 
 const HORIZON = new THREE.Color(0xb7c6cf);
 const ZENITH = new THREE.Color(0x6f8ea3);
@@ -123,6 +124,8 @@ export interface TestScene {
   foot: FootFrame | undefined;
   /** The hideouts in the zone and build mode's overlay (Phase 8 piece C); main syncs them. */
   readonly hideouts: HideoutSitesView;
+  /** Ice, snow, winter palettes and the aurora (Phase 9 piece L); main sets its source. */
+  readonly winter: WinterView;
 }
 
 export interface SceneArena {
@@ -227,6 +230,19 @@ export async function createTestScene(
   const atmosphere = createAtmosphere(scene, weather, environment, lighting, hemi, renderer.preset);
   scene.add(atmosphere.group);
   renderer.onPresetChange((preset) => atmosphere.applyPreset(preset));
+  const winter = createWinterView({
+    scene,
+    water,
+    environment,
+    atmosphere,
+    lighting,
+    spray,
+    weather,
+    preset: renderer.preset,
+  });
+  renderer.onPresetChange((preset) => winter.applyPreset(preset));
+  const surfaceAt = (x: number, z: number): number =>
+    seaHeightAt(sea.waves, 4, x, z, sea.time, 2, seaScaleAt(sea, x, z));
 
   const buildLayer = (zone: LoadedZone, edge: ZoneEdge | undefined): ZoneLayer => {
     const unsubscribe: (() => void)[] = [];
@@ -296,6 +312,7 @@ export async function createTestScene(
     scene.add(harbors.group);
     // Depth bands and shore foam over the whole zone, out to the far islands.
     water.setShore(bakeShore(zone.seabed, zone.shoreline));
+    winter.setZone({ frame, bounds: zone.terrain.bounds });
 
     return {
       zone,
@@ -314,6 +331,7 @@ export async function createTestScene(
         lighthouses.dispose();
         harbors.dispose();
         water.clearShore();
+        winter.setZone(undefined);
       },
     };
   };
@@ -563,6 +581,7 @@ export async function createTestScene(
       return now;
     },
     hideouts,
+    winter,
     get foot() {
       return foot;
     },
@@ -653,6 +672,8 @@ export async function createTestScene(
       const aimNow = aimSource?.();
       aimView.update(aimNow?.preview, aimNow?.ready ?? false, camera.position);
       sky.position.copy(camera.position);
+      winter.indoors = !!districtView?.view.inside;
+      winter.update(frameSeconds, clock.gameSeconds, camera.position, surfaceAt);
       atmosphere.update(frameSeconds, clock.gameSeconds, camera.position, focus);
       environment.update(clock.gameSeconds, focus);
       lighting.fromSceneLights(
