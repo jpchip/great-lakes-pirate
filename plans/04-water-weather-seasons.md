@@ -754,10 +754,10 @@ The historical ranges are freeze-up in Duluth harbor in December, ice-out mid-Ap
 ### Not covered yet
 
 - The ice's look in the zone, snow and winter palettes (piece L).
-- Winter audio (piece N). Walking on the ice, the ice road and warmth are built (piece M, [plan 11 §18.9](11-exploration-islands-secrets.md)).
+- Winter audio (piece N). Walking on the ice, the ice road and warmth are built (piece M, [plan 11 §18.15](11-exploration-islands-secrets.md)).
 
 ## Changelog
-- v0.13: §26 Not covered yet: piece M built (plan 11 §18.9).
+- v0.13: §26 Not covered yet: piece M built (plan 11 §18.15).
 - v0.12: Phase 9 piece K (§26): the ice sim, the year's roll, harbors frozen in, sailing and voyages in ice, the ice bow, winter traffic and markets, the first boat in and the Mataafa storm; §15's freeze-up stop marked moot.
 - v0.11: Phase 3 piece E ([03 §28](03-world-scale-chart-travel.md)): `squallAt` (summer thunder and cold squalls in a gale's rain), the climate normals cached per game time, and the chart's weather built from §12 and §15.
 - v0.10: Phase 2 piece E (§25): lighting LUTs (clear, overcast, storm, fog), two cloud layers, fog bank walls, rain streaks and wetness, summer thunderstorms and lightning, all from the weather sim; Rain and Thunderstorm in the dev panel.

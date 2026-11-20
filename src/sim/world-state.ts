@@ -30,6 +30,7 @@ import {
 import { lanternStateSchema } from './law/lantern';
 import { freshStats, logbookSchema, statsSchema } from './run/record';
 import { newsSchema } from './news/state';
+import { nicknameStateSchema } from './news/nickname';
 import { eventsStateSchema, mailSchema } from './events/events';
 import { iceStateSchema } from './ice/state';
 import { feudsStateSchema } from './events/feuds';
@@ -684,6 +685,13 @@ export const worldStateSchema = z.object({
    * and each paper's last editions. Optional: absent, a run starts with no news.
    */
   newspapers: newsSchema.optional(),
+  /**
+   * Your nickname (plan 12 §10 `player.character {nickname, nicknameRerolled}`, §6.3; Phase 9
+   * piece B): the name the papers print, the record it's read from (deeds they named you
+   * for, the places you're seen) and the one letter to the editor. Optional: absent, the
+   * papers have no name for you yet.
+   */
+  nickname: nicknameStateSchema.optional(),
   /**
    * Sandbox events (plan 12 §10 `events {active, cooldowns, flags}`; Phase 9 piece A): the
    * events standing now, each one's cooldown, the flags they set, and the next draw.

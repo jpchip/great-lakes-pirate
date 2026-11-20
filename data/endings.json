@@ -1,0 +1,96 @@
+{
+  "checkHours": 6,
+  "retire": {
+    "wealthCents": 500000,
+    "maxWantedTier": 2,
+    "event": "event.retirement_offer",
+    "retirements": [
+      {
+        "id": "farm",
+        "choice": "retire_farm",
+        "place": "a farm at Peshtigo",
+        "paper": "fame",
+        "page": {
+          "headline": "{NAME} TAKES UP THE PLOW",
+          "deck": "The Master of the Schooner {ship} Sells Out and Buys a Farm at Peshtigo",
+          "body": [
+            "{Called} master of the schooner {ship}, has come ashore for good. The captain was seen at the depot this week with a carpetbag and the deed to forty acres outside Peshtigo, on the Green Bay side of the state, as far from Lake Superior as a person can get and stay in Wisconsin.",
+            "In {weeks} on the lake the captain earned {earned}, by the captain's own reckoning, though how much of it was earned in the ordinary sense the waterfront will argue over for years. The {ship} is laid up at the dock and offered for sale.",
+            "Asked what a sailor knows of farming, the captain said only that potatoes do not inform on a person."
+          ],
+          "epilogue": [
+            "The farm at Peshtigo prospered, after a fashion. The neighbors found the new owner civil, close about the past, and uncommonly handy with a rope.",
+            "Every November, when the gales came through, the captain would stand at the fence and look north a long while."
+          ],
+          "epitaph": "Retired to a farm at Peshtigo",
+          "ending": "Retired to a farm at Peshtigo"
+        }
+      },
+      {
+        "id": "saloon",
+        "choice": "retire_saloon",
+        "place": "a saloon on St. Croix Avenue, Duluth",
+        "paper": "duluth",
+        "page": {
+          "headline": "{NAME} OPENS A SALOON",
+          "deck": "The Master of the {ship} Takes Over a Bar on St. Croix Avenue; the Police Say They Will Be Watching",
+          "body": [
+            "{Called} lately of the schooner {ship}, has bought the license, the fixtures and the goodwill of a saloon on St. Croix Avenue, and opened the doors Saturday night to a crowd of sailors, ore punchers and the merely curious.",
+            "The house pours bonded whiskey only, the new proprietor insists. The Chief of Police, informed of the sale, said his men would be looking in.",
+            "The {ship} lies at the slip with a notice of sale nailed to her mainmast. In {weeks} the captain made a name on the lake. Behind a bar, that name is good for business."
+          ],
+          "epilogue": [
+            "The saloon on St. Croix Avenue did a roaring trade. Sailors came from every port on the lake to drink where {name} poured, and to hear the stories, a few of them true.",
+            "There was a back room, of course. Nobody ever proved what went on in it."
+          ],
+          "epitaph": "Kept a saloon on St. Croix Avenue, Duluth",
+          "ending": "Retired to a saloon in Duluth"
+        }
+      },
+      {
+        "id": "cabin",
+        "choice": "retire_cabin",
+        "place": "a fisherman's cabin on Sand Island",
+        "paper": "bayfield",
+        "page": {
+          "headline": "{NAME} GONE TO THE ISLANDS",
+          "deck": "A Fisherman's Cabin on Sand Island, and the Schooner {ship} Laid Up for Good",
+          "body": [
+            "{Called} master of the schooner {ship}, has given up the lake for a smaller piece of it. The captain has bought a cabin, a net house and a dock on Sand Island, among the Norwegian fishing families there, and means to set nets and mind nobody's business.",
+            "The islanders are said to have received their new neighbor politely. Nobody on Sand Island asks a great many questions; it is that kind of place.",
+            "In {weeks} on the lake the captain came to know every reef and anchorage in the Apostles. It seems the captain means to stay among them."
+          ],
+          "epilogue": [
+            "The captain kept to the island the rest of a long life, fishing herring in the fall and lake trout in the spring, and was a good neighbor to anyone who needed a boat in a blow.",
+            "Children on Sand Island grew up on the captain's stories, and the old folks told them not to believe a word."
+          ],
+          "epitaph": "Went to ground on Sand Island",
+          "ending": "Retired to a cabin on Sand Island"
+        }
+      }
+    ]
+  },
+  "lawman": {
+    "minFameTier": 3,
+    "maxWantedTier": 1,
+    "standing": { "min": 60, "ports": 2 },
+    "event": "event.lawman_offer",
+    "choice": "accept",
+    "paper": "duluth",
+    "page": {
+      "headline": "NOTORIOUS PIRATE PINS ON A MARSHAL'S STAR",
+      "deck": "{Name} Sworn In as a Deputy United States Marshal for the Lake",
+      "body": [
+        "Before a crowd larger than the Fourth of July's, {called} until lately master of the schooner {ship} and the subject of more WANTED notices than this paper can count, raised a right hand in the federal courtroom at Superior this week and was sworn in as a deputy United States marshal.",
+        "The new deputy's duties, the marshal's office says, will be the suppression of smuggling, piracy and wrecking along the south shore, matters on which, the marshal observed dryly, the deputy is uniquely well informed.",
+        "Asked whether a former rover could be trusted with a badge, the marshal said that he had tried for {weeks} to catch the captain without success, and thought it simpler to hire the captain instead."
+      ],
+      "epilogue": [
+        "The new deputy served the district for years, and the lake was never quite so lawless again. The smugglers of the Apostles complained that it was not sporting: the deputy knew all their tricks, having invented half of them.",
+        "The badge hung framed in the parlor long afterward, beside an old WANTED notice that the deputy never would take down."
+      ],
+      "epitaph": "Turned lawman: a deputy marshal's badge",
+      "ending": "Turned lawman"
+    }
+  }
+}

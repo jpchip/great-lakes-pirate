@@ -3,7 +3,9 @@ import { formatCents } from '../economy/knowledge';
 import { portInfo } from '../economy/defs';
 import { stashedCash } from '../hideouts/stash';
 import { fameTier, fameTierName, tierDef, type LawDefs } from '../law/defs';
+import { calledText, fill } from '../news/papers';
 import type { WorldState } from '../world-state';
+import { endingPage, retirementDef } from './endings';
 import { freshStats, type LogEntry } from './record';
 
 /**
@@ -15,14 +17,25 @@ import { freshStats, type LogEntry } from './record';
 
 /** `killed`: shot down in a boarding fight lost at bad odds (Phase 6 piece D). */
 /** `drowned` and `fell`: health ran out ashore, in the water or from a fall (Phase 7 piece A). */
+/** `retired` and `lawman`: the voluntary endings, taken by letter (Phase 9 piece B). */
 /** `froze` and `through_ice`: the cold, or the ice giving way (Phase 9 piece M). */
 export type RunEndCause =
-  'executed' | 'abandoned' | 'killed' | 'drowned' | 'fell' | 'froze' | 'through_ice';
+  | 'executed'
+  | 'abandoned'
+  | 'killed'
+  | 'drowned'
+  | 'fell'
+  | 'retired'
+  | 'lawman'
+  | 'froze'
+  | 'through_ice';
 
-/** What a death needs for the papers: the ship she died boarding. */
+/** What a death needs for the papers: the ship she died boarding; a retirement's place. */
 export interface RunEndDetail {
   /** The ship whose crew repelled the boarding. */
   ship?: string;
+  /** The retirement taken (`farm`, `saloon`, `cabin` in `endings.json`). */
+  retirement?: string;
 }
 
 export interface FrontPage {
@@ -55,6 +68,10 @@ export interface LastRun {
   logbook: string;
   /** A one-line epitaph for the Hall of Captains. */
   epitaph: string;
+  /** The papers' name for the captain at the end, if they had one (Phase 9 piece B). */
+  nickname?: string | undefined;
+  /** A voluntary ending's epilogue: what became of the captain. */
+  epilogue?: string[] | undefined;
 }
 
 const MONTHS = [
@@ -120,7 +137,12 @@ function frontPage(
   detail: RunEndDetail = {},
 ): FrontPage {
   const c = state.player.captain;
-  const name = c.name.toUpperCase();
+  const nick = state.nickname?.current;
+  // The papers' name for the captain heads the page once they have one (Phase 9 piece B).
+  const name = (nick ?? c.name).toUpperCase();
+  const titled = nick ? name : `CAPTAIN ${name}`;
+  /** "Captain Ida Bergquist," or with the nickname set in, ready for an apposition. */
+  const called = nick ? calledText(c.name, nick) : `Captain ${c.name},`;
   const ship = c.shipName;
   const famous = fameTier(defs, state.fame.value) >= 2;
   const lockup = state.jail ? (portInfo(state.jail.port)?.name ?? 'Bayfield') : 'Bayfield';
@@ -135,7 +157,7 @@ function frontPage(
       headline: `${name} HANGED AT ${lockup.toUpperCase()}`,
       deck: `Master of the Schooner ${ship} Meets the Rope at Dawn; Most Wanted on the Lake`,
       body: [
-        `Captain ${c.name}, lately master of the schooner ${ship}, was hanged at ${lockup} at first light, taken on the lake by the revenue cutter with the whole region crying out for the capture.`,
+        `${called} lately master of the schooner ${ship}, was hanged at ${lockup} at first light, taken on the lake by the revenue cutter with the whole region crying out for the capture.`,
         `In ${weeks} week${weeks === 1 ? '' : 's'} on the lake the captain made a name in the trade the respectable call smuggling. The ${ship} lies impounded at the ${lockup} dock, her hold empty.`,
         famous
           ? 'Crowds came from as far as Ashland to see it done. Whatever else is said, the lake will tell the story a while yet.'
@@ -149,10 +171,10 @@ function frontPage(
       paper,
       town,
       dateline: dateline(now),
-      headline: `PIRATE ${name} SHOT DEAD`,
+      headline: nick ? `${name} SHOT DEAD` : `PIRATE ${name} SHOT DEAD`,
       deck: `Crew of the ${prize} Beat Off a Boarding; the Schooner ${ship} Found Adrift`,
       body: [
-        `Captain ${c.name}, master of the schooner ${ship}, was killed on the open lake attempting to board the ${prize}, whose crew met the attack with pistols and handspikes and drove it off.`,
+        `${called} master of the schooner ${ship}, was killed on the open lake attempting to board the ${prize}, whose crew met the attack with pistols and handspikes and drove it off.`,
         `The ${ship} was found drifting with her sails loose and her captain dead on the deck. The ${prize}'s master said his people only did what any crew would.`,
         famous
           ? 'The waterfront knew the name well. Some will say the lake is safer for it.'
@@ -165,10 +187,10 @@ function frontPage(
       paper,
       town,
       dateline: dateline(now),
-      headline: `CAPTAIN ${name} DROWNED`,
+      headline: `${titled} DROWNED`,
       deck: `Master of the Schooner ${ship} Lost in the Cold Water Ashore`,
       body: [
-        `Captain ${c.name}, master of the schooner ${ship}, went into the lake and did not come out. Superior's water is cold enough to kill a strong swimmer in minutes, and it did.`,
+        `${called} master of the schooner ${ship}, went into the lake and did not come out. Superior's water is cold enough to kill a strong swimmer in minutes, and it did.`,
         `The ${ship} was found lying where the captain left her, with nobody aboard to say why.`,
         famous
           ? 'The waterfront knew the name. The lake, they say, gives up nothing it takes.'
@@ -213,16 +235,35 @@ function frontPage(
       paper,
       town,
       dateline: dateline(now),
-      headline: `CAPTAIN ${name} KILLED IN A FALL`,
+      headline: `${titled} KILLED IN A FALL`,
       deck: `Master of the Schooner ${ship} Found at the Foot of a Drop`,
       body: [
-        `Captain ${c.name}, master of the schooner ${ship}, was found dead ashore at the foot of a fall too high to walk away from. What the captain was doing up there, nobody would say.`,
+        `${called} master of the schooner ${ship}, was found dead ashore at the foot of a fall too high to walk away from. What the captain was doing up there, nobody would say.`,
         `The ${ship} lies where she was left.`,
         famous
           ? 'Some on the waterfront will not be sorry. Most will not be surprised.'
           : 'Few on the waterfront knew the name. The lake keeps its own accounts.',
       ],
     };
+  }
+  if (cause === 'retired' || cause === 'lawman') {
+    const ending = endingPage(cause, detail.retirement);
+    if (ending) {
+      const p =
+        ending.paper === 'duluth'
+          ? PAPERS.duluth
+          : ending.paper === 'bayfield'
+            ? PAPERS.bayfield
+            : { paper, town };
+      const values = endingValues(state, now);
+      return {
+        ...p,
+        dateline: dateline(now),
+        headline: fill(ending.page.headline, values).toUpperCase(),
+        deck: fill(ending.page.deck, values),
+        body: ending.page.body.map((t) => fill(t, values)),
+      };
+    }
   }
   return {
     paper,
@@ -243,15 +284,53 @@ const ENDINGS: Readonly<Record<RunEndCause, string>> = {
   killed: 'Killed boarding a prize',
   drowned: 'Drowned in the cold water',
   fell: 'Killed in a fall ashore',
+  retired: 'Retired',
+  lawman: 'Turned lawman',
   froze: 'Froze to death',
   through_ice: 'Went through the ice',
 };
+
+/** "How it ended", a voluntary ending's from `endings.json`. */
+function endingText(cause: RunEndCause, detail: RunEndDetail): string {
+  if (cause === 'retired' || cause === 'lawman') {
+    return endingPage(cause, detail.retirement)?.page.ending ?? ENDINGS[cause];
+  }
+  return ENDINGS[cause];
+}
+
+/** "1 week", "3 weeks". */
+function plural(n: number, word: string): string {
+  return `${n} ${word}${n === 1 ? '' : 's'}`;
+}
+
+/** The values a voluntary ending's page fills (`endings.json`'s placeholders). */
+function endingValues(state: WorldState, now: number): Record<string, string> {
+  const c = state.player.captain;
+  const nick = state.nickname?.current;
+  const s = statsFor(state, now);
+  return {
+    name: nick ?? `Captain ${c.name}`,
+    called: nick ? calledText(c.name, nick) : `Captain ${c.name},`,
+    captain: c.name,
+    ship: c.shipName,
+    nick: nick ?? `Captain ${c.name}`,
+    weeks: plural(weeksBetween(s.startedAt, now), 'week'),
+    earned: formatCents(s.earnedCents, true),
+    wealth: formatCents(state.player.purse + stashedCash(state.hideouts), true),
+  };
+}
 
 function statsFor(state: WorldState, now: number) {
   return state.stats ?? freshStats(now);
 }
 
-function summary(defs: LawDefs, state: WorldState, cause: RunEndCause, now: number): SummaryRow[] {
+function summary(
+  defs: LawDefs,
+  state: WorldState,
+  cause: RunEndCause,
+  now: number,
+  detail: RunEndDetail = {},
+): SummaryRow[] {
   const s = statsFor(state, now);
   const weeks = weeksBetween(s.startedAt, now);
   const seasons = seasonsBetween(s.startedAt, now);
@@ -280,12 +359,18 @@ function summary(defs: LawDefs, state: WorldState, cause: RunEndCause, now: numb
       value: `${formatCents(state.player.purse, true)} aboard, ${formatCents(stashedCash(state.hideouts), true)} stashed`,
     },
     { label: 'Fame at its height', value: fameTierName(defs, fameTier(defs, peakFame)) },
+    ...(state.nickname?.current
+      ? [{ label: 'Known to the papers as', value: state.nickname.current }]
+      : []),
     { label: 'Most wanted as', value: tierDef(defs, peakTier).name },
     { label: 'Crimes', value: String(s.crimes) },
     { label: 'Contracts delivered', value: String(s.contracts) },
     { label: 'Taken by the law', value: `${s.captures} time${s.captures === 1 ? '' : 's'}` },
-    { label: 'Lives taken', value: 'Never killed a soul' },
-    { label: 'How it ended', value: ENDINGS[cause] },
+    {
+      label: 'Lives taken',
+      value: s.killed ? `${s.killed} soul${s.killed === 1 ? '' : 's'}` : 'Never killed a soul',
+    },
+    { label: 'How it ended', value: endingText(cause, detail) },
   ];
 }
 
@@ -310,6 +395,30 @@ export function logbookMarkdown(
   return lines.join('\n');
 }
 
+/** The Hall of Captains' line, before the date. */
+function epitaphText(state: WorldState, cause: RunEndCause, detail: RunEndDetail): string {
+  switch (cause) {
+    case 'executed':
+      return `Hanged at ${state.jail ? (portInfo(state.jail.port)?.name ?? 'Bayfield') : 'Bayfield'}`;
+    case 'killed':
+      return `Killed boarding the ${detail.ship ?? 'a prize'}`;
+    case 'drowned':
+      return 'Drowned in the cold water';
+    case 'fell':
+      return 'Killed in a fall ashore';
+    case 'retired':
+      return (
+        retirementDef(detail.retirement)?.page.epitaph ??
+        endingPage(cause, detail.retirement)?.page.epitaph ??
+        'Retired'
+      );
+    case 'lawman':
+      return endingPage(cause, undefined)?.page.epitaph ?? 'Turned lawman';
+    default:
+      return 'Went ashore for good';
+  }
+}
+
 export function buildLastRun(
   defs: LawDefs,
   state: WorldState,
@@ -321,6 +430,10 @@ export function buildLastRun(
   const c = state.player.captain;
   const page = frontPage(defs, state, cause, now, detail);
   const ending = `${page.headline} (${page.paper}, ${page.dateline})`;
+  const voluntary =
+    cause === 'retired' || cause === 'lawman' ? endingPage(cause, detail.retirement) : undefined;
+  const values = voluntary ? endingValues(state, now) : {};
+  const epilogue = voluntary?.page.epilogue.map((t) => fill(t, values));
   return {
     version: 1,
     cause,
@@ -330,13 +443,10 @@ export function buildLastRun(
     endedAt: now,
     endedAtIso: realNow.toISOString(),
     frontPage: page,
-    summary: summary(defs, state, cause, now),
+    summary: summary(defs, state, cause, now, detail),
     logbook: logbookMarkdown(c.name, c.shipName, state.logbook ?? [], ending),
-    epitaph:
-      cause === 'executed'
-        ? `Hanged at Bayfield, ${dateText(now)}`
-        : cause === 'killed'
-          ? `Killed boarding the ${detail.ship ?? 'a prize'}, ${dateText(now)}`
-          : `Went ashore for good, ${dateText(now)}`,
+    epitaph: `${epitaphText(state, cause, detail)}, ${dateText(now)}`,
+    ...(state.nickname?.current ? { nickname: state.nickname.current } : {}),
+    ...(epilogue ? { epilogue } : {}),
   };
 }
