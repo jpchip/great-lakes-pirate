@@ -87,6 +87,11 @@ function Front({ p, buy }: { p: PaperView; buy(): void }) {
                   <div class={`paper-notice tier-${w.tier}`} key={w.region}>
                     <h5>{w.headline}</h5>
                     <p class="paper-notice-subject">{w.subject}</p>
+                    {w.alias && (
+                      <p class="paper-notice-alias" data-testid="paper-wanted-alias">
+                        {w.alias}
+                      </p>
+                    )}
                     <p>{w.detail}</p>
                     <p>{w.charge}.</p>
                     {w.reward && <p class="paper-notice-reward">{w.reward}</p>}

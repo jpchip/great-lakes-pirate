@@ -12,6 +12,7 @@ import {
   endRun,
   openSaveDb,
   readLastRun,
+  readHall,
   type GlpDatabase,
 } from './core/save/db';
 import { acquireTabLock } from './core/tab-lock';
@@ -158,6 +159,7 @@ import { offersChart } from './sim/terrain/zone-edge';
 import { arenaLoadingScreen, loadingScreen, type Arrival } from './ui/loading/model';
 import { mountGameUi } from './ui/mount';
 import { showMainMenu } from './ui/menu/mount-menu';
+import { hallRecords } from './sim/run/hall';
 import type { MenuChoice } from './ui/menu/MainMenu';
 import { randomSeed, savedRunSummary } from './ui/menu/model';
 import {
@@ -203,6 +205,9 @@ import { attachLawAtSea, isLawShip, PURSUES_FROM_TIER } from './gameplay/law-at-
 import { attachCombat, PLAYER_ID, type GameCombat } from './gameplay/combat';
 import { attachSeaLaw, type SeaLaw } from './gameplay/sea-law';
 import { attachAbandon, type Abandon } from './gameplay/abandon';
+import { attachEndings } from './gameplay/endings';
+import { attachNickname } from './gameplay/nickname';
+import { noteDeed, notePlace } from './sim/news/nickname';
 import { attachBoarding, type GameBoarding } from './gameplay/boarding';
 import { holdCu } from './sim/traffic/cargo';
 import { SHIP_RECORDS, serviceSpeedKn } from './sim/sailing/ships';
@@ -478,6 +483,8 @@ async function boot(): Promise<void> {
   const lastRun = prepared.db
     ? ((await readLastRun(prepared.db).catch(() => undefined)) as LastRun | undefined)
     : undefined;
+  // The Hall of Captains (Phase 9 piece B): its own store, outside the run.
+  const hall = prepared.db ? hallRecords(await readHall(prepared.db).catch(() => [])) : [];
   // The main menu (Phase 4 piece C) comes up before the game boots into a run, unless a
   // check asks to start somewhere (START_SWITCHES).
   let choice: MenuChoice | undefined = devNewRun(params);
@@ -491,6 +498,7 @@ async function boot(): Promise<void> {
       storage: browserStorage(),
       saved: prepared.loaded ? savedRunSummary(prepared.loaded.state) : undefined,
       lastRun: prepared.loaded ? undefined : lastRun,
+      hall,
       savedProblem:
         prepared.problem === 'error'
           ? "The saved run couldn't be read. It's kept, but this session won't be saved."
@@ -833,6 +841,10 @@ async function boot(): Promise<void> {
       intercept: (reportId: string) => law.intercept(reportId),
       setTier: (region: string, tier: number) => law.setTier(region, tier),
       setHeat: (region: string, heat: number) => law.setHeat(region, heat),
+      /** Sets Fame outright (Phase 9 piece B's checks: the nickname, Turn Lawman). */
+      setFame: (value: number) => {
+        state.fame.value = value;
+      },
       region: () => law.region(),
       state: () => ({
         wanted: state.wanted,
@@ -1646,6 +1658,33 @@ async function boot(): Promise<void> {
       shunned: () => feuds.shunned(),
     };
     (window as unknown as { __glpFeud: typeof hook }).__glpFeud = hook;
+  }
+  // Your nickname (Phase 9 piece B): coined by the papers at Fame tier 1 from your record,
+  // changing with it, rerolled once by a letter to the editor.
+  const nickname = attachNickname({
+    ctx,
+    law: law.defs,
+    news: papers.defs,
+    events: sandboxEvents,
+    story: (input) => papers.story(input),
+    seed: trafficSeed,
+    notice: (text) => noticeRef.current?.(text),
+  });
+  if (import.meta.env.DEV || params.has('debug')) {
+    // `__glpNickname.state()` reads the record and the name; `.deed('crime.killing', 3)`
+    // counts deeds the papers named you for; `.place('site.stockton', 8)` makes a haunt;
+    // `.check()` reads the record again; `.reroll()` is the letter to the editor.
+    const hook = {
+      state: () => nickname.state,
+      current: () => nickname.current(),
+      check: () => nickname.check(),
+      reroll: () => nickname.reroll(),
+      deed: (crime: string, n = 1) => {
+        for (let i = 0; i < n; i++) noteDeed(nickname.state, crime);
+      },
+      place: (place: string, weight = 1) => notePlace(nickname.state, place, weight),
+    };
+    (window as unknown as { __glpNickname: typeof hook }).__glpNickname = hook;
   }
   // The back room after dark (Phase 6 piece E): the fence and the shady shipwright.
   const backRoom = attachBackRoom({
@@ -2783,11 +2822,15 @@ async function boot(): Promise<void> {
           summary: last.summary,
           endedAtIso: last.endedAtIso,
           runId: saver?.run.runId,
+          ...(last.nickname ? { nickname: last.nickname } : {}),
         });
       } catch (err) {
         console.error('Could not end the run in the save', err);
       }
     }
+    // A voluntary ending is taken from a letter on the harbor master's tab.
+    if (ports.openPort) ports.close();
+    if (ports.journalOpen) ports.closeJournal();
     machine.pushOverlay('ended');
     input.context = 'menu';
     if (cameraRig) cameraRig.suspended = true;
@@ -2846,6 +2889,25 @@ async function boot(): Promise<void> {
   });
   captureRef.current = capture;
   endRef.current = endTheRun;
+  // The voluntary endings (Phase 9 piece B): Retire and Turn Lawman, each offered by letter.
+  const endings = attachEndings({
+    ctx,
+    law: law.defs,
+    events: sandboxEvents,
+    end: (cause, detail) => void endTheRun(cause, detail),
+  });
+  if (import.meta.env.DEV || params.has('debug')) {
+    // `__glpEndings.eligibility('retire')` says what's missing; `.offer('lawman', true)`
+    // sends the letter now; `.end('retired', 'cabin')` ends the run with that page.
+    const hook = {
+      eligibility: (kind: 'retire' | 'lawman') => endings.eligibility(kind),
+      offer: (kind: 'retire' | 'lawman', force = false) => endings.offer(kind, force),
+      check: () => endings.check(),
+      end: (cause: 'retired' | 'lawman', retirement?: string) =>
+        endTheRun(cause, retirement ? { retirement } : {}),
+    };
+    (window as unknown as { __glpEndings: typeof hook }).__glpEndings = hook;
+  }
   // Abandon ship (Phase 6 piece F, decision 2): F while she founders, or she goes down with
   // you in the boat. You're landed at the nearest yard with a worn hull; the jail's release
   // screen tells it.

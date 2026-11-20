@@ -587,6 +587,47 @@
         }
       ]
     },
+    "nickname": {
+      "fame": 3,
+      "weight": 2.5,
+      "feat": false,
+      "plain": [
+        {
+          "headline": "WHO IS {NICK}?",
+          "deck": "The Waterfront's Name for Captain {captain} of the Schooner {ship}",
+          "body": "Along the docks of {region} there is a name passed from mouth to mouth, and this paper has run it to earth: it belongs to Captain {captain}, master of the schooner {ship}. Ask a longshoreman who {nick} is and he will lower his voice. Ask the harbor master and he will tell you to mind your own business."
+        },
+        {
+          "headline": "{NICK}!",
+          "deck": "Captain {captain} of the {ship} Has Earned a Name on the Lake",
+          "body": "The fishermen of {region} have had a name for the master of the schooner {ship} for some weeks, and from this issue so does the {town} paper: {nick}. Captain {captain} is not thought to care for it. The lake does not ask."
+        }
+      ],
+      "lurid": [
+        {
+          "headline": "THE LAKE KNOWS {NICK}",
+          "deck": "Captain {captain} Earns a Name No Honest Master Would Want",
+          "body": "Mothers in {region} hush their children with it and the insurance men say it under their breath: {nick}. The bearer of that name is Captain {captain} of the schooner {ship}, and this paper prints it so that every master on the lake may know whom to watch for."
+        }
+      ]
+    },
+    "renamed": {
+      "fame": 2,
+      "weight": 2,
+      "feat": false,
+      "plain": [
+        {
+          "headline": "{OLDNICK} NO MORE",
+          "deck": "The Waterfront Has a New Name for Captain {captain}: {Nick}",
+          "body": "Those who called Captain {captain} of the schooner {ship} {oldnick} are calling the captain something else this week. The new name, heard first in {region}, is {nick}, and by the look of things it will stick."
+        },
+        {
+          "headline": "A NEW NAME ON THE LAKE",
+          "deck": "{Oldnick} Is Now {Nick}, the Docks Say",
+          "body": "The saloons of {region} have tired of the old name for the master of the schooner {ship}. Captain {captain}, lately {oldnick}, goes by {nick} along the waterfront now, whether the captain likes it or not."
+        }
+      ]
+    },
     "ambition": {
       "ambition.moon_cusser": {
         "fame": 10,
@@ -848,5 +889,234 @@
     "winter": "The revenue cutter Morrill lies in winter quarters at Duluth.",
     "port": "The revenue cutter Morrill lies at {where}."
   },
-  "tug": "The tug Hattie, chartered by the authorities with deputies aboard, is out after the outlaw in {region}."
+  "tug": "The tug Hattie, chartered by the authorities with deputies aboard, is out after the outlaw in {region}.",
+  "nicknames": {
+    "fromFameTier": 1,
+    "switchMargin": 1.25,
+    "haunt": {
+      "min": 6,
+      "margin": 1.25,
+      "visit": 1,
+      "sleep": 2,
+      "crime": 1
+    },
+    "deeds": [
+      {
+        "id": "killer",
+        "crimes": ["crime.killing"],
+        "notoriety": 8,
+        "names": [
+          {
+            "form": "Bloody {first}"
+          },
+          {
+            "form": "Black {last}"
+          },
+          {
+            "form": "the Butcher of {haunt}"
+          },
+          {
+            "form": "Bloody-Handed {last}"
+          }
+        ]
+      },
+      {
+        "id": "wrecker",
+        "crimes": ["crime.false_light", "crime.light_doused"],
+        "notoriety": 6,
+        "names": [
+          {
+            "form": "the Moon-Cusser",
+            "ofHaunt": true
+          },
+          {
+            "form": "Lantern {first}"
+          },
+          {
+            "form": "the Wrecker of {haunt}"
+          },
+          {
+            "form": "False-Light {last}"
+          }
+        ]
+      },
+      {
+        "id": "scuttler",
+        "crimes": ["crime.sinking"],
+        "notoriety": 6,
+        "names": [
+          {
+            "form": "Scuttling {first}"
+          },
+          {
+            "form": "the Lake Wolf",
+            "ofHaunt": true
+          },
+          {
+            "form": "Ship-Sinker {last}"
+          },
+          {
+            "form": "the Scuttler of {haunt}"
+          }
+        ]
+      },
+      {
+        "id": "defiant",
+        "crimes": ["crime.attack_law", "crime.jailbreak"],
+        "notoriety": 5,
+        "names": [
+          {
+            "form": "Slippery {first}"
+          },
+          {
+            "form": "the Cutter's Bane",
+            "ofHaunt": true
+          },
+          {
+            "form": "Devil {first}"
+          },
+          {
+            "form": "Leg-Iron {last}"
+          }
+        ]
+      },
+      {
+        "id": "gentleman",
+        "crimes": ["crime.piracy", "crime.firing_on_ship"],
+        "notoriety": 3.5,
+        "noKilling": true,
+        "names": [
+          {
+            "form": "Gentleman {first}"
+          },
+          {
+            "form": "Gentleman {last}"
+          },
+          {
+            "form": "the Polite Pirate",
+            "ofHaunt": true
+          },
+          {
+            "form": "the Gentleman Rover of {haunt}"
+          }
+        ]
+      },
+      {
+        "id": "pirate",
+        "crimes": ["crime.piracy", "crime.firing_on_ship"],
+        "notoriety": 3,
+        "names": [
+          {
+            "form": "Black-Sail {first}"
+          },
+          {
+            "form": "Roaring {first}"
+          },
+          {
+            "form": "the Terror of {haunt}"
+          },
+          {
+            "form": "Cutlass {last}"
+          }
+        ]
+      },
+      {
+        "id": "thief",
+        "crimes": ["crime.contract_theft", "crime.burglary", "crime.petty_theft"],
+        "notoriety": 1.5,
+        "names": [
+          {
+            "form": "Light-Fingered {first}"
+          },
+          {
+            "form": "the Dock Rat",
+            "ofHaunt": true
+          },
+          {
+            "form": "Sticky {first}"
+          },
+          {
+            "form": "the Warehouse Cat of {haunt}"
+          }
+        ]
+      },
+      {
+        "id": "brawler",
+        "crimes": ["crime.assault"],
+        "notoriety": 1.5,
+        "names": [
+          {
+            "form": "Two-Fisted {first}"
+          },
+          {
+            "form": "Handspike {first}"
+          },
+          {
+            "form": "the Bruiser",
+            "ofHaunt": true
+          }
+        ]
+      },
+      {
+        "id": "smuggler",
+        "crimes": [
+          "crime.contraband",
+          "crime.smuggler_deal",
+          "crime.fence_deal",
+          "crime.hot_goods"
+        ],
+        "notoriety": 1,
+        "names": [
+          {
+            "form": "Whiskey {first}"
+          },
+          {
+            "form": "the Whiskey Pirate",
+            "ofHaunt": true
+          },
+          {
+            "form": "Moonlight {first}"
+          },
+          {
+            "form": "the Rum Runner of {haunt}"
+          }
+        ]
+      },
+      {
+        "id": "honest",
+        "feats": true,
+        "notoriety": 0.6,
+        "names": [
+          {
+            "form": "Fair-Wind {first}"
+          },
+          {
+            "form": "Lightning {first}"
+          },
+          {
+            "form": "the Gale-Runner",
+            "ofHaunt": true
+          },
+          {
+            "form": "Steady {last}"
+          }
+        ]
+      }
+    ],
+    "fallback": [
+      {
+        "form": "Lucky {first}"
+      },
+      {
+        "form": "the Mystery Captain",
+        "ofHaunt": true
+      },
+      {
+        "form": "the Stranger of {haunt}"
+      },
+      {
+        "form": "Quiet {first}"
+      }
+    ]
+  }
 }
