@@ -459,6 +459,59 @@ export const DISPLAY_PIECES: Readonly<Record<string, number>> = {
   'build.chest': 1,
 };
 
+/**
+ * Where a curio sits on each display piece (Phase 9 piece P), in the piece's own frame:
+ * the gap on the shelving's top shelf, two places on a table's top clear of its jug and
+ * cup, the middle of a sea chest's lid. Meters; y up from the piece's foot.
+ */
+const DISPLAY_SPOTS: Readonly<Record<string, readonly { x: number; y: number; z: number }[]>> = {
+  'build.shelving': [{ x: 0.64, y: 1.94, z: 0.6 }],
+  'build.table': [
+    { x: -0.5, y: 0.8, z: 0.2 },
+    { x: 0.55, y: 0.8, z: -0.2 },
+  ],
+  'build.chest': [{ x: 0, y: 0.53, z: 0 }],
+};
+
+/** A display place in a hideout, site meters, and the yaw of the piece it's on (radians). */
+export interface CurioSlot {
+  x: number;
+  y: number;
+  z: number;
+  yaw: number;
+}
+
+/**
+ * The places a hideout's built display pieces offer, in the order the curios fill them
+ * (the order the pieces were placed). `pieces` are as the renderer gets them (`yawDeg`
+ * or 90° `rot` steps, clockwise from above), so the slots land on what's drawn.
+ */
+export function curioSlots(
+  pieces: readonly {
+    id: string;
+    built: boolean;
+    x: number;
+    y: number;
+    z: number;
+    rot: number;
+    yawDeg?: number;
+  }[],
+): CurioSlot[] {
+  const out: CurioSlot[] = [];
+  for (const p of pieces) {
+    const spots = p.built ? DISPLAY_SPOTS[p.id] : undefined;
+    if (!spots) continue;
+    // The same turn the hideout view gives the piece: three.js yaw, counter-clockwise.
+    const yaw = -(((p.yawDeg ?? p.rot * 90) * Math.PI) / 180);
+    const c = Math.cos(yaw);
+    const s = Math.sin(yaw);
+    for (const o of spots) {
+      out.push({ x: p.x + o.x * c + o.z * s, y: p.y + o.y, z: p.z - o.x * s + o.z * c, yaw });
+    }
+  }
+  return out;
+}
+
 /** How many curios a hideout's built pieces can show (its shelves, tables and sea chests). */
 export function displaySpaces(layout: {
   palette: readonly string[];

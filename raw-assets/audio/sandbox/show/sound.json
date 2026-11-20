@@ -1,0 +1,11 @@
+{
+  "id": "sfx.poker.show",
+  "name": "show",
+  "description": "Hands shown: five cards turned up one after another",
+  "kind": "oneshot",
+  "bus": "sfx",
+  "bundles": [
+    "sandbox-audio"
+  ],
+  "source": "source.flac"
+}

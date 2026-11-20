@@ -1,0 +1,19 @@
+{
+  "source": "procedural",
+  "tool": "tools/audio/synth.ts (tools/audio/lib/synth.ts)",
+  "author": "Great Lakes Pirate contributors",
+  "reference": "Original motif; synthesized fiddle, concertina, frame drum and drone, Freeverb-style reverb",
+  "date": "2026-11-19",
+  "license": "CC BY 4.0",
+  "attribution": "Great Lakes Pirate contributors",
+  "modifications": [],
+  "description": "A copycat rival: the fiddle plays a bold figure, the concertina mocks it a half step flat, over a drum and a low drone, ending on a question",
+  "durationS": 4.316,
+  "pipeline": [
+    "decoded to mono 48000 Hz",
+    "edge fades",
+    "RMS-normalized toward -18 dB (-0.1 dB)",
+    "Opus 112 kbps mono in Ogg (ffmpeg libopus)"
+  ],
+  "inputHash": "77c4ed8de74b5dda"
+}

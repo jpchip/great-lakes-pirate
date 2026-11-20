@@ -1,7 +1,13 @@
 import * as THREE from 'three';
 import type { PlacedRender } from '../../sim/hideouts/placed';
 import type { SiteFrame } from '../../sim/hideouts/site-frame';
-import type { LampPoolUniforms, StyleLighting } from '../style/stylized-material';
+import { curioSlots } from '../../sim/discovery/discovery';
+import {
+  createStylizedMaterial,
+  type LampPoolUniforms,
+  type StyleLighting,
+} from '../style/stylized-material';
+import { curiosGeometry } from './curios';
 import { createHideoutView, type HideoutPieceInput, type HideoutView } from './hideout-view';
 
 /**
@@ -17,6 +23,11 @@ export interface SiteDraw {
   key: string;
   frame: SiteFrame;
   pieces: readonly PlacedRender[];
+  /**
+   * The curios set out here (Phase 9 piece P), in the order they fill the shelves, tables
+   * and sea chests; any past the places there are aren't drawn.
+   */
+  curios?: readonly string[];
 }
 
 /** Build mode's overlay on one site. */
@@ -81,6 +92,9 @@ interface Drawn {
   planned: HideoutView;
   /** Piece key → what it was drawn from, to skip unchanged ones. */
   seen: Map<string, string>;
+  /** The curios on display, and what they were drawn from. */
+  curios?: THREE.Mesh | undefined;
+  curiosSig: string;
 }
 
 export function createHideoutSitesView(
@@ -93,6 +107,29 @@ export function createHideoutSitesView(
   const plannedMat = ghostMaterial(0.38, false);
   const cursorMat = ghostMaterial(0.55, false);
   const markedMat = ghostMaterial(0.45, true);
+  const curioMat = createStylizedMaterial('toon', lighting, { vertexColors: true });
+
+  /** The curios on the site's display pieces, redrawn when they or the pieces change. */
+  const drawCurios = (d: Drawn, s: SiteDraw): void => {
+    const slots = curioSlots(s.pieces);
+    const shown = (s.curios ?? []).slice(0, slots.length).flatMap((id, k) => {
+      const slot = slots[k];
+      return slot ? [{ id, slot }] : [];
+    });
+    const sig = JSON.stringify(shown);
+    if (sig === d.curiosSig) return;
+    d.curiosSig = sig;
+    if (d.curios) {
+      d.root.remove(d.curios);
+      d.curios.geometry.dispose();
+      d.curios = undefined;
+    }
+    const g = curiosGeometry(shown);
+    if (!g) return;
+    d.curios = new THREE.Mesh(g, curioMat);
+    d.curios.name = 'hideout-curios';
+    d.root.add(d.curios);
+  };
 
   const placeRoot = (root: THREE.Object3D, f: SiteFrame): void => {
     root.matrixAutoUpdate = false;
@@ -113,7 +150,7 @@ export function createHideoutSitesView(
     root.add(built.group, planned.group);
     placeRoot(root, frame);
     group.add(root);
-    return { frame, root, built, planned, seen: new Map() };
+    return { frame, root, built, planned, seen: new Map(), curiosSig: '' };
   };
 
   // The overlay: its own root, moved to whichever site is being built.
@@ -176,6 +213,7 @@ export function createHideoutSitesView(
         group.remove(d.root);
         d.built.dispose();
         d.planned.dispose();
+        d.curios?.geometry.dispose();
         drawn.delete(k);
       }
       for (const s of sites) {
@@ -207,6 +245,7 @@ export function createHideoutSitesView(
           d.seen.delete(k);
           (k.startsWith('b') ? d.built : d.planned).remove(k);
         }
+        drawCurios(d, s);
       }
     },
     setOverlay(next) {
@@ -268,8 +307,10 @@ export function createHideoutSitesView(
       for (const d of drawn.values()) {
         d.built.dispose();
         d.planned.dispose();
+        d.curios?.geometry.dispose();
       }
       drawn.clear();
+      curioMat.dispose();
       cursor.dispose();
       marked.dispose();
       gridLines?.geometry.dispose();

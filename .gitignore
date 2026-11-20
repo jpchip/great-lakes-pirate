@@ -16,5 +16,6 @@ bench/transitions/last-run-*.json
 nanobanana-output/
 bench/docks/last-run.json
 bench/island/last-run.json
+bench/island/last-run-*.json
 bench/hideout/last-run.json
 bench/hideout/last-run-*.json

@@ -514,7 +514,60 @@ Built as scoped; the write-up is [04 §27](04-water-weather-seasons.md). The ice
 
 **For Jared (the look):** the ice and snow tones (`ICE_*_HEX` in `water-material.ts`, the snow color in `stylized-material.ts`), how white the land goes, the crack density, the winter palette's strength (`winter-palette.ts`), the aurora's color, height and frequency (`data/winter.json`), and whether snow should come off the decks of a ship under way.
 
+### 18.13 Piece J as built: stage 1 audio (2026-11-19)
+
+Plan 15 §22 has the detail. The saloon plays "The Late Boat Waltz" on piano and fiddle from 7 PM (on foot in Bayfield and at any port screen's saloon or card table); the card table is heard move by move as cards and chips from beats the table now records; a lighthouse station's lamp turns its clockwork while it burns at night, and its keepers snore, greet and are heard at their stair, lamp and oil house; the harbor master rings his bell and letters tear open and seal; a ship put on a wrecking mark's shoal is heard going aground from up to 3 km (`ShipStranded`), and your own ship touching bottom; a rival's stinger waits for piece E on the bus (`RivalStinger { rival, why }`). 25 synthesized sounds, 0.93 MB; the decoded audio is 6.13 MB of 8 MB.
+
+**Not in piece J:** the stinger raised by anything but the dev hook until piece E lands, a fixed light's lamp without clockwork, a letter's arrival heard, the moon-cussing night's music. **For Jared:** the listen by ear (row J).
+
+### 18.14 Piece P as built: POI kits (2026-11-19)
+
+**The kits.** Twenty-two new piece kinds in `data/schemas/pois.ts`, built in the quarry's way (procedural parts in palette colors, `src/render/onfoot/poi-kit.ts`) and merged with every other point of interest on the zone into the one toon-lit mesh `poi-view.ts` already drew, so the kits add no draw calls: the **fish camp**'s timber dock on rock-filled cribs, board shanties with stovepipes, the fish house on its posts, gill-net reels, net-drying racks, barrels and a Mackinaw boat turned over on blocks; the **farmstead**'s log cabin with its fieldstone chimney, a board-and-batten barn, fields draped over the ground (plowed, oats, potatoes or hay), split-rail fences, a woodpile and stumps; the **trapper's cabin** (the cabin's stovepipe-and-lean-to variant) with its pelt-stretching racks; the **viewpoint**'s Lake Survey signal tripod; **beach wreckage** (a hull's ribs and keel in the sand, a broken spar and its rigging, strewn planks); **cairns and dig spots** (a dig spot is a hump of turned earth and a blazed stake; a cairn scales from the cache cairn); boulders; and the **cave mouth**, an arch in bedded sandstone, black inside, closed 0.8 m in by a back wall until piece S opens the cave. `pois.json` lays them out as eight prefabs: `poi.fish_camp`, `poi.farmstead`, `poi.trapper_cabin`, `poi.viewpoint`, `poi.beach_wreck`, `poi.cairn`, `poi.dig_spot` and `poi.cave_mouth` (from about 100 triangles for a dig spot to 3,700 for the fish camp). Each kind is solid where it's drawn (`pieceColliders`): buildings as boxes, barrels, reels, the boat, woodpiles, fences and stumps to vault, racks, fences, ribs and the signal to see through, fields, planks and dig spots walked over; the cave mouth's jambs, lintel and back wall come from the same `caveMouthBlocks` the renderer draws, so its opening is walkable to the back wall.
+
+**Placing a POI (for pieces Q and R).** A POI goes on an island the way Stockton's quarry did: an entry in its `islands.json` `onFoot.pois` (`{ id, poi, x, z, facingDeg }`, meters on the island's 1 m tiles, facing the prefab's open side). Behind it is one function, `placePoi(poi, at, origin, heightAt)` in `src/sim/islands/on-foot.ts`, which `placeIsland` now calls for each: platforms (ledges and the dock) first, everything else standing on them or the ground, a ladder down a dock's end into water, fields sampled on a 2 m grid over the ground, stumps each on the ground under it. Each prefab says what it stands on (`site`: shore, beach, clearing, hilltop or cliff) and carries **marks**, named points in its frame placed with it into `PlacedIsland.marks`: `fire` (a stove or hearth to warm at, piece M), `resident` (where a fisherman or farmer works, Q), `dig` and `cache` (T), `view`, `cave` (S), `landing` (where a rowboat comes in) and `search` (U, T). `__glpPoi.marks(kind)`, `pois()` and `shelves()` read them in the game.
+
+**The budget per tier.** `data/island_tiers.json` holds each tier's budget: the whole frame on foot at Medium (draw calls 150 / 140 / 130, triangles 400k / 300k / 250k for hero / standard / minor), the island's prefabs together (40k / 15k / 4k triangles, at most 10 / 3 / 1 prefabs), its people and animals, any one prefab (8,000 triangles) and a cave (40 calls). `tests/poi-kits.test.ts` fails if any prefab or any island in `islands.json` goes over its tier, so Q and R find out as they lay islands out. `npm run bench:island` now runs both benches: the Stockton walk against the hero frame budget (65 draw calls and 222k triangles at most, headless), and `pois.bench.ts`, which draws each tier's showcase set on `/pois.html` and checks it is one draw call within its triangles (hero set: 9 prefabs, 15.9k).
+
+**The showcase.** `/pois.html` (dev only, like `hideout.html`) sets every prefab down with `placePoi` on ground shaped like its site and draws it with the game's POI view: `?tier=` shows a tier's set, `?poi=` some prefabs, `?marks=1` each mark as a colored pin, T steps the hour; `window.pois.frame(id)` and `piece(kind)` frame one for screenshots.
+
+**Curios on the shelves.** The curios a hideout's Curios tab sets out (piece O) are drawn there: each of the eight has a small model (`src/render/hideout/curios.ts`), and `curioSlots` puts them in the order they were set out on the gap in a shelving's top shelf, two places on a table, a sea chest's lid. They merge into one mesh per hideout and are redrawn when what's set out changes.
+
+**Not in piece P:** placing the POIs on the islands (pieces Q and R; Stockton keeps just its quarry), a logging-camp-remnants prefab beyond Siskiwit's (the Phase 8 kinds serve), lit windows at night in the cabins and shanties (they need the glow mesh the lighthouse kit has; Q, with the residents), the cave behind the mouth (S), digging at a dig spot (T), and screenshots of curios on a hideout's shelves in the game (the slots are computed and drawn, but no camera shot was taken).
+
+**For Jared:** the look of every kit (the screenshots in `poi-kits/`), especially the barn's faded red, the oats' gold, the cave mouth's square bedded arch, and whether the viewpoint should carry a Lake Survey signal; the tier budgets; and where the curios sit on a shelf.
+
+### 18.15 Piece M as built: on the ice and in the cold (2026-11-19)
+
+**Data.** `data/cold.json` holds every number: what ice holds a walker (10 cm, plus 1 cm per 25 kg hauled), the thin-ice stress and its stages, warmth rates, the sled, the prints, and the ice road. The pure sim is `src/sim/cold/` (footing, warmth, sled, tracks, road), and `src/gameplay/cold.ts` lays the ice over the on-foot ground.
+
+**Walking on the ice.** In the zone scene, wherever piece K's ice covers at least 70% of a cell and is at least 3 cm thick, the ground is a walkable sheet just above the water. G at anchor or at a frozen non-district pier steps down onto it. Seeded weak spots run thinner. On ice under what holds you, stress builds (faster running, slower standing still). It cracks at 25%, groans at 60%, and gives way at 100%. A hole opens under you, and you have **one chance**: within 14 s, hold F for 2.2 s to haul out onto ice of at least 35% hold. A slip resets the haul, and when the window runs out you're lost (a new run end, "Went through the ice"). Hauled out, you're soaked.
+
+**The ice road.** Once Chequamegon Bay is 20 cm thick (most Februaries), the road runs from Bayfield's city pier head to La Pointe's pier, about 460 m in the zone, marked with spruce boughs every 30 m, with a fire barrel at each end. In the district, at the pier head, "Down onto the ice road to La Pointe" puts you on it in the zone scene, and "Up the ladder into Bayfield" at the far end brings you back. The road's ice is cleared and stays thick, so it never groans under a loaded sled.
+
+**The sled.** Beside a frozen-in ship, F puts the hand sled down, and F again loads it from the hold, the most valuable clean goods first (3 CU; contract cargo stays aboard). It follows on a 2.6 m rope and slows you 10% per CU (down to 60%), and its weight counts against the ice. At La Pointe's end, "Sell the sled's load at La Pointe's trading post" sells clean goods at La Pointe's market price; hot goods stay on the sled. Leaving within 40 m of the ship stows it and its load. `player.sled` is saved.
+
+**Warmth.** `player.warmth {value, wet}`. On foot, value falls with the wind-chilled air below 8 °C, three times faster when wet, much faster in the water, and slower running. Rain wets you, snow a little. It recovers under a roof (any district, a keeper's house) and fast within 4 m of a fire, which also dries you. Aboard it comes back 60 an hour. Stages: chilled at 60, cold at 35, freezing at 15, each with a HUD line. At 0, health drains (0.5/s), and dying of it is "Froze to death". The HUD has a warmth bar with its stage word.
+
+**Tracks.** Walking on snow-covered ice lays a print every 0.9 m (a sled's runners too), up to 600. Snow fills them in over 40 minutes of falling snow, and they go after a day. A print laid within 6 hours of a crime is suspect. When the watch or the island posse loses you on the ice, a guard who comes on suspect prints within 3 m follows them toward their freshest end (`stealth.follow`). Prints are drawn as instanced decals.
+
+**Heists on frozen-in ships.** A ship laid up in a frozen harbor posts no deck watch, so her hold can be robbed in the district, and she's found robbed late.
+
+**Not in piece M:**
+- Bayfield's district harbor isn't walkable ice; the road starts at the pier head and goes into the zone scene.
+- No raids on frozen ships from the zone scene's ice; heists stay in the district.
+- No campfire kit to carry. Heat comes from roofs and the road's fire barrels.
+- No ice caves and no wolves on the ice (plan 11 §6).
+- No winter audio: cracks, groans and footsteps on snow are piece N's job.
+- A sled left on ice that later melts isn't sunk. It's only stowed when you leave within 40 m of the ship.
+- A hole's size follows the ground grid's cell (4 m in the zone).
+- The ice sheet and snow aren't drawn (piece L), so until L lands the figure seems to walk on water.
+
+`__glpCold` reads and drives it.
+
 ## Changelog
+- v0.13: Phase 9 piece M as built (§18.15): walking on the ice, thin ice and the climb out, the ice road to La Pointe, the hand sled, warmth, and tracks in the snow.
+- v0.12: Piece P as built (§18.14): the POI kits, `placePoi` and marks, the tier budgets and `bench.island` per tier, and curios on the shelves.
+- v0.11: Piece J as built (§18.13): stage 1 audio.
 - v0.10: Piece E (copycat rivals) built; as built in [12 §7.1](12-sandbox-events-character-failure.md).
 - v0.9: Piece L as built (§18.11): winter's look; the aurora is in.
 - v0.8: Piece U as built (§18.10): old wrecks of the record and the seed, found by sight or the lead line, worked by grapple and hook at anchor, hot recent cargo, papers as leads.

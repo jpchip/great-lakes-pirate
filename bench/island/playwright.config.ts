@@ -8,7 +8,8 @@ import { defineConfig, devices } from '@playwright/test';
  */
 export default defineConfig({
   testDir: '.',
-  testMatch: 'island.bench.ts',
+  testMatch: '*.bench.ts',
+  workers: 1,
   timeout: 900_000,
   reporter: 'list',
   use: { baseURL: 'http://localhost:5198', viewport: { width: 1280, height: 720 } },

@@ -23,6 +23,44 @@ export interface FootHudView {
   mouseLocked: boolean;
   /** A jailbreak's standing line (piece G): what to do, and "ONE CHANCE" before the rope. */
   banner?: { text: string; oneChance: boolean } | undefined;
+  /**
+   * The warmth meter (Phase 9 piece M), 0–100, when the cold has a say: its stage and
+   * whether you're wet through.
+   */
+  warmth?: { value: number; stage: string; wet: boolean } | undefined;
+}
+
+const WARMTH_WORDS: Readonly<Record<string, string>> = {
+  warm: 'Warm',
+  chilled: 'Chilled',
+  cold: 'Cold: find a fire',
+  freezing: 'Freezing: get to a fire now',
+  frozen: 'Freezing to death',
+};
+
+function WarmthBar({ warmth }: { warmth: NonNullable<FootHudView['warmth']> }) {
+  const v = Math.max(0, Math.min(1, warmth.value / 100));
+  const danger = warmth.stage === 'freezing' || warmth.stage === 'frozen';
+  return (
+    <>
+      <div class={`hud-bar foot-warmth${danger ? ' danger' : ''}`} data-testid="foot-warmth">
+        <span class="hud-label">Warmth</span>
+        <span class="hud-bar-track">
+          <span class="hud-bar-fill" style={{ transform: `scaleX(${v.toFixed(3)})` }} />
+        </span>
+      </div>
+      {(warmth.stage !== 'warm' || warmth.wet) && (
+        <div
+          class={`hud-chip${danger ? ' danger' : ''}`}
+          data-testid="foot-warmth-word"
+          role={danger ? 'alert' : 'status'}
+        >
+          {WARMTH_WORDS[warmth.stage] ?? warmth.stage}
+          {warmth.wet && <span class="hud-dim"> · wet through</span>}
+        </div>
+      )}
+    </>
+  );
 }
 
 function ColdChip({ cold }: { cold: NonNullable<FootHudView['cold']> }) {
@@ -94,6 +132,7 @@ export function FootHud({
                 </span>
               </div>
             )}
+            {h.warmth && <WarmthBar warmth={h.warmth} />}
             {h.cold && <ColdChip cold={h.cold} />}
             {h.notice && (
               <div class="hud-chip" data-testid="foot-notice">

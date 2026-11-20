@@ -1,0 +1,11 @@
+{
+  "id": "ui.letter.open",
+  "name": "letter-open",
+  "description": "A letter opened: the flap torn, the sheet drawn out and unfolded",
+  "kind": "oneshot",
+  "bus": "ui",
+  "bundles": [
+    "sandbox-audio"
+  ],
+  "source": "source.flac"
+}

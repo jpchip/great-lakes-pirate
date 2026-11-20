@@ -1,0 +1,18 @@
+{
+  "source": "procedural",
+  "tool": "tools/audio/synth.ts (tools/audio/lib/synth.ts)",
+  "author": "Great Lakes Pirate contributors",
+  "reference": "Low-passed noise rumble with value-noise flutter, band-passed noise whir at a tooth rate, noise clicks with damped sines, struck-plate clinks, reverb",
+  "date": "2026-11-19",
+  "license": "CC BY 4.0",
+  "attribution": "Great Lakes Pirate contributors",
+  "modifications": [],
+  "description": "The lamp's clockwork turning the lens (6 s, looped): the escapement's tick and tock, the gear train's whir, the lens carriage rumbling round, a chain link over its sprocket",
+  "durationS": 6,
+  "pipeline": [
+    "decoded to mono 48000 Hz",
+    "RMS-normalized toward -24 dB (-1.6 dB)",
+    "Opus 64 kbps mono in Ogg (ffmpeg libopus)"
+  ],
+  "inputHash": "efc9ebeb2e5560c6"
+}

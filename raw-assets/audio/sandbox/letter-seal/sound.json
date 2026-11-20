@@ -1,0 +1,11 @@
+{
+  "id": "ui.letter.seal",
+  "name": "letter-seal",
+  "description": "An answer folded twice, slid into its envelope and pressed shut",
+  "kind": "oneshot",
+  "bus": "ui",
+  "bundles": [
+    "sandbox-audio"
+  ],
+  "source": "source.flac"
+}

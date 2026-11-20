@@ -1,0 +1,12 @@
+{
+  "id": "amb.station.clockwork",
+  "name": "clockwork",
+  "description": "The lamp's clockwork turning the lens (6 s, looped): the escapement's tick and tock, the gear train's whir, the lens carriage rumbling round, a chain link over its sprocket",
+  "kind": "loop",
+  "bus": "ambience",
+  "loopCrossfadeS": 0,
+  "bundles": [
+    "sandbox-audio"
+  ],
+  "source": "source.flac"
+}

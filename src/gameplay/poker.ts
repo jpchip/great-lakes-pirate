@@ -60,7 +60,8 @@ import { withinHours } from './onfoot/conduct';
  * from your purse) or swing first (your money back, and an assault before the room). Either
  * way you're barred from that table for a while and your name suffers in the port.
  *
- * Raises `PokerPlayed` after every hand and `PokerCheatCaught` when you're seen.
+ * Raises `PokerPlayed` after every hand and `PokerCheatCaught` when you're seen, and
+ * `PokerBeats` after each move with what was done at the table (the sounds, piece J).
  */
 
 /** The event that makes a night a big game (`events.json`). */
@@ -430,8 +431,14 @@ export function attachPoker(opts: PokerOptions): GamePoker {
     const t = tableAt(port);
     if (!t) return 'Nobody is playing.';
     const before = t.hand?.phase;
+    const hand = t.hand;
+    const heard = hand?.beats?.length ?? 0;
     const why = run(t);
     if (why) return why;
+    // What was done at the table, for the sounds (piece J): the new hand's beats from the
+    // shuffle, or what's happened since your last move.
+    const beats = (t.hand?.beats ?? []).slice(t.hand === hand ? heard : 0);
+    if (beats.length > 0) ctx.events.emit('PokerBeats', { port, beats });
     if (t.hand?.phase === 'done' && before !== 'done') finish(port, t);
     return undefined;
   };

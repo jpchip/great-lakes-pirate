@@ -1,0 +1,11 @@
+{
+  "id": "sfx.station.light",
+  "name": "light",
+  "description": "The lamp lit: a match struck and flaring, the wick taking with a whoomp, the flame drawing, the chimney glass set down",
+  "kind": "oneshot",
+  "bus": "sfx",
+  "bundles": [
+    "sandbox-audio"
+  ],
+  "source": "source.flac"
+}
