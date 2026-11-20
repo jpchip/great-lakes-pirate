@@ -9,7 +9,7 @@
 //    each door's two sides → public/districts/<bake>/navmesh.json
 // 3. writes a short report → tools/district/reports/<bake>.md
 //
-// Needs the zone tiles from Git LFS (`git lfs pull`).
+// Needs the zones' tiles from Git LFS (`git lfs pull`).
 
 import { mkdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -32,7 +32,8 @@ import {
   type RawNavMesh,
 } from '../../src/gameplay/district/nav-bake';
 import { loadZoneTerrain } from '../../src/sim/terrain/load';
-import { manifestFrame } from '../../src/sim/terrain/zones';
+import { findHarbor, harborZoneId } from '../../src/sim/harbors';
+import { manifestFrame, zoneDef } from '../../src/sim/terrain/zones';
 
 const root = join(import.meta.dirname, '..', '..');
 /** Voxel size across and up, meters. */
@@ -42,13 +43,25 @@ const CH = 0.1;
 it('bakes the districts', async () => {
   await init();
   const only = process.env['DISTRICT'];
-  const zoneDir = join(root, 'public', 'world', 'apostles');
-  const zone = await loadZoneTerrain(async (p) => new Uint8Array(readFileSync(join(zoneDir, p))));
-  const frame = manifestFrame(zone.manifest);
+  // Each district on its own zone's heightmap (Bayfield the Apostles', Duluth the Twin Ports').
+  const zones = new Map<string, Awaited<ReturnType<typeof loadZoneTerrain>>>();
+  const zoneOf = async (zoneId: string) => {
+    let zone = zones.get(zoneId);
+    if (!zone) {
+      const zoneDir = join(root, 'public', zoneDef(zoneId).world);
+      zone = await loadZoneTerrain(async (p) => new Uint8Array(readFileSync(join(zoneDir, p))));
+      zones.set(zoneId, zone);
+    }
+    return zone;
+  };
 
   for (const def of DISTRICTS) {
     if (only && !def.id.endsWith(only)) continue;
     const t0 = performance.now();
+    const harbor = findHarbor(def.harbor);
+    if (!harbor) throw new Error(`${def.id}: no harbor ${def.harbor}`);
+    const zone = await zoneOf(harborZoneId(harbor));
+    const frame = manifestFrame(zone.manifest);
     const layout = parseLayout(
       JSON.parse(readFileSync(join(root, 'data', 'districts', def.layout), 'utf8')),
     );

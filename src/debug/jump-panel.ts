@@ -167,6 +167,7 @@ export function createJumpPanel(options: JumpPanelOptions): void {
 
   const ashore = root.addFolder('Ashore').close();
   button(ashore, 'Bayfield (fish pier, on foot)', { ashore: 'bayfield' });
+  button(ashore, 'Duluth (merchandise dock, on foot)', { harbor: 'duluth', ashore: 'duluth' });
   button(ashore, 'Stockton (anchored off the quarry, landed)', { ashore: 'stockton' });
   button(ashore, 'Siskiwit Bay (anchored off the logging camp, landed)', { ashore: 'siskiwit' });
   // Every other walkable island, landed on its beach (Phase 9 piece R).

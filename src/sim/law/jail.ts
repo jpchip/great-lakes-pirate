@@ -1,5 +1,10 @@
 import jailJson from '../../../data/jail.json';
-import { jailFileSchema, type JailFile } from '../../../data/schemas/jail';
+import {
+  jailFileSchema,
+  type JailbreakRules,
+  type JailFile,
+  type Lockup,
+} from '../../../data/schemas/jail';
 import { dayAndHour, SECONDS_PER_GAME_DAY } from '../../core/time';
 import { Rng } from '../../core/rng';
 import { hasStrongbox } from '../hideouts/stash';
@@ -27,6 +32,30 @@ let cached: JailFile | undefined;
 export function gameJail(): JailFile {
   cached ??= jailFileSchema.parse(jailJson);
   return cached;
+}
+
+/**
+ * The lockup a captain taken in `region` is held in (Phase 9 piece X): the one whose own
+ * region it is or that holds it, else the first (Bayfield's).
+ */
+export function lockupFor(jail: JailFile, region: string | undefined): Lockup {
+  const first = jail.lockups[0] as Lockup;
+  if (!region) return first;
+  return (
+    jail.lockups.find((l) => l.region === region) ??
+    jail.lockups.find((l) => l.holds.includes(region)) ??
+    first
+  );
+}
+
+/** The lockup at a port (where a prisoner is held), else the first. */
+export function lockupAt(jail: JailFile, port: string | undefined): Lockup {
+  return jail.lockups.find((l) => l.port === port) ?? (jail.lockups[0] as Lockup);
+}
+
+/** The jailbreak's rules in a lockup: the shared ones and its cell door. */
+export function jailbreakRules(jail: JailFile, lockup: Lockup): JailbreakRules {
+  return { ...jail.jailbreak, cellDoor: lockup.cellDoor };
 }
 
 /** `subdued`: taken on foot by a constable, watchman or marshal (Phase 7 piece D). */
@@ -96,7 +125,7 @@ export function imprison(
   const weeks = outcome.kind === 'jail' ? outcome.sentenceWeeks : 0;
   const jailed: Jailed = {
     region: input.region,
-    port: jail.lockup.port,
+    port: lockupFor(jail, input.region).port,
     since: now,
     releaseAt: now + weeks * SECONDS_PER_GAME_DAY,
     by: input.by,
@@ -163,7 +192,7 @@ export function imprisonMinor(
   const weeks = jail.minorArrest.sentenceWeeks;
   const jailed: Jailed = {
     region: input.region,
-    port: jail.lockup.port,
+    port: lockupFor(jail, input.region).port,
     since: now,
     releaseAt: now + weeks * SECONDS_PER_GAME_DAY,
     by: input.by,
@@ -275,6 +304,8 @@ export interface Release {
   /** Game seconds inside. */
   insideS: number;
   workOffDays: number;
+  /** The lockup's port you walk out of. */
+  port: string;
   /** The region's heat before and after. */
   region: string;
   heatBefore: number;
@@ -300,6 +331,7 @@ export function release(defs: LawDefs, jail: JailFile, state: WorldState, now: n
     how,
     insideS: now - jailed.since,
     workOffDays: jailed.workOffDays,
+    port: jailed.port,
     region: jailed.region,
     heatBefore,
     heatAfter: state.wanted[jailed.region]?.heat ?? 0,
@@ -355,7 +387,7 @@ export function owePromise(jail: JailFile, state: WorldState, cents: number, now
   state.jailDebt = {
     cents: (state.jailDebt?.cents ?? 0) + cents,
     dueAt: now + jail.jailbreak.promise.dueDays * SECONDS_PER_GAME_DAY,
-    region: jail.lockup.region,
+    region: lockupAt(jail, state.jail?.port).region,
   };
 }
 

@@ -295,6 +295,8 @@ export interface JailbreakStart {
   promiseCents: number | undefined;
   /** Game seconds the attempt is over. */
   dawnAt: number;
+  /** Where your ship lies, as the fade says it: "the city dock". */
+  dock?: string;
 }
 
 /** Where F would act, and what it would do. */
@@ -864,7 +866,7 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
         start.execution ? 'One chance' : 'The lockup, that night',
         start.execution
           ? 'In irons, the night before the rope'
-          : 'The jailer on his round, and your ship at the city dock',
+          : `The jailer on his round, and your ship at ${start.dock ?? 'the dock'}`,
         () => {
           from = 'berth';
           berthId = h.berthId;

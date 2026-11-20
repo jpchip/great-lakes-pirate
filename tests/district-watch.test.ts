@@ -4,7 +4,8 @@ import { describe, expect, it } from 'vitest';
 import bayfieldJson from '../data/districts/bayfield.json';
 import { buildDistrict, type DistrictModel } from '../src/gameplay/district/district';
 import { DistrictNav } from '../src/gameplay/district/district-nav';
-import { decodeGround } from '../src/gameplay/district/ground';
+import duluthJson from '../data/districts/duluth.json';
+import { decodeGround, findDistrict } from '../src/gameplay/district/ground';
 import { createCharacter } from '../src/gameplay/onfoot/controller';
 import { planDistrictWatch, suspectAshore } from '../src/gameplay/onfoot/district-guards';
 import { MAX_GUARDS } from '../src/gameplay/onfoot/guards';
@@ -286,5 +287,48 @@ describe.skipIf(!baked)('the watch in Bayfield', () => {
     expect(relit).toEqual(['watchman.packing_house']);
     expect(lamp?.lit).toBe(true);
     expect(lamp?.doused).toBe(false);
+  });
+});
+
+const duluthDir = join(import.meta.dirname, '..', 'public', 'districts', 'duluth');
+const duluthBaked =
+  existsSync(join(duluthDir, 'ground.bin')) &&
+  readFileSync(join(duluthDir, 'ground.bin')).byteLength > 200;
+
+describe.skipIf(!duluthBaked)('the watch in Duluth (Phase 9 piece X)', () => {
+  it('puts a named constable on each of its beats, and many police at night', () => {
+    const model = buildDistrict(
+      parseLayout(structuredClone(duluthJson)),
+      decodeGround(new Uint8Array(readFileSync(join(duluthDir, 'ground.bin')))),
+    );
+    const mesh = new NavMesh(
+      JSON.parse(readFileSync(join(duluthDir, 'navmesh.json'), 'utf8')) as NavMeshData,
+    );
+    const nav = new DistrictNav(mesh, (x, z) => model.floorAt(x, z));
+    const names = findDistrict('duluth')?.watchNames ?? {};
+    const plan = planDistrictWatch(model, nav, names);
+    const byId = new Map(plan.base.map((g) => [g.id, g]));
+    for (const id of [
+      'constable.waterfront',
+      'constable.lake_avenue',
+      'constable.michigan',
+      'constable.lockup',
+    ]) {
+      expect(byId.get(id)?.name, id).toBe(names[id]);
+    }
+    expect(plan.base.filter((g) => g.type === 'npc.watchman').length).toBe(4);
+    for (const g of plan.base)
+      for (const p of g.route.points) expect(nav.walkable(p), `${g.id} ${p.x},${p.z}`).toBe(true);
+    const hot = createWatch({
+      model,
+      nav,
+      tier: 5,
+      seed: 'duluth',
+      names,
+      conditions: conditions(NIGHT, { wantedTier: 5 }),
+      onCaptured: () => undefined,
+    }).stealth.guards;
+    expect(hot.length).toBeLessThanOrEqual(MAX_GUARDS);
+    expect(hot.some((g) => g.type.id === 'npc.marshal')).toBe(true);
   });
 });

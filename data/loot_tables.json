@@ -38,6 +38,26 @@
       "name": "the harbor master's strongbox",
       "cashCents": [6000, 15000],
       "documents": 1
+    },
+    {
+      "id": "loot.merchandise",
+      "name": "merchandise off the lake boats",
+      "crates": [
+        { "good": "good.dry_goods", "min": 1, "max": 2 },
+        { "good": "good.tobacco", "min": 0, "max": 2 },
+        { "good": "good.whiskey", "min": 0, "max": 1 },
+        { "good": "good.hardware", "min": 1, "max": 2 }
+      ],
+      "documents": 0.4
+    },
+    {
+      "id": "loot.flour_store",
+      "name": "sacks of flour",
+      "crates": [
+        { "good": "good.flour", "min": 2, "max": 4 },
+        { "good": "good.grain", "min": 0, "max": 2 }
+      ],
+      "cashCents": [0, 1000]
     }
   ],
   "restockDays": 2,

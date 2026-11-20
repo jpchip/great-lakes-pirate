@@ -11,14 +11,29 @@ const range = z
  * and bail by the region's tier at capture, the impound fee for the ship and "send word".
  */
 export const jailFileSchema = z.object({
-  /** The MVP holds every prisoner in Bayfield's lockup (plan 06 §8.2). */
-  lockup: z.object({
-    name: z.string().min(1),
-    port: idOf('port'),
-    region: idOf('region'),
-    /** The pier the impounded ship is returned to. */
-    pier: idOf('pier'),
-  }),
+  /**
+   * The lockups that hold prisoners (plan 06 §8.2, plan 08 §9): Bayfield's from the MVP, and
+   * Duluth's with its district (Phase 9 piece X). A captain taken in a lockup's own region or
+   * one it `holds` is held there; the first lockup holds everyone else.
+   */
+  lockups: z
+    .array(
+      z.object({
+        name: z.string().min(1),
+        port: idOf('port'),
+        /** The lockup's own region: a jailbreak and a jailer's unpaid promise count there. */
+        region: idOf('region'),
+        /** The other regions whose prisoners it holds. */
+        holds: z.array(idOf('region')).default([]),
+        /** The pier the impounded ship is returned to. */
+        pier: idOf('pier'),
+        /** That pier as the jail screen names it: "the city dock". */
+        dock: z.string().min(1),
+        /** The district layout's door of the cell you're held in on a jailbreak. */
+        cellDoor: z.string().min(1),
+      }),
+    )
+    .min(1),
   /**
    * By tier: the sentence in weeks (1 game day each) and bail in cents, from the low end at
    * the tier's least heat to the high end at the next tier's.
@@ -85,8 +100,7 @@ export const jailFileSchema = z.object({
     /** The attempt starts at this hour of the night, and is over at `dawnHour`. */
     startHour: z.number().min(0).max(24),
     dawnHour: z.number().min(0).max(24),
-    /** The layout's door of the cell you're held in, and its lock's tier. */
-    cellDoor: z.string().min(1),
+    /** The lock on the cell's door (the door is the lockup's `cellDoor`). */
     cellLock: z.number().int().min(1).max(3),
     /** Recaptured: this many weeks more. */
     recaptureWeeks: z.number().int().positive(),
@@ -121,5 +135,7 @@ export const jailFileSchema = z.object({
     }),
   }),
 });
-export type JailbreakRules = JailFile['jailbreak'];
+/** The jailbreak's rules in one lockup: the shared rules, and that lockup's cell door. */
+export type JailbreakRules = JailFile['jailbreak'] & { cellDoor: string };
+export type Lockup = JailFile['lockups'][number];
 export type JailFile = z.infer<typeof jailFileSchema>;

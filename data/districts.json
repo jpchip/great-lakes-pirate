@@ -94,5 +94,120 @@
         ]
       }
     ]
+  },
+  {
+    "id": "district.duluth",
+    "name": "Duluth waterfront",
+    "port": "port.duluth",
+    "harbor": "harbor.duluth",
+    "layout": "duluth.json",
+    "bake": "duluth",
+    "origin": {
+      "alongM": 0,
+      "inlandM": 0
+    },
+    "skirtM": 40,
+    "waterLevelM": 0,
+    "gangway": "gangway.merchandise_dock",
+    "fills": [
+      {
+        "x0": -201,
+        "z0": 26,
+        "x1": 79,
+        "z1": 130,
+        "heightM": 2
+      },
+      {
+        "x0": -12,
+        "z0": -30,
+        "x1": 79,
+        "z1": 28,
+        "heightM": 2
+      }
+    ],
+    "watchNames": {
+      "constable.waterfront": "Patrolman Olson",
+      "constable.lake_avenue": "Patrolman Byrne",
+      "constable.michigan": "Patrolman Lindquist",
+      "constable.lockup": "Sergeant Hegg"
+    },
+    "targets": [
+      {
+        "building": "freight_house",
+        "owner": "company.northern_range",
+        "lock": {
+          "tier": 2,
+          "hours": [19, 6]
+        },
+        "containers": [
+          {
+            "mark": "loot.freight_0",
+            "table": "loot.freight_shed"
+          },
+          {
+            "mark": "loot.freight_1",
+            "table": "loot.freight_shed"
+          }
+        ]
+      },
+      {
+        "building": "transit_warehouse",
+        "owner": "company.bellwether_transit",
+        "lock": {
+          "tier": 2,
+          "hours": [19, 6]
+        },
+        "containers": [
+          {
+            "mark": "loot.transit_0",
+            "table": "loot.merchandise"
+          },
+          {
+            "mark": "loot.transit_1",
+            "table": "loot.merchandise"
+          }
+        ]
+      },
+      {
+        "building": "flour_house",
+        "lock": {
+          "tier": 1,
+          "hours": [19, 6]
+        },
+        "containers": [
+          {
+            "mark": "loot.flour_0",
+            "table": "loot.flour_store"
+          }
+        ]
+      },
+      {
+        "building": "chandlery",
+        "lock": {
+          "tier": 2,
+          "hours": [18, 7]
+        },
+        "containers": [
+          {
+            "mark": "loot.chandlery",
+            "table": "loot.chandlery_store"
+          }
+        ]
+      },
+      {
+        "building": "harbor_office",
+        "lock": {
+          "tier": 3,
+          "hours": [17, 8]
+        },
+        "containers": [
+          {
+            "mark": "loot.harbor_office",
+            "table": "loot.strongbox",
+            "lock": 3
+          }
+        ]
+      }
+    ]
   }
 ]

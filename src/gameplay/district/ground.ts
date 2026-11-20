@@ -88,8 +88,15 @@ export function sampleGround(
   const heights = new Float32Array(nx * nz);
   for (let j = 0; j < nz; j++) {
     for (let i = 0; i < nx; i++) {
-      const p = frame.toZone(x0 + i, z0 + j);
-      heights[j * nx + i] = terrain.heightAt(p.x, p.z);
+      const x = x0 + i;
+      const z = z0 + j;
+      const p = frame.toZone(x, z);
+      let h = terrain.heightAt(p.x, p.z);
+      // Made land: raised to the fill's height inside its rectangle.
+      for (const f of def.fills) {
+        if (x >= f.x0 && x <= f.x1 && z >= f.z0 && z <= f.z1) h = Math.max(h, f.heightM);
+      }
+      heights[j * nx + i] = h;
     }
   }
   return new Heightfield(nx, nz, 1, x0, z0, heights);

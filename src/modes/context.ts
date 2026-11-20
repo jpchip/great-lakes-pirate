@@ -298,7 +298,7 @@ export interface GameEvents {
    */
   Jailed: { region: string; port: string; tier: number; sentenceWeeks: number; execution: boolean };
   BailSent: { hideout: string; cents: number };
-  Released: { how: 'served' | 'bail'; region: string; weeks: number };
+  Released: { how: 'served' | 'bail'; region: string; weeks: number; port: string };
   /**
    * The jailbreak (plan 08 §9; Phase 7 piece G): begun from the cell, made (aboard your
    * ship and away), or lost (recaptured, or dawn found you out of your cell).

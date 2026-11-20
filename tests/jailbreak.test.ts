@@ -25,6 +25,8 @@ import {
   breakoutStart,
   escapeJail,
   gameJail,
+  jailbreakRules,
+  lockupAt,
   imprison,
   imprisonMinor,
   owePromise,
@@ -47,7 +49,8 @@ const baked = existsSync(groundPath) && readFileSync(groundPath).byteLength > 20
 
 const defs = gameLaw();
 const jail = gameJail();
-const rules = jail.jailbreak;
+const bayfield = lockupAt(jail, 'port.bayfield');
+const rules = jailbreakRules(jail, bayfield);
 const REGION = 'region.apostles';
 const DT = 1 / 60;
 const DAY = 160 * SECONDS_PER_GAME_DAY;
@@ -152,23 +155,23 @@ describe("the jail's rules for a breakout (plan 08 §9)", () => {
     owePromise(jail, s, 4000, NIGHT);
     escapeJail(s);
     const due = NIGHT + rules.promise.dueDays * SECONDS_PER_GAME_DAY;
-    expect(s.jailDebt).toEqual({ cents: 4000, dueAt: due, region: jail.lockup.region });
+    expect(s.jailDebt).toEqual({ cents: 4000, dueAt: due, region: bayfield.region });
     expect(settleDebt(defs, jail, s, due - 1)).toBeUndefined();
 
     // Through a save, and paid in full.
     const paid = parseWorldState(JSON.parse(JSON.stringify(s)));
     paid.player.purse = 6000;
-    const heat = paid.wanted[jail.lockup.region]?.heat ?? 0;
+    const heat = paid.wanted[bayfield.region]?.heat ?? 0;
     expect(settleDebt(defs, jail, paid, due)).toMatchObject({ paidCents: 4000, shortCents: 0 });
     expect(paid.player.purse).toBe(2000);
     expect(paid.jailDebt).toBeUndefined();
-    expect(paid.wanted[jail.lockup.region]?.heat ?? 0).toBe(heat);
+    expect(paid.wanted[bayfield.region]?.heat ?? 0).toBe(heat);
 
     // Short: he talks.
     s.player.purse = 1000;
     expect(settleDebt(defs, jail, s, due)).toMatchObject({ paidCents: 1000, shortCents: 3000 });
     expect(s.player.purse).toBe(0);
-    expect(s.wanted[jail.lockup.region]?.heat ?? 0).toBe(heat + rules.promise.heat);
+    expect(s.wanted[bayfield.region]?.heat ?? 0).toBe(heat + rules.promise.heat);
     expect(s.jailDebt).toBeUndefined();
   });
 

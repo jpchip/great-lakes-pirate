@@ -258,6 +258,28 @@ export const districtDefSchema = z.object({
   gangway: z.string(),
   /** The buildings worth breaking into, their locks, owners and containers (piece E). */
   targets: z.array(heistTargetSchema).default([]),
+  /**
+   * Made land (Phase 9 piece X): rectangles in local meters where the baked ground is raised
+   * to at least `heightM`, as a city's filled waterfront is, over the zone heightmap's
+   * creeks and old slips. Raised only, never lowered, so the zone's own ground never shows
+   * through the district's.
+   */
+  fills: z
+    .array(
+      z.object({
+        x0: z.number(),
+        z0: z.number(),
+        x1: z.number(),
+        z1: z.number(),
+        heightM: z.number(),
+      }),
+    )
+    .default([]),
+  /**
+   * The watch's names, by guard id (`constable.waterfront`, `constable.lockup`, a beat's
+   * `constable.<route>`): Bayfield's Duffy and Ryan when none is given.
+   */
+  watchNames: z.record(z.string(), z.string().min(1)).default({}),
 });
 export type DistrictDef = z.infer<typeof districtDefSchema>;
 

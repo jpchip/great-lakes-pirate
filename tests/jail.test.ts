@@ -8,6 +8,8 @@ import {
   gameJail,
   imprison,
   imprisonMinor,
+  lockupAt,
+  lockupFor,
   minorArrest,
   payFine,
   release,
@@ -100,9 +102,22 @@ describe('jail (plan 12 §8.1)', () => {
       ],
       cashCents: 4321,
     });
-    expect(j.port).toBe(jail.lockup.port);
+    expect(j.port).toBe('port.bayfield');
     expect(j.releaseAt).toBe(NOON + j.sentenceWeeks * SECONDS_PER_GAME_DAY);
     expect(j.execution).toBe(false);
+  });
+
+  it('holds a captain in the lockup for the region he was taken in (Phase 9 piece X)', () => {
+    for (const r of ['region.duluth', 'region.superior', 'region.north_shore'])
+      expect(lockupFor(jail, r).port, r).toBe('port.duluth');
+    for (const r of [APOSTLES, 'region.chequamegon', undefined])
+      expect(lockupFor(jail, r).port, r).toBe('port.bayfield');
+    expect(lockupAt(jail, 'port.duluth').name).toBe('the Duluth police station');
+    expect(lockupAt(jail, 'port.nowhere').port).toBe('port.bayfield');
+    const s = run(tierDef(defs, 2).minHeat);
+    expect(imprison(defs, jail, s, { ...capture, region: 'region.duluth' }, NOON).port).toBe(
+      'port.duluth',
+    );
   });
 
   it('serving the sentence brings the region down to tier 1, the fee from the strongbox', () => {

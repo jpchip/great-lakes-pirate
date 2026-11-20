@@ -666,7 +666,12 @@ No caches are filled (piece T), nobody lives there (residents are Q's), and ther
 
 **Not in piece R:** residents, lit windows, caches in the cairns, wildlife, caves, digging, hideout sites, drawn rival camps, and discovery places for the new prefabs (only Rocky's fish camp moved).
 
+### 18.19 Piece X as built: Duluth (2026-11-20)
+
+Built as scoped; the write-up is [08 §21](08-docks-district-stealth.md). You go ashore at the merchandise dock from the Twin Ports zone. Duluth's waterfront has a police constable on each of three beats and a fourth at the station, five buildings worth burgling, and counters at the saloon, general store, chandlery and harbor office. The fence's back room after dark replaces its port-screen tab. A captain taken in the Duluth, Superior or North Shore region is held in the police station's lockup and can break out of it. Criterion 17 is checked by `e2e/duluth.spec.ts`. The layout is a first draft for Jared to review in the district editor.
+
 ## Changelog
+- v0.17: Piece X as built (§18.19): the Duluth district.
 - v0.16: Piece R as built (§18.18): the fourteen standard and minor islands walkable with their prefabs, landings, stations inside their islands, the overlapping-box fix, the rock climb out of the boat, `tests/islands.test.ts` over all 22 and `bench.island` per tier.
 - v0.15: Piece Q as built (§18.17): the seven hero islands walked whole with their POIs, landings and residents, La Pointe's trading post on foot, islanders who see and report as townsfolk, and lit windows at night.
 - v0.14: Piece N as built (§18.16): winter audio.

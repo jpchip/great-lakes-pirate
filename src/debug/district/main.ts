@@ -224,7 +224,11 @@ if (params.get('edit') === '1') {
 }
 
 // --- Bench: a scripted camera along the waterfront -----------------------------------------
-const benchRoute = [
+// Bayfield's walk from the fish pier; any other district walks its waterfront beat.
+const waterfrontBeat = model.marks
+  .filter((m) => m.kind === 'patrol' && m.ref === 'route.waterfront')
+  .map((m) => [m.x, m.z] as const);
+const bayfieldRoute = [
   [-37, -60],
   [-40, -24],
   [-10, -10],
@@ -234,12 +238,18 @@ const benchRoute = [
   [40, 30],
   [-20, 20],
 ] as const;
+const benchRoute: readonly (readonly [number, number])[] =
+  def.id === 'district.bayfield' || waterfrontBeat.length < 2 ? bayfieldRoute : waterfrontBeat;
+/** A fixed camera for screenshots (`district.camera = { from, to }`), or the follow camera. */
+let cameraOverride:
+  | { from: { x: number; y: number; z: number }; to: { x: number; y: number; z: number } }
+  | undefined;
 let benchT = 0;
 function benchCamera(dt: number): void {
   benchT += dt;
   const seg = Math.floor(benchT / 4) % benchRoute.length;
-  const a = benchRoute[seg] ?? benchRoute[0];
-  const b = benchRoute[(seg + 1) % benchRoute.length] ?? benchRoute[0];
+  const a = benchRoute[seg] ?? bayfieldRoute[0];
+  const b = benchRoute[(seg + 1) % benchRoute.length] ?? bayfieldRoute[0];
   const t = (benchT % 4) / 4;
   const x = a[0] + (b[0] - a[0]) * t;
   const z = a[1] + (b[1] - a[1]) * t;
@@ -277,8 +287,14 @@ const loop = createLoop(
         const { dx, dy } = look.consume();
         follow.look(dx, dy);
         follow.update({ x, y, z }, c.crouching, zone, frameSeconds);
-        scene.camera.position.set(follow.position.x, follow.position.y, follow.position.z);
-        scene.camera.lookAt(follow.target.x, follow.target.y, follow.target.z);
+        if (cameraOverride) {
+          const { from, to } = cameraOverride;
+          scene.camera.position.set(from.x, from.y, from.z);
+          scene.camera.lookAt(to.x, to.y, to.z);
+        } else {
+          scene.camera.position.set(follow.position.x, follow.position.y, follow.position.z);
+          scene.camera.lookAt(follow.target.x, follow.target.y, follow.target.z);
+        }
         focus.set(x, y, z);
       }
       scene.setPlayer(x, y, z, c.heading, c.crouching, true);
@@ -341,5 +357,9 @@ Object.assign(window, {
       return { pathMs, pathCount };
     },
     setGuards,
+    set camera(c: typeof cameraOverride) {
+      cameraOverride = c;
+    },
+    showNav: (on: boolean) => scene.showNav(on),
   },
 });

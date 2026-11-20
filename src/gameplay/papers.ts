@@ -9,7 +9,7 @@ import { portInfo } from '../sim/economy/defs';
 import { formatCents } from '../sim/economy/knowledge';
 import type { LawDefs } from '../sim/law/defs';
 import type { LawShipsState } from '../sim/law/patrol';
-import { gameJail } from '../sim/law/jail';
+import { gameJail, lockupAt } from '../sim/law/jail';
 import { regionAtGeo, regionOfPort } from '../sim/law/regions';
 import {
   addStory,
@@ -333,14 +333,14 @@ export function attachPapers(opts: PapersOptions): GamePapers {
         ident: 'person',
       });
     }),
-    ev.on('Released', () => {
+    ev.on('Released', (e) => {
       const at = now();
       add({
         kind: 'released',
         key: `released:${at}`,
         at,
-        region: gameJail().lockup.region,
-        port: gameJail().lockup.port,
+        region: lockupAt(gameJail(), e.port).region,
+        port: e.port,
         ident: 'person',
       });
     }),
