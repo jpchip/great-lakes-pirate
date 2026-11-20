@@ -60,7 +60,12 @@ export function attachRecord(ctx: GameContext, defs: LawDefs): () => void {
           : `Passed ${e.qty} CU of ${good(e.good)} to the island smuggler.`,
       );
     }),
-    ev.on('CrimeCommitted', () => (stats().crimes += 1)),
+    ev.on('CrimeCommitted', (e) => {
+      const s = stats();
+      s.crimes += 1;
+      // Lives taken (Phase 9 piece B): the run summary's count.
+      if (e.crime === 'crime.killing') s.killed = (s.killed ?? 0) + (e.details?.killed ?? 1);
+    }),
     ev.on('ReportFiled', (e) => {
       if (e.heatAdded <= 0) return;
       write(

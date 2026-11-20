@@ -19,6 +19,8 @@ export const statsSchema = z.object({
   captures: z.number().int().nonnegative(),
   /** Every region's highest tier reached. */
   peakTier: z.number().int().nonnegative(),
+  /** Lives taken by your hand, seen or not (Phase 9 piece B; absent before it: none counted). */
+  killed: z.number().int().nonnegative().optional(),
 });
 export type RunStats = z.infer<typeof statsSchema>;
 

@@ -9,6 +9,7 @@ import { contractsFileSchema } from './contracts';
 import { itemsFileSchema, recipesFileSchema, stationsFileSchema } from './crafting';
 import { districtsFileSchema, kitFileSchema } from './districts';
 import { curiosFileSchema, discoveriesFileSchema } from './discoveries';
+import { endingsFileSchema } from './endings';
 import { eventsFileSchema } from './events';
 import { factionsFileSchema } from './factions';
 import { feudsFileSchema } from './feuds';
@@ -61,6 +62,7 @@ export const dataFileSchemas: Readonly<Record<string, z.ZodType>> = {
   'contracts.json': contractsFileSchema,
   'crimes.json': crimesFileSchema,
   'districts.json': districtsFileSchema,
+  'endings.json': endingsFileSchema,
   'events.json': eventsFileSchema,
   'discoveries.json': discoveriesFileSchema,
   'curios.json': curiosFileSchema,

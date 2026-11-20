@@ -36,6 +36,9 @@ export const storySchema = z.object({
   owner: z.string().optional(),
   killed: z.number().int().nonnegative().optional(),
   cashCents: z.number().int().nonnegative().optional(),
+  /** Your nickname, and the one it replaced (Phase 9 piece B: the nickname stories). */
+  nick: z.string().optional(),
+  oldNick: z.string().optional(),
   /** Heat the law added for it: the first printing adds the papers' share on top. */
   heat: z.number().nonnegative().default(0),
   printedIn: z.array(z.string()).default([]),
@@ -62,6 +65,8 @@ export const wantedNoticeSchema = z.object({
   detail: z.string(),
   charge: z.string(),
   reward: z.string().optional(),
+  /** The name the papers know you by (Phase 9 piece B). */
+  alias: z.string().optional(),
 });
 export type WantedNotice = z.infer<typeof wantedNoticeSchema>;
 
