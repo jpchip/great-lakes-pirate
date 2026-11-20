@@ -10,6 +10,11 @@
     "text": "A bronze bell with a drowned ship's name cast round it, brought up from a wreck."
   },
   {
+    "id": "curio.wreck_lantern",
+    "name": "A ship's side lantern",
+    "text": "A brass side lantern, its green glass gone milky, grappled up from an old wreck nobody remembers."
+  },
+  {
     "id": "curio.quarry_pick",
     "name": "A quarryman's pick",
     "text": "A stonecutter's pick with a hickory handle worn smooth, from a quarry that shut in '93."

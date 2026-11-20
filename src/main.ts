@@ -1,5 +1,5 @@
 import { Raycaster, Vector2, Vector3 } from 'three';
-import { zoneToChart } from './core/coords';
+import { chartToZone, zoneToChart } from './core/coords';
 import { SECONDS_PER_GAME_DAY, dayAndHour, parseTimeWarp } from './core/time';
 import { EventBus } from './core/events';
 import { codeLabel, DEFAULT_BINDINGS, InputMapper, type InputContext } from './core/input';
@@ -173,9 +173,12 @@ import { withSailingPerks } from './sim/character/perks';
 import { attachCaptain } from './gameplay/captain';
 import { attachAmbitions } from './gameplay/ambitions';
 import { attachDiscovery, placeTalk } from './gameplay/discovery';
+import { attachSalvage, type GameSalvage } from './gameplay/salvage';
+import { oldWrecks } from './sim/salvage';
 import {
   CHARTED_SHOAL_WARN_DRAFTS,
   discoveriesFile,
+  worldChart,
   worldGeo,
   type Lookout,
 } from './sim/discovery/discovery';
@@ -191,6 +194,7 @@ import { attachPortLaw } from './gameplay/port-law';
 import { attachPapers } from './gameplay/papers';
 import { attachWrecking } from './gameplay/wrecking';
 import { createFalseLights, type FalseLightView } from './render/wrecking/false-lights';
+import { createWreckHulls, type WreckHullView } from './render/salvage/wreck-hulls';
 import { MARKS } from './sim/wrecking';
 import { pierPort } from './sim/harbors';
 import { attachLawShips } from './gameplay/law-ships';
@@ -810,11 +814,15 @@ async function boot(): Promise<void> {
   // lookout is wired below, once the camera, the chart and the captain ashore are up.
   const lookoutRef: { current: (() => Lookout | undefined) | undefined } = { current: undefined };
   const noticeRef: { current: ((text: string) => void) | undefined } = { current: undefined };
+  const salvageRef: { current: GameSalvage | undefined } = { current: undefined };
   const discovery = attachDiscovery({
     ctx,
     law: law.defs,
     notice: (text) => noticeRef.current?.(text),
     lookout: () => lookoutRef.current?.(),
+    // The old wrecks on the bottom and what's come up from each (piece U).
+    oldWrecks: () => oldWrecks(trafficSeed),
+    wreckNote: (id) => salvageRef.current?.note(id),
   });
   if (import.meta.env.DEV || params.has('debug')) {
     // `__glpLaw.commit('crime.smuggler_deal', 'region.apostles', 'keeper', 'ship')` commits
@@ -2099,6 +2107,26 @@ async function boot(): Promise<void> {
     falseLights = createFalseLights();
     scene.scene.add(falseLights.group);
   }
+  // The wrecks on the bottom (piece U), drawn where they lie; the run's own with a mast out.
+  let wreckHulls: WreckHullView | undefined;
+  if (scene) {
+    wreckHulls = createWreckHulls();
+    scene.scene.add(wreckHulls.group);
+  }
+  let hullsClock = 0;
+  const syncWreckHulls = (): void => {
+    if (!wreckHulls || ++hullsClock % 30 !== 1) return;
+    const t = ctx.terrain;
+    wreckHulls.sync(
+      salvage
+        .sites()
+        .flatMap((s) =>
+          t && !s.deep
+            ? [{ id: s.id, x: s.x, z: s.z, bottomY: t.heightAt(s.x, s.z), mast: !s.old }]
+            : [],
+        ),
+    );
+  };
   const syncWrecking = (): void => {
     for (const s of wrecking.stranded()) {
       if (traffic.shown.has(s.shipId) && !targets.isStruck(s.shipId)) {
@@ -2281,6 +2309,83 @@ async function boot(): Promise<void> {
     if (after !== before) ctx.events.emit('DayChanged', { day: after });
     ctx.weather.tick(clock.gameSeconds, shipPose(), ctx.sea);
   };
+  // Salvage (Phase 9 piece U): old wrecks and the run's found by sight or the lead line,
+  // worked with the grapple and hook at anchor.
+  const salvage = attachSalvage({
+    ctx,
+    law,
+    economy,
+    discovery,
+    seed: trafficSeed,
+    zone: () =>
+      zone && !arena && !inArenaSpace
+        ? { id: zoneData.id, frame: zoneFrame(zone, zoneData) }
+        : undefined,
+    depthAt: (x, z) => {
+      const t = ctx.terrain;
+      return t && t.contains(x, z) ? t.depthAt(x, z) : undefined;
+    },
+    hsAt: (x, z) => ctx.weather.waveParams({ x, z }).hsM,
+    ship: () =>
+      machine.mode === 'sailing' && !arena && !inArenaSpace && !changingZone
+        ? shipPose()
+        : undefined,
+    anchored: () => hazards.state.anchor === 'down',
+    daylight: () => daylight01(sunAt(state.environment.clock.gameSeconds).elevationRad),
+    visibilityM: () => ctx.weather.fogVisibilityAt(state.environment.clock.gameSeconds),
+    passTime: (s) => passGameTime(s),
+    notice: (text) => showNotice(text),
+  });
+  salvageRef.current = salvage;
+  if (import.meta.env.DEV || params.has('debug')) {
+    // `__glpSalvage.sites()` lists the wrecks in the zone; `.over(id)` puts the ship over
+    // one at anchor; `.cast(chance?)` casts the grapple now; `.look()` looks over the side.
+    const hook = {
+      state: () => salvage.state,
+      old: () => salvage.old,
+      sites: () =>
+        salvage.sites().map((s) => ({
+          id: s.id,
+          name: s.name,
+          x: s.x,
+          z: s.z,
+          claim: s.claim,
+          depthM: ctx.terrain?.depthAt(s.x, s.z),
+          known: discovery.knows(s.id),
+        })),
+      over: (id: string, dropAnchor = true) => {
+        const s = salvage.sites().find((x) => x.id === id);
+        if (!s) return false;
+        placeShip({ x: s.x + 6, z: s.z, heading: 0 });
+        if (dropAnchor) {
+          hazards.state.anchor = 'down';
+          hazards.state.anchorX = s.x + 6;
+          hazards.state.anchorZ = s.z;
+        }
+        return true;
+      },
+      look: () => salvage.look(),
+      /** Depth at zone meters, and the geo of a zone point / zone point of a geo (placing wrecks). */
+      depthAt: (x: number, z: number) => ctx.terrain?.depthAt(x, z),
+      geoAt: (x: number, z: number) => worldGeo(zoneToChart({ x, z }, zoneFrame(zone, zoneData))),
+      zoneAt: (lat: number, lon: number) =>
+        chartToZone(worldChart({ lat, lon }), zoneFrame(zone, zoneData)),
+      spike: () => {
+        const p = shipPose();
+        return salvage.spikeAt(p.x, p.z);
+      },
+      offer: () => {
+        const o = salvage.offer();
+        return o && { id: o.site.id, depthM: o.depthM, refusal: o.refusal };
+      },
+      chip: () => salvage.chip(),
+      start: () => salvage.start(),
+      cast: (chance?: number) => salvage.castNow(chance),
+      left: (id: string) => salvage.left(id),
+      note: (id: string) => salvage.note(id),
+    };
+    (window as unknown as { __glpSalvage: typeof hook }).__glpSalvage = hook;
+  }
   const boarding = attachBoarding({
     ctx,
     player: playerShip,
@@ -3291,6 +3396,8 @@ async function boot(): Promise<void> {
     if (board) return [board];
     const rig = rigChip();
     if (rig) return [rig];
+    const grapple = salvage.chip();
+    if (grapple) return [grapple];
     const near = traffic.nearest(shipPose(), HAIL_RANGE_M);
     if (!near) return [];
     if (smuggler.isSmuggler(near.id)) {
@@ -3338,6 +3445,8 @@ async function boot(): Promise<void> {
       }
     }
     if (arena) return;
+    // At anchor over a wreck you know, F casts the grapple (Phase 9 piece U).
+    if (e.reason === 'anchored' && salvage.start()) return;
     // At a wrecking mark with a rig aboard, F hangs the false light (Phase 9 piece I).
     if (e.reason === 'noBerth' || e.reason === 'anchored') {
       const o = rigOffer();
@@ -5167,6 +5276,8 @@ async function boot(): Promise<void> {
           label: `Wreck of the ${w.name}`,
           kind: 'wreck' as const,
         })),
+      // The old wrecks found on the bottom (piece U).
+      ...salvage.marks(),
       // What's been found and what's talked of (piece O), and the leads' search circles.
       ...discovery.marks(),
       ...discovery.leadMarks().map((l) => ({ ...l, kind: 'lead' as const })),
@@ -5406,6 +5517,7 @@ async function boot(): Promise<void> {
         if (traffic.step(hazards.state.berthId)) sailingOptions.berths = freeBerths();
         smuggler.step(shipPose());
         syncWrecking();
+        syncWreckHulls();
       }
       lantern.step();
       if (sameContext && input.context === 'sailing' && input.pressed('Lantern')) {
@@ -5504,8 +5616,12 @@ async function boot(): Promise<void> {
       discoveryClock += frameSeconds;
       if (discoveryClock >= DISCOVERY_LOOK_S) {
         discoveryClock = 0;
-        if (!run.over) discovery.look();
+        if (!run.over) {
+          discovery.look();
+          salvage.look();
+        }
       }
+      salvage.update(frameSeconds);
       if (notice && hudSeconds > notice.untilS) {
         notice = undefined;
         hudClock = HUD_INTERVAL_S;
@@ -5611,6 +5727,11 @@ async function boot(): Promise<void> {
             notice: notice?.text,
             chartLocked: pursued || !!arena?.run.pursued,
             chartOffered: arena ? false : atEdge(),
+            depthSpikeM: (() => {
+              if (arena || inArenaSpace) return undefined;
+              const p = shipPose();
+              return salvage.spikeAt(p.x, p.z) || undefined;
+            })(),
             extraStatus: [
               ...(arena ? arenaStatus(arena.run, arena.inputs(playerShip)) : []),
               ...trafficChips(),

@@ -495,6 +495,20 @@ export interface GameEvents {
   WonderSeen: { id: string };
   LeadUpdated: { id: string; opened: boolean };
   CurioFound: { id: string };
+  /**
+   * Salvage (plan 11 §6.2; Phase 9 piece U): the grapple went down on a wreck and came up
+   * (`kind`: nothing, cargo with `qty` sound and `spoiled` CU of `good`, her papers, a curio).
+   * The line goes down at `GrappleCast` (the sound of it, piece Y).
+   */
+  GrappleCast: { wreck: string };
+  WreckWorked: {
+    wreck: string;
+    kind: 'nothing' | 'cargo' | 'papers' | 'curio';
+    good?: string;
+    qty: number;
+    spoiled: number;
+    hot: boolean;
+  };
 }
 
 /** Everything a mode needs; built once at boot and handed to each mode. */
