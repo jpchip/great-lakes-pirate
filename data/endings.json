@@ -1,7 +1,7 @@
 {
   "checkHours": 6,
   "retire": {
-    "wealthCents": 500000,
+    "wealthCents": 1000000,
     "maxWantedTier": 2,
     "event": "event.retirement_offer",
     "retirements": [

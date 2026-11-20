@@ -11,7 +11,8 @@ import {
  * Lawman, and which letter choice takes which. Both are offered by a letter at the harbor
  * masters' (`gameplay/endings.ts` fires it); the pages are built by `run-end.ts`.
  *
- * - **Retire:** cash aboard and stashed at least `retire.wealthCents`, and no region above
+ * - **Retire:** cash in your hideouts' strongboxes at least `retire.wealthCents` (the same
+ *   measure as the wealth Ambitions), and no region above
  *   `retire.maxWantedTier` (tier 3, Hunted, and up rules it out). Three retirements.
  * - **Turn Lawman:** Fame tier at least `lawman.minFameTier`, every region at
  *   `lawman.maxWantedTier` or below, and Standing of `standing.min` in `standing.ports` ports.
