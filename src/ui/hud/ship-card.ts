@@ -17,7 +17,7 @@ export interface ShipCard {
   subtitle: string;
   /** "Duluth → the lower lakes", or where she lies. */
   route: string | undefined;
-  /** One line per good: "4,620 CU iron ore". "In ballast" when empty. */
+  /** One line per good: "4,620 CU iron ore". "In ballast" when empty, "Government stores" for the cutter. */
   cargo: string[];
   /** "Cargo worth about $13,860", absent in ballast. */
   value: string | undefined;
@@ -69,10 +69,12 @@ export function shipCard(src: ShipCardSource): ShipCard {
     const to = placeName(src.nodes, m.to, m.toPort);
     route = src.lyingAt ? `Loading at ${from} for ${to}` : `${from} → ${to}`;
   }
+  // An empty hold is ballast. Only the revenue cutter's empty hold is government stores:
+  // a rival is armed too, and she is not a government boat.
   const cargo =
     m && m.cargo.length > 0
       ? m.cargo.map((l) => `${l.qty.toLocaleString('en-US')} CU ${src.goodNames(l.good)}`)
-      : m?.armed
+      : m?.armed && src.owner?.kind === 'government'
         ? ['Government stores']
         : ['In ballast'];
   const value = m && m.valueCents > 0 ? `Cargo worth about ${dollars(m.valueCents)}` : undefined;
