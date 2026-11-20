@@ -1,0 +1,12 @@
+{
+  "id": "amb.winter.wind",
+  "name": "wind",
+  "description": "Winter wind over the ice and the bare shore (16 s, looped): dry and hollow, a moan rising and falling, drifting snow hissing",
+  "kind": "loop",
+  "bus": "ambience",
+  "loopCrossfadeS": 1.5,
+  "bundles": [
+    "winter-audio"
+  ],
+  "source": "source.flac"
+}

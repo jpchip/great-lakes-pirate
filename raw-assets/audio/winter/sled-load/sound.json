@@ -1,0 +1,11 @@
+{
+  "id": "sfx.sled.load",
+  "name": "sled-load",
+  "description": "A load set down on the sled's slats and lashed: the thump, a slide, the rope drawn tight",
+  "kind": "oneshot",
+  "bus": "sfx",
+  "bundles": [
+    "winter-audio"
+  ],
+  "source": "source.flac"
+}

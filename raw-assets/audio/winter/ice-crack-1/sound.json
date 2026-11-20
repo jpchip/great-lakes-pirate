@@ -1,0 +1,11 @@
+{
+  "id": "sfx.ice.crack-1",
+  "name": "ice-crack-1",
+  "description": "Thin lake ice cracking underfoot: the snap, the sheet settling, the crack running off as a falling \"pew\" (variant 1)",
+  "kind": "oneshot",
+  "bus": "sfx",
+  "bundles": [
+    "winter-audio"
+  ],
+  "source": "source.flac"
+}

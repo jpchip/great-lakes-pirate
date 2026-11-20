@@ -1,0 +1,11 @@
+{
+  "id": "amb.winter.gust-1",
+  "name": "gust-1",
+  "description": "A gust of winter wind swelling round you, whistling, with blown snow in it (variant 1)",
+  "kind": "oneshot",
+  "bus": "ambience",
+  "bundles": [
+    "winter-audio"
+  ],
+  "source": "source.flac"
+}

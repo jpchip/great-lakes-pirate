@@ -1,0 +1,10 @@
+{
+  "source": "procedural",
+  "tool": "tools/audio/synth.ts (tools/audio/lib/synth.ts)",
+  "author": "Great Lakes Pirate contributors",
+  "reference": "Very low noise, sparse stick-slip creaks and ticks, sine taps, a far dispersive chirp, a large reverb, the tail folded onto the head",
+  "date": "2026-11-20",
+  "license": "CC BY 4.0",
+  "attribution": "Great Lakes Pirate contributors",
+  "modifications": []
+}
