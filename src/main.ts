@@ -57,6 +57,11 @@ import { DEFAULT_SHIP_CAMERA } from './gameplay/camera/ship-camera';
 import { attachTraffic, HAIL_RANGE_M, LOOK_RANGE_M, type TrafficZone } from './gameplay/traffic';
 import { createContacts, type Contact } from './sim/chart/traffic';
 import { portInfo } from './sim/economy/defs';
+import { formatCents } from './sim/economy/knowledge';
+import { takeCleanFromHold, type CargoStack } from './sim/economy/hold';
+import { COLD } from './sim/cold/footing';
+import { layRoad, roadOpen, snowLies, thinnestOnRoad } from './sim/cold/road';
+import type { AshoreWinter } from './gameplay/cold';
 import { pierSideKey, sideOfBerth } from './sim/traffic/berths';
 import { clearArena, materializeArena, type ArenaPlay } from './gameplay/arena';
 import {
@@ -937,6 +942,7 @@ async function boot(): Promise<void> {
     sites: harborSites(harborLayouts),
     captions: settings.value.ui.captions,
     region: () => law.region(),
+    zoneId: () => zoneData.id,
     onState: (s) => (document.body.dataset['audio'] = s),
   }).catch((err: unknown) => {
     console.warn('Audio unavailable; running silent', err);
@@ -946,7 +952,13 @@ async function boot(): Promise<void> {
   if (audio) document.body.dataset['audioBank'] = String(audio.bank.size);
   // `?debug`: sound the nearest fog signal now, for the captions' e2e test (piece J).
   if (audio && params.has('debug')) {
-    const hook = { fogSignal: () => audio.world.signalNow() };
+    const hook = {
+      fogSignal: () => audio.world.signalNow(),
+      // Stage 1 (piece J): what's sounding, and a rival's stinger for piece E's hook.
+      sandbox: () => audio.sandbox.levels,
+      rival: (why: 'news' | 'sighted' | 'parley' | 'beaten' = 'sighted') =>
+        ctx.events.emit('RivalStinger', { rival: 'dev', why }),
+    };
     (window as unknown as { __glpAudio: typeof hook }).__glpAudio = hook;
   }
   /** The chart's music and cues on the page, for the e2e tests; written only on a change. */
@@ -986,6 +998,17 @@ async function boot(): Promise<void> {
     const still = a.hideout.levels.still.toFixed(2);
     if (d['hideoutStill'] !== still) d['hideoutStill'] = still;
     if (a.ui.last && d['uiCue'] !== a.ui.last) d['uiCue'] = a.ui.last;
+    // Stage 1 (Phase 9 piece J).
+    const sb = a.sandbox.levels;
+    if (sb.last && d['sandboxCue'] !== sb.last) d['sandboxCue'] = sb.last;
+    const sbBeds = Object.entries(sb.beds)
+      .filter(([, g]) => g > 0.01)
+      .map(([id]) => id)
+      .join(' ');
+    if (d['sandboxBeds'] !== sbBeds) d['sandboxBeds'] = sbBeds;
+    if (d['sandboxTune'] !== sb.tune) d['sandboxTune'] = sb.tune;
+    const sbCues = String(sb.cues);
+    if (d['sandboxCues'] !== sbCues) d['sandboxCues'] = sbCues;
     const beds = Object.entries(a.foot.levels.beds)
       .filter(([, g]) => g > 0.01)
       .map(([id]) => id)
@@ -1236,6 +1259,8 @@ async function boot(): Promise<void> {
   /** Puts the tier-5 front page away (piece F); set once the papers are attached. */
   const frontPageRef: { current: (() => void) | undefined } = { current: undefined };
   const ui = mountGameUi({
+    // The port screen's tab, heard: the harbor master's bell, the saloon's room (piece J).
+    onPortTab: (tab) => audio?.portTab(tab),
     root: uiRoot,
     settings,
     port: {
@@ -3812,8 +3837,95 @@ async function boot(): Promise<void> {
   };
   /** Dev hook: forces `suspect` on foot (see `__glpFoot.suspect`). */
   const suspectOverride: { value: boolean | undefined } = { value: undefined };
+  // Winter on foot (Phase 9 piece M): the lake's ice to walk on, the cold, the hand sled and
+  // the Bayfield–La Pointe ice road.
+  const iceRoadCache: { key: string; road: ReturnType<AshoreWinter['road']> } = {
+    key: '',
+    road: undefined,
+  };
+  /** Dev hook: thin ice of this thickness within 40 m of a zone point (`__glpCold.thin`). */
+  const thinIceOverride: { at: { x: number; z: number; cm: number } | undefined } = {
+    at: undefined,
+  };
+  const ashoreWinter: AshoreWinter = {
+    seed: trafficSeed,
+    iceAt: (x, z) => {
+      const o = thinIceOverride.at;
+      if (o && Math.hypot(x - o.x, z - o.z) < 40) {
+        return { coverage: 1, thicknessCm: o.cm, kind: 'fast' as const };
+      }
+      return gameIce.at(
+        fromWorldChart(westernSuperiorChart(), zoneToChart({ x, z }, zoneFrame(zone, zoneData))),
+      );
+    },
+    air: () => {
+      const t = state.environment.clock.gameSeconds;
+      const at = ashoreRef.current?.zoneAt() ?? shipPose();
+      return {
+        airC: ctx.weather.airAt(t),
+        windKn: ctx.weather.windAt(at, t).speedKn,
+        precip01: ctx.weather.rainAt(t),
+      };
+    },
+    snow: () => snowLies(trafficSeed, state.environment.clock.gameSeconds),
+    road: () => {
+      const key = `${zoneData.id}|${harborLayouts.length}`;
+      if (iceRoadCache.key !== key) {
+        iceRoadCache.key = key;
+        const piers = harborLayouts.flatMap((l) => l.piers);
+        const a = piers.find((p) => p.id === COLD.road.from);
+        const b = piers.find((p) => p.id === COLD.road.to);
+        const at = (p: typeof a & object, along: number) => ({
+          x: p.root.x + Math.sin(p.bearing) * along,
+          z: p.root.z - Math.cos(p.bearing) * along,
+        });
+        iceRoadCache.road =
+          a && b
+            ? {
+                ...layRoad(at(a, a.lengthM + 6), at(b, b.lengthM + 6)),
+                fromHead: { ...at(a, a.lengthM - 3), y: a.deckM },
+                toHead: { ...at(b, b.lengthM - 3), y: b.deckM },
+              }
+            : undefined;
+      }
+      return iceRoadCache.road;
+    },
+    roadPier: COLD.road.from,
+    roadPort: COLD.road.toPort,
+    weightOf: (g) => economy.defs.goods.get(g)?.weightFactor ?? 1,
+    valueOf: (g) => economy.defs.goods.get(g)?.basePriceCents ?? 0,
+    hold: () => state.player.cargo,
+    holdChanged: () => economy.syncLoad(),
+    sell: (port, load) => {
+      const left: CargoStack[] = [];
+      let cents = 0;
+      let sold = 0;
+      for (const l of load) {
+        if (l.hot || l.contract) {
+          left.push(l);
+          continue;
+        }
+        state.player.cargo.push({ good: l.good, qty: l.qty });
+        const r = economy.sell(port, l.good, l.qty);
+        if (r.ok) {
+          cents += r.event.totalCents;
+          sold += l.qty;
+        } else {
+          takeCleanFromHold(state.player.cargo, l.good, l.qty);
+          left.push(l);
+        }
+      }
+      economy.syncLoad();
+      const name = portInfo(port)?.name ?? 'the trading post';
+      const line = sold
+        ? `Sold ${sold} CU at ${name} for ${formatCents(cents)}`
+        : `${name}'s trading post won't take any of it`;
+      return { left, line: left.length && sold ? `${line}; the rest stays on the sled` : line };
+    },
+  };
   const ashore = attachAshore({
     ctx,
+    winter: ashoreWinter,
     ship: playerShip,
     hull: {
       lengthM: shipRecord.buoyancy.length,
@@ -3971,6 +4083,8 @@ async function boot(): Promise<void> {
             keeperWeather(ctx.weather.barometerAt(state.environment.clock.gameSeconds)?.trend),
           notice: (text) => showNotice(text),
           changed: () => void stationLights(),
+          // The lamp, the stair, the oil house and the keepers, heard (piece J).
+          sound: (cue) => audio?.sandbox.station(cue),
           // The keepers note the shoals and wrecks near the light (piece O).
           logbook: () => {
             const n = discovery.logbookRead(station.def.light).length;
@@ -4084,6 +4198,8 @@ async function boot(): Promise<void> {
           // Phase 9 piece A: a storm-bound fleet's crews, or a round stood, drink easy.
           easy: () =>
             crewsIdle(state.events, landing.def.port, state.environment.clock.gameSeconds),
+          // Frozen in (Phase 9 piece M): laid up for the winter, her crew paid off.
+          laidUp: gameIce.harborClosed(landing.def.port),
         },
         // Part two: the district's locks and loot, remembered in the save.
         heist: {
@@ -4702,6 +4818,66 @@ async function boot(): Promise<void> {
         ),
     };
     (window as unknown as { __glpPoi: typeof poiHook }).__glpPoi = poiHook;
+    /**
+     * Winter on foot (Phase 9 piece M): `__glpCold.state()` reads warmth, the ice under you,
+     * the sled and your prints; `.road()` the ice road; `.toRoad()` goes down onto it;
+     * `.walk(t)` puts you a share `t` along it; `.warmth(v, wet)` sets the meter.
+     */
+    const coldHook = {
+      state: () => ashore.winter(),
+      road: () => {
+        const r = ashoreWinter.road();
+        const ice = (p: { x: number; z: number }) => ashoreWinter.iceAt(p.x, p.z).thicknessCm;
+        return (
+          r && {
+            from: r.from,
+            to: r.to,
+            lengthM: r.lengthM,
+            markers: r.markers.length,
+            thinnestCm: thinnestOnRoad(r, ice),
+            open: roadOpen(r, ice),
+          }
+        );
+      },
+      toRoad: () => ashore.iceRoad(),
+      walk: (t: number, offM = 0) => {
+        const r = ashoreWinter.road();
+        if (!r) return false;
+        const len = r.lengthM || 1;
+        const ux = (r.to.x - r.from.x) / len;
+        const uz = (r.to.z - r.from.z) / len;
+        ashore.teleport(
+          r.from.x + (r.to.x - r.from.x) * t - uz * offM,
+          r.from.z + (r.to.z - r.from.z) * t + ux * offM,
+        );
+        return true;
+      },
+      /** Ice `cm` thick within 40 m of where you stand (undefined: the lake's own). */
+      thin: (cm?: number) => {
+        const at = ashore.zoneAt();
+        thinIceOverride.at = cm === undefined ? undefined : { x: at.x, z: at.z, cm };
+      },
+      /** Beside your ship on the ice, `side` 1 starboard or -1 port. */
+      toShip: (side = 1) => {
+        const p = shipPose();
+        const off = shipRecord.buoyancy.beam / 2 + 1.5;
+        ashore.teleport(
+          p.x + Math.cos(p.heading) * off * side,
+          p.z + Math.sin(p.heading) * off * side,
+        );
+      },
+      purse: () => state.player.purse,
+      cargo: () => state.player.cargo.map((c) => ({ good: c.good, qty: c.qty })),
+      health: () => state.player.health,
+      warmth: (value: number, wet = 0) => {
+        state.player.warmth = { value, wet };
+      },
+      air: () => ashoreWinter.air(),
+      snow: () => ashoreWinter.snow(),
+      ice: (x: number, z: number) => ashoreWinter.iceAt(x, z),
+      prints: () => ashore.tracks.prints.map((p) => ({ x: p.x, z: p.z, sled: p.sled })),
+    };
+    (window as unknown as { __glpCold: typeof coldHook }).__glpCold = coldHook;
     /**
      * Lighthouse stations on foot (plan 11 §18.4 piece H): `list()` the zone's stations,
      * `land(id)` anchors off one and lands on its beach, `goto('tower' | 'house' | 'oil' |
@@ -5758,7 +5934,9 @@ async function boot(): Promise<void> {
           inBoat: body.inBoat,
           mouseLocked: footLook.locked,
           banner: body.banner,
+          warmth: body.warmth,
         });
+        document.body.dataset['warmth'] = body.warmth ? body.warmth.stage : 'warm';
         document.body.dataset['ashore'] = body.inBoat
           ? 'boat'
           : body.swimming

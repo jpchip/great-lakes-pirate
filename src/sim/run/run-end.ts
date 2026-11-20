@@ -18,8 +18,17 @@ import { freshStats, type LogEntry } from './record';
 /** `killed`: shot down in a boarding fight lost at bad odds (Phase 6 piece D). */
 /** `drowned` and `fell`: health ran out ashore, in the water or from a fall (Phase 7 piece A). */
 /** `retired` and `lawman`: the voluntary endings, taken by letter (Phase 9 piece B). */
+/** `froze` and `through_ice`: the cold, or the ice giving way (Phase 9 piece M). */
 export type RunEndCause =
-  'executed' | 'abandoned' | 'killed' | 'drowned' | 'fell' | 'retired' | 'lawman';
+  | 'executed'
+  | 'abandoned'
+  | 'killed'
+  | 'drowned'
+  | 'fell'
+  | 'retired'
+  | 'lawman'
+  | 'froze'
+  | 'through_ice';
 
 /** What a death needs for the papers: the ship she died boarding; a retirement's place. */
 export interface RunEndDetail {
@@ -189,6 +198,38 @@ function frontPage(
       ],
     };
   }
+  if (cause === 'froze') {
+    return {
+      paper,
+      town,
+      dateline: dateline(now),
+      headline: `CAPTAIN ${name} FROZEN TO DEATH`,
+      deck: `Master of the Schooner ${ship} Found in the Snow`,
+      body: [
+        `Captain ${c.name}, master of the schooner ${ship}, was found dead of the cold, lying in the snow with no fire in reach. The winter has taken hardier men, though not many of them were out in it for honest reasons.`,
+        `The ${ship} lies frozen in where she was left.`,
+        famous
+          ? 'The waterfront knew the name. Nobody will say what the captain was doing out there.'
+          : 'Few on the waterfront knew the name. The winter keeps its own accounts.',
+      ],
+    };
+  }
+  if (cause === 'through_ice') {
+    return {
+      paper,
+      town,
+      dateline: dateline(now),
+      headline: `CAPTAIN ${name} THROUGH THE ICE`,
+      deck: `Master of the Schooner ${ship} Lost Off the Ice Road`,
+      body: [
+        `Captain ${c.name}, master of the schooner ${ship}, went through the ice and was not seen again. A hole with broken edges, and the marks of hands that could not get a grip, told the rest.`,
+        `The ${ship} lies frozen in for the winter, with nobody to sail her in the spring.`,
+        famous
+          ? 'The waterfront knew the name. The ice, they say, does not care whose it is.'
+          : 'Few on the waterfront knew the name. The lake keeps its own accounts.',
+      ],
+    };
+  }
   if (cause === 'fell') {
     return {
       paper,
@@ -245,6 +286,8 @@ const ENDINGS: Readonly<Record<RunEndCause, string>> = {
   fell: 'Killed in a fall ashore',
   retired: 'Retired',
   lawman: 'Turned lawman',
+  froze: 'Froze to death',
+  through_ice: 'Went through the ice',
 };
 
 /** "How it ended", a voluntary ending's from `endings.json`. */

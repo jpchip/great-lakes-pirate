@@ -524,7 +524,9 @@ export function attachEvents(opts: EventsOptions): GameEvents {
     unread: () => mail().filter((l) => !l.read).length,
     readLetter(key) {
       const l = mail().find((x) => x.key === key);
-      if (l) l.read = true;
+      if (!l || l.read) return;
+      l.read = true;
+      ctx.events.emit('LetterRead', { key });
     },
     answer(key, id) {
       const l = mail().find((x) => x.key === key);
@@ -536,6 +538,7 @@ export function attachEvents(opts: EventsOptions): GameEvents {
       l.open = false;
       l.read = true;
       l.result = fill(ev, r.result);
+      ctx.events.emit('LetterAnswered', { key, choice: id });
       return l.result;
     },
     talk: () => eventTalk(ctx.state.events, now(), fill),

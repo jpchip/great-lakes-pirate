@@ -1,0 +1,11 @@
+{
+  "id": "sfx.poker.deal-1",
+  "name": "deal-1",
+  "description": "A card dealt across the baize: the flick, the slide, the stop (variant 1)",
+  "kind": "oneshot",
+  "bus": "sfx",
+  "bundles": [
+    "sandbox-audio"
+  ],
+  "source": "source.flac"
+}

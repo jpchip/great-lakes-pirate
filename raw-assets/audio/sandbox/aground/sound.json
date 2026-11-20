@@ -1,0 +1,11 @@
+{
+  "id": "sfx.ship.aground",
+  "name": "aground",
+  "description": "A ship going aground: the strike, the keel dragging over rock and slowing, the timbers groaning, a plank cracking",
+  "kind": "oneshot",
+  "bus": "sfx",
+  "bundles": [
+    "sandbox-audio"
+  ],
+  "source": "source.flac"
+}

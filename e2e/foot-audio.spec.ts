@@ -60,14 +60,16 @@ test('footsteps on the planks, the docks at night, the saloon, a cosh and a shou
   // The lake at the piles, after dark.
   await expect(body).toHaveAttribute('data-foot-beds', /\bdocks\b/);
 
-  // Into the saloon while it's open: the room and its tune.
+  // Into the saloon while it's open: the room and its tune (the night waltz after 7 PM).
   const crews = await foot(page, (f) => f.crews());
   const table = crews[0] ?? { x: 22, z: 12 };
   await page.evaluate(
     ([x, z]) => (window as unknown as Hooks).__glpFoot.teleportLocal(x ?? 0, z ?? 0),
     [table.x + 0.6, table.z + 0.6],
   );
-  await expect(body).toHaveAttribute('data-foot-beds', /\broom\b.*\btune\b/, { timeout: 10_000 });
+  await expect(body).toHaveAttribute('data-foot-beds', /\broom\b.*\b(tune|nightTune)\b/, {
+    timeout: 10_000,
+  });
 
   // A cosh from behind: heard.
   await foot(page, (f) => {

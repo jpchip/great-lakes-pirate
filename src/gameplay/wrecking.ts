@@ -299,6 +299,17 @@ export function attachWrecking(deps: WreckingDeps): GameWrecking {
       lostFor(s, 'stranded', s.until + repair);
     }
     deps.traffic.syncLost();
+    // Heard if you're near enough (piece J's sounds): where she struck, in the zone.
+    const struck = toZone(mark.shoal, apostlesFrame());
+    ctx.events.emit('ShipStranded', {
+      shipId: s.shipId,
+      name: s.name,
+      mark: mark.id,
+      zoneId: APOSTLES_ID,
+      x: struck.x,
+      z: struck.z,
+      broken,
+    });
 
     // The law hears what was seen.
     const witnesses = witnessesFor(o, mark);
