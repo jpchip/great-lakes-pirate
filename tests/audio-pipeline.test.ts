@@ -19,6 +19,7 @@ import {
   UI_SOUND,
 } from '../src/audio/hideout-audio';
 import { SANDBOX_AUDIO_BUNDLE, SANDBOX_SOUND } from '../src/audio/sandbox-audio';
+import { WINTER_AUDIO_BUNDLE, WINTER_SOUND } from '../src/audio/winter-audio';
 import { PORT_AUDIO_BUNDLE, PORT_SOUND } from '../src/audio/port-audio';
 import { LAW_AUDIO_BUNDLE, LAW_SOUND, LAW_WHISTLE } from '../src/audio/law-audio';
 import {
@@ -283,6 +284,14 @@ describe('shipped sounds (plan 15 §3.2, §8)', () => {
     expect(bytes).toBeLessThanOrEqual(1024 * 1024);
   });
 
+  it("has winter's sounds and nothing else (Phase 9 piece N)", () => {
+    const winter = manifest.bundles[WINTER_AUDIO_BUNDLE] ?? [];
+    const ids = Object.values(WINTER_SOUND).flat();
+    expect([...winter].sort()).toEqual([...ids].sort());
+    const bytes = winter.reduce((s, id) => s + (manifest.assets[id]?.bytes ?? 0), 0);
+    expect(bytes).toBeLessThanOrEqual(640 * 1024);
+  });
+
   it('keeps the decoded audio within 8 MB, music streaming on top', () => {
     const size = (bundle: string): number =>
       (manifest.bundles[bundle] ?? []).reduce(
@@ -304,6 +313,7 @@ describe('shipped sounds (plan 15 §3.2, §8)', () => {
       HIDEOUT_AUDIO_BUNDLE,
       UI_AUDIO_BUNDLE,
       SANDBOX_AUDIO_BUNDLE,
+      WINTER_AUDIO_BUNDLE,
     ];
     const streamed = [MUSIC_BUNDLE, CHART_MUSIC_BUNDLE];
     expect(size(SAILING_AUDIO_BUNDLE) + size(WORLD_AUDIO_BUNDLE)).toBeLessThanOrEqual(

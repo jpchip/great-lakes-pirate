@@ -1,0 +1,11 @@
+{
+  "id": "voice.cold.chatter",
+  "name": "chatter",
+  "description": "Teeth chattering in the cold: rapid clicks in uneven bursts and a shuddering breath",
+  "kind": "oneshot",
+  "bus": "voice",
+  "bundles": [
+    "winter-audio"
+  ],
+  "source": "source.flac"
+}

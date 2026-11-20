@@ -30,6 +30,7 @@ import type { GuardState, StealthEvent } from '../gameplay/onfoot/stealth';
 import type { ToolEvent } from '../gameplay/onfoot/tools';
 import type { StationSoundView } from '../gameplay/onfoot/station-watch';
 import { saloonNight } from './sandbox-mix';
+import type { WinterBody } from './winter-audio';
 
 /**
  * The captain ashore, heard (Phase 7 piece I; plan 08 §20.4 row I, plan 15 §4.5, §6.1,
@@ -118,6 +119,10 @@ export interface FootFrame {
   hour?: number;
   /** A lighthouse station's lamp and house, offsets from you (Phase 9 piece J). */
   station?: StationSoundView | undefined;
+  /** Winter in you and under you (Phase 9 piece N; `WinterSounds` plays it). */
+  winter?: WinterBody | undefined;
+  /** 0–1: the lake closed over by ice here, so the docks' water is still (piece N). */
+  frozen01?: number;
 }
 
 type BedId = 'docks' | 'forest' | 'crickets' | 'room' | 'tune' | 'nightTune' | 'tension';
@@ -499,7 +504,7 @@ export class FootSounds {
       saloon,
       swimming: f.swimming,
     });
-    this.bed('docks', mix.docks, mix.docksLowpassHz, dt);
+    this.bed('docks', mix.docks * (1 - (f.frozen01 ?? 0)), mix.docksLowpassHz, dt);
     this.bed('forest', mix.forest, f.inside ? 1200 : 12000, dt);
     this.bed('crickets', mix.crickets, f.inside ? 2500 : 12000, dt);
     this.bed('room', mix.room, mix.saloonLowpassHz, dt);

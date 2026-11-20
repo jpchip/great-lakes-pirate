@@ -1,0 +1,11 @@
+{
+  "id": "amb.ice.sing-2",
+  "name": "ice-sing-2",
+  "description": "The lake's ice booming far off on a cold night: a deep thump and the long falling \"pew\" across the ice (variant 2)",
+  "kind": "oneshot",
+  "bus": "ambience",
+  "bundles": [
+    "winter-audio"
+  ],
+  "source": "source.flac"
+}

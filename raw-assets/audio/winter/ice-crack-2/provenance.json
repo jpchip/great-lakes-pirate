@@ -1,0 +1,10 @@
+{
+  "source": "procedural",
+  "tool": "tools/audio/synth.ts (tools/audio/lib/synth.ts)",
+  "author": "Great Lakes Pirate contributors",
+  "reference": "Band-passed noise snaps, a low sine thud, a dispersive falling sine chirp, noise ticks, a little reverb",
+  "date": "2026-11-20",
+  "license": "CC BY 4.0",
+  "attribution": "Great Lakes Pirate contributors",
+  "modifications": []
+}

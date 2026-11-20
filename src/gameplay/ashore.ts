@@ -35,6 +35,7 @@ import { TrackLog } from '../sim/cold/tracks';
 import { roadDistance } from '../sim/cold/road';
 import { holeReach, iceGround, punchHole, type AshoreWinter } from './cold';
 import type { GameContext } from '../modes/context';
+import type { WinterGround } from '../audio/winter-mix';
 import type { Mode } from '../modes/machine';
 import { tickOnFootClock } from '../modes/on-foot';
 import type { SailingView } from '../modes/sailing';
@@ -209,8 +210,11 @@ export interface AshoreDeps {
   view?: (SailingView & { foot: FootFrame | undefined }) | undefined;
   /** Your own body, heard (piece I): each stride, and each time you come down. */
   sounds?: {
-    /** A stride on `surface` at a gait, with the radius the guards hear it at, meters. */
-    step(surface: Surface | 'water', gait: Gait, radiusM: number): void;
+    /**
+     * A stride on `surface` at a gait, with the radius the guards hear it at, meters; in
+     * winter, `ground` says it was on snow, bare lake ice or snow over the ice (piece N).
+     */
+    step(surface: Surface | 'water', gait: Gait, radiusM: number, ground?: WinterGround): void;
     /** You landed at `speed` m/s, on the ground or into the lake. */
     landed(speed: number, inWater: boolean): void;
   };
@@ -258,6 +262,18 @@ export interface AshoreSound {
   picking: number | undefined;
   /** A lighthouse station's lamp and house, offsets from you (Phase 9 piece J). */
   station?: StationSoundView | undefined;
+  /** Winter in you and under you: warmth, thin ice, snow, the sled (Phase 9 piece N). */
+  winter?:
+    | {
+        stage: WarmthStage;
+        onIce: boolean;
+        thin: 'sound' | 'cracking' | 'groaning' | 'broken';
+        stress: number;
+        moving: boolean;
+        snowLies: boolean;
+        sled: { x: number; z: number; hitched: boolean; cu: number } | undefined;
+      }
+    | undefined;
 }
 
 /** A jailbreak begun (piece G): what the lockup's night is made with. */
@@ -1365,8 +1381,10 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
       copyPrevious();
       climb = undefined;
       hole = undefined;
+      ctx.events.emit('IceClimbed', { result: 'out' });
       deps.notice('Out on the ice, soaked through: get to a fire');
     } else if (r === 'slipped') {
+      ctx.events.emit('IceClimbed', { result: 'slipped' });
       deps.notice('The edge breaks away under you');
     } else if (r === 'lost') {
       climb = undefined;
@@ -1526,6 +1544,18 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
     }
   };
 
+  /**
+   * What a stride is on in winter, for its sound (piece N): bare lake ice, snow over it, or
+   * snow lying on the ground (not on planks, stone or under a roof). Undefined otherwise.
+   */
+  const winterGround = (surface: Surface | 'water'): WinterGround | undefined => {
+    if (!winter || surface === 'water') return undefined;
+    const snow = winter.snow() && !underRoof;
+    if (iceNow !== undefined) return snow ? 'snowIce' : 'ice';
+    if (snow && surface !== 'wood' && surface !== 'stone' && surface !== 'interior') return 'snow';
+    return undefined;
+  };
+
   /** The F prompt on the ice and in the snow: the sled, the road's ends. */
   const winterPrompt = (): Prompt | undefined => {
     if (!winter || !scene || district) return undefined;
@@ -1541,6 +1571,7 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
           act: () => {
             const r = winter.sell(winter.roadPort, sl.load);
             sl.load = r.left;
+            ctx.events.emit('SledHandled', { act: 'sold' });
             deps.notice(r.line);
           },
         };
@@ -1562,6 +1593,7 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
             load: [],
           };
           hitched = true;
+          ctx.events.emit('SledHandled', { act: 'down' });
         },
       };
     }
@@ -1574,6 +1606,7 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
           act: () => {
             const n = loadSled(sl, hold, (g) => winter.valueOf(g));
             winter.holdChanged();
+            ctx.events.emit('SledHandled', { act: 'loaded' });
             deps.notice(`${n} CU onto the sled`);
           },
         };
@@ -1584,6 +1617,7 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
           act: () => {
             unloadSled(sl, hold);
             winter.holdChanged();
+            ctx.events.emit('SledHandled', { act: 'unloaded' });
           },
         };
       }
@@ -1592,14 +1626,27 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
         act: () => {
           state.player.sled = undefined;
           hitched = false;
+          ctx.events.emit('SledHandled', { act: 'stowed' });
         },
       };
     }
     if (sl && !hitched && Math.hypot(sl.x - c.x, sl.z - c.z) < 2.5) {
-      return { text: "Take up the sled's rope", act: () => (hitched = true) };
+      return {
+        text: "Take up the sled's rope",
+        act: () => {
+          hitched = true;
+          ctx.events.emit('SledHandled', { act: 'hitched' });
+        },
+      };
     }
     if (sl && hitched && character.gait === 'idle') {
-      return { text: "Drop the sled's rope", act: () => (hitched = false) };
+      return {
+        text: "Drop the sled's rope",
+        act: () => {
+          hitched = false;
+          ctx.events.emit('SledHandled', { act: 'dropped' });
+        },
+      };
     }
     return undefined;
   };
@@ -1745,7 +1792,7 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
             surface === 'water' ? 'dirt' : surface,
             carrying,
           );
-          if (r > 0) deps.sounds.step(surface, character.gait, r);
+          if (r > 0) deps.sounds.step(surface, character.gait, r, winterGround(surface));
         }
         if (character.landedSpeed > 0) {
           deps.sounds.landed(character.landedSpeed, character.landedInWater);
@@ -2229,6 +2276,15 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
             ? prompt.hold01
             : undefined,
         station: watch?.station?.sound(character),
+        winter: winter && {
+          stage: warmthStage(warm().value),
+          onIce: iceNow !== undefined,
+          thin: thin.stage,
+          stress: thin.stress,
+          moving: character.gait !== 'idle',
+          snowLies: winter.snow() && !underRoof,
+          sled: ((sl) => sl && { x: sl.x, z: sl.z, hitched, cu: sledUsed(sl) })(sled()),
+        },
       };
     },
     stealthReadout() {

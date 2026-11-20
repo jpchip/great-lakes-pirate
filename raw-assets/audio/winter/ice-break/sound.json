@@ -1,0 +1,11 @@
+{
+  "id": "sfx.ice.break",
+  "name": "ice-break",
+  "description": "The ice giving way: a great crack, the plates breaking up and knocking, shards tinkling, the plunge",
+  "kind": "oneshot",
+  "bus": "sfx",
+  "bundles": [
+    "winter-audio"
+  ],
+  "source": "source.flac"
+}
