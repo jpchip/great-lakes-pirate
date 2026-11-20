@@ -754,7 +754,7 @@ The historical ranges are freeze-up in Duluth harbor in December, ice-out mid-Ap
 ### Not covered yet
 
 - The ice's look in the zone, snow and winter palettes (piece L).
-- Walking on the ice, the ice road, warmth (piece M); winter audio (piece N).
+- Winter audio (piece N). Walking on the ice, the ice road and warmth are built (piece M, [plan 11 §18.15](11-exploration-islands-secrets.md)).
 
 ## 27. Phase 9 Piece L: Winter's Look (2026-11-19)
 
@@ -805,6 +805,7 @@ The ice layer adds no draw call (it's in the water shader); floes and falling sn
 6. **Sea smoke** (steam fog over open water in hard cold) would suit the lake; not built.
 
 ## Changelog
+- v0.14: §26 Not covered yet: piece M built (plan 11 §18.15).
 - v0.13: Phase 9 piece L (§27): the ice sheet, floes, snow on the ground and on everything, falling snow, frozen spray, winter palettes and the aurora (cut #3 lifted).
 - v0.12: Phase 9 piece K (§26): the ice sim, the year's roll, harbors frozen in, sailing and voyages in ice, the ice bow, winter traffic and markets, the first boat in and the Mataafa storm; §15's freeze-up stop marked moot.
 - v0.11: Phase 3 piece E ([03 §28](03-world-scale-chart-travel.md)): `squallAt` (summer thunder and cold squalls in a gale's rain), the climate normals cached per game time, and the chart's weather built from §12 and §15.
