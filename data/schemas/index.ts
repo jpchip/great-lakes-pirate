@@ -40,6 +40,7 @@ import { portsFileSchema } from './ports';
 import { rivalTemplatesSchema } from './rivals';
 import { routesFileSchema } from './routes';
 import { rumorsFileSchema } from './rumors';
+import { salvageFileSchema } from './salvage';
 import { shipsFileSchema } from './ships';
 import { sitesFileSchema } from './sites';
 import { smugglersFileSchema } from './smuggler';
@@ -94,6 +95,7 @@ export const dataFileSchemas: Readonly<Record<string, z.ZodType>> = {
   'regions.json': regionsFileSchema,
   'routes.json': routesFileSchema,
   'rumors.json': rumorsFileSchema,
+  'salvage.json': salvageFileSchema,
   'ships.json': shipsFileSchema,
   'sites.json': sitesFileSchema,
   'smuggler.json': smugglersFileSchema,
