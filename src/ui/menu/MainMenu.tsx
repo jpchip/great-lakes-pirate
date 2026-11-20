@@ -8,6 +8,7 @@ import { backgroundCards, randomSeed, type SavedRunSummary } from './model';
 import { Portrait } from './Portrait';
 import { EndScreen } from '../end/EndScreen';
 import type { LastRun } from '../../sim/run/run-end';
+import type { HallRecord } from '../../sim/run/hall';
 
 /**
  * The main menu and character creation (plan 13 §5, plan 12 §2; Phase 4 piece C). The
@@ -25,13 +26,15 @@ export interface MainMenuProps {
   savedProblem: string | undefined;
   /** The last run's end (only when there's no run to continue). */
   lastRun?: LastRun | undefined;
+  /** The Hall of Captains (Phase 9 piece B): past runs, latest first. */
+  hall?: readonly HallRecord[] | undefined;
   settings: SettingsControls;
   choose(choice: MenuChoice): void;
   /** Character creation opened or closed (the mode machine follows). */
   onCreating?(creating: boolean): void;
 }
 
-type Screen = 'title' | 'create' | 'settings' | 'replace' | 'lastRun';
+type Screen = 'title' | 'create' | 'settings' | 'replace' | 'lastRun' | 'hall';
 
 /** The renderer isn't up yet, so a preset change never waits for a reload here. */
 const NO_RELOAD_NOTE = signal(false);
@@ -122,12 +125,87 @@ function Title({
         <button
           type="button"
           class="menu-button"
+          data-testid="menu-hall"
+          onClick={() => go('hall')}
+        >
+          Hall of Captains
+        </button>
+        <button
+          type="button"
+          class="menu-button"
           data-testid="menu-settings"
           onClick={() => go('settings')}
         >
           Settings
         </button>
       </nav>
+    </div>
+  );
+}
+
+/** The Hall of Captains (plan 13 §5, plan 12 §9): each past run, opened for its summary. */
+function Hall({ records, back }: { records: readonly HallRecord[]; back(): void }) {
+  const [open, setOpen] = useState<number | undefined>(undefined);
+  return (
+    <div class="menu hall" data-testid="hall-of-captains">
+      <header class="menu-header">
+        <h2>Hall of Captains</h2>
+        <span class="menu-paused">
+          {records.length} captain{records.length === 1 ? '' : 's'}
+        </span>
+      </header>
+      {records.length === 0 ? (
+        <p class="menu-note" data-testid="hall-empty">
+          No captain's run has ended yet. When one does, the lake will remember it here.
+        </p>
+      ) : (
+        <ol class="hall-list">
+          {records.map((r, i) => (
+            <li key={`${r.endedAtIso}|${r.captain}`} class="hall-entry" data-testid="hall-entry">
+              <button
+                type="button"
+                class="hall-row"
+                aria-expanded={open === i}
+                onClick={() => setOpen(open === i ? undefined : i)}
+              >
+                <Portrait portrait={portraitDef(r.portrait)} size={44} />
+                <span class="hall-names">
+                  <span class="hall-name">
+                    Captain {r.captain}
+                    {r.nickname && (
+                      <span class="hall-nick" data-testid="hall-nickname">
+                        {' '}
+                        &ldquo;{r.nickname}&rdquo;
+                      </span>
+                    )}
+                  </span>
+                  <span class="hall-meta">
+                    of the <i>{r.shipName}</i> · {r.epitaph}
+                  </span>
+                </span>
+              </button>
+              {open === i && (
+                <div class="hall-detail" data-testid="hall-detail">
+                  <p class="hall-headline">{r.headline}</p>
+                  <dl>
+                    {r.summary.map((row) => (
+                      <div key={row.label}>
+                        <dt>{row.label}</dt>
+                        <dd>{row.value}</dd>
+                      </div>
+                    ))}
+                  </dl>
+                </div>
+              )}
+            </li>
+          ))}
+        </ol>
+      )}
+      <footer class="menu-footer">
+        <button type="button" class="menu-button" data-testid="hall-back" onClick={back}>
+          Back (Esc)
+        </button>
+      </footer>
     </div>
   );
 }
@@ -313,6 +391,7 @@ export function MainMenu({
   saved,
   savedProblem,
   lastRun,
+  hall = [],
   settings,
   choose,
   onCreating,
@@ -349,6 +428,7 @@ export function MainMenu({
             resume={() => choose({ kind: 'continue' })}
           />
         )}
+        {screen === 'hall' && <Hall records={hall} back={() => setScreen('title')} />}
         {screen === 'replace' && saved && <Replace saved={saved} go={setScreen} />}
         {screen === 'lastRun' && lastRun && (
           <EndScreen run={lastRun} onMenu={() => setScreen('title')} menuLabel="Back (Esc)" />

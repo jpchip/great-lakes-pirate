@@ -474,16 +474,31 @@ Twenty-six pieces, each sized to be one thread, in three stages by decision 1. A
 
 **Not in piece O:** the curios aren't drawn on the shelves in the world yet (piece P's kits, with the POIs), the legends' steps beyond the first and every other clue source (piece T), salvage finding wrecks by sounding (piece U), a chart-voyage grounding risk on uncharted shoals (the Apostles' shoals all lie inside the zone, where the real depth already grounds you), and charts of the other regions. `__glpDiscovery` reads and drives it.
 
-### 18.9 Piece J as built: stage 1 audio (2026-11-19)
+---
+
+### 18.9 Piece B as built: the nickname and the endings (2026-11-19)
+
+**The nickname** (`src/sim/news/nickname.ts`, `gameplay/nickname.ts`; pools in `newspapers.json` `nicknames`). The record is the papers' view: a crime counts once a report lands that names you or your ship (`ReportFiled`, heat added, identification `ship` or `person`), once per crime; honest feats count as `feat`. Ten deed kinds, each a list of crimes, a notoriety and four forms: killer 8, wrecker 6, scuttler 6, defiant (firing on the law, jailbreak) 5, gentleman 3.5 (piracy and firing on ships while the papers know of nobody killed), pirate 3, thief 1.5, brawler 1.5, smuggler 1, honest 0.6; and a fallback for Fame with nothing to name. A kind's score is its count times its notoriety, so the most frequent and the most notorious lead together. The haunt is the place with the highest score of port calls (1), nights at a hideout (2) and named crimes at a port (1), from 6 up. A form can name the haunt (`the Terror of {haunt}`) or take " of {haunt}" (`the Moon-Cusser of Stockton Island`); `{first}` and `{last}` are the captain's names; the form is picked by the run's seed. At Fame tier 1 the name is coined; another kind or haunt has to beat the current one by 1.25 times to change it. Each coining or change is a `nickname` or `renamed` story in the paper of your hottest region (or your haunt's), a logbook line, a HUD notice and `NicknameChanged`. While the reroll is unused, the editor's letter (`event.nickname_letter`, `draw: false`) offers to print a letter from you; writing it rerolls the name once (the same record, another form), and changes after that keep the new reading. In print, `{WHO}` in a story about you by name is the nickname, `{who}` sets it in ("Captain Ida Bergquist, "Bloody Ida," of the schooner Hope"), the WANTED notice gets `alias`, and the Most Wanted page and the end page use it. Saved as an optional `nickname` slice.
+
+**The endings** (`data/endings.json`, `src/sim/run/endings.ts`, `gameplay/endings.ts`). Every 6 game hours, out of jail: **Retire** when cash aboard and stashed is $5,000 or more and no region is above tier 2; **Turn Lawman** when Fame is tier 3 (Infamous) or more, every region tier 1 or below, and Standing 60 in two ports. Each sends its letter (`event.retirement_offer` from a Bayfield land agent with three choices, `event.lawman_offer` from the U.S. Marshal of the Western District of Wisconsin), standing three game days and offered again six game days after it lapses or is put off. A retirement choice or the badge ends the run (`retired` with the retirement, or `lawman`): the port screen closes and the end screen shows the ending's front page (the Duluth daily for the saloon and the badge, the Bayfield weekly for the cabin, by Fame for the farm), the summary ("How it ended" from the page) and its epilogue, "What became of the captain". The summary also gives the nickname and lives taken (`stats.killed`, counted from every killing).
+
+**The Hall of Captains** (`src/sim/run/hall.ts`; the `hall` IndexedDB store plan 16 §2 already made). Each ended run's record now carries the nickname; the main menu's **Hall of Captains** lists them latest first (portrait, name, nickname, ship, epitaph), each opening to its headline and summary. It survives a reload and a new run (`e2e/endings.spec.ts`).
+
+**Hooks:** `__glpNickname` (`state`, `deed`, `place`, `check`, `reroll`), `__glpEndings` (`eligibility`, `offer`, `check`, `end`) and `__glpLaw.setFame`.
+
+**For Jared:** the nickname pools (`newspapers.json` `nicknames`), the nickname stories and the editor's letter, the endings' pages and epilogues (`endings.json`) and the two offer letters (`events.json`) are first drafts; the thresholds ($5,000; Fame tier 3 and Standing 60 in two ports) are guesses. The land agent H. L. Dahl and Marshal J. C. Merriam are invented names.
+
+**Not in piece B:** the ending music (piece Y); rivals' names (piece E); Abandon recorded as "Abandoned" was already in the Hall; no journal page shows the nickname yet (the papers, the end page and the Hall do).
+
+### 18.13 Piece J as built: stage 1 audio (2026-11-19)
 
 Plan 15 §22 has the detail. The saloon plays "The Late Boat Waltz" on piano and fiddle from 7 PM (on foot in Bayfield and at any port screen's saloon or card table); the card table is heard move by move as cards and chips from beats the table now records; a lighthouse station's lamp turns its clockwork while it burns at night, and its keepers snore, greet and are heard at their stair, lamp and oil house; the harbor master rings his bell and letters tear open and seal; a ship put on a wrecking mark's shoal is heard going aground from up to 3 km (`ShipStranded`), and your own ship touching bottom; a rival's stinger waits for piece E on the bus (`RivalStinger { rival, why }`). 25 synthesized sounds, 0.93 MB; the decoded audio is 6.13 MB of 8 MB.
 
 **Not in piece J:** the stinger raised by anything but the dev hook until piece E lands, a fixed light's lamp without clockwork, a letter's arrival heard, the moon-cussing night's music. **For Jared:** the listen by ear (row J).
 
----
-
 ## Changelog
-- v0.7: Piece J as built (§18.9): stage 1 audio.
+- v0.11: Piece J as built (§18.13): stage 1 audio.
+- v0.7: Piece B as built (§18.9): the nickname, Retire and Turn Lawman, and the Hall of Captains.
 - v0.6: Piece O as built (§18.8): discovery and the fog of war on the chart, leads, the journal's four pages, and curios.
 - v0.5: Phase 9 scope (§18), as proposed 2026-11-17: what Phases 4–8 change, deliverables, exit criteria, 26 work pieces in three stages, smaller calls and two decisions (staging, districts). Both decisions taken the same day: three stages with a playtest each, and Duluth as the one new district.
 - v0.4: Phase 7 as built (§15): Stockton on foot, the quarry, the seeded cache, the rowboat and the posse.

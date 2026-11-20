@@ -28,6 +28,7 @@ import type { Witness } from '../sim/law/witness';
 import type { Chart } from '../core/coords';
 import type { DamagePool } from '../../data/schemas/combat';
 import type { HitLocation } from '../sim/combat/hull';
+import type { RunEndCause } from '../sim/run/run-end';
 import type { PokerBeat } from '../sim/poker/table';
 
 /** Events shared across layers. Each system plan adds its own (plan 01 §3.5). */
@@ -305,7 +306,14 @@ export interface GameEvents {
   JailbreakStarted: { port: string; execution: boolean };
   JailbreakSucceeded: { port: string; region: string; execution: boolean };
   JailbreakFailed: { port: string; execution: boolean; weeks: number };
-  RunEnded: { cause: 'executed' | 'abandoned' | 'killed' | 'drowned' | 'fell' };
+  RunEnded: { cause: RunEndCause };
+  /**
+   * Your nickname (plan 12 §10 `NicknameCoined/Changed`; Phase 9 piece B): the papers coined
+   * one (`from` absent), or changed it by your record or your letter to the editor.
+   */
+  NicknameChanged: { from: string | undefined; to: string; reroll: boolean };
+  /** A voluntary ending offered by letter (Phase 9 piece B). */
+  EndingOffered: { kind: 'retire' | 'lawman' };
   /**
    * Abandon ship (Phase 6 piece F, plan 07 §14.6 decision 2): your ship foundered and you
    * took to the boat. She went down with her cargo and her guns.

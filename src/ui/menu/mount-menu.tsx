@@ -5,6 +5,7 @@ import { settingsControls } from '../settings/controls';
 import { MainMenu, type MenuChoice } from './MainMenu';
 import type { SavedRunSummary } from './model';
 import type { LastRun } from '../../sim/run/run-end';
+import type { HallRecord } from '../../sim/run/hall';
 
 /**
  * Puts the main menu on the UI root before the game boots (Phase 4 piece C) and waits
@@ -20,6 +21,8 @@ export function showMainMenu(opts: {
   savedProblem: string | undefined;
   /** The last run's end, until a new run starts (plan 16 §2). */
   lastRun?: LastRun | undefined;
+  /** The Hall of Captains' records, latest first. */
+  hall?: readonly HallRecord[] | undefined;
   /** Character creation opened (true) or closed back to the title (false). */
   onCreating(creating: boolean): void;
   /** The fog card's words once a choice is made. */
@@ -60,6 +63,7 @@ export function showMainMenu(opts: {
         saved={opts.saved}
         savedProblem={opts.savedProblem}
         lastRun={opts.lastRun}
+        hall={opts.hall ?? []}
         settings={controls}
         choose={choose}
         onCreating={opts.onCreating}
