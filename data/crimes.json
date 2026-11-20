@@ -74,6 +74,15 @@
     "grudge": 15
   },
   {
+    "id": "crime.wreck_plunder",
+    "name": "Plundering a wreck",
+    "heat": 15,
+    "phase": 9,
+    "standing": 3,
+    "notes": "Grappling a recent wreck's cargo out from under her owners' marks without their leave (plan 11 §6.2; Phase 9 piece U). Old, abandoned wrecks are anybody's; your own lost ship is yours. Known only if someone saw you at her.",
+    "grudge": 5
+  },
+  {
     "id": "crime.assault",
     "name": "Assault",
     "heat": 30,
