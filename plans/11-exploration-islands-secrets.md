@@ -568,6 +568,7 @@ Plan 15 §22 has the detail. The saloon plays "The Late Boat Waltz" on piano and
 - v0.13: Phase 9 piece M as built (§18.15): walking on the ice, thin ice and the climb out, the ice road to La Pointe, the hand sled, warmth, and tracks in the snow.
 - v0.12: Piece P as built (§18.14): the POI kits, `placePoi` and marks, the tier budgets and `bench.island` per tier, and curios on the shelves.
 - v0.11: Piece J as built (§18.13): stage 1 audio.
+- v0.10: Piece E (copycat rivals) built; as built in [12 §7.1](12-sandbox-events-character-failure.md).
 - v0.9: Piece L as built (§18.11): winter's look; the aurora is in.
 - v0.8: Piece U as built (§18.10): old wrecks of the record and the seed, found by sight or the lead line, worked by grapple and hook at anchor, hot recent cargo, papers as leads.
 - v0.7: Piece B as built (§18.9): the nickname, Retire and Turn Lawman, and the Hall of Captains.

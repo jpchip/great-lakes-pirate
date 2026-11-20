@@ -93,6 +93,8 @@ export interface StoryInput {
   /** Your nickname, and the one before it (the nickname stories). */
   nick?: string | undefined;
   oldNick?: string | undefined;
+  /** Extra `{placeholders}`: a rival's name, or `who` for a crime put down to one. */
+  words?: Record<string, string> | undefined;
 }
 
 const IDENT_ORDER: readonly Identification[] = ['unknown', 'schooner', 'ship', 'person'];
@@ -159,6 +161,7 @@ export function addStory(defs: NewsDefs, news: NewsState, input: StoryInput): St
     ...(input.cashCents ? { cashCents: input.cashCents } : {}),
     ...(input.nick ? { nick: input.nick } : {}),
     ...(input.oldNick ? { oldNick: input.oldNick } : {}),
+    ...(input.words ? { words: input.words } : {}),
     heat: input.heat ?? 0,
     printedIn: [],
     heated: false,
@@ -377,6 +380,7 @@ export function renderStory(
     taken: takenText(defs, story, world.goodName, fame),
     nick: story.nick ?? world.nickname ?? `Captain ${world.captain}`,
     oldnick: story.oldNick ?? '',
+    ...story.words,
   };
   return {
     headline: fill(t.headline, values).toUpperCase(),

@@ -485,9 +485,82 @@ const CUTTER_MORRILL: NpcShipLines = {
   },
 };
 
+/**
+ * A copycat's schooner (Phase 9 piece E), a 65 ft two-master much like your own: black
+ * topsides, a dark boot, gaff sails set and a jib. The larger rival's ship is the same lines
+ * drawn at 1.3.
+ */
+const RIVAL_SCHOONER: NpcShipLines = {
+  id: 'ship.rival_schooner',
+  length: 20,
+  beam: 5.4,
+  draft: 1.8,
+  freeboard: 1,
+  sheerBow: 0.7,
+  sheerStern: 0.3,
+  bulwark: 0.5,
+  stemRake: 0.9,
+  transomRake: 0.6,
+  transomWidth: 0.5,
+  shape: {
+    runEnd: 0.32,
+    entranceStart: 0.66,
+    sectionPower: 0.35,
+    forefootStart: 0.8,
+    levels: hullLevels(1.8, 1, -0.2, 0.15),
+    bootBottom: -0.2,
+    bootTop: 0.15,
+  },
+  bowsprit: { length: 4, steeveDeg: 10 },
+  houses: [{ from: 14, to: 17.5, width: 2.6, height: 0.9, color: PALETTE.weatheredWood }],
+  hatches: { from: 7, to: 12, count: 2, width: 1.8, length: 1.4 },
+  stacks: [],
+  masts: [
+    {
+      at: 5.5,
+      height: 14,
+      rakeDeg: 4,
+      radius: 0.16,
+      gaff: { gooseneck: 1.2, boom: 5, gaff: 3.6, throat: 11, peakDeg: 30 },
+    },
+    {
+      at: 11,
+      height: 15,
+      rakeDeg: 5,
+      radius: 0.17,
+      gaff: { gooseneck: 1.2, boom: 8, gaff: 4.4, throat: 11.8, peakDeg: 28 },
+    },
+  ],
+  sailsSet: true,
+  jib: true,
+  boats: [],
+  lights: [
+    { kind: 'port', at: 6, height: 1.4, x: 2.6 },
+    { kind: 'starboard', at: 6, height: 1.4, x: 2.6 },
+    { kind: 'stern', at: 19.6, height: 1 },
+  ],
+  paint: {
+    topsides: PALETTE.hullBlack,
+    boot: PALETTE.hullBlack,
+    bottom: PALETTE.hullOxide,
+    rail: PALETTE.weatheredWood,
+    bulwarkInside: PALETTE.weatheredWood,
+    deck: PALETTE.deckWood,
+    house: PALETTE.weatheredWood,
+    roof: PALETTE.weatheredWood,
+    hatch: PALETTE.weatheredWood,
+    spar: PALETTE.sparBrown,
+    canvas: PALETTE.canvas,
+    rope: PALETTE.ink,
+    smoke: PALETTE.coalSmoke,
+  },
+};
+
 /** Every NPC class's lines, keyed by its ships.json `modelId`. */
 export const NPC_LINES: Readonly<Record<string, NpcShipLines>> = Object.fromEntries(
-  [ORE_FREIGHTER, SCHOONER_BARGE, PACKAGE_STEAMER, FISH_TUG, CUTTER_MORRILL].map((l) => [l.id, l]),
+  [ORE_FREIGHTER, SCHOONER_BARGE, PACKAGE_STEAMER, FISH_TUG, CUTTER_MORRILL, RIVAL_SCHOONER].map(
+    (l) => [l.id, l],
+  ),
 );
 
 export function npcLines(modelId: string): NpcShipLines {

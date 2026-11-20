@@ -1,0 +1,272 @@
+{
+  "rules": {
+    "emergeFameTier": 2,
+    "maxByFameTier": [0, 0, 1, 2, 3],
+    "emergeAfterDays": 1,
+    "againDays": 3,
+    "copyShare": 0.6,
+    "recordHalfLifeDays": 8,
+    "blame": { "onYou": 0.7, "onThem": 0.6 },
+    "caught": { "base": 0.01, "perHeat": 0.0004, "max": 0.3, "decayPerDay": 0.05 },
+    "galeLossPerHour": 0.004,
+    "retireAfterDays": 3,
+    "minSeason": 0.15,
+    "defeatFame": 40,
+    "leadRadiusM": 1500,
+    "parley": {
+      "afterDays": 2,
+      "betrayAfterDays": 2,
+      "betrayHeat": 60,
+      "sellHeat": 400,
+      "ports": {
+        "region.ashland": "port.ashland",
+        "region.chequamegon": "port.bayfield",
+        "region.apostles": "port.la_pointe",
+        "region.superior": "port.superior",
+        "region.duluth": "port.duluth",
+        "region.north_shore": "port.two_harbors",
+        "region.south_shore_west": "port.bayfield"
+      }
+    },
+    "keepClearM": 4000
+  },
+  "methods": [
+    {
+      "id": "boarding",
+      "label": "runs alongside and strips the hold",
+      "crimes": ["crime.piracy", "crime.contract_theft"],
+      "rivalCrimes": ["crime.piracy"],
+      "victim": true,
+      "witness": "crew",
+      "takes": 0.6
+    },
+    {
+      "id": "guns",
+      "label": "puts a shot into her and takes what he likes",
+      "crimes": ["crime.firing_on_ship"],
+      "rivalCrimes": ["crime.firing_on_ship", "crime.piracy"],
+      "victim": true,
+      "witness": "crew",
+      "takes": 0.8
+    },
+    {
+      "id": "sinking",
+      "label": "leaves nothing afloat to tell of it",
+      "crimes": ["crime.sinking", "crime.killing"],
+      "rivalCrimes": ["crime.piracy", "crime.sinking"],
+      "victim": true,
+      "witness": "crew",
+      "takes": 0.5,
+      "sinksDays": 14
+    },
+    {
+      "id": "wrecking",
+      "label": "hangs a false light on a dark night",
+      "crimes": ["crime.false_light", "crime.light_doused"],
+      "rivalCrimes": ["crime.false_light"],
+      "victim": false,
+      "witness": "keeper"
+    },
+    {
+      "id": "smuggling",
+      "label": "runs untaxed whiskey into the camps",
+      "crimes": ["crime.contraband", "crime.smuggler_deal", "crime.fence_deal", "crime.hot_goods"],
+      "rivalCrimes": ["crime.contraband"],
+      "victim": false,
+      "witness": "merchant"
+    },
+    {
+      "id": "burglary",
+      "label": "breaks into the warehouses by night",
+      "crimes": ["crime.burglary", "crime.petty_theft", "crime.sabotage"],
+      "rivalCrimes": ["crime.burglary"],
+      "victim": false,
+      "witness": "watchman"
+    }
+  ],
+  "personalities": [
+    {
+      "id": "brute",
+      "name": "Brute",
+      "text": "A hard case off the ore docks who takes by force and leaves men hurt. Loud, hot, and the law will have him sooner or later.",
+      "lean": { "boarding": 0.4, "guns": 0.35, "sinking": 0.25 },
+      "raidDays": 0.8,
+      "heatFactor": 1.4,
+      "parley": 0.15,
+      "proposes": "split",
+      "betray": 0.6,
+      "papers": 0.5,
+      "nicknames": ["Red Hand", "Hatchet", "the Ox", "Bulldog", "Iron Jaw"]
+    },
+    {
+      "id": "sly",
+      "name": "Sly",
+      "text": "A thief more than a pirate: a quiet boat, a dark night, a lock picked and away before the watch comes round.",
+      "lean": { "boarding": 0.3, "burglary": 0.45, "smuggling": 0.25 },
+      "raidDays": 1.4,
+      "heatFactor": 0.6,
+      "parley": 0.35,
+      "proposes": "truce",
+      "betray": 0.35,
+      "papers": 0.25,
+      "nicknames": ["the Mink", "Whisper", "Silk", "the Shadow", "Cat's-Paw"]
+    },
+    {
+      "id": "showman",
+      "name": "Showman",
+      "text": "In it for the headlines: he robs where he'll be seen, writes to the editors and wants the lake to know his name.",
+      "lean": { "boarding": 0.5, "guns": 0.3, "wrecking": 0.2 },
+      "raidDays": 1,
+      "heatFactor": 1.2,
+      "parley": 0.5,
+      "proposes": "split",
+      "betray": 0.5,
+      "papers": 0.9,
+      "nicknames": ["Black-Sail", "Gentleman", "the Duke", "Dandy", "Captain Thunder"]
+    },
+    {
+      "id": "smuggler",
+      "name": "Smuggler",
+      "text": "Would sooner run whiskey than fight; robs a tug when the trade is thin, and keeps out of the guns' way.",
+      "lean": { "smuggling": 0.6, "boarding": 0.2, "burglary": 0.2 },
+      "raidDays": 1.8,
+      "heatFactor": 0.5,
+      "parley": 0.6,
+      "proposes": "truce",
+      "betray": 0.2,
+      "papers": 0.2,
+      "nicknames": ["Whiskey", "Moonshine", "the Nightboat", "the Lantern Man", "Two-Kegs"]
+    }
+  ],
+  "names": {
+    "first": [
+      "Patrick",
+      "Ole",
+      "Nils",
+      "Halvor",
+      "Angus",
+      "Hugh",
+      "Silas",
+      "Ezra",
+      "August",
+      "Emil",
+      "Jean-Baptiste",
+      "Louis",
+      "Michael",
+      "Thomas",
+      "Jacob",
+      "Henry",
+      "Abner"
+    ],
+    "last": [
+      "Rourke",
+      "Halvorsen",
+      "Lindqvist",
+      "Trembley",
+      "Boucher",
+      "McLeod",
+      "Pengelly",
+      "Treloar",
+      "Dahl",
+      "Strand",
+      "Kehoe",
+      "Duffy",
+      "Larkin",
+      "Gagnon",
+      "Mattson",
+      "Nordby",
+      "Crane"
+    ]
+  },
+  "ships": [
+    {
+      "tier": 1,
+      "classId": "ship.rival_schooner",
+      "names": ["Black Duck", "Minnie A.", "Frolic", "Gypsy", "Lottie Belle", "Wanderer"]
+    },
+    {
+      "tier": 2,
+      "classId": "ship.rival_schooner_t2",
+      "names": ["Northern Belle", "Two Brothers", "Sea Wolf", "Olive Branch", "Rob Roy", "Kestrel"]
+    }
+  ],
+  "camps": [
+    {
+      "id": "camp.cat",
+      "name": "Cat Island",
+      "where": "on the west shore of Cat Island",
+      "island": "island.cat",
+      "at": { "lat": 47.016, "lon": -90.572 }
+    },
+    {
+      "id": "camp.ironwood",
+      "name": "Ironwood Island",
+      "where": "off the south end of Ironwood Island",
+      "island": "island.ironwood",
+      "at": { "lat": 46.99, "lon": -90.612 }
+    },
+    {
+      "id": "camp.bear",
+      "name": "Bear Island",
+      "where": "under the cliffs of Bear Island",
+      "island": "island.bear",
+      "at": { "lat": 47.016, "lon": -90.745 }
+    },
+    {
+      "id": "camp.york",
+      "name": "York Island",
+      "where": "behind the sandspit of York Island",
+      "island": "island.york",
+      "at": { "lat": 46.978, "lon": -90.858 }
+    },
+    {
+      "id": "camp.north_twin",
+      "name": "North Twin Island",
+      "where": "on North Twin, out past the Twins",
+      "island": "island.north_twin",
+      "at": { "lat": 47.06, "lon": -90.585 }
+    },
+    {
+      "id": "camp.eagle",
+      "name": "Eagle Island",
+      "where": "in the rocks of Eagle Island",
+      "island": "island.eagle",
+      "at": { "lat": 46.939, "lon": -91.03 }
+    },
+    {
+      "id": "camp.otter",
+      "name": "Otter Island",
+      "where": "on the south shore of Otter Island",
+      "island": "island.otter",
+      "at": { "lat": 46.99, "lon": -90.69 }
+    },
+    {
+      "id": "camp.manitou",
+      "name": "Manitou Island",
+      "where": "by the old fish camp on Manitou Island",
+      "island": "island.manitou",
+      "at": { "lat": 46.96, "lon": -90.663 }
+    }
+  ],
+  "avoid": [
+    { "name": "Hermit Island", "at": { "lat": 46.8877, "lon": -90.685 } },
+    { "name": "Devils Island", "at": { "lat": 47.0715, "lon": -90.7261 } },
+    { "name": "Outer Island", "at": { "lat": 47.0335, "lon": -90.4304 } },
+    { "name": "Minnesota Point", "at": { "lat": 46.72, "lon": -92.04 } },
+    { "name": "The North Shore cove", "at": { "lat": 47.02, "lon": -91.67 } }
+  ],
+  "events": {
+    "emerges": "event.rival_emerges",
+    "strikes": "event.rival_strikes",
+    "parley": "event.rival_parley",
+    "meetChoice": "meet",
+    "meet": { "truce": "event.rival_parley_truce", "split": "event.rival_parley_split" },
+    "acceptChoice": "accept",
+    "sellChoice": "sell",
+    "betrays": "event.rival_betrays",
+    "caught": "event.rival_caught",
+    "lost": "event.rival_lost",
+    "retires": "event.rival_retires",
+    "defeated": "event.rival_defeated"
+  }
+}

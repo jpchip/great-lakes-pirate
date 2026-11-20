@@ -1380,6 +1380,16 @@ function drawContactGlyph(
       ctx.closePath();
       ctx.stroke();
       break;
+    case 'rival':
+      // A sail like a barge's, filled in red: a pirate's.
+      ctx.moveTo(0, -8);
+      ctx.lineTo(4, 7);
+      ctx.lineTo(-4, 7);
+      ctx.closePath();
+      ctx.fillStyle = seenNow ? CHART_COLORS.signalRed : CHART_COLORS.fogGray;
+      ctx.fill();
+      ctx.stroke();
+      break;
     case 'tug':
       ctx.arc(0, 0, 3.5, 0, Math.PI * 2);
       ctx.fill();

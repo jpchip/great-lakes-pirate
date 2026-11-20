@@ -61,6 +61,8 @@ export function attachRecord(ctx: GameContext, defs: LawDefs): () => void {
       );
     }),
     ev.on('CrimeCommitted', (e) => {
+      // A rival's crime isn't yours to count (Phase 9 piece E).
+      if (e.by) return;
       const s = stats();
       s.crimes += 1;
       // Lives taken (Phase 9 piece B): the run summary's count.
@@ -68,9 +70,10 @@ export function attachRecord(ctx: GameContext, defs: LawDefs): () => void {
     }),
     ev.on('ReportFiled', (e) => {
       if (e.heatAdded <= 0) return;
-      write(
-        `Word reached the law in ${region(e.region)}: ${crimeDef(defs, e.crime).name.toLowerCase()}.`,
-      );
+      const what = crimeDef(defs, e.crime).name.toLowerCase();
+      // A copycat's work laid at your door (Phase 9 piece E).
+      const theirs = e.by ? ', laid at my door, though it was none of my doing' : '';
+      write(`Word reached the law in ${region(e.region)}: ${what}${theirs}.`);
     }),
     ev.on('WantedTierChanged', (e) => {
       const s = stats();

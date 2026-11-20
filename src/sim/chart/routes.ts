@@ -73,6 +73,8 @@ export const CLASS_KIND: Readonly<Record<string, Exclude<ContactKind, 'storm' | 
   'ship.fish_tug': 'tug',
   'ship.cutter_morrill': 'cutter',
   'ship.schooner_barge': 'barge',
+  'ship.rival_schooner': 'rival',
+  'ship.rival_schooner_t2': 'rival',
 };
 
 function shipRecord(id: string): ShipRecord {

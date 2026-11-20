@@ -89,8 +89,18 @@ export interface LetterView {
 }
 
 export interface GameEvents {
-  /** Fires an event now (the dev hook): what fired, or why not. */
-  fire(id: string, port?: string): ActiveEvent | string;
+  /**
+   * Fires an event now (the dev hook, and the systems that fire their own beats): what
+   * fired, or why not. `extra` names the rival it's about and the region (Phase 9 piece
+   * E); `quiet` leaves a scene to play on docking instead of opening it now.
+   */
+  fire(
+    id: string,
+    port?: string,
+    extra?: { rival?: string; region?: string; quiet?: boolean },
+  ): ActiveEvent | string;
+  /** Extra `{placeholders}` for an event about a rival (Phase 9 piece E). */
+  setWords(words: ((ev: ActiveEvent) => Record<string, string>) | undefined): void;
   /** Runs a draw now, as the tick would. */
   check(moment?: EventMoment): ActiveEvent | undefined;
   /** The scene showing, if any. */
@@ -139,6 +149,7 @@ export function attachEvents(opts: EventsOptions): GameEvents {
     ctx.state.environment.rng = ctx.rng.getState();
   };
   let scene: { ev: ActiveEvent; kind: 'chart' | 'scene'; result?: string } | undefined;
+  let words: ((ev: ActiveEvent) => Record<string, string>) | undefined;
 
   const regionName = (r: string | undefined): string =>
     (r && opts.law.regionById.get(r)?.name) ?? 'these waters';
@@ -204,6 +215,7 @@ export function attachEvents(opts: EventsOptions): GameEvents {
           Object.values(ctx.state.hideouts ?? {}).reduce((t, h) => t + h.storage.cash, 0),
         true,
       ),
+      ...(words?.(ev) ?? {}),
     };
   };
   const fill = (ev: ActiveEvent, t: string): string => fillText(t, values(ev));
@@ -302,6 +314,7 @@ export function attachEvents(opts: EventsOptions): GameEvents {
         region: ev.region,
         port: ev.port,
         ident: def.paperNames ? 'person' : 'unknown',
+        ...(words ? { words: words(ev) } : {}),
       });
     }
     if (def.channels.includes('letter') && def.letter) {
@@ -323,8 +336,10 @@ export function attachEvents(opts: EventsOptions): GameEvents {
     def: EventDef,
     place: { port: string | undefined; region: string | undefined },
     w: EventWorld,
+    rival?: string,
   ): ActiveEvent => {
     const ev = fireEvent(st(), w, def, place, rand);
+    if (rival) ev.rival = rival;
     saveRng();
     apply(ev, def.outcomes);
     send(ev, def);
@@ -485,25 +500,29 @@ export function attachEvents(opts: EventsOptions): GameEvents {
     });
 
   return {
-    fire(id, port) {
+    fire(id, port, extra) {
       const def = eventDef(id);
       if (!def) return `No event ${id}`;
       const w = world(port);
-      const region = port ? regionOfPort(port) : undefined;
+      const region = extra?.region ?? (port ? regionOfPort(port) : undefined);
       const place = {
         port: port ?? def.ports?.[0],
         region: region ?? (def.ports?.[0] ? regionOfPort(def.ports[0]) : undefined),
       };
-      if (!port && !def.ports) {
+      if (!port && !def.ports && !extra?.region) {
         // As the draw would place it: your hottest region, your hideout's, or here.
         if (def.outcomes.some((o) => o.kind === 'cutter')) place.region = w.topWanted.region;
         else if (def.triggers.hideout) place.region = w.hideouts[0]?.region;
         else place.region = w.hereRegion;
       }
-      const ev = fire(def, place, w);
+      const ev = fire(def, place, w, extra?.rival);
+      if (extra?.quiet) return ev;
       if (def.channels.includes('chart') && opts.onVoyage()) openScene(ev, 'chart');
       if (def.channels.includes('scene') && port) openScene(ev, 'scene');
       return ev;
+    },
+    setWords(fn) {
+      words = fn;
     },
     check,
     scene: sceneView,

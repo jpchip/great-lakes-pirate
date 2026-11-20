@@ -46,6 +46,8 @@ export const activeEventSchema = z.object({
   cents: z.number().int().optional(),
   /** The wrecking mark a moon-cussing night's ship is due past (Phase 9 piece I). */
   markName: z.string().optional(),
+  /** The copycat rival it's about (Phase 9 piece E). */
+  rival: z.string().optional(),
   /** The hideout an informant knows of. */
   hideout: z.string().optional(),
   hideoutName: z.string().optional(),

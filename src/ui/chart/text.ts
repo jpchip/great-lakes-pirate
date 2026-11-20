@@ -85,6 +85,11 @@ export function encounterText(enc: Encounter, heading: number): { kind: string; 
         kind: 'Prize',
         text: `Topsails over the horizon: ${c.name}, lumber-laden, ${where}${course}.`,
       };
+    case 'rival':
+      return {
+        kind: 'Threat',
+        text: `A black schooner, ${where}${course}: ${c.name}. A pirate, by the look of her.`,
+      };
     case 'tug':
       return c.underWay === false
         ? { kind: 'Traffic', text: `${c.name} working her nets, ${where}.` }

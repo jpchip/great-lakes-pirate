@@ -40,6 +40,7 @@ import { newspapersFileSchema } from './newspapers';
 import { npcTypesFileSchema } from './npc_types';
 import { poisFileSchema } from './pois';
 import { portsFileSchema } from './ports';
+import { rivalTemplatesSchema } from './rivals';
 import { routesFileSchema } from './routes';
 import { rumorsFileSchema } from './rumors';
 import { salvageFileSchema } from './salvage';
@@ -71,6 +72,7 @@ export const dataFileSchemas: Readonly<Record<string, z.ZodType>> = {
   'curios.json': curiosFileSchema,
   'factions.json': factionsFileSchema,
   'feuds.json': feudsFileSchema,
+  'rival_templates.json': rivalTemplatesSchema,
   'fame_tiers.json': fameTiersFileSchema,
   'flows.json': flowsFileSchema,
   'goods.json': goodsFileSchema,

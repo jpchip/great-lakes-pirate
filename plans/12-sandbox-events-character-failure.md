@@ -201,6 +201,17 @@ Fictional names avoid misrepresenting real period papers (many real ones existed
 - Defeating one: Fame plus their stash location (a legend chain, [11 §8](11-exploration-islands-secrets.md)).
 - **Never raids hideouts** (decided).
 
+### 7.1 As built: copycat rivals (Phase 9 piece E, 2026-11-19)
+- **Data:** `data/rival_templates.json` (`data/schemas/rivals.ts`): rules, six methods (boarding, guns, sinking, wrecking, smuggling, burglary) with the crimes that count to each and the crimes a rival commits by it, four personalities (lean, pace, notoriety, parley, betrayal, papers, nicknames), names, two ships (`ship.rival_schooner`, and `_t2` drawn at 1.3, new NPC lines), eight camps on standard and minor islands, and sites to keep clear of. Ten `draw: false` events of type `rival` in `events.json`.
+- **Sim** (`src/sim/rivals/rivals.ts`, save slice `rivals`, optional): your record by method and region (halving over 8 game days); emergence after a game day at Fame 2, 3 days between, `maxByFameTier` [0,0,1,2,3]; personality weighted to your methods, methods 60% copied from yours; a lane through the region you rob most; the nearest clear camp; the ship by your tier.
+- **Blame through the pipeline:** `CrimeInput`/`OpenCrime` gain `by` (a rival's crime: never names you; a report at best says "a schooner", which heats you) and `blamedOn` (yours put down to a rival: reports that saw only a schooner or nobody raise the alert, no heat). A raid is pinned on you at 0.7 × your share of its method; your crime on a rival in its region at 0.6 × theirs. `GameLaw.blame` asks the rivals as each crime of yours is committed. Rival crimes don't count to your stats, the feud or the First Week.
+- **In the game** (`src/gameplay/rivals.ts`): three chart contacts `ship.rival_1..3` (kind `rival`, a red sail on the chart), off the water until a rival takes the slot, then sailing the timetable of their lane under its own lane id (no market flows). Raids rob a ship under way on the lane (`recordRobbed`, `recordLost` when sunk), with her crew as the witness. A rival ship's crew never reports you (sea-law's `isRival`).
+- **Leaving:** caught (notoriety from their raids, decaying), lost while the storm signal flies in their region, retired after 3 game days with your Fame below 2, or beaten (struck, boarded, sunk or scuttled): 40 Fame, the papers (named) and a `stash` lead at the camp (piece O); the Hoard itself is piece T's.
+- **Parley:** after 2 settled days a daily chance by personality; a letter (meet or burn it), then a scene on docking at the region's saloon port: shake on it, refuse, or send for the constable (their notoriety +400). A truce stops blame both ways; a split moves them to a lane elsewhere. Betrayal is rolled at the handshake and shows 2 game days on: back on your lane, 60 heat on you, a letter and the papers.
+- **Papers:** emergence, strikes (by personality), caught, lost, betrayal and defeat are items; a crime of theirs not laid on you, or yours put down to them, is printed naming them as "the pirate …".
+- **Not in piece E:** rival ships firing guns (an armed rival fights by ramming, as targets do); shadowing a rival to its camp for clues and the camp on foot (pieces R and T); rivals' false lights stranding ships (their wrecking is a crime only); a rival noticing a hideout (never, by design); the nickname a rival's deeds give *you* (piece B); a rival page in the journal.
+- **For Jared:** the names, nicknames, personalities, ship names, camps and the event wording are drafts; all rivals are men (the letters say "he"); balance numbers (blame 0.7/0.6, defeat Fame 40, betrayal heat 60).
+
 ---
 
 ## 8. Capture, Jail & Death
@@ -304,4 +315,5 @@ All resolved.
 - v0.4: Phase 4 piece C built (§11): character creation, backgrounds, the new run and the First Week.
 - v0.3: Gap review: pre-built starting hideouts, MVP starting sites, Bayfield lockup, batch time skip for sentences.
 - v0.2: Decisions: newspaper nicknames, Retire and Lawman endings, poker, per-background starting hideouts and ports (with an adaptive First Week), Hall of Captains.
+- Copycat rivals as built (§7.1, Phase 9 piece E).
 - v0.1: Initial sandbox plan: character creation and 6 backgrounds with perks, the starting scenario and First Week onboarding, Ambitions, voluntary endings, the data-driven event system and catalog (Seavey-inspired opportunities, Hollister feud, poker), newspapers and nickname generation, copycat rival templates and lifecycle, jail sentences and bail, release summary, death causes, end-of-run front page and summary, data/state, phasing.

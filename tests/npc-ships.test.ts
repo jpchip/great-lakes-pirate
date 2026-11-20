@@ -36,15 +36,18 @@ function drawCalls(root: THREE.Object3D): number {
 }
 
 describe('NPC ship classes (Phase 3 piece H)', () => {
-  it('has the five Phase 3 classes, each with lines that match its record', () => {
+  it('has the Phase 3 classes and the rivals, each with lines that match its record', () => {
     expect(NPC_RECORDS.map((r) => r.id)).toEqual([
       'ship.ore_freighter',
       'ship.schooner_barge',
       'ship.package_steamer',
       'ship.fish_tug',
       'ship.cutter_morrill',
+      // Phase 9 piece E's copycat schooners: one set of lines, the larger drawn at 1.3.
+      'ship.rival_schooner',
+      'ship.rival_schooner_t2',
     ]);
-    expect(Object.keys(NPC_LINES)).toHaveLength(NPC_RECORDS.length);
+    expect(Object.keys(NPC_LINES)).toHaveLength(new Set(NPC_RECORDS.map((r) => r.modelId)).size);
     for (const r of NPC_RECORDS) {
       const l = npcLines(r.modelId);
       expect(l.length, r.id).toBe(r.lengthM);
@@ -57,9 +60,10 @@ describe('NPC ship classes (Phase 3 piece H)', () => {
     }
   });
 
-  it('shrinks the big freighter to 0.85 (plan 03 §3.5) and nothing else', () => {
+  it('shrinks the big freighter to 0.85 (plan 03 §3.5), grows the big rival, and nothing else', () => {
     for (const r of NPC_RECORDS) {
-      expect(r.displayScale, r.id).toBe(r.id === 'ship.ore_freighter' ? 0.85 : 1);
+      const scale = { 'ship.ore_freighter': 0.85, 'ship.rival_schooner_t2': 1.3 }[r.id] ?? 1;
+      expect(r.displayScale, r.id).toBe(scale);
     }
   });
 
@@ -80,9 +84,13 @@ describe('NPC ship models', () => {
   });
 
   it('draws five ships, wakes and smoke in at most 40 draw calls (piece H budget)', () => {
-    const total = NPC_RECORDS.reduce((n, r) => n + drawCalls(styled(r.id).model.group), 0);
+    // An arena holds five ships at most: the five dearest classes (Phase 9 piece E's rival
+    // schooners brought the count of classes past five).
+    const calls = NPC_RECORDS.map((r) => drawCalls(styled(r.id).model.group)).sort((a, b) => b - a);
+    const five = calls.slice(0, 5);
+    const total = five.reduce((n, c) => n + c, 0);
     // Plus a wake each and one shared smoke system.
-    expect(total + NPC_RECORDS.length + 1).toBeLessThanOrEqual(40);
+    expect(total + five.length + 1).toBeLessThanOrEqual(40);
   });
 
   it('floats at its drawn size, waterline and all', () => {

@@ -37,6 +37,7 @@ import { feudsStateSchema } from './events/feuds';
 import { MOUNTS } from '../../data/schemas/combat';
 import { curiosSchema, discoveryStateSchema, leadsSchema } from './discovery/discovery';
 import { salvageStateSchema } from './salvage';
+import { rivalsStateSchema } from './rivals/rivals';
 
 /**
  * WorldState skeleton (plan 01 §3.1, plan 16 §5.2). Each slice is filled in by its
@@ -713,6 +714,11 @@ export const worldStateSchema = z.object({
    * has noticed you yet.
    */
   feuds: feudsStateSchema.optional(),
+  /**
+   * Copycat rivals (plan 12 §10 `rivals[]`; Phase 9 piece E): those at sea and those gone,
+   * and your record by method they copy. Optional: absent, none has appeared yet.
+   */
+  rivals: rivalsStateSchema.optional(),
   /**
    * Wreck sites (plan 07 §7.3; Phase 6 piece F): ships gone to the bottom, yours among
    * them. Optional: absent, the lake has none yet.

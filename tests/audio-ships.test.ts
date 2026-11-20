@@ -32,7 +32,10 @@ describe('NPC ship fog signals (plan 15 §4.3; Phase 3 piece J)', () => {
       }).success,
     ).toBe(false);
     // The cutter has its own whistle, unlike any other ship's.
-    const ids = NPC_RECORDS.map((r) => r.whistle?.soundId);
+    // Steam whistles are each their own; a sailing vessel's fog horn sounds like any other's.
+    const ids = NPC_RECORDS.filter((r) => r.whistle?.kind === 'steam').map(
+      (r) => r.whistle?.soundId,
+    );
     expect(new Set(ids).size).toBe(ids.length);
   });
 
