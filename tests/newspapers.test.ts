@@ -333,6 +333,20 @@ describe('the rest of the paper', () => {
     expect(wantedTier(law, heatIn(w.lawWorld.law, 'region.apostles'))).toBe(5);
   });
 
+  it('WANTED column uses each paper covers only, not every region at high Fame', () => {
+    const w = world(150);
+    setHeat(law, w.lawWorld.law, 'region.apostles', 1200);
+    setHeat(law, w.lawWorld.law, DULUTH, 400);
+    const n = freshNews(-1);
+    const { editions } = pressDay(news, w, n, 1);
+    const lantern = must(editions.find((e) => e.paper === LANTERN.id));
+    const regions = lantern.wanted.map((x) => x.region);
+    expect(regions).toContain(DULUTH);
+    expect(regions).not.toContain('region.apostles');
+    const weekly = must(editions.find((e) => e.paper === BAYFIELD.id));
+    expect(weekly.wanted.map((x) => x.region)).toEqual(['region.apostles']);
+  });
+
   it('keeps the last editions of each paper', () => {
     const w = world();
     const n = freshNews(-1);
