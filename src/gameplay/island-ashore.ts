@@ -15,6 +15,7 @@ import type { PlacedSolid, PlacedStation } from '../sim/light-stations';
 import { bearingBox, type AshoreGround } from './onfoot/ashore-scene';
 import type { BoxCollider, Collider } from './onfoot/colliders';
 import type { ControllerParams, Ladder } from './onfoot/controller';
+import type { PlacedCave } from '../sim/caves/caves';
 
 /**
  * Walking a hero island (plan 08 §20.4 piece H; plan 11 §3): Stockton built whole on its
@@ -83,6 +84,11 @@ export interface IslandAshoreDeps {
   harbors?(): readonly HarborLayout[];
   /** Opens a port's market at a counter on foot (La Pointe's trading post); the refusal. */
   trade?(port: string, title: string): string | undefined;
+  /**
+   * The zone's sea caves (Phase 9 piece S): a mainland cave has a pad of its own round its
+   * mouth, as a light station does, so a boat can land you at it.
+   */
+  caves?(): readonly PlacedCave[];
   /** The run's seed for what's hidden where (the weather's noise seed). */
   runSeed(): number;
   notice(text: string): void;
@@ -125,6 +131,10 @@ const LAND_PAD_M = 80;
 export const STATION_LAND_M = 450;
 /** The pad round a station: this far each side of its tower. */
 export const STATION_PAD_M = 520;
+/** A landing this close to a mainland cave's mouth walks its pad (piece S). */
+export const CAVE_LAND_M = 300;
+/** The pad round a mainland cave: this far each side of its frame. */
+export const CAVE_PAD_M = 360;
 /** Reach to a cairn or the strongbox. */
 const REACH_M = 2.2;
 /** From this far off a building's front you're at its counter (the trading post). */
@@ -358,11 +368,40 @@ export function attachIslandAshore(deps: IslandAshoreDeps): IslandAshore {
     };
   };
 
+  /** A mainland cave whose pad a landing here walks (piece S). */
+  const mainlandCaveNear = (x: number, z: number): PlacedCave | undefined =>
+    (deps.caves?.() ?? []).find(
+      (c) => !c.island && Math.hypot(c.frame.x - x, c.frame.z - z) < CAVE_LAND_M,
+    );
+
+  const caveScene = (cave: PlacedCave): IslandScene => {
+    const grid = deps.grid();
+    return {
+      island: cave.id,
+      ground: {
+        heightAt: deps.heightAt,
+        x0: grid?.x0 ?? cave.frame.x - CAVE_PAD_M,
+        z0: grid?.z0 ?? cave.frame.z - CAVE_PAD_M,
+        step: grid?.step ?? 4,
+      },
+      box: {
+        minX: cave.frame.x - CAVE_PAD_M,
+        minZ: cave.frame.z - CAVE_PAD_M,
+        maxX: cave.frame.x + CAVE_PAD_M,
+        maxZ: cave.frame.z + CAVE_PAD_M,
+      },
+      extra: [],
+      ladders: [],
+    };
+  };
+
   const sceneFor = (at: { x: number; z: number }): IslandScene | undefined => {
     const hit = islandAt(at.x, at.z);
     if (!hit) {
       const st = stationNear(deps.stations?.() ?? [], at.x, at.z);
-      return st && stationScene(st);
+      if (st) return stationScene(st);
+      const cave = mainlandCaveNear(at.x, at.z);
+      return cave && caveScene(cave);
     }
     const { island, field } = hit;
     const grid = deps.grid() ?? { x0: field.x0, z0: field.z0, step: field.step };
@@ -477,7 +516,8 @@ export function attachIslandAshore(deps: IslandAshoreDeps): IslandAshore {
   return {
     walkableAt: (at) =>
       islandAt(at.x, at.z) !== undefined ||
-      stationNear(deps.stations?.() ?? [], at.x, at.z) !== undefined,
+      stationNear(deps.stations?.() ?? [], at.x, at.z) !== undefined ||
+      mainlandCaveNear(at.x, at.z) !== undefined,
     sceneFor,
     prompt,
     boatPrompt: () => deps.salvage?.boatPrompt(),

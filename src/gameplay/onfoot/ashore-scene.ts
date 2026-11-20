@@ -3,6 +3,8 @@ import type { Pose } from '../../sim/terrain/test-bay';
 import { ColliderSet, type BoxCollider, type Collider, type Surface } from './colliders';
 import type { Ladder, OnFootZone } from './controller';
 import { Heightfield } from './heightfield';
+import { caveAt, caveSolids, type PlacedCave } from '../../sim/caves/caves';
+import { withCaves } from './cave-ground';
 import { PLANT_STRIDE, PlantKind } from '../../sim/terrain/vegetation';
 
 /**
@@ -60,6 +62,12 @@ export interface AshoreSceneInput {
    * same hash), and the share of them the quality preset draws: those get trunks.
    */
   plants?: { trees: Float32Array; rocks: Float32Array; density: number } | undefined;
+  /**
+   * Sea caves in the built ground (plan 11 §18.4 piece S): their rock solid and their
+   * floors walked under the cliff (`CaveGround`), the lake's ice over an ice cave's water.
+   */
+  caves?: readonly PlacedCave[] | undefined;
+  caveIce?: ((cave: PlacedCave) => number | undefined) | undefined;
 }
 
 export interface AshoreScene extends OnFootZone {
@@ -238,7 +246,12 @@ export function buildAshoreScene(input: AshoreSceneInput): AshoreScene {
       heights[j * nx + i] = ground.heightAt(originX + i * step, originZ + j * step);
     }
   }
-  const field = new Heightfield(nx, nz, step, originX, originZ, heights);
+  const caves = input.caves?.length ? input.caves : undefined;
+  const field = withCaves(
+    new Heightfield(nx, nz, step, originX, originZ, heights),
+    caves,
+    input.caveIce,
+  );
   const bounds = {
     minX: originX,
     minZ: originZ,
@@ -278,12 +291,20 @@ export function buildAshoreScene(input: AshoreSceneInput): AshoreScene {
     all.push(ship);
   }
   for (const c of input.extra ?? []) all.push(c);
+  for (const cave of caves ?? []) {
+    for (const b of caveSolids(cave)) {
+      all.push(bearingBox(b.x, b.z, b.bearing, b.across, b.along, b.minY, b.maxY, 'rock'));
+    }
+  }
   if (input.plants) {
     const planted: Collider[] = [];
     plantColliders(input.plants, planted);
-    // Only what's on the built ground, and not a trunk through a pier or a building.
+    // Only what's on the built ground, and not a trunk through a pier or a building, or a
+    // shore rock in a cave's way.
     for (const c of planted) {
-      if (inside(c.x, c.z, 0)) all.push(c);
+      if (!inside(c.x, c.z, 0)) continue;
+      if (caves && c.maxY < 3 && caveAt(caves, c.x, c.z, 1)) continue;
+      all.push(c);
     }
   }
   ladders.push(...(input.ladders ?? []));
@@ -291,6 +312,7 @@ export function buildAshoreScene(input: AshoreSceneInput): AshoreScene {
 
   const surfaceAt = (x: number, z: number): Surface => {
     if (input.inTown?.(x, z)) return 'dirt';
+    if (caves && caveAt(caves, x, z)) return 'rock';
     const h = field.heightAt(x, z);
     if (field.slopeAt(x, z, 2) > ROCK_SLOPE) return 'rock';
     if (h < 1.2) return 'sand';

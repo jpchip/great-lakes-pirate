@@ -7,6 +7,11 @@ import {
   deepWaterTexture,
 } from './shore';
 import { iceShadeChunk, iceUniformsChunk } from './ice-glsl';
+import {
+  CAVE_CLIP_GLSL,
+  createCaveClipUniforms,
+  type CaveClipUniforms,
+} from '../terrain/cave-clip';
 import { noiseChunk, waveDisplacementChunk, waveUniformsChunk } from './wave-glsl';
 import { GUST_SAMPLES } from './wind-cues';
 
@@ -36,6 +41,7 @@ ${waveUniformsChunk}
 uniform float uGridOffset;
 uniform float uGridGrowth;
 ${waveDisplacementChunk}
+${CAVE_CLIP_GLSL}
 varying vec3 vWorldPos;
 varying vec2 vRestPos;
 varying float vHeight;
@@ -46,6 +52,8 @@ void main() {
   float dist = distance(p0, cameraPosition.xz);
   float spacing = (distance(p0, modelMatrix[3].xz) + uGridOffset) * uGridGrowth;
   vec3 disp = waveDisplacement(p0, dist, spacing);
+  // Under a sea cave's roof (piece S) the swell is a slow heave, not waves through the rock.
+  disp *= 1.0 - 0.85 * caveCut(vec3(p0.x, 0.0, p0.y), 1.0);
 
   world.xyz += disp;
   vWorldPos = world.xyz;
@@ -89,6 +97,7 @@ uniform vec3 uGustOrigin;
 varying vec3 vWorldPos;
 varying vec2 vRestPos;
 varying float vHeight;
+${CAVE_CLIP_GLSL}
 ${iceUniformsChunk}
 ${iceShadeChunk}
 
@@ -204,9 +213,12 @@ void main() {
     color = mix(color, uFoamColor, foam * 0.85);
   }
 
+  // Under a sea cave's roof (piece S): dark water and no wash, though the shore texture
+  // says it's the cliff.
+  float caveDark = caveCut(vec3(vRestPos.x, 0.0, vRestPos.y), 1.0);
   // Shore foam (plan 04 §7): a wash line on the beach that widens with the surf, and
   // lines of surf running in to it, weaker in a lee.
-  if (uShoreOn > 0.5 && toShore < 40.0) {
+  if (caveDark < 0.5 && uShoreOn > 0.5 && toShore < 40.0) {
     float energy = 0.3 + 0.7 * clamp(uSurf * local, 0.0, 1.0);
     float n1 = valueNoise(vRestPos * 0.3 + vec2(uTime * 0.12, 0.0));
     float wash = below(1.0 + 2.5 * energy + (n1 - 0.5) * 2.0, toShore, 0.15);
@@ -218,9 +230,10 @@ void main() {
   }
 
   // The ice over it all in winter (ice-glsl.ts).
-  if (uIceOn > 0.5) {
+  if (uIceOn > 0.5 && caveDark < 0.5) {
     color = shadeIce(color, vRestPos, dist, toShore, footprint, toCamera).rgb;
   }
+  color = mix(color, uDeepColor * 0.22, caveDark * 0.9);
 
   gl_FragColor = vec4(color, 1.0);
   #include <tonemapping_fragment>
@@ -269,6 +282,12 @@ export interface WaterUniforms {
   uIceCrackColor: THREE.IUniform<THREE.Color>;
   uIceSnow: THREE.IUniform<number>;
   uFloeNear: THREE.IUniform<number>;
+  /** The sea caves' passages (piece S, cave-clip.ts): dark, still water under a roof. */
+  uCaveCount: CaveClipUniforms['uCaveCount'];
+  uCaveBox: CaveClipUniforms['uCaveBox'];
+  uCaveRange: CaveClipUniforms['uCaveRange'];
+  uCaveSeg: CaveClipUniforms['uCaveSeg'];
+  uCaveDim: CaveClipUniforms['uCaveDim'];
 }
 
 /** Shallow-water tints at full daylight; the environment scales them like the rest. */
@@ -328,6 +347,7 @@ export function createWaterMaterial(): THREE.ShaderMaterial & { uniforms: WaterU
     uIceCrackColor: { value: new THREE.Color(ICE_CRACK_HEX) },
     uIceSnow: { value: 0 },
     uFloeNear: { value: 0 },
+    ...createCaveClipUniforms(),
   };
   const material = new THREE.ShaderMaterial({
     uniforms,

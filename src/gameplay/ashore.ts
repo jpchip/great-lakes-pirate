@@ -66,6 +66,9 @@ import { climateAt } from '../sim/weather/climate';
 import type { AshoreState, RowboatSave, WorldState } from '../sim/world-state';
 import type { DistrictDef, DistrictMark } from '../../data/schemas/districts';
 import type { IslandAshore } from './island-ashore';
+import type { Caves } from './caves';
+import { cavesIn } from '../sim/caves/caves';
+import { CaveGround } from './onfoot/cave-ground';
 import type { IslandPosse } from './island-posse';
 import type { PlacedStation } from '../sim/light-stations';
 import type { PlacedIsland } from '../sim/islands/on-foot';
@@ -217,6 +220,11 @@ export interface AshoreDeps {
    * what F does there, or undefined when it's shut or there's nobody to deal with.
    */
   shop?(district: DistrictLanding, mark: DistrictMark): { text: string; act(): void } | undefined;
+  /**
+   * The zone's sea caves (Phase 9 piece S): their rock solid and their floors walked in the
+   * scene, rowing in only in a calm, the surge, an ice cave's ice, and their caches.
+   */
+  caves?: Caves | undefined;
   /** The view drawn each frame; its `foot` is set while you're ashore. */
   view?: (SailingView & { foot: FootFrame | undefined }) | undefined;
   /** Your own body, heard (piece I): each stride, and each time you come down. */
@@ -650,6 +658,8 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
       extra: island?.extra,
       ladders: island?.ladders,
       plants: deps.plants?.(box),
+      caves: deps.caves && cavesIn(deps.caves.list(), roadBox ?? box),
+      caveIce: deps.caves?.iceTop,
     });
     if (winter) {
       for (const h of holes) punchHole(built.ground, h.x, h.z, COLD.thin.holeM);
@@ -995,6 +1005,7 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
     climb = undefined;
     hole = undefined;
     holes.length = 0;
+    deps.caves?.tick({ x: ship.x, y: 0, z: ship.z }, undefined);
     thin = freshThinIce();
     tracks.lift();
     active = false;
@@ -1034,8 +1045,10 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
   const stepAshore = async (): Promise<string | undefined> => {
     if (!active || !inBoat || !boat || busy) return 'Not in the boat';
     const terrain = deps.terrain();
-    // Over the bow first; grounded broadside or stern-on, over whichever side is dry.
-    const heightAt = (x: number, z: number): number => terrain?.heightAt(x, z) ?? -100;
+    // Over the bow first; grounded broadside or stern-on, over whichever side is dry. In a
+    // sea cave (piece S) the beach is the cave's own, under the cliff.
+    const heightAt = (x: number, z: number): number =>
+      deps.caves?.floorAt(x, z) ?? terrain?.heightAt(x, z) ?? -100;
     let step = terrain && beachStep(heightAt, bowPoint(boat), boat.heading);
     for (const turn of [0.5, -0.5, 1, -1, 1.5, -1.5, 2, -2]) {
       if (step || !terrain) break;
@@ -1170,7 +1183,7 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
     }
     // An island's cairns and the stash's strongbox (zone meters: never in a district).
     if (!district && c.grounded && !c.swimming) {
-      const found = deps.island?.prompt(c.position);
+      const found = deps.island?.prompt(c.position) ?? deps.caves?.prompt(c.position, false);
       if (found) return found;
       const cold = winterPrompt();
       if (cold) return cold;
@@ -1719,9 +1732,13 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
   };
 
   const rowEnv = {
-    depthAt: (x: number, z: number): number => -(deps.terrain()?.heightAt(x, z) ?? -100),
+    // A sea cave's water has the cave's own bottom (piece S): the drawn cliff is cut away.
+    depthAt: (x: number, z: number): number =>
+      deps.caves?.depthAt(x, z) ?? -(deps.terrain()?.heightAt(x, z) ?? -100),
     blocked: (x: number, z: number, r: number) => {
       if (!scene) return undefined;
+      const sea = deps.caves?.rowBlocked(x, z, r);
+      if (sea) return sea;
       scene.colliders.query(x, z, r, near);
       for (const c of near) {
         // Only what stands in the water at the boat's height: piles, cribs, hulls.
@@ -1735,6 +1752,10 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
 
   const stepAshoreTick = (dt: number): void => {
     if (!scene || busy) return;
+    // Under a sea cave's roof or on the cliff over it: the ground answers for your height.
+    if (scene.ground instanceof CaveGround) {
+      scene.ground.ref = inBoat ? 0 : character.position.y;
+    }
     const ahead = (input.isDown('MoveForward') ? 1 : 0) - (input.isDown('MoveBack') ? 1 : 0);
     const side = (input.isDown('MoveRight') ? 1 : 0) - (input.isDown('MoveLeft') ? 1 : 0);
     if (inBoat && boat) {
@@ -1759,6 +1780,7 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
         deps.notice('A sea filled the boat. Swim for it!');
       } else {
         seatInBoat();
+        deps.caves?.tick({ x: boat.x, y: 0, z: boat.z }, 'boat');
         const b = scene.bounds;
         if (sceneIsland && from !== 'wreck') {
           boat.x = Math.min(Math.max(boat.x, b.minX + REBUILD_MARGIN_M), b.maxX - REBUILD_MARGIN_M);
@@ -1869,6 +1891,11 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
         }
       }
       if (character.swimming) hurt(coldDrainPerS(waterC()) * dt, 'drowned');
+      // In a sea cave (piece S): coming in and going out, and the surge on a swimmer.
+      if (deps.caves) {
+        const surge = deps.caves.tick(character.position, character.swimming ? 'swimming' : 'foot');
+        hurt(surge * dt, 'drowned');
+      }
       winterOnFoot(dt);
       // Cast away, the first dry footing (a beach, a pier) is landfall.
       if (
@@ -2215,6 +2242,11 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
     },
     face(bearing, pitch) {
       const h = headingToScene(bearing);
+      if (inBoat && boat) {
+        boat.heading = h;
+        rowCamera.yaw = h;
+        seatInBoat();
+      }
       character.heading = h;
       walkCamera.yaw = h;
       if (pitch !== undefined) walkCamera.pitch = pitch;
