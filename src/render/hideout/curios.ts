@@ -19,6 +19,7 @@ const IRON = 0x3a3a38;
 const GILT = 0xc9a24a;
 const NAMEBOARD = 0x2a3a4a;
 const TWINE = 0xb9a77f;
+const GLASS_MILKY = 0x7fa892;
 
 type Builder = () => THREE.BufferGeometry[];
 
@@ -71,6 +72,12 @@ const CURIOS: Record<string, Builder> = {
       box(0.06, 0.012, 0.03, 0.12, 0, 0, 0x3a2a1e),
     ];
   },
+  'curio.wreck_lantern': () => [
+    box(0.14, 0.22, 0.12, 0, 0, 0, BRASS),
+    box(0.1, 0.15, 0.01, 0, 0.035, 0.062, GLASS_MILKY),
+    frustum(0.03, 0.06, 0.05, 8, 0, 0.22, 0, BRASS),
+    box(0.012, 0.06, 0.06, 0, 0.27, 0, IRON),
+  ],
   'curio.nameboard': () => [
     box(0.62, 0.14, 0.03, 0, 0, 0.1, NAMEBOARD),
     box(0.5, 0.04, 0.032, 0, 0.05, 0.1, GILT),
