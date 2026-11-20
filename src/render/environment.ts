@@ -5,7 +5,15 @@ import { R_SAILING } from '../core/time';
 import { createLightingSample, fogAmount, sampleLighting } from './style/lighting-luts';
 import type { Sky } from './sky';
 import type { Water } from './water/water';
-import { SAND_HEX, SHALLOW_HEX } from './water/water-material';
+import { applyWinterPalette } from './style/winter-palette';
+import {
+  ICE_CRACK_HEX,
+  ICE_DARK_HEX,
+  ICE_HEX,
+  ICE_SNOW_HEX,
+  SAND_HEX,
+  SHALLOW_HEX,
+} from './water/water-material';
 
 /**
  * Day, night and weather (plan 04 §9, §10, §15): the sky gradient, clouds, sun and moon,
@@ -24,6 +32,16 @@ const FOAM = new THREE.Color(0xe8eef0);
 const SHALLOW = new THREE.Color(SHALLOW_HEX);
 const SAND = new THREE.Color(SAND_HEX);
 const NIGHT_TINT = new THREE.Color(0x6f88b8);
+/** Winter water: a colder, darker steel against the ice (piece L). */
+const WINTER_DEEP = new THREE.Color(0x15232c);
+const WINTER_CREST = new THREE.Color(0x3d5f6c);
+const WINTER_SUN = new THREE.Color(0xfff7ee);
+const ICE = new THREE.Color(ICE_HEX);
+const ICE_DARK = new THREE.Color(ICE_DARK_HEX);
+const ICE_SNOW = new THREE.Color(ICE_SNOW_HEX);
+const ICE_CRACK = new THREE.Color(ICE_CRACK_HEX);
+/** The aurora's green, for the faint light it casts. */
+const AURORA_GLOW = new THREE.Color(0x58e0a0);
 /** Crest foam threshold in light air and in a gale. */
 const FOAM_CALM = 0.6;
 const FOAM_GALE = 0.3;
@@ -57,6 +75,17 @@ export interface EnvironmentView {
   readonly flashDirection: THREE.Vector3;
   /** The last frame's light state, for the debug readout. */
   readonly sunElevationDeg: number;
+  /**
+   * Winter's look (piece L), set before `update` by render/winter: the season's palette
+   * blend, the snow cover (snow bounces light up), and the aurora's strength as seen
+   * (after the dark and the cloud), with its clock in real seconds.
+   */
+  winter01: number;
+  snow01: number;
+  aurora01: number;
+  auroraTime: number;
+  /** Snow falling, 0–1: it closes the air in, at least to this (the sim's snow does more). */
+  snowing01: number;
 }
 
 export function createEnvironmentView(
@@ -82,6 +111,11 @@ export function createEnvironmentView(
   let lastT: number | undefined;
 
   return {
+    winter01: 0,
+    snow01: 0,
+    aurora01: 0,
+    auroraTime: 0,
+    snowing01: 0,
     flash01: 0,
     flashDirection: new THREE.Vector3(0, 0.3, -1).normalize(),
     get sunElevationDeg() {
@@ -97,6 +131,8 @@ export function createEnvironmentView(
 
       const fog01 = fogAmount(weather.fogVisibilityAt(t));
       sampleLighting(sunElevationDeg, { cloud01: cloud, storm01: storm, fog01 }, colors);
+      const winter = this.winter01;
+      applyWinterPalette(colors, winter, this.snow01, sunElevationDeg);
       let ambient = colors.hemi;
       const flash = this.flash01;
 
@@ -112,7 +148,10 @@ export function createEnvironmentView(
       u.uMoonDirection.value.set(moon.direction.x, moon.direction.y, moon.direction.z);
       u.uMoonPhase.value = moon.phase01;
       sunColor.copy(SUN_LOW).lerp(SUN_HIGH, smoothstep(0, 20, sunElevationDeg));
+      sunColor.lerp(WINTER_SUN, 0.4 * winter * smoothstep(2, 15, sunElevationDeg));
       u.uSunColor.value.copy(sunColor);
+      u.uAurora.value = this.aurora01;
+      u.uAuroraTime.value = this.auroraTime;
       // The cloud layers hide the sun, moon and stars where they are, so these only say
       // whether the body is up.
       u.uSunVisible.value = smoothstep(-3, 0, sunElevationDeg);
@@ -146,9 +185,22 @@ export function createEnvironmentView(
 
       fog.color.copy(colors.horizon);
       fog.density = fogDensity(weather.fogVisibilityAt(t));
+      if (this.snowing01 > 0) {
+        fog.density = Math.max(
+          fog.density,
+          fogDensity(MAX_FOG_VISIBILITY_M * (1 - 0.85 * this.snowing01)),
+        );
+      }
 
       hemi.color.copy(colors.hemiSky);
       hemi.groundColor.copy(colors.hemiGround);
+      // The aurora lights a clear night faintly green, the snow most of all.
+      const aurora = this.aurora01;
+      if (aurora > 0) {
+        hemi.color.lerp(AURORA_GLOW, 0.18 * aurora);
+        hemi.groundColor.lerp(AURORA_GLOW, 0.2 * aurora * this.snow01);
+        ambient += 0.12 * aurora;
+      }
       // Lightning lights the whole scene for a moment through the ambient light.
       hemi.intensity = ambient + 2.2 * flash;
 
@@ -171,12 +223,30 @@ export function createEnvironmentView(
       const night = 1 - smoothstep(-8, 2, sunElevationDeg);
       w.uDeepColor.value
         .copy(DEEP)
+        .lerp(WINTER_DEEP, 0.6 * winter)
         .lerp(NIGHT_TINT, night * 0.15)
         .multiplyScalar(brightness);
       w.uCrestColor.value
         .copy(CREST)
+        .lerp(WINTER_CREST, 0.5 * winter)
         .lerp(NIGHT_TINT, night * 0.15)
         .multiplyScalar(brightness);
+      // Ice and snow keep a little light at night: they show under the moon and the aurora.
+      const iceLight = Math.max(brightness, 0.08 + 0.25 * moonlight + 0.1 * aurora);
+      w.uIceColor.value
+        .copy(ICE)
+        .lerp(NIGHT_TINT, night * 0.2)
+        .multiplyScalar(iceLight);
+      w.uIceDarkColor.value
+        .copy(ICE_DARK)
+        .lerp(NIGHT_TINT, night * 0.15)
+        .multiplyScalar(brightness);
+      w.uIceSnowColor.value
+        .copy(ICE_SNOW)
+        .lerp(NIGHT_TINT, night * 0.3)
+        .lerp(AURORA_GLOW, 0.25 * aurora)
+        .multiplyScalar(iceLight);
+      w.uIceCrackColor.value.copy(ICE_CRACK).multiplyScalar(brightness);
       w.uShallowColor.value
         .copy(SHALLOW)
         .lerp(NIGHT_TINT, night * 0.15)
@@ -186,7 +256,8 @@ export function createEnvironmentView(
         .lerp(NIGHT_TINT, night * 0.15)
         .multiplyScalar(brightness);
       w.uFoamColor.value.copy(FOAM).multiplyScalar(Math.min(1, brightness * brightness * 1.1));
-      w.uSkyColor.value.copy(colors.horizon);
+      // The water and the ice give back the aurora's green at a grazing look.
+      w.uSkyColor.value.copy(colors.horizon).lerp(AURORA_GLOW, 0.22 * this.aurora01);
       // Whitecaps spread as the wind rises (plan 04 §6.2): the foam threshold drops.
       const wind = weather.windAt(at, t).speedKn;
       w.uFoamThreshold.value = FOAM_CALM - (FOAM_CALM - FOAM_GALE) * smoothstep(12, 40, wind);

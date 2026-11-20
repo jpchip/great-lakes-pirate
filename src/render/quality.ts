@@ -55,6 +55,10 @@ export interface QualityPreset {
   rainStreaks: number;
   /** Rotating lights draw their beam cone (plan 14 §10); Low keeps the lamp glow only. */
   lighthouseBeams: boolean;
+  /** Snowflakes around the camera at full snow (plan 04 §11; piece L); 0 is off. */
+  snowFlakes: number;
+  /** Ice floes drawn as meshes near the camera at ice-out (plan 04 §8.3); 0 leaves them to the water shader. */
+  iceFloes: number;
 }
 
 export const QUALITY_PRESETS: Record<QualityId, QualityPreset> = {
@@ -82,6 +86,8 @@ export const QUALITY_PRESETS: Record<QualityId, QualityPreset> = {
     fogBankSlabs: false,
     rainStreaks: 900,
     lighthouseBeams: false,
+    snowFlakes: 1200,
+    iceFloes: 90,
   },
   medium: {
     id: 'medium',
@@ -107,6 +113,8 @@ export const QUALITY_PRESETS: Record<QualityId, QualityPreset> = {
     fogBankSlabs: true,
     rainStreaks: 3500,
     lighthouseBeams: true,
+    snowFlakes: 3000,
+    iceFloes: 220,
   },
   high: {
     id: 'high',
@@ -132,6 +140,8 @@ export const QUALITY_PRESETS: Record<QualityId, QualityPreset> = {
     fogBankSlabs: true,
     rainStreaks: 8000,
     lighthouseBeams: true,
+    snowFlakes: 6000,
+    iceFloes: 420,
   },
 };
 
