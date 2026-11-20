@@ -1,0 +1,19 @@
+{
+  "source": "procedural",
+  "tool": "tools/audio/synth.ts (tools/audio/lib/synth.ts)",
+  "author": "Great Lakes Pirate contributors",
+  "reference": "A wandering low sine with harmonics, a stick-slip creak, low noise, falling sine chirps, reverb",
+  "date": "2026-11-20",
+  "license": "CC BY 4.0",
+  "attribution": "Great Lakes Pirate contributors",
+  "modifications": [],
+  "description": "Thin ice groaning under you: a low rising moan as the sheet bends, its stick-slip, a deep pew and a snap",
+  "durationS": 3.067,
+  "pipeline": [
+    "decoded to mono 48000 Hz",
+    "edge fades",
+    "peak-normalized toward -1 dB (-0.1 dB)",
+    "Opus 56 kbps mono in Ogg (ffmpeg libopus)"
+  ],
+  "inputHash": "703166767bcffb60"
+}

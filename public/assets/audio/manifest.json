@@ -870,6 +870,96 @@
       "type": "audio",
       "url": "sandbox/wind.ogg",
       "bytes": 35360
+    },
+    "voice.cold.chatter": {
+      "type": "audio",
+      "url": "winter/chatter.ogg",
+      "bytes": 16902
+    },
+    "amb.winter.frozen-night": {
+      "type": "audio",
+      "url": "winter/frozen-night.ogg",
+      "bytes": 139091
+    },
+    "amb.winter.gust-1": {
+      "type": "audio",
+      "url": "winter/gust-1.ogg",
+      "bytes": 25848
+    },
+    "amb.winter.gust-2": {
+      "type": "audio",
+      "url": "winter/gust-2.ogg",
+      "bytes": 25873
+    },
+    "sfx.ice.break": {
+      "type": "audio",
+      "url": "winter/ice-break.ogg",
+      "bytes": 14487
+    },
+    "sfx.ice.crack-1": {
+      "type": "audio",
+      "url": "winter/ice-crack-1.ogg",
+      "bytes": 4426
+    },
+    "sfx.ice.crack-2": {
+      "type": "audio",
+      "url": "winter/ice-crack-2.ogg",
+      "bytes": 5089
+    },
+    "sfx.ice.groan": {
+      "type": "audio",
+      "url": "winter/ice-groan.ogg",
+      "bytes": 28895
+    },
+    "sfx.ice.haul": {
+      "type": "audio",
+      "url": "winter/ice-haul.ogg",
+      "bytes": 15814
+    },
+    "amb.ice.sing-1": {
+      "type": "audio",
+      "url": "winter/ice-sing-1.ogg",
+      "bytes": 14596
+    },
+    "amb.ice.sing-2": {
+      "type": "audio",
+      "url": "winter/ice-sing-2.ogg",
+      "bytes": 19964
+    },
+    "sfx.sled.load": {
+      "type": "audio",
+      "url": "winter/sled-load.ogg",
+      "bytes": 14941
+    },
+    "sfx.sled.runners": {
+      "type": "audio",
+      "url": "winter/sled-runners.ogg",
+      "bytes": 36125
+    },
+    "sfx.foot.step-ice-1": {
+      "type": "audio",
+      "url": "winter/step-ice-1.ogg",
+      "bytes": 5144
+    },
+    "sfx.foot.step-ice-2": {
+      "type": "audio",
+      "url": "winter/step-ice-2.ogg",
+      "bytes": 5173
+    },
+    "sfx.foot.step-squeak-1": {
+      "type": "audio",
+      "url": "winter/step-squeak-1.ogg",
+      "bytes": 4575
+    },
+    "sfx.foot.step-squeak-2": {
+      "type": "audio",
+      "url": "winter/step-squeak-2.ogg",
+      "bytes": 4212
+    },
+    "amb.winter.wind": {
+      "type": "audio",
+      "url": "winter/wind.ogg",
+      "bytes": 102131
     }
   },
   "bundles": {
@@ -1074,6 +1164,26 @@
       "sfx.station.stair",
       "music.stinger.rival",
       "sfx.station.wind"
+    ],
+    "winter-audio": [
+      "voice.cold.chatter",
+      "amb.winter.frozen-night",
+      "amb.winter.gust-1",
+      "amb.winter.gust-2",
+      "sfx.ice.break",
+      "sfx.ice.crack-1",
+      "sfx.ice.crack-2",
+      "sfx.ice.groan",
+      "sfx.ice.haul",
+      "amb.ice.sing-1",
+      "amb.ice.sing-2",
+      "sfx.sled.load",
+      "sfx.sled.runners",
+      "sfx.foot.step-ice-1",
+      "sfx.foot.step-ice-2",
+      "sfx.foot.step-squeak-1",
+      "sfx.foot.step-squeak-2",
+      "amb.winter.wind"
     ]
   }
 }

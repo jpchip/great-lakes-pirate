@@ -318,6 +318,12 @@ export interface GameEvents {
   IceGave: { stage: 'cracking' | 'groaning' | 'broken' };
   /** Your warmth fell into a worse stage on foot (plan 11 §14 `WarmthCritical`; piece M). */
   WarmthCritical: { stage: 'chilled' | 'cold' | 'freezing' | 'frozen' };
+  /** Through the ice, the haul out: up onto the ice, or the edge broke away (piece N's sounds). */
+  IceClimbed: { result: 'out' | 'slipped' };
+  /** The hand sled handled on the ice (piece M; raised for piece N's sounds). */
+  SledHandled: {
+    act: 'down' | 'loaded' | 'unloaded' | 'stowed' | 'sold' | 'hitched' | 'dropped';
+  };
   /**
    * Abandon ship (Phase 6 piece F, plan 07 §14.6 decision 2): your ship foundered and you
    * took to the boat. She went down with her cargo and her guns.

@@ -1,0 +1,11 @@
+{
+  "id": "sfx.ice.groan",
+  "name": "ice-groan",
+  "description": "Thin ice groaning under you: a low rising moan as the sheet bends, its stick-slip, a deep pew and a snap",
+  "kind": "oneshot",
+  "bus": "sfx",
+  "bundles": [
+    "winter-audio"
+  ],
+  "source": "source.flac"
+}

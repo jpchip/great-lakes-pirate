@@ -19,6 +19,9 @@ import { FOOT_AUDIO_BUNDLE, FootSounds, type FootFrame } from './foot-audio';
 import { HARBOR_AUDIO_BUNDLE, HarborWorks } from './harbor-audio';
 import { HIDEOUT_AUDIO_BUNDLE, HideoutSounds, UI_AUDIO_BUNDLE, UiCues } from './hideout-audio';
 import { SANDBOX_AUDIO_BUNDLE, SandboxSounds } from './sandbox-audio';
+import { WINTER_AUDIO_BUNDLE, WinterSounds } from './winter-audio';
+import { snowShare } from './winter-mix';
+import { COLD } from '../sim/cold/footing';
 import { LAW_AUDIO_BUNDLE, LawSounds, type LawShipId, type LawShipView } from './law-audio';
 import {
   COMBAT_AUDIO_BUNDLE,
@@ -56,7 +59,9 @@ import { fogMix, musicMood, type MusicMood } from './world-mix';
  * since Phase 7 piece I, the captain ashore: footsteps, the burglar's kit, the watch's
  * voices, the stealth layer and the places he walks, with the weather still over him;
  * since Phase 9 piece J, stage 1's sounds: the saloon by night, the card table, the
- * lighthouse station on foot, the harbor master's letters, a rival's stinger, a ship aground.
+ * lighthouse station on foot, the harbor master's letters, a rival's stinger, a ship aground;
+ * since Phase 9 piece N, winter: thin ice, footsteps on ice and frost, the sled, the cold in
+ * you, the winter wind and a frozen harbor's night.
  */
 
 export const SAILING_AUDIO_BUNDLE = 'sailing-audio';
@@ -93,6 +98,8 @@ export interface GameAudio {
   ui: UiCues;
   /** Stage 1's sounds (Phase 9 piece J). */
   sandbox: SandboxSounds;
+  /** Winter's sounds (Phase 9 piece N). */
+  winter: WinterSounds;
   captions: CaptionFeed;
   /** The captions showing now, with arrows from the listener's view (plan 15 §5). */
   captionsNow(): CaptionView[];
@@ -113,6 +120,8 @@ export interface GameAudio {
   setCombatSource(source: CombatSource): void;
   /** What the sounds ashore read each frame: undefined while you're not on your feet. */
   setFootSource(source: FootSource): void;
+  /** The air and the lake's ice where the ears are, for winter's sounds (piece N). */
+  setWinterSource(source: WinterSource): void;
   /** A new zone's fog signals, harbors and harbor work sites (Phase 3 piece A). */
   setZone(zone: {
     stations: readonly SignalStation[];
@@ -125,6 +134,12 @@ export interface GameAudio {
 
 /** The on-foot frame without what the audio adds itself (the listener and its clock). */
 export type FootSource = () => Omit<FootFrame, 'listener' | 'nowS'> | undefined;
+
+/** The air's temperature, °C, and the lake's ice cover, 0–1, at a zone point now (piece N). */
+export type WinterSource = (at: { x: number; z: number }) => { airC: number; iceCover01: number };
+
+/** How often winter's source is asked, seconds: the air and the ice change slowly. */
+const WINTER_SAMPLE_S = 0.5;
 
 /** What the combat audio reads each frame from the combat core and the targets. */
 export interface CombatSource {
@@ -187,6 +202,7 @@ export async function createGameAudio(options: GameAudioOptions): Promise<GameAu
         HIDEOUT_AUDIO_BUNDLE,
         UI_AUDIO_BUNDLE,
         SANDBOX_AUDIO_BUNDLE,
+        WINTER_AUDIO_BUNDLE,
       ],
       baseUrl,
     ),
@@ -213,6 +229,8 @@ export async function createGameAudio(options: GameAudioOptions): Promise<GameAu
   const ui = new UiCues(mixer, bank, () => nowS);
   const sandbox = new SandboxSounds(mixer, bank);
   sandbox.captions = captions;
+  const winter = new WinterSounds(mixer, bank, COLD.thin);
+  winter.captions = captions;
   const records = new Map(SHIP_RECORDS.map((r) => [r.id, r]));
   const whistleShips: WhistleShip[] = [];
   const players: Partial<Record<Exclude<MusicMood, 'quiet'>, MusicPlayer>> = {};
@@ -299,6 +317,20 @@ export async function createGameAudio(options: GameAudioOptions): Promise<GameAu
   });
   game.events.on('ShipGrounded', ({ shipId, speedKn, hard }) => {
     if (running() && isPlayer(shipId) && (hard || speedKn > 1.5)) sandbox.grounded(speedKn, hard);
+  });
+
+  // Winter (Phase 9 piece N): thin ice, the haul out, the sled, the cold.
+  game.events.on('IceGave', ({ stage }) => {
+    if (running()) winter.iceGave(stage);
+  });
+  game.events.on('IceClimbed', ({ result }) => {
+    if (running()) winter.climbed(result);
+  });
+  game.events.on('SledHandled', ({ act }) => {
+    if (running()) winter.sled(act);
+  });
+  game.events.on('WarmthCritical', ({ stage }) => {
+    if (running()) winter.warmthFell(stage);
   });
 
   // The law (Phase 5 piece H).
@@ -406,6 +438,18 @@ export async function createGameAudio(options: GameAudioOptions): Promise<GameAu
   });
   let combatSource: CombatSource | undefined;
   let footSource: FootSource | undefined;
+  let winterSource: WinterSource | undefined;
+  let winterSampleS = 0;
+  let winterAir = { airC: 10, iceCover01: 0 };
+  /** The air and the ice where you are, asked of the world twice a second. */
+  const winterAt = (at: { x: number; z: number }, dt: number): typeof winterAir => {
+    winterSampleS -= dt;
+    if (winterSource && winterSampleS <= 0) {
+      winterSampleS = WINTER_SAMPLE_S;
+      winterAir = winterSource(at);
+    }
+    return winterAir;
+  };
   const targetViews: { phase: string; distanceM: number }[] = [];
 
   const isPlayer = (shipId: string | undefined): boolean => {
@@ -463,8 +507,26 @@ export async function createGameAudio(options: GameAudioOptions): Promise<GameAu
     const fogVisibilityM = game.weather.fogVisibilityAt(gameSeconds);
     const storm01 = game.weather.stormAt(gameSeconds);
     const { hour } = dayAndHour(gameSeconds);
+    // Winter (piece N): the air and the ice here. Snow falls without a sound.
+    const air = winterAt(at, frameSeconds);
+    winter.update(
+      {
+        nowS,
+        listener: pose.at,
+        airC: air.airC,
+        windKn: f.windKn,
+        month0: f.month0,
+        sunElevationDeg: f.sunElevationDeg,
+        iceCover01: air.iceCover01,
+        harborDistanceM,
+        inside: f.inside,
+        swimming: f.swimming,
+        body: f.winter,
+      },
+      frameSeconds,
+    );
     // Under a roof the rain is on the shingles, not on you.
-    const rain01 = f.rain01 * (f.inside ? 0.45 : 1);
+    const rain01 = f.rain01 * (f.inside ? 0.45 : 1) * (1 - snowShare(air.airC));
     world.update(
       {
         listener: pose.at,
@@ -481,6 +543,7 @@ export async function createGameAudio(options: GameAudioOptions): Promise<GameAu
         shoreDistanceM: f.place === 'district' ? 30 : 15,
         towardShore: { x: -towardShore.x, z: -towardShore.z },
         harborDistanceM,
+        iceHush01: winter.hush,
       },
       frameSeconds,
     );
@@ -495,7 +558,7 @@ export async function createGameAudio(options: GameAudioOptions): Promise<GameAu
       },
       frameSeconds,
     );
-    foot.update({ ...f, listener: pose.at, nowS, hour }, frameSeconds);
+    foot.update({ ...f, listener: pose.at, nowS, hour, frozen01: winter.hush }, frameSeconds);
     sandbox.update(
       {
         nowS,
@@ -541,6 +604,7 @@ export async function createGameAudio(options: GameAudioOptions): Promise<GameAu
     hideout,
     ui,
     sandbox,
+    winter,
     captions,
     captionsNow() {
       if (!lastPose || !outside) return [];
@@ -587,7 +651,10 @@ export async function createGameAudio(options: GameAudioOptions): Promise<GameAu
       }
       foot.setActive(ashore !== undefined);
       if (ashore === undefined) hideout.stop();
-      if (!outsideNow) sandbox.stop();
+      if (!outsideNow) {
+        sandbox.stop();
+        winter.stop();
+      }
       if (!player || !outsideNow || ctx.state !== 'running') return;
 
       const { state, cls } = player.sailing;
@@ -627,7 +694,26 @@ export async function createGameAudio(options: GameAudioOptions): Promise<GameAu
       }
       const sunElevationDeg = (sunAt(gameSeconds).elevationRad * 180) / Math.PI;
       const fogVisibilityM = game.weather.fogVisibilityAt(gameSeconds);
-      const rain01 = game.weather.rainAt(gameSeconds);
+      // Winter (piece N): the wind, a frozen harbor's night, the ice far off, heard aboard.
+      const air = winterAt(state, frameSeconds);
+      winter.update(
+        {
+          nowS,
+          listener: pose.at,
+          airC: air.airC,
+          windKn: state.windKn,
+          month0: calendarDate(gameSeconds).getUTCMonth(),
+          sunElevationDeg,
+          iceCover01: air.iceCover01,
+          harborDistanceM,
+          inside: false,
+          swimming: false,
+          body: undefined,
+        },
+        frameSeconds,
+      );
+      // Snow falls without a sound.
+      const rain01 = game.weather.rainAt(gameSeconds) * (1 - snowShare(air.airC));
       const storm01 = game.weather.stormAt(gameSeconds);
       world.update(
         {
@@ -647,6 +733,7 @@ export async function createGameAudio(options: GameAudioOptions): Promise<GameAu
           // The shore normal points out to sea; the shore is the other way.
           towardShore: { x: -towardShore.x, z: -towardShore.z },
           harborDistanceM,
+          iceHush01: winter.hush,
         },
         frameSeconds,
       );
@@ -770,6 +857,10 @@ export async function createGameAudio(options: GameAudioOptions): Promise<GameAu
     },
     setFootSource(source) {
       footSource = source;
+    },
+    setWinterSource(source) {
+      winterSource = source;
+      winterSampleS = 0;
     },
     setZone(zone) {
       world.setStations(zone.stations);

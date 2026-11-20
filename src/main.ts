@@ -960,6 +960,8 @@ async function boot(): Promise<void> {
       fogSignal: () => audio.world.signalNow(),
       // Stage 1 (piece J): what's sounding, and a rival's stinger for piece E's hook.
       sandbox: () => audio.sandbox.levels,
+      // Winter (piece N): what's sounding.
+      winter: () => audio.winter.levels,
       rival: (why: 'news' | 'sighted' | 'parley' | 'beaten' = 'sighted') =>
         ctx.events.emit('RivalStinger', { rival: 'dev', why }),
     };
@@ -1013,6 +1015,16 @@ async function boot(): Promise<void> {
     if (d['sandboxTune'] !== sb.tune) d['sandboxTune'] = sb.tune;
     const sbCues = String(sb.cues);
     if (d['sandboxCues'] !== sbCues) d['sandboxCues'] = sbCues;
+    // Winter (Phase 9 piece N).
+    const wn = a.winter.levels;
+    if (wn.last && d['winterCue'] !== wn.last) d['winterCue'] = wn.last;
+    const wnBeds = Object.entries(wn.beds)
+      .filter(([, g]) => g > 0.01)
+      .map(([id]) => id)
+      .join(' ');
+    if (d['winterBeds'] !== wnBeds) d['winterBeds'] = wnBeds;
+    const wnCues = String(wn.cues);
+    if (d['winterCues'] !== wnCues) d['winterCues'] = wnCues;
     const beds = Object.entries(a.foot.levels.beds)
       .filter(([, g]) => g > 0.01)
       .map(([id]) => id)
@@ -4213,7 +4225,11 @@ async function boot(): Promise<void> {
     ...(audio
       ? {
           sounds: {
-            step: (surface, gait, radiusM) => audio.foot.step(surface, gait, radiusM),
+            // In winter, snow, ice and frost underfoot are winter's own steps (piece N).
+            step: (surface, gait, radiusM, ground) =>
+              ground
+                ? audio.winter.step(ground, gait, radiusM)
+                : audio.foot.step(surface, gait, radiusM),
             landed: (speed, inWater) => audio.foot.landed(speed, inWater),
           },
         }
@@ -4447,6 +4463,11 @@ async function boot(): Promise<void> {
       stills: hideouts.runningStills(),
     };
   });
+  // Winter's sounds (piece N): the air and the lake's ice where the ears are.
+  audio?.setWinterSource((at) => ({
+    airC: ctx.weather.airAt(state.environment.clock.gameSeconds),
+    iceCover01: ashoreWinter.iceAt(at.x, at.z).coverage,
+  }));
   ashoreRef.current = ashore;
   goAshoreRef.current = () => goAshore();
   ashoreOfferedRef.current = () => ashore.landingHere();

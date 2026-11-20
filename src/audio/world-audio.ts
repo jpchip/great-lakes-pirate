@@ -77,6 +77,8 @@ export interface WorldAudioFrame {
   shoreDistanceM: number;
   towardShore: { x: number; z: number };
   harborDistanceM: number;
+  /** 0–1: the lake closed over by ice here (Phase 9 piece N): the gulls go, and the loons. */
+  iceHush01?: number;
 }
 
 /** How far ahead fog signal blasts are scheduled, seconds. */
@@ -361,22 +363,27 @@ export class WorldSoundscape {
   }
 
   private wildlife(f: WorldAudioFrame, dt: number): void {
-    const gullsPerS = gullRate({
-      sunElevationDeg: f.sunElevationDeg,
-      shoreDistanceM: f.shoreDistanceM,
-      harborDistanceM: f.harborDistanceM,
-      windKn: f.windKn,
-      rain01: f.rain01,
-      storm01: f.storm01,
-    });
-    const loonsPerS = loonRate({
-      sunElevationDeg: f.sunElevationDeg,
-      month0: f.month0,
-      shoreDistanceM: f.shoreDistanceM,
-      windKn: f.windKn,
-      rain01: f.rain01,
-      storm01: f.storm01,
-    });
+    const open = 1 - 0.9 * (f.iceHush01 ?? 0);
+    const gullsPerS =
+      open *
+      gullRate({
+        sunElevationDeg: f.sunElevationDeg,
+        shoreDistanceM: f.shoreDistanceM,
+        harborDistanceM: f.harborDistanceM,
+        windKn: f.windKn,
+        rain01: f.rain01,
+        storm01: f.storm01,
+      });
+    const loonsPerS =
+      open *
+      loonRate({
+        sunElevationDeg: f.sunElevationDeg,
+        month0: f.month0,
+        shoreDistanceM: f.shoreDistanceM,
+        windKn: f.windKn,
+        rain01: f.rain01,
+        storm01: f.storm01,
+      });
     this.levels.gullsPerS = gullsPerS;
     this.levels.loonsPerS = loonsPerS;
     if (this.gullT.tick(dt, gullsPerS)) this.gull(f);
