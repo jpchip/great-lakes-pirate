@@ -747,6 +747,17 @@ export const worldStateSchema = z.object({
    */
   salvage: salvageStateSchema.optional(),
   /**
+   * Hunting and trapping (plan 11 §14 `traps[]`; Phase 9 piece V): when each deer was taken,
+   * by island (the herd grows back), and the traps set, by spot. Optional: absent, nothing's
+   * been shot or set.
+   */
+  wildlife: z
+    .object({
+      taken: z.record(z.string(), z.array(z.number())),
+      traps: z.record(z.string(), z.object({ setAt: z.number() })),
+    })
+    .optional(),
+  /**
    * The sea caves (plan 11 §5; Phase 9 piece S): the ones you've been in, by cave id, with
    * the game time you first came in. Their caches keep to `caches` with the islands'.
    * Optional: absent, you've been in none, so no version bump.

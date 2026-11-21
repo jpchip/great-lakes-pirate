@@ -1,4 +1,5 @@
 import { createWinterView, type WinterFrame } from './winter-view';
+import { createWildlifeView, type WildlifeFrameView } from './wildlife-view';
 import * as THREE from 'three';
 import type { DistrictModel } from '../../gameplay/district/district';
 import type { DistrictFrame } from '../../gameplay/district/ground';
@@ -70,6 +71,8 @@ export interface FootFrame {
   guards?: readonly GuardFrame[] | undefined;
   /** Winter on foot (Phase 9 piece M): the sled, your prints, the ice road. */
   winter?: WinterFrame | undefined;
+  /** The island's animals, deer sign and traplines, and a carcass carried (piece V). */
+  wildlife?: WildlifeFrameView | undefined;
 }
 
 export interface GuardFrame {
@@ -215,6 +218,8 @@ export function createFootView(
   group.visible = false;
   const winter = createWinterView();
   group.add(winter.group);
+  const wildlife = createWildlifeView(material);
+  group.add(wildlife.group);
   const clock = { t: 0 };
 
   const guardGeo = new Map<string, THREE.BufferGeometry>();
@@ -277,6 +282,7 @@ export function createFootView(
       clock.t += 1 / 60;
       winter.update(frame.winter, clock.t);
       const c = frame.captain;
+      wildlife.update(frame.wildlife, c, clock.t);
       captain.visible = c.visible;
       captain.geometry = c.crouching || c.swimming ? crouchGeo : standGeo;
       captain.position.set(c.x, c.y, c.z);
@@ -304,6 +310,7 @@ export function createFootView(
     },
     dispose() {
       winter.dispose();
+      wildlife.dispose();
       for (const g of guardGeo.values()) g.dispose();
       lanternGeo.dispose();
       lanternMat.dispose();

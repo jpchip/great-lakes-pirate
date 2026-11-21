@@ -1,0 +1,170 @@
+{
+  "species": [
+    {
+      "id": "animal.deer",
+      "name": "White-tailed deer",
+      "noun": "deer",
+      "kind": "deer",
+      "months": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+      "group": [2, 3],
+      "walkMps": 1.1,
+      "runMps": 9,
+      "hp": 1,
+      "senses": { "sightM": 70, "hearing": 1.8, "smellM": 110 },
+      "alertS": 5,
+      "fleeS": 16,
+      "fleeAtM": 25,
+      "fire": { "keepOffM": 15 },
+      "lengthM": 1.7,
+      "heightM": 1
+    },
+    {
+      "id": "animal.bear",
+      "name": "Black bear",
+      "noun": "bear",
+      "kind": "predator",
+      "months": [4, 5, 6, 7, 8, 9, 10, 11],
+      "group": [1, 1],
+      "walkMps": 0.9,
+      "runMps": 8,
+      "hp": 3,
+      "senses": { "sightM": 35, "hearing": 1.2, "smellM": 140 },
+      "alertS": 6,
+      "fleeS": 20,
+      "fleeAtM": 0,
+      "fire": { "keepOffM": 12 },
+      "lengthM": 1.6,
+      "heightM": 0.95,
+      "predator": {
+        "waryM": 45,
+        "threatenM": 22,
+        "closeM": 7,
+        "threatenS": 6,
+        "boldness": 0.3,
+        "attackM": 1.8,
+        "damage": 30,
+        "everyS": 1.6,
+        "shotFlee": 0.6,
+        "hurtFlee": 0.7,
+        "noiseFlee": 0.35
+      },
+      "warn": {
+        "wary": "A black bear lifts its head from the brush and looks your way.",
+        "threaten": "The bear rises on its hind legs, huffing and popping its jaw. Back away slowly.",
+        "attack": "The bear drops to all fours and charges!",
+        "flee": "The bear crashes off through the brush."
+      }
+    },
+    {
+      "id": "animal.wolf",
+      "name": "Timber wolf",
+      "noun": "wolf",
+      "kind": "predator",
+      "months": [12, 1, 2, 3],
+      "group": [2, 3],
+      "walkMps": 1.4,
+      "runMps": 10,
+      "hp": 1,
+      "senses": { "sightM": 60, "hearing": 1.6, "smellM": 160 },
+      "alertS": 5,
+      "fleeS": 18,
+      "fleeAtM": 0,
+      "fire": { "keepOffM": 25 },
+      "lengthM": 1.3,
+      "heightM": 0.8,
+      "predator": {
+        "waryM": 70,
+        "threatenM": 28,
+        "closeM": 9,
+        "threatenS": 8,
+        "boldness": 0.45,
+        "attackM": 1.5,
+        "damage": 18,
+        "everyS": 1.2,
+        "shotFlee": 0.5,
+        "hurtFlee": 1,
+        "noiseFlee": 0.25
+      },
+      "warn": {
+        "wary": "Wolves howl somewhere in the trees, closer than you'd like.",
+        "threaten": "Grey shapes circle at the edge of the trees, hackles up, growling. Back off, or find a fire.",
+        "attack": "The wolves come in at a run!",
+        "flee": "The wolves melt back into the trees."
+      }
+    }
+  ],
+  "islands": [
+    {
+      "island": "island.stockton",
+      "deer": 9,
+      "bear": 0.3,
+      "wolves": 0
+    },
+    {
+      "island": "island.madeline",
+      "deer": 12,
+      "bear": 0.15,
+      "wolves": 0.45
+    },
+    {
+      "island": "island.oak",
+      "deer": 7,
+      "bear": 0.35,
+      "wolves": 0.3
+    },
+    {
+      "island": "island.outer",
+      "deer": 0,
+      "bear": 0.3,
+      "wolves": 0.55
+    }
+  ],
+  "population": {
+    "spread": 0.3,
+    "regrowPerWeek": 0.5,
+    "herdMinFromLandingM": 140,
+    "herdSpreadM": 18,
+    "keepClearOfHomesM": 90
+  },
+  "hunt": {
+    "rangeM": 110,
+    "coneDeg": 7,
+    "hitNear": { "m": 25, "p": 0.95 },
+    "hitFar": { "m": 110, "p": 0.35 },
+    "crouched": 1.15,
+    "moving": 0.6,
+    "runningTarget": 0.55,
+    "killChance": 0.7,
+    "woundedS": 35,
+    "noiseM": 600,
+    "dressS": 9,
+    "woodcraftDressS": 5,
+    "carcass": { "good": "good.venison", "cu": 2, "speed": 0.62, "woodcraftSpeed": 0.8 }
+  },
+  "sign": {
+    "count": 5,
+    "firstM": [30, 70],
+    "stepM": 22,
+    "readM": 2.4
+  },
+  "traps": {
+    "store": "store.traps",
+    "months": [11, 12, 1, 2, 3],
+    "spotsPerLine": 4,
+    "spotM": [30, 90],
+    "fillWeeks": [1, 3],
+    "catch": 0.45,
+    "woodcraftCatch": 0.65,
+    "spoilWeeks": 5,
+    "good": "good.furs",
+    "reachM": 2,
+    "lines": [
+      { "island": "island.madeline", "poi": "madeline_trapper_cabin" },
+      { "island": "island.outer", "poi": "outer_trapper_cabin" },
+      { "island": "island.oak", "poi": "oak_cabin" },
+      { "island": "island.hermit", "poi": "hermit_cabin" },
+      { "island": "island.manitou", "poi": "manitou_cabin" },
+      { "island": "island.otter", "poi": "otter_cabin" }
+    ]
+  }
+}

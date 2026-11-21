@@ -7,6 +7,7 @@ import {
   bumpCounter,
   checkAmbitions,
   clearMark,
+  counterAmount,
   counterForEvent,
   createAmbitions,
   isDone,
@@ -234,7 +235,7 @@ export function attachAmbitions(
     ctx.events.tap((type, payload) => {
       if (type === 'AmbitionCompleted' || type === 'AmbitionPinned') return;
       const counter = counterForEvent(String(type), payload, now());
-      if (counter) bumpCounter(amb, counter);
+      if (counter) bumpCounter(amb, counter, counterAmount(String(type), payload));
       if (
         counter ||
         type === 'StorageChanged' ||
