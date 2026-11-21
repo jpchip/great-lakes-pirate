@@ -91,6 +91,11 @@ export interface IslandAshoreDeps {
   caves?(): readonly PlacedCave[];
   /** Legends' pads on the mainland (piece T): the Dark Light's, on Minnesota Point. */
   pads?(): readonly { id: string; x: number; z: number }[];
+  /**
+   * Hideout sites' pads on the mainland with no island ground of their own (piece W):
+   * Minnesota Point and the North Shore cove, by site id at the bounds' middle.
+   */
+  sitePads?(): readonly { id: string; x: number; z: number }[];
   /** A seeded cache stocked this run (piece T); undefined: every cache is. */
   stocked?(cacheId: string): boolean;
   /** The run's seed for what's hidden where (the weather's noise seed). */
@@ -378,6 +383,10 @@ export function attachIslandAshore(deps: IslandAshoreDeps): IslandAshore {
       (c) => !c.island && Math.hypot(c.frame.x - x, c.frame.z - z) < CAVE_LAND_M,
     );
 
+  /** A hideout site's pad on the mainland whose ground a landing here walks (piece W). */
+  const sitePadNear = (x: number, z: number) =>
+    (deps.sitePads?.() ?? []).find((p) => Math.hypot(p.x - x, p.z - z) < CAVE_LAND_M);
+
   /** A legend's pad on the mainland whose ground a landing here walks (piece T). */
   const legendPadNear = (x: number, z: number) =>
     (deps.pads?.() ?? []).find((p) => Math.hypot(p.x - x, p.z - z) < CAVE_LAND_M);
@@ -391,6 +400,15 @@ export function attachIslandAshore(deps: IslandAshoreDeps): IslandAshore {
     const extra: Collider[] = [];
     const placed = deps.islands().find((i) => i.id === id);
     for (const p of placed?.pieces ?? []) extra.push(...pieceColliders(p));
+    // Whatever else stands on this stretch of mainland: a legend's pad beside a site's,
+    // and the hideouts built there (piece W).
+    for (const other of deps.islands()) {
+      if (other === placed || !other.mainland || deps.ground(other.id)) continue;
+      for (const p of other.pieces) {
+        if (Math.hypot(p.x - x, p.z - z) < CAVE_PAD_M) extra.push(...pieceColliders(p));
+      }
+    }
+    if (deps.hideouts) extra.push(...deps.hideouts.colliders());
     return {
       island: id,
       ground: {
@@ -418,6 +436,8 @@ export function attachIslandAshore(deps: IslandAshoreDeps): IslandAshore {
       if (st) return stationScene(st);
       const cave = mainlandCaveNear(at.x, at.z);
       if (cave) return padScene(cave.id, cave.frame.x, cave.frame.z);
+      const site = sitePadNear(at.x, at.z);
+      if (site) return padScene(site.id, site.x, site.z);
       const pad = legendPadNear(at.x, at.z);
       return pad && padScene(pad.id, pad.x, pad.z);
     }
@@ -537,6 +557,7 @@ export function attachIslandAshore(deps: IslandAshoreDeps): IslandAshore {
       islandAt(at.x, at.z) !== undefined ||
       stationNear(deps.stations?.() ?? [], at.x, at.z) !== undefined ||
       mainlandCaveNear(at.x, at.z) !== undefined ||
+      sitePadNear(at.x, at.z) !== undefined ||
       legendPadNear(at.x, at.z) !== undefined,
     sceneFor,
     prompt,

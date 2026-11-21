@@ -47,7 +47,8 @@ import { attachContracts, contractsOf } from './gameplay/contracts';
 import { attachSmugglers, type SmugglerControl } from './gameplay/smuggler';
 import { attachStash, type StashControl } from './gameplay/stash';
 import { withWorkshop } from './sim/hideouts/crafting';
-import { siteAnchorage, siteDef, siteGeo, SITES } from './sim/hideouts/stash';
+import { hash01 } from './sim/targets/morale';
+import { siteAnchorage, siteDef, siteGeo, SITES, squatsNoticed } from './sim/hideouts/stash';
 import { slipwayHead, withSlipway } from './sim/hideouts/slipway';
 import { LIE_REFUSALS, type LieUntil } from './sim/hideouts/lie-at-anchor';
 import { attachShipyard } from './gameplay/shipyard';
@@ -3826,6 +3827,25 @@ async function boot(): Promise<void> {
     sleep: (id) => lifeRef.current?.openSleep(id),
     carrying: () => lifeRef.current?.carrying(),
     notice: (text) => showNotice(text),
+    claimed: (site, hideout, how) => {
+      if (how !== 'leased') {
+        showNotice(
+          how === 'squatted'
+            ? `You've squatted on ${site.shortName}: ${site.lease?.from ?? 'its owners'} may hear of it.`
+            : `${site.shortName} is yours: your hideout's claim is staked.`,
+        );
+      }
+      ctx.events.emit('SiteClaimed', { site: site.id, hideout, how });
+    },
+  });
+  // A squat on an owned site may be noticed each day (plan 09 §2.2; piece W).
+  ctx.events.on('DayChanged', ({ day }) => {
+    const seed = state.environment.weather.noiseSeed;
+    for (const n of squatsNoticed(state.hideouts, (id) => hash01(`squat:${seed}:${id}:${day}`))) {
+      law.addHeat(n.region, n.heat);
+      showNotice(`Word's got about that somebody's squatting at ${n.site.shortName}.`);
+      ctx.events.emit('SquatNoticed', { site: n.site.id, region: n.region });
+    }
   });
   const islandAshore = attachIslandAshore({
     state,
@@ -3870,6 +3890,7 @@ async function boot(): Promise<void> {
     },
     // The legends' pads on the mainland and the seeded caches stocked this run (piece T).
     pads: () => (zone && !arena ? zoneIslands().legends.pads : []),
+    sitePads: () => hideouts.mainlandPads(),
     stocked: (id) => legends.stocked(id),
   });
   // Hideout life (Phase 8 piece F): the bunk, the refuge at the anchorage, being spotted
@@ -5611,6 +5632,51 @@ async function boot(): Promise<void> {
           return;
         }
         console.warn(`Going ashore to ${jumpTo} timed out`);
+      })();
+    }
+    // `?site=devils` (any hideout site's slug; Phase 9 piece W) anchors at the site's anchorage,
+    // lands, and walks onto its ground beside the shack: the e2e for each background's start.
+    const siteJump = params.get('site');
+    if (siteJump) {
+      const def = siteDef(`site.${siteJump}`);
+      void (async () => {
+        const wait = (ms: number) => new Promise((done) => setTimeout(done, ms));
+        for (let tries = 0; def && tries < 120; tries++) {
+          await wait(500);
+          if (!zone || zoneData.id !== def.zone) continue;
+          const frame = manifestFrame(zone.manifest);
+          const a = siteAnchorage(def, frame);
+          if (!a) return;
+          hook.place(a.x, a.z, 0);
+          hook.anchor();
+          await wait(1000);
+          const why = await hook.land();
+          if (why) {
+            // Not settled yet (still under way, the zone half loaded): try again.
+            console.warn(`Going ashore: ${why}`);
+            continue;
+          }
+          // Beside the shack's strongbox, else the middle of a mainland site's pad.
+          const box = hideouts.strongbox();
+          const pad = hideouts.mainlandPads().find((p) => p.id === def.id);
+          const to = box ?? pad;
+          await wait(1500);
+          if (to) {
+            // Row in toward it, to the last of the water before the shore.
+            const n = Math.ceil(Math.hypot(to.x - a.x, to.z - a.z));
+            let at = { x: a.x, z: a.z };
+            for (let i = 0; i <= n; i++) {
+              const p = { x: a.x + ((to.x - a.x) * i) / n, z: a.z + ((to.z - a.z) * i) / n };
+              if ((ctx.terrain?.heightAt(p.x, p.z) ?? 0) > -0.4) break;
+              at = p;
+            }
+            hook.teleport(at.x, at.z);
+          }
+          await wait(1000);
+          hook.stepAshore();
+          return;
+        }
+        console.warn(`Going ashore at ${siteJump} timed out`);
       })();
     }
   }

@@ -348,6 +348,11 @@ export const hideoutsSchema = z.record(
      * and the cutter leans that way, for a week. Optional, so no version bump.
      */
     spotted: z.object({ at: z.number(), by: z.string(), ship: z.string() }).optional(),
+    /**
+     * How an owned site is held (plan 09 §2.2; Phase 9 piece W): its lease bought, or
+     * squatted on, built on without one. Absent on an abandoned site, claimed free.
+     */
+    tenure: z.enum(['leased', 'squatted']).optional(),
     /** Salvage taken from the site's ruins this season (plan 09 §6.2; piece F). */
     salvage: z.object({ season: z.string(), taken: z.number().int().nonnegative() }).optional(),
     /**

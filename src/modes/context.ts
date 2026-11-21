@@ -36,6 +36,10 @@ export interface GameEvents {
   /** A strategic world tick ran (every 10 game minutes). */
   WorldTick: { gameSeconds: number };
   DayChanged: { day: number };
+  /** A hideout site claimed by building on it or by its lease (Phase 9 piece W). */
+  SiteClaimed: { site: string; hideout: string; how: 'built' | 'leased' | 'squatted' };
+  /** A squat on an owned site noticed (piece W): its region heated. */
+  SquatNoticed: { site: string; region: string };
   /** Chart travel (plan 03 §9). */
   VoyageStarted: { legs: number; lengthM: number; destinationZoneId: string | undefined };
   VoyageArrived: { zoneId: string | undefined };

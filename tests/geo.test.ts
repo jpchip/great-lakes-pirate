@@ -286,6 +286,10 @@ describe('hand-edit layer', () => {
       'setpiece.stockton',
       'setpiece.washburn',
       'setpiece.red_cliff',
+      // Phase 9 piece W's sites, flattened as the zone loads until it's baked again.
+      'setpiece.hermit',
+      'setpiece.devils',
+      'setpiece.outer',
     ]);
     const ports = zoneConfigFromData('zone.twin_ports', read('zones.json'), read('islands.json'));
     expect(ports.islands).toEqual([]);

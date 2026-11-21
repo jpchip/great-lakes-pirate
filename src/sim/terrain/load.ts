@@ -1,4 +1,5 @@
 import { decodeGrid } from '../../core/terrain-grid';
+import { flattenUnbaked } from './edits';
 import { GridField } from './grid-field';
 import { zoneManifestSchema, type ZoneManifest } from './manifest';
 import { WindMaps, ZoneTerrain } from './zone-terrain';
@@ -187,6 +188,8 @@ export async function loadZoneTerrain(read: FetchBytes): Promise<LoadedZone> {
   ]);
 
   const height = new GridField(h.x0, h.z0, h.step, h.width, h.height, heights);
+  // Set pieces added since the bake (Phase 9 piece W's sites) flattened as the bake would.
+  flattenUnbaked(manifest, height);
   const terrain = new ZoneTerrain(
     manifest.zone,
     height,

@@ -259,7 +259,7 @@ export function attachDiscovery(opts: DiscoveryOptions): GameDiscovery {
   const siteTargets = (): DiscoveryTarget[] =>
     SITES.flatMap((s) => {
       const at = siteGeo(s);
-      return at ? [{ id: s.id, kind: 'site' as const, at, sightM: SITE_SIGHT_M }] : [];
+      return at ? [{ id: s.id, kind: 'site' as const, at, sightM: siteSightM(s.concealment) }] : [];
     });
   const wreckTargets = (): DiscoveryTarget[] =>
     (state.wrecks?.list ?? []).map((w) => ({
@@ -670,4 +670,13 @@ export function placeTalk(d: DiscoveryState | undefined) {
   return placeDefs()
     .filter((p) => p.talk && !d?.found[p.id] && !d?.heard[p.id])
     .map((p) => ({ id: p.id, ports: p.talk?.ports ?? [], lines: p.talk?.lines ?? [] }));
+}
+
+/**
+ * How far off a site is seen (piece W): the full range up to a concealment of 0.6, and
+ * less the better hidden it is past that, so the clifftop on Devils is seen only close in.
+ */
+export function siteSightM(concealment: number): number {
+  const k = Math.max(0, 1 - concealment) / 0.4;
+  return SITE_SIGHT_M * Math.max(0.1, Math.min(1, k * k));
 }

@@ -40,7 +40,8 @@
       "cashCents": [120000, 180000],
       "curio": "curio.quarry_pick",
       "found": "Two feet down behind the cabin, the spade rings on a pick-head laid over a strapped box: the last payroll of the Hermit Island quarry, {cash} in gold, never paid.",
-      "told": "The clerk, Wilkes, carried the last payroll out to Hermit the week the company failed. Knowing the men would never be paid, he buried it behind his cabin to keep it from the creditors, and died that winter without telling anyone."
+      "told": "The clerk, Wilkes, carried the last payroll out to Hermit the week the company failed. Knowing the men would never be paid, he buried it behind his cabin to keep it from the creditors, and died that winter without telling anyone.",
+      "site": "site.hermit"
     },
     {
       "id": "legend.dark_light",
@@ -59,7 +60,8 @@
       "curio": "curio.dark_lantern",
       "fence": "fence.duluth",
       "found": "Under the sand at the tower's foot, a tarred chest: {cash}, a smuggler's dark lantern, and a card with Mr. Carrow's name on it and a Superior Street address. He'll know who sent you.",
-      "told": "No ghosts on the Point: a ring running whiskey and furs past the canal used the dead tower to signal its boats, and kept its takings buried at the foot of it."
+      "told": "No ghosts on the Point: a ring running whiskey and furs past the canal used the dead tower to signal its boats, and kept its takings buried at the foot of it.",
+      "site": "site.minnesota_point"
     },
     {
       "id": "legend.devils_grotto",
