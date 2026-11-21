@@ -379,6 +379,20 @@ export function attachPapers(opts: PapersOptions): GamePapers {
         ident: 'person',
       });
     }),
+    // A legend run down (Phase 9 piece T): the papers hear of it where you are.
+    ev.on('LegendCompleted', (e) => {
+      const region = law.region() ?? defs.file.papers[0]?.region;
+      if (!region) return;
+      add({
+        kind: 'legend',
+        key: `legend:${e.lead}`,
+        at: now(),
+        region,
+        legend: e.id,
+        ident: 'person',
+        cashCents: e.cents,
+      });
+    }),
     ev.on('ContractCompleted', (e) => {
       if (e.late || e.acceptedAt === undefined || e.dueAt === undefined) return;
       const at = now();

@@ -38,6 +38,7 @@ import { MOUNTS } from '../../data/schemas/combat';
 import { curiosSchema, discoveryStateSchema, leadsSchema } from './discovery/discovery';
 import { salvageStateSchema } from './salvage';
 import { rivalsStateSchema } from './rivals/rivals';
+import { legendsStateSchema } from './legends/state';
 
 /**
  * WorldState skeleton (plan 01 §3.1, plan 16 §5.2). Each slice is filled in by its
@@ -347,6 +348,11 @@ export const hideoutsSchema = z.record(
      * and the cutter leans that way, for a week. Optional, so no version bump.
      */
     spotted: z.object({ at: z.number(), by: z.string(), ship: z.string() }).optional(),
+    /**
+     * How an owned site is held (plan 09 §2.2; Phase 9 piece W): its lease bought, or
+     * squatted on, built on without one. Absent on an abandoned site, claimed free.
+     */
+    tenure: z.enum(['leased', 'squatted']).optional(),
     /** Salvage taken from the site's ruins this season (plan 09 §6.2; piece F). */
     salvage: z.object({ season: z.string(), taken: z.number().int().nonnegative() }).optional(),
     /**
@@ -763,6 +769,11 @@ export const worldStateSchema = z.object({
    * Optional: absent, you've been in none, so no version bump.
    */
   caves: z.object({ entered: z.record(z.string(), z.number()) }).optional(),
+  /**
+   * Clues, maps and legends (plan 11 §7–8, §14; Phase 9 piece T): what's been found, mapped
+   * and run down. Optional: absent, nothing has, so no version bump.
+   */
+  legends: legendsStateSchema.optional(),
   /**
    * Wrecking (plan 06 §6.2, plan 11 §18.4 piece I): false lights burning, ships judged at
    * them this night, ships stranded on the marks' shoals, and the investigations opened.

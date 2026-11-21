@@ -149,6 +149,51 @@
         "seawardM": 120,
         "groundM": 2,
         "blendM": 40
+      },
+      {
+        "id": "setpiece.hermit",
+        "name": "Hermit Island quarry site",
+        "site": "site.hermit",
+        "at": {
+          "lat": 46.88536,
+          "lon": -90.70328
+        },
+        "bearingDeg": 270,
+        "alongM": 56,
+        "inlandM": 40,
+        "seawardM": 40,
+        "groundM": 2,
+        "blendM": 16
+      },
+      {
+        "id": "setpiece.devils",
+        "name": "Devils Island clifftop",
+        "site": "site.devils",
+        "at": {
+          "lat": 47.07458,
+          "lon": -90.72224
+        },
+        "bearingDeg": 75,
+        "alongM": 30,
+        "inlandM": 34,
+        "seawardM": 20,
+        "groundM": 6,
+        "blendM": 8
+      },
+      {
+        "id": "setpiece.outer",
+        "name": "Outer Island fish station",
+        "site": "site.outer",
+        "at": {
+          "lat": 47.01004,
+          "lon": -90.45739
+        },
+        "bearingDeg": 270,
+        "alongM": 50,
+        "inlandM": 36,
+        "seawardM": 40,
+        "groundM": 3,
+        "blendM": 16
       }
     ]
   },
@@ -300,6 +345,21 @@
         "seawardM": 150,
         "groundM": 2,
         "blendM": 50
+      },
+      {
+        "id": "setpiece.minnesota_point",
+        "name": "Minnesota Point light",
+        "site": "site.minnesota_point",
+        "at": {
+          "lat": 46.71032,
+          "lon": -92.02826
+        },
+        "bearingDeg": 260,
+        "alongM": 40,
+        "inlandM": 30,
+        "seawardM": 30,
+        "groundM": 1.6,
+        "blendM": 8
       }
     ]
   },
@@ -386,6 +446,21 @@
             "blendM": 40
           }
         ]
+      },
+      {
+        "id": "setpiece.north_shore",
+        "name": "North Shore cove",
+        "site": "site.north_shore",
+        "at": {
+          "lat": 47.06316,
+          "lon": -91.6042
+        },
+        "bearingDeg": 160,
+        "alongM": 44,
+        "inlandM": 36,
+        "seawardM": 40,
+        "groundM": 2,
+        "blendM": 14
       }
     ]
   },

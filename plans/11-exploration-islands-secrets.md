@@ -732,7 +732,88 @@ The character isn't darkened inside a cave. `__glpCaves` lists, rows to, walks, 
 - The animals' look (screenshots in `wildlife/`).
 - Woodcraft's tracking text.
 
+### 18.22 Piece T as built: clues and legends (2026-11-20)
+
+**The data.** `data/legends.json`, `data/clues.json` and `data/caches.json` (schema `data/schemas/legends.ts`). Six legends, each with a spot of one kind:
+- the _Lucerne_'s strongbox is grappled up from her wreck;
+- the quarry payroll is dug behind the Hermit's cabin;
+- the Dark Light's cache is dug on Minnesota Point, on a pad walked round the spot on the mainland, with a clue on the dead tower's door;
+- the Devil's Grotto is searched at the Grotto's ledge, only at the dark of the moon (under 0.3) or on the ice;
+- the Ghost Net's cache is in the Outer Island fish house;
+- the Copycat's Hoard is dug above a beaten rival's camp.
+
+Ten clues are found in a light's logbook, among the papers rifled from a box in Bayfield or Duluth (half the boxes bear on a legend while its clues are still to find), at a carving or a net reel read with F, at a cave's mark or at the pad. Eight seeded caches lie at prefab marks on the standard islands; each run stocks 60% of them, and a box's papers are a note about a stocked one 35% of the time.
+
+**The lead to the payoff.** Every clue shrinks the lead's circle (piece O). With three clues, counting the tale, the cartography table draws a map in 3 game hours: the circle goes to 250 m round the spot, with a red X on the chart. At the spot you hold F for 3 s to dig or search (`Prompt.holdS`, with the progress on the HUD). The _Lucerne_'s strongbox comes up on a hooked cast once her lead has three clues, in place of that cast's cargo. The payoff:
+- the cash, rolled from the run's seed in each legend's range ($600–1,800);
+- the legend's curio (new: the captain's watch and the dark lantern);
+- the journal's `told` line;
+- a story in the papers with its Fame;
+- for the Dark Light, an introduction to Carrow, Duluth's fence, who deals with you whatever your Fame.
+
+The hoard is the rival's stash, taken into the hold where it fits. `legends` (clues, maps, done, notes, contacts) is saved; a run from before it starts with none.
+
+**For Jared to check.** These are first drafts:
+- the legends' wording, the clue texts, the `found` and `told` lines and the papers' stories;
+- the payoffs ($900–1,400 _Lucerne_, $1,200–1,800 payroll, $700–1,100 Dark Light, $600–1,000 Grotto, $800–1,200 Ghost Net) and the caches' ($15–120);
+- three clues to a map, 3 hours at the table, and the 60% stocked share;
+- the dark-moon rule for the Grotto;
+- the odds that a box's papers hold a clue.
+
+**Left for later.** The legends' `site` field is unset until piece W adds the sites. There's no e2e per legend (§18 criterion 13); `tests/legends.test.ts` covers each kind of spot and clue at the data, placement and gameplay levels. `__glpLegends` reads the state, gives a clue, draws a map, goes to a lead's spot and forces the dark of the moon.
+
+### 18.23 Piece W as built: the seven sites (2026-11-21)
+
+**The five new sites.** Each is in `data/sites.json`, with a set piece in `data/zones.json`. All are first drafts.
+
+| Site | Where | Notes | Build bounds | Concealment |
+|---|---|---|---|---|
+| Hermit Quarry | A terrace on Hermit's west shore below the quarry | Deep water close in, the quarry's brownstone to salvage (16 loads a season), the shack and a pier | 18 × 22 cells | 0.55 |
+| Devils Caves | The clifftop on Devils' east side, 6 m up | Anchorage off the first cave's mouth, no pier, open to the northeast | 10 × 10 cells (the smallest) | 0.85 |
+| Outer Station | A fish station up the beach from Outer's camp | The shallows run out 70 m, so you anchor off and row in; no pier | 16 × 18 cells | 0.6 |
+| Minnesota Point | The keeper's ground at the dead light, at the point's end by the Superior entry | In the Duluth region; owned, so leased or squatted | 12 × 14 cells | 0.3 |
+| North Shore Cove | A cove a mile up the shore from Two Harbors | In the North Shore region, the shack and a pier | 14 × 16 cells | 0.65 |
+
+A site is seen from less far the better hidden it is: the full 3.5 km up to 0.6, down to about 500 m at Devils (`siteSightM`).
+
+**Ground without a bake.** The zones aren't baked again here, because the bake needs GDAL and the DEM sources. The loader flattens any set piece that the manifest's `handEdits` doesn't list, as the bake would (`src/sim/terrain/edits.ts`): only land changes, so the shoreline, SDF and wind maps stay as baked. After the next bake it does nothing. The two mainland sites have no 1 m island ground. A landing there walks the zone's ground round the site, as the legends' and caves' pads do (`Hideouts.mainlandPads`), and this pad also stands the Dark Light's dig beside the site.
+
+**Starts.** Each background starts at its own site, pre-built with the shack (40 CU and a strongbox) and the pier where there's water for one:
+
+| Background | Start |
+|---|---|
+| Deckhand | Stockton |
+| Fisherman | Outer |
+| Lumberjack | Siskiwit |
+| Saloon Keeper | Minnesota Point, with the lease in her name |
+| Ex-Navy | the North Shore cove |
+| Poacher | Devils |
+
+Nobody starts at Hermit. A run that already has hideouts keeps them, as before.
+
+**Claiming.** Build mode (B) opens at a site nobody holds, with a line saying so. The first piece placed claims the site, empty, and emits `SiteClaimed`. Minnesota Point belongs to the Lighthouse Board. On its ground, F offers the lease ($150). Building without one is a squat. Each day a squat has a 6% chance of being noticed, which puts 8 heat on Duluth with a notice and `SquatNoticed`. Buying the lease later makes the squat good. `hideouts[id].tenure` holds `leased` or `squatted`. The legends now chart their sites: the payroll charts Hermit, and the Dark Light charts Minnesota Point.
+
+**For Jared to check.** These are first drafts:
+- where each site sits, its bounds and its concealment
+- the blurbs
+- the $150 lease
+- the squat odds and heat
+- Outer and Devils having no pier
+- the pre-built layout, which is the same shack and pier everywhere
+
+The concealment and sight numbers are guesses.
+
+**Tests.**
+- `tests/sites.test.ts` checks the data and each new site on its baked zone:
+  - the shack and pier place piece by piece;
+  - a schooner can sail to the anchorage;
+  - the site is clear of prefabs, caves and legend spots.
+- It also covers the runtime flatten, the starts, claiming, the lease and squat, and the walk ashore at the point.
+- `e2e/sites.spec.ts` lands a new Fisherman, Poacher, Saloon Keeper and Ex-Navy at their sites through `?site=` and opens each stash.
+
 ## Changelog
+- v0.21: Piece W as built (§18.23): the five new hideout sites, every background at its own, claiming by building, Minnesota Point leased or squatted.
+- v0.20: Piece T as built (§18.22): legends, clues, maps at the cartography table, digging and seeded caches.
 - v0.19: Piece V as built (§18.21): deer, bears and wolves on their FSM, the rifle, dressing and carrying, venison and smoked venison, the traplines and the Venison King.
 - v0.18: Piece S as built (§18.20): the sea caves at Devils, Sand and the mainland, rowing, swimming and walking in, ice caves, caches and the Grotto's mark.
 - v0.17: Piece X as built (§18.19): the Duluth district.

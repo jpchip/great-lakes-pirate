@@ -36,6 +36,10 @@ export interface GameEvents {
   /** A strategic world tick ran (every 10 game minutes). */
   WorldTick: { gameSeconds: number };
   DayChanged: { day: number };
+  /** A hideout site claimed by building on it or by its lease (Phase 9 piece W). */
+  SiteClaimed: { site: string; hideout: string; how: 'built' | 'leased' | 'squatted' };
+  /** A squat on an owned site noticed (piece W): its region heated. */
+  SquatNoticed: { site: string; region: string };
   /** Chart travel (plan 03 §9). */
   VoyageStarted: { legs: number; lengthM: number; destinationZoneId: string | undefined };
   VoyageArrived: { zoneId: string | undefined };
@@ -546,6 +550,16 @@ export interface GameEvents {
   WonderSeen: { id: string };
   LeadUpdated: { id: string; opened: boolean };
   CurioFound: { id: string };
+  /**
+   * Clues and legends (plan 11 §7–8, §14; Phase 9 piece T): a clue found for a lead (a
+   * legend's or a seeded cache's), a lead made a map at a cartography table, the ground
+   * dug at a spot (found or not), and a legend run down (`lead`: the copycat's stash lead
+   * for a hoard).
+   */
+  ClueFound: { clue: string; lead: string };
+  MapDrawn: { lead: string };
+  Dug: { lead: string; found: boolean };
+  LegendCompleted: { id: string; lead: string; cents: number };
   /**
    * Salvage (plan 11 §6.2; Phase 9 piece U): the grapple went down on a wreck and came up
    * (`kind`: nothing, cargo with `qty` sound and `spoiled` CU of `good`, her papers, a curio).

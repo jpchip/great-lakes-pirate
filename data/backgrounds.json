@@ -30,7 +30,7 @@
     "purseCents": 10000,
     "cargo": [{ "good": "good.salted_fish", "qty": 8 }],
     "startPier": "pier.bayfield_fish",
-    "hideout": "hideout.stockton",
+    "hideout": "hideout.outer",
     "harderStart": false,
     "perks": [
       {
@@ -78,7 +78,7 @@
     "purseCents": 18000,
     "cargo": [{ "good": "good.whiskey", "qty": 2 }],
     "startPier": "pier.duluth_city",
-    "hideout": "hideout.stockton",
+    "hideout": "hideout.minnesota_point",
     "harderStart": true,
     "perks": [
       {
@@ -102,7 +102,7 @@
     "purseCents": 13000,
     "cargo": [{ "good": "good.powder_shot", "qty": 3 }],
     "startPier": "pier.two_harbors_city",
-    "hideout": "hideout.stockton",
+    "hideout": "hideout.north_shore",
     "harderStart": true,
     "perks": [
       {
@@ -126,7 +126,7 @@
     "purseCents": 10000,
     "cargo": [{ "good": "good.furs", "qty": 2 }],
     "startPier": "pier.bayfield_city",
-    "hideout": "hideout.stockton",
+    "hideout": "hideout.devils",
     "harderStart": false,
     "perks": [
       {

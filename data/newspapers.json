@@ -894,6 +894,87 @@
           }
         ]
       }
+    },
+    "legend": {
+      "legend.lucerne": {
+        "fame": 25,
+        "weight": 4,
+        "feat": true,
+        "plain": [
+          {
+            "headline": "THE LUCERNE'S GOLD COMES UP",
+            "deck": "Strongbox Lost With the Schooner in '86 Raised Off Long Island",
+            "body": "The strongbox of the schooner Lucerne, lost with all hands off Long Island fourteen years ago, has been grappled up from her hull by {who}, who would not say what was in it. Old salvagers on the {town} waterfront are said to be sick with envy."
+          }
+        ],
+        "lurid": [
+          {
+            "headline": "{WHO} ROBS THE DROWNED!",
+            "deck": "The Lucerne's Gold Taken From Her Grave",
+            "body": "Not content with the living, {epithet} {who} has gone down to the Lucerne's dead for her captain's strongbox. The fishermen's lantern off Long Island, it seems, was no ghost after all."
+          }
+        ]
+      },
+      "legend.quarry_payroll": {
+        "fame": 25,
+        "weight": 4,
+        "feat": true,
+        "plain": [
+          {
+            "headline": "THE HERMIT ISLAND PAYROLL FOUND",
+            "deck": "Gold Missing Since the Panic of '93 Dug Up Behind a Clerk's Cabin",
+            "body": "The last payroll of the Hermit Island quarry, which vanished the week the company failed, has been dug up on the island by {who}. Quarrymen in {town} who were never paid are asking where their share is."
+          }
+        ]
+      },
+      "legend.dark_light": {
+        "fame": 20,
+        "weight": 3,
+        "feat": true,
+        "plain": [
+          {
+            "headline": "NO GHOST ON MINNESOTA POINT",
+            "deck": "Smugglers' Cache Dug Up Below the Dead Light",
+            "body": "The lantern seen in the old Minnesota Point tower on moonless nights was a smuggling ring's signal, and its takings were buried at the tower's foot. They were dug up this week by {who}, says talk along the {town} waterfront."
+          }
+        ]
+      },
+      "legend.devils_grotto": {
+        "fame": 20,
+        "weight": 3,
+        "feat": true,
+        "plain": [
+          {
+            "headline": "THE DEVIL'S GROTTO GIVES UP ITS SECRET",
+            "deck": "A Drowned Smuggler's Hoard Found in the Sea Caves",
+            "body": "The third cave on Devils Island, where a smuggler went in one calm night and never came out, has given up his hoard to {who}, who went in at the dark of the moon as the old tale said."
+          }
+        ]
+      },
+      "legend.ghost_net": {
+        "fame": 20,
+        "weight": 3,
+        "feat": true,
+        "plain": [
+          {
+            "headline": "OUTER ISLAND'S GHOST NET EXPLAINED",
+            "deck": "A Drowned Fisherman's Hoard Under His Fish House Floor",
+            "body": "The nets of Pedersen, the Outer Island fisherman lost at sea, kept coming up with brass and glass. {Who} has found why: he'd been working an old wreck alone and hid what he raised under his fish house floor."
+          }
+        ]
+      },
+      "legend.copycat_hoard": {
+        "fame": 15,
+        "weight": 3,
+        "feat": true,
+        "plain": [
+          {
+            "headline": "A COPYCAT'S HOARD DUG UP",
+            "deck": "Pirate's Plunder Taken From Under a Spruce Stump",
+            "body": "The hoard of one of the lake's would-be pirates, beaten at sea this season, has been dug up above his camp among the islands by {who}. The papers are not sure whether to call it justice."
+          }
+        ]
+      }
     }
   },
   "cutter": {

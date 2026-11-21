@@ -260,7 +260,7 @@ describe('the First Week', () => {
     expect(lines.at(-1)).toMatchObject({ optional: true, number: 6 });
     expect(lines.at(-1)?.text).toMatch(/warehouse in Bayfield/);
     expect(lines[0]?.text).toBe('Sell your salted fish in Bayfield');
-    expect(lines[2]?.text).toBe('Stash goods at Stockton Island');
+    expect(lines[2]?.text).toBe('Stash goods at Outer Island');
     expect(lines.every((l) => !l.done)).toBe(true);
   });
 

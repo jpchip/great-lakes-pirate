@@ -86,6 +86,8 @@ export interface ChartMark {
   kind: ChartMarkKind;
   /** How far it reaches, chart meters: a shoal's extent, a lead's search circle. */
   radiusM?: number | undefined;
+  /** A lead drawn into a map (Phase 9 piece T): an X at its middle. */
+  mapped?: boolean | undefined;
 }
 
 /** Discovery marks' names are written only zoomed in past this (chart meters per pixel). */
@@ -816,11 +818,22 @@ export class ChartView {
     ctx.fill();
     ctx.stroke();
     ctx.setLineDash([]);
+    if (m.mapped) {
+      // X marks the spot: the map's cross in red ink.
+      ctx.strokeStyle = '#a3261c';
+      ctx.lineWidth = 2.6;
+      ctx.beginPath();
+      ctx.moveTo(s.x - 6, s.y - 6);
+      ctx.lineTo(s.x + 6, s.y + 6);
+      ctx.moveTo(s.x + 6, s.y - 6);
+      ctx.lineTo(s.x - 6, s.y + 6);
+      ctx.stroke();
+    }
     ctx.font = `italic 600 11px ${FONT}`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'bottom';
     ctx.fillStyle = '#7a5a1c';
-    haloText(ctx, m.label, s.x, s.y - r - 2);
+    haloText(ctx, m.label, s.x, s.y - Math.max(r, m.mapped ? 8 : 0) - 2);
     ctx.restore();
   }
 

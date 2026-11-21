@@ -29,7 +29,7 @@ import { loadRun, type LoadedRun } from './core/save/load';
 import { RunSaver } from './core/save/run-saver';
 import { AssetLoader, EMPTY_MANIFEST } from './core/assets';
 import { createGameAudio, type GameAudio } from './audio/game-audio';
-import { sunAt } from './sim/weather/celestial';
+import { moonAt, sunAt } from './sim/weather/celestial';
 import type { SignalStation } from './audio/world-audio';
 import { cloneTransform, createGameWorld, type Entity } from './gameplay/ecs';
 import { createSchooner } from './gameplay/schooner';
@@ -47,7 +47,8 @@ import { attachContracts, contractsOf } from './gameplay/contracts';
 import { attachSmugglers, type SmugglerControl } from './gameplay/smuggler';
 import { attachStash, type StashControl } from './gameplay/stash';
 import { withWorkshop } from './sim/hideouts/crafting';
-import { siteAnchorage, siteDef, siteGeo, SITES } from './sim/hideouts/stash';
+import { hash01 } from './sim/targets/morale';
+import { siteAnchorage, siteDef, siteGeo, SITES, squatsNoticed } from './sim/hideouts/stash';
 import { slipwayHead, withSlipway } from './sim/hideouts/slipway';
 import { LIE_REFUSALS, type LieUntil } from './sim/hideouts/lie-at-anchor';
 import { attachShipyard } from './gameplay/shipyard';
@@ -130,8 +131,11 @@ import { attachHideoutLife, type HideoutLife } from './gameplay/hideout-life';
 import { siteToZone } from './sim/hideouts/site-frame';
 import { mountBuildPanel, type BuildPanelUi } from './ui/build/BuildPanel';
 import { attachIslandAshore } from './gameplay/island-ashore';
+import { attachLegends } from './gameplay/legends';
 import { attachCaves } from './gameplay/caves';
 import { placeZoneCaves, type PlacedCave } from './sim/caves/caves';
+import { placeLegends, SEEDED_CACHES, type PlacedLegends } from './sim/legends/legends';
+import { RIVALS, rivalName, stashLead } from './sim/rivals/rivals';
 import { createIslandPosse } from './gameplay/island-posse';
 import { recentlySpotted } from './sim/hideouts/life';
 import { TEST_BAY, type Dock, type Pose } from './sim/terrain/test-bay';
@@ -1353,6 +1357,7 @@ async function boot(): Promise<void> {
       castOff: () => stashRef.current?.actions.castOff(),
       goAshore: () => stashRef.current?.actions.goAshore(),
       setCurio: (id, show) => stashRef.current?.actions.setCurio(id, show),
+      drawMap: (lead) => stashRef.current?.actions.drawMap(lead),
     },
     chart: {
       sail: () => travelRef.current?.setSail(),
@@ -2461,6 +2466,61 @@ async function boot(): Promise<void> {
     if (after !== before) ctx.events.emit('DayChanged', { day: after });
     ctx.weather.tick(clock.gameSeconds, shipPose(), ctx.sea);
   };
+  // Clues and legends (Phase 9 piece T): the logbooks, the districts' papers and the marks
+  // in the land give clues; three make a map at a cartography table; the spot is dug, searched
+  // or grappled for, and the legend pays out with its curio and a story in the papers.
+  /** The dev hook's dark of the moon (undefined: the sky's own). */
+  const legendSky: { dark: boolean | undefined } = { dark: undefined };
+  const legends = attachLegends({
+    ctx,
+    discovery,
+    runSeed: () => state.environment.weather.noiseSeed,
+    notice: (text) => showNotice(text),
+    placed: () => (zone && !arena ? zoneIslands().legends : undefined),
+    wreckAt: (id) => salvageRef.current?.old.find((w) => w.id === id)?.at,
+    cacheGeo: (id) => {
+      if (!zone || arena) return undefined;
+      for (const island of zoneIslands().placed) {
+        const spot = island.caches.find((c) => c.def.id === id)?.spots[0];
+        if (spot) return worldGeo(zoneToChart(spot, zoneFrame(zone, zoneData)));
+      }
+      return undefined;
+    },
+    iceTop: (id) => {
+      const cave = zoneIslands().caves.find((c) => c.id === id);
+      return cave ? caves.iceTop(cave) : undefined;
+    },
+    sky: () => {
+      if (legendSky.dark !== undefined) {
+        return legendSky.dark ? { moon: 0, sunEl: -0.5 } : { moon: 1, sunEl: 0.5 };
+      }
+      const t = state.environment.clock.gameSeconds;
+      return { moon: moonAt(t).illumination01, sunEl: sunAt(t).elevationRad };
+    },
+    hoard: (camp) => {
+      const r = rivals?.state.list.find((k) => k.camp === camp && k.status === 'defeated');
+      const lead = r && stashLead(r);
+      if (!r || !lead) return undefined;
+      const open = discovery.leads.find((l) => l.id === lead.id);
+      if (!open || open.closed) return undefined;
+      return {
+        lead: lead.id,
+        rival: rivalName(r),
+        cents: r.stash.cents,
+        goods: r.stash.goods.map((g) => ({ ...g })),
+        take: () => {
+          // What fits goes down to the boat and into the hold; the rest is left.
+          for (const g of r.stash.goods) {
+            const qty = Math.min(g.qty, Math.floor(holdFree(state.player.cargo, economy.capacity)));
+            if (qty > 0) addToHold(state.player.cargo, { good: g.good, qty });
+          }
+          economy.syncLoad();
+          r.stash = { cents: 0, goods: [] };
+        },
+      };
+    },
+    passTime: (s) => passGameTime(s),
+  });
   // Salvage (Phase 9 piece U): old wrecks and the run's found by sight or the lead line,
   // worked with the grapple and hook at anchor.
   const salvage = attachSalvage({
@@ -2487,6 +2547,8 @@ async function boot(): Promise<void> {
     visibilityM: () => ctx.weather.fogVisibilityAt(state.environment.clock.gameSeconds),
     passTime: (s) => passGameTime(s),
     notice: (text) => showNotice(text),
+    // The Lucerne's strongbox, once the lead knows where in her to hook (piece T).
+    strongbox: (wreck) => legends.wreckHooked(wreck),
   });
   salvageRef.current = salvage;
   if (import.meta.env.DEV || params.has('debug')) {
@@ -2869,6 +2931,18 @@ async function boot(): Promise<void> {
     curios: {
       view: (hideout) => discovery.hideoutCurios(hideout),
       set: (id, hideout) => discovery.setCurio(id, hideout),
+    },
+    // The cartography table's maps (piece T).
+    maps: {
+      rows: () =>
+        legends.maps().map((m) => ({
+          lead: m.lead,
+          title: m.title,
+          where: m.where,
+          cluesText: `${Math.min(m.clues, m.need)} of ${m.need} clues`,
+          refusal: m.refusal,
+        })),
+      draw: (lead) => legends.drawMap(lead),
     },
     berthPier: (berthId) => sailingOptions.berths.find((b) => b.id === berthId)?.dockId,
     shipPose,
@@ -3687,15 +3761,24 @@ async function boot(): Promise<void> {
   // renderer plants (same hash, same clearings) as trunks on any landing.
   const islandCache = new WeakMap<
     LoadedZone,
-    { placed: PlacedIsland[]; clearings: ReturnType<typeof zoneClearings>; caves: PlacedCave[] }
+    {
+      placed: PlacedIsland[];
+      clearings: ReturnType<typeof zoneClearings>;
+      caves: PlacedCave[];
+      legends: PlacedLegends;
+    }
   >();
   const zoneIslands = (): {
     placed: PlacedIsland[];
     clearings: ReturnType<typeof zoneClearings>;
     /** The zone's sea caves (Phase 9 piece S), on the islands placed here. */
     caves: PlacedCave[];
+    /** The legends' spots and clue marks here (Phase 9 piece T). */
+    legends: PlacedLegends;
   } => {
-    if (!zone || arena) return { placed: [], clearings: [], caves: [] };
+    if (!zone || arena) {
+      return { placed: [], clearings: [], caves: [], legends: { spots: [], marks: [], pads: [] } };
+    }
     let hit = islandCache.get(zone);
     if (!hit) {
       const z = zone;
@@ -3706,15 +3789,27 @@ async function boot(): Promise<void> {
         (x, zz) => z.terrain.heightAt(x, zz),
         manifestFrame(z.manifest),
       );
+      const zoneCaves = placeZoneCaves(
+        z.manifest.zone,
+        z.manifest.islands ?? [],
+        placed,
+        manifestFrame(z.manifest),
+      );
+      // The legends' spots and clue marks (piece T): dug ground drawn at the islands'
+      // marks and above the copycats' camps, and a pad of its own on the mainland.
+      const legendSpots = placeLegends(
+        z.manifest.zone,
+        placed,
+        zoneCaves,
+        manifestFrame(z.manifest),
+        (x, zz) => z.terrain.heightAt(x, zz),
+        RIVALS.camps.map((c) => ({ id: c.id, island: c.island, at: c.at })),
+      );
       hit = {
         placed,
         clearings: zoneClearings(z, harborLayouts, placed),
-        caves: placeZoneCaves(
-          z.manifest.zone,
-          z.manifest.islands ?? [],
-          placed,
-          manifestFrame(z.manifest),
-        ),
+        caves: zoneCaves,
+        legends: legendSpots,
       };
       islandCache.set(zone, hit);
     }
@@ -3734,6 +3829,25 @@ async function boot(): Promise<void> {
     sleep: (id) => lifeRef.current?.openSleep(id),
     carrying: () => lifeRef.current?.carrying(),
     notice: (text) => showNotice(text),
+    claimed: (site, hideout, how) => {
+      if (how !== 'leased') {
+        showNotice(
+          how === 'squatted'
+            ? `You've squatted on ${site.shortName}: ${site.lease?.from ?? 'its owners'} may hear of it.`
+            : `${site.shortName} is yours: your hideout's claim is staked.`,
+        );
+      }
+      ctx.events.emit('SiteClaimed', { site: site.id, hideout, how });
+    },
+  });
+  // A squat on an owned site may be noticed each day (plan 09 §2.2; piece W).
+  ctx.events.on('DayChanged', ({ day }) => {
+    const seed = state.environment.weather.noiseSeed;
+    for (const n of squatsNoticed(state.hideouts, (id) => hash01(`squat:${seed}:${id}:${day}`))) {
+      law.addHeat(n.region, n.heat);
+      showNotice(`Word's got about that somebody's squatting at ${n.site.shortName}.`);
+      ctx.events.emit('SquatNoticed', { site: n.site.id, region: n.region });
+    }
   });
   const islandAshore = attachIslandAshore({
     state,
@@ -3768,9 +3882,18 @@ async function boot(): Promise<void> {
     found: (cacheId) => {
       const isl = ISLANDS.find((i) => i.onFoot?.caches.some((c) => c.id === cacheId));
       const cache = isl?.onFoot?.caches.find((c) => c.id === cacheId);
-      if (!isl || !cache) return;
-      discovery.cacheOpened(cacheId, `${cache.name.toLowerCase()} on ${isl.name}`, cache.curio);
+      if (isl && cache) {
+        discovery.cacheOpened(cacheId, `${cache.name.toLowerCase()} on ${isl.name}`, cache.curio);
+        return;
+      }
+      // A seeded cache (piece T).
+      const seeded = SEEDED_CACHES.find((c) => c.id === cacheId);
+      if (seeded) discovery.cacheOpened(cacheId, lowerFirstWord(seeded.name), seeded.curio);
     },
+    // The legends' pads on the mainland and the seeded caches stocked this run (piece T).
+    pads: () => (zone && !arena ? zoneIslands().legends.pads : []),
+    sitePads: () => hideouts.mainlandPads(),
+    stocked: (id) => legends.stocked(id),
   });
   // Hideout life (Phase 8 piece F): the bunk, the refuge at the anchorage, being spotted
   // and the ruins' salvage.
@@ -4030,6 +4153,7 @@ async function boot(): Promise<void> {
   const ashore = attachAshore({
     ctx,
     caves,
+    legends,
     winter: ashoreWinter,
     ship: playerShip,
     hull: {
@@ -4196,7 +4320,12 @@ async function boot(): Promise<void> {
           // The keepers note the shoals and wrecks near the light (piece O).
           logbook: () => {
             const n = discovery.logbookRead(station.def.light).length;
-            return n ? `${n === 1 ? 'One mark' : `${n} marks`} copied onto your chart.` : undefined;
+            const charted = n
+              ? `${n === 1 ? 'One mark' : `${n} marks`} copied onto your chart.`
+              : undefined;
+            // A legend's clue in the log (piece T).
+            const clue = legends.logbook(station.def.light);
+            return [charted, clue].filter(Boolean).join(' ') || undefined;
           },
         },
       });
@@ -4430,6 +4559,8 @@ async function boot(): Promise<void> {
               if (s) s.stock = Math.max(0, s.stock - qty);
             },
             readPapers: () => rumors.readSchedule(landing.def.port)?.text,
+            // A legend's clue or a note about a cache among them (piece T).
+            readClue: (box) => legends.papers(landing.def.id, box),
             perk: (id) => hasPerk(state.player.captain, id),
             // Phase 9 piece D: Hollister's brine, while the feud is on.
             canSabotage: (owner) =>
@@ -4541,6 +4672,29 @@ async function boot(): Promise<void> {
       },
     };
     (window as unknown as { __glpDiscovery: typeof hook }).__glpDiscovery = hook;
+    // Clues and legends (Phase 9 piece T): `__glpLegends.state()` reads what's found;
+    // `.clue(id)` finds a clue; `.maps()` the cartography table's rows and `.draw(lead)` draws
+    // one (no table needed); `.here()` the spots and marks in the zone; `.go(lead)` stands
+    // you at a spot ashore; `.dark(true)` makes it the dark of the moon for the Grotto.
+    const legendsHook = {
+      state: () => legends.state,
+      clue: (id: string) => legends.giveClue(id),
+      maps: () => legends.maps(),
+      draw: (lead: string) => legends.drawMap(lead),
+      here: () => legends.here(),
+      stocked: () => SEEDED_CACHES.filter((c) => legends.stocked(c.id)).map((c) => c.id),
+      go(lead: string): string | undefined {
+        const spot = legends.here()?.spots.find((k) => k.lead === lead || k.legend === lead);
+        if (!spot) return 'No such spot in this zone';
+        if (!ashore.active || ashore.inBoat) return 'Not on foot ashore';
+        ashore.teleport(spot.x + 1, spot.z, spot.y + 0.05);
+        return undefined;
+      },
+      dark(on: boolean | undefined) {
+        legendSky.dark = on;
+      },
+    };
+    (window as unknown as { __glpLegends: typeof legendsHook }).__glpLegends = legendsHook;
   }
   // What the sounds ashore read each frame (piece I): where you stand, and the sky over it.
   audio?.setFootSource(() => {
@@ -5602,6 +5756,51 @@ async function boot(): Promise<void> {
           return;
         }
         console.warn(`Going ashore to ${jumpTo} timed out`);
+      })();
+    }
+    // `?site=devils` (any hideout site's slug; Phase 9 piece W) anchors at the site's anchorage,
+    // lands, and walks onto its ground beside the shack: the e2e for each background's start.
+    const siteJump = params.get('site');
+    if (siteJump) {
+      const def = siteDef(`site.${siteJump}`);
+      void (async () => {
+        const wait = (ms: number) => new Promise((done) => setTimeout(done, ms));
+        for (let tries = 0; def && tries < 120; tries++) {
+          await wait(500);
+          if (!zone || zoneData.id !== def.zone) continue;
+          const frame = manifestFrame(zone.manifest);
+          const a = siteAnchorage(def, frame);
+          if (!a) return;
+          hook.place(a.x, a.z, 0);
+          hook.anchor();
+          await wait(1000);
+          const why = await hook.land();
+          if (why) {
+            // Not settled yet (still under way, the zone half loaded): try again.
+            console.warn(`Going ashore: ${why}`);
+            continue;
+          }
+          // Beside the shack's strongbox, else the middle of a mainland site's pad.
+          const box = hideouts.strongbox();
+          const pad = hideouts.mainlandPads().find((p) => p.id === def.id);
+          const to = box ?? pad;
+          await wait(1500);
+          if (to) {
+            // Row in toward it, to the last of the water before the shore.
+            const n = Math.ceil(Math.hypot(to.x - a.x, to.z - a.z));
+            let at = { x: a.x, z: a.z };
+            for (let i = 0; i <= n; i++) {
+              const p = { x: a.x + ((to.x - a.x) * i) / n, z: a.z + ((to.z - a.z) * i) / n };
+              if ((ctx.terrain?.heightAt(p.x, p.z) ?? 0) > -0.4) break;
+              at = p;
+            }
+            hook.teleport(at.x, at.z);
+          }
+          await wait(1000);
+          hook.stepAshore();
+          return;
+        }
+        console.warn(`Going ashore at ${siteJump} timed out`);
       })();
     }
   }
@@ -6696,3 +6895,8 @@ boot().catch((err: unknown) => {
   console.error(err);
   document.body.dataset['boot'] = 'failed';
 });
+
+/** "The cache on Cat Island" → "the cache on Cat Island", for a logbook line. */
+function lowerFirstWord(s: string): string {
+  return s.startsWith('The ') ? `the ${s.slice(4)}` : s;
+}

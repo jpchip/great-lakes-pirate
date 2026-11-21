@@ -67,6 +67,7 @@ import type { AshoreState, RowboatSave, WorldState } from '../sim/world-state';
 import type { DistrictDef, DistrictMark } from '../../data/schemas/districts';
 import type { IslandAshore } from './island-ashore';
 import type { Caves } from './caves';
+import type { GameLegends } from './legends';
 import { cavesIn } from '../sim/caves/caves';
 import { CaveGround } from './onfoot/cave-ground';
 import type { IslandPosse } from './island-posse';
@@ -238,6 +239,8 @@ export interface AshoreDeps {
    * scene, rowing in only in a calm, the surge, an ice cave's ice, and their caches.
    */
   caves?: Caves | undefined;
+  /** Clues and legends (Phase 9 piece T): marks read and spots dug, on foot in the zone. */
+  legends?: Pick<GameLegends, 'prompt'> | undefined;
   /** The view drawn each frame; its `foot` is set while you're ashore. */
   view?: (SailingView & { foot: FootFrame | undefined }) | undefined;
   /** Your own body, heard (piece I): each stride, and each time you come down. */
@@ -323,6 +326,8 @@ export interface JailbreakStart {
 /** Where F would act, and what it would do. */
 interface Prompt {
   text: string;
+  /** Held this long to act, s (a dig, piece T); absent, a press. */
+  holdS?: number;
   act(): void;
 }
 
@@ -523,6 +528,8 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
   let thin = freshThinIce();
   /** Through the ice: hauling out, and where the hole is (zone meters). */
   let climb: ClimbOut | undefined;
+  /** F held on a held prompt (piece T's dig): which, and how long. */
+  let holding: { text: string; s: number } | undefined;
   let hole: { x: number; z: number } | undefined;
   /** Holes broken this landing, zone meters: still open when the scene is rebuilt. */
   const holes: { x: number; z: number }[] = [];
@@ -1227,7 +1234,10 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
       // A carcass on your shoulders: the only thing to do with it is put it down (piece V).
       if (wild?.carrying) return wild.prompt(c);
       const found =
-        deps.island?.prompt(c.position) ?? wild?.prompt(c) ?? deps.caves?.prompt(c.position, false);
+        deps.legends?.prompt(c.position) ??
+        deps.island?.prompt(c.position) ??
+        wild?.prompt(c) ??
+        deps.caves?.prompt(c.position, false);
       if (found) return found;
       const cold = winterPrompt();
       if (cold) return cold;
@@ -2001,7 +2011,21 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
         own !== undefined,
       );
     prompt = toolTookF ? undefined : own;
-    if (!toolTookF && input.pressed('Interact') && prompt) prompt.act();
+    // A held prompt (a dig) acts once F has been held its time on the same prompt.
+    if (!toolTookF && prompt?.holdS !== undefined) {
+      if (input.isDown('Interact') && holding?.text === prompt.text) {
+        holding.s += dt;
+      } else {
+        holding = input.pressed('Interact') ? { text: prompt.text, s: 0 } : undefined;
+      }
+      if (holding && holding.s >= prompt.holdS) {
+        holding = undefined;
+        prompt.act();
+      }
+    } else {
+      holding = undefined;
+      if (!toolTookF && input.pressed('Interact') && prompt) prompt.act();
+    }
 
     if (state.player.health <= 0 && !dead) {
       dead = true;
@@ -2220,7 +2244,12 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
           ? { word: coldWord(w), waterC: w, lastS: secondsToDrown(state.player.health, w) }
           : undefined,
         hurt: state.player.health < BADLY_HURT,
-        prompt: prompt?.text,
+        prompt:
+          prompt?.holdS !== undefined
+            ? holding
+              ? `${prompt.text} … ${Math.min(99, Math.round((100 * holding.s) / prompt.holdS))}%`
+              : `${prompt.text} (hold F)`
+            : prompt?.text,
         inBoat,
         swimming,
         gait: inBoat ? 'rowing' : character.gait,

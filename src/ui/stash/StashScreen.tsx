@@ -336,6 +336,38 @@ function Station({
           )}
         </div>
       )}
+      {station.maps && (
+        <div class="craft-maps" data-testid="cartography-maps">
+          <h3>Maps</h3>
+          {station.maps.length === 0 ? (
+            <p class="port-dim">
+              No leads to draw. Clues from logbooks, papers and the land open them in your journal.
+            </p>
+          ) : (
+            <ul>
+              {station.maps.map((m) => (
+                <li key={m.lead} data-testid="map-row" data-lead={m.lead}>
+                  <span>
+                    <strong>{m.title}</strong> <small class="port-dim">{m.where}</small>
+                    <br />
+                    <small class="port-dim">{m.refusal ?? m.cluesText}</small>
+                  </span>
+                  <button
+                    type="button"
+                    class="port-mini"
+                    data-testid={`draw-map-${m.lead}`}
+                    disabled={m.refusal !== undefined}
+                    title={m.refusal ?? 'Three clues laid together: an X on your chart'}
+                    onClick={() => setMessage(actions.drawMap(m.lead))}
+                  >
+                    Draw the map
+                  </button>
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
       <ul class="craft-recipes">
         {station.recipes.map((r) => (
           <Recipe
