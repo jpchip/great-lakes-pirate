@@ -54,6 +54,8 @@ export interface HideoutState {
   storage: { goods: CargoStack[]; cash: number; things?: Record<string, number> | undefined };
   /** Its pieces, built and planned, packed (Phase 8 piece A; save v10). */
   layout: PackedLayout;
+  /** An owned site's lease, or none and squatted on (plan 09 §2.2; Phase 9 piece W). */
+  tenure?: 'leased' | 'squatted' | undefined;
   /** Last seen there by a passing ship or a pursuer (plan 09 §8; Phase 8 piece F). */
   spotted?: { at: number; by: string; ship: string } | undefined;
   /** Salvage taken from the site's ruins this season (plan 09 §6.2; piece F). */
@@ -92,8 +94,8 @@ export function starterLayout(siteId: string): PackedLayout {
 export type Hideouts = Record<string, HideoutState>;
 
 /**
- * The hideouts a background starts with (plan 12 §2.2): in the MVP the Lumberjack starts
- * at the Siskiwit logging camp and everyone else at Stockton (Phase 8 piece D).
+ * The hideouts a background starts with (plan 12 §2.2): each at its own site (Phase 9
+ * piece W), pre-built with the shack and its pier. Hermit Island is nobody's start.
  */
 export function startingHideouts(background: string, gameSeconds: number): Hideouts {
   const out: Hideouts = {};
@@ -104,6 +106,8 @@ export function startingHideouts(background: string, gameSeconds: number): Hideo
       claimedAt: gameSeconds,
       storage: { goods: [], cash: 0 },
       layout: starterLayout(s.id),
+      // An owned site you start at is yours by a lease (Phase 9 piece W).
+      ...(s.claim === 'owned' ? { tenure: 'leased' as const } : {}),
     };
   }
   return out;
@@ -228,4 +232,68 @@ export function siteAnchoredAt(zoneId: string, frame: ZoneFrame, p: Zone): SiteD
 /** Where a site lies, as a geo point (its set piece's anchor), for the chart. */
 export function siteGeo(site: SiteDef): { lat: number; lon: number } | undefined {
   return zoneDef(site.zone).setPieces.find((p) => p.id === site.setPiece)?.at;
+}
+
+/**
+ * Claiming a site (plan 09 §2.2; Phase 9 piece W). An abandoned site is claimed free by
+ * the first thing built there; an owned one (Minnesota Point's light) is leased from its
+ * owner, or built on without a lease and squatted. A claim made by building starts empty.
+ */
+export function claimSite(
+  hideouts: Hideouts,
+  site: SiteDef,
+  gameSeconds: number,
+): { hideoutId: string; state: HideoutState; claimed: boolean } {
+  const hideoutId = hideoutIdOf(site.id);
+  const had = hideouts[hideoutId];
+  if (had) return { hideoutId, state: had, claimed: false };
+  const state: HideoutState = {
+    siteId: site.id,
+    claimedAt: gameSeconds,
+    storage: { goods: [], cash: 0 },
+    layout: emptyLayout(),
+    ...(site.claim === 'owned' ? { tenure: 'squatted' as const } : {}),
+  };
+  hideouts[hideoutId] = state;
+  return { hideoutId, state, claimed: true };
+}
+
+export type LeaseResult = { ok: true; cents: number } | { ok: false; reason: string };
+
+/** Buys an owned site's lease from the purse: the claim it makes, or makes good a squat. */
+export function leaseSite(
+  hideouts: Hideouts,
+  site: SiteDef,
+  player: { purse: number },
+  gameSeconds: number,
+): LeaseResult {
+  if (!site.lease) return { ok: false, reason: 'Nobody to lease it from' };
+  const had = hideouts[hideoutIdOf(site.id)];
+  if (had?.tenure === 'leased') return { ok: false, reason: 'The lease is yours already' };
+  const cents = site.lease.cents;
+  if (player.purse < cents) return { ok: false, reason: 'Not enough in your purse' };
+  player.purse -= cents;
+  const { state } = claimSite(hideouts, site, gameSeconds);
+  state.tenure = 'leased';
+  return { ok: true, cents };
+}
+
+/**
+ * The day's chance that a squat is noticed (plan 09 §2.2): for each hideout squatted on,
+ * whether it's seen today, by the roll `rand` gives (0–1 a squat, in order of `hideouts`).
+ */
+export function squatsNoticed(
+  hideouts: Hideouts | undefined,
+  rand: (siteId: string) => number,
+): { site: SiteDef; region: string; heat: number }[] {
+  const out: { site: SiteDef; region: string; heat: number }[] = [];
+  for (const h of Object.values(hideouts ?? {})) {
+    if (h.tenure !== 'squatted') continue;
+    const site = siteDef(h.siteId);
+    if (!site?.lease) continue;
+    if (rand(site.id) < site.lease.squatHeatChance) {
+      out.push({ site, region: site.wantedRegion, heat: site.lease.squatHeat });
+    }
+  }
+  return out;
 }

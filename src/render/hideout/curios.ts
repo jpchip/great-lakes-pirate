@@ -78,6 +78,21 @@ const CURIOS: Record<string, Builder> = {
     frustum(0.03, 0.06, 0.05, 8, 0, 0.22, 0, BRASS),
     box(0.012, 0.06, 0.06, 0, 0.27, 0, IRON),
   ],
+  // Phase 9 piece T: the Lucerne's watch, open on its chain, and the Dark Light's lantern.
+  'curio.captains_watch': () => [
+    frustum(0.05, 0.05, 0.016, 12, 0, 0, 0, GILT),
+    frustum(0.042, 0.042, 0.004, 12, 0, 0.016, 0, 0xeee6cc),
+    box(0.03, 0.003, 0.004, 0.012, 0.021, 0, IRON),
+    box(0.003, 0.003, 0.022, 0, 0.021, 0.008, IRON),
+    frustum(0.012, 0.012, 0.012, 6, 0, 0.006, -0.058, GILT),
+    box(0.006, 0.004, 0.12, 0.02, 0.002, -0.12, GILT),
+  ],
+  'curio.dark_lantern': () => [
+    frustum(0.06, 0.06, 0.2, 10, 0, 0, 0, 0x4a4a46),
+    box(0.06, 0.09, 0.012, 0, 0.06, 0.058, 0x2a2a28),
+    frustum(0.025, 0.065, 0.06, 10, 0, 0.2, 0, 0x4a4a46),
+    box(0.012, 0.05, 0.05, 0, 0.27, 0, IRON),
+  ],
   'curio.nameboard': () => [
     box(0.62, 0.14, 0.03, 0, 0, 0.1, NAMEBOARD),
     box(0.5, 0.04, 0.032, 0, 0.05, 0.1, GILT),

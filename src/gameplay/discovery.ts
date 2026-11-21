@@ -39,6 +39,7 @@ import {
 } from '../sim/discovery/discovery';
 import { storeItems } from '../sim/economy/chandlery';
 import { siteGeo, SITES } from '../sim/hideouts/stash';
+import { LEGEND_RULES, legendDef } from '../sim/legends/legends';
 import { LIGHTHOUSES } from '../sim/lighthouses';
 import { ISLANDS } from '../sim/islands/on-foot';
 import type { LawDefs } from '../sim/law/defs';
@@ -76,6 +77,8 @@ export interface LeadMark {
   at: Geo;
   radiusM: number;
   label: string;
+  /** Drawn into a map at a cartography table (piece T): an X on the chart. */
+  mapped: boolean;
 }
 
 export interface JournalLeadRow {
@@ -99,6 +102,8 @@ export interface JournalLegendRow {
   where: string;
   steps: { text: string; done: boolean }[];
   status: string;
+  /** Run down (piece T): the tale explained. */
+  told?: string | undefined;
 }
 
 export interface JournalDiscoveryRow {
@@ -254,7 +259,7 @@ export function attachDiscovery(opts: DiscoveryOptions): GameDiscovery {
   const siteTargets = (): DiscoveryTarget[] =>
     SITES.flatMap((s) => {
       const at = siteGeo(s);
-      return at ? [{ id: s.id, kind: 'site' as const, at, sightM: SITE_SIGHT_M }] : [];
+      return at ? [{ id: s.id, kind: 'site' as const, at, sightM: siteSightM(s.concealment) }] : [];
     });
   const wreckTargets = (): DiscoveryTarget[] =>
     (state.wrecks?.list ?? []).map((w) => ({
@@ -442,7 +447,13 @@ export function attachDiscovery(opts: DiscoveryOptions): GameDiscovery {
     leadMarks: () =>
       leads
         .filter((l) => !l.closed)
-        .map((l) => ({ id: l.id, at: l.center, radiusM: l.radiusM, label: l.title })),
+        .map((l) => ({
+          id: l.id,
+          at: l.center,
+          radiusM: l.radiusM,
+          label: l.title,
+          mapped: state.legends?.maps[l.id] !== undefined,
+        })),
     journal() {
       const t = now();
       const leadRows: JournalLeadRow[] = [...leads]
@@ -472,14 +483,24 @@ export function attachDiscovery(opts: DiscoveryOptions): GameDiscovery {
             : 'Ask in the saloons.',
           line: first?.text ?? '',
           where: lead ? capitalize(area?.where ?? lead.where) : '',
+          // Piece T's steps: the tale, three clues, a map at the table, and the find.
           steps: lead
             ? [
-                { text: 'Heard the tale', done: true },
-                { text: 'Find something that bears it out', done: lead.clues.length > 1 },
-                { text: 'Narrow it to a spot', done: lead.radiusM <= 1000 },
+                { text: 'Heard the tale, or found a clue', done: true },
+                {
+                  text: `Gather clues (${Math.min(lead.clues.length, LEGEND_RULES.mapClues)} of ${LEGEND_RULES.mapClues})`,
+                  done: lead.clues.length >= LEGEND_RULES.mapClues,
+                },
+                {
+                  text: 'Draw a map at a cartography table',
+                  done: state.legends?.maps[def.id] !== undefined,
+                },
                 { text: 'Find what the tale is about', done: lead.closed?.outcome === 'found' },
               ]
             : [],
+          ...(lead?.closed?.outcome === 'found' && legendDef(def.id)
+            ? { told: legendDef(def.id)?.told }
+            : {}),
           status: !lead ? '' : lead.closed?.outcome === 'found' ? 'Found' : 'Unsolved',
         };
       });
@@ -649,4 +670,13 @@ export function placeTalk(d: DiscoveryState | undefined) {
   return placeDefs()
     .filter((p) => p.talk && !d?.found[p.id] && !d?.heard[p.id])
     .map((p) => ({ id: p.id, ports: p.talk?.ports ?? [], lines: p.talk?.lines ?? [] }));
+}
+
+/**
+ * How far off a site is seen (piece W): the full range up to a concealment of 0.6, and
+ * less the better hidden it is past that, so the clifftop on Devils is seen only close in.
+ */
+export function siteSightM(concealment: number): number {
+  const k = Math.max(0, 1 - concealment) / 0.4;
+  return SITE_SIGHT_M * Math.max(0.1, Math.min(1, k * k));
 }

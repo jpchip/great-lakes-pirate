@@ -27,7 +27,7 @@
       "col": 9,
       "row": 9
     },
-    "startFor": ["deckhand", "fisherman", "saloon_keeper", "ex_navy", "poacher"],
+    "startFor": ["deckhand"],
     "blurb": "A fisherman's shack left empty when the brownstone quarry closed, in a bay sheltered from the northwest. Nobody comes out here but the fish tugs.",
     "pier": {
       "id": "starter.pier",
@@ -86,5 +86,187 @@
       "poi": "siskiwit_camp",
       "kinds": ["lumber"]
     }
+  },
+  {
+    "id": "site.hermit",
+    "name": "Below the old quarry, Hermit Island",
+    "shortName": "Hermit Quarry",
+    "place": "Hermit Island",
+    "zone": "zone.apostles",
+    "island": "island.hermit",
+    "setPiece": "setpiece.hermit",
+    "wantedRegion": "region.apostles",
+    "concealment": 0.55,
+    "claim": "abandoned",
+    "anchorage": {
+      "alongM": 0,
+      "inlandM": -60,
+      "radiusM": 70
+    },
+    "build": {
+      "alongM": -18,
+      "inlandM": -12,
+      "cols": 18,
+      "rows": 22,
+      "baseM": 2
+    },
+    "starter": {
+      "id": "starter.shack",
+      "col": 8,
+      "row": 10
+    },
+    "pier": {
+      "id": "starter.pier",
+      "col": 9,
+      "row": 2
+    },
+    "startFor": [],
+    "blurb": "A terrace above the west shore, below the brownstone quarry that went bust in '93. Deep water close in, and the cut stone still lying about for the taking.",
+    "salvage": {
+      "good": "good.brownstone",
+      "name": "dressed brownstone",
+      "perSeason": 16,
+      "loadCu": 4,
+      "poi": "hermit_quarry",
+      "kinds": ["block"]
+    }
+  },
+  {
+    "id": "site.devils",
+    "name": "The clifftop over the sea caves, Devils Island",
+    "shortName": "Devils Caves",
+    "place": "Devils Island",
+    "zone": "zone.apostles",
+    "island": "island.devils",
+    "setPiece": "setpiece.devils",
+    "wantedRegion": "region.apostles",
+    "concealment": 0.85,
+    "claim": "abandoned",
+    "anchorage": {
+      "alongM": -30,
+      "inlandM": -50,
+      "radiusM": 50
+    },
+    "build": {
+      "alongM": -10,
+      "inlandM": 6,
+      "cols": 10,
+      "rows": 10,
+      "baseM": 6
+    },
+    "starter": {
+      "id": "starter.shack",
+      "col": 3,
+      "row": 3
+    },
+    "startFor": ["poacher"],
+    "blurb": "A patch of level ground on the cliff over the sea caves, with the mooring in the lee of the rock below. Nobody sees it from the lake, and the northeasters break right over it."
+  },
+  {
+    "id": "site.outer",
+    "name": "The old fish station, Outer Island",
+    "shortName": "Outer Station",
+    "place": "Outer Island",
+    "zone": "zone.apostles",
+    "island": "island.outer",
+    "setPiece": "setpiece.outer",
+    "wantedRegion": "region.apostles",
+    "concealment": 0.6,
+    "claim": "abandoned",
+    "anchorage": {
+      "alongM": 0,
+      "inlandM": -70,
+      "radiusM": 80
+    },
+    "build": {
+      "alongM": -16,
+      "inlandM": -2,
+      "cols": 16,
+      "rows": 18,
+      "baseM": 3
+    },
+    "starter": {
+      "id": "starter.shack",
+      "col": 7,
+      "row": 6
+    },
+    "startFor": ["fisherman"],
+    "blurb": "A fish station up the beach from the camp on the sandspit, left when its owner drowned in '96. The farthest out of all the islands: no law comes, and no market's near."
+  },
+  {
+    "id": "site.minnesota_point",
+    "name": "The old light, Minnesota Point",
+    "shortName": "Minnesota Point",
+    "place": "Minnesota Point",
+    "zone": "zone.twin_ports",
+    "setPiece": "setpiece.minnesota_point",
+    "wantedRegion": "region.duluth",
+    "concealment": 0.3,
+    "claim": "owned",
+    "anchorage": {
+      "alongM": 0,
+      "inlandM": -50,
+      "radiusM": 50
+    },
+    "build": {
+      "alongM": -12,
+      "inlandM": -12,
+      "cols": 12,
+      "rows": 14,
+      "baseM": 2
+    },
+    "starter": {
+      "id": "starter.shack",
+      "col": 5,
+      "row": 8
+    },
+    "pier": {
+      "id": "starter.pier",
+      "col": 8,
+      "row": 0
+    },
+    "startFor": ["saloon_keeper"],
+    "blurb": "The keeper's ground by the dead light at the end of Minnesota Point, dark since the canal light took over in '85. Duluth's market and its best fence are an hour's sail off, and so is its police.",
+    "lease": {
+      "cents": 15000,
+      "from": "the Lighthouse Board",
+      "squatHeatChance": 0.06,
+      "squatHeat": 8
+    }
+  },
+  {
+    "id": "site.north_shore",
+    "name": "A cove up the shore from Two Harbors",
+    "shortName": "North Shore Cove",
+    "place": "the North Shore",
+    "zone": "zone.two_harbors",
+    "setPiece": "setpiece.north_shore",
+    "wantedRegion": "region.north_shore",
+    "concealment": 0.65,
+    "claim": "abandoned",
+    "anchorage": {
+      "alongM": 0,
+      "inlandM": -60,
+      "radiusM": 60
+    },
+    "build": {
+      "alongM": -14,
+      "inlandM": -12,
+      "cols": 14,
+      "rows": 16,
+      "baseM": 2
+    },
+    "starter": {
+      "id": "starter.shack",
+      "col": 6,
+      "row": 9
+    },
+    "pier": {
+      "id": "starter.pier",
+      "col": 7,
+      "row": 2
+    },
+    "startFor": ["ex_navy"],
+    "blurb": "A rocky cove in the spruce, a mile up the shore from the ore docks. The ore boats pass all day, and nobody's got a reason to look in."
   }
 ]

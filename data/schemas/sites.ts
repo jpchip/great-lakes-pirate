@@ -98,10 +98,26 @@ export const siteSchema = z.object({
       kinds: z.array(z.string().min(1)).min(1),
     })
     .optional(),
+  /**
+   * An owned site's lease (plan 09 §2.2; Phase 9 piece W): bought at the site from its
+   * owner, or the site is squatted on, and while squatted each day there's a chance it's
+   * noticed, which heats its region.
+   */
+  lease: z
+    .object({
+      cents: z.number().int().positive(),
+      /** Who it's leased from: "the Lighthouse Board". */
+      from: z.string().min(1),
+      squatHeatChance: z.number().min(0).max(1),
+      squatHeat: z.number().positive(),
+    })
+    .optional(),
   /** Plan 12 §2.2's starting hideout for these backgrounds (Phase 4: all of them). */
   startFor: z.array(z.string()),
   blurb: z.string().min(1),
 });
 
-export const sitesFileSchema = z.array(siteSchema);
+export const sitesFileSchema = z.array(
+  siteSchema.refine((s) => (s.claim === 'owned') === !!s.lease, 'An owned site has a lease'),
+);
 export type SiteDef = z.infer<typeof siteSchema>;

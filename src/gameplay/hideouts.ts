@@ -12,7 +12,9 @@ import {
   zoneToSite,
   type SiteFrame,
 } from '../sim/hideouts/site-frame';
-import { hideoutIdOf, SITES, type HideoutState } from '../sim/hideouts/stash';
+import { formatCents } from '../sim/economy/knowledge';
+import { claimSite, hideoutIdOf, leaseSite, SITES, type HideoutState } from '../sim/hideouts/stash';
+import { emptyLayout } from '../sim/hideouts/grid';
 import { slipwayHead } from '../sim/hideouts/slipway';
 import { structure } from '../sim/hideouts/structures';
 import type { WorldState } from '../sim/world-state';
@@ -54,7 +56,20 @@ export interface Hideouts {
   site(hideoutId: string): HideoutSite | undefined;
   /** The claimed hideout whose build bounds (give or take `marginM`) hold a zone point. */
   siteAt(at: { x: number; z: number }, marginM?: number): HideoutSite | undefined;
-  /** Saves an edited grid as the hideout's layout. */
+  /**
+   * A site nobody holds whose bounds (give or take `marginM`) hold a zone point (Phase 9
+   * piece W): build mode opens on it, and the first thing built claims it.
+   */
+  openSiteAt(at: { x: number; z: number }, marginM?: number): HideoutSite | undefined;
+  /**
+   * The zone's sites on the mainland with no island of their own (piece W), held or not:
+   * where a landing walks the zone's ground round them, at the bounds' middle.
+   */
+  mainlandPads(): { id: string; x: number; z: number }[];
+  /**
+   * Saves an edited grid as the hideout's layout. A site not yet held is claimed by it,
+   * once there's anything on the grid.
+   */
   commit(hideoutId: string, grid: BuildGrid): void;
   /** Built pieces as the on-foot controller's solids, zone meters. */
   colliders(): Collider[];
@@ -99,7 +114,12 @@ export interface HideoutsDeps {
    */
   carrying?(): { text: string; stow(hideoutId: string): void } | undefined;
   notice(text: string): void;
+  /** A site claimed by building on it, or by its lease (Phase 9 piece W). */
+  claimed?(site: SiteDef, hideoutId: string, how: 'built' | 'leased' | 'squatted'): void;
 }
+
+/** How near an owned site's bounds its lease is offered, m. */
+const LEASE_MARGIN_M = 6;
 
 /** Reach to a storage piece or the strongbox. */
 const REACH_M = 2.2;
@@ -155,6 +175,38 @@ export function attachHideouts(deps: HideoutsDeps): Hideouts {
       });
     }
     return out;
+  };
+
+  /** The zone's sites nobody holds, each with an empty claim it would make. */
+  const openSites = (): HideoutSite[] => {
+    const zone = deps.zone();
+    if (!zone) return [];
+    const frames = framesFor(zone);
+    const out: HideoutSite[] = [];
+    for (const s of SITES) {
+      const frame = frames.get(s.id);
+      if (!frame || state.hideouts?.[hideoutIdOf(s.id)]) continue;
+      const h: HideoutState = {
+        siteId: s.id,
+        claimedAt: state.environment.clock.gameSeconds,
+        storage: { goods: [], cash: 0 },
+        layout: emptyLayout(),
+      };
+      out.push({
+        hideoutId: hideoutIdOf(s.id),
+        site: s,
+        frame,
+        build: buildSiteOf(frame, deps.heightAt),
+        grid: gridOf(h),
+        state: h,
+      });
+    }
+    return out;
+  };
+
+  const within = (s: HideoutSite, at: { x: number; z: number }, marginM: number): boolean => {
+    const p = zoneToSite(s.frame, at.x, at.z);
+    return inSiteBounds(s.frame, p.x, p.z, marginM);
   };
 
   const changed = (): void => {
@@ -219,6 +271,38 @@ export function attachHideouts(deps: HideoutsDeps): Hideouts {
     return at;
   };
 
+  /** An owned site's lease, offered on its ground while it isn't yours by one (piece W). */
+  const leasePrompt = (at: { x: number; z: number }): HideoutPrompt | undefined => {
+    const s = [...sites(), ...openSites()].find(
+      (x) => x.site.lease && x.state.tenure !== 'leased' && within(x, at, LEASE_MARGIN_M),
+    );
+    const lease = s?.site.lease;
+    if (!s || !lease) return undefined;
+    return {
+      text: `Lease the ground from ${lease.from} (${formatCents(lease.cents, true)})`,
+      act: () => {
+        const had = !!state.hideouts?.[s.hideoutId];
+        const r = leaseSite(
+          (state.hideouts ??= {}),
+          s.site,
+          state.player,
+          state.environment.clock.gameSeconds,
+        );
+        if (!r.ok) {
+          deps.notice(r.reason);
+          return;
+        }
+        changed();
+        deps.notice(
+          had
+            ? `The lease is yours: ${s.site.shortName} is held fair and square.`
+            : `The lease is yours: ${s.site.shortName} is your ground to build on.`,
+        );
+        deps.claimed?.(s.site, s.hideoutId, 'leased');
+      },
+    };
+  };
+
   return {
     get version() {
       return version;
@@ -238,15 +322,33 @@ export function attachHideouts(deps: HideoutsDeps): Hideouts {
     sites,
     site: (id) => sites().find((s) => s.hideoutId === id),
     siteAt(at, marginM = 0) {
-      for (const s of sites()) {
-        const p = zoneToSite(s.frame, at.x, at.z);
-        if (inSiteBounds(s.frame, p.x, p.z, marginM)) return s;
+      return sites().find((s) => within(s, at, marginM));
+    },
+    mainlandPads() {
+      const zone = deps.zone();
+      if (!zone) return [];
+      const out: { id: string; x: number; z: number }[] = [];
+      for (const [id, f] of framesFor(zone)) {
+        if (SITES.find((x) => x.id === id)?.island) continue;
+        out.push({ id, ...siteToZone(f, f.cols, f.rows) });
       }
-      return undefined;
+      return out;
+    },
+    openSiteAt(at, marginM = 0) {
+      return openSites().find((s) => within(s, at, marginM));
     },
     commit(hideoutId, grid) {
-      const h = state.hideouts?.[hideoutId];
-      if (!h) return;
+      let h = state.hideouts?.[hideoutId];
+      if (!h) {
+        // The first thing built on a site nobody holds claims it (plan 09 §2.2).
+        const site = SITES.find((x) => hideoutIdOf(x.id) === hideoutId);
+        if (!site || grid.all().length === 0) return;
+        h = claimSite((state.hideouts ??= {}), site, state.environment.clock.gameSeconds).state;
+        h.layout = packGrid(grid);
+        changed();
+        deps.claimed?.(site, hideoutId, h.tenure === 'squatted' ? 'squatted' : 'built');
+        return;
+      }
       h.layout = packGrid(grid);
       changed();
     },
@@ -307,7 +409,7 @@ export function attachHideouts(deps: HideoutsDeps): Hideouts {
         return { text: 'Sleep in the bunk', act: () => sleep(nearest.hideout) };
       }
       const p = near.find((q) => !q.bed);
-      if (!p) return undefined;
+      if (!p) return leasePrompt(at);
       return {
         text: p.box ? 'Open the stash' : 'Open the stores',
         act: () => {

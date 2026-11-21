@@ -155,6 +155,8 @@ export interface ChartTravelHost {
         kind: ChartMarkKind;
         /** Real meters: a shoal's extent, a lead's circle (Phase 9 piece O). */
         radiusM?: number | undefined;
+        /** A lead made a map (Phase 9 piece T): an X at its middle. */
+        mapped?: boolean | undefined;
       }[])
     | undefined;
   /**
@@ -479,6 +481,7 @@ export function createChartTravel(host: ChartTravelHost): ChartTravel {
             label: m.label,
             kind: m.kind,
             radiusM: m.radiusM,
+            mapped: m.mapped,
           })),
         });
       },

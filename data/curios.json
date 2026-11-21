@@ -20,6 +20,11 @@
     "text": "A stonecutter's pick with a hickory handle worn smooth, from a quarry that shut in '93."
   },
   {
+    "id": "curio.captains_watch",
+    "name": "A captain's pocket watch",
+    "text": "A gold hunter-case watch, stopped at ten past four, from the strongbox of a schooner that went down off Long Island in '86."
+  },
+  {
     "id": "curio.lens_prism",
     "name": "A lighthouse lens prism",
     "text": "A glass prism from a Fresnel lens, heavy as a brick, that throws the light in colors across a table."
@@ -43,5 +48,10 @@
     "id": "curio.nameboard",
     "name": "A rival's nameboard",
     "text": "The carved and gilded nameboard off a copycat's schooner, the last that'll be seen of her."
+  },
+  {
+    "id": "curio.dark_lantern",
+    "name": "A smuggler's dark lantern",
+    "text": "A tin lantern with a sliding shutter, for showing a light to one boat and nobody else. Dug up at the foot of a dead lighthouse."
   }
 ]

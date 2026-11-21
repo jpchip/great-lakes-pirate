@@ -5,6 +5,7 @@ import type { GameContext } from '../modes/context';
 import { pierSite } from '../sim/harbors';
 import {
   CRAFT_REFUSALS,
+  builtStations,
   craft,
   recipeDef,
   settleProduction,
@@ -42,7 +43,7 @@ import {
   type StashRefusal,
   type StashResult,
 } from '../sim/hideouts/stash';
-import { spanText, stashSnapshot, type StashSnapshot } from '../ui/stash/model';
+import { spanText, stashSnapshot, type MapRowView, type StashSnapshot } from '../ui/stash/model';
 import type { Hold } from '../sim/economy/hold';
 import type { GameEconomy } from './economy';
 import type { ShipHazards } from './hazards';
@@ -86,6 +87,8 @@ export interface StashActions {
   goAshore(): void;
   /** Sets a curio out here (`show`), or takes it back aboard (Phase 9 piece O). */
   setCurio(id: string, show: boolean): string | undefined;
+  /** Draws a lead into a map at the cartography table (Phase 9 piece T). */
+  drawMap(lead: string): string | undefined;
 }
 
 export interface StashControl {
@@ -146,6 +149,11 @@ export interface StashControlOptions {
   curios?: {
     view(hideout: string): HideoutCurios;
     set(id: string, hideout: string | undefined): string | undefined;
+  };
+  /** Leads made maps at the cartography table (Phase 9 piece T). */
+  maps?: {
+    rows(): MapRowView[];
+    draw(lead: string): string | undefined;
   };
 }
 
@@ -275,6 +283,7 @@ export function attachStash(opts: StashControlOptions): StashControl {
         tab: openTab,
         canGoAshore: canGoAshore(),
         curios: opts.curios?.view(openHideout),
+        maps: opts.maps?.rows(),
       }),
     );
   };
@@ -592,6 +601,16 @@ export function attachStash(opts: StashControlOptions): StashControl {
       setCurio(id, show) {
         if (!openHideout || !opts.curios) return 'Nowhere to set it out.';
         const why = opts.curios.set(id, show ? openHideout : undefined);
+        refresh();
+        return why;
+      },
+      drawMap(lead) {
+        const h = openHideout ? hideouts()[openHideout] : undefined;
+        if (!h || !opts.maps) return 'No table to draw it on.';
+        if (!builtStations(h).has('station.cartography')) {
+          return 'Build a cartography table here first.';
+        }
+        const why = opts.maps.draw(lead) ?? 'Drawn: X marks the spot on your chart.';
         refresh();
         return why;
       },

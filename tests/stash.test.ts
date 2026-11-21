@@ -36,7 +36,7 @@ import { sunAt } from '../src/sim/weather/celestial';
 import { layoutHarbors, pierSite } from '../src/sim/harbors';
 import { loadZoneTerrain, type LoadedZone } from '../src/sim/terrain/load';
 import { manifestFrame } from '../src/sim/terrain/zones';
-import { BACKGROUNDS, createWorldState, parseWorldState } from '../src/sim/world-state';
+import { createWorldState, parseWorldState } from '../src/sim/world-state';
 import type { StashSnapshot } from '../src/ui/stash/model';
 
 const fresh = (): HideoutState => ({
@@ -48,14 +48,19 @@ const fresh = (): HideoutState => ({
 const HOT = { region: 'region.apostles', heat: 0.8, traceability: 0.6, since: 100 };
 
 describe('the Stockton stash (piece E)', () => {
-  it('is every background’s starting hideout but the Lumberjack’s, claimed and empty', () => {
-    expect(SITES.map((s) => s.id)).toEqual(['site.stockton', 'site.siskiwit']);
-    for (const b of BACKGROUNDS) {
-      if (b === 'lumberjack') continue;
-      expect(startingHideouts(b, 50)).toEqual({
-        'hideout.stockton': { ...fresh(), claimedAt: 50 },
-      });
-    }
+  it('is the Deckhand’s starting hideout, claimed and empty; the others start at their own', () => {
+    expect(SITES.map((s) => s.id)).toEqual([
+      'site.stockton',
+      'site.siskiwit',
+      'site.hermit',
+      'site.devils',
+      'site.outer',
+      'site.minnesota_point',
+      'site.north_shore',
+    ]);
+    expect(startingHideouts('deckhand', 50)).toEqual({
+      'hideout.stockton': { ...fresh(), claimedAt: 50 },
+    });
     // Phase 8 piece D: the Lumberjack starts at the Siskiwit Bay logging camp instead.
     expect(startingHideouts('lumberjack', 50)).toEqual({
       'hideout.siskiwit': {

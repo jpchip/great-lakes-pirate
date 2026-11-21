@@ -83,6 +83,12 @@ export function attachBackRoom(opts: BackRoomOptions): BackRoom {
   const fences = opts.fences ?? gameFences();
   const now = (): number => ctx.state.environment.clock.gameSeconds;
   const tier = (): number => fameTier(law, ctx.state.fame.value);
+  /**
+   * The Fame a fence counts you at for his door: a legend's introduction (Phase 9 piece T,
+   * the Dark Light's card with Mr. Carrow's name) lets you in whatever yours is.
+   */
+  const tierFor = (f: Fence): number =>
+    ctx.state.legends?.contacts.includes(f.id) ? Math.max(tier(), f.fameTier) : tier();
   const stateOf = (fence: Fence): FenceState => {
     const c = (ctx.state.contraband ??= freshContrabandState(now()));
     const all = (c.fences ??= {});
@@ -91,7 +97,7 @@ export function attachBackRoom(opts: BackRoomOptions): BackRoom {
   const at = (port: string): Fence | undefined => fenceAt(port, fences);
   const open = (port: string): Fence | undefined => {
     const f = at(port);
-    return f && fenceAccess(f, tier(), now()) === 'open' ? f : undefined;
+    return f && fenceAccess(f, tierFor(f), now()) === 'open' ? f : undefined;
   };
 
   return {
@@ -103,7 +109,7 @@ export function attachBackRoom(opts: BackRoomOptions): BackRoom {
       if (!f) return undefined;
       const state = stateOf(f);
       restockFence(f, state, now());
-      const snap = backRoomSnapshot(economy.defs, f, state, ctx.state.player, now(), tier());
+      const snap = backRoomSnapshot(economy.defs, f, state, ctx.state.player, now(), tierFor(f));
       snap.informRisk = opts.informRisk?.(port);
       if (f.shipwright && opts.shipyard) {
         const sy = opts.shipyard;
@@ -141,7 +147,7 @@ export function attachBackRoom(opts: BackRoomOptions): BackRoom {
     hint(port) {
       const f = at(port);
       if (!f) return undefined;
-      const access = fenceAccess(f, tier(), now());
+      const access = fenceAccess(f, tierFor(f), now());
       // Nobody tells a captain nobody's heard of that the room is there.
       if (access !== 'day') return undefined;
       return `There's a back room here that opens after dark, if you've something to sell that you'd rather not show at the market.`;
@@ -167,7 +173,7 @@ export function attachBackRoom(opts: BackRoomOptions): BackRoom {
         index,
         qty,
         now(),
-        tier(),
+        tierFor(f),
       );
       if (!r.ok) return REFUSALS[r.reason];
       economy.syncLoad();

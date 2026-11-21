@@ -1,0 +1,117 @@
+{
+  "rules": {
+    "mapClues": 3,
+    "mapRadiusM": 250,
+    "mapHours": 3,
+    "digHoldS": 3,
+    "reachM": 2.4,
+    "markReachM": 3,
+    "darkMoon": 0.3,
+    "padM": 260
+  },
+  "legends": [
+    {
+      "id": "legend.lucerne",
+      "name": "The Lucerne's Last Cargo",
+      "spot": {
+        "kind": "wreck",
+        "wreck": "wreck.lucerne"
+      },
+      "cashCents": [90000, 140000],
+      "curio": "curio.captains_watch",
+      "found": "The grapple's flukes catch on an iron handle aft, under where her master's bunk was: the company's strongbox. Inside, {cash} in gold coin and her captain's watch, stopped at ten past four.",
+      "told": "The lantern the fishermen saw was a salvager's, working her by night. He never found the box: it was where her master's log said, aft under his bunk."
+    },
+    {
+      "id": "legend.quarry_payroll",
+      "name": "The Quarryman's Payroll",
+      "spot": {
+        "kind": "poi",
+        "island": "island.hermit",
+        "poi": "hermit_cabin",
+        "mark": "behind",
+        "dig": true,
+        "name": "the ground behind the clerk's cabin",
+        "at": {
+          "lat": 46.88707,
+          "lon": -90.68264
+        }
+      },
+      "cashCents": [120000, 180000],
+      "curio": "curio.quarry_pick",
+      "found": "Two feet down behind the cabin, the spade rings on a pick-head laid over a strapped box: the last payroll of the Hermit Island quarry, {cash} in gold, never paid.",
+      "told": "The clerk, Wilkes, carried the last payroll out to Hermit the week the company failed. Knowing the men would never be paid, he buried it behind his cabin to keep it from the creditors, and died that winter without telling anyone.",
+      "site": "site.hermit"
+    },
+    {
+      "id": "legend.dark_light",
+      "name": "The Dark Light of Minnesota Point",
+      "spot": {
+        "kind": "chart",
+        "zone": "zone.twin_ports",
+        "at": {
+          "lat": 46.7113,
+          "lon": -92.0258
+        },
+        "place": "Minnesota Point, below the old light",
+        "name": "the sand at the foot of the dead tower"
+      },
+      "cashCents": [70000, 110000],
+      "curio": "curio.dark_lantern",
+      "fence": "fence.duluth",
+      "found": "Under the sand at the tower's foot, a tarred chest: {cash}, a smuggler's dark lantern, and a card with Mr. Carrow's name on it and a Superior Street address. He'll know who sent you.",
+      "told": "No ghosts on the Point: a ring running whiskey and furs past the canal used the dead tower to signal its boats, and kept its takings buried at the foot of it.",
+      "site": "site.minnesota_point"
+    },
+    {
+      "id": "legend.devils_grotto",
+      "name": "The Devil's Grotto",
+      "spot": {
+        "kind": "cave",
+        "cave": "cave.devils_grotto",
+        "mark": "grotto",
+        "name": "the crack over the grotto's ledge",
+        "at": {
+          "lat": 47.06783,
+          "lon": -90.72854
+        }
+      },
+      "cashCents": [60000, 100000],
+      "curio": "curio.keepers_spyglass",
+      "found": "With no moon to wash it out, your lantern finds a soot mark over the ledge, and behind the loose slab a dry crack: {cash} in an oilskin and a keeper's spyglass, wrapped in a smuggler's coat.",
+      "told": "The drowned man used the grotto for a strongroom. He hid what he had in a crack over the ledge, marking it with soot that only shows by lantern light, and drowned rowing out of the cave in a swell."
+    },
+    {
+      "id": "legend.ghost_net",
+      "name": "Outer Island's Ghost Net",
+      "spot": {
+        "kind": "poi",
+        "island": "island.outer",
+        "poi": "outer_fish_camp",
+        "mark": "fish_house",
+        "dig": false,
+        "name": "under the fish house floor",
+        "at": {
+          "lat": 46.99988,
+          "lon": -90.46007
+        }
+      },
+      "cashCents": [80000, 120000],
+      "curio": "curio.lens_prism",
+      "found": "Up come two boards of the fish house floor, and under them Pedersen's hoard: {cash} in a coffee tin, ship's brass, and a prism from a lighthouse lens.",
+      "told": "Pedersen found an old wreck on the shoal off the sandspit and worked her alone, hiding what he raised under his fish house. He drowned working her one morning, and his nets kept bringing up what he'd lost overboard."
+    },
+    {
+      "id": "legend.copycat_hoard",
+      "name": "The Copycat's Hoard",
+      "spot": {
+        "kind": "stash",
+        "name": "the copycat's cache above his camp"
+      },
+      "cashCents": [0, 0],
+      "curio": "curio.nameboard",
+      "found": "Dug in above the camp, under a spruce stump, the copycat's hoard: {cash}, and the gilded nameboard he took off his own ship to stay unknown.",
+      "told": "Every copycat keeps a hoard near his camp. His crew talks once he's beaten."
+    }
+  ]
+}

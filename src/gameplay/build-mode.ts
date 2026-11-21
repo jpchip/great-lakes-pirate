@@ -745,15 +745,21 @@ export function attachBuildMode(deps: BuildModeDeps): BuildMode {
     const why = deps.blocked();
     if (why) return why;
     const at = ashore.zoneAt();
-    const s = hideouts.siteAt(at, BUILD_MARGIN_M);
-    if (!s) return 'Nothing to build here: walk into your hideout';
+    const held = hideouts.siteAt(at, BUILD_MARGIN_M);
+    // A site nobody holds opens too, and the first thing built claims it (piece W).
+    const s = held ?? hideouts.openSiteAt(at, BUILD_MARGIN_M);
+    if (!s) return 'Nothing to build here: walk into your hideout or onto a site';
     site = s;
     grid = s.grid.clone();
     log.clear();
     level = 0;
     tool = 'place';
     dragFrom = undefined;
-    message = undefined;
+    message = held
+      ? undefined
+      : s.site.lease
+        ? `${s.site.lease.from} own this ground: build without a lease and you're squatting`
+        : 'Nobody holds this site: the first thing you build claims it';
     aim = undefined;
     // The camera out over the water, looking inland at where you stand.
     const local = zoneToSite(s.frame, at.x, at.z);

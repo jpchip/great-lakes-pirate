@@ -108,6 +108,11 @@ export interface SalvageDeps {
   visibilityM(): number;
   passTime(gameSeconds: number): void;
   notice(text: string): void;
+  /**
+   * The grapple hooked at a wreck: a legend's strongbox up instead of what she'd give
+   * (piece T: the Lucerne's). Its line, or undefined.
+   */
+  strongbox?(wreck: string): string | undefined;
 }
 
 export interface GameSalvage {
@@ -328,6 +333,13 @@ export function attachSalvage(deps: SalvageDeps): GameSalvage {
     const result = castGrapple(rules, s.target, p, chance, rng, free, t);
     let text: string;
     let hot = false;
+    const box = result.hooked ? deps.strongbox?.(s.id) : undefined;
+    if (box) {
+      text = `${box} (${minutes} min)`;
+      ctx.events.emit('WreckWorked', { wreck: s.id, kind: 'curio', qty: 0, spoiled: 0, hot });
+      deps.notice(text);
+      return { site: s.id, result, minutes, chance, hot, text };
+    }
     if (!result.hooked) {
       text = `The grapple came up empty from the ${s.name} (${minutes} min).`;
       ctx.events.emit('WreckWorked', { wreck: s.id, kind: 'nothing', qty: 0, spoiled: 0, hot });

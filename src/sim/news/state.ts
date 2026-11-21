@@ -29,6 +29,8 @@ export const storySchema = z.object({
   ambition: z.string().optional(),
   /** A sandbox event (Phase 9 piece A): its id. */
   event: z.string().optional(),
+  /** A legend run down (Phase 9 piece T): its id. */
+  legend: z.string().optional(),
   /** Extra words for its lines: a copycat rival's name (Phase 9 piece E). */
   words: z.record(z.string(), z.string()).optional(),
   goods: z.array(z.object({ good: z.string(), qty: z.number().positive() })).optional(),
