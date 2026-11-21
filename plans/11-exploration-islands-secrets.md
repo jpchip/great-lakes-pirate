@@ -811,7 +811,37 @@ The concealment and sight numbers are guesses.
 - It also covers the runtime flatten, the starts, claiming, the lease and squat, and the walk ashore at the point.
 - `e2e/sites.spec.ts` lands a new Fisherman, Poacher, Saloon Keeper and Ex-Navy at their sites through `?site=` and opens each stash.
 
+### 18.24 Piece Y as built: islands audio (2026-11-21)
+
+**The islands' sounds** (plan 15 §23 has the audio side). Each island walked has the birds, a creek and the surf by its tier and the season: songbirds in spring and summer (hero islands loudest, rock islands few), a creek on the hero and standard islands (swollen at the thaw, frozen in winter), and surf on the rock islands that rises with the wind. A woodpecker drums in spring and summer by day on a wooded island. Beds are quieter under a roof.
+
+**The sea cave** (piece S): its hush while you're inside, from the boat or on foot, with drips from the roof every few seconds and the surge booming at the mouth, `CaveEntered`, `CaveLeft` and `CaveSurge`.
+
+**The animals** (piece V). A deer snorts and bounds off when it bolts. A bear huffs when it stands up to you and growls as it charges. The wolves howl from the trees, and the nearer pack answers. Each call is placed where the animal is, quieter with distance (full within 10 m, gone by 300 m), and captioned. The HUD line about a bear or a wolf is still there, as before. Wildlife now raises `AnimalCue` on each warning and on a deer bolting.
+
+**The grapple and a dig** (pieces U and T). The line whirrs out at `GrappleCast` with a splash, and comes up with a stick-slip creak at `WreckWorked`. A dig (`Dug`) plays three spade strikes over the hold's last two seconds, whichever way the dig turned out.
+
+**The ending.** `RunEnded` plays the ending air, a slow tune in D minor over a fiddle drone, about 55 s, once after a second. It streams from its own bundle, like the other tunes.
+
+**For Jared to check.** These are first drafts, all synthesized and none heard in the game yet:
+- the birds' and the creek's levels against the forest bed;
+- the wolves' and the bear's loudness and how far a call carries (300 m is a guess);
+- the cave's drips, its hush and the surge;
+- the spade, the grapple and the dig's three strikes;
+- the ending air (its tune and its length, about 55 s; it isn't stopped if a new run starts within that time);
+- the woodpecker's odds.
+
+**Not in piece Y:** the diving suit's sounds (§18.5), a bear's crash off through the brush (a bear that flees makes no sound yet), a separate wolf growl (the threat is the second howl), a reverb preset for the islands beyond the sounds' own, and the sea cave's ice variant (the ice flag is kept for it, but the room is the same).
+
+**Tests.**
+- `tests/audio-island.test.ts` (40): the seasons, the beds by tier, season, day, wind and roof; the woodpecker; the drips and the surge; each animal's cue and its distance; the spade and the ending delay; the playback with a fake mixer (a dig from the shore, a grapple from the boat, a call only ashore and captioned, a cave hush from entering to leaving, the surge once); and the synthesis, every loop and one-shot finite and audible, and the ending air's length.
+- `tests/audio-pipeline.test.ts` now counts `island-audio` as decoded and `ending-audio` as streamed (the streamed ceiling is 7 MB for the ending air).
+- `CREDITS.md` lists the sixteen island files and the ending air.
+
+**Checked:** the unit suite and the pipeline; `npm run audio` for all 211 sounds (about 12.9 MB, the ending air 0.86 MB). Not yet in the game: the wiring is there (`game-audio.ts`, `ashore.ts`, `wildlife.ts`, `main.ts`), and a Playwright check of a landing is the next step.
+
 ## Changelog
+- v0.22: Piece Y as built (§18.24): the islands' birds, creek and surf by tier and season, a sea cave's hush, drips and surge, the animals' calls, the grapple, a dig and the ending air.
 - v0.21: Piece W as built (§18.23): the five new hideout sites, every background at its own, claiming by building, Minnesota Point leased or squatted.
 - v0.20: Piece T as built (§18.22): legends, clues, maps at the cartography table, digging and seeded caches.
 - v0.19: Piece V as built (§18.21): deer, bears and wolves on their FSM, the rifle, dressing and carrying, venison and smoked venison, the traplines and the Venison King.

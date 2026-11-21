@@ -1,0 +1,11 @@
+{
+  "id": "voice.deer.snort",
+  "name": "deer-snort",
+  "description": "A deer snorting: a sharp breath through the nose, a rough voiced puff",
+  "kind": "oneshot",
+  "bus": "voice",
+  "bundles": [
+    "island-audio"
+  ],
+  "source": "source.flac"
+}

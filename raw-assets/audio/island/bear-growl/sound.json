@@ -1,0 +1,11 @@
+{
+  "id": "voice.bear.growl",
+  "name": "bear-growl",
+  "description": "A bear growling low: a rolling voice with a rattle in it, swelling and dying (2.6 s)",
+  "kind": "oneshot",
+  "bus": "voice",
+  "bundles": [
+    "island-audio"
+  ],
+  "source": "source.flac"
+}

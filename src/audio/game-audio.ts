@@ -20,7 +20,14 @@ import { HARBOR_AUDIO_BUNDLE, HarborWorks } from './harbor-audio';
 import { HIDEOUT_AUDIO_BUNDLE, HideoutSounds, UI_AUDIO_BUNDLE, UiCues } from './hideout-audio';
 import { SANDBOX_AUDIO_BUNDLE, SandboxSounds } from './sandbox-audio';
 import { WINTER_AUDIO_BUNDLE, WinterSounds } from './winter-audio';
-import { snowShare } from './winter-mix';
+import { nightOf, snowShare } from './winter-mix';
+import {
+  ENDING_AUDIO_BUNDLE,
+  ENDING_MUSIC_CUE,
+  ISLAND_AUDIO_BUNDLE,
+  IslandSounds,
+} from './island-audio';
+import type { AnimalKind } from './island-mix';
 import { COLD } from '../sim/cold/footing';
 import { LAW_AUDIO_BUNDLE, LawSounds, type LawShipId, type LawShipView } from './law-audio';
 import {
@@ -100,6 +107,8 @@ export interface GameAudio {
   sandbox: SandboxSounds;
   /** Winter's sounds (Phase 9 piece N). */
   winter: WinterSounds;
+  /** The islands: their birds and surf, a sea cave, the animals, the grapple and a dig (piece Y). */
+  island: IslandSounds;
   captions: CaptionFeed;
   /** The captions showing now, with arrows from the listener's view (plan 15 §5). */
   captionsNow(): CaptionView[];
@@ -186,7 +195,7 @@ export async function createGameAudio(options: GameAudioOptions): Promise<GameAu
       console.warn(`Music ${bundle} unavailable`, err);
       return new Map<string, string>();
     });
-  const [bank, musicUrls, chartUrls] = await Promise.all([
+  const [bank, musicUrls, chartUrls, endingUrls] = await Promise.all([
     loadSoundBank(
       ctx,
       [
@@ -203,11 +212,13 @@ export async function createGameAudio(options: GameAudioOptions): Promise<GameAu
         UI_AUDIO_BUNDLE,
         SANDBOX_AUDIO_BUNDLE,
         WINTER_AUDIO_BUNDLE,
+        ISLAND_AUDIO_BUNDLE,
       ],
       baseUrl,
     ),
     urlsOf(MUSIC_BUNDLE),
     urlsOf(CHART_MUSIC_BUNDLE),
+    urlsOf(ENDING_AUDIO_BUNDLE),
   ]);
   const sailing = new SailingSoundscape(mixer, bank);
   const world = new WorldSoundscape(mixer, bank, options.stations);
@@ -231,6 +242,13 @@ export async function createGameAudio(options: GameAudioOptions): Promise<GameAu
   sandbox.captions = captions;
   const winter = new WinterSounds(mixer, bank, COLD.thin);
   winter.captions = captions;
+  const island = new IslandSounds(mixer, bank);
+  island.captions = captions;
+  // The ending's air is a stream, like the other tunes; it plays once the run is over.
+  const endingUrl = endingUrls.get(ENDING_MUSIC_CUE);
+  const ending = endingUrl
+    ? createStreamPlayer(ctx, endingUrl, mixer.buses.music, target.document)
+    : undefined;
   const records = new Map(SHIP_RECORDS.map((r) => [r.id, r]));
   const whistleShips: WhistleShip[] = [];
   const players: Partial<Record<Exclude<MusicMood, 'quiet'>, MusicPlayer>> = {};
@@ -254,6 +272,35 @@ export async function createGameAudio(options: GameAudioOptions): Promise<GameAu
   });
   game.events.on('EncounterAvoided', ({ escaped }) => {
     if (running()) chartCues.stinger(escaped ? 'clear' : 'hunted');
+  });
+
+  // The islands (piece Y): a sea cave's hush, drips and surge; the animals; the grapple going
+  // down and coming up; a spade; and the ending's air once the run is over.
+  game.events.on('CaveEntered', ({ cave, ice }) => {
+    if (running()) island.enterCave(cave, ice);
+  });
+  game.events.on('CaveLeft', () => island.leaveCave());
+  game.events.on('CaveSurge', () => {
+    if (running()) island.surge();
+  });
+  game.events.on('AnimalCue', ({ species, state, at }) => {
+    const kind = species.replace('animal.', '');
+    if (!running() || (kind !== 'deer' && kind !== 'bear' && kind !== 'wolf')) return;
+    const from = lastPose?.at;
+    const distanceM = from ? Math.hypot(at.x - from.x, at.z - from.z) : Infinity;
+    island.animal(kind as AnimalKind, state, { x: at.x, y: 0, z: at.z }, distanceM);
+  });
+  game.events.on('GrappleCast', () => {
+    if (running()) island.grappleCast();
+  });
+  game.events.on('WreckWorked', () => {
+    if (running()) island.grappleHaul();
+  });
+  game.events.on('Dug', () => {
+    if (running()) island.dig();
+  });
+  game.events.on('RunEnded', () => {
+    if (running()) ending?.play();
   });
 
   game.events.on('TradeCompleted', ({ totalCents }) => {
@@ -559,6 +606,22 @@ export async function createGameAudio(options: GameAudioOptions): Promise<GameAu
       frameSeconds,
     );
     foot.update({ ...f, listener: pose.at, nowS, hour, frozen01: winter.hush }, frameSeconds);
+    island.update(
+      f.island === undefined
+        ? undefined
+        : {
+            listener: pose.at,
+            nowS,
+            player: at,
+            island: f.island,
+            inside: f.inside,
+            month0: f.month0,
+            windKn: f.windKn,
+            daylight01: 1 - nightOf(f.sunElevationDeg),
+          },
+      frameSeconds,
+      nowS,
+    );
     sandbox.update(
       {
         nowS,
@@ -605,6 +668,7 @@ export async function createGameAudio(options: GameAudioOptions): Promise<GameAu
     ui,
     sandbox,
     winter,
+    island,
     captions,
     captionsNow() {
       if (!lastPose || !outside) return [];
@@ -663,6 +727,8 @@ export async function createGameAudio(options: GameAudioOptions): Promise<GameAu
         updateAshore(ashore, frameSeconds, gameSeconds, state.heading);
         return;
       }
+      // Aboard: a sea cave's hush and drips still go on around the boat.
+      island.update(undefined, frameSeconds, nowS);
       const wind = game.weather.windAt({ x: state.x, z: state.z }, gameSeconds);
       sailing.update(
         {

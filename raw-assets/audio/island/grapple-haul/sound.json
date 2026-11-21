@@ -1,0 +1,11 @@
+{
+  "id": "sfx.salvage.grapple-haul",
+  "name": "grapple-haul",
+  "description": "The line coming up taut: a wet hemp and iron creak, stick-slip, a clank at each turn of the windlass (3.5 s)",
+  "kind": "oneshot",
+  "bus": "sfx",
+  "bundles": [
+    "island-audio"
+  ],
+  "source": "source.flac"
+}

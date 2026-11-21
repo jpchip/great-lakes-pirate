@@ -1,0 +1,18 @@
+{
+  "source": "procedural",
+  "tool": "tools/audio/synth.ts (tools/audio/lib/synth.ts)",
+  "author": "Great Lakes Pirate contributors",
+  "reference": "Low-passed noise under a slow swell envelope and a wander, band-passed hiss, crossfaded loop",
+  "date": "2026-11-21",
+  "license": "CC BY 4.0",
+  "attribution": "Great Lakes Pirate contributors",
+  "modifications": [],
+  "description": "Surf on a rock island (14 s, looped): a low wash swelling and draining, a hiss on top",
+  "durationS": 12.5,
+  "pipeline": [
+    "decoded to mono 48000 Hz",
+    "RMS-normalized toward -24 dB (-4.4 dB)",
+    "Opus 64 kbps mono in Ogg (ffmpeg libopus)"
+  ],
+  "inputHash": "c0c63694ffcc495c"
+}

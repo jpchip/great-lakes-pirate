@@ -1,0 +1,12 @@
+{
+  "id": "amb.island.creek",
+  "name": "creek",
+  "description": "A creek over stones (20 s, looped): the water wash and bubbles popping on top",
+  "kind": "loop",
+  "bus": "ambience",
+  "loopCrossfadeS": 0,
+  "bundles": [
+    "island-audio"
+  ],
+  "source": "source.flac"
+}

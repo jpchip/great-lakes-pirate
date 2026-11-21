@@ -1,0 +1,11 @@
+{
+  "id": "voice.wolf.howl-1",
+  "name": "wolf-howl-1",
+  "description": "A wolf howling far off in the trees: a long rise, a wavering hold, the fall (variant 1, 6 s)",
+  "kind": "oneshot",
+  "bus": "voice",
+  "bundles": [
+    "island-audio"
+  ],
+  "source": "source.flac"
+}

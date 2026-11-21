@@ -1,0 +1,18 @@
+{
+  "source": "procedural",
+  "tool": "tools/audio/synth.ts (tools/audio/lib/synth.ts)",
+  "author": "Great Lakes Pirate contributors",
+  "reference": "Additive sine phrases with pitch sweeps, placed at random over a loop, a little room reverb",
+  "date": "2026-11-21",
+  "license": "CC BY 4.0",
+  "attribution": "Great Lakes Pirate contributors",
+  "modifications": [],
+  "description": "Songbirds in a birch wood in spring and summer (24 s, looped): a few singers, phrases and trills, long quiet between",
+  "durationS": 22.5,
+  "pipeline": [
+    "decoded to mono 48000 Hz",
+    "RMS-normalized toward -24 dB (+4.6 dB)",
+    "Opus 64 kbps mono in Ogg (ffmpeg libopus)"
+  ],
+  "inputHash": "4142162a1317a7e5"
+}

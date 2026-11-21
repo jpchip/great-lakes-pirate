@@ -1,0 +1,12 @@
+{
+  "id": "amb.island.birds",
+  "name": "birds",
+  "description": "Songbirds in a birch wood in spring and summer (24 s, looped): a few singers, phrases and trills, long quiet between",
+  "kind": "loop",
+  "bus": "ambience",
+  "loopCrossfadeS": 0,
+  "bundles": [
+    "island-audio"
+  ],
+  "source": "source.flac"
+}

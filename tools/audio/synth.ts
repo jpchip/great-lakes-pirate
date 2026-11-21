@@ -193,6 +193,26 @@ import {
   winterGust,
   winterWind,
 } from './lib/synth-winter.ts';
+import {
+  ENDING_DRONE,
+  bearGrowl,
+  bearHuff,
+  caveDrip,
+  caveRoom,
+  caveSurge,
+  creek,
+  deerBound,
+  deerSnort,
+  endingAir,
+  grappleCast,
+  grappleHaul,
+  islandBirds,
+  spade,
+  surf,
+  trimmed,
+  woodpecker,
+  wolfHowl,
+} from './lib/synth-island.ts';
 
 const ROOT = resolve(fileURLToPath(import.meta.url), '..', '..', '..');
 const RAW = join(ROOT, 'raw-assets', 'audio');
@@ -208,6 +228,7 @@ const TODAY_P7I = '2026-11-15';
 const TODAY_P8I = '2026-11-17';
 const TODAY_P9J = '2026-11-19';
 const TODAY_P9N = '2026-11-20';
+const TODAY_P9Y = '2026-11-21';
 /** Render only this category (e.g. `ships`), leaving the other sources untouched. */
 const ONLY = process.argv[2];
 
@@ -524,6 +545,7 @@ function main(): void {
   renderHideout();
   renderSandbox();
   renderWinter();
+  renderIsland();
 }
 
 function renderLaw(): void {
@@ -1644,6 +1666,194 @@ function renderWinter(): void {
     'ambience',
     0,
   );
+}
+
+/**
+ * Phase 9 piece Y (plan 11 §18.4 row Y; plan 15 §4.1, §4.5): the islands' sounds, in bundle
+ * `island-audio`: the beds by season and tier, a sea cave, the animals, the grapple and a dig;
+ * and the ending's air in `ending-audio`, streamed like the other tunes.
+ */
+function renderIsland(): void {
+  const island = (
+    id: string,
+    name: string,
+    description: string,
+    samples: Float32Array,
+    how: string,
+    bus: SoundHints['bus'] = 'sfx',
+    loop = false,
+  ): void =>
+    writeSound(
+      'island',
+      {
+        id,
+        name,
+        description,
+        kind: loop ? 'loop' : 'oneshot',
+        bus,
+        // The loops are crossfaded in the synthesis already.
+        ...(loop ? { loopCrossfadeS: 0 } : {}),
+        bundles: ['island-audio'],
+      },
+      samples,
+      how,
+      TODAY_P9Y,
+    );
+
+  island(
+    'amb.island.birds',
+    'birds',
+    'Songbirds in a birch wood in spring and summer (24 s, looped): a few singers, phrases and trills, long quiet between',
+    islandBirds(RATE),
+    'Additive sine phrases with pitch sweeps, placed at random over a loop, a little room reverb',
+    'ambience',
+    true,
+  );
+  island(
+    'sfx.island.woodpecker',
+    'woodpecker',
+    'A woodpecker drumming on a dead trunk: a fast rattle of knocks with a ring',
+    woodpecker(RATE),
+    'Band-passed noise knocks with a short resonant ring, 8–11 strikes at about 12 a second',
+  );
+  island(
+    'amb.island.creek',
+    'creek',
+    'A creek over stones (20 s, looped): the water wash and bubbles popping on top',
+    creek(RATE),
+    'Band-passed noise under a slow wander, short falling chirps for bubbles, crossfaded loop',
+    'ambience',
+    true,
+  );
+  island(
+    'amb.island.surf',
+    'surf',
+    'Surf on a rock island (14 s, looped): a low wash swelling and draining, a hiss on top',
+    surf(RATE),
+    'Low-passed noise under a slow swell envelope and a wander, band-passed hiss, crossfaded loop',
+    'ambience',
+    true,
+  );
+
+  island(
+    'amb.cave.room',
+    'cave-room',
+    'The hush of a sea cave (16 s, looped): the air moving far in, the surf echoing back off the roof',
+    caveRoom(RATE),
+    'Very low noise under a slow wander, a large room reverb with a faint far burst',
+    'ambience',
+    true,
+  );
+  for (const v of [1, 2]) {
+    island(
+      `sfx.cave.drip-${v}`,
+      `cave-drip-${v}`,
+      `A drip falling into a pool in a cave, with its ring and a long echo (variant ${v})`,
+      caveDrip(v, RATE),
+      'A falling sine chirp with a fast decay, a ring through a large reverb',
+    );
+  }
+  island(
+    'sfx.cave.surge',
+    'cave-surge',
+    'The surf driving into a sea cave and booming back, its hiss going out over the water (5 s)',
+    caveSurge(RATE),
+    'Low-passed noise swelling, a sine boom, band-passed hiss, a large reverb',
+  );
+
+  island(
+    'voice.deer.snort',
+    'deer-snort',
+    'A deer snorting: a sharp breath through the nose, a rough voiced puff',
+    deerSnort(RATE),
+    'Band-passed noise at a formant under a sharp decay, a little voiced tone',
+    'voice',
+  );
+  island(
+    'sfx.deer.bound',
+    'deer-bound',
+    'A deer bounding off through brush: four heavy landings and the crackle of stems between',
+    deerBound(RATE),
+    'Band-passed crackle and low sine thumps, sparse leaf ticks, a short room reverb',
+  );
+  island(
+    'voice.bear.huff',
+    'bear-huff',
+    'A bear huffing: breath forced out of a big chest, a pop of the jaw, the air drawn back',
+    bearHuff(RATE),
+    'A low falling voice and band-passed breath under a sharp decay, two jaw clicks',
+    'voice',
+  );
+  island(
+    'voice.bear.growl',
+    'bear-growl',
+    'A bear growling low: a rolling voice with a rattle in it, swelling and dying (2.6 s)',
+    bearGrowl(RATE),
+    'A 78 Hz voice with harmonic shaping, a slow wander rattle, low-passed reverb',
+    'voice',
+  );
+  for (const v of [1, 2]) {
+    island(
+      `voice.wolf.howl-${v}`,
+      `wolf-howl-${v}`,
+      `A wolf howling far off in the trees: a long rise, a wavering hold, the fall (variant ${v}, 6 s)`,
+      wolfHowl(v, RATE),
+      'A glide with vibrato over two harmonics, band-passed breath, a room reverb',
+      'voice',
+    );
+  }
+
+  island(
+    'sfx.salvage.grapple-cast',
+    'grapple-cast',
+    'The grapple going down: the line whirring out over the rail, the splash at its end (3 s)',
+    grappleCast(RATE),
+    'Band-passed noise hum with a slow whirr, a decaying band-passed splash',
+  );
+  island(
+    'sfx.salvage.grapple-haul',
+    'grapple-haul',
+    'The line coming up taut: a wet hemp and iron creak, stick-slip, a clank at each turn of the windlass (3.5 s)',
+    grappleHaul(RATE),
+    'Band-passed noise with a stick-slip envelope, short high clanks',
+  );
+  for (const v of [1, 2]) {
+    island(
+      `sfx.dig.spade-${v}`,
+      `spade-${v}`,
+      `A spade going into the ground: the bite, a crumb of soil, the blade's thunk (variant ${v})`,
+      spade(v, RATE),
+      'Band-passed noise scrape with a fast decay, a low sine thunk, a band-passed crumb',
+    );
+  }
+
+  writeSound(
+    'music',
+    {
+      id: 'music.ending.air',
+      name: 'ending-air',
+      description: 'The end of a run: a slow air in D minor over a drone (about 40 s)',
+      kind: 'oneshot',
+      bus: 'music',
+      bundles: ['ending-audio'],
+    },
+    endingTheme(),
+    'Original air; whistle voice with breath and Freeverb-style reverb over a fiddle drone',
+    TODAY_P9Y,
+  );
+}
+
+/** The ending air, rendered: a tin whistle over a fiddle drone in D, trimmed. */
+function endingTheme(): Float32Array {
+  const random = seeded(1950);
+  const { notes, bpm } = endingAir();
+  const beatS = 60 / bpm;
+  const beats = notes.reduce((sum, [, b]) => sum + b, 0);
+  const seconds = beats * beatS + 4;
+  const out = new Float32Array(Math.round(seconds * RATE));
+  mixInto(out, fiddleDrone(ENDING_DRONE, seconds - 1, RATE, random, 5), 0, 0.8);
+  renderMelody(out, notes, bpm, 0.5, RATE, (hz, s) => whistleNote(hz, s, RATE, random), 1);
+  return trimmed(reverb(out, RATE, 0.18, 0.7, 0.4));
 }
 
 main();

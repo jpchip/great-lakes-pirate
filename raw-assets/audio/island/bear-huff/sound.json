@@ -1,0 +1,11 @@
+{
+  "id": "voice.bear.huff",
+  "name": "bear-huff",
+  "description": "A bear huffing: breath forced out of a big chest, a pop of the jaw, the air drawn back",
+  "kind": "oneshot",
+  "bus": "voice",
+  "bundles": [
+    "island-audio"
+  ],
+  "source": "source.flac"
+}

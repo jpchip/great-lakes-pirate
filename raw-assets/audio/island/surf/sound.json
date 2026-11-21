@@ -1,0 +1,12 @@
+{
+  "id": "amb.island.surf",
+  "name": "surf",
+  "description": "Surf on a rock island (14 s, looped): a low wash swelling and draining, a hiss on top",
+  "kind": "loop",
+  "bus": "ambience",
+  "loopCrossfadeS": 0,
+  "bundles": [
+    "island-audio"
+  ],
+  "source": "source.flac"
+}

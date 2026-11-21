@@ -20,6 +20,7 @@ import {
 } from '../src/audio/hideout-audio';
 import { SANDBOX_AUDIO_BUNDLE, SANDBOX_SOUND } from '../src/audio/sandbox-audio';
 import { WINTER_AUDIO_BUNDLE, WINTER_SOUND } from '../src/audio/winter-audio';
+import { ENDING_AUDIO_BUNDLE, ISLAND_AUDIO_BUNDLE, ISLAND_SOUND } from '../src/audio/island-audio';
 import { PORT_AUDIO_BUNDLE, PORT_SOUND } from '../src/audio/port-audio';
 import { LAW_AUDIO_BUNDLE, LAW_SOUND, LAW_WHISTLE } from '../src/audio/law-audio';
 import {
@@ -314,8 +315,9 @@ describe('shipped sounds (plan 15 §3.2, §8)', () => {
       UI_AUDIO_BUNDLE,
       SANDBOX_AUDIO_BUNDLE,
       WINTER_AUDIO_BUNDLE,
+      ISLAND_AUDIO_BUNDLE,
     ];
-    const streamed = [MUSIC_BUNDLE, CHART_MUSIC_BUNDLE];
+    const streamed = [MUSIC_BUNDLE, CHART_MUSIC_BUNDLE, ENDING_AUDIO_BUNDLE];
     expect(size(SAILING_AUDIO_BUNDLE) + size(WORLD_AUDIO_BUNDLE)).toBeLessThanOrEqual(
       1.5 * 1024 * 1024,
     );
@@ -325,7 +327,8 @@ describe('shipped sounds (plan 15 §3.2, §8)', () => {
     // Every sound is in one of those bundles, so nothing slips past the budget.
     const bundled = new Set([...decoded, ...streamed].flatMap((b) => manifest.bundles[b] ?? []));
     for (const id of Object.keys(manifest.assets)) expect(bundled, id).toContain(id);
-    // The streamed music has its own ceiling, so it doesn't grow unnoticed.
-    expect(streamed.reduce((sum, b) => sum + size(b), 0)).toBeLessThanOrEqual(6 * 1024 * 1024);
+    // The streamed music has its own ceiling, so it doesn't grow unnoticed (raised from 6 MB
+    // for piece Y's ending air, about 0.9 MB).
+    expect(streamed.reduce((sum, b) => sum + size(b), 0)).toBeLessThanOrEqual(7 * 1024 * 1024);
   });
 });

@@ -960,6 +960,101 @@
       "type": "audio",
       "url": "winter/wind.ogg",
       "bytes": 102131
+    },
+    "voice.bear.growl": {
+      "type": "audio",
+      "url": "island/bear-growl.ogg",
+      "bytes": 28401
+    },
+    "voice.bear.huff": {
+      "type": "audio",
+      "url": "island/bear-huff.ogg",
+      "bytes": 6980
+    },
+    "amb.island.birds": {
+      "type": "audio",
+      "url": "island/birds.ogg",
+      "bytes": 89470
+    },
+    "sfx.cave.drip-1": {
+      "type": "audio",
+      "url": "island/cave-drip-1.ogg",
+      "bytes": 22530
+    },
+    "sfx.cave.drip-2": {
+      "type": "audio",
+      "url": "island/cave-drip-2.ogg",
+      "bytes": 21737
+    },
+    "amb.cave.room": {
+      "type": "audio",
+      "url": "island/cave-room.ogg",
+      "bytes": 104347
+    },
+    "sfx.cave.surge": {
+      "type": "audio",
+      "url": "island/cave-surge.ogg",
+      "bytes": 42082
+    },
+    "amb.island.creek": {
+      "type": "audio",
+      "url": "island/creek.ogg",
+      "bytes": 134286
+    },
+    "sfx.deer.bound": {
+      "type": "audio",
+      "url": "island/deer-bound.ogg",
+      "bytes": 17544
+    },
+    "voice.deer.snort": {
+      "type": "audio",
+      "url": "island/deer-snort.ogg",
+      "bytes": 5479
+    },
+    "sfx.salvage.grapple-cast": {
+      "type": "audio",
+      "url": "island/grapple-cast.ogg",
+      "bytes": 20413
+    },
+    "sfx.salvage.grapple-haul": {
+      "type": "audio",
+      "url": "island/grapple-haul.ogg",
+      "bytes": 23872
+    },
+    "sfx.dig.spade-1": {
+      "type": "audio",
+      "url": "island/spade-1.ogg",
+      "bytes": 6143
+    },
+    "sfx.dig.spade-2": {
+      "type": "audio",
+      "url": "island/spade-2.ogg",
+      "bytes": 6128
+    },
+    "amb.island.surf": {
+      "type": "audio",
+      "url": "island/surf.ogg",
+      "bytes": 90016
+    },
+    "voice.wolf.howl-1": {
+      "type": "audio",
+      "url": "island/wolf-howl-1.ogg",
+      "bytes": 52750
+    },
+    "voice.wolf.howl-2": {
+      "type": "audio",
+      "url": "island/wolf-howl-2.ogg",
+      "bytes": 53388
+    },
+    "sfx.island.woodpecker": {
+      "type": "audio",
+      "url": "island/woodpecker.ogg",
+      "bytes": 11461
+    },
+    "music.ending.air": {
+      "type": "audio",
+      "url": "music/ending-air.ogg",
+      "bytes": 883331
     }
   },
   "bundles": {
@@ -1184,6 +1279,29 @@
       "sfx.foot.step-squeak-1",
       "sfx.foot.step-squeak-2",
       "amb.winter.wind"
+    ],
+    "island-audio": [
+      "voice.bear.growl",
+      "voice.bear.huff",
+      "amb.island.birds",
+      "sfx.cave.drip-1",
+      "sfx.cave.drip-2",
+      "amb.cave.room",
+      "sfx.cave.surge",
+      "amb.island.creek",
+      "sfx.deer.bound",
+      "voice.deer.snort",
+      "sfx.salvage.grapple-cast",
+      "sfx.salvage.grapple-haul",
+      "sfx.dig.spade-1",
+      "sfx.dig.spade-2",
+      "amb.island.surf",
+      "voice.wolf.howl-1",
+      "voice.wolf.howl-2",
+      "sfx.island.woodpecker"
+    ],
+    "ending-audio": [
+      "music.ending.air"
     ]
   }
 }

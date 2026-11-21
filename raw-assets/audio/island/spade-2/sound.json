@@ -1,0 +1,11 @@
+{
+  "id": "sfx.dig.spade-2",
+  "name": "spade-2",
+  "description": "A spade going into the ground: the bite, a crumb of soil, the blade's thunk (variant 2)",
+  "kind": "oneshot",
+  "bus": "sfx",
+  "bundles": [
+    "island-audio"
+  ],
+  "source": "source.flac"
+}

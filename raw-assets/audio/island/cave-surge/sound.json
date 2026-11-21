@@ -1,0 +1,11 @@
+{
+  "id": "sfx.cave.surge",
+  "name": "cave-surge",
+  "description": "The surf driving into a sea cave and booming back, its hiss going out over the water (5 s)",
+  "kind": "oneshot",
+  "bus": "sfx",
+  "bundles": [
+    "island-audio"
+  ],
+  "source": "source.flac"
+}

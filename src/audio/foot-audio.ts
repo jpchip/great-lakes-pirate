@@ -123,6 +123,8 @@ export interface FootFrame {
   winter?: WinterBody | undefined;
   /** 0–1: the lake closed over by ice here, so the docks' water is still (piece N). */
   frozen01?: number;
+  /** The island you're walking, by its id in `islands.json` (piece Y). */
+  island?: string | undefined;
 }
 
 type BedId = 'docks' | 'forest' | 'crickets' | 'room' | 'tune' | 'nightTune' | 'tension';
