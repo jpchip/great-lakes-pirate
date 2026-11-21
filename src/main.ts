@@ -130,6 +130,8 @@ import { attachHideoutLife, type HideoutLife } from './gameplay/hideout-life';
 import { siteToZone } from './sim/hideouts/site-frame';
 import { mountBuildPanel, type BuildPanelUi } from './ui/build/BuildPanel';
 import { attachIslandAshore } from './gameplay/island-ashore';
+import { attachCaves } from './gameplay/caves';
+import { placeZoneCaves, type PlacedCave } from './sim/caves/caves';
 import { createIslandPosse } from './gameplay/island-posse';
 import { recentlySpotted } from './sim/hideouts/life';
 import { TEST_BAY, type Dock, type Pose } from './sim/terrain/test-bay';
@@ -3685,13 +3687,15 @@ async function boot(): Promise<void> {
   // renderer plants (same hash, same clearings) as trunks on any landing.
   const islandCache = new WeakMap<
     LoadedZone,
-    { placed: PlacedIsland[]; clearings: ReturnType<typeof zoneClearings> }
+    { placed: PlacedIsland[]; clearings: ReturnType<typeof zoneClearings>; caves: PlacedCave[] }
   >();
   const zoneIslands = (): {
     placed: PlacedIsland[];
     clearings: ReturnType<typeof zoneClearings>;
+    /** The zone's sea caves (Phase 9 piece S), on the islands placed here. */
+    caves: PlacedCave[];
   } => {
-    if (!zone || arena) return { placed: [], clearings: [] };
+    if (!zone || arena) return { placed: [], clearings: [], caves: [] };
     let hit = islandCache.get(zone);
     if (!hit) {
       const z = zone;
@@ -3702,7 +3706,16 @@ async function boot(): Promise<void> {
         (x, zz) => z.terrain.heightAt(x, zz),
         manifestFrame(z.manifest),
       );
-      hit = { placed, clearings: zoneClearings(z, harborLayouts, placed) };
+      hit = {
+        placed,
+        clearings: zoneClearings(z, harborLayouts, placed),
+        caves: placeZoneCaves(
+          z.manifest.zone,
+          z.manifest.islands ?? [],
+          placed,
+          manifestFrame(z.manifest),
+        ),
+      };
       islandCache.set(zone, hit);
     }
     return hit;
@@ -3741,6 +3754,7 @@ async function boot(): Promise<void> {
       },
     },
     stations: zoneStations,
+    caves: () => zoneIslands().caves,
     // La Pointe's trading post on foot (piece Q).
     harbors: () => harborLayouts,
     trade: (port, title) => {
@@ -3999,8 +4013,23 @@ async function boot(): Promise<void> {
       return { left, line: left.length && sold ? `${line}; the rest stays on the sled` : line };
     },
   };
+  // The sea caves (Phase 9 piece S): rowing in only in a calm, the surge, the ice caves of
+  // winter and their caches; the view's ice follows the lake's at their mouths.
+  const caves = attachCaves({
+    state,
+    events: ctx.events,
+    caves: () => zoneIslands().caves,
+    hsAt: (x, z) => ctx.weather.waveParams({ x, z }).hsM,
+    iceAt: (x, z) => ashoreWinter.iceAt(x, z),
+    runSeed: () => state.environment.weather.noiseSeed,
+    notice: (text) => showNotice(text),
+    wonder: (id) => void discovery.chart(id, 'visit'),
+    found: (cacheId, where) => discovery.cacheOpened(cacheId, where.toLowerCase(), undefined),
+  });
+  if (scene) scene.caveFrozen = () => caves.frozen();
   const ashore = attachAshore({
     ctx,
+    caves,
     winter: ashoreWinter,
     ship: playerShip,
     hull: {
@@ -5410,6 +5439,80 @@ async function boot(): Promise<void> {
       shoot: (id?: string) => ashore.wildlife?.shoot(ashore.character, id),
     };
     (window as unknown as { __glpWildlife: typeof wildlifeHook }).__glpWildlife = wildlifeHook;
+    // Sea caves (Phase 9 piece S): `__glpCaves.list()` the zone's caves; `.row(id)` anchors
+    // off one and puts you in the boat at the mouth of its channel; `.walk(id, k)` stands you
+    // on its floor at node `k` (from the boat, over the bow at its beach); `.freeze(ids)`
+    // makes ice caves of them whatever the lake says; `.here()` says which you're in.
+    const caveById = (id: string): PlacedCave | undefined =>
+      zoneIslands().caves.find((c) => c.id === id);
+    const cavesHook = {
+      list: () =>
+        zoneIslands().caves.map((c) => ({
+          id: c.id,
+          name: c.name,
+          island: c.island,
+          frame: c.frame,
+          sea: c.sea,
+          nodes: c.nodes.map((n) => ({ ...n })),
+          frozen: caves.frozen().has(c.id),
+          entered: state.caves?.entered[c.id],
+          caches: c.caches.map((k) => k.def.id),
+          marks: c.marks,
+        })),
+      async row(id: string, outM = 45): Promise<string | undefined> {
+        const c = caveById(id);
+        if (!c?.sea) return 'No such cave';
+        const wait = (ms: number) => new Promise((done) => setTimeout(done, ms));
+        const out = c.nodes[0] as PlacedCave['nodes'][number];
+        const into = c.nodes[1] as PlacedCave['nodes'][number];
+        const ux = out.x - into.x;
+        const uz = out.z - into.z;
+        const len = Math.hypot(ux, uz) || 1;
+        // Anchored out beyond the channel, bows toward the cave.
+        hook.place(
+          out.x + (ux / len) * outM,
+          out.z + (uz / len) * outM,
+          ((Math.atan2(-ux, uz) * 180) / Math.PI + 360) % 360,
+        );
+        hook.anchor();
+        await wait(800);
+        const why = await hook.land();
+        if (why) return why;
+        await wait(1200);
+        hook.teleport(out.x, out.z);
+        // The boat's bows into the channel.
+        ashore.face(Math.atan2(-ux, uz));
+        return undefined;
+      },
+      async walk(id: string, k = -1): Promise<string | undefined> {
+        const c = caveById(id);
+        if (!c) return 'No such cave';
+        const n = c.nodes.at(k);
+        if (!n) return 'No such node';
+        if (!ashore.active) return 'Not ashore: row(id) first';
+        const floor = Math.max(n.floor, caves.iceTop(c) ?? -Infinity);
+        if (ashore.inBoat) {
+          // The boat's bow on the cave's beach, then over it.
+          hook.teleport(n.x, n.z);
+          await new Promise((done) => setTimeout(done, 600));
+          const why = await ashore.stepAshore();
+          if (why) ashore.teleport(n.x, n.z, Math.max(floor, -1.3));
+          return undefined;
+        }
+        ashore.teleport(n.x, n.z, Math.max(floor, -1.3));
+        return undefined;
+      },
+      freeze(ids: string[] | undefined) {
+        caves.forceFrozen(ids);
+      },
+      here: () => ({ cave: caves.current?.id, frozen: [...caves.frozen()] }),
+      cache: (id: string) => caves.cache(id),
+      face(x: number, z: number, pitch?: number) {
+        const at = ashore.zoneAt();
+        ashore.face(Math.atan2(x - at.x, -(z - at.z)), pitch);
+      },
+    };
+    (window as unknown as { __glpCaves: typeof cavesHook }).__glpCaves = cavesHook;
     // `?ashore=bayfield` ties up at the fish pier and goes ashore (`?harbor=duluth&ashore=duluth`
     // at Duluth's merchandise dock, Phase 9 piece X); `?ashore=stockton` anchors
     // off the quarry and lands on the island; `?ashore=siskiwit` anchors off the logging

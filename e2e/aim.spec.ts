@@ -27,7 +27,9 @@ test('aims and fires the bow swivel from a T1', async ({ page }) => {
   const errors = collectErrors(page);
   await page.goto('/?renderer=null&debug&play&encounter=tug&ship=t1');
   const body = page.locator('body');
-  await expect(body).toHaveAttribute('data-zone', 'arena');
+  // Boot loads the home zone before it drops into the arena (about 4 s here, slower on CI),
+  // so give it longer than expect's default 5 s.
+  await expect(body).toHaveAttribute('data-zone', 'arena', { timeout: 30_000 });
   await expect(body).toHaveAttribute('data-mode', 'sailing');
   await page.waitForFunction(() => '__glpCombat' in window);
   await page.evaluate(() => {

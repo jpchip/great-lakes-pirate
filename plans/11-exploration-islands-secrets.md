@@ -670,7 +670,23 @@ No caches are filled (piece T), nobody lives there (residents are Q's), and ther
 
 Built as scoped; the write-up is [08 §21](08-docks-district-stealth.md). You go ashore at the merchandise dock from the Twin Ports zone. Duluth's waterfront has a police constable on each of three beats and a fourth at the station, five buildings worth burgling, and counters at the saloon, general store, chandlery and harbor office. The fence's back room after dark replaces its port-screen tab. A captain taken in the Duluth, Superior or North Shore region is held in the police station's lockup and can break out of it. Criterion 17 is checked by `e2e/duluth.spec.ts`. The layout is a first draft for Jared to review in the district editor.
 
-### 18.20 Piece V as built: hunting and wildlife (2026-11-20)
+### 18.20 Piece S as built: sea caves (2026-11-20)
+
+**The caves.** Five, in `data/caves.json` (schema `data/schemas/caves.ts`): three on Devils Island (the first cave through P's north `cave_mouth`, a second cave in the west cliff with the Devils cave cache, and the Devil's Grotto with its `grotto` mark for piece T), the swallow caves on Sand through its `cave_mouth`, and a mainland cave east of Siskiwit Bay with a winter cache. A heightmap can't overhang, so each cave is a passage: a line of nodes in its frame (a prefab's origin and facing, a point on its island's tiles, or a point on the chart), each with a width, a floor and a roof (none on the open channel in). Every one is tied to a wonder on the chart, so seeing one from inside charts it (piece O).
+
+**How it's built.** `src/sim/caves/caves.ts` places them and samples a point's floor and roof. On foot the ground is a `CaveGround` that reads the cave's floor under its roof and the drawn terrain above it; the walls and roof are box colliders (`caveSolids`). The terrain shader discards its fragments inside each passage (`cave-clip.ts`, at most 8 caves and 40 segments a zone), and the water shader goes dark and still under a roof, with no foam or ice. The rock is one procedural mesh a cave (`cave-view.ts`), shaded darker with depth and frosted in winter, with an ice floor and icicles shown when it's frozen. P's cave mouths at Devils and Sand are opened (no back wall) where a cave runs through them. The mainland cave has its own small landing pad, as Siskiwit's camp does.
+
+**Getting in.** You can row in under the roof only in a calm: above `rowMaxHsM` (0.6 m) at the mouth the boat is turned back with a notice. You can always swim in, but above `surgeHsM` (0.9 m) the surge throws you on the rock for 2.5 health a second, more as the sea builds. You can walk in at the open prefab mouths, which sit at shore level (not the inland shafts the scope imagined). In winter, when the lake's ice at a cave's mouth holds a walker (piece M's `iceUnderfoot`), the cave is an ice cave: no boat goes in, you walk in across the ice, and its winter cache in a crack over the water comes within reach. The first time in, the HUD says a line of its own (`entered`), saved in `caves.entered`. Caches are seeded among their spots by the run's seed and searched with F, as the cairns are.
+
+**For Jared to check.** These are first drafts:
+- where the caves sit and how they're shaped
+- the `entered` lines and the cache texts
+- the cache amounts: $40–110 at Devils, $25–60 at Sand, $50–140 in winter on the mainland
+- the 0.6 m rowing limit and the surge numbers
+
+The character isn't darkened inside a cave. `__glpCaves` lists, rows to, walks, freezes and reads the caves, and `tests/caves.test.ts` checks the data, the placement, rowing in and turned back, the walls, the ice cache and the draw budget.
+
+### 18.21 Piece V as built: hunting and wildlife (2026-11-20)
 
 **Data.** `data/wildlife.json` (schema `data/schemas/wildlife.ts`) holds every number: the three species (white-tailed deer, black bear, timber wolf) with their months, group sizes, speeds, senses, fire distance and warning lines; the islands with game; the herd's spread and regrowth; the rifle's odds at game; dressing and the carcass; the deer sign; and the traplines. The pure sim is `src/sim/wildlife/` (the FSM in `animals.ts`, the herd and the odds in `hunt.ts`, lying up and the sign in `spawn.ts`, the traplines in `traps.ts`), and `src/gameplay/onfoot/wildlife.ts` puts it on an island's ground.
 
@@ -688,7 +704,7 @@ Built as scoped; the write-up is [08 §21](08-docks-district-stealth.md). You go
 
 **Dressing and carrying.** Beside a downed deer, hold F for 9 s (5 s with woodcraft) to field-dress it, then lift the carcass onto your shoulders. You walk at 62% (80% with woodcraft), can't crouch, and F only puts it down. At the boat, "Lay the carcass in the boat" puts 2 CU of venison in the hold. Going aboard with it does the same.
 
-**Venison.** Venison is contraband as before. Nils Okerlund at Bayfield now takes it at his better rate, and Mr. Carrow and the smugglers buy it as any hot lot. The smokehouse's new recipe turns 3 venison, 1 salt and 1 lumber into 2 CU of **smoked venison** (a new contraband good at $45, which keeps all year, against fresh venison's $25 in fall and winter). **The Venison King** Ambition (sell 50 CU of venison, fresh or smoked, on the quiet, to a fence or a smuggler; $50 and 5 Fame) has a story in the papers.
+**Venison.** Venison is contraband as before. Nils Okerlund at Bayfield now takes it at his better rate, and Mr. Carrow and the smugglers buy it as any hot lot. The smokehouse's new recipe turns 3 venison, 1 salt and 1 lumber into 2 CU of **smoked venison** (a new contraband good at $60, which keeps all year, against fresh venison's $25 in fall and winter). **The Venison King** Ambition (sell 50 CU of venison, fresh or smoked, on the quiet, to a fence or a smuggler; $50 and 5 Fame) has a story in the papers.
 
 **Traplines.** Four trap spots, each a blazed stake, stand round each trapper's cabin on Madeline, Outer, Oak, Hermit, Manitou and Otter, on gentle dry ground 30–90 m from the door. Steel traps are a new chandlery store ($0.90, eight in the lockers). From November to March, F at a spot sets one. A setting may hold a pelt after one to three weeks (45%, 65% with woodcraft), and F there takes it (1 CU of furs into the hold) and the trap back. A pelt left five weeks after its catch is spoiled. What a setting holds comes from the run's seed and the time it was set, so a reload finds the same.
 
@@ -717,7 +733,8 @@ Built as scoped; the write-up is [08 §21](08-docks-district-stealth.md). You go
 - Woodcraft's tracking text.
 
 ## Changelog
-- v0.18: Piece V as built (§18.20): deer, bears and wolves on their FSM, the rifle, dressing and carrying, venison and smoked venison, the traplines and the Venison King.
+- v0.19: Piece V as built (§18.21): deer, bears and wolves on their FSM, the rifle, dressing and carrying, venison and smoked venison, the traplines and the Venison King.
+- v0.18: Piece S as built (§18.20): the sea caves at Devils, Sand and the mainland, rowing, swimming and walking in, ice caves, caches and the Grotto's mark.
 - v0.17: Piece X as built (§18.19): the Duluth district.
 - v0.16: Piece R as built (§18.18): the fourteen standard and minor islands walkable with their prefabs, landings, stations inside their islands, the overlapping-box fix, the rock climb out of the boat, `tests/islands.test.ts` over all 22 and `bench.island` per tier.
 - v0.15: Piece Q as built (§18.17): the seven hero islands walked whole with their POIs, landings and residents, La Pointe's trading post on foot, islanders who see and report as townsfolk, and lit windows at night.

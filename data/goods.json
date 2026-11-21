@@ -362,7 +362,7 @@
     "id": "good.smoked_venison",
     "name": "Smoked venison",
     "category": "contraband",
-    "basePriceCents": 4500,
+    "basePriceCents": 6000,
     "weightFactor": 0.5,
     "legal": "contraband",
     "seasons": ["spring", "summer", "fall", "winter"],

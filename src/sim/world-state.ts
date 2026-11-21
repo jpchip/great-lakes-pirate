@@ -758,6 +758,12 @@ export const worldStateSchema = z.object({
     })
     .optional(),
   /**
+   * The sea caves (plan 11 §5; Phase 9 piece S): the ones you've been in, by cave id, with
+   * the game time you first came in. Their caches keep to `caches` with the islands'.
+   * Optional: absent, you've been in none, so no version bump.
+   */
+  caves: z.object({ entered: z.record(z.string(), z.number()) }).optional(),
+  /**
    * Wrecking (plan 06 §6.2, plan 11 §18.4 piece I): false lights burning, ships judged at
    * them this night, ships stranded on the marks' shoals, and the investigations opened.
    * Optional: absent, nobody has hung a false light, so no version bump.

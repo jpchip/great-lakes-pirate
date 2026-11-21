@@ -1,0 +1,369 @@
+{
+  "rules": {
+    "rowMaxHsM": 0.6,
+    "surgeHsM": 0.9,
+    "surgeHurtPerS": 2.5,
+    "iceCave": true,
+    "reachM": 2.2
+  },
+  "caves": [
+    {
+      "id": "cave.devils_first",
+      "name": "The first cave, Devils Island",
+      "zone": "zone.apostles",
+      "island": "island.devils",
+      "wonder": "wonder.devils_caves",
+      "mouth": "devils_north_caves",
+      "nodes": [
+        {
+          "right": 0,
+          "out": 14,
+          "widthM": 6,
+          "floorM": -2.4
+        },
+        {
+          "right": 0,
+          "out": 2.6,
+          "widthM": 4.6,
+          "floorM": -1.4
+        },
+        {
+          "right": 0,
+          "out": -2.4,
+          "widthM": 4.6,
+          "floorM": -1.4,
+          "roofM": 5.6
+        },
+        {
+          "right": 1,
+          "out": -10,
+          "widthM": 6,
+          "floorM": -1.3,
+          "roofM": 5.2
+        },
+        {
+          "right": 4,
+          "out": -19,
+          "widthM": 9,
+          "floorM": -0.9,
+          "roofM": 5.6
+        },
+        {
+          "right": 6,
+          "out": -27,
+          "widthM": 7,
+          "floorM": 0.4,
+          "roofM": 4.6
+        },
+        {
+          "right": 6,
+          "out": -32,
+          "widthM": 4,
+          "floorM": 0.8,
+          "roofM": 3.0
+        }
+      ],
+      "caches": [],
+      "marks": [
+        {
+          "id": "back",
+          "kind": "ledge",
+          "right": 6,
+          "out": -28
+        }
+      ],
+      "entered": "Under the cliff of Devils Island. Every wave comes in booming and goes out sucking at the rock."
+    },
+    {
+      "id": "cave.devils_second",
+      "name": "The second cave, Devils Island",
+      "zone": "zone.apostles",
+      "island": "island.devils",
+      "wonder": "wonder.devils_caves",
+      "x": 74,
+      "z": 192,
+      "facingDeg": 254,
+      "nodes": [
+        {
+          "right": 0,
+          "out": 10,
+          "widthM": 6,
+          "floorM": -2.2
+        },
+        {
+          "right": 0,
+          "out": -3.8,
+          "widthM": 5,
+          "floorM": -1.6,
+          "roofM": 3.4,
+          "lip": true
+        },
+        {
+          "right": 0,
+          "out": -10,
+          "widthM": 5,
+          "floorM": -1.2,
+          "roofM": 3.8
+        },
+        {
+          "right": 2,
+          "out": -18,
+          "widthM": 7,
+          "floorM": 0.4,
+          "roofM": 4.0
+        },
+        {
+          "right": 2,
+          "out": -23,
+          "widthM": 4,
+          "floorM": 0.8,
+          "roofM": 2.6
+        }
+      ],
+      "caches": [
+        {
+          "id": "cache.devils_cave",
+          "name": "The smugglers' cache in the second cave",
+          "spots": [
+            {
+              "name": "the cleft at the back",
+              "right": 2,
+              "out": -22
+            },
+            {
+              "name": "the shelf above the beach",
+              "right": 4.5,
+              "out": -17
+            }
+          ],
+          "cashCents": [4000, 11000],
+          "found": "Wedged in the rock, a tin box gone green: {cash} in gold pieces and a bill of lading for whiskey nobody paid duty on."
+        }
+      ],
+      "marks": [],
+      "entered": "A narrow cave, its walls pocked like a sponge. Somebody's been here: a ring bolt in the rock, and old ash on the beach."
+    },
+    {
+      "id": "cave.devils_grotto",
+      "name": "The third cave, Devils Island",
+      "zone": "zone.apostles",
+      "island": "island.devils",
+      "wonder": "wonder.devils_caves",
+      "x": 74,
+      "z": 236,
+      "facingDeg": 272,
+      "nodes": [
+        {
+          "right": 0,
+          "out": 10,
+          "widthM": 5,
+          "floorM": -2.4
+        },
+        {
+          "right": 0,
+          "out": -3,
+          "widthM": 3.2,
+          "floorM": -1.8,
+          "roofM": 2.3,
+          "lip": true
+        },
+        {
+          "right": 0,
+          "out": -8,
+          "widthM": 3.2,
+          "floorM": -1.8,
+          "roofM": 2.4
+        },
+        {
+          "right": -2,
+          "out": -14,
+          "widthM": 9,
+          "floorM": -1.1,
+          "roofM": 4.4
+        },
+        {
+          "right": -3,
+          "out": -20,
+          "widthM": 8,
+          "floorM": 0.4,
+          "roofM": 4.2
+        },
+        {
+          "right": -3,
+          "out": -25,
+          "widthM": 4,
+          "floorM": 0.7,
+          "roofM": 2.6
+        }
+      ],
+      "caches": [],
+      "marks": [
+        {
+          "id": "grotto",
+          "kind": "grotto",
+          "right": -3,
+          "out": -22
+        }
+      ],
+      "entered": "The roof comes down to a boat's height at the mouth and opens out inside, a chamber the size of a church with a dry shelf at the back."
+    },
+    {
+      "id": "cave.sand_swallow",
+      "name": "The swallow caves, Sand Island",
+      "zone": "zone.apostles",
+      "island": "island.sand",
+      "wonder": "wonder.sand_caves",
+      "mouth": "sand_swallow_caves",
+      "nodes": [
+        {
+          "right": 0,
+          "out": 1.6,
+          "widthM": 4.6,
+          "floorM": 3.0
+        },
+        {
+          "right": 0,
+          "out": -2.4,
+          "widthM": 4.6,
+          "floorM": 3.0,
+          "roofM": 6.4
+        },
+        {
+          "right": 0.5,
+          "out": -8,
+          "widthM": 4,
+          "floorM": 1.8,
+          "roofM": 4.6
+        },
+        {
+          "right": 4,
+          "out": -13,
+          "widthM": 8,
+          "floorM": 0.3,
+          "roofM": 4.0
+        },
+        {
+          "right": 10,
+          "out": -9,
+          "widthM": 6,
+          "floorM": -1.3,
+          "roofM": 3.6
+        },
+        {
+          "right": 11.6,
+          "out": 1.0,
+          "widthM": 5,
+          "floorM": -1.6,
+          "roofM": 3.2,
+          "lip": true
+        },
+        {
+          "right": 11.6,
+          "out": 8,
+          "widthM": 6,
+          "floorM": -2.0
+        }
+      ],
+      "caches": [
+        {
+          "id": "cache.sand_cave",
+          "name": "The swallow cave cache",
+          "spots": [
+            {
+              "name": "the nests' ledge",
+              "right": 2,
+              "out": -14
+            },
+            {
+              "name": "the crack by the pool",
+              "right": 6.5,
+              "out": -15
+            }
+          ],
+          "cashCents": [2500, 6000],
+          "found": "Behind the swallows' ledge, an oilskin packet: {cash} and a fisherman's note of where the Booth tugs lay up."
+        }
+      ],
+      "marks": [],
+      "entered": "Swallows go out past you in a cloud. The passage runs down from the mouth to a pool that lets in the lake."
+    },
+    {
+      "id": "cave.mainland",
+      "name": "The mainland sea caves",
+      "zone": "zone.apostles",
+      "wonder": "wonder.mainland_caves",
+      "at": {
+        "lat": 46.91212,
+        "lon": -91.01818
+      },
+      "facingDeg": 0,
+      "nodes": [
+        {
+          "right": 0,
+          "out": 24,
+          "widthM": 7,
+          "floorM": -2.0
+        },
+        {
+          "right": 0,
+          "out": -5.5,
+          "widthM": 6,
+          "floorM": -1.6,
+          "roofM": 4.0,
+          "lip": true
+        },
+        {
+          "right": -1,
+          "out": -16,
+          "widthM": 7,
+          "floorM": -1.4,
+          "roofM": 5.0
+        },
+        {
+          "right": 2,
+          "out": -26,
+          "widthM": 10,
+          "floorM": -0.6,
+          "roofM": 6.0
+        },
+        {
+          "right": 3,
+          "out": -34,
+          "widthM": 8,
+          "floorM": 0.4,
+          "roofM": 5.0
+        },
+        {
+          "right": 3,
+          "out": -40,
+          "widthM": 4,
+          "floorM": 0.8,
+          "roofM": 3.0
+        }
+      ],
+      "caches": [
+        {
+          "id": "cache.mainland_ice",
+          "name": "The ice cave cache",
+          "spots": [
+            {
+              "name": "the crack over the pool",
+              "right": -2.2,
+              "out": -21
+            },
+            {
+              "name": "the hollow in the far wall",
+              "right": 6.2,
+              "out": -26
+            }
+          ],
+          "cashCents": [5000, 14000],
+          "found": "Up in the crack, where no boat could reach it, a canvas sack: {cash}.",
+          "winter": true
+        }
+      ],
+      "marks": [],
+      "entered": "Red rock arching over you, banded like a cut cake, and the lake going in under it as far as you can see."
+    }
+  ]
+}

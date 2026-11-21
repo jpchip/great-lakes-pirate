@@ -859,7 +859,10 @@ export function caveMouthGeometry(p: PlacedPoiPiece): THREE.BufferGeometry[] {
     );
   }
   out.push(box(ow, 0.02, inner * 0.8, 0, oh - 0.56, D / 2 - inner * 0.5 - 0.2, CAVE_DARK));
-  out.push(box(ow, 0.02, inner - 0.2, 0, 0.32, D / 2 - inner * 0.5 - 0.2, PALETTE.wetRock));
+  // Its floor, unless it opens into a cave (piece S), whose own floor runs out through it.
+  if (!p.open) {
+    out.push(box(ow, 0.02, inner - 0.2, 0, 0.32, D / 2 - inner * 0.5 - 0.2, PALETTE.wetRock));
+  }
   // Turf and moss over the top, hanging a little over the face.
   out.push(box(W + 0.4, 0.25, D + 0.3, 0, H, 0, TURF));
   return framed(p, out);
