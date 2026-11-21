@@ -108,6 +108,15 @@
       "logbook": "Won a whole cargo at cards, on the turn of one card."
     },
     {
+      "id": "ambition.venison_king",
+      "category": "trade",
+      "name": "The Venison King",
+      "text": "Sell 50 CU of poached venison",
+      "goal": { "kind": "counter", "counter": "venisonSold", "target": 50 },
+      "reward": { "cents": 5000, "fame": 5 },
+      "logbook": "Fifty hundredweight of the islands' deer gone down the camps' throats, and not a warden the wiser. The Venison King, they call you in the camps."
+    },
+    {
       "id": "ambition.smart_passages",
       "category": "seamanship",
       "name": "Smart passages",

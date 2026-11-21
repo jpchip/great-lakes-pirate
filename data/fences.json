@@ -8,7 +8,7 @@
     "fameTier": 0,
     "darkSunDeg": -6,
     "weeklyCashCents": 25000,
-    "prefers": ["good.fresh_fish", "good.salted_fish", "good.furs"],
+    "prefers": ["good.fresh_fish", "good.salted_fish", "good.furs", "good.venison"],
     "offLine": 0.75,
     "rate": {
       "min": 0.4,

@@ -71,6 +71,13 @@
     "fameTier": 2
   },
   {
+    "id": "store.traps",
+    "name": "Steel trap",
+    "blurb": "A Newhouse jaw trap and its chain. Set at a trapline spot in the open season (November to March) and come back in a week or three.",
+    "priceCents": 90,
+    "max": 8
+  },
+  {
     "id": "store.survey_apostles",
     "name": "Lake Survey chart, Apostle Islands",
     "blurb": "The government's survey sheet of the islands: every anchorage and shoal the surveyors sounded, marked on your chart.",

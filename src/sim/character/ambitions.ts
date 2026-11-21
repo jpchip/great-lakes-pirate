@@ -161,7 +161,9 @@ const record = (v: unknown): Record<string, unknown> =>
  *   making port through a gale, counted in November only, and a ship put on a shoal by
  *   your light (Phase 9 piece I);
  * - `ShipLaunched` from a slipway (Phase 8 piece G);
- * - `PokerPlayed` that won a captain's cargo or contract off him (Phase 9 piece C).
+ * - `PokerPlayed` that won a captain's cargo or contract off him (Phase 9 piece C);
+ * - venison sold, fresh or smoked, on the quiet, to a fence or to a smuggler, counted by
+ *   the CU (`counterAmount`; Phase 9 piece V).
  */
 export function counterForEvent(
   type: string,
@@ -184,13 +186,31 @@ export function counterForEvent(
       return p['from'] === 'slipway' ? 'slipwayLaunches' : undefined;
     case 'PokerPlayed':
       return p['wonCargo'] === true ? 'pokerCargoes' : undefined;
+    case 'ContrabandSold':
+    case 'FenceDealt':
+      return VENISON.has(String(p['good'])) ? 'venisonSold' : undefined;
+    case 'SmugglerDealt':
+      return p['side'] === 'fence' && VENISON.has(String(p['good'])) ? 'venisonSold' : undefined;
     default:
       return undefined;
   }
 }
 
-export function bumpCounter(state: AmbitionsState, counter: AmbitionCounter): void {
-  state.counters[counter] = (state.counters[counter] ?? 0) + 1;
+/** The goods the Venison King's count takes (Phase 9 piece V). */
+const VENISON: ReadonlySet<string> = new Set(['good.venison', 'good.smoked_venison']);
+
+/** How much an event moves its counter: a sale's CU, else one. */
+export function counterAmount(type: string, payload: unknown): number {
+  const p = record(payload);
+  if (type === 'ContrabandSold' || type === 'FenceDealt' || type === 'SmugglerDealt') {
+    const qty = p['qty'];
+    return typeof qty === 'number' && qty > 0 ? qty : 0;
+  }
+  return 1;
+}
+
+export function bumpCounter(state: AmbitionsState, counter: AmbitionCounter, by = 1): void {
+  state.counters[counter] = (state.counters[counter] ?? 0) + by;
 }
 
 /**

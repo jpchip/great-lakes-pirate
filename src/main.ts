@@ -252,6 +252,8 @@ import { DISTRICTS, districtFootprint, districtFrame } from './gameplay/district
 import { createWatch } from './gameplay/onfoot/watch';
 import { createStationWatch, keeperWeather } from './gameplay/onfoot/station-watch';
 import { createIslandWatch } from './gameplay/onfoot/island-watch';
+import { createIslandWildlife } from './gameplay/onfoot/wildlife';
+import { animalBudget } from './sim/wildlife/defs';
 import { attachKeeperFound } from './gameplay/keeper-found';
 import {
   emptyStation,
@@ -4387,6 +4389,59 @@ async function boot(): Promise<void> {
       }
       return watch;
     },
+    // The island's animals and the hunt (plan 11 §18.4 piece V): deer, a bear or a winter
+    // wolf pack about, the ship's rifle, a carcass to the boat, the sign and the traplines.
+    wildlife: (island, scene, landing, foot) => {
+      const now = (): number => state.environment.clock.gameSeconds;
+      const intoHold = (good: string, qty: number): string | undefined => {
+        if (holdFree(state.player.cargo, economy.capacity) < qty)
+          return 'There is no room in the hold.';
+        addToHold(state.player.cargo, { good, qty });
+        economy.syncLoad();
+        return undefined;
+      };
+      return createIslandWildlife({
+        island,
+        scene,
+        landing,
+        budget: animalBudget(island.tier),
+        now,
+        runSeed: () => state.environment.weather.noiseSeed,
+        state: () => (state.wildlife ??= { taken: {}, traps: {} }),
+        stores: state.player.stores,
+        hasRifle: () => !!state.player.ship?.weapons.some((w) => w.weapon === 'weapon.rifle'),
+        woodcraft: () => hasPerk(state.player.captain, 'perk.woodcraft'),
+        light01: () => daylight01(sunAt(now()).elevationRad),
+        fogM: () => ctx.weather.fogVisibilityAt(now()),
+        // The air's way over the island, m/s in zone axes (x east, z south).
+        wind: () => {
+          const w = ctx.weather.windAt(landing, now()).toKn;
+          return { x: w.x * 0.5144, z: -w.y * 0.5144 };
+        },
+        hooks: {
+          notice: (text) => showNotice(text),
+          hurt: (amount) => foot.hurt(amount),
+          shot: (at, hit, killed) => {
+            foot.shot(at);
+            audio?.foot.tool({
+              type: 'Shot',
+              npc: '',
+              tool: 'tool.rifle',
+              hit,
+              killed,
+              seenBy: [],
+            });
+          },
+          killed: (species, isl) => ctx.events.emit('AnimalKilled', { species, island: isl }),
+          trap: (act, spot, pelts) =>
+            act === 'placed'
+              ? ctx.events.emit('TrapPlaced', { spot, island: island.id })
+              : ctx.events.emit('TrapCollected', { spot, island: island.id, pelts }),
+          stow: intoHold,
+          furs: intoHold,
+        },
+      });
+    },
     // Your own footsteps and landings, heard (piece I).
     ...(audio
       ? {
@@ -5469,6 +5524,75 @@ async function boot(): Promise<void> {
       },
     };
     (window as unknown as { __glpIslands: typeof islandsHook }).__glpIslands = islandsHook;
+    /**
+     * Hunting and wildlife (plan 11 §18.4 piece V): `here()` reads the animals about, the
+     * deer sign, the trap spots and whether you carry a carcass; `spawn(species, m)` sets
+     * one down `m` ahead of you; `face(id)` turns you to it, `near(id)` stands you beside it;
+     * `toSign(k)` and `toSpot(k)` stand you at a sign or a trap spot; `shoot(id?)` fires.
+     */
+    const wildlifeHook = {
+      here() {
+        const w = ashore.wildlife;
+        const p = ashore.character.position;
+        return {
+          island: w?.island,
+          animals: (w?.animals ?? []).map((a) => ({
+            id: a.id,
+            species: a.species.id,
+            state: a.state,
+            dressed: a.dressed,
+            taken: a.taken,
+            x: a.x,
+            z: a.z,
+            dist: Math.hypot(a.x - p.x, a.z - p.z),
+          })),
+          sign: (w?.sign ?? []).map((k) => ({ x: k.x, z: k.z })),
+          spots: (w?.spots ?? []).map((k) => ({
+            id: k.id,
+            x: k.x,
+            z: k.z,
+            set: !!state.wildlife?.traps[k.id],
+          })),
+          carrying: w?.carrying,
+          prompt: ashore.prompt(),
+          health: state.player.health,
+          taken: state.wildlife?.taken ?? {},
+        };
+      },
+      spawn(species: string, distM = 30, offDeg = 0) {
+        const c = ashore.character;
+        const h = c.heading + (offDeg * Math.PI) / 180;
+        const at = { x: c.position.x + Math.sin(h) * distM, z: c.position.z - Math.cos(h) * distM };
+        return ashore.wildlife?.spawn(species, at)?.id;
+      },
+      face(id: string, pitch?: number) {
+        const a = ashore.wildlife?.animals.find((k) => k.id === id);
+        if (!a) return false;
+        const p = ashore.character.position;
+        ashore.face(Math.atan2(a.x - p.x, -(a.z - p.z)), pitch);
+        return true;
+      },
+      near(id: string, distM = 1.2) {
+        const a = ashore.wildlife?.animals.find((k) => k.id === id);
+        if (!a) return false;
+        ashore.teleport(a.x + distM, a.z);
+        return true;
+      },
+      toSign(k = 0) {
+        const s = ashore.wildlife?.sign[k];
+        if (!s) return false;
+        ashore.teleport(s.x, s.z);
+        return true;
+      },
+      toSpot(k = 0) {
+        const s = ashore.wildlife?.spots[k];
+        if (!s) return false;
+        ashore.teleport(s.x, s.z);
+        return true;
+      },
+      shoot: (id?: string) => ashore.wildlife?.shoot(ashore.character, id),
+    };
+    (window as unknown as { __glpWildlife: typeof wildlifeHook }).__glpWildlife = wildlifeHook;
     // Sea caves (Phase 9 piece S): `__glpCaves.list()` the zone's caves; `.row(id)` anchors
     // off one and puts you in the boat at the mouth of its channel; `.walk(id, k)` stands you
     // on its floor at node `k` (from the boat, over the bow at its beach); `.freeze(ids)`

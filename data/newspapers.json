@@ -875,6 +875,24 @@
             "body": "{epithet} {who} is said to have won a cargo at cards in one sitting. Those who were at the table do not care to say whether the deal was straight."
           }
         ]
+      },
+      "ambition.venison_king": {
+        "fame": 5,
+        "weight": 2,
+        "plain": [
+          {
+            "headline": "THE ISLANDS' DEER",
+            "deck": "Game Wardens Hear of Venison Sold by the Hundredweight",
+            "body": "The camps up the shore are eating venison all winter, and none of it shot by the men eating it. Talk on the {town} waterfront names {who} as the source, and the islands' deer as the poorer for it."
+          }
+        ],
+        "lurid": [
+          {
+            "headline": "THE VENISON KING!",
+            "deck": "{WHO} Strips the Apostles of Their Deer",
+            "body": "{epithet} {who} has made a trade of slaughtering the island deer and selling the meat to the camps in open defiance of the game laws, the wardens powerless to stop it."
+          }
+        ]
       }
     },
     "legend": {

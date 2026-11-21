@@ -686,7 +686,53 @@ Built as scoped; the write-up is [08 §21](08-docks-district-stealth.md). You go
 
 The character isn't darkened inside a cave. `__glpCaves` lists, rows to, walks, freezes and reads the caves, and `tests/caves.test.ts` checks the data, the placement, rowing in and turned back, the walls, the ice cache and the draw budget.
 
-### 18.21 Piece T as built: clues and legends (2026-11-20)
+### 18.21 Piece V as built: hunting and wildlife (2026-11-20)
+
+**Data.** `data/wildlife.json` (schema `data/schemas/wildlife.ts`) holds every number: the three species (white-tailed deer, black bear, timber wolf) with their months, group sizes, speeds, senses, fire distance and warning lines; the islands with game; the herd's spread and regrowth; the rifle's odds at game; dressing and the carcass; the deer sign; and the traplines. The pure sim is `src/sim/wildlife/` (the FSM in `animals.ts`, the herd and the odds in `hunt.ts`, lying up and the sign in `spawn.ts`, the traplines in `traps.ts`), and `src/gameplay/onfoot/wildlife.ts` puts it on an island's ground.
+
+**Who's about.** Deer live on Stockton (9), Madeline (12) and Oak (7), each spread ±30% by the run's seed. A deer you take is gone from its island's herd for two weeks (two game days). Landing on one, two or three of what's left lie up at least 140 m from where you came ashore and 90 m from anyone's door. A black bear may be about on Stockton, Madeline, Oak or Outer from April to November (15–35% a landing), and in December to March a pack of two or three wolves instead (30–55%) on Madeline, Oak or Outer. The tier's animal budget (`island_tiers.json`, 4) is never passed. The same landing on the same day finds the same animals.
+
+**Tracking.** Up to five patches of deer sign (prints and droppings) run from 30–70 m off your landing toward the herd. F at one reads it: the way they went, and with the Poacher's woodcraft how many and about how far on.
+
+**The senses.** Each animal looks five times a second. It sees you up to its sight range, cut by dark, crouching and standing still, and blocked by trees and the ground; it hears your strides by their noise radius; and downwind of you it smells you a long way (a deer 110 m, a wolf 160 m), in a calm only close.
+
+**Deer.** Graze, Alert (head up, looking at you), Flee. An alert deer bolts if you come within 25 m or it hears you again; any shot within 600 m sends every deer off.
+
+**Bears and wolves.** Wander, Wary, Threaten, then Attack or Flee, each change with a line on the HUD. A bear rears on its hind legs, huffing, and wolves circle growling. Back off past its threat distance and it goes back to watching you. If the threat runs out, a bold one (bear 30%, wolves 45%, rolled as it starts) charges, and the rest turn and go. Come on one inside 7 m (wolves 9 m) and it charges at once. Each bite or swipe costs health (bear 30 every 1.6 s, wolf 18 every 1.2 s), and dying of it is a new run end, "Mauled by a wild animal", with its own front page. A miss or a shot nearby may turn one (bear 60%, wolf 50%), and a hit may too. A bear takes three balls and a wolf one. None comes within its fire distance of a fire (a cabin's stove, a camp's fire): standing near one, a threat breaks off and a charge stops short and watches. In the boat or the water you're out of reach. Killing an animal is no crime.
+
+**The rifle.** Every captain's ship carries the rifle in its hand mount. With one in your sights within 110 m and 7° of where you face (wider for a close one), F is "Shoot the deer (64 m)". The chance to hit falls from 95% at 25 m to 35% at 110 m. Crouching steadies it ×1.15, moving costs ×0.6, and a running animal ×0.55. Reloading takes 2.5 s. A hit deer drops 70% of the time; otherwise it runs on wounded and is down 35 s later where it stops. The shot is a 600 m noise to the island's keepers and residents, who come to look, and it's heard.
+
+**Dressing and carrying.** Beside a downed deer, hold F for 9 s (5 s with woodcraft) to field-dress it, then lift the carcass onto your shoulders. You walk at 62% (80% with woodcraft), can't crouch, and F only puts it down. At the boat, "Lay the carcass in the boat" puts 2 CU of venison in the hold. Going aboard with it does the same.
+
+**Venison.** Venison is contraband as before. Nils Okerlund at Bayfield now takes it at his better rate, and Mr. Carrow and the smugglers buy it as any hot lot. The smokehouse's new recipe turns 3 venison, 1 salt and 1 lumber into 2 CU of **smoked venison** (a new contraband good at $60, which keeps all year, against fresh venison's $25 in fall and winter). **The Venison King** Ambition (sell 50 CU of venison, fresh or smoked, on the quiet, to a fence or a smuggler; $50 and 5 Fame) has a story in the papers.
+
+**Traplines.** Four trap spots, each a blazed stake, stand round each trapper's cabin on Madeline, Outer, Oak, Hermit, Manitou and Otter, on gentle dry ground 30–90 m from the door. Steel traps are a new chandlery store ($0.90, eight in the lockers). From November to March, F at a spot sets one. A setting may hold a pelt after one to three weeks (45%, 65% with woodcraft), and F there takes it (1 CU of furs into the hold) and the trap back. A pelt left five weeks after its catch is spoiled. What a setting holds comes from the run's seed and the time it was set, so a reload finds the same.
+
+**State and events.** The optional `wildlife` slice keeps the deer taken by island and the traps set by spot, so there's no save version bump. A carcass on your shoulders isn't saved. The events are `AnimalKilled`, `TrapPlaced` and `TrapCollected`. The Ambitions count `venisonSold` by the CU from `ContrabandSold`, `FenceDealt` and a smuggler's `SmugglerDealt`.
+
+**Drawing.** The deer, bear and wolf are low-poly figures of boxes and capsules in the toon style, one mesh each. A bear rears to threaten, the dead lie on their side, and a carcass rides across the captain's shoulders. Sign shows as dark prints on the ground, and a set trap as a ring of steel at its stake.
+
+**Hooks and tests.** `__glpWildlife` has `here()`, `spawn(species, m)`, `face(id)`, `near(id)`, `toSign(k)`, `toSpot(k)` and `shoot(id?)`. `tests/wildlife.test.ts` covers the data, the deer's and the predators' FSM, the odds, the herd and its regrowth, the season and budget of who's about, the sign's words, the traps, and the Venison King's count. On the baked terrain it checks deer about on the three islands on their own ground, the trap spots round each cabin, a deer shot, dressed, carried and stowed as venison, and a trap set in January and emptied three weeks on. `e2e/wildlife.spec.ts` hunts a deer on Stockton from the landing to the hold, and sets a bear down to warn.
+
+**Not in piece V:**
+- No sounds: the growls, huffs, howls and bounding deer are piece Y's. The warnings are HUD lines until then.
+- No campfire to carry: fire is a cabin's stove or a camp's fire.
+- No wolves on the ice (11 §3.2 says packs "on larger islands or on the ice"). The ice is walked in the zone scene, and the animals are an island scene's.
+- No cubs (a bear is always alone).
+- No bearskins or wolf pelts from a kill. Only traps give furs.
+- Being seen with a carcass, or hunting out of season, isn't a crime. The shot only draws people to look.
+- A carcass left on the ground, and the dead, are gone when you land again. The deer is counted as taken all the same.
+- Deer don't cross between islands, even on the ice.
+
+**For Jared:**
+- Every number in `wildlife.json`, especially the herd sizes, the bear and wolf odds, the hit odds, and the attack damage (two or three bites kill from full health).
+- The trap catch rate and the price of a pelt. 1 CU of furs is $70, so one good trapline round is worth about $100–200 a few weeks on.
+- Adding smoked venison as a good, where §18.5 said "no new goods" but 09 §7 lists it.
+- The warning lines and the Mauled front page.
+- The animals' look (screenshots in `wildlife/`).
+- Woodcraft's tracking text.
+
+### 18.22 Piece T as built: clues and legends (2026-11-20)
 
 **The data.** `data/legends.json`, `data/clues.json` and `data/caches.json` (schema `data/schemas/legends.ts`). Six legends, each with a spot of one kind:
 - the _Lucerne_'s strongbox is grappled up from her wreck;
@@ -716,7 +762,7 @@ The hoard is the rival's stash, taken into the hold where it fits. `legends` (cl
 
 **Left for later.** The legends' `site` field is unset until piece W adds the sites. There's no e2e per legend (§18 criterion 13); `tests/legends.test.ts` covers each kind of spot and clue at the data, placement and gameplay levels. `__glpLegends` reads the state, gives a clue, draws a map, goes to a lead's spot and forces the dark of the moon.
 
-### 18.22 Piece W as built: the seven sites (2026-11-21)
+### 18.23 Piece W as built: the seven sites (2026-11-21)
 
 **The five new sites.** Each is in `data/sites.json`, with a set piece in `data/zones.json`. All are first drafts.
 
@@ -766,8 +812,9 @@ The concealment and sight numbers are guesses.
 - `e2e/sites.spec.ts` lands a new Fisherman, Poacher, Saloon Keeper and Ex-Navy at their sites through `?site=` and opens each stash.
 
 ## Changelog
-- v0.20: Piece W as built (§18.22): the five new hideout sites, every background at its own, claiming by building, Minnesota Point leased or squatted.
-- v0.19: Piece T as built (§18.21): legends, clues, maps at the cartography table, digging and seeded caches.
+- v0.21: Piece W as built (§18.23): the five new hideout sites, every background at its own, claiming by building, Minnesota Point leased or squatted.
+- v0.20: Piece T as built (§18.22): legends, clues, maps at the cartography table, digging and seeded caches.
+- v0.19: Piece V as built (§18.21): deer, bears and wolves on their FSM, the rifle, dressing and carrying, venison and smoked venison, the traplines and the Venison King.
 - v0.18: Piece S as built (§18.20): the sea caves at Devils, Sand and the mainland, rowing, swimming and walking in, ice caves, caches and the Grotto's mark.
 - v0.17: Piece X as built (§18.19): the Duluth district.
 - v0.16: Piece R as built (§18.18): the fourteen standard and minor islands walkable with their prefabs, landings, stations inside their islands, the overlapping-box fix, the rock climb out of the boat, `tests/islands.test.ts` over all 22 and `bench.island` per tier.

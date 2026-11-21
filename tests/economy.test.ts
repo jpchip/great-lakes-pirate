@@ -46,7 +46,7 @@ function must<T>(value: T | undefined | null): T {
 
 describe('goods and markets data (plan 05 §3, §4.2)', () => {
   it('has the §3 goods in CU, and a T1 hold of 20 CU', () => {
-    expect(defs.goods.size).toBe(23);
+    expect(defs.goods.size).toBe(24);
     expect(cargoCapacity()).toBe(20);
     for (const g of defs.goods.values()) {
       expect(Number.isInteger(g.basePriceCents), g.id).toBe(true);

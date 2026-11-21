@@ -123,6 +123,13 @@ export interface GameEvents {
   SmugglerLearned: { anchorage: string; source: string };
   /** A lot sold to a port fence in his back room (Phase 6 piece E). */
   FenceDealt: FenceDealtEvent;
+  /**
+   * Hunting and trapping (plan 11 §14; Phase 9 piece V): an animal killed on an island (no
+   * crime), a trap set at a trapline spot, and one emptied (`pelts` taken, 0 or 1).
+   */
+  AnimalKilled: { species: string; island: string };
+  TrapPlaced: { spot: string; island: string };
+  TrapCollected: { spot: string; island: string; pelts: number };
   /** A gun mounted by the shady shipwright (Phase 6 piece E). */
   GunBought: GunBoughtEvent;
   /**
