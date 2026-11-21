@@ -510,7 +510,28 @@ All resolved.
 1. **A listen in the game** (row N: "Listen by ear"): none of this has been heard by a person yet. Still to judge in the stage 2 playtest: whether the crack's pew reads as lake ice, how the groan sits against the wind, how often the gusts and chattering come, and whether the frozen night is too empty.
 2. **Not built:** a wind through bare rigging aboard a frozen-in ship, the ice grinding on a hull under way (piece K's `IceGrinding` has no sound yet), shore-ice ridges heaving, sled dogs, skates.
 
+## 24. Phase 9 Piece Y: Islands Audio (2026-11-21)
+
+**Scope** (plan 11 §18.4 row Y; §4.1, §4.5, §11 Phase 9): the birds, creek and surf of an island by its tier and the season, the woodpecker, a sea cave's hush, drips and surge, the deer, the bear and the wolves, the grapple going down and coming up, a dig, and the ending's air. Built the way §23 is: pure rules in `src/audio/island-mix.ts`, playback in `src/audio/island-audio.ts` (`IslandSounds`), wired in `game-audio.ts`, with the animal cue hook in `gameplay/onfoot/wildlife.ts` and `AnimalCue` in `modes/context.ts`. The sounds are synthesized in `tools/audio/lib/synth-island.ts`, rendered by `tools/audio/synth.ts`, in bundle `island-audio`, and the ending air in `ending-audio`.
+
+| Part | Where | What it does |
+|---|---|---|
+| Beds | `island-mix.ts` (`islandBeds`, `seasonOf`) | Birds by season (spring and summer full, autumn a quarter, winter none), by tier (hero, standard, rock), by day and wind, and quieter under a roof. A creek on hero and standard islands, swollen in spring, frozen in winter. Surf on rock islands by the wind. |
+| Woodpecker | `island-mix.ts` (`woodpeckerGapS`) | Spring and summer, by day, on a wooded island, every 40–110 s. |
+| Sea cave | `island-audio.ts` (`enterCave`, `leaveCave`, `surge`) | The hush while you're inside (from the boat or on foot), a drip every 2.5–7 s from one of two, the surge at the mouth once per 6 s. |
+| Animals | `island-mix.ts` (`animalCue`, `callGain`), `island-audio.ts` (`animal`) | A deer's snort and bound on a bolt; a bear's huff on a threat and its growl on a charge; the wolves' howl from the trees, the nearer pack's second. Placed where the animal is, quieter with distance (full within 10 m, gone by 300 m), captioned. |
+| Grapple and dig | `island-audio.ts` (`grappleCast`, `grappleHaul`, `dig`) | The line whirrs out at `GrappleCast` and comes up at `WreckWorked`; a dig (`Dug`) plays three spade strikes. |
+| Ending | `game-audio.ts` (`RunEnded`) | A stream of the ending air, about 55 s, after one second. |
+
+**Calls made here.** The loops are crossfaded in the synthesis and not again by the pipeline (their loop crossfade is 0). The ending is a stream, so it doesn't count toward the decoded 8 MB; it has a 7 MB ceiling of its own. The animal cue carries 300 m, a guess to be checked by ear. The surge's size is a fixed swell of 2 m, since `CaveSurge` doesn't carry one.
+
+### Still to do
+
+1. **A listen in the game** (row Y: "Listen by ear"): none of this has been heard by a person yet. Judge the birds and the creek against the forest bed, the wolves' and the bear's levels and their reach, the cave's drips and surge, the spade and the grapple, and the length of the ending air.
+2. **Not built:** a bear's crash off through the brush (a bear that flees makes no sound), a separate wolf growl, the diving suit's sounds, and stopping the ending air when a new run starts.
+
 ## Changelog
+- v1.8: Phase 9 piece Y built (§24): the islands' birds, creek and surf by tier and season, the woodpecker, a sea cave's hush, drips and surge, the deer, bear and wolves, the grapple, a dig and the ending air.
 - v1.7: Phase 9 piece N built (§23): thin ice cracking, groaning and giving way and the haul out, footsteps on ice and squeaking snow, the sled's runners and load, gusts, a shivering breath and chattering teeth as warmth drops, the winter wind, a frozen harbor's still night with the ice booming far off, and snowfall silent. Decoded audio 6.59 MB of 8 MB.
 - v1.6: Phase 9 piece J built (§22): the saloon's piano and fiddle by night, cards and chips at the poker table, the lighthouse station's clockwork, lamp, stair, oil and keepers, the harbor master's bell and the letters, a rival's stinger for piece E, and a ship aground. Decoded audio 6.13 MB of 8 MB.
 - v1.5: Phase 8 piece I built (§21): build mode's knock, thud and paper, the work session heard by material, a piece pried down, the forge, the cooperage, the still loaded and at work, salvage set down, and the UI set (stamp, newspaper, telegraph, page, two bells). The decoded budget raised to 8 MB (§8).

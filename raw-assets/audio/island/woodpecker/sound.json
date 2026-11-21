@@ -1,0 +1,11 @@
+{
+  "id": "sfx.island.woodpecker",
+  "name": "woodpecker",
+  "description": "A woodpecker drumming on a dead trunk: a fast rattle of knocks with a ring",
+  "kind": "oneshot",
+  "bus": "sfx",
+  "bundles": [
+    "island-audio"
+  ],
+  "source": "source.flac"
+}

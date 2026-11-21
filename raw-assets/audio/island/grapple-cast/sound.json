@@ -1,0 +1,11 @@
+{
+  "id": "sfx.salvage.grapple-cast",
+  "name": "grapple-cast",
+  "description": "The grapple going down: the line whirring out over the rail, the splash at its end (3 s)",
+  "kind": "oneshot",
+  "bus": "sfx",
+  "bundles": [
+    "island-audio"
+  ],
+  "source": "source.flac"
+}

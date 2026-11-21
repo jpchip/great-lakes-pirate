@@ -1,0 +1,12 @@
+{
+  "id": "amb.cave.room",
+  "name": "cave-room",
+  "description": "The hush of a sea cave (16 s, looped): the air moving far in, the surf echoing back off the roof",
+  "kind": "loop",
+  "bus": "ambience",
+  "loopCrossfadeS": 0,
+  "bundles": [
+    "island-audio"
+  ],
+  "source": "source.flac"
+}

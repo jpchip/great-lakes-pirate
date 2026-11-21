@@ -128,6 +128,16 @@ export interface GameEvents {
    * crime), a trap set at a trapline spot, and one emptied (`pelts` taken, 0 or 1).
    */
   AnimalKilled: { species: string; island: string };
+  /**
+   * An animal's call or move you can hear (piece Y): a warning (`wary`, `threaten`, `attack`,
+   * `flee`) or a deer bolting. `at` is where it is, zone meters.
+   */
+  AnimalCue: {
+    species: string;
+    island: string;
+    state: 'wary' | 'threaten' | 'attack' | 'flee' | 'bolt';
+    at: { x: number; z: number };
+  };
   TrapPlaced: { spot: string; island: string };
   TrapCollected: { spot: string; island: string; pelts: number };
   /** A gun mounted by the shady shipwright (Phase 6 piece E). */

@@ -971,6 +971,11 @@ async function boot(): Promise<void> {
       sandbox: () => audio.sandbox.levels,
       // Winter (piece N): what's sounding.
       winter: () => audio.winter.levels,
+      // The islands (piece Y): what's sounding, and the dig, a cave's hush and an animal's cue.
+      island: () => audio.island.levels,
+      dig: () => audio.island.dig(),
+      cave: (on: boolean) =>
+        on ? audio.island.enterCave('cave.test', false) : audio.island.leaveCave(),
       rival: (why: 'news' | 'sighted' | 'parley' | 'beaten' = 'sighted') =>
         ctx.events.emit('RivalStinger', { rival: 'dev', why }),
     };
@@ -4433,6 +4438,7 @@ async function boot(): Promise<void> {
             });
           },
           killed: (species, isl) => ctx.events.emit('AnimalKilled', { species, island: isl }),
+          cue: (c) => ctx.events.emit('AnimalCue', { ...c, island: island.id }),
           trap: (act, spot, pelts) =>
             act === 'placed'
               ? ctx.events.emit('TrapPlaced', { spot, island: island.id })

@@ -48,6 +48,15 @@ export interface WildlifePrompt {
 
 export interface WildlifeHooks {
   notice(text: string): void;
+  /**
+   * An animal's call or move that you can hear (piece Y): it warns (`wary`, `threaten`,
+   * `attack`, `flee`), or a deer bolts. Placed where the animal is, zone meters.
+   */
+  cue?(cue: {
+    species: string;
+    state: 'wary' | 'threaten' | 'attack' | 'flee' | 'bolt';
+    at: { x: number; z: number };
+  }): void;
   /** Bitten or mauled: health off. */
   hurt(amount: number): void;
   /** A shot fired from where you stand (heard by the island's people, and heard). */
@@ -280,6 +289,7 @@ export function createIslandWildlife(opts: WildlifeOptions): IslandWildlife {
       if (!a) continue;
       switch (e.type) {
         case 'Warned': {
+          opts.hooks.cue?.({ species: a.species.id, state: e.state, at: { x: a.x, z: a.z } });
           // One line per animal kind and state at a time: a pack doesn't say it three times.
           const key = `${a.species.id}:${e.state}`;
           const line = a.species.warn?.[e.state];
@@ -300,6 +310,7 @@ export function createIslandWildlife(opts: WildlifeOptions): IslandWildlife {
           }
           break;
         case 'Bolted':
+          opts.hooks.cue?.({ species: a.species.id, state: 'bolt', at: { x: a.x, z: a.z } });
           break;
       }
     }

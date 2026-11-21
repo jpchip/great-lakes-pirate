@@ -1,0 +1,11 @@
+{
+  "id": "music.ending.air",
+  "name": "ending-air",
+  "description": "The end of a run: a slow air in D minor over a drone (about 40 s)",
+  "kind": "oneshot",
+  "bus": "music",
+  "bundles": [
+    "ending-audio"
+  ],
+  "source": "source.flac"
+}

@@ -1,0 +1,11 @@
+{
+  "id": "sfx.deer.bound",
+  "name": "deer-bound",
+  "description": "A deer bounding off through brush: four heavy landings and the crackle of stems between",
+  "kind": "oneshot",
+  "bus": "sfx",
+  "bundles": [
+    "island-audio"
+  ],
+  "source": "source.flac"
+}

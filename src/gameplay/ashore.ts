@@ -288,6 +288,8 @@ export interface AshoreSound {
   swimming: boolean;
   waterC: number;
   place: 'district' | 'island' | 'shore';
+  /** The island walked, by its id in `islands.json` (piece Y). */
+  island?: string | undefined;
   /** Under a roof. */
   inside: boolean;
   /** The saloon's bar, whether it keeps its hours now, and whether you're in the room. */
@@ -2449,6 +2451,7 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
         swimming: character.swimming,
         waterC: waterC(),
         place: district ? 'district' : sceneIsland ? 'island' : 'shore',
+        island: district ? undefined : sceneIsland,
         inside: underRoof,
         saloon,
         guards,
