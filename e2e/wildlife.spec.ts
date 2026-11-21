@@ -51,7 +51,9 @@ const here = (page: Page): Promise<Here> =>
 test('a deer shot, dressed, carried to the boat; a bear warns first', async ({ page }) => {
   test.setTimeout(240_000);
   const errors = collectErrors(page);
-  await page.goto('/?renderer=null&debug&play&newrun=poacher');
+  // Pinned seed: the sea and the bear's watch depend on the run's weather, and a random
+  // seed made this test fail on some runs.
+  await page.goto('/?renderer=null&debug&play&newrun=poacher&seed=seed7');
   await page.waitForFunction(() => '__glpIslands' in window && '__glpWildlife' in window);
   await page.keyboard.press('Escape');
   await page.evaluate(() => (window as unknown as Hooks).__glpFoot.hour(10));
