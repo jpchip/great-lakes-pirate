@@ -20,7 +20,7 @@ import {
 } from '../src/audio/hideout-audio';
 import { SANDBOX_AUDIO_BUNDLE, SANDBOX_SOUND } from '../src/audio/sandbox-audio';
 import { WINTER_AUDIO_BUNDLE, WINTER_SOUND } from '../src/audio/winter-audio';
-import { ENDING_AUDIO_BUNDLE, ISLAND_AUDIO_BUNDLE, ISLAND_SOUND } from '../src/audio/island-audio';
+import { ENDING_AUDIO_BUNDLE, ISLAND_AUDIO_BUNDLE } from '../src/audio/island-audio';
 import { PORT_AUDIO_BUNDLE, PORT_SOUND } from '../src/audio/port-audio';
 import { LAW_AUDIO_BUNDLE, LAW_SOUND, LAW_WHISTLE } from '../src/audio/law-audio';
 import {
