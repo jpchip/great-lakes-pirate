@@ -120,11 +120,7 @@ export function landInDistrict(
   if (ship) model.colliders.add(ship);
   const shutDoors = new Set(model.doors.filter((d) => d.shut).map((d) => d.id));
   const nav = assets.navmesh
-    ? new DistrictNav(
-        new NavMesh(assets.navmesh),
-        (x, z) => model.floorAt(x, z),
-        shutDoors,
-      )
+    ? new DistrictNav(new NavMesh(assets.navmesh), (x, z) => model.floorAt(x, z), shutDoors)
     : undefined;
   const scene: AshoreScene = {
     ground: model.ground,
