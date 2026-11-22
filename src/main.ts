@@ -5475,14 +5475,19 @@ async function boot(): Promise<void> {
         const ux = (l.boat.x - l.shore.x) / len;
         const uz = (l.boat.z - l.shore.z) / len;
         // The ship anchored 30 m beyond the boat's water, lying across the way in.
-        hook.place(
-          l.boat.x + ux * 30,
-          l.boat.z + uz * 30,
-          ((Math.atan2(ux, -uz) * 180) / Math.PI + 450) % 360,
-        );
-        hook.anchor();
-        await wait(800);
-        const why = await hook.land();
+        // The anchor can drag on the first set in a steady breeze, so set it again until it
+        // holds (as the other landing helpers do).
+        let why: string | undefined = 'Not yet';
+        for (let tries = 0; tries < 12 && why; tries++) {
+          hook.place(
+            l.boat.x + ux * 30,
+            l.boat.z + uz * 30,
+            ((Math.atan2(ux, -uz) * 180) / Math.PI + 450) % 360,
+          );
+          hook.anchor();
+          await wait(800);
+          why = await hook.land();
+        }
         if (why) return why;
         await wait(1200);
         // Rowed in to the water's edge, then over the bow onto the beach.
