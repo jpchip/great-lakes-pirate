@@ -542,7 +542,12 @@ export async function createTestScene(
     }
     harborKit(d.harbor, false);
     districtFocus.set(d.focus.x, d.focus.y, d.focus.z);
-    districtView.view.update(districtFocus, lampLevel(environment.sunElevationDeg), d.doused);
+    districtView.view.update(
+      districtFocus,
+      lampLevel(environment.sunElevationDeg),
+      d.doused,
+      d.shut,
+    );
     if (terrainUniforms) setDistrictGroundClip(terrainUniforms, d.model.ground, d.frame);
   };
   /** The sailing camera's near plane; on foot it comes in so a wall at arm's length draws. */

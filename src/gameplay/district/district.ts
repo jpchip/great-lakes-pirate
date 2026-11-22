@@ -104,6 +104,8 @@ export interface PlacedPiece {
   building: string | undefined;
   /** An empty house's door leaf is drawn shut. */
   shut?: boolean;
+  /** A door piece's door (its id in `doors`), so its leaf can be drawn open or shut. */
+  door?: string;
 }
 
 export interface DistrictModel extends OnFootZone {
@@ -360,7 +362,7 @@ export function buildDistrict(
       piece.collider === 'door' &&
       building?.def.kind === 'house' &&
       !occupiedHouse.has(building.def.id);
-    edges.push({
+    const edge: PlacedPiece = {
       piece,
       x: seg.x,
       y: baseY,
@@ -370,7 +372,8 @@ export function buildDistrict(
       variant,
       building: building?.def.id,
       ...(shut ? { shut: true } : {}),
-    });
+    };
+    edges.push(edge);
     const footY = Math.min(baseY, edgeGround(e)) - FOOTING_M;
     // A wall box spanning `from`..`to` along the edge (meters from its middle).
     const wall = (
@@ -437,6 +440,7 @@ export function buildDistrict(
           ...(shut ? { shut: true } : {}),
         };
         doors.push(door);
+        edge.door = door.id;
         if (building) building.doors.push(door.id);
         if (shut) wall(-w / 2, w / 2, baseY, baseY + DOOR_HEIGHT_M, true);
         break;

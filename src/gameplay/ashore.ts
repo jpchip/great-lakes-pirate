@@ -2156,6 +2156,8 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
           frame: district.frame,
           focus: { x, y: head, z },
           doused: watch ? watch.lamps.flatMap((l, k) => (l.doused ? [k] : [])) : [],
+          // A target's doors are locked in its hours (the leaf's collider is on): drawn shut.
+          shut: watch?.heist?.doors.flatMap((d) => (d.leaf.disabled ? [] : [d.id])) ?? [],
         },
         guards: [
           ...keepers(),
