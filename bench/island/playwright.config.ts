@@ -3,9 +3,10 @@ import { defineConfig, devices } from '@playwright/test';
 /**
  * Runs bench.island (plan 08 §20.3 criterion 10) in Chromium: `npm run bench:island`. Kept apart
  * from the e2e suite so CI never runs it. Headless Chromium renders on the CPU, so its frame
- * times say little; draw calls and triangles are the point. Run the page on the laptop for
+ * times say little; draw calls and triangles are the point. Run it with `GPU=1` on the laptop for
  * real frame times.
  */
+const gpu = Boolean(process.env.GPU);
 export default defineConfig({
   testDir: '.',
   testMatch: '*.bench.ts',
@@ -19,8 +20,9 @@ export default defineConfig({
       use: {
         ...devices['Desktop Chrome'],
         viewport: { width: 1280, height: 720 },
+        headless: !gpu,
         launchOptions: {
-          args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'],
+          args: gpu ? [] : ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'],
           ...(process.env.PW_CHROMIUM_PATH ? { executablePath: process.env.PW_CHROMIUM_PATH } : {}),
         },
       },
