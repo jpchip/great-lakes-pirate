@@ -38,7 +38,10 @@ describe('district ground clip', () => {
     const u = createDistrictGroundClipUniforms();
     setDistrictGroundClip(u, ground, dFrame);
     expect(u.uDistrictClipActive.value).toBe(1);
-    const center = dFrame.toZone(ground.originX + ground.width / 2, ground.originZ + ground.depth / 2);
+    const center = dFrame.toZone(
+      ground.originX + ground.width / 2,
+      ground.originZ + ground.depth / 2,
+    );
     expect(insideClip(u, center.x, center.z)).toBe(true);
     const inset = dFrame.toZone(ground.originX + 1, ground.originZ + 1);
     expect(insideClip(u, inset.x, inset.z)).toBe(true);
