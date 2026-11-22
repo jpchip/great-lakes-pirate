@@ -6,6 +6,7 @@ import {
   tierIn,
   addHeat,
   addWitness,
+  chargeOnArrest,
   commitCrime,
   releasePending,
   fileDue,
@@ -14,6 +15,7 @@ import {
   setHeat,
   setTier,
   tickLaw,
+  type ArrestCharge,
   type CrimeInput,
   type LawEvent,
   type LawWorld,
@@ -53,6 +55,11 @@ export interface GameLaw {
   commit(input: CrimeInput): LawEvent[];
   /** Another witness for a crime still open (Phase 6 piece F). */
   addWitness(crimeId: string, witness: Witness): LawEvent[];
+  /**
+   * Taken in hand on foot: the captor puts the watch's crimes tonight to your name. The
+   * gravest is the charge you're held for.
+   */
+  chargeOnArrest(charges: readonly ArrestCharge[], captor: Witness): string | undefined;
   /**
    * The crime's pending witness (the robbed crew) reports at `at`, game seconds, or never
    * (undefined: they went down with her). Phase 6 piece F.
@@ -178,6 +185,11 @@ export function attachLaw(
       return raise(commitCrime(defs, world(), crime, now()));
     },
     addWitness: (crimeId, w) => raise(addWitness(defs, world(), crimeId, w, now())),
+    chargeOnArrest(charges, captor) {
+      const r = chargeOnArrest(defs, world(), charges, captor, now());
+      raise(r.events);
+      return r.charge;
+    },
     releasePending: (crimeId, at) => raise(releasePending(defs, world(), crimeId, at, now())),
     addHeat: (region, heat) => raise(addHeat(defs, ctx.state, region, heat, now())),
     intercept(reportId) {

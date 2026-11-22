@@ -145,6 +145,12 @@ const MINOR_REASONS: Record<string, string> = {
   swimming: 'swimming in the harbor at night',
 };
 
+/** What a fine is for, by the charge, when the watch had one (else the conduct says). */
+const MINOR_CHARGES: Record<string, string> = {
+  'crime.trespass': 'trespassing',
+  'crime.bribery': 'offering a bribe',
+};
+
 function weeks(n: number): string {
   return `${n} week${n === 1 ? '' : 's'}`;
 }
@@ -188,7 +194,12 @@ export function attachCapture(opts: CaptureOptions): CaptureControl {
   };
 
   const taken = (j: Jailed): string =>
-    `Taken by ${byName(j.by)} in ${regionName(j.region)}, the week of ${dateText(j.since)}`;
+    `Taken by ${byName(j.by)} in ${regionName(j.region)}${chargeText(j.charge)}, the week of ${dateText(j.since)}`;
+  /** ", on a charge of murder": what the watch held you for, if it had anything. */
+  const chargeText = (charge: string | undefined): string => {
+    const name = charge ? defs.crimes.get(charge)?.name : undefined;
+    return name ? `, on a charge of ${name.toLowerCase()}` : '';
+  };
   const confiscated = (j: Jailed): string[] => {
     if (j.minor) return ['Nothing: your hold and purse are as you left them'];
     const goods = gameEconomy().goods;
@@ -260,12 +271,17 @@ export function attachCapture(opts: CaptureOptions): CaptureControl {
   const takeNow = (e = pending): void => {
     pending = undefined;
     if (!e || state.jail) return;
-    const input = { region: e.region, by: e.by, how: e.how };
+    const input = {
+      region: e.region,
+      by: e.by,
+      how: e.how,
+      ...(e.charge ? { charge: e.charge } : {}),
+    };
     // A minor arrest on foot (a knife in hand, trespass...) at tier 0-1: a fine from the
     // purse and back to your ship, or a short stay when you can't pay. Nothing is taken.
     const minor =
       e.how === 'subdued'
-        ? minorArrest(defs, jail, state.wanted[e.region]?.heat ?? 0, e.conduct)
+        ? minorArrest(defs, jail, state.wanted[e.region]?.heat ?? 0, e.conduct, e.charge)
         : undefined;
     if (minor && e.conduct && canPayFine(state, minor.fineCents)) {
       payFine(state, minor.fineCents);
@@ -276,7 +292,8 @@ export function attachCapture(opts: CaptureOptions): CaptureControl {
         conduct: e.conduct,
       });
       const captor = byName(e.by);
-      const why = MINOR_REASONS[e.conduct] ?? 'a minor offense';
+      const why =
+        (e.charge && MINOR_CHARGES[e.charge]) || MINOR_REASONS[e.conduct] || 'a minor offense';
       released = {
         kind: 'released',
         title: 'Fined',

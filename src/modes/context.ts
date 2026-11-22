@@ -310,6 +310,11 @@ export interface GameEvents {
     at: Chart;
     /** On foot: what the guard made of your conduct (`ConductReason`), when you were taken. */
     conduct?: string;
+    /**
+     * On foot: the gravest crime the watch had on you tonight (`crime.killing`), which is
+     * what you're held for, whatever you were caught doing at the time.
+     */
+    charge?: string;
   };
   /** A fine paid out of the purse for a minor arrest on foot (nothing else taken). */
   Fined: { region: string; cents: number; by: string; conduct: string };

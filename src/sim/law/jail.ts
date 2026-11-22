@@ -66,6 +66,8 @@ export interface CaptureInput {
   region: string;
   by: string;
   how: CaptureHow;
+  /** Taken on foot: the gravest crime the watch had on you, if any. */
+  charge?: string | undefined;
 }
 
 /** What capture in a region comes to (plan 06 §8.2), before anything is taken. */
@@ -130,6 +132,7 @@ export function imprison(
     releaseAt: now + weeks * SECONDS_PER_GAME_DAY,
     by: input.by,
     how: input.how,
+    ...(input.charge ? { charge: input.charge } : {}),
     tier: outcome.tier,
     heat,
     sentenceWeeks: weeks,
@@ -148,17 +151,21 @@ export function imprison(
 /**
  * A minor arrest on foot: a guard taking you for a weapon in hand, trespass, skulking and
  * the like, while the region has you at tier 0-1. Returns the fine, or undefined when it's
- * no minor arrest (a body or loot, a higher tier, or no conduct to go by) and the capture
- * goes through `imprison` as before.
+ * no minor arrest (a body or loot, a higher tier, no conduct to go by, or a graver charge
+ * on the watch's books tonight than `minorArrest.charges` allows) and the capture goes
+ * through `imprison` as before.
  */
 export function minorArrest(
   defs: LawDefs,
   jail: JailFile,
   heat: number,
   conduct: string | undefined,
+  /** The gravest crime the watch has on you tonight, if any: a killing is no minor matter. */
+  charge?: string,
 ): { fineCents: number } | undefined {
   const rule = jail.minorArrest;
   if (!conduct || !rule.conduct.includes(conduct)) return undefined;
+  if (charge && !rule.charges.includes(charge)) return undefined;
   const tier = wantedTier(defs, heat);
   if (tier > rule.maxTier) return undefined;
   const fineCents = rule.fineCents[Math.min(tier, rule.fineCents.length - 1)] ?? 0;
@@ -197,6 +204,7 @@ export function imprisonMinor(
     releaseAt: now + weeks * SECONDS_PER_GAME_DAY,
     by: input.by,
     how: input.how,
+    ...(input.charge ? { charge: input.charge } : {}),
     tier,
     heat,
     sentenceWeeks: weeks,
