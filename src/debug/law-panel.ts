@@ -95,6 +95,9 @@ export function createLawPanel(options: LawPanelOptions): { update(): void } {
   const tiers = root.addFolder('Set tier');
   tiers.add(form, 'tier', 0, defs.wanted.tiers.length - 1, 1);
   tiers.add({ set: () => law.setTier(form.region, form.tier) }, 'set').name('Set region tier');
+  root
+    .add({ clear: () => defs.regions.forEach((r) => law.setTier(r.id, 0)) }, 'clear')
+    .name('Clear Wanted everywhere');
 
   return {
     update() {

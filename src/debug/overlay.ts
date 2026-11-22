@@ -50,6 +50,8 @@ export interface OverlayOptions {
   save: SaveControls;
   /** Run the water benchmark straight away (`?bench=water`). */
   autoBench: boolean;
+  /** The switches the game booted with (the address bar's, or a dev jump's). */
+  params?: URLSearchParams;
   /** Where to read the wind, sea and terrain for the stats (the player ship). */
   probe: () => { x: number; z: number };
   /** Save a preset pick through the settings store; it applies it to the renderer. */
@@ -240,6 +242,9 @@ export function createDevOverlay(options: OverlayOptions): DevOverlay {
   };
   const timeFolder = gui.addFolder('Time');
   timeFolder.add(time, 'hour', 0, 23.99, 0.05).name('Hour').listen();
+  const skip = { hours: 6 };
+  timeFolder.add(skip, 'hours', 1, 24 * 14, 1).name('Skip (hours)');
+  timeFolder.add({ go: () => (clock.gameSeconds += skip.hours * 3600) }, 'go').name('Skip ahead');
   if (options.timeWarp) {
     timeFolder.add(options.timeWarp, 'factor', 1, MAX_TIME_WARP, 1).name('Clock speed ×').listen();
   }
@@ -262,7 +267,7 @@ export function createDevOverlay(options: OverlayOptions): DevOverlay {
 
   // Rebuilt for each zone, so it never holds a zone that's been left.
   let terrain: TerrainOverlay | undefined;
-  const params = new URLSearchParams(window.location.search);
+  const params = options.params ?? new URLSearchParams(window.location.search);
   const map = params.get('overlay');
   const windFrom = Number(params.get('windfrom') ?? 315);
   const terrainSettings = {
