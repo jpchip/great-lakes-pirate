@@ -53,6 +53,8 @@ export interface DistrictDoor {
   y: number;
   /** A shop door opens this port-screen tab by day (plan 08 §20.6 decision 3). */
   opens: DistrictBuildingDef['opens'];
+  /** An empty house's door: shut and blocked, not a heist lock. */
+  shut?: boolean;
 }
 
 export interface DistrictBuilding {
@@ -100,6 +102,8 @@ export interface PlacedPiece {
   variant: number;
   /** The building it belongs to (perimeter walls, floors), for roof fade and paint. */
   building: string | undefined;
+  /** An empty house's door leaf is drawn shut. */
+  shut?: boolean;
 }
 
 export interface DistrictModel extends OnFootZone {
@@ -132,6 +136,28 @@ const DEG = Math.PI / 180;
 const BOUND_WALL_M = 0.5;
 /** A wall reaches this far below the lowest ground under it, so no gap shows. */
 const FOOTING_M = 0.3;
+/** Props or marks strictly inside a house footprint mean it isn't an empty shell. */
+const HOUSE_PAD_M = 0.2;
+
+function houseHasContents(
+  b: DistrictBuilding,
+  marks: DistrictMark[],
+  props: DistrictLayout['props'],
+): boolean {
+  if (b.def.kind !== 'house') return true;
+  if (marks.some((m) => m.ref === b.def.id)) return true;
+  const { minX, maxX, minZ, maxZ } = b;
+  for (const [, x, z] of props) {
+    if (
+      x > minX + HOUSE_PAD_M &&
+      x < maxX - HOUSE_PAD_M &&
+      z > minZ + HOUSE_PAD_M &&
+      z < maxZ - HOUSE_PAD_M
+    )
+      return true;
+  }
+  return false;
+}
 
 export function buildDistrict(
   layout: DistrictLayout,
@@ -302,6 +328,9 @@ export function buildDistrict(
   const edges: PlacedPiece[] = [];
   const doors: DistrictDoor[] = [];
   const climbs: DistrictClimb[] = [];
+  const occupiedHouse = new Set(
+    buildings.filter((b) => houseHasContents(b, layout.marks, layout.props)).map((b) => b.def.id),
+  );
   const edgeBase = (e: EdgeRef): number => {
     // The higher of the two cells either side (a deck or floor), else the ground.
     const { x, z, alongX } = edgeSegment(layout, e);
@@ -327,6 +356,10 @@ export function buildDistrict(
     doorIndex: () => number,
   ): void => {
     const seg = edgeSegment(layout, e);
+    const shut =
+      piece.collider === 'door' &&
+      building?.def.kind === 'house' &&
+      !occupiedHouse.has(building.def.id);
     edges.push({
       piece,
       x: seg.x,
@@ -336,6 +369,7 @@ export function buildDistrict(
       topY,
       variant,
       building: building?.def.id,
+      ...(shut ? { shut: true } : {}),
     });
     const footY = Math.min(baseY, edgeGround(e)) - FOOTING_M;
     // A wall box spanning `from`..`to` along the edge (meters from its middle).
@@ -400,9 +434,11 @@ export function buildDistrict(
           widthM: w,
           y: baseY,
           opens: building?.def.opens,
+          ...(shut ? { shut: true } : {}),
         };
         doors.push(door);
         if (building) building.doors.push(door.id);
+        if (shut) wall(-w / 2, w / 2, baseY, baseY + DOOR_HEIGHT_M, true);
         break;
       }
       default:

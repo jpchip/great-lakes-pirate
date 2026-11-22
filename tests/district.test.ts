@@ -62,6 +62,28 @@ function room(): DistrictLayout {
   return l;
 }
 
+/** An 8 × 8 m house with its door on the north wall (side 0), on flat ground. */
+function houseLayout(furnished: boolean): DistrictLayout {
+  const l = emptyLayout('district.test', -20, -20, 20, 20);
+  l.buildings.push({
+    id: 'cottage',
+    kind: 'house',
+    col: 5,
+    row: 5,
+    cols: 4,
+    rows: 4,
+    wall: 'kit.wall_plank',
+    floor: 'kit.floor_plank',
+    wallHeightM: 3.2,
+    roof: 'gable',
+    ridge: 'z',
+    paint: 0,
+    edges: [['kit.wall_plank_door', 0, 2]],
+  });
+  if (furnished) placeProp(l, 'kit.bunk', -5, -5, 0);
+  return l;
+}
+
 const idle: MoveInput = { forward: 0, right: 0, run: false, crouch: false, jump: false };
 
 /** Walks toward heading `yaw` for `seconds`; returns where the character ends up. */
@@ -132,6 +154,17 @@ describe('a district built from its layout', () => {
     expect(blocked.z).toBeLessThan(-10);
     // In line with the door (its middle is x -5): in, onto the floor.
     const through = walk(model, -5, -14, Math.PI, 4);
+    expect(through.z).toBeGreaterThan(-9);
+  });
+
+  it('shuts an empty house door; a furnished house stays open', () => {
+    const empty = buildDistrict(houseLayout(false), flat());
+    expect(empty.doors.find((d) => d.building === 'cottage')?.shut).toBe(true);
+    const stopped = walk(empty, -5, -14, Math.PI, 4);
+    expect(stopped.z).toBeLessThan(-10);
+    const full = buildDistrict(houseLayout(true), flat());
+    expect(full.doors.find((d) => d.building === 'cottage')?.shut).toBeFalsy();
+    const through = walk(full, -5, -14, Math.PI, 4);
     expect(through.z).toBeGreaterThan(-9);
   });
 
@@ -324,6 +357,14 @@ describe('Bayfield', () => {
     // Shop doors open their port tabs by day.
     expect(model.doors.find((d) => d.building === 'general_store')?.opens).toBe('market');
   });
+
+  it.skipIf(!baked)('shuts every unnamed empty house', () => {
+    const model = buildDistrict(layout, decodeGround(new Uint8Array(readFileSync(groundPath))));
+    for (const b of model.buildings.filter((k) => k.def.kind === 'house' && !k.def.name)) {
+      const d = model.doors.find((door) => door.building === b.def.id);
+      expect(d?.shut, b.def.id).toBe(true);
+    }
+  });
 });
 
 describe('Duluth (Phase 9 piece X)', () => {
@@ -334,6 +375,12 @@ describe('Duluth (Phase 9 piece X)', () => {
   const load = () => ({
     model: buildDistrict(layout, decodeGround(new Uint8Array(readFileSync(groundPath)))),
     nav: new NavMesh(JSON.parse(readFileSync(join(dir, 'navmesh.json'), 'utf8')) as NavMeshData),
+  });
+
+  it('shuts empty houses but leaves the boarding house open', () => {
+    const model = buildDistrict(layout, flat());
+    expect(model.doors.find((d) => d.building === 'house_0')?.shut).toBe(true);
+    expect(model.doors.find((d) => d.building === 'boarding_house')?.shut).toBeFalsy();
   });
 
   it('has the warehouses, the saloon, the shops and the lockup, with their marks', () => {

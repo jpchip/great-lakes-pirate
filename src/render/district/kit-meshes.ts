@@ -236,21 +236,35 @@ export function edgeGeometry(p: PlacedPiece, paint: EdgePaint, out: KitSink): vo
         body.push(box(w + 0.2, 0.15, WALL_M + 0.08, 0, DOOR_HEIGHT_M, 0, paint.trim));
         if (height > 5) window(0, 3.6);
       }
-      // The leaf, swung open against the wall's inside face (+z here).
-      const leaf = box(
-        w * (door ? 0.5 : 0.95),
-        Math.min(DOOR_HEIGHT_M, height) - 0.05,
-        0.06,
-        0,
-        0,
-        0,
-        door ? PLANK_DARK : 0x5a3f2c,
-      );
-      leaf
-        .translate(-(w * (door ? 0.5 : 0.95)) / 2, 0, 0)
-        .rotateY(-Math.PI / 2 + 0.25)
-        .translate(w / 2, 0, WALL_M / 2);
-      body.push(leaf);
+      if (p.shut) {
+        body.push(
+          box(
+            w * 0.95,
+            Math.min(DOOR_HEIGHT_M, height) - 0.05,
+            0.06,
+            0,
+            0,
+            0,
+            door ? PLANK_DARK : 0x5a3f2c,
+          ),
+        );
+      } else {
+        // The leaf, swung open against the wall's inside face (+z here).
+        const leaf = box(
+          w * (door ? 0.5 : 0.95),
+          Math.min(DOOR_HEIGHT_M, height) - 0.05,
+          0.06,
+          0,
+          0,
+          0,
+          door ? PLANK_DARK : 0x5a3f2c,
+        );
+        leaf
+          .translate(-(w * (door ? 0.5 : 0.95)) / 2, 0, 0)
+          .rotateY(-Math.PI / 2 + 0.25)
+          .translate(w / 2, 0, WALL_M / 2);
+        body.push(leaf);
+      }
       break;
     }
     case 'fence': {
