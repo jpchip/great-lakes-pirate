@@ -2042,14 +2042,23 @@ body[data-mode='chart'] .chart-layer {
 }
 
 .port-role.wanted {
-  color: var(--signal-red);
+  color: var(--paper);
+  background: var(--signal-red);
+  border-color: var(--signal-red);
+  border-radius: 8px;
+}
+
+.port-role-glyph {
+  width: 11px;
+  height: 11px;
+  vertical-align: -1px;
 }
 
 .port-role-icon {
   margin-left: 6px;
-  padding: 0 3px;
+  padding: 1px 3px;
   font-size: 10px;
-  line-height: 13px;
+  line-height: 0;
 }
 
 .port-trade-hints {

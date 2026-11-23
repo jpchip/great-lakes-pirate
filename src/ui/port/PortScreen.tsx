@@ -247,6 +247,44 @@ function TradePanel({
   );
 }
 
+/**
+ * The market's made/wanted marks: a slatted crate for what the port makes,
+ * a struck coin for what it wants. Different shapes, so they read apart
+ * without the colour.
+ */
+function RoleGlyph({ role }: { role: 'export' | 'import' }) {
+  return role === 'export' ? (
+    <svg class="port-role-glyph" viewBox="0 0 12 12" aria-hidden="true">
+      <rect
+        x="1.5"
+        y="2.5"
+        width="9"
+        height="8"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.3"
+      />
+      <path
+        d="M1.5 5.2h9M1.5 7.8h9M3 10.5 9 2.5"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1"
+      />
+    </svg>
+  ) : (
+    <svg class="port-role-glyph" viewBox="0 0 12 12" aria-hidden="true">
+      <circle cx="6" cy="6" r="4.9" fill="none" stroke="currentColor" stroke-width="1.3" />
+      <path
+        d="M7.6 4.3C7.2 3.6 4.4 3.4 4.4 4.8S7.6 6 7.6 7.3 4.8 8.6 4.3 7.7M6 2.6v6.8"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1"
+        stroke-linecap="round"
+      />
+    </svg>
+  );
+}
+
 function Market({
   port,
   actions,
@@ -274,9 +312,13 @@ function Market({
   return (
     <div class="port-market">
       <p class="port-trade-hints" data-testid="market-hints">
-        <span class="port-role made">▾ Made here</span>{' '}
+        <span class="port-role made">
+          <RoleGlyph role="export" /> Made here
+        </span>{' '}
         {goodsWith(port, 'export') || 'little of note'}
-        <span class="port-role wanted">▴ Wanted here</span>{' '}
+        <span class="port-role wanted">
+          <RoleGlyph role="import" /> Wanted here
+        </span>{' '}
         {goodsWith(port, 'import') || 'nothing in particular'}
       </p>
       <table class="port-table" data-testid="market-table">
@@ -328,7 +370,7 @@ function Market({
                           : "Wanted here: dear, and they'll pay well for it"
                       }
                     >
-                      {r.role === 'export' ? '▾' : '▴'}
+                      <RoleGlyph role={r.role} />
                     </span>
                   )}
                 </td>
