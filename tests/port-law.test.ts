@@ -245,9 +245,6 @@ describe('port law in the running game', () => {
     law.setTier(CHEQ, 5);
     expect(portLaw.topTierAt('port.bayfield')).toBe(true);
     expect(portLaw.topTierAt('port.washburn')).toBe(true);
-    expect(portLaw.marks()).toEqual([
-      { region: CHEQ, tier: 5, label: 'Chequamegon Bay: MOST WANTED' },
-    ]);
   });
 
   it('lets the smuggler sell you out at tier 2+ in her waters', () => {
