@@ -65,6 +65,8 @@ export interface FootFrame {
         focus: { x: number; y: number; z: number };
         /** Lamps put out (indexes into `model.lamps`): no pool, dark glass. */
         doused?: readonly number[];
+        /** Doors locked now (ids in `model.doors`): their leaves drawn shut, the rest open. */
+        shut?: readonly string[];
       }
     | undefined;
   /** The watch, zone meters (Phase 7 piece D's guards). */

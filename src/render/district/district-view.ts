@@ -13,6 +13,7 @@ import {
 } from '../style/stylized-material';
 import {
   cellGeometry,
+  doorLeafGeometry,
   dousedGlassGeometry,
   edgeGeometry,
   PAINTS,
@@ -47,9 +48,15 @@ export interface DistrictView {
   /**
    * Per frame: `focus` is the player (pools near them, the roof they're under fades);
    * `night` is 0 by day to 1 at night (lamps lit, windows glowing); `doused` are lamps put
-   * out (indexes into `model.lamps`): no pool, and dark glass over theirs.
+   * out (indexes into `model.lamps`): no pool, and dark glass over theirs. `shut` are the
+   * doors locked now (ids in `model.doors`): their leaves are drawn shut, the rest open.
    */
-  update(focus: THREE.Vector3, night: number, doused?: readonly number[]): void;
+  update(
+    focus: THREE.Vector3,
+    night: number,
+    doused?: readonly number[],
+    shut?: readonly string[],
+  ): void;
   /** The building whose roof is faded, if any. */
   readonly inside: string | undefined;
   dispose(): void;
@@ -129,7 +136,7 @@ export function createDistrictView(
       seed: b ? b.def.paint * 17 + b.minX : 3,
     };
   };
-  for (const e of model.edges) edgeGeometry(e, paintOf(e), sinkAt(e.x, e.z));
+  for (const e of model.edges) edgeGeometry(e, paintOf(e), sinkAt(e.x, e.z), true);
   for (const p of model.props) propGeometry(p, sinkAt(p.x, p.z));
   for (const [key, sink] of blocks) {
     if (sink.body.length > 0) addMesh(merged(sink.body), body, `block:${key}`);
@@ -193,6 +200,43 @@ export function createDistrictView(
     shades.name = 'doused-lamps';
     group.add(shades);
   };
+  // The door leaves that open and shut (a target's doors lock by the hour): one small
+  // mesh, rebuilt only when the set of shut doors changes.
+  const leafEdges = model.edges.filter((e) => e.door !== undefined && !e.shut);
+  let leafKey: string | undefined;
+  let leaves: THREE.Mesh | undefined;
+  const syncLeaves = (shut: readonly string[]): void => {
+    const closed = new Set(shut);
+    const key = leafEdges
+      .filter((e) => e.door !== undefined && closed.has(e.door))
+      .map((e) => e.door)
+      .join(',');
+    if (key === leafKey) return;
+    leafKey = key;
+    if (leaves) {
+      group.remove(leaves);
+      leaves.geometry.dispose();
+      leaves = undefined;
+    }
+    const parts: THREE.BufferGeometry[] = [];
+    for (const e of leafEdges) {
+      const g = doorLeafGeometry(e, e.door !== undefined && closed.has(e.door));
+      if (g) parts.push(g);
+    }
+    if (parts.length === 0) return;
+    leaves = new THREE.Mesh(merged(parts), body);
+    leaves.name = 'door-leaves';
+    leaves.matrixAutoUpdate = false;
+    leaves.updateMatrix();
+    group.add(leaves);
+  };
+  syncLeaves([]);
+  const firstLeaves = group.getObjectByName('door-leaves') as THREE.Mesh | undefined;
+  if (firstLeaves) {
+    meshes++;
+    triangles += firstLeaves.geometry.getAttribute('position').count / 3;
+  }
+
   return {
     group,
     get triangles() {
@@ -204,8 +248,9 @@ export function createDistrictView(
     get inside() {
       return inside;
     },
-    update(focus, night, doused = []) {
+    update(focus, night, doused = [], shut = []) {
       syncShades(night > 0 ? doused : []);
+      syncLeaves(shut);
       // The nearest lit lamps become the pools.
       for (let k = 0; k < model.lamps.length; k++) {
         const l = model.lamps[k];
@@ -245,6 +290,7 @@ export function createDistrictView(
     },
     dispose() {
       shades?.geometry.dispose();
+      leaves?.geometry.dispose();
       for (const geo of geometries) geo.dispose();
       body.dispose();
       lit.dispose();

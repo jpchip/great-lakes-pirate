@@ -172,7 +172,45 @@ export interface EdgePaint {
   seed: number;
 }
 
-export function edgeGeometry(p: PlacedPiece, paint: EdgePaint, out: KitSink): void {
+/**
+ * A door's leaf in the piece's own frame: shut across the opening, or swung open against
+ * the wall's inside face (+z here). A board gate's leaf is half its width.
+ */
+function leafGeometry(
+  p: PlacedPiece,
+  w: number,
+  height: number,
+  shut: boolean,
+): THREE.BufferGeometry {
+  const gate = p.piece.id === 'kit.gate_board';
+  const color = gate ? PLANK_DARK : 0x5a3f2c;
+  const h = Math.min(DOOR_HEIGHT_M, height) - 0.05;
+  if (shut) return box(w * 0.95, h, 0.06, 0, 0, 0, color);
+  const lw = w * (gate ? 0.5 : 0.95);
+  return box(lw, h, 0.06, 0, 0, 0, color)
+    .translate(-lw / 2, 0, 0)
+    .rotateY(-Math.PI / 2 + 0.25)
+    .translate(w / 2, 0, WALL_M / 2);
+}
+
+/** A door piece's leaf placed in the district, open or shut (the view's locking doors). */
+export function doorLeafGeometry(p: PlacedPiece, shut: boolean): THREE.BufferGeometry | undefined {
+  if (p.piece.collider !== 'door') return undefined;
+  const g = leafGeometry(p, p.piece.openingM ?? 1.4, p.topY - p.y, shut);
+  place([g], p.x, p.y, p.z, p.heading);
+  return g;
+}
+
+/**
+ * An edge piece's geometry. With `dynamicLeaf`, a door piece that names its door leaves its
+ * leaf out, for the view to draw open or shut (`doorLeafGeometry`).
+ */
+export function edgeGeometry(
+  p: PlacedPiece,
+  paint: EdgePaint,
+  out: KitSink,
+  dynamicLeaf = false,
+): void {
   const body: THREE.BufferGeometry[] = [];
   const lit: THREE.BufferGeometry[] = [];
   const len = CELL_M + WALL_M;
@@ -236,35 +274,9 @@ export function edgeGeometry(p: PlacedPiece, paint: EdgePaint, out: KitSink): vo
         body.push(box(w + 0.2, 0.15, WALL_M + 0.08, 0, DOOR_HEIGHT_M, 0, paint.trim));
         if (height > 5) window(0, 3.6);
       }
-      if (p.shut) {
-        body.push(
-          box(
-            w * 0.95,
-            Math.min(DOOR_HEIGHT_M, height) - 0.05,
-            0.06,
-            0,
-            0,
-            0,
-            door ? PLANK_DARK : 0x5a3f2c,
-          ),
-        );
-      } else {
-        // The leaf, swung open against the wall's inside face (+z here).
-        const leaf = box(
-          w * (door ? 0.5 : 0.95),
-          Math.min(DOOR_HEIGHT_M, height) - 0.05,
-          0.06,
-          0,
-          0,
-          0,
-          door ? PLANK_DARK : 0x5a3f2c,
-        );
-        leaf
-          .translate(-(w * (door ? 0.5 : 0.95)) / 2, 0, 0)
-          .rotateY(-Math.PI / 2 + 0.25)
-          .translate(w / 2, 0, WALL_M / 2);
-        body.push(leaf);
-      }
+      // A door that locks and unlocks has its leaf drawn apart (`doorLeafGeometry`), open
+      // or shut by the hour; the rest are drawn here, an empty house's shut.
+      if (!(dynamicLeaf && p.door && !p.shut)) body.push(leafGeometry(p, w, height, !!p.shut));
       break;
     }
     case 'fence': {
