@@ -3,7 +3,7 @@ import { startingPort } from '../../sim/character/new-run';
 import { gameEconomy } from '../../sim/economy/defs';
 import { formatCents } from '../../sim/economy/knowledge';
 import { findZoneDef } from '../../sim/terrain/zones';
-import { hideoutPlace } from '../../sim/hideouts/stash';
+import { hideoutPlace, hideoutSite } from '../../sim/hideouts/stash';
 import type { WorldState } from '../../sim/world-state';
 import { clockLabel, weekLabel } from '../hud/model';
 
@@ -50,6 +50,8 @@ export interface BackgroundCard {
   cargo: string;
   port: string;
   hideout: string;
+  /** How the hideout is held, when it's on owned ground: the lease a run starts with. */
+  tenure: string | undefined;
   harderStart: boolean;
   perks: { name: string; text: string }[];
 }
@@ -66,6 +68,7 @@ export function backgroundCards(): BackgroundCard[] {
       .join(', '),
     port: startingPort(b.key).portName,
     hideout: hideoutPlace(b.hideout) ?? b.hideout,
+    tenure: leaseNote(b.hideout),
     harderStart: b.harderStart,
     perks: b.perks.map((p) => ({
       name: p.name,
@@ -80,4 +83,14 @@ export function randomSeed(random: () => number = Math.random): string {
   let s = '';
   for (let i = 0; i < 8; i++) s += alphabet[Math.floor(random() * alphabet.length)];
   return s;
+}
+
+/**
+ * An owned site you start at comes leased (Phase 9 piece W): the card says so, and what
+ * that lease is worth, since anyone else claiming that ground pays it or squats.
+ */
+function leaseNote(hideoutId: string): string | undefined {
+  const site = hideoutSite(hideoutId);
+  if (site?.claim !== 'owned' || !site.lease) return undefined;
+  return `leased from ${site.lease.from}, paid up (a ${formatCents(site.lease.cents, true)} lease)`;
 }

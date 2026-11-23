@@ -26,6 +26,7 @@ import { lawWorld } from '../src/gameplay/law';
 import { gameLaw } from '../src/sim/law/defs';
 import {
   addWitness,
+  chargeOnArrest,
   commitCrime,
   fileDue,
   heatIn,
@@ -228,6 +229,8 @@ function scene(
       addWitness: (id, w) => addWitness(defs, world(), id, w, inputs.gameSeconds),
       identifyWitness: (witnessId, identification) =>
         identifyInFlightReports(state, witnessId, identification),
+      chargeOnArrest: (charges, captor) =>
+        chargeOnArrest(defs, world(), charges, captor, inputs.gameSeconds).charge,
     },
     { region: REGION, port: 'port.bayfield' },
     () => (tools.carrying ? 'body' : inputs.suspect ? 'trespass' : undefined),
@@ -411,6 +414,82 @@ describe('the cosh and the knife (plan 08 §6: from behind)', () => {
       identification: 'unknown',
     });
     expect(s.heat()).toBe(0);
+  });
+});
+
+describe('taken in hand: the charge is the gravest crime the watch has on you', () => {
+  const CAPTOR = {
+    id: 'captor.npc.constable',
+    kind: 'constable' as const,
+    name: 'the constable',
+    identification: 'person' as const,
+  };
+
+  it("a killing seen by a constable who didn't know your face: held for murder, not the knife", () => {
+    const s = scene(
+      [post('w', 'npc.watchman', -10, -17), post('c', 'npc.constable', -10, -10, 0)],
+      { x: -10, z: -15.5 },
+      { sky: FULL_MOON },
+    );
+    s.wait(0.5);
+    s.tools.select('tool.knife');
+    expect(s.use()[0]).toMatchObject({ type: 'Killed', npc: 'w', seenBy: ['c'] });
+    expect(s.crimes()).toEqual(['crime.killing']);
+    // He saw it done, but not who: "someone", the alert and not the heat.
+    expect(s.heat()).toBeLessThan(150);
+    expect(s.law.arrest(CAPTOR)).toBe('crime.killing');
+    // With you in hand he knows who: the whole of the murder's heat, once.
+    expect(s.heat()).toBe(150);
+    expect(s.law.arrest(CAPTOR)).toBe('crime.killing');
+    expect(s.heat()).toBe(150);
+  });
+
+  it('a killing already filed by name adds nothing more at the arrest', () => {
+    const s = scene(
+      [post('w', 'npc.watchman', -10, -17), post('c', 'npc.constable', -10, -10, 0)],
+      { x: -10, z: -15.5 },
+      { sky: FULL_MOON },
+    );
+    s.g('c').identified = true;
+    s.wait(0.5);
+    s.tools.select('tool.knife');
+    s.use();
+    expect(s.heat()).toBe(150);
+    expect(s.law.arrest(CAPTOR)).toBe('crime.killing');
+    expect(s.heat()).toBe(150);
+  });
+
+  it('an assault filed by name and closed since is not counted twice', () => {
+    const s = scene(
+      [post('w', 'npc.watchman', -10, -17), post('c', 'npc.constable', -10, -10, 0)],
+      { x: -10, z: -15.5 },
+      { sky: FULL_MOON },
+    );
+    s.g('c').identified = true;
+    s.wait(0.5);
+    s.use();
+    expect(s.crimes()).toEqual(['crime.assault']);
+    const heat = s.heat();
+    expect(heat).toBe(30);
+    // No news in an assault: once every report is in, the law's books close on it.
+    s.inputs.gameSeconds += 6 * 3600;
+    fileDue(gameLaw(), lawWorld(s.state, 'foot-tools'), s.inputs.gameSeconds);
+    expect(s.state.reports.crimes).toHaveLength(0);
+    expect(s.law.arrest(CAPTOR)).toBe('crime.assault');
+    expect(s.heat()).toBe(heat);
+  });
+
+  it('nothing on the books: no charge, and the conduct is all he has', () => {
+    const s = scene([post('w', 'npc.watchman', -10, -17)], { x: -10, z: -15.5 });
+    expect(s.law.arrest(CAPTOR)).toBeUndefined();
+    expect(s.heat()).toBe(0);
+  });
+
+  it('a killing nobody saw done or found is no charge', () => {
+    const s = scene([post('w', 'npc.watchman', -10, -17)], { x: -10, z: -15.5 });
+    s.tools.select('tool.knife');
+    expect(s.use()).toEqual([{ type: 'Killed', npc: 'w', seenBy: [] }]);
+    expect(s.law.arrest(CAPTOR)).toBeUndefined();
   });
 });
 

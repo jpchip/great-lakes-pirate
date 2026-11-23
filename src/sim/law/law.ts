@@ -643,6 +643,76 @@ export function replaceShip(
   return events;
 }
 
+/** A crime on foot the captor charges you with when he takes you (`chargeOnArrest`). */
+export interface ArrestCharge {
+  crimeId: string;
+  crime: string;
+  region: string;
+  port?: string | undefined;
+  details?: CrimeDetails | undefined;
+  /**
+   * The best identification any report on it was filed with so far, if one has been: the
+   * heat it already added, should the crime have closed since.
+   */
+  filedAs?: Identification | undefined;
+}
+
+/**
+ * Taken in hand on foot (plan 08 §5.2): the man who has you knows your face now, so every
+ * crime the watch saw tonight is put to your name at once, whoever saw it and however
+ * dimly. The captor files on each (identified, now), topping its heat up to the full
+ * crime's, less what earlier reports by name already added. Returns the events and the
+ * gravest charge (by heat), which is what you're held for.
+ */
+export function chargeOnArrest(
+  defs: LawDefs,
+  world: LawWorld,
+  charges: readonly ArrestCharge[],
+  captor: Witness,
+  now: number,
+): { events: LawEvent[]; charge: string | undefined } {
+  const { law } = world;
+  const events: LawEvent[] = [];
+  let charge: string | undefined;
+  let worst = -Infinity;
+  for (const c of charges) {
+    if (!defs.regionById.has(c.region)) continue;
+    const def = crimeDef(defs, c.crime);
+    if (def.heat > worst) {
+      worst = def.heat;
+      charge = def.id;
+    }
+    let open = law.reports.crimes.find((x) => x.id === c.crimeId);
+    if (!open) {
+      // Closed already (every report in): open it again with what it has come to.
+      const named = c.filedAs === 'person' || c.filedAs === 'ship';
+      open = {
+        id: c.crimeId,
+        crime: def.id,
+        region: c.region,
+        ...(c.port ? { port: c.port } : {}),
+        at: now,
+        hull: law.profiles.ship.hull,
+        filed: named && c.filedAs ? factor(defs, c.filedAs) : 0,
+        named,
+        ...(c.details ? { details: c.details } : {}),
+      };
+      law.reports.crimes.push(open);
+    }
+    sendReport(
+      defs,
+      world,
+      open.id,
+      { ...captor, identification: 'person', reportAt: now },
+      false,
+      now,
+      events,
+    );
+  }
+  events.push(...fileDue(defs, world, now));
+  return { events, charge };
+}
+
 /**
  * Heat from outside the pipeline: the papers' extra share when they print a crime
  * (plan 06 §4.1, piece F). Fresh heat, so the region's grace period starts again.
