@@ -48,8 +48,16 @@ import { attachSmugglers, type SmugglerControl } from './gameplay/smuggler';
 import { attachStash, type StashControl } from './gameplay/stash';
 import { withWorkshop } from './sim/hideouts/crafting';
 import { hash01 } from './sim/targets/morale';
-import { siteAnchorage, siteDef, siteGeo, SITES, squatsNoticed } from './sim/hideouts/stash';
+import {
+  hideoutIdOf,
+  siteAnchorage,
+  siteDef,
+  siteGeo,
+  SITES,
+  squatsNoticed,
+} from './sim/hideouts/stash';
 import { slipwayHead, withSlipway } from './sim/hideouts/slipway';
+import { CELL_M } from './sim/hideouts/structures';
 import { LIE_REFUSALS, type LieUntil } from './sim/hideouts/lie-at-anchor';
 import { attachShipyard } from './gameplay/shipyard';
 import { BASE_INSTRUMENTS, type Instruments } from './sim/shipyard/fit';
@@ -128,7 +136,7 @@ import { plantTile, TREE_CELL_M } from './sim/terrain/vegetation';
 import { attachBuildMode } from './gameplay/build-mode';
 import { attachHideouts } from './gameplay/hideouts';
 import { attachHideoutLife, type HideoutLife } from './gameplay/hideout-life';
-import { siteToZone } from './sim/hideouts/site-frame';
+import { siteFootprint, siteFrame, siteToZone } from './sim/hideouts/site-frame';
 import { mountBuildPanel, type BuildPanelUi } from './ui/build/BuildPanel';
 import { attachIslandAshore } from './gameplay/island-ashore';
 import { attachLegends } from './gameplay/legends';
@@ -3309,7 +3317,7 @@ async function boot(): Promise<void> {
     } else moor();
     const s = hideouts.site(hideoutId);
     const head = s && slipwayHead(s.grid, s.build);
-    const box = hideouts.strongbox();
+    const box = hideouts.strongbox(hideoutId);
     let at: { x: number; z: number; heading: number } | undefined;
     if (s && head) {
       const p = siteToZone(s.frame, head.x, head.z);
@@ -5804,10 +5812,13 @@ async function boot(): Promise<void> {
             console.warn(`Going ashore: ${why}`);
             continue;
           }
-          // Beside the shack's strongbox, else the middle of a mainland site's pad.
-          const box = hideouts.strongbox();
-          const pad = hideouts.mainlandPads().find((p) => p.id === def.id);
-          const to = box ?? pad;
+          // Beside this site's strongbox, else the middle of its build ground. Not any
+          // strongbox in the zone: another hideout's (Stockton's, from Devils) sent the boat
+          // off toward it and ashore on whatever island lay between.
+          const box = hideouts.strongbox(hideoutIdOf(def.id));
+          const fp = siteFootprint(def, frame);
+          const f = fp && siteFrame(def, fp);
+          const to = box ?? (f && siteToZone(f, (f.cols * CELL_M) / 2, (f.rows * CELL_M) / 2));
           await wait(1500);
           if (to) {
             // Row in toward it, to the last of the water before the shore.
@@ -5819,6 +5830,8 @@ async function boot(): Promise<void> {
               at = p;
             }
             hook.teleport(at.x, at.z);
+            // Bow to the shore, so she grounds on it and you step out over the bow.
+            ashore.face(Math.atan2(to.x - at.x, -(to.z - at.z)));
           }
           await wait(1000);
           hook.stepAshore();
