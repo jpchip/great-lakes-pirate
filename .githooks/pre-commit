@@ -1,0 +1,39 @@
+#!/bin/sh
+# Formats the staged files with Prettier before each commit, so CI's format check
+# (`npm run format:check`) never fails on layout. Set up by `npm install` (the `prepare`
+# script points git's core.hooksPath here). Skip it once with `git commit --no-verify`.
+#
+# A file with unstaged changes as well isn't rewritten (that would stage the unstaged
+# part too): it is only checked, and the commit stops if it needs formatting.
+
+staged=$(git diff --cached --name-only --diff-filter=ACMR)
+[ -z "$staged" ] && exit 0
+
+partial=$(git diff --name-only)
+fix=""
+check=""
+for f in $staged; do
+  [ -f "$f" ] || continue
+  if printf '%s\n' "$partial" | grep -qxF "$f"; then
+    check="$check $f"
+  else
+    fix="$fix $f"
+  fi
+done
+
+if [ -n "$fix" ]; then
+  # shellcheck disable=SC2086
+  npx --no-install prettier --write --ignore-unknown --log-level warn $fix || exit 1
+  # shellcheck disable=SC2086
+  git add $fix || exit 1
+fi
+
+if [ -n "$check" ]; then
+  # shellcheck disable=SC2086
+  if ! npx --no-install prettier --check --ignore-unknown --log-level warn $check; then
+    echo "pre-commit: these files also have unstaged changes, so they weren't formatted."
+    echo "Run 'npx prettier --write' on them (or 'npm run format'), stage them, and commit again."
+    exit 1
+  fi
+fi
+exit 0
