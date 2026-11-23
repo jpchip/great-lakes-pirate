@@ -94,7 +94,7 @@ import {
 } from './sim/chart/geography';
 import { OPEN_WATER } from './sim/weather/shelter';
 import { FULL_SAIL, speedKn, updateTargetSpeed } from './sim/sailing/controller';
-import { jumpPlacesShip } from './debug/jump-panel';
+import { jumpPlacesShip, launchParams } from './debug/jump-panel';
 import type { SaveControls } from './debug/overlay';
 import type { GameContext, GameEvents } from './modes/context';
 import { ModeMachine } from './modes/machine';
@@ -484,7 +484,8 @@ async function boot(): Promise<void> {
 
   // `?renderer=null` boots without WebGL. CI has no GPU, so its smoke test uses this
   // (plan 01 §9); rendering is checked locally.
-  const params = new URLSearchParams(window.location.search);
+  // The address bar's switches, or a dev jump's (the jump panel leaves the URL alone).
+  const params = launchParams();
   const rendererKind = params.get('renderer');
   document.body.dataset['renderer'] = rendererKind === 'null' ? 'null' : 'webgl';
   // `?timewarp=60` runs the clock and weather 60× for the playtest (a game day a minute).
@@ -1164,6 +1165,7 @@ async function boot(): Promise<void> {
         clock: state.environment.clock,
         save: saveControls,
         autoBench: bench,
+        params,
         probe: () => shipTransform.position,
         setQuality: (id) => settings.update((s) => (s.graphics.quality = id)),
         timeWarp,
@@ -1209,8 +1211,16 @@ async function boot(): Promise<void> {
         state: ctx.state,
         events: ctx.events,
       });
+      const { createGivePanel } = await import('./debug/give-panel');
+      const givePanel = createGivePanel({
+        gui: overlay.gui,
+        state: ctx.state,
+        economy,
+        region: () => law.region() ?? law.defs.regions[0]?.id ?? '',
+        saveNow: () => saveControls.saveNow(),
+      });
       const { createJumpPanel } = await import('./debug/jump-panel');
-      createJumpPanel({ gui: overlay.gui, save: saveControls });
+      createJumpPanel({ gui: overlay.gui, save: saveControls, params });
       devGui = overlay.gui;
       view = {
         render(alpha, seaTime, frameSeconds) {
@@ -1220,6 +1230,7 @@ async function boot(): Promise<void> {
           audioPanel?.update();
           hazardsPanel.update();
           lawPanel.update();
+          givePanel.update();
           for (const p of lateDevPanels) p.update();
         },
       };

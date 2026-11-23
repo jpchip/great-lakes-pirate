@@ -1,6 +1,17 @@
 import { describe, expect, it } from 'vitest';
-import { harborJump, jumpPlacesShip, jumpUrl, lightJump, zoneJump } from '../src/debug/jump-panel';
+import {
+  harborJump,
+  jumpPlacesShip,
+  jumpUrl,
+  launchParams,
+  lightJump,
+  PENDING_JUMP_KEY,
+  siteJump,
+  storePendingJump,
+  zoneJump,
+} from '../src/debug/jump-panel';
 import { findHarbor } from '../src/sim/harbors';
+import { siteDef, SITES } from '../src/sim/hideouts/stash';
 import { LIGHTHOUSES } from '../src/sim/lighthouses';
 
 describe('jumpUrl', () => {
@@ -76,5 +87,49 @@ describe('jump links', () => {
       entry: 'west',
     });
     expect(zoneJump('zone.apostles')).toEqual({ zone: 'zone.apostles' });
+  });
+});
+
+describe('jumping without touching the address bar', () => {
+  const memory = (): Pick<Storage, 'getItem' | 'setItem' | 'removeItem'> => {
+    const m = new Map<string, string>();
+    return {
+      getItem: (k) => m.get(k) ?? null,
+      setItem: (k, v) => void m.set(k, v),
+      removeItem: (k) => void m.delete(k),
+    };
+  };
+
+  it('boots once from a pending jump, then from the address bar again', () => {
+    const storage = memory();
+    expect(storePendingJump('debug&play=&zone=zone.apostles', storage)).toBe(true);
+    const first = launchParams('?debug', storage);
+    expect(first.get('zone')).toBe('zone.apostles');
+    expect(first.has('play')).toBe(true);
+    expect(storage.getItem(PENDING_JUMP_KEY)).toBeNull();
+    const second = launchParams('?debug', storage);
+    expect(second.has('zone')).toBe(false);
+    expect(second.has('debug')).toBe(true);
+  });
+
+  it('falls back to the address bar without storage', () => {
+    expect(storePendingJump('zone=zone.apostles', undefined)).toBe(false);
+    expect(launchParams('?harbor=duluth', undefined).get('harbor')).toBe('duluth');
+  });
+
+  it('a ship swap with play still keeps the place', () => {
+    const url = new URLSearchParams(
+      jumpUrl(new URLSearchParams('zone=zone.twin_ports'), { play: '', ship: 't2' }),
+    );
+    expect(url.get('zone')).toBe('zone.twin_ports');
+  });
+
+  it('a hideout link names its zone and its site slug, and places the ship', () => {
+    for (const site of SITES) {
+      const set = siteJump(site);
+      expect(set['zone']).toBe(site.zone);
+      expect(siteDef(`site.${set['site']}`)?.id).toBe(site.id);
+      expect(jumpPlacesShip(new URLSearchParams(set))).toBe(true);
+    }
   });
 });

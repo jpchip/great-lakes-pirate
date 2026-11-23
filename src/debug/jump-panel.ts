@@ -3,18 +3,69 @@ import { DEV_ENCOUNTERS } from '../sim/arena/encounter';
 import { HARBORS } from '../sim/harbors';
 import { ISLANDS } from '../sim/islands/on-foot';
 import { LIGHTHOUSES } from '../sim/lighthouses';
+import { SITES } from '../sim/hideouts/stash';
 import { PLAYER_SHIP_IDS } from '../sim/sailing/ships';
 import { ZONE_DEFS } from '../sim/terrain/zones';
 import type { SaveControls } from './overlay';
 
 /**
  * The jump list of the dev overlay: every place the URL start switches accept (zones and
- * their entry points, harbor piers, lights, arena encounters) plus the NPC parade and the
- * player's ship class, each one a button. A button saves the run and reloads on the matching
- * URL, or, with "Copy link instead" on, copies that URL. The folder is also the reference
- * for what `?zone=`, `?entry=`, `?harbor=`, `?light=`, `?encounter=`, `?npcs` and `?ship=`
- * take (see `START_SWITCHES` in main.ts).
+ * their entry points, harbor piers, lights, hideout sites, arena encounters) plus the NPC
+ * parade and the player's ship class, each one a button. A button saves the run, leaves the
+ * jump's switches in sessionStorage and reloads the page as it is, so the address bar never
+ * changes; `launchParams` hands them to the boot once. With "Copy link instead" on, it copies
+ * the matching URL instead. The folder is also the reference for what `?zone=`, `?entry=`,
+ * `?harbor=`, `?light=`, `?site=`, `?encounter=`, `?npcs` and `?ship=` take (see
+ * `START_SWITCHES` in main.ts).
  */
+
+/** Where a jump leaves its switches for the reload (this tab only). */
+export const PENDING_JUMP_KEY = 'glp.dev.jump';
+
+type JumpStorage = Pick<Storage, 'getItem' | 'setItem' | 'removeItem'>;
+
+function sessionStore(): JumpStorage | undefined {
+  try {
+    return window.sessionStorage;
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * The switches the game boots with: a dev jump's, left for this load by the jump panel and
+ * taken once, else the address bar's. A reload after that boots from the address bar again
+ * (the run was saved where the jump put it, so it continues there).
+ */
+export function launchParams(
+  search: string = window.location.search,
+  storage: JumpStorage | undefined = sessionStore(),
+): URLSearchParams {
+  try {
+    const pending = storage?.getItem(PENDING_JUMP_KEY);
+    if (pending !== null && pending !== undefined) {
+      storage?.removeItem(PENDING_JUMP_KEY);
+      return new URLSearchParams(pending);
+    }
+  } catch {
+    // Storage refused: boot from the address bar.
+  }
+  return new URLSearchParams(search);
+}
+
+/** Leaves a jump's query for the next load; false when this tab can't keep it. */
+export function storePendingJump(
+  query: string,
+  storage: JumpStorage | undefined = sessionStore(),
+): boolean {
+  try {
+    if (!storage) return false;
+    storage.setItem(PENDING_JUMP_KEY, query);
+    return storage.getItem(PENDING_JUMP_KEY) === query;
+  } catch {
+    return false;
+  }
+}
 
 /**
  * The switches that say where the game starts. A jump replaces all of them, so one jump
@@ -29,6 +80,7 @@ export const PLACE_SWITCHES = [
   'harbor',
   'spawn',
   'light',
+  'site',
   'fogbank',
   'fogkind',
   'encounter',
@@ -46,6 +98,7 @@ const SHIP_PLACING_SWITCHES = [
   'harbor',
   'spawn',
   'light',
+  'site',
   'fogbank',
   'encounter',
   'at',
@@ -67,7 +120,7 @@ export function jumpPlacesShip(params: URLSearchParams): boolean {
  */
 export function jumpUrl(current: URLSearchParams, set: Readonly<Record<string, string>>): string {
   const next = new URLSearchParams();
-  const keepPlace = Object.keys(set).length === 1 && 'ship' in set;
+  const keepPlace = 'ship' in set && Object.keys(set).every((k) => k === 'ship' || k === 'play');
   for (const [key, value] of current) {
     if (key in set) continue;
     if (!keepPlace && (PLACE_SWITCHES as readonly string[]).includes(key)) continue;
@@ -105,9 +158,16 @@ export function lightJump(
   };
 }
 
+/** `?zone=<its zone>&site=<slug>`: anchored off a hideout site, landed beside its shack. */
+export function siteJump(site: { id: string; zone: string }): Record<string, string> {
+  return { zone: site.zone, site: site.id.slice(site.id.indexOf('.') + 1) };
+}
+
 export interface JumpPanelOptions {
   gui: GUI;
   save: Pick<SaveControls, 'saveNow'>;
+  /** The switches this load booted with (`launchParams`), which a jump carries on. */
+  params: URLSearchParams;
 }
 
 export function createJumpPanel(options: JumpPanelOptions): void {
@@ -119,7 +179,8 @@ export function createJumpPanel(options: JumpPanelOptions): void {
   root.add(mode, 'last').name('Last link').disable().listen();
 
   const go = (set: Record<string, string>): void => {
-    const query = jumpUrl(new URLSearchParams(window.location.search), set);
+    // `play` skips the main menu for a jump that names no zone (`?ashore=bayfield`).
+    const query = jumpUrl(options.params, { play: '', ...set });
     const url = `${window.location.origin}${window.location.pathname}${query}`;
     mode.last = query;
     if (mode.copy) {
@@ -130,7 +191,11 @@ export function createJumpPanel(options: JumpPanelOptions): void {
     void save
       .saveNow()
       .catch((err: unknown) => console.warn('Save before jump failed', err))
-      .finally(() => window.location.assign(`${window.location.pathname}${query}`));
+      .finally(() => {
+        // The address bar stays as it is; without sessionStorage, fall back to the link.
+        if (storePendingJump(query.slice(1))) window.location.reload();
+        else window.location.assign(`${window.location.pathname}${query}`);
+      });
   };
   /** `set` may be a function, for a link that reads a control when the button is pressed. */
   const button = (
@@ -177,6 +242,10 @@ export function createJumpPanel(options: JumpPanelOptions): void {
     const slug = def.id.slice('island.'.length);
     button(islands, `${def.name} (${def.tier ?? 'walkable'})`, { ashore: slug });
   }
+
+  // Every hideout site (Phase 9 piece W): anchored off it, rowed in and stepped ashore.
+  const hideouts = root.addFolder('Hideouts').close();
+  for (const site of SITES) button(hideouts, site.name, siteJump(site));
 
   const encounters = root.addFolder('Encounters').close();
   for (const id of DEV_ENCOUNTERS) button(encounters, id, { encounter: id });
