@@ -99,7 +99,7 @@ test('settings pause the game, persist, and rebind keys', async ({ page }) => {
 
 interface ZonesHook {
   enter(id: string): Promise<void>;
-  pose(): { x: number; z: number; heading: number };
+  pose(): { x: number; z: number; heading: number; kn: number };
   clock(): number;
 }
 
@@ -165,6 +165,47 @@ test('keeps sailing with the journal or a look at the chart open, and P holds th
   expect((await zones()).clock).toBe(f.clock);
   await page.keyboard.press('KeyM');
   await expect(body).toHaveAttribute('data-mode', 'sailing');
+
+  // P on the look turned sail-on off; turn it back on before the edge-chart check.
+  await page.keyboard.press('KeyJ');
+  await page.getByTestId('journal-sail-on').click();
+  await expect(journal).toHaveAttribute('data-sailing', 'on');
+  await page.keyboard.press('Escape');
+
+  // On the chart at the edge (not a look): she sails on while you plot, and keeps way on exit.
+  await page.keyboard.press('KeyW');
+  await page.waitForTimeout(2000);
+  const beforeSeaChart = await zones();
+  await page.evaluate(() =>
+    (window as unknown as { __glpChart: { travel: { takeToChart(): void } } }).__glpChart.travel.takeToChart(),
+  );
+  await expect(body).toHaveAttribute('data-mode', 'chart');
+  await expect(page.getByTestId('chart-hud')).toHaveAttribute('data-trip', 'sea');
+  await expect(page.getByTestId('chart-sail-on')).toContainText('Sailing on at the helm');
+  const g = await zones();
+  await page.waitForTimeout(1200);
+  const h = await zones();
+  expect(h.clock).toBeGreaterThan(g.clock);
+  expect(Math.hypot(h.x - g.x, h.z - g.z)).toBeGreaterThan(0.03);
+  await page.keyboard.press('KeyM');
+  await expect(body).toHaveAttribute('data-mode', 'sailing');
+  const afterSeaChart = await zones();
+  expect(afterSeaChart.kn).toBeGreaterThan(0.03);
+  expect(Math.hypot(afterSeaChart.x - beforeSeaChart.x, afterSeaChart.z - beforeSeaChart.z)).toBeGreaterThan(
+    0.03,
+  );
+
+  // P holds her on the chart; leaving must not drop her to 0 kn.
+  await page.evaluate(() =>
+    (window as unknown as { __glpChart: { travel: { takeToChart(): void } } }).__glpChart.travel.takeToChart(),
+  );
+  const knBeforeHold = (await zones()).kn;
+  expect(knBeforeHold).toBeGreaterThan(0.03);
+  await page.keyboard.press('KeyP');
+  await expect(page.getByTestId('chart-sail-on')).toContainText('The ship is held');
+  await page.waitForTimeout(500);
+  await page.keyboard.press('KeyM');
+  await expect.poll(async () => (await zones()).kn).toBeGreaterThan(0.03);
 
   // The choice is the setting, kept for next time.
   await page.keyboard.press('KeyJ');

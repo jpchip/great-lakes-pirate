@@ -6134,7 +6134,7 @@ async function boot(): Promise<void> {
       stats: () => zones.stats,
       enter: enterZoneAt,
       /** Where the ship is and the game clock, to see her sail on behind the journal. */
-      pose: () => ({ ...shipPose() }),
+      pose: () => ({ ...shipPose(), kn: speedKn(sailing.state) }),
       clock: () => state.environment.clock.gameSeconds,
     };
     (window as unknown as { __glpZones: typeof hook }).__glpZones = hook;
@@ -6338,9 +6338,11 @@ async function boot(): Promise<void> {
   // back to the helm, so the player sees what happened (only ever while sailing on).
   const lookUp = (): void => {
     if (ports.journalOpen && !machine.gameplayPaused) ports.closeJournal();
-    if (machine.mode === 'chart' && chartTravel.trip === 'look' && sailOnAllowed()) {
-      chartTravel.back();
-    }
+    const sailThrough =
+      sailOnAllowed() &&
+      (chartTravel.trip === 'look' ||
+        (chartTravel.trip === 'sea' && !chartTravel.session.voyage));
+    if (machine.mode === 'chart' && sailThrough) chartTravel.back();
   };
   const ifPlayer = (e: { shipId: string | undefined }): void => {
     if (e.shipId === playerShip.id) lookUp();
