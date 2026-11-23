@@ -40,6 +40,7 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ### Fixed
 
+- **Minnesota Point's dark light** no longer stands a second, ghost keeper's house over the hideout's shack: the old light is the tower alone now, since the hideout is its keeper's ground. The new-captain screen also says the Saloon Keeper's stash there comes with its $150 lease from the Lighthouse Board already paid.
 - **Arrested for the crime, not the pistol:** taken on foot after a killing the watch saw, you were fined for carrying a weapon about the docks, because the guard went by what you had in your hand and the murder had only been put down to "someone". Now the man who takes you knows your face: every crime the watch has on you that night is put to your name (its full heat, less what a report by name already added), you're held for the gravest of them, and the cell says so ("on a charge of murder"). With nothing graver than trespass or a bribe on the books, it's still a fine as before.
 
 ## [0.8.0] - 2026-11-18
