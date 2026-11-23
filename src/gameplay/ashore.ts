@@ -180,10 +180,11 @@ export interface AshoreDeps {
   /** Out of the lockup and aboard your ship (piece G): you're off your feet at the helm. */
   jailbroke?(): void;
   /**
-   * A guard took you on foot: `by` is their npc type, `conduct` what you were taken for
-   * (a `ConductReason`, if anything was amiss). You're already off your feet.
+   * A guard took you on foot: `by` is their npc type, `conduct` what he caught you at (a
+   * `ConductReason`, if anything was amiss) and `charge` the gravest crime the watch has
+   * on you tonight (`crime.killing`), if any. You're already off your feet.
    */
-  captured?(by: string, conduct?: string): void;
+  captured?(by: string, conduct?: string, charge?: string): void;
   /**
    * The walkable islands (plan 08 §20.4 piece H): a landing on one builds it whole on its
    * 1 m tiles with its quarry, and F searches its cairns and opens the stash's strongbox.
@@ -643,10 +644,17 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
           ? 'The marshal'
           : 'The constable';
     const conduct = watch?.arrestReason();
+    // He has your face now: tonight's crimes go to your name, the gravest the charge.
+    const charge = watch?.footLaw?.arrest({
+      id: `captor.${by}`,
+      kind: by === 'npc.watchman' ? 'watchman' : 'constable',
+      name: who.charAt(0).toLowerCase() + who.slice(1),
+      identification: 'person',
+    });
     const line = jailbreak ? `${who} has you: back to the cell` : `${who} takes you in hand`;
     void deps.fade(jailbreak ? 'Recaptured' : 'Taken', line, () => {
       leave();
-      deps.captured?.(by, conduct);
+      deps.captured?.(by, conduct, charge);
     });
   };
 

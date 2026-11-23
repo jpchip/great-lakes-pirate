@@ -1,7 +1,12 @@
 import { dayAndHour, SECONDS_PER_GAME_DAY } from '../../core/time';
-import type { CrimeInput, LawEvent } from '../../sim/law/law';
+import type { ArrestCharge, CrimeInput, LawEvent } from '../../sim/law/law';
 import type { CrimeDetails } from '../../sim/law/state';
-import type { Identification, Reporting, Witness } from '../../sim/law/witness';
+import {
+  IDENTIFICATION_ORDER,
+  type Identification,
+  type Reporting,
+  type Witness,
+} from '../../sim/law/witness';
 import type { ConductReason } from './conduct';
 import type { Heist, HeistEvent } from './heist';
 import type { Guard, Stealth, StealthEvent } from './stealth';
@@ -31,6 +36,9 @@ import { guardNoun, type OnFootTools, type ToolEvent } from './tools';
  *   same burglary, and names you. A lock picked and nothing taken leaves no sign.
  * - **A shot** that hits is a killing or an assault, like the blade or the cosh; a miss is an
  *   assault on the man you shot at, if anyone saw it.
+ * - **Taken in hand** (`arrest`): every crime the watch has on its books tonight (one a guard
+ *   saw, found or came round from, not a lock found broken at dawn) is put to your name,
+ *   and you're held for the gravest: a killing, not the pistol still in your hand.
  */
 
 export interface FootLawHooks {
@@ -40,6 +48,15 @@ export interface FootLawHooks {
   detail?(crimeId: string, details: CrimeDetails): void;
   /** A guard learned your face after he'd already sent word. */
   identifyWitness?(witnessId: string, identification: Identification): void;
+  /** Taken in hand: the captor names you for these. Returns the gravest charge. */
+  chargeOnArrest?(charges: readonly ArrestCharge[], captor: Witness): string | undefined;
+  /**
+   * Every report the law files, wherever (the world tick files the late ones): how well each
+   * of tonight's crimes has been put to you so far. Returns the unsubscribe.
+   */
+  onFiled?(
+    fn: (e: { crimeId: string; reportId: string; identification: Identification }) => void,
+  ): () => void;
 }
 
 /** The hour the law's dawn comes (`law_actors.json` `dawnHour`). */
@@ -78,6 +95,11 @@ export interface FootLaw {
   readonly events: readonly LawEvent[];
   /** The crime opened for each incident: `seen:crime.trespass`, `victim:<guard id>`. */
   readonly incidents: ReadonlyMap<string, string>;
+  /**
+   * Taken in hand by `captor`: the watch's crimes tonight are put to your name, and the
+   * gravest is returned (`crime.killing`), or undefined when they have nothing on you.
+   */
+  arrest(captor: Witness): string | undefined;
   dispose(): void;
 }
 
@@ -145,9 +167,20 @@ export function createFootLaw(
   const hauls = new Map<string, { goods: Map<string, number>; cashCents: number }>();
   /** Someone in the district learned your face tonight. */
   let faceKnown = false;
+  /** Tonight's crimes the watch knows of (a guard among the witnesses), by crime id. */
+  const charges = new Map<string, ArrestCharge>();
+  const filedReports = new Set<string>();
+  const filed = (e: { crimeId: string; reportId: string; identification: Identification }) => {
+    const c = charges.get(e.crimeId);
+    if (!c || filedReports.has(e.reportId)) return;
+    filedReports.add(e.reportId);
+    const best = (id: Identification): number => IDENTIFICATION_ORDER.indexOf(id);
+    if (!c.filedAs || best(e.identification) > best(c.filedAs)) c.filedAs = e.identification;
+  };
 
   const record = (evs: LawEvent[]): string | undefined => {
     events.push(...evs);
+    for (const e of evs) if (e.type === 'ReportFiled') filed(e);
     const c = evs.find((e) => e.type === 'CrimeCommitted');
     return c?.type === 'CrimeCommitted' ? c.crimeId : undefined;
   };
@@ -162,22 +195,45 @@ export function createFootLaw(
   ): void => {
     // Nowhere the law knows (a district outside the regions): nothing to report to.
     if (!place.region) return;
+    const watchSaw = witnesses.some((w) => !!stealth.guard(w.id));
     const open = incidents.get(key);
     if (open) {
+      if (watchSaw) charge(open, crime, details);
       for (const w of witnesses) record(hooks.addWitness(open, w));
       return;
     }
-    const id = record(
-      hooks.commit({
-        crime,
-        region: place.region,
-        ...(place.port ? { port: place.port } : {}),
-        witnesses,
-        ...(details ? { details } : {}),
-        ...(company ? { company } : {}),
-      }),
-    );
+    // Known before the commit files anything (a constable files at once).
+    const pendingCharge = watchSaw ? { crime, details } : undefined;
+    const evs = hooks.commit({
+      crime,
+      region: place.region,
+      ...(place.port ? { port: place.port } : {}),
+      witnesses,
+      ...(details ? { details } : {}),
+      ...(company ? { company } : {}),
+    });
+    const committed = evs.find((e) => e.type === 'CrimeCommitted');
+    if (pendingCharge && committed?.type === 'CrimeCommitted') {
+      charge(committed.crimeId, pendingCharge.crime, pendingCharge.details);
+    }
+    const id = record(evs);
     if (id) incidents.set(key, id);
+  };
+
+  /** A crime the watch has on its books tonight. */
+  const charge = (crimeId: string, crime: string, details?: CrimeDetails): void => {
+    const c = charges.get(crimeId);
+    if (c) {
+      if (details) c.details = details;
+      return;
+    }
+    charges.set(crimeId, {
+      crimeId,
+      crime,
+      region: place.region,
+      ...(place.port ? { port: place.port } : {}),
+      ...(details ? { details } : {}),
+    });
   };
 
   const guard = (id: string): Guard | undefined => stealth.guard(id);
@@ -311,6 +367,8 @@ export function createFootLaw(
     const open = incidents.get(key);
     if (open) {
       hooks.detail?.(open, details);
+      const c = charges.get(open);
+      if (c) c.details = details;
       for (const w of extra) record(hooks.addWitness(open, w));
       return;
     }
@@ -371,13 +429,19 @@ export function createFootLaw(
   const offStealth = stealth.on(onStealth);
   const offTools = tools?.on(onTool);
   const offHeist = heist?.heist.on(onHeist);
+  const offFiled = hooks.onFiled?.(filed);
   return {
     events,
     incidents,
+    arrest(captor) {
+      if (charges.size === 0) return undefined;
+      return hooks.chargeOnArrest?.([...charges.values()], captor);
+    },
     dispose() {
       offStealth();
       offTools?.();
       offHeist?.();
+      offFiled?.();
     },
   };
 }

@@ -4316,6 +4316,8 @@ async function boot(): Promise<void> {
         law: {
           commit: (input) => law.commit(input),
           addWitness: (id, w) => law.addWitness(id, w),
+          chargeOnArrest: (charges, captor) => law.chargeOnArrest(charges, captor),
+          onFiled: (fn) => ctx.events.on('ReportFiled', fn),
           detail: (id, details) => {
             const open = state.reports.crimes.find((c) => c.id === id);
             if (open) open.details = details;
@@ -4383,6 +4385,8 @@ async function boot(): Promise<void> {
         law: {
           commit: (input) => law.commit(input),
           addWitness: (id, w) => law.addWitness(id, w),
+          chargeOnArrest: (charges, captor) => law.chargeOnArrest(charges, captor),
+          onFiled: (fn) => ctx.events.on('ReportFiled', fn),
           detail: (id, details) => {
             const open = state.reports.crimes.find((c) => c.id === id);
             if (open) open.details = details;
@@ -4529,6 +4533,8 @@ async function boot(): Promise<void> {
         law: {
           commit: (input) => law.commit(input),
           addWitness: (id, w) => law.addWitness(id, w),
+          chargeOnArrest: (charges, captor) => law.chargeOnArrest(charges, captor),
+          onFiled: (fn) => ctx.events.on('ReportFiled', fn),
           detail: (id, details) => {
             const open = state.reports.crimes.find((c) => c.id === id);
             if (open) open.details = details;
@@ -4599,7 +4605,7 @@ async function boot(): Promise<void> {
       return watch;
     },
     // Taken on foot: to the lockup as the Morrill would take you at sea (Phase 5's jail).
-    captured: (by, conduct) => {
+    captured: (by, conduct, charge) => {
       // Taken again on a jailbreak: back to the cell, or the rope.
       if (capture.breakingOut) {
         capture.recaptured();
@@ -4611,6 +4617,7 @@ async function boot(): Promise<void> {
         how: 'subdued',
         at: zoneToChart(shipPose(), zoneFrame(zone, zoneData)),
         ...(conduct ? { conduct } : {}),
+        ...(charge ? { charge } : {}),
       });
     },
     jailbroke: () => capture.jailbroke(),

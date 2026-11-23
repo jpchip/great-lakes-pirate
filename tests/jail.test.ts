@@ -232,6 +232,26 @@ describe('minor arrests on foot', () => {
     expect(minorArrest(defs, jail, 0, undefined)).toBeUndefined();
   });
 
+  it('a pistol in hand is no minor arrest when the watch has you for a killing', () => {
+    expect(minorArrest(defs, jail, 0, 'armed', 'crime.killing')).toBeUndefined();
+    expect(minorArrest(defs, jail, 0, 'armed', 'crime.assault')).toBeUndefined();
+    expect(minorArrest(defs, jail, 0, 'armed', 'crime.trespass')).toBeDefined();
+    expect(minorArrest(defs, jail, 0, 'skulking', 'crime.bribery')).toBeDefined();
+  });
+
+  it('the charge goes on the jail record', () => {
+    const s = run(0);
+    const j = imprison(
+      defs,
+      jail,
+      s,
+      { region: APOSTLES, by: 'npc.constable', how: 'subdued', charge: 'crime.killing' },
+      0,
+    );
+    expect(j.charge).toBe('crime.killing');
+    expect(parseWorldState(JSON.parse(JSON.stringify(s))).jail?.charge).toBe('crime.killing');
+  });
+
   it('a fine takes only the money: the cargo stays', () => {
     const s = run(0);
     const fine = minorArrest(defs, jail, 0, 'armed')?.fineCents ?? 0;

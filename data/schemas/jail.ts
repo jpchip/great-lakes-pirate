@@ -57,6 +57,11 @@ export const jailFileSchema = z.object({
   minorArrest: z.object({
     maxTier: z.number().int().min(0),
     conduct: z.array(z.string().min(1)),
+    /**
+     * The charges (crime ids) a minor arrest can be on. Any graver charge the watch has on
+     * you (an assault, a killing) is no minor arrest, whatever you were caught doing.
+     */
+    charges: z.array(z.string().min(1)).default([]),
     fineCents: z.array(z.number().int().nonnegative()).min(1),
     sentenceWeeks: z.number().int().positive(),
   }),

@@ -48,6 +48,7 @@
   "minorArrest": {
     "maxTier": 1,
     "conduct": ["armed", "trespass", "afterHours", "skulking", "running", "swimming"],
+    "charges": ["crime.trespass", "crime.bribery"],
     "fineCents": [1000, 2500],
     "sentenceWeeks": 1
   },
