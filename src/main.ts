@@ -6340,8 +6340,7 @@ async function boot(): Promise<void> {
     if (ports.journalOpen && !machine.gameplayPaused) ports.closeJournal();
     const sailThrough =
       sailOnAllowed() &&
-      (chartTravel.trip === 'look' ||
-        (chartTravel.trip === 'sea' && !chartTravel.session.voyage));
+      (chartTravel.trip === 'look' || (chartTravel.trip === 'sea' && !chartTravel.session.voyage));
     if (machine.mode === 'chart' && sailThrough) chartTravel.back();
   };
   const ifPlayer = (e: { shipId: string | undefined }): void => {

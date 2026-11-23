@@ -177,7 +177,9 @@ test('keeps sailing with the journal or a look at the chart open, and P holds th
   await page.waitForTimeout(2000);
   const beforeSeaChart = await zones();
   await page.evaluate(() =>
-    (window as unknown as { __glpChart: { travel: { takeToChart(): void } } }).__glpChart.travel.takeToChart(),
+    (
+      window as unknown as { __glpChart: { travel: { takeToChart(): void } } }
+    ).__glpChart.travel.takeToChart(),
   );
   await expect(body).toHaveAttribute('data-mode', 'chart');
   await expect(page.getByTestId('chart-hud')).toHaveAttribute('data-trip', 'sea');
@@ -191,13 +193,15 @@ test('keeps sailing with the journal or a look at the chart open, and P holds th
   await expect(body).toHaveAttribute('data-mode', 'sailing');
   const afterSeaChart = await zones();
   expect(afterSeaChart.kn).toBeGreaterThan(0.03);
-  expect(Math.hypot(afterSeaChart.x - beforeSeaChart.x, afterSeaChart.z - beforeSeaChart.z)).toBeGreaterThan(
-    0.03,
-  );
+  expect(
+    Math.hypot(afterSeaChart.x - beforeSeaChart.x, afterSeaChart.z - beforeSeaChart.z),
+  ).toBeGreaterThan(0.03);
 
   // P holds her on the chart; leaving must not drop her to 0 kn.
   await page.evaluate(() =>
-    (window as unknown as { __glpChart: { travel: { takeToChart(): void } } }).__glpChart.travel.takeToChart(),
+    (
+      window as unknown as { __glpChart: { travel: { takeToChart(): void } } }
+    ).__glpChart.travel.takeToChart(),
   );
   const knBeforeHold = (await zones()).kn;
   expect(knBeforeHold).toBeGreaterThan(0.03);
