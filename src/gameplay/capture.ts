@@ -207,7 +207,11 @@ export function attachCapture(opts: CaptureOptions): CaptureControl {
       (c) => `${c.qty} CU of ${goods.get(c.good)?.name ?? c.good}`,
     );
     if (j.confiscated.cashCents > 0) lines.push(`${formatCents(j.confiscated.cashCents)} in cash`);
-    return lines.length > 0 ? lines : ['Nothing: the hold and the purse were empty'];
+    if (lines.length > 0) return lines;
+    // At the low tiers only hot goods and contraband go: a clean hold keeps what it had.
+    return state.player.cargo.length > 0 || state.player.purse > 0
+      ? ['Nothing: they found nothing they could take']
+      : ['Nothing: the hold and the purse were empty'];
   };
 
   const snapshot = (): JailSnapshot | undefined => {

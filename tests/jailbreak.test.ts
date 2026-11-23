@@ -105,7 +105,7 @@ describe("the jail's rules for a breakout (plan 08 §9)", () => {
   });
 
   it('out is out: no sentence, nothing given back', () => {
-    const s = jailed(2);
+    const s = jailed(3);
     const was = escapeJail(s);
     expect(s.jail).toBeNull();
     expect(was.confiscated.cashCents).toBe(5000);

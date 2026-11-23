@@ -4146,3 +4146,44 @@ button.playing-card.marked {
   margin: 0 0 4px;
   font-size: 15px;
 }
+
+/* A law ship's hail and what it comes to: heave to or run. Logbook paper, top left. */
+.hail-forecast {
+  position: absolute;
+  left: 16px;
+  top: 72px;
+  width: 340px;
+  max-width: calc(100vw - 32px);
+  padding: 10px 14px;
+  background: var(--paper);
+  color: var(--ink);
+  border: 2px solid var(--brass);
+  border-radius: 4px;
+  font-size: 13px;
+  line-height: 1.35;
+  z-index: 5;
+}
+
+.hail-forecast-title {
+  margin: 0;
+  font-size: 16px;
+}
+
+.hail-forecast-standing {
+  font-size: 12px;
+  font-style: italic;
+  opacity: 0.8;
+}
+
+.hail-forecast-choice h3 {
+  margin: 8px 0 2px;
+  font-size: 12px;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--signal-red);
+}
+
+.hail-forecast-choice ul {
+  margin: 0;
+  padding-left: 18px;
+}

@@ -7,6 +7,7 @@ import {
   captureOutcome,
   gameJail,
   imprison,
+  confiscationAt,
   imprisonMinor,
   lockupAt,
   lockupFor,
@@ -79,7 +80,7 @@ describe('capture outcomes (plan 06 §8.2, plan 12 §8.1)', () => {
 
 describe('jail (plan 12 §8.1)', () => {
   it('confiscates cargo and cash, ends the voyage, and leaves the stash alone', () => {
-    const s = run(tierDef(defs, 2).minHeat);
+    const s = run(tierDef(defs, 3).minHeat);
     stockton(s).storage.cash = 9999;
     s.voyage = {
       points: [
@@ -105,6 +106,37 @@ describe('jail (plan 12 §8.1)', () => {
     expect(j.port).toBe('port.bayfield');
     expect(j.releaseAt).toBe(NOON + j.sentenceWeeks * SECONDS_PER_GAME_DAY);
     expect(j.execution).toBe(false);
+  });
+
+  it('scales what capture takes by tier: contraband only when Suspicious, half the purse when Wanted', () => {
+    const at = (tier: number) => {
+      const s = run(tierDef(defs, tier).minHeat);
+      s.player.cargo = [
+        { good: 'good.untaxed_whiskey', qty: 4 },
+        { good: 'good.rope_canvas', qty: 2 },
+      ];
+      s.player.purse = 4000;
+      const j = imprison(defs, jail, s, capture, NOON);
+      return { s, j };
+    };
+    const t1 = at(1);
+    expect(t1.j.confiscated).toEqual({
+      cargo: [{ good: 'good.untaxed_whiskey', qty: 4 }],
+      cashCents: 0,
+    });
+    expect(t1.s.player.cargo).toEqual([{ good: 'good.rope_canvas', qty: 2 }]);
+    expect(t1.s.player.purse).toBe(4000);
+    const t2 = at(2);
+    expect(t2.j.confiscated).toEqual({
+      cargo: [{ good: 'good.untaxed_whiskey', qty: 4 }],
+      cashCents: 2000,
+    });
+    expect(t2.s.player.purse).toBe(2000);
+    const t3 = at(3);
+    expect(t3.j.confiscated.cargo).toHaveLength(2);
+    expect(t3.s.player.cargo).toEqual([]);
+    expect(t3.s.player.purse).toBe(0);
+    expect(confiscationAt(jail, 9)).toEqual({ cargo: 'all', cashShare: 1 });
   });
 
   it('holds a captain in the lockup for the region he was taken in (Phase 9 piece X)', () => {

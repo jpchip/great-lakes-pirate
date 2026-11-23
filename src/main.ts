@@ -2168,6 +2168,7 @@ async function boot(): Promise<void> {
     },
     searchMul: () => instruments.searchMul,
     notice: (text) => showNotice(text),
+    forecast: (card) => ui.setHailForecast(card),
     splash: (x, z) => scene?.spray.burst(x, z),
     ...(devHunt ? { devTier: () => PURSUES_FROM_TIER } : {}),
     combat: () => late.combat,

@@ -429,6 +429,10 @@ function stepActive(
       }
       break;
     case 'hailed':
+      // Lying stopped is doing as she says, wherever she hails you from: the grace doesn't
+      // run out while she closes the distance (she hails at 700 m and searches inside 300 m,
+      // a minute or more at her speed). Only a ship still making way is running.
+      if (sense.playerKn < rules.heaveToKn) b.phaseS = 0;
       if (b.phaseS >= rules.hailGraceS && sense.distanceM <= rules.gunRangeM) {
         // Not hove to: an inspection she runs from is a pursuit now.
         b.intent = 'pursue';

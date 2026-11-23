@@ -65,6 +65,20 @@ export const jailFileSchema = z.object({
     fineCents: z.array(z.number().int().nonnegative()).min(1),
     sentenceWeeks: z.number().int().positive(),
   }),
+  /**
+   * What capture at sea or ashore takes, by the region's tier when you're taken (Jared,
+   * 2026-11-23): `illicit` is only hot goods and contraband, `all` the whole hold, and
+   * `cashShare` the share of the purse. A tier past the list takes its last row.
+   */
+  confiscation: z
+    .array(
+      z.object({
+        tier: z.number().int().min(0),
+        cargo: z.enum(['illicit', 'all']),
+        cashShare: z.number().min(0).max(1),
+      }),
+    )
+    .min(1),
   /** Captured at this tier or above: the rope (decided: tier 5). */
   executionFromTier: z.number().int().min(1),
   /** Heat comes down to this tier after time served (plan 06 §8.2: tier 1). */
