@@ -4,6 +4,7 @@ import {
   freshClimbOut,
   freshThinIce,
   holdCmFor,
+  iceThicknessUnderfoot,
   iceUnderfoot,
   stepClimbOut,
   stepThinIce,
@@ -60,6 +61,30 @@ describe('ice underfoot', () => {
     for (let x = 0; x < 2000; x += 7) min = Math.min(min, weakness(x, x * 0.37, 3));
     expect(min).toBeLessThan(0.9);
     expect(min).toBeGreaterThanOrEqual(1 - COLD.ice.weakSpotDepth - 1e-9);
+  });
+
+  it('yields no thickness in open water, floes or slush; real ice times weak spots off the road', () => {
+    expect(iceThicknessUnderfoot({ coverage: 0, thicknessCm: 0, kind: 'open' }, 0, 0, 0, false)).toBe(
+      undefined,
+    );
+    expect(
+      iceThicknessUnderfoot({ coverage: 0.9, thicknessCm: 20, kind: 'floes' }, 0, 0, 0, false),
+    ).toBe(undefined);
+    expect(
+      iceThicknessUnderfoot({ coverage: 1, thicknessCm: 1, kind: 'forming' }, 0, 0, 0, false),
+    ).toBe(undefined);
+    expect(
+      iceThicknessUnderfoot({ coverage: 1, thicknessCm: 6, kind: 'fast' }, 10, 20, 3, true),
+    ).toBe(6);
+    const offRoad = iceThicknessUnderfoot(
+      { coverage: 1, thicknessCm: 20, kind: 'fast' },
+      10,
+      20,
+      3,
+      false,
+    );
+    expect(offRoad).toBeDefined();
+    expect(offRoad as number).toBeCloseTo(20 * weakness(10, 20, 3), 5);
   });
 });
 
