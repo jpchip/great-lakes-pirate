@@ -24,7 +24,7 @@ export interface MainMenuProps {
   saved: SavedRunSummary | undefined;
   /** Why the saved run can't be continued, if it can't. */
   savedProblem: string | undefined;
-  /** The last run's end (only when there's no run to continue). */
+  /** The last run's end, for the front page from the Hall until a new captain starts. */
   lastRun?: LastRun | undefined;
   /** The Hall of Captains (Phase 9 piece B): past runs, latest first. */
   hall?: readonly HallRecord[] | undefined;
@@ -56,13 +56,11 @@ const pick = <T,>(list: readonly T[]): T => list[Math.floor(Math.random() * list
 function Title({
   saved,
   savedProblem,
-  lastRun,
   go,
   resume,
 }: {
   saved: SavedRunSummary | undefined;
   savedProblem: string | undefined;
-  lastRun: LastRun | undefined;
   go(screen: Screen): void;
   resume(): void;
 }) {
@@ -81,24 +79,6 @@ function Title({
             <div class="title-saved-meta">
               {saved.background} · {saved.where} · {saved.when} · {saved.purse}
             </div>
-          </div>
-        </div>
-      )}
-      {!saved && lastRun && (
-        <div class="title-saved title-last" data-testid="last-run">
-          <div>
-            <div class="title-saved-name">
-              The late Captain {lastRun.captain} of the <i>{lastRun.shipName}</i>
-            </div>
-            <div class="title-saved-meta">{lastRun.epitaph}</div>
-            <button
-              type="button"
-              class="port-mini"
-              data-testid="menu-last-run"
-              onClick={() => go('lastRun')}
-            >
-              Read the front page
-            </button>
           </div>
         </div>
       )}
@@ -143,8 +123,22 @@ function Title({
   );
 }
 
+function hallMatchesLastRun(r: HallRecord, last: LastRun): boolean {
+  return r.captain === last.captain && r.shipName === last.shipName && r.endedAtIso === last.endedAtIso;
+}
+
 /** The Hall of Captains (plan 13 §5, plan 12 §9): each past run, opened for its summary. */
-function Hall({ records, back }: { records: readonly HallRecord[]; back(): void }) {
+function Hall({
+  records,
+  lastRun,
+  go,
+  back,
+}: {
+  records: readonly HallRecord[];
+  lastRun: LastRun | undefined;
+  go(screen: Screen): void;
+  back(): void;
+}) {
   const [open, setOpen] = useState<number | undefined>(undefined);
   return (
     <div class="menu hall" data-testid="hall-of-captains">
@@ -195,6 +189,16 @@ function Hall({ records, back }: { records: readonly HallRecord[]; back(): void 
                       </div>
                     ))}
                   </dl>
+                  {lastRun && hallMatchesLastRun(r, lastRun) && (
+                    <button
+                      type="button"
+                      class="port-mini"
+                      data-testid="hall-read-front-page"
+                      onClick={() => go('lastRun')}
+                    >
+                      Read the front page
+                    </button>
+                  )}
                 </div>
               )}
             </li>
@@ -368,7 +372,6 @@ function Create({ back, start }: { back(): void; start(setup: NewRunSetup): void
             {chosen.perks.map((p) => (
               <li key={p.name}>
                 <b>{p.name}.</b> {p.text}
-                {p.later && <span class="port-dim"> ({p.later})</span>}
               </li>
             ))}
           </ul>
@@ -405,12 +408,12 @@ export function MainMenu({
     current.current = next;
     setScreenState(next);
   };
-  // Esc steps back to the title (plan 13 §6).
+  // Esc steps back to the title (plan 13 §6); the front page opened from the Hall returns there.
   useEffect(() => {
     const onKey = (e: KeyboardEvent): void => {
       if (e.code !== 'Escape' || current.current === 'title') return;
       e.preventDefault();
-      setScreen('title');
+      setScreen(current.current === 'lastRun' ? 'hall' : 'title');
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
@@ -423,15 +426,16 @@ export function MainMenu({
           <Title
             saved={saved}
             savedProblem={savedProblem}
-            lastRun={lastRun}
             go={setScreen}
             resume={() => choose({ kind: 'continue' })}
           />
         )}
-        {screen === 'hall' && <Hall records={hall} back={() => setScreen('title')} />}
+        {screen === 'hall' && (
+          <Hall records={hall} lastRun={lastRun} go={setScreen} back={() => setScreen('title')} />
+        )}
         {screen === 'replace' && saved && <Replace saved={saved} go={setScreen} />}
         {screen === 'lastRun' && lastRun && (
-          <EndScreen run={lastRun} onMenu={() => setScreen('title')} menuLabel="Back (Esc)" />
+          <EndScreen run={lastRun} onMenu={() => setScreen('hall')} menuLabel="Back (Esc)" />
         )}
         {screen === 'create' && (
           <Create

@@ -51,7 +51,7 @@ export interface BackgroundCard {
   port: string;
   hideout: string;
   harderStart: boolean;
-  perks: { name: string; text: string; later: string | undefined }[];
+  perks: { name: string; text: string }[];
 }
 
 export function backgroundCards(): BackgroundCard[] {
@@ -70,7 +70,6 @@ export function backgroundCards(): BackgroundCard[] {
     perks: b.perks.map((p) => ({
       name: p.name,
       text: p.text,
-      later: p.phase > 4 ? `from phase ${p.phase}` : undefined,
     })),
   }));
 }

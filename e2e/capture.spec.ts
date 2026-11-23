@@ -188,14 +188,20 @@ test('captured at tier 5: the gallows, the end screen, and the run is gone', asy
   // Nothing saves the run again, even when the tab goes.
   await page.evaluate(() => window.dispatchEvent(new Event('pagehide')));
 
-  // The menu: nothing to continue, the last run's front page to read.
+  // The menu: nothing to continue; the front page lives in the Hall.
   await page.getByTestId('end-menu').click();
   await expect(page.getByTestId('main-menu')).toBeVisible();
   await expect(page.getByTestId('menu-continue')).toHaveCount(0);
-  await expect(page.getByTestId('last-run')).toContainText('Hanged at Bayfield');
-  await page.getByTestId('menu-last-run').click();
+  await expect(page.getByTestId('last-run')).toHaveCount(0);
+  await page.getByTestId('menu-hall').click();
+  const entry = page.getByTestId('hall-entry').first();
+  await expect(entry).toContainText('Hanged at Bayfield');
+  await entry.locator('button.hall-row').click();
+  await page.getByTestId('hall-read-front-page').click();
   await expect(page.getByTestId('front-headline')).toContainText('HANGED');
   await page.getByTestId('end-menu').click();
+  await expect(page.getByTestId('hall-of-captains')).toBeVisible();
+  await page.getByTestId('hall-back').click();
   await expect(page.getByTestId('main-menu')).toBeVisible();
   // A new captain clears it.
   await page.getByTestId('menu-new-run').click();
