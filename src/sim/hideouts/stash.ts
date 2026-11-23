@@ -131,7 +131,12 @@ export function syncHideouts(
 
 /** Where a hideout is, for the menu and the First Week: `hideout.stockton` → "Stockton Island". */
 export function hideoutPlace(hideoutId: string): string | undefined {
-  return SITES.find((s) => hideoutIdOf(s.id) === hideoutId)?.place;
+  return hideoutSite(hideoutId)?.place;
+}
+
+/** The site a hideout id stands on (`hideout.minnesota_point` → `site.minnesota_point`). */
+export function hideoutSite(hideoutId: string): SiteDef | undefined {
+  return SITES.find((s) => hideoutIdOf(s.id) === hideoutId);
 }
 
 /** CU of goods a hideout can hold: its built storage pieces (plan 09 §5.4). */

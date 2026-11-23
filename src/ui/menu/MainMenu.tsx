@@ -362,7 +362,10 @@ function Create({ back, start }: { back(): void; start(setup: NewRunSetup): void
               {chosen.harderStart && ' (busier and better policed: a harder start)'}
             </dd>
             <dt>Hideout</dt>
-            <dd>The stash at {chosen.hideout}</dd>
+            <dd>
+              The stash at {chosen.hideout}
+              {chosen.tenure && `, ${chosen.tenure}`}
+            </dd>
           </dl>
           <ul class="create-perks">
             {chosen.perks.map((p) => (

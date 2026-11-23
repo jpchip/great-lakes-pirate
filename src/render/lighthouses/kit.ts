@@ -87,6 +87,9 @@ function conical(def: LighthouseDef): StationParts {
   body.push(frustum(rTop, rBottom, H - 0.8, 12, 0, 0.8, 0, finish));
   // A lantern whose floor is the tower's top, with its gallery rail.
   lantern(H, 1.3, glass, body, glassOf(def));
+  // An abandoned light (Minnesota Point, no keepers) is the tower alone: its keeper's
+  // ground is the hideout site there, whose own buildings stand where the house would.
+  if (def.keepers === 0) return assemble(body, glass, windows, H, def);
   // The keeper's house, behind the tower and parallel to the shore, and an oil house.
   // Iron towers (La Pointe on a narrow spit) sit the house closer; white towers keep the
   // full setback. Landward reach is mirrored in placeLights' STATION_FOOTPRINT.

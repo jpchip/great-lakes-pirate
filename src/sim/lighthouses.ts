@@ -125,7 +125,6 @@ export function stationOffsetWorld(
   };
 }
 
-/** Dry-ground samples for the merged station mesh (kit space, +z landward). Keep in sync with kit.ts. */
 /** Dry-ground samples for a station mesh (kit space, +z landward). Keep in sync with kit.ts. */
 export function stationFootprintProbes(def: LighthouseDef): readonly [number, number][] {
   return STATION_FOOTPRINT[def.tower.style](def);
@@ -135,17 +134,19 @@ const STATION_FOOTPRINT: Readonly<
   Record<TowerStyle, (def: LighthouseDef) => readonly [number, number][]>
 > = {
   conical: (def) =>
-    def.tower.finish === 'iron'
-      ? [
-          [0, 5],
-          [-2.5, 4.8],
-          [2.5, 4.8],
-        ]
-      : [
-          [0, 14],
-          [-5.5, 13],
-          [3, 13],
-        ],
+    def.keepers === 0
+      ? [[0, 3]]
+      : def.tower.finish === 'iron'
+        ? [
+            [0, 5],
+            [-2.5, 4.8],
+            [2.5, 4.8],
+          ]
+        : [
+            [0, 14],
+            [-5.5, 13],
+            [3, 13],
+          ],
   dwelling: () => [
     [0, 5],
     [-4, 2],
