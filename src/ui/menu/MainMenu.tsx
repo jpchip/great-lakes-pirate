@@ -124,7 +124,9 @@ function Title({
 }
 
 function hallMatchesLastRun(r: HallRecord, last: LastRun): boolean {
-  return r.captain === last.captain && r.shipName === last.shipName && r.endedAtIso === last.endedAtIso;
+  return (
+    r.captain === last.captain && r.shipName === last.shipName && r.endedAtIso === last.endedAtIso
+  );
 }
 
 /** The Hall of Captains (plan 13 §5, plan 12 §9): each past run, opened for its summary. */
