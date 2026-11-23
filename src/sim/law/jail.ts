@@ -8,6 +8,9 @@ import {
 import { dayAndHour, SECONDS_PER_GAME_DAY } from '../../core/time';
 import { Rng } from '../../core/rng';
 import { hasStrongbox } from '../hideouts/stash';
+import { offerKind } from '../economy/contraband';
+import { gameEconomy, type EconomyDefs } from '../economy/defs';
+import type { CargoStack } from '../economy/hold';
 import type { WorldState } from '../world-state';
 import { regionWanted, setHeat } from './law';
 import { tierDef, wantedTier, type LawDefs } from './defs';
@@ -105,9 +108,43 @@ export function captureOutcome(defs: LawDefs, jail: JailFile, heat: number): Cap
   return { kind: 'jail', tier, heat, sentenceWeeks, bailCents, impoundCents };
 }
 
+/** What capture at a tier takes (`jail.json`'s `confiscation`); the rope takes everything. */
+export function confiscationAt(
+  jail: JailFile,
+  tier: number,
+): { cargo: 'illicit' | 'all'; cashShare: number } {
+  if (tier >= jail.executionFromTier) return { cargo: 'all', cashShare: 1 };
+  const rows = jail.confiscation;
+  const row =
+    rows.find((r) => r.tier === tier) ??
+    [...rows].sort((a, b) => b.tier - a.tier).find((r) => r.tier <= tier) ??
+    rows[rows.length - 1];
+  return row ? { cargo: row.cargo, cashShare: row.cashShare } : { cargo: 'all', cashShare: 1 };
+}
+
 /**
- * Takes the captain (plan 12 §8.1): cargo and cash on hand confiscated, the voyage over,
- * and the jail state set. Hideouts are untouched. Returns the jail state.
+ * What capture at a tier would take from this hold and purse (Jared, 2026-11-23): at the
+ * low tiers only hot goods and contraband, more of the purse as the tier climbs, and the
+ * lot from Hunted up. Contract cargo is never illicit.
+ */
+export function captureTakes(
+  jail: JailFile,
+  tier: number,
+  cargo: readonly CargoStack[],
+  purseCents: number,
+  economy: EconomyDefs = gameEconomy(),
+): { cargo: CargoStack[]; cashCents: number } {
+  const rule = confiscationAt(jail, tier);
+  return {
+    cargo: cargo.filter((s) => rule.cargo === 'all' || !!offerKind(economy, s)),
+    cashCents: Math.round(purseCents * rule.cashShare),
+  };
+}
+
+/**
+ * Takes the captain (plan 12 §8.1): what the tier's confiscation calls for is taken from
+ * the hold and the purse (`captureTakes`), the voyage over, and the jail state set.
+ * Hideouts are untouched. Returns the jail state.
  */
 export function imprison(
   defs: LawDefs,
@@ -118,10 +155,11 @@ export function imprison(
 ): Jailed {
   const heat = state.wanted[input.region]?.heat ?? 0;
   const outcome = captureOutcome(defs, jail, heat);
-  const cargo = state.player.cargo.map((s) => ({ good: s.good, qty: s.qty }));
-  const cashCents = state.player.purse;
-  state.player.cargo = [];
-  state.player.purse = 0;
+  const takes = captureTakes(jail, outcome.tier, state.player.cargo, state.player.purse);
+  const cargo = takes.cargo.map((s) => ({ good: s.good, qty: s.qty }));
+  const cashCents = takes.cashCents;
+  state.player.cargo = state.player.cargo.filter((s) => !takes.cargo.includes(s));
+  state.player.purse -= cashCents;
   state.voyage = null;
   const execution = outcome.kind === 'execution';
   const weeks = outcome.kind === 'jail' ? outcome.sentenceWeeks : 0;

@@ -13,6 +13,8 @@ import { SettingsMenu } from './settings/SettingsMenu';
 import { settingsControls, type AudioVolumes } from './settings/controls';
 import { LoadingScreen } from './loading/LoadingScreen';
 import { ShipCardView } from './hud/ShipCardView';
+import { HailForecastView } from './hud/HailForecastView';
+import type { HailForecast } from './hud/hail-forecast';
 import { AimHud, TargetCardView } from './hud/AimHud';
 import type { AimHudSnapshot, TargetCardSnapshot } from '../gameplay/aim';
 import type { ShipCard } from './hud/ship-card';
@@ -114,6 +116,8 @@ export interface GameUi {
   setCaptions(captions: readonly CaptionView[]): void;
   /** The "look her over" / hail card (Phase 4 piece D); undefined hides it. */
   setShipCard(card: ShipCard | undefined): void;
+  /** A law ship's hail and what heaving to or running comes to; undefined hides it. */
+  setHailForecast(card: HailForecast | undefined): void;
   /** Show the "antialiasing needs a reload" note under the preset picker. */
   setReloadNote(on: boolean): void;
   /** The fade to fog while a zone loads; undefined lifts it. */
@@ -226,6 +230,7 @@ export function mountGameUi({
   const targetCard = signal<TargetCardSnapshot | undefined>(undefined);
   const captions = signal<readonly CaptionView[]>([]);
   const shipCard = signal<ShipCard | undefined>(undefined);
+  const hailCard = signal<HailForecast | undefined>(undefined);
   const menuOpen = signal(false);
   const reloadNote = signal(false);
   const loading = signal<LoadingModel | undefined>(undefined);
@@ -345,6 +350,7 @@ export function mountGameUi({
         {!menuOpen.value && stealthHud.value && <StealthHud hud={stealthHud.value} />}
         {!menuOpen.value && !port.value && !journal.value && <Captions captions={captions} />}
         {!menuOpen.value && <ShipCardView card={shipCard} />}
+        {!menuOpen.value && !port.value && <HailForecastView card={hailCard} />}
         {!menuOpen.value && <AimHud aim={aimHud} />}
         {!menuOpen.value && <TargetCardView card={targetCard} />}
         {chartActions && <ChartHud chart={chart} actions={{ ...chartActions, toggleSailOn }} />}
@@ -492,6 +498,9 @@ export function mountGameUi({
     },
     setShipCard(card) {
       shipCard.value = card;
+    },
+    setHailForecast(card) {
+      hailCard.value = card;
     },
     setReloadNote(on) {
       reloadNote.value = on;
