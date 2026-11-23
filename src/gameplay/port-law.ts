@@ -67,8 +67,6 @@ export interface PortLaw {
   wanted(region: string | undefined): WantedSnapshot | undefined;
   report(): ReportSnapshot | undefined;
   ledger(): LedgerLawSnapshot;
-  /** Regions with a tier, for the chart. */
-  marks(): { region: string; label: string; tier: number }[];
 }
 
 const PAY_REFUSALS: Record<HarborRefusal, string> = {
@@ -213,18 +211,5 @@ export function attachPortLaw(ctx: GameContext, law: GameLaw, economy: GameEcono
         refuseFrom: defs.actors.companies.refuseContractsFrom,
         wrecks: ctx.state.wrecks?.list,
       }),
-    marks() {
-      const out: { region: string; label: string; tier: number }[] = [];
-      for (const region of Object.keys(ctx.state.wanted)) {
-        const w = wantedSnapshot(defs, ctx.state, region);
-        if (!w || w.tier < 1) continue;
-        out.push({
-          region,
-          tier: w.tier,
-          label: w.top ? `${w.regionName}: MOST WANTED` : `${w.regionName}: ${w.tierName}`,
-        });
-      }
-      return out;
-    },
   };
 }

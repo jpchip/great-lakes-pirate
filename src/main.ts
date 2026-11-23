@@ -6319,19 +6319,6 @@ async function boot(): Promise<void> {
       // What's been found and what's talked of (piece O), and the leads' search circles.
       ...discovery.marks(),
       ...discovery.leadMarks().map((l) => ({ ...l, kind: 'lead' as const })),
-      // Where the law wants you (piece E), at each region's middle.
-      ...portLaw.marks().flatMap((m) => {
-        const at = law.defs.regionById.get(m.region)?.anchor;
-        return at
-          ? [
-              {
-                at,
-                label: m.label,
-                kind: m.tier >= 5 ? ('mostWanted' as const) : ('wanted' as const),
-              },
-            ]
-          : [];
-      }),
     ],
   });
   travelRef.current = chartTravel;
