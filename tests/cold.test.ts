@@ -64,9 +64,9 @@ describe('ice underfoot', () => {
   });
 
   it('yields no thickness in open water, floes or slush; real ice times weak spots off the road', () => {
-    expect(iceThicknessUnderfoot({ coverage: 0, thicknessCm: 0, kind: 'open' }, 0, 0, 0, false)).toBe(
-      undefined,
-    );
+    expect(
+      iceThicknessUnderfoot({ coverage: 0, thicknessCm: 0, kind: 'open' }, 0, 0, 0, false),
+    ).toBe(undefined);
     expect(
       iceThicknessUnderfoot({ coverage: 0.9, thicknessCm: 20, kind: 'floes' }, 0, 0, 0, false),
     ).toBe(undefined);
