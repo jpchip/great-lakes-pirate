@@ -15,6 +15,7 @@
     "lint": "eslint .",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
+    "prepare": "git config core.hooksPath .githooks || true",
     "test": "vitest run",
     "test:watch": "vitest",
     "e2e": "playwright test",
@@ -35,7 +36,8 @@
     "district:bake": "vitest run --config tools/district/vitest.config.ts",
     "bench:docks": "playwright test --config bench/docks/playwright.config.ts",
     "bench:island": "playwright test --config bench/island/playwright.config.ts",
-    "bench:hideout": "playwright test --config bench/hideout/playwright.config.ts"
+    "bench:hideout": "playwright test --config bench/hideout/playwright.config.ts",
+    "bench:all": "npm run bench:save; npm run bench:weather; npm run bench:economy; npm run bench:detection; npm run bench:stream; npm run bench:chart; npm run bench:transitions; npm run bench:combat; npm run bench:docks; npm run bench:island; npm run bench:hideout"
   },
   "dependencies": {
     "@preact/signals": "2.11.3",

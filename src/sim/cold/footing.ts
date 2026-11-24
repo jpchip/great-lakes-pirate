@@ -24,6 +24,21 @@ export function iceUnderfoot(s: IceSample): boolean {
   );
 }
 
+/**
+ * Thickness for thin-ice stress at a zone point, or undefined in open water, floes or slush.
+ * Off the marked road the weak-spot field can thin the sheet.
+ */
+export function iceThicknessUnderfoot(
+  s: IceSample,
+  x: number,
+  z: number,
+  seed: number,
+  onRoad: boolean,
+): number | undefined {
+  if (!iceUnderfoot(s)) return undefined;
+  return s.thicknessCm * (onRoad ? 1 : weakness(x, z, seed));
+}
+
 /** The ice a man needs under him to be safe, cm, with `loadKg` more hauled behind him. */
 export function holdCmFor(loadKg = 0): number {
   return COLD.ice.holdCm + Math.max(0, loadKg) / COLD.ice.kgPerCm;

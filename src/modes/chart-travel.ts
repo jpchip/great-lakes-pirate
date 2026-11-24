@@ -346,9 +346,28 @@ export function createChartTravel(host: ChartTravelHost): ChartTravel {
   /** The zone the ship's chart position is in, if any. */
   const zoneHere = (): ChartZone | undefined => zoneAt(geo, session.position);
 
-  /** True while a look lets the ship sail on in the zone (only ever opened from the helm). */
+  /**
+   * True while a look or a chart at the edge (before a voyage) lets the ship sail on in the
+   * zone behind the chart, when the setting allows it and nothing holds the clock.
+   */
   const sailingOn = (): boolean =>
-    openedFrom === 'sailing' && trip === 'look' && !!host.sailTick && !!host.sailOn?.();
+    openedFrom === 'sailing' &&
+    !!trip &&
+    !session.voyage &&
+    !session.pending &&
+    !arriving &&
+    !!host.sailTick &&
+    !!host.sailOn?.();
+
+  /** The live ship on the chart and the wind/traffic after she has sailed on behind it. */
+  const tickSailingBehindChart = (dt: number): void => {
+    host.sailTick?.(dt);
+    const { frame } = host.zone();
+    const pose = host.shipPose();
+    session.position = onChart(pose, frame);
+    session.heading = pose.heading;
+    if (session.waypoints.length > 0) chart.replot();
+  };
 
   const backLabel = (): string | undefined => {
     if (trip === 'look') return openedFrom === 'onFoot' ? 'Back' : 'Back to the helm';
@@ -414,19 +433,15 @@ export function createChartTravel(host: ChartTravelHost): ChartTravel {
         if (free && input.pressed('Confirm')) travel.setSail();
         else if (free && input.pressed('Cancel')) travel.undo();
         else if (free && input.pressed('ToggleChart') && backLabel()) travel.back();
-        // On a look the world is held, unless the ship sails on behind it: then the zone
-        // runs and the chart follows her. Chart mode only runs its clock under way.
-        if (trip === 'look' && sailingOn()) {
+        // On a look or at the edge before setting out, the world is held unless the ship
+        // sails on: then the zone runs and the chart follows her. A voyage runs chart time.
+        if (trip && sailingOn()) {
           // Pursued, the chart locks: back to the helm.
           if (host.pursued()) {
             toHelm();
             return;
           }
-          host.sailTick?.(dt);
-          const { frame } = host.zone();
-          const pose = host.shipPose();
-          session.position = onChart(pose, frame);
-          session.heading = pose.heading;
+          tickSailingBehindChart(dt);
         } else if (trip === 'sea' && !arriving) chart.update(dt);
       },
       render() {
@@ -531,7 +546,16 @@ export function createChartTravel(host: ChartTravelHost): ChartTravel {
       session.waypoints = [];
       chart.replot();
       if (zone.id === def.id) {
-        // Straight back where the ship left, if it hasn't moved; otherwise in at an entry.
+        const { frame } = host.zone();
+        const live = onChart(host.shipPose(), frame);
+        // Still at the helm in the zone: don't rebuild her at 0 kn on the departure snapshot.
+        if (distance(live, session.position) < 1) {
+          departure = undefined;
+          toHelm();
+          void host.save();
+          return;
+        }
+        // A voyage carried the chart off while the zone ship stayed: in at the nearest entry.
         const left =
           departure?.zoneId === def.id && distance(departure.chartPos, session.position) < 1
             ? departure.pose
@@ -675,7 +699,7 @@ export function createChartTravel(host: ChartTravelHost): ChartTravel {
           trip,
           gameSeconds: clock.gameSeconds,
           backLabel: backLabel(),
-          sailingOn: trip === 'look' && host.sailTick ? sailingOn() : undefined,
+          sailingOn: openedFrom === 'sailing' && host.sailTick ? sailingOn() : undefined,
           notice,
           locked: host.pursued(),
           forecastLead: Math.min(forecastLead, host.forecastHours?.() ?? Infinity),

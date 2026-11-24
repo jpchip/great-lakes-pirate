@@ -6,6 +6,7 @@ import { defineConfig, devices } from '@playwright/test';
  * so its frame times say little; the streaming times and the hitch count are the point.
  * Run the page on the laptop for real frame times.
  */
+const gpu = Boolean(process.env.GPU);
 export default defineConfig({
   testDir: '.',
   testMatch: 'stream.bench.ts',
@@ -18,8 +19,9 @@ export default defineConfig({
       use: {
         ...devices['Desktop Chrome'],
         viewport: { width: 1280, height: 720 },
+        headless: !gpu,
         launchOptions: {
-          args: ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'],
+          args: gpu ? [] : ['--use-angle=swiftshader', '--enable-unsafe-swiftshader'],
           ...(process.env.PW_CHROMIUM_PATH ? { executablePath: process.env.PW_CHROMIUM_PATH } : {}),
         },
       },

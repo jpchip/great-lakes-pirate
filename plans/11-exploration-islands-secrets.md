@@ -840,7 +840,55 @@ The concealment and sight numbers are guesses.
 
 **Checked:** the unit suite and the pipeline; `npm run audio` for all 211 sounds (about 12.9 MB, the ending air 0.86 MB). Not yet in the game: the wiring is there (`game-audio.ts`, `ashore.ts`, `wildlife.ts`, `main.ts`), and a Playwright check of a landing is the next step.
 
+### 18.25 Piece Z: the playtest and 0.9.0 (2026-11-22)
+
+**Status: the automated checks are green, and the release waits on Jared.** The tag `0.9.0` isn't cut yet: criterion 21 needs his sign-off, and the Beta gaps below need work first.
+
+**What ran here.** Each run is on `main` at a305f7d (PR #171 merged):
+- Static: `tsc --noEmit`, `eslint .` and `prettier --check .` pass.
+- Gates: the island, save-migration, save-size, islands, hero-island, island-on-foot and audio pipeline tests (574) pass.
+- CI on b7d1474 (the same code as the merge): the `check` job passed (lint, typecheck, unit, e2e). The unit suite had 133 files, 2720 passed, 1 skipped.
+- Local e2e: the new island spec passes, and the smoke and neighbouring audio specs pass. A full local e2e run was too slow on this box to finish, so the full e2e result is CI's. Two specs were flaky under CI load (`boarding`, `winters-look`) and one passed on retry; the bear-warning test in `wildlife.spec.ts` can time out in the full file run, passing alone.
+
+**§18.3 exit criteria, as checked.**
+
+| # | Criterion | Checked by | Status |
+|---|---|---|---|
+| 1 | Events fire, cool down and change the sim | Piece A's tests and the seeded-year tests | Green in CI |
+| 2 | Letters at the harbor master's | Piece A's tests and e2e | Green in CI |
+| 3 | Rivals at their Fame tiers | Piece E's sim tests | Green in CI |
+| 4 | Nickname, endings and the Hall | Piece B's tests and `e2e/endings.spec.ts` | Green in CI |
+| 5 | Poker hand and cheats | Piece C's tests | Green in CI |
+| 6 | Island posse | Piece F's sim tests and e2e | Green in CI |
+| 7 | Four stations and loft sails | Piece G's tests | Green in CI |
+| 8 | Lighthouse raid, relight, keeper | Piece H's tests | Green in CI |
+| 9 | False light and investigations | Piece I's sim tests | Green in CI |
+| 10 | A year, freeze-up to ice-out; v10 save fixture | `save-migrations.test.ts`, the year tests | Green here and in CI |
+| 11 | Cold and ice warnings, the ice road | Piece M's tests and e2e | Green in CI |
+| 12 | 22 islands land and walk; draw-call budgets | `islands.test.ts` (over every landing), `bench:island` | Tests green here; the bench needs the laptop |
+| 13 | Six legends finishable, caches seeded | Piece T's tests and per-legend e2e | Green in CI |
+| 14 | Salvage from three kinds of wreck | Piece U's tests | Green in CI |
+| 15 | Poaching, bears and wolves warn, traps | Piece V's tests and `e2e/wildlife.spec.ts` | Green in CI, with the bear-warning timing caveat above |
+| 16 | Every background at its own site | Piece W's tests and `e2e/sites.spec.ts` | Green in CI |
+| 17 | Districts burgled, jails hold | Piece X's tests and e2e | Green in CI |
+| 18 | Saves round-trip, a long run in budget | `save-*.test.ts` and `bench:save` | Tests green here; `bench:save` needs the laptop |
+| 19 | Audio within 8 MB; frame budgets in a storm, on a hero island, in a cave | Pipeline test (green); the benches | Audio budget green; frame budgets need the laptop |
+| 20 | The seasons feel different; an island is worth landing on | Jared decides | **Open: for the playtest** |
+| 21 | Plans recorded, CI green, Beta checklist worked, 0.9.0 tagged | This release PR | **Open: the tag waits on sign-off and the gaps below** |
+
+**Piece Y's listen, folded in.** Jared said he'll listen to the islands audio during this playtest. The list is in plan 15 §24: the birds and creek against the forest bed; the wolves' and bear's levels and reach (300 m is a guess); the cave's drips, hush and surge; the spade and the grapple; and the ending air (about 55 s, which doesn't stop if a new run starts first).
+
+**Beta checklist (plan 17 §9): gaps.** These block the Beta tag, and aren't in this piece's code:
+- **Ojibwe content review:** the cultural offices (Red Cliff, Bad River) or a paid reviewer, before Beta. Not started.
+- **Accessibility pass** (13 §9): captions are in; colourblind modes, the plain font, reduce motion and rebinding aren't checked here.
+- **Bench gate and the leak test** on the baseline laptop (§4.4): not run here.
+- **Browser matrix smoke** (§5): only Chromium was run here.
+- **Licensing:** `CREDITS.md` lists the island and ending sounds; the tool terms and `assets/LICENSES.json` still need the release check.
+
+**Not in piece Z:** the playtest itself and its sign-off are Jared's. The tag and the plan records for each phase (criterion 21) follow after that.
+
 ## Changelog
+- v0.23: Piece Z: the playtest checks run and the Beta gaps listed (§18.25); 0.9.0 is not tagged until Jared's sign-off.
 - v0.22: Piece Y as built (§18.24): the islands' birds, creek and surf by tier and season, a sea cave's hush, drips and surge, the animals' calls, the grapple, a dig and the ending air.
 - v0.21: Piece W as built (§18.23): the five new hideout sites, every background at its own, claiming by building, Minnesota Point leased or squatted.
 - v0.20: Piece T as built (§18.22): legends, clues, maps at the cartography table, digging and seeded caches.

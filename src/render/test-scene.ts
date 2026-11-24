@@ -36,7 +36,8 @@ import { createLighthouses, type LighthouseView } from './lighthouses/lighthouse
 import { lampLevel, lightsIn } from '../sim/lighthouses';
 import { createHarbors, type HarborView } from './harbors/harbors';
 import { layoutHarbors, type HarborLayout } from '../sim/harbors';
-import { createTerrainMaterial } from './terrain/terrain-material';
+import { createTerrainMaterial, type TerrainMaterial } from './terrain/terrain-material';
+import { clearDistrictGroundClip, setDistrictGroundClip } from './terrain/district-clip';
 import { createTerrainView, type TerrainView } from './terrain/terrain-mesh';
 import {
   createPlantModels,
@@ -147,6 +148,7 @@ interface ZoneLayer {
   zone: LoadedZone;
   edge: ZoneEdge | undefined;
   terrain: TerrainView;
+  terrainMaterial: TerrainMaterial;
   vegetation: VegetationView;
   lighthouses: LighthouseView;
   harbors: HarborView;
@@ -341,6 +343,7 @@ export async function createTestScene(
       zone,
       edge,
       terrain,
+      terrainMaterial,
       vegetation,
       lighthouses,
       harbors,
@@ -360,6 +363,8 @@ export async function createTestScene(
         vegetation.dispose();
         pois.dispose();
         caves.dispose();
+        setCaveClips(terrainMaterial.uniforms, []);
+        clearDistrictGroundClip(terrainMaterial.uniforms);
         setCaveClips(water.material.uniforms, []);
         terrain.dispose();
         lighthouses.dispose();
@@ -504,6 +509,7 @@ export async function createTestScene(
     }
   };
   const syncDistrict = (d: FootFrame['district']): void => {
+    const terrainUniforms = layer?.terrainMaterial.uniforms;
     if (districtView && districtView.model !== d?.model) {
       scene.remove(districtView.view.group);
       districtView.view.dispose();
@@ -511,6 +517,7 @@ export async function createTestScene(
       districtView = undefined;
       // Don't keep the last district's lamplight on a figure who just walked out of it.
       clearLampPools();
+      if (terrainUniforms) clearDistrictGroundClip(terrainUniforms);
     }
     if (!d) return;
     if (!districtView) {
@@ -535,7 +542,13 @@ export async function createTestScene(
     }
     harborKit(d.harbor, false);
     districtFocus.set(d.focus.x, d.focus.y, d.focus.z);
-    districtView.view.update(districtFocus, lampLevel(environment.sunElevationDeg), d.doused);
+    districtView.view.update(
+      districtFocus,
+      lampLevel(environment.sunElevationDeg),
+      d.doused,
+      d.shut,
+    );
+    if (terrainUniforms) setDistrictGroundClip(terrainUniforms, d.model.ground, d.frame);
   };
   /** The sailing camera's near plane; on foot it comes in so a wall at arm's length draws. */
   const SAIL_NEAR = camera.near;

@@ -5,6 +5,7 @@ import {
   COLD,
   freshClimbOut,
   freshThinIce,
+  iceThicknessUnderfoot,
   iceUnderfoot,
   stepClimbOut,
   stepThinIce,
@@ -1507,10 +1508,8 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
     const bed = !district && bedAt ? bedAt(p.x, p.z) : 1;
     if (!c.swimming && c.grounded && bed < 0 && p.y < COLD.ice.topM + 0.15) {
       const onRoad = !!road && roadDistance(road, p).d < COLD.ice.roadClearM;
-      iceNow = {
-        thicknessCm:
-          winter.iceAt(p.x, p.z).thicknessCm * (onRoad ? 1 : weakness(p.x, p.z, seedNum)),
-      };
+      const thickness = iceThicknessUnderfoot(winter.iceAt(p.x, p.z), p.x, p.z, seedNum, onRoad);
+      if (thickness !== undefined) iceNow = { thicknessCm: thickness };
     }
     const sl = sled();
     if (climb) {
@@ -2164,6 +2163,8 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
           frame: district.frame,
           focus: { x, y: head, z },
           doused: watch ? watch.lamps.flatMap((l, k) => (l.doused ? [k] : [])) : [],
+          // A target's doors are locked in its hours (the leaf's collider is on): drawn shut.
+          shut: watch?.heist?.doors.flatMap((d) => (d.leaf.disabled ? [] : [d.id])) ?? [],
         },
         guards: [
           ...keepers(),

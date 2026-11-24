@@ -2,6 +2,11 @@ import * as THREE from 'three';
 import { PALETTE } from '../style/palette';
 import { STYLE_LIGHT_GLSL, type StyleLighting } from '../style/stylized-material';
 import { CAVE_CLIP_GLSL, createCaveClipUniforms, type CaveClipUniforms } from './cave-clip';
+import {
+  createDistrictGroundClipUniforms,
+  DISTRICT_GROUND_CLIP_GLSL,
+  type DistrictGroundClipUniforms,
+} from './district-clip';
 
 /**
  * The style B terrain shader (plan 14 §5 "Terrain", plan 03 §8.3; Phase 2 piece C). No
@@ -18,7 +23,7 @@ import { CAVE_CLIP_GLSL, createCaveClipUniforms, type CaveClipUniforms } from '.
  * - Shoals and seabed under the water, seen in the troughs at the waterline.
  */
 
-export interface TerrainUniforms extends CaveClipUniforms {
+export interface TerrainUniforms extends CaveClipUniforms, DistrictGroundClipUniforms {
   [name: string]: THREE.IUniform;
   /** Forest turns to canopy color between these distances from the camera, meters. */
   uCanopyStart: THREE.IUniform<number>;
@@ -52,6 +57,7 @@ const fragmentShader = /* glsl */ `
 
 ${STYLE_LIGHT_GLSL}
 ${CAVE_CLIP_GLSL}
+${DISTRICT_GROUND_CLIP_GLSL}
 
 uniform vec3 uSeabed;
 uniform vec3 uShoal;
@@ -92,6 +98,7 @@ float valueNoise(vec2 p) {
 void main() {
   // The sea caves' passages (piece S): the cliff is cut away and the cave drawn instead.
   if (caveCut(vWorldPos, 0.0) > 0.5) discard;
+  if (districtGroundCut(vWorldPos.xz) > 0.5) discard;
   vec3 n = normalize(vWorldNormal);
   if (!gl_FrontFacing) n = -n;
   float h = vWorldPos.y;
@@ -169,6 +176,7 @@ export function createTerrainMaterial(lighting: StyleLighting): TerrainMaterial 
       uCanopyStart: { value: 1500 },
       uCanopyEnd: { value: 2000 },
       ...createCaveClipUniforms(),
+      ...createDistrictGroundClipUniforms(),
     },
     defines: { STYLE_TOON: '', STYLE_WRAP: '' },
     vertexShader,

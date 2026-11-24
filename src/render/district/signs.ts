@@ -25,7 +25,6 @@ const USE: Record<string, string> = {
   store: 'General store',
   office: 'Harbor office',
   lockup: 'Lockup',
-  house: 'Dwelling',
   shed: 'Shed',
 };
 

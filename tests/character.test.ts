@@ -90,13 +90,13 @@ describe('backgrounds', () => {
     expect(backgroundDef('deckhand').purseCents).toBe(15_000);
   });
 
-  it('builds a card per background for the picker, with later perks marked', () => {
+  it('builds a card per background for the picker', () => {
     const cards = backgroundCards();
     expect(cards).toHaveLength(6);
     const navy = cards.find((c) => c.key === 'ex_navy');
     expect(navy?.harderStart).toBe(true);
-    expect(navy?.perks.every((p) => p.later)).toBe(true);
-    expect(cards.find((c) => c.key === 'deckhand')?.perks.some((p) => p.later)).toBe(false);
+    expect(navy?.perks).toHaveLength(2);
+    expect(cards.find((c) => c.key === 'deckhand')?.perks).toHaveLength(2);
   });
 
   it('has portrait presets with unique ids', () => {

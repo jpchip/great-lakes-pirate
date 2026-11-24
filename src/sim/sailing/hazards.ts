@@ -495,8 +495,10 @@ function toggleAnchor(
 
 /**
  * At anchor (plan 02 §7): the ship brings up over a few seconds, swings head to wind and
- * lies downwind of the anchor. A load over the holding drags the anchor downwind, which
- * can put the ship aground; a lee or shallow, well-scoped ground holds better.
+ * lies downwind of the anchor. The sweeps come in with the anchor and stay shipped until
+ * it is up: left out, they keep way on her, so she never lies still. A load over the
+ * holding drags the anchor downwind, which can put the ship aground; a lee or shallow,
+ * well-scoped ground holds better.
  */
 function rideAnchor(
   s: SailingState,
@@ -508,6 +510,8 @@ function rideAnchor(
   dt: number,
   events: HazardEvent[],
 ): void {
+  // Oars in, including a press of R while she still rides to the anchor.
+  s.sweepsOut = false;
   const r = c.rules;
   const depth = env.terrain?.depthAt(h.anchorX, h.anchorZ) ?? c.anchorRodeM;
   const scope = clamp01(depth / c.anchorRodeM);

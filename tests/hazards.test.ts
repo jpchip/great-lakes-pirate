@@ -88,7 +88,7 @@ function run(
     stepSailing(r.s, cmd, sailing, w, 0, SCALE, DT);
     stepHazards(r.s, r.h, r.c, mc, r.env, prev, w, SCALE, DT, r.events);
     // Edge-triggered orders only count on the first tick.
-    cmd.raiseSail = cmd.lowerSail = false;
+    cmd.raiseSail = cmd.lowerSail = cmd.toggleSweeps = false;
     mc.interact = false;
   }
   return r;
@@ -322,6 +322,26 @@ describe('anchoring', () => {
     run(r, 1, wind(0, 12), {}, { anchor: true });
     expect(r.h.anchor).toBe('up');
     expect(r.events).toEqual([{ kind: 'anchorRefused', reason: 'tooDeep' }]);
+  });
+
+  it('ships the sweeps when the anchor goes down, and keeps them shipped', () => {
+    const r = rig(0, 0, 90, { speedKn: 1.5, terrain: flat(8) });
+    r.s.sweepsOut = true;
+    run(r, 1, wind(0, 12), {}, { anchor: true });
+    expect(r.h.anchor).toBe('down');
+    expect(r.s.sweepsOut).toBe(false);
+    // R while she lies to her anchor doesn't put them out again, so she can lie still.
+    run(r, DT, wind(0, 0), { toggleSweeps: true });
+    expect(r.s.sweepsOut).toBe(false);
+    run(r, 15, wind(0, 0));
+    expect(Math.abs(speedKn(r.s))).toBeLessThan(0.3);
+    // Once the anchor is up, the sweeps can come out again.
+    run(r, 0.1, wind(0, 0));
+    run(r, 1, wind(0, 0), {}, { anchor: true });
+    run(r, 8, wind(0, 0));
+    expect(r.h.anchor).toBe('up');
+    run(r, DT, wind(0, 0), { toggleSweeps: true });
+    expect(r.s.sweepsOut).toBe(true);
   });
 
   it('weighs anchor over a few seconds', () => {

@@ -45,7 +45,10 @@ describe('the words on a building (0.7.2)', () => {
     expect(signLabel({ name: 'Lake Superior Saloon', kind: 'saloon' })).toBe(
       'Lake Superior Saloon',
     );
-    expect(signLabel({ kind: 'house' })).toBe('Dwelling');
+    expect(signLabel({ kind: 'house' })).toBeUndefined();
+    expect(signLabel({ name: "Sailors' boarding house", kind: 'house' })).toBe(
+      "Sailors' boarding house",
+    );
     expect(signLabel({ kind: 'lockup' })).toBe('Lockup');
     expect(signLabel({ kind: 'no-such-kind' })).toBeUndefined();
   });
@@ -107,7 +110,7 @@ const baked =
   existsSync(join(dir, 'ground.bin')) && readFileSync(join(dir, 'ground.bin')).byteLength > 200;
 
 describe.skipIf(!baked)('the signs on the Bayfield district', () => {
-  it('names every named building, and gives every building a door a board', async () => {
+  it('names every named building, and boards only doors that have a label', async () => {
     // No DOM in the node test environment: a blank canvas stands in for the painted board.
     const ctx = {
       fillRect() {},
@@ -127,10 +130,10 @@ describe.skipIf(!baked)('the signs on the Bayfield district', () => {
       decodeGround(new Uint8Array(readFileSync(join(dir, 'ground.bin')))),
     );
     const signs = buildingSigns(model);
-    const withDoor = model.buildings.filter((b) =>
-      model.doors.some((d) => d.building === b.def.id),
+    const withSign = model.buildings.filter(
+      (b) => signLabel(b.def) && model.doors.some((d) => d.building === b.def.id),
     );
-    expect(signs.meshes.length).toBe(withDoor.length);
+    expect(signs.meshes.length).toBe(withSign.length);
     for (const name of [
       'Lake Superior Saloon',
       'Halvorsen Chandlery',
