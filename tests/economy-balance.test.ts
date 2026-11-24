@@ -161,6 +161,8 @@ describe('the loop hunter (criterion 4)', () => {
         PROFIT_CEILING_CENTS_PER_GAME_DAY,
       );
     },
+    // Six real hours of trading with a 45 CU hold: ~3 s alone, over vitest's 5 s on a busy runner.
+    20_000,
   );
 
   it('cannot get rich holding a hold of anything for its dear season', () => {
