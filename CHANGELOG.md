@@ -4,6 +4,10 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ## [Unreleased]
 
+### Fixed
+
+- **Grappling a wreck from the shoal:** a ship your false light broke up lies on the shoal, so following her in puts you aground beside her. F there now casts the grapple instead of only saying "Aground". Hard aground holds the ship as still as the anchor does, so the grapple works from there too, with or without the anchor down. `__glpSalvage.wreckAt(x, z)` and `.overAt(x, z)` lay a wreck and put the ship at a point for the checks.
+
 ## [0.9.0] - 2026-11-24
 
 Phase 9, Seasons & Secrets, and the Beta line: the year turns and the lake freezes, the islands can all be walked, and the lake gets its secrets, its wrecks, its game, its rivals and its card tables. Some of Phase 9 came out in 0.8.0 (events and letters, the lighthouse stations on foot, the island posse); the rest is below. The playtest and its checks are in [plan 11 §18.25](plans/11-exploration-islands-secrets.md).

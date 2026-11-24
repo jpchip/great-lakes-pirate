@@ -279,6 +279,7 @@ import { stealthHud } from './ui/hud/stealth-model';
 import { PointerLook } from './core/pointer-look';
 import { calendarDate } from './core/time';
 import { weekLabel, clockLabel } from './ui/hud/model';
+import { freshWrecks, recordWreck } from './sim/wrecks';
 
 /** Periodic autosave while safe (plan 16 §4.1). */
 const AUTOSAVE_INTERVAL_MS = 2 * 60_000;
@@ -2568,7 +2569,9 @@ async function boot(): Promise<void> {
       machine.mode === 'sailing' && !arena && !inArenaSpace && !changingZone
         ? shipPose()
         : undefined,
-    anchored: () => hazards.state.anchor === 'down',
+    // Hard aground holds her as still as an anchor does: a wreck put on a shoal by a false
+    // light is worked from beside her, and following her in grounds you on the same shoal.
+    anchored: () => hazards.state.anchor === 'down' || hazards.state.aground,
     daylight: () => daylight01(sunAt(state.environment.clock.gameSeconds).elevationRad),
     visibilityM: () => ctx.weather.fogVisibilityAt(state.environment.clock.gameSeconds),
     passTime: (s) => passGameTime(s),
@@ -2603,6 +2606,31 @@ async function boot(): Promise<void> {
           hazards.state.anchorZ = s.z;
         }
         return true;
+      },
+      /** Puts the ship at a zone point, stopped, anchor up (on a shoal, she takes the ground). */
+      overAt: (x: number, z: number) => {
+        placeShip({ x, z, heading: 0 });
+        sailing.state.speed = 0;
+        sailing.state.sailLevel = sailing.state.sailSetting = 0;
+      },
+      /** Lays a wreck of yours at a zone point, broken up there, and charts her. Her id. */
+      wreckAt: (x: number, z: number, name = 'Wreck') => {
+        state.wrecks ??= freshWrecks();
+        const w = recordWreck(state.wrecks, {
+          shipId: `dev.${name}`,
+          name,
+          classId: 'ship.package_steamer',
+          className: 'package steamer',
+          how: 'wrecked',
+          byPlayer: true,
+          at: worldGeo(zoneToChart({ x, z }, zoneFrame(zone, zoneData))),
+          zone: { id: zoneData.id, x, z },
+          now: state.environment.clock.gameSeconds,
+          drowned: 0,
+          cargo: [{ good: 'good.grain', qty: 20 }],
+        });
+        discovery.chart(w.id, 'sight');
+        return w.id;
       },
       look: () => salvage.look(),
       /** Depth at zone meters, and the geo of a zone point / zone point of a geo (placing wrecks). */
@@ -3709,8 +3737,9 @@ async function boot(): Promise<void> {
       }
     }
     if (arena) return;
-    // At anchor over a wreck you know, F casts the grapple (Phase 9 piece U).
-    if (e.reason === 'anchored' && salvage.start()) return;
+    // At anchor (or aground) over a wreck you know, F casts the grapple (Phase 9 piece U).
+    // The dock order says "aground" before "anchored", so both reasons reach the grapple.
+    if ((e.reason === 'anchored' || e.reason === 'aground') && salvage.start()) return;
     // At a wrecking mark with a rig aboard, F hangs the false light (Phase 9 piece I).
     if (e.reason === 'noBerth' || e.reason === 'anchored') {
       const o = rigOffer();
