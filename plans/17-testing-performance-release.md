@@ -1,6 +1,6 @@
 # 17 — Testing, Performance & Release
 
-Status: DRAFT v0.3 (decisions made)
+Status: DRAFT v0.5 (decisions made; 1.0 is Lake Superior only)
 Parent: [00-master-plan.md](00-master-plan.md)
 Inputs:
 - [01](01-tech-architecture.md): testing strategy, budgets, CI, droplet and itch.io hosting, Git LFS, MIT + CC BY, the baseline machine
@@ -139,7 +139,7 @@ Each phase ends with a playtest against **that phase's acceptance criteria** (fr
 ## 7. Versioning & Milestones
 
 ### 7.1 Versioning
-- **Semver (fixed 2026-10-22):** `0.<phase>.<patch>` for Phases 0–9 (e.g., `0.1.0` = Phase 1 sailing prototype). **`0.8.x` = MVP/Alpha** (Phase 8 done) and **`0.9.x` = Beta** (Phase 9 done). Phase 10 expansion builds are **`0.10.x`** (Phase 10 comes before polish, decided 2026-10-23), and Phase 11 polish builds are **`0.11.x`** release candidates, ending at **1.0.0**.
+- **Semver (fixed 2026-10-22):** `0.<phase>.<patch>` for Phases 0–9 (e.g., `0.1.0` = Phase 1 sailing prototype). **`0.8.x` = MVP/Alpha** (Phase 8 done) and **`0.9.x` = Beta** (Phase 9 done). Phase 10 polish builds are **`0.10.x`** release candidates, ending at **1.0.0** (renumbered 2026-11-24; polish was Phase 11). Expansion packs after 1.0, if any, are **`1.x`** ([00 §7.1](00-master-plan.md#71-after-10-expansion-packs-not-scheduled)).
 - `gameVersion` is in saves ([16 §5.1](16-save-persistence.md)). `saveVersion` is separate.
 - `CHANGELOG.md` (Keep a Changelog style) is updated with every release.
 
@@ -149,8 +149,9 @@ Each phase ends with a playtest against **that phase's acceptance criteria** (fr
 | **Phase builds** (0.0–0.7) | Each phase's playable goal ([00 §7](00-master-plan.md)) | Developer (+ optional friends) |
 | **MVP / Alpha** | The master plan MVP definition: western Superior, sailing with weather, hybrid travel, trading, Fame/Wanted with the cutter and lighthouses, freighter piracy, one docks district, 1–2 hideouts, at least summer and fall | **Private:** invited external testers only (unlisted URL, optional basic auth) |
 | **Beta** | All MVP-region systems and content complete (Phase 9 done): all docks districts, islands, legends, seasons including winter, rivals, endings | **First public release:** itch.io "in development" plus a public droplet URL |
-| **Expansions** (0.10) | Lake Michigan (Seavey's home waters), then the other lakes ([00 §7](00-master-plan.md) Phase 10) | Public (Beta) |
-| **1.0** | Polish (Phase 11), full checklist (§9) | Public release |
+| **Release candidates** (0.10) | Polish (Phase 10): audio, UI, performance, tutorial, playtests | Public (Beta) |
+| **1.0** | Western Lake Superior, full checklist (§9) | Public release |
+| **Expansion packs** (1.x, not scheduled) | Other lakes, e.g. Lake Michigan (Seavey's home waters) ([00 §7.1](00-master-plan.md#71-after-10-expansion-packs-not-scheduled)) | Public |
 
 ---
 
@@ -216,7 +217,7 @@ tag vX.Y.Z ──► all of the above ──► production build ──► deplo
 - **Save compatibility is sacred:** every release ships its migrations and fixtures.
 - **Issue triage:** labels (bug, balance, content, perf, accessibility, history), with a crash or save-loss bug as the top priority.
 - **Community contributions** (MIT/CC BY): a CONTRIBUTING guide covering data-file mods, new legends and asset submissions with provenance.
-- **Expansion planning:** Lake Michigan research plan (R2) and zone work reuse the full pipeline ([03 §10](03-world-scale-chart-travel.md)).
+- **Expansion packs:** other lakes come after 1.0, if at all ([00 §7.1](00-master-plan.md#71-after-10-expansion-packs-not-scheduled)). A Lake Michigan research plan (R2) and zone work would reuse the full pipeline ([03 §10](03-world-scale-chart-travel.md)). A pack loads existing 1.0 saves through the normal migrations.
 
 ---
 
@@ -254,14 +255,16 @@ All resolved.
 | 2026-10-22 | **Ojibwe cultural review budgeted** before Beta. |
 | 2026-10-22 | **Save migrations only**; no version-pinned old builds. |
 | 2026-10-22 | **CI runs no WebGL:** Playwright smoke uses a null renderer; screenshot diffs are local only. Blender and GDAL are local only. |
-| 2026-10-22 | **Version scheme:** 0.8 = MVP/Alpha, 0.9 = Beta, 0.10 = Phase 10 expansions, 0.11 = Phase 11 polish, then 1.0. |
+| 2026-10-22 | **Version scheme:** 0.8 = MVP/Alpha, 0.9 = Beta, ~~0.10 = Phase 10 expansions, 0.11 = Phase 11 polish~~ (superseded 2026-11-24: 0.10 = Phase 10 polish), then 1.0. |
 | 2026-10-22 | **No hosting yet:** local builds only; droplet, domain and tagged deploys deferred. Unlisted with optional basic auth until Beta once it exists. |
-| 2026-10-23 | **Phase 10 (expansions) comes before Phase 11 (polish)**, so the other lakes ship before 1.0. |
+| 2026-10-23 | ~~**Phase 10 (expansions) comes before Phase 11 (polish)**, so the other lakes ship before 1.0.~~ Superseded 2026-11-24. |
+| 2026-11-24 | **1.0 is western Lake Superior only.** Polish & Release is Phase 10 (0.10.x release candidates, then 1.0); other lakes are possible 1.x expansion packs. |
 
 ---
 
 ## Changelog
 
+- v0.5: 1.0 is Lake Superior only (2026-11-24): polish is Phase 10 (0.10.x), expansions move after 1.0 as possible 1.x packs (§7, §10).
 - v0.4: Telemetry decision explicitly confirmed: keep the opt-in local stats summary (not removed).
 - v0.3: Gap review: CI without WebGL (null-renderer smoke, local screenshot diffs), Blender/GDAL local, version scheme fixed (0.8 MVP, 0.9 Beta, 0.10 expansions, 0.11 polish, then 1.0), hosting deferred, DoD #7 deferred.
 - v0.2: Decisions: MVP external testers, no network telemetry plus an opt-in local stats summary, private until Beta, cultural review budgeted, migrations only (old-build paths removed).

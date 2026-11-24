@@ -23,7 +23,7 @@ Define how a ~350-mile lake fits into a browser game on an integrated GPU while 
 3. **Recognizable:** someone who knows the Apostles should recognize the island shapes, channels and relative positions.
 4. **Consistent:** time, distance and speed agree, so "sail through the night to reach Ashland by dawn" works.
 5. **Cheap:** fits the [01 §5](01-tech-architecture.md) budgets on the baseline laptop.
-6. **Expandable:** the same system scales to all five lakes later.
+6. **Expandable:** the same system scales to the other lakes later, as expansion packs after 1.0.
 
 ---
 
@@ -283,6 +283,8 @@ Spotted something (or something spotted you)
 ---
 
 ## 10. Expanding Beyond the MVP
+
+1.0 is western Lake Superior only (decided 2026-11-24). Everything below is for possible expansion packs after 1.0 ([00 §7.1](00-master-plan.md#71-after-10-expansion-packs-not-scheduled)).
 
 - **More Superior:** add zones (Keweenaw, Isle Royale, Marquette, the Soo) and extend the chart. The pipeline is the same, with a new UTM zone per area (16N east of −90°). The coords module handles multiple projections per zone.
 - **Other lakes:** each lake gets a chart region plus zones. The **Soo Locks** (St. Marys River) become a special transition zone between Superior and Huron/Michigan, a natural gate with heavy law presence.
