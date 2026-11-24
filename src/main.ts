@@ -16,6 +16,7 @@ import {
   type GlpDatabase,
 } from './core/save/db';
 import { acquireTabLock } from './core/tab-lock';
+import { browserPointerEnv, rememberMobileDismissed, shouldWarnMobile } from './core/device-fit';
 import {
   SettingsStore,
   applyBindingOverrides,
@@ -180,6 +181,7 @@ import { offersChart } from './sim/terrain/zone-edge';
 import { arenaLoadingScreen, loadingScreen, type Arrival } from './ui/loading/model';
 import { mountGameUi } from './ui/mount';
 import { showMainMenu } from './ui/menu/mount-menu';
+import { showMobileWarning } from './ui/menu/mobile-warning';
 import { hallRecords } from './sim/run/hall';
 import type { MenuChoice } from './ui/menu/MainMenu';
 import { randomSeed, savedRunSummary } from './ui/menu/model';
@@ -510,6 +512,13 @@ async function boot(): Promise<void> {
     return;
   }
   document.body.dataset['tabLock'] = 'held';
+
+  // A phone or tablet hears that the game wants a keyboard and mouse, once per device.
+  if (shouldWarnMobile(browserPointerEnv(), browserStorage())) {
+    document.body.dataset['mobileWarning'] = 'shown';
+    await showMobileWarning(uiRootEarly, () => rememberMobileDismissed(browserStorage()));
+    document.body.dataset['mobileWarning'] = 'dismissed';
+  }
 
   const machine = new ModeMachine();
   machine.onTransition((_, to) => (document.body.dataset['mode'] = to));

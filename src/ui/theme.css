@@ -4408,3 +4408,33 @@ button.playing-card.marked {
   margin: 0;
   padding-left: 18px;
 }
+
+/* A phone or tablet: the game wants a keyboard and mouse (it may carry on anyway). */
+.mobile-warning {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  overflow-y: auto;
+  pointer-events: auto;
+  font-family: var(--serif);
+  color: var(--ink);
+  background: #1b2630;
+}
+
+.mobile-warning .title-card {
+  max-width: 440px;
+  box-sizing: border-box;
+}
+
+.mobile-warning p {
+  font-size: 16px;
+  line-height: 1.45;
+}
+
+.mobile-warning .title-buttons .menu-button {
+  padding: 10px 12px;
+}
