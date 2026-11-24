@@ -104,6 +104,6 @@ test('the loft, powder room, table and smokehouse make their work, and it fits',
 
   // A week on, the fish is cured and in the shed.
   await page.evaluate(() => (window as unknown as Hooks).__glpCraft.skip(25));
-  expect(await goodQty(page, 'good.salted_fish')).toBe(3);
+  expect(await goodQty(page, 'good.salted_fish')).toBe(4);
   expect(errors).toEqual([]);
 });

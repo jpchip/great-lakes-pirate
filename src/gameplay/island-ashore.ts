@@ -110,6 +110,8 @@ export interface IslandAshore {
   walkableAt(at: { x: number; z: number }): boolean;
   /** The island scene for a landing here, or undefined off the walkable islands. */
   sceneFor(at: { x: number; z: number }): IslandScene | undefined;
+  /** With something on your shoulders: the strongbox's or the stores' prompt to stow it. */
+  stashPrompt(at: { x: number; y: number; z: number }): IslandPrompt | undefined;
   /** F on foot at (x, y, z): search a cairn, or open the stash at its strongbox. */
   prompt(at: { x: number; y: number; z: number }): IslandPrompt | undefined;
   /** At the rowboat with a load of salvage in your arms: put it in the hold (piece F). */
@@ -561,6 +563,7 @@ export function attachIslandAshore(deps: IslandAshoreDeps): IslandAshore {
       legendPadNear(at.x, at.z) !== undefined,
     sceneFor,
     prompt,
+    stashPrompt: (at) => deps.hideouts?.prompt(at),
     boatPrompt: () => deps.salvage?.boatPrompt(),
     params: (base) => deps.salvage?.params(base) ?? base,
     carrying: () => !!deps.salvage?.load,

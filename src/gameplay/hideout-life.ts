@@ -127,6 +127,8 @@ export interface HideoutLife {
   salvagePrompt(at: { x: number; y: number; z: number }): { text: string; act(): void } | undefined;
   /** In your arms: what the storage prompt says and does. */
   carrying(): { text: string; stow(hideoutId: string): void } | undefined;
+  /** Puts `qty` CU of `good` in a hideout's stores: the refusal if they're full. */
+  intoStores(hideoutId: string, good: string, qty: number): string | undefined;
   /** At the rowboat with a load: put it in the hold. */
   boatPrompt(): { text: string; act(): void } | undefined;
   /** The walker's params while carrying. */
@@ -473,6 +475,14 @@ export function attachHideoutLife(deps: HideoutLifeDeps): HideoutLife {
     carrying() {
       if (!load) return undefined;
       return { text: `Stack the ${load.name} in the stores`, stow: stowStores };
+    },
+    intoStores(hideoutId, good, qty) {
+      const h = states()[hideoutId];
+      if (!h) return 'Not now';
+      if (storageCapacity(h) - holdUsed(h.storage.goods) < qty) return 'The stores are full.';
+      addToHold(h.storage.goods, { good, qty });
+      deps.changed();
+      return undefined;
     },
     boatPrompt() {
       if (!load) return undefined;

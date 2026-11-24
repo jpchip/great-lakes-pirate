@@ -381,8 +381,9 @@ export function attachHideouts(deps: HideoutsDeps): Hideouts {
       return out;
     },
     prompt(at) {
+      const load = deps.carrying?.();
       // The head of the ways: the slipway's work, from its dry end (Phase 8 piece G).
-      for (const p of stashPoints()) {
+      for (const p of load ? [] : stashPoints()) {
         if (!p.ways) continue;
         if (Math.hypot(at.x - p.x, at.z - p.z) > WAYS_REACH_M) continue;
         if (Math.abs(at.y - p.y) > 2) continue;
@@ -393,7 +394,6 @@ export function attachHideouts(deps: HideoutsDeps): Hideouts {
           },
         };
       }
-      const load = deps.carrying?.();
       const near = stashPoints().filter(
         (p) =>
           !p.ways && Math.hypot(at.x - p.x, at.z - p.z) <= REACH_M && Math.abs(at.y - p.y) <= 1.6,

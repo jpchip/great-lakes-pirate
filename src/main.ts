@@ -3860,7 +3860,18 @@ async function boot(): Promise<void> {
       return stash.openHideout === id;
     },
     sleep: (id) => lifeRef.current?.openSleep(id),
-    carrying: () => lifeRef.current?.carrying(),
+    carrying: () => {
+      const life = lifeRef.current;
+      const salvage = life?.carrying();
+      if (salvage || !life) return salvage;
+      // A deer carcass over your shoulders goes in the stores as venison (piece V).
+      const wild = ashoreRef.current?.wildlife;
+      if (!wild?.carrying) return undefined;
+      return {
+        text: 'Lay the carcass in the stores',
+        stow: (id: string) => wild.stashCarcass((good, cu) => life.intoStores(id, good, cu)),
+      };
+    },
     notice: (text) => showNotice(text),
     claimed: (site, hideout, how) => {
       if (how !== 'leased') {

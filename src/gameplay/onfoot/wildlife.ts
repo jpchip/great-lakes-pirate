@@ -135,6 +135,11 @@ export interface IslandWildlife {
   prompt(player: CharacterState): WildlifePrompt | undefined;
   /** At the boat with a carcass: lay it in. */
   boatPrompt(): WildlifePrompt | undefined;
+  /**
+   * At a hideout's strongbox or stores with a carcass: lay it in with `stow` (the refusal
+   * if there's no room), as venison, the same as in the boat.
+   */
+  stashCarcass(stow: (good: string, cu: number) => string | undefined): void;
   /** Slower under a carcass. */
   params(base: ControllerParams): ControllerParams;
   frame(): WildlifeFrame;
@@ -712,6 +717,17 @@ export function createIslandWildlife(opts: WildlifeOptions): IslandWildlife {
           opts.hooks.notice(`The carcass goes into the hold: ${load.cu} CU of venison.`);
         },
       };
+    },
+    stashCarcass(stow) {
+      if (!carrying) return;
+      const load = carrying;
+      const refused = stow(load.good, load.cu);
+      if (refused) {
+        opts.hooks.notice(refused);
+        return;
+      }
+      carrying = undefined;
+      opts.hooks.notice(`The carcass goes into the stores: ${load.cu} CU of venison.`);
     },
     params(base) {
       if (!carrying) return base;
