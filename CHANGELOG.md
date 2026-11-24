@@ -4,6 +4,10 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ## [Unreleased]
 
+### Added
+
+- **A warning on phones and tablets:** a touch-only device now gets a parchment card before the menu saying the game is built for a keyboard and mouse, with a **Continue anyway** button that's remembered on that device. It goes by the pointer, not the screen size or browser name, so a touchscreen laptop (touchpad or mouse as its main pointer) or an iPad with a trackpad keyboard isn't flagged.
+
 ### Fixed
 
 - **Grappling a wreck from the shoal:** a ship your false light broke up lies on the shoal, so following her in puts you aground beside her. F there now casts the grapple instead of only saying "Aground". Hard aground holds the ship as still as the anchor does, so the grapple works from there too, with or without the anchor down. `__glpSalvage.wreckAt(x, z)` and `.overAt(x, z)` lay a wreck and put the ship at a point for the checks.
