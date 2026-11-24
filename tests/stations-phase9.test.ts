@@ -210,18 +210,18 @@ describe('the smokehouse', () => {
   const WEEK = SECONDS_PER_GAME_DAY;
 
   it('cures fish while you’re away, a batch a week, with water and barrels', () => {
-    const h = hideout([lot('good.fresh_fish', 6), lot('good.lumber', 2)], { 'item.barrel': 4 });
+    const h = hideout([lot('good.fresh_fish', 6), lot('good.lumber', 2)], { 'item.barrel': 2 });
     const r = craft(h, 'recipe.smoked_fish', 2, [h.storage.goods], { ...opts, gameSeconds: 0 });
     expect(r.ok && r.seconds).toBe(0);
     expect(h.stations!['station.smokehouse']!.queue).toHaveLength(2);
     settleProduction(h, 1.5 * WEEK);
-    expect(h.storage.goods).toEqual([lot('good.salted_fish', 3)]);
+    expect(h.storage.goods).toEqual([lot('good.salted_fish', 4)]);
     settleProduction(h, 10 * WEEK);
-    expect(h.storage.goods).toEqual([lot('good.salted_fish', 6)]);
+    expect(h.storage.goods).toEqual([lot('good.salted_fish', 8)]);
   });
 
   it('wants water', () => {
-    const h = hideout([lot('good.fresh_fish', 3), lot('good.lumber', 1)], { 'item.barrel': 2 });
+    const h = hideout([lot('good.fresh_fish', 3), lot('good.lumber', 1)], { 'item.barrel': 1 });
     const grid = unpackGrid(h.layout);
     grid.remove(grid.all().find((p) => p.piece.id === 'build.well')!.uid);
     h.layout = packGrid(grid);

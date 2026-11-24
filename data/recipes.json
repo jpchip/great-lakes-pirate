@@ -175,14 +175,14 @@
     "id": "recipe.smoked_fish",
     "name": "Smoked fish",
     "station": "station.smokehouse",
-    "blurb": "Fresh fish split, brined in well water and hung over a slow hardwood fire for a week, then packed: it keeps as salt fish does, with no salt bought.",
+    "blurb": "Fresh fish split, brined in well water and hung over a slow hardwood fire for a week, then packed tight: it keeps as salt fish does, with no salt bought, and three loads hung make four packed.",
     "hours": 24,
     "inputs": {
       "goods": { "good.fresh_fish": 3, "good.lumber": 1 },
-      "things": { "item.barrel": 2 },
+      "things": { "item.barrel": 1 },
       "water": true
     },
-    "output": { "goods": { "good.salted_fish": 3 } }
+    "output": { "goods": { "good.salted_fish": 4 } }
   },
   {
     "id": "recipe.smoked_venison",
