@@ -4,6 +4,10 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ## [Unreleased]
 
+### Fixed
+
+- **Captain portraits look sharp:** the likeness busts on the new-captain screen, the title card and the Hall of Captains no longer come out jagged. The game now ships copies of each painting pre-sized for those spots (and for high-DPI screens) instead of having the browser shrink the full 896 px painting 10 to 20 times; `tools/assets/portraits/build.py` makes them.
+
 ## [0.9.0] - 2026-11-24
 
 Phase 9, Seasons & Secrets, and the Beta line: the year turns and the lake freezes, the islands can all be walked, and the lake gets its secrets, its wrecks, its game, its rivals and its card tables. Some of Phase 9 came out in 0.8.0 (events and letters, the lighthouse stations on foot, the island posse); the rest is below. The playtest and its checks are in [plan 11 §18.25](plans/11-exploration-islands-secrets.md).

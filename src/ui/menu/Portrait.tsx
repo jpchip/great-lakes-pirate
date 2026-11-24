@@ -1,5 +1,5 @@
 import type { PortraitDef } from '../../../data/schemas/backgrounds';
-import { portraitImageUrl } from './portrait-assets';
+import { portraitImage } from './portrait-assets';
 
 /**
  * A captain's portrait preset (plan 12 §2.1 step 2, Phase 4 piece C): a painted bust in
@@ -8,7 +8,7 @@ import { portraitImageUrl } from './portrait-assets';
  */
 
 export function Portrait({ portrait: p, size = 96 }: { portrait: PortraitDef; size?: number }) {
-  const src = portraitImageUrl(p.id);
+  const img = portraitImage(p.id);
   const height = Math.round((size * 120) / 100);
   return (
     <span
@@ -17,8 +17,16 @@ export function Portrait({ portrait: p, size = 96 }: { portrait: PortraitDef; si
       role="img"
       aria-label={p.name}
     >
-      {src ? (
-        <img class="portrait-bust" src={src} alt="" decoding="async" draggable={false} />
+      {img ? (
+        <img
+          class="portrait-bust"
+          src={img.src}
+          srcset={img.srcset}
+          sizes={`${size}px`}
+          alt=""
+          decoding="async"
+          draggable={false}
+        />
       ) : (
         <span class="portrait-bust portrait-bust--empty" aria-hidden />
       )}

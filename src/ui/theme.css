@@ -1710,8 +1710,9 @@ body[data-mode='chart'] .chart-layer {
   border-bottom: 1px solid var(--paper-dark);
 }
 
-/* Bust in the brass oval (plan 12 §2.1): raster via <img> so the browser downscales
-   the full art/portraits assets cleanly; SVG <image> tended to pixelate when scaled. */
+/* Bust in the brass oval (plan 12 §2.1): raster via <img> with a srcset of pre-sized
+   copies (tools/assets/portraits/build.py), so the browser never shrinks the 896px
+   paintings far enough to alias. SVG <image> tended to pixelate when scaled. */
 .portrait {
   position: relative;
   display: inline-block;
