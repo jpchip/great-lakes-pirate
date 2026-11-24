@@ -13,6 +13,7 @@ export type SandboxCueId =
   | 'deal'
   | 'chips'
   | 'rake'
+  | 'winnings'
   | 'knock'
   | 'fold'
   | 'show'
@@ -63,7 +64,8 @@ export const POKER_MAX_S = 9;
  * a check is two knuckle raps; a call, bet or raise chips onto the pile (more for a
  * raise); a fold the cards tossed in; a draw a card dealt for each taken (a rap for
  * standing pat); a showdown the hands turned up; and the pot raked in, nearer and louder
- * when it's yours. Captains' moves are a little softer than yours.
+ * when it's yours, and then the coins poured into your purse. Captains' moves are a little
+ * softer than yours.
  */
 export function pokerCues(beats: readonly PokerBeat[], random: () => number): Cue[] {
   const out: Cue[] = [];
@@ -118,6 +120,8 @@ export function pokerCues(beats: readonly PokerBeat[], random: () => number): Cu
         break;
       case 'won':
         at('rake', b.you ? 0.85 : 0.5, 0.1, b.you ? 1 : 0.92);
+        // Yours: the winnings poured in, so a pot taken is heard for what it is.
+        if (b.you) at('winnings', 0.8, 0.75, 1);
         t += 1.6;
         break;
     }
