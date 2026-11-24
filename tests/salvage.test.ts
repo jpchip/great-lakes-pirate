@@ -364,3 +364,32 @@ describe('salvage in the game', () => {
     expect(back.salvage?.wrecks['wreck.lucerne']?.casts).toBe(1);
   });
 });
+
+describe('a big wreck gives up more a cast', () => {
+  it("brings up a share of a steamer's hold, a few CU of a small one's", () => {
+    const big = {
+      id: 'big',
+      cargo: [{ good: 'good.dry_goods', qty: 300 }],
+      papers: false,
+      ageDays: 0,
+    };
+    const small = {
+      id: 'small',
+      cargo: [{ good: 'good.coal', qty: 10 }],
+      papers: false,
+      ageDays: 0,
+    };
+    const bigHauls: number[] = [];
+    const smallHauls: number[] = [];
+    for (let i = 0; i < 20; i++) {
+      const rng = Rng.fromSeed(`haul|${i}`);
+      const a = castGrapple(R, big, progressOf(freshSalvage(), 'big', 0), 1, rng, 1000, 0);
+      const b = castGrapple(R, small, progressOf(freshSalvage(), 'small', 0), 1, rng, 1000, 0);
+      if (a.hooked && a.kind === 'cargo') bigHauls.push(a.sound + a.spoiled);
+      if (b.hooked && b.kind === 'cargo') smallHauls.push(b.sound + b.spoiled);
+    }
+    expect(Math.min(...bigHauls)).toBeGreaterThanOrEqual(6);
+    expect(Math.max(...bigHauls)).toBeLessThanOrEqual(R.haulMaxCu);
+    expect(Math.max(...smallHauls)).toBeLessThanOrEqual(R.haulCu[1]);
+  });
+});

@@ -12,6 +12,8 @@
     "oldYears": 5,
     "oldFactor": 0.8,
     "haulCu": [1, 3],
+    "haulShare": [0.02, 0.05],
+    "haulMaxCu": 12,
     "findChance": 0.25,
     "sight": { "rangeM": 70, "maxDepthM": 12, "maxHsM": 0.7, "daylight": 0.5 },
     "soundingM": 22,

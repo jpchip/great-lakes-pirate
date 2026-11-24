@@ -326,7 +326,8 @@ export function pickedClean(t: SalvageTarget, p: WreckProgress | undefined): boo
 
 /**
  * One cast of the grapple. Hooked, it brings up her papers or her curio now and then while
- * they're down there (always once her cargo's gone), or `haulCu` CU of a good still in her,
+ * they're down there (always once her cargo's gone), or some CU of a good still in her
+ * (`haulCu`, or from a big hold `haulShare` of what's left of it, up to `haulMaxCu`),
  * picked by how much of each is left; each CU is sound by its good's share for her age,
  * the rest spoiled and over the side. At most `holdFree` sound CU come aboard (the haul is
  * cut to it). Records the cast in `p`.
@@ -371,15 +372,15 @@ export function castGrapple(
       break;
     }
   }
-  const n = Math.min(
-    line.qty,
-    rng.int(rules.haulCu[0], Math.max(rules.haulCu[0], rules.haulCu[1])),
-  );
-  const share = soundShare(line.good, t.ageDays);
+  // A few CU from a small hold; from a big one (a steamer's), a share of what's left of it.
+  const few = rng.int(rules.haulCu[0], Math.max(rules.haulCu[0], rules.haulCu[1]));
+  const share = Math.round(line.qty * rng.range(rules.haulShare[0], rules.haulShare[1]));
+  const n = Math.min(line.qty, Math.max(few, Math.min(share, rules.haulMaxCu)));
+  const soundP = soundShare(line.good, t.ageDays);
   let sound = 0;
   let spoiled = 0;
   for (let i = 0; i < n; i++) {
-    if (rng.chance(share)) sound++;
+    if (rng.chance(soundP)) sound++;
     else spoiled++;
   }
   // What won't fit stays in her for another cast.
