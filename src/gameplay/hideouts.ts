@@ -133,9 +133,12 @@ const LEASE_MARGIN_M = 6;
 const REACH_M = 2.2;
 /** Reach to the head of the ways: anywhere on its dry cell. */
 const WAYS_REACH_M = 2.5;
-/** Reach to a curio on display, and how much nearer than the stores it must be to win F. */
+/**
+ * Reach to a curio on display. Within `CURIO_AT_M` (stood at it) the look takes F even on
+ * shelving that's also stores; further off, only when no stores, stash or bunk is in reach.
+ */
 const CURIO_REACH_M = 1.4;
-const CURIO_EDGE_M = 0.3;
+const CURIO_AT_M = 0.8;
 /** The stash is what F usually means: the bunk takes it only when this much nearer. */
 const BUNK_HANDICAP_M = 0.8;
 
@@ -434,13 +437,13 @@ export function attachHideouts(deps: HideoutsDeps): Hideouts {
       const reach = (p: Point): number =>
         Math.hypot(at.x - p.x, at.z - p.z) + (p.bed ? BUNK_HANDICAP_M : 0);
       const nearest = [...near].sort((a, b) => reach(a) - reach(b))[0];
-      // A curio on display when you're at it, clearly nearer than the stores it may sit on.
+      // A curio on display when you're stood at it, or in reach with nothing else to open.
       const flat = (p: { x: number; z: number }): number => Math.hypot(at.x - p.x, at.z - p.z);
       const curio = curioPoints()
         .filter((c) => flat(c) <= CURIO_REACH_M && c.y - at.y > -0.5 && c.y - at.y < 2.6)
         .sort((a, b) => flat(a) - flat(b))[0];
       const def = curio && curioDef(curio.id);
-      if (curio && def && (!nearest || flat(curio) + CURIO_EDGE_M < reach(nearest))) {
+      if (curio && def && (!nearest || flat(curio) <= CURIO_AT_M)) {
         const lookAt = deps.lookAt;
         return {
           text: `Look at ${lower(def.name)}`,
