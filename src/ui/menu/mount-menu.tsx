@@ -25,6 +25,8 @@ export function showMainMenu(opts: {
   hall?: readonly HallRecord[] | undefined;
   /** Character creation opened (true) or closed back to the title (false). */
   onCreating(creating: boolean): void;
+  /** Brings in an exported run (plan 16 §9); undefined when a run is already saved. */
+  importRun?: ((file: File) => Promise<string | undefined>) | undefined;
   /** The fog card's words once a choice is made. */
   loading(choice: MenuChoice): { title: string; line: string };
 }): Promise<MenuChoice> {
@@ -67,6 +69,7 @@ export function showMainMenu(opts: {
         settings={controls}
         choose={choose}
         onCreating={opts.onCreating}
+        importRun={opts.importRun}
       />,
       opts.root,
     );

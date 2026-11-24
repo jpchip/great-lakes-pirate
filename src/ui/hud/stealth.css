@@ -149,17 +149,17 @@
 }
 
 .eye-alerted .eye-fill {
-  fill: #e0503f;
+  fill: var(--signal-red-bright);
   opacity: 1;
 }
 
 .eye-alerted .eye-lid {
-  stroke: #ffd9d2;
+  stroke: var(--signal-red-pale);
   stroke-width: 1.8;
 }
 
 .eye-alerted .eye-mark {
-  color: #ff7a66;
+  color: var(--signal-red-light);
 }
 
 .stealth-eye.known .eye-lid {
@@ -178,7 +178,7 @@
 }
 
 .eye-alerted .eye-arrow {
-  fill: #ff7a66;
+  fill: var(--signal-red-light);
 }
 
 .stealth-law {
@@ -221,6 +221,6 @@
 
 .danger-pursued {
   border: 2px solid var(--signal-red);
-  color: #ffd9d2;
+  color: var(--signal-red-pale);
   font-weight: bold;
 }

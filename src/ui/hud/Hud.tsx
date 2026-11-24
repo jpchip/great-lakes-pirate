@@ -1,4 +1,5 @@
 import type { ReadonlySignal } from '@preact/signals';
+import { keyName, keyText } from '../keys';
 import type { HudDensity } from '../../core/settings';
 import {
   COMPASS_POINTS,
@@ -280,7 +281,7 @@ export function Hud({
           data-testid="take-to-chart"
           onClick={() => onTakeToChart?.()}
         >
-          Take to the chart <span class="hud-key">M</span>
+          Take to the chart <span class="hud-key">{keyName('ToggleChart')}</span>
         </button>
       )}
       {h?.portName && (
@@ -290,7 +291,7 @@ export function Hud({
           data-testid="hud-port"
           onClick={() => onOpenPort?.()}
         >
-          {h.portName} <span class="hud-key">P</span>
+          {h.portName} <span class="hud-key">{keyName('Port')}</span>
         </button>
       )}
       {h?.canWait && (
@@ -300,7 +301,7 @@ export function Hud({
           data-testid="hud-wait"
           onClick={() => onWait?.()}
         >
-          Wait <span class="hud-key">Z</span>
+          Wait <span class="hud-key">{keyName('LieAtAnchor')}</span>
         </button>
       )}
       {h?.canGoAshore && (
@@ -310,7 +311,8 @@ export function Hud({
           data-testid="hud-ashore"
           onClick={() => onGoAshore?.()}
         >
-          {h.canGoAshore === 'boat' ? 'Into the boat' : 'Go ashore'} <span class="hud-key">G</span>
+          {h.canGoAshore === 'boat' ? 'Into the boat' : 'Go ashore'}{' '}
+          <span class="hud-key">{keyName('GoAshore')}</span>
         </button>
       )}
       {h && mode !== 'off' && (
@@ -364,7 +366,7 @@ export function Hud({
                   class={`hud-chip${DANGER_STATUS.has(label) ? ' danger' : ''}`}
                   data-testid="hud-status"
                 >
-                  {label}
+                  {keyText(label)}
                 </span>
               ))}
               {mode === 'full' && (

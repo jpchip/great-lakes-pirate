@@ -203,6 +203,8 @@ S6 measured a worst case of **839 KB raw → 244 KB compressed** with packed hid
 - The export file is the envelope (§5.1) with its checksum. Import validates it, migrates it if it's from an older version, and rejects corrupt files.
 - Exporting also helps bridge the separate droplet and itch.io origins (§8): move a run between them via export and import.
 
+**Built (Phase 10, 2026-11-24).** *Export run* is on the pause menu beside *Abandon run*: it saves, then downloads `Captain-<name>_<ship>_<date>.glprun`, the envelope as JSON with the compressed payload in base64 (`src/core/save/transfer.ts`). It's refused, with the reason, when hunted or pursued, in an arena or boarding, foundering, jailed, between zones, in the water, or freezing. *Import run* is on the main menu only when there's no run in the save (an unreadable run is never overwritten): the file's envelope, checksum and JSON are checked, it's migrated and validated against WorldState, and only then written as `current` with the old slots and the last run's end screen cleared (`importRun` in `db.ts`). The imported run's id goes in `meta.transferredRunId`, and when that run ends its Hall record carries `transferred: true` and shows "Transferred". Checked by `tests/save-transfer.test.ts` (round trip, an older save migrated, damaged and foreign files refused) and `e2e/save-transfer.spec.ts` (refused in danger, exported, abandoned, imported, continued, and Transferred in the Hall).
+
 ---
 
 ## 10. Dev Tools
@@ -323,6 +325,7 @@ Per-cell grid updates dominate. Everything else (480 markets, 200 ships) costs u
 ---
 
 ## Changelog
+- v1.9: Phase 10: player export and import built (§9), with the Transferred label in the Hall.
 - v1.8: Phase 9 piece M: optional `player.warmth` (`value`, `wet`) and `player.sled` (pose and load); a save without them starts warm and with the sled aboard ([11 §18.15](11-exploration-islands-secrets.md)).
 - v1.7: Phase 9 piece K: the optional `ice` slice (`frozen`, `firstBoat`, `mataafaAt`); the ice itself is worked out from the seed and the date, so a v10 save carries on into winter unchanged ([04 §26](04-water-weather-seasons.md)).
 - v1.6: Phase 8 piece J: the S6 worst case carries seven real v10 hideouts; 210 KB compressed, 2.9 ms p95 on the main thread (§12).

@@ -1,4 +1,5 @@
 import type { ReadonlySignal } from '@preact/signals';
+import { keyName } from '../keys';
 import type { EncounterChoice } from '../../modes/chart';
 import type { LookoutPref } from '../../sim/chart/traffic';
 import { ChartLockedBanner } from '../hud/Hud';
@@ -141,7 +142,8 @@ export function ChartHud({
               aria-pressed={c.sailingOn}
               onClick={actions.toggleSailOn}
             >
-              {c.sailingOn ? 'Hold the ship' : 'Sail on'} <span class="hud-key">P</span>
+              {c.sailingOn ? 'Hold the ship' : 'Sail on'}{' '}
+              <span class="hud-key">{keyName('Port')}</span>
             </button>
           </div>
         )}
@@ -153,7 +155,7 @@ export function ChartHud({
               data-testid="chart-back"
               onClick={actions.back}
             >
-              {c.backLabel} <span class="hud-key">M</span>
+              {c.backLabel} <span class="hud-key">{keyName('ToggleChart')}</span>
             </button>
           </div>
         )}

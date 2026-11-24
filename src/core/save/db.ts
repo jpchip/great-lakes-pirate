@@ -105,3 +105,29 @@ export function readLastRun(db: GlpDatabase): Promise<unknown> {
 export async function clearLastRun(db: GlpDatabase): Promise<void> {
   await db.delete('lastRun', 'summary');
 }
+
+/** The `meta` key naming the run brought in by import (plan 16 §9). */
+const TRANSFERRED_KEY = 'transferredRunId';
+
+/**
+ * Writes an imported run (plan 16 §9) as the one run: the old slots and the last run's end
+ * screen go, and the run is marked "Transferred" for its Hall of Captains record. Only
+ * called when no run is active, so nothing in play is overwritten.
+ */
+export async function importRun(db: GlpDatabase, envelope: SaveEnvelope): Promise<void> {
+  const tx = db.transaction(['run', 'lastRun', 'meta'], 'readwrite');
+  const run = tx.objectStore('run');
+  await Promise.all([
+    run.delete('backup'),
+    run.delete('danger'),
+    run.put({ ...envelope, kind: 'current' }, 'current'),
+    tx.objectStore('lastRun').delete('summary'),
+    tx.objectStore('meta').put(envelope.runId, TRANSFERRED_KEY),
+  ]);
+  await tx.done;
+}
+
+/** Whether the run `runId` came in by import (its Hall record says "Transferred"). */
+export async function isTransferred(db: GlpDatabase, runId: string): Promise<boolean> {
+  return (await db.get('meta', TRANSFERRED_KEY)) === runId;
+}

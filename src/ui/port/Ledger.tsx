@@ -1,4 +1,5 @@
 import { WantedIcon } from '../hud/Wanted';
+import { keyName } from '../keys';
 import { AmbitionsPage, useAmbitions } from '../hud/Ambitions';
 import { MessagesPage, useNoticeLog } from '../hud/NoticeLog';
 import { CuriosPage, DiscoveriesPage, LeadsPage, LegendsPage } from './JournalPages';
@@ -617,7 +618,7 @@ export function Journal({
                 aria-pressed={sailingOn}
                 onClick={toggleSailOn}
               >
-                {sailingOn ? 'Hold the ship (P)' : 'Sail on (P)'}
+                {sailingOn ? 'Hold the ship' : 'Sail on'} ({keyName('Port')})
               </button>
             </span>
           )}
@@ -627,7 +628,7 @@ export function Journal({
             data-testid="journal-close"
             onClick={close}
           >
-            Close (J or Esc)
+            Close ({keyName('Journal')} or Esc)
           </button>
         </footer>
       </div>

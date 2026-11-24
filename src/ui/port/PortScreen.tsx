@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'preact/hooks';
+import { keyName } from '../keys';
 import { formatCents } from '../../sim/economy/knowledge';
 import type { TradeSide } from '../../sim/economy/market';
 import type { LieUntil } from '../../sim/hideouts/lie-at-anchor';
@@ -1041,7 +1042,7 @@ export function PortScreen({
               data-testid="port-go-ashore"
               onClick={actions.goAshore}
             >
-              Go ashore (G)
+              Go ashore ({keyName('GoAshore')})
             </button>
           )}
           {!port.shop && (
@@ -1051,7 +1052,7 @@ export function PortScreen({
               data-testid="port-cast-off"
               onClick={actions.castOff}
             >
-              Cast off (F)
+              Cast off ({keyName('Interact')})
             </button>
           )}
           <button

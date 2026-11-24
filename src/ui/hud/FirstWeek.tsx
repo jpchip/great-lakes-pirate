@@ -1,4 +1,5 @@
 import type { FirstWeekSnapshot } from '../../gameplay/captain';
+import { keyText } from '../keys';
 
 /**
  * The Captain's First Week (plan 12 §3, plan 13 §5; Phase 4 piece C): a journal page
@@ -40,7 +41,7 @@ export function FirstWeekTracker({
           <div class="first-week-next" data-testid="first-week-next">
             {next.number}. {next.text}
           </div>
-          <div class="hud-dim">{next.hint}</div>
+          <div class="hud-dim">{keyText(next.hint)}</div>
         </>
       ) : (
         <div class="first-week-next">Your first week is done. The lake is yours.</div>
@@ -94,7 +95,7 @@ export function FirstWeekPage({
             </span>
             <span>
               {l.text}
-              {l.done ? <span class="sr-only"> (done)</span> : <small> {l.hint}</small>}
+              {l.done ? <span class="sr-only"> (done)</span> : <small> {keyText(l.hint)}</small>}
             </span>
           </li>
         ))}

@@ -82,6 +82,14 @@ export class GameRenderer {
     this.configureResolution();
   }
 
+  /**
+   * Brightness (plan 13 §9; night readability, plan 04 §9): the tone mapper's exposure,
+   * 1 as authored. It lifts the whole frame, so night stays night, only easier to read.
+   */
+  setBrightness(exposure: number): void {
+    this.renderer.toneMappingExposure = Math.min(2, Math.max(0.5, exposure));
+  }
+
   get resolution(): 'auto' | number {
     return this.fixedScale ?? 'auto';
   }

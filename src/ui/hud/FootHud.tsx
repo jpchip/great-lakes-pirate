@@ -1,4 +1,5 @@
 import type { ReadonlySignal } from '@preact/signals';
+import { keyName, keyText } from '../keys';
 import type { HudDensity } from '../../core/settings';
 
 /**
@@ -83,6 +84,20 @@ function ColdChip({ cold }: { cold: NonNullable<FootHudView['cold']> }) {
   );
 }
 
+const k = (action: Parameters<typeof keyName>[0]): string => keyName(action, 'onFoot');
+
+/** The keys line at the oars, as bound now. */
+function boatKeys(): string {
+  return `${k('MoveForward')}/${k('MoveBack')} pull or back water · ${k('MoveLeft')}/${k('MoveRight')} turn`;
+}
+
+/** The keys line on foot, as bound now. */
+function footKeys(): string {
+  const move = [k('MoveForward'), k('MoveLeft'), k('MoveBack'), k('MoveRight')];
+  const wasd = move.every((m) => m.length === 1) ? move.join('') : move.join('/');
+  return `${wasd} move · ${k('Sprint')} run · ${k('Crouch')} crouch · ${k('LeanLeft')}/${k('LeanRight')} lean · ${k('Jump')} hop, vault or climb`;
+}
+
 export function FootHud({
   hud,
   density,
@@ -105,7 +120,7 @@ export function FootHud({
           data-testid="foot-prompt"
           onClick={() => onPrompt?.()}
         >
-          {h.prompt} <span class="hud-key">F</span>
+          {keyText(h.prompt, 'onFoot')} <span class="hud-key">{keyName('Interact', 'onFoot')}</span>
         </button>
       )}
       {h.banner && (
@@ -115,7 +130,7 @@ export function FootHud({
           role="status"
         >
           {h.banner.oneChance && <strong>ONE CHANCE</strong>}
-          <span>{h.banner.text}</span>
+          <span>{keyText(h.banner.text, 'onFoot')}</span>
         </div>
       )}
       {mode !== 'off' && (
@@ -137,14 +152,12 @@ export function FootHud({
             {h.cold && <ColdChip cold={h.cold} />}
             {h.notices.map((n) => (
               <div class="hud-chip" data-testid="foot-notice" key={n}>
-                {n}
+                {keyText(n, 'onFoot')}
               </div>
             ))}
           </div>
           <div class="foot-keys hud-dim" data-testid="foot-keys">
-            {h.inBoat
-              ? 'W/S pull or back water · A/D turn'
-              : 'WASD move · Shift run · C crouch · Q/E lean · Space hop, vault or climb'}
+            {h.inBoat ? boatKeys() : footKeys()}
             {!h.mouseLocked && ' · click to look'}
           </div>
         </>

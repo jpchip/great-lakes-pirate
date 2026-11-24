@@ -11,6 +11,11 @@
   --brass: #b8892e;
   --brass-light: #e0b955;
   --signal-red: #b3362b;
+  /* The signal red's family, for warnings on dark enamel and on paper (plan 13 §9). */
+  --signal-red-bright: #e0503f;
+  --signal-red-light: #ff7a66;
+  --signal-red-pale: #ffd9d2;
+  --signal-red-dark: #7a2a12;
   --lake-teal: #2f6f73;
   --fog-gray: #8d8a83;
   --enamel: rgba(20, 28, 34, 0.72);
@@ -18,11 +23,54 @@
   --serif: 'Iowan Old Style', 'Palatino Linotype', Palatino, Georgia, 'Times New Roman', serif;
 }
 
+/*
+ * Accessibility (plan 13 §9), set on <html> by ui/access.ts from the settings.
+ * Plain font swaps the period serif for the system's sans.
+ */
+:root[data-font='plain'] {
+  --serif: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+}
+
+/*
+ * Colour-blind palettes: the warning red moves to where the eye can still tell it from the
+ * brass and the teal. Red-green (protan, deutan): a magenta, read as blue against the brass's
+ * yellow. Blue-yellow (tritan): a vivid crimson, set apart from the brass by its depth.
+ * Shapes and words always go with the colour (the eye, the chips, the banners).
+ */
+:root[data-color-mode='redGreen'] {
+  --signal-red: #9c2a86;
+  --signal-red-bright: #d548b8;
+  --signal-red-light: #f08ad8;
+  --signal-red-pale: #fbd8f1;
+  --signal-red-dark: #6a1a5b;
+}
+
+:root[data-color-mode='blueYellow'] {
+  --signal-red: #c4002f;
+  --signal-red-bright: #ff2d55;
+  --signal-red-light: #ff7f98;
+  --signal-red-pale: #ffd6df;
+  --signal-red-dark: #7d001d;
+  --brass: #8f7a52;
+  --brass-light: #cdbb93;
+}
+
+/* Reduce motion: the interface's own animations and slides go still. */
+:root[data-reduce-motion] *,
+:root[data-reduce-motion] *::before,
+:root[data-reduce-motion] *::after {
+  animation-duration: 0.001ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.001ms !important;
+}
+
 #ui {
   position: fixed;
   inset: 0;
   pointer-events: none;
   z-index: 5;
+  /* The interface's scale (plan 13 §9). */
+  zoom: var(--ui-scale, 1);
   font-family: var(--serif);
   color: var(--hud-text);
   user-select: none;
@@ -136,7 +184,7 @@
 
 .hud-eye.identified {
   border: 2px solid var(--signal-red);
-  color: #ffd9d2;
+  color: var(--signal-red-pale);
 }
 
 .hud-moon {
@@ -282,7 +330,7 @@
 /* Colour is never the only signal (plan 13 §2.2): danger also gets a heavier border. */
 .hud-chip.danger {
   border: 2px solid var(--signal-red);
-  color: #ffd9d2;
+  color: var(--signal-red-pale);
 }
 
 /* Bottom right: the wind ring, speed and sails. */
@@ -414,8 +462,8 @@
 }
 
 .menu {
-  width: min(520px, calc(100vw - 32px));
-  max-height: calc(100vh - 48px);
+  width: min(520px, calc((100vw - 32px) / var(--ui-scale, 1)));
+  max-height: calc((100vh - 48px) / var(--ui-scale, 1));
   overflow-y: auto;
   padding: 18px 22px;
   color: var(--ink);
@@ -473,6 +521,22 @@
   display: flex;
   flex-direction: column;
   gap: 6px;
+}
+
+.menu-keys-title {
+  margin: 10px 0 2px;
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink);
+  opacity: 0.7;
+}
+
+.export-run {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 4px;
+  max-width: 240px;
 }
 
 .menu-row {
@@ -560,7 +624,7 @@
 }
 
 .menu-backdrop.under-way .menu {
-  width: min(460px, calc(100vw - 32px));
+  width: min(460px, calc((100vw - 32px) / var(--ui-scale, 1)));
   overflow-x: auto;
 }
 
@@ -804,7 +868,7 @@ body[data-mode='chart'] .chart-layer {
   padding: 6px 16px;
   font-size: 15px;
   font-weight: 600;
-  color: #ffd9d2;
+  color: var(--signal-red-pale);
   background: rgba(60, 14, 10, 0.85);
   border: 2px solid var(--signal-red);
   border-radius: 3px;
@@ -912,7 +976,7 @@ body[data-mode='chart'] .chart-layer {
   top: 52px;
   left: 50%;
   transform: translateX(-50%);
-  max-width: 60vw;
+  max-width: calc(60vw / var(--ui-scale, 1));
   padding: 5px 12px;
   font-size: 14px;
   text-align: center;
@@ -928,7 +992,7 @@ body[data-mode='chart'] .chart-layer {
 
 .foot-banner.one-chance {
   border: 2px solid var(--signal-red);
-  color: #ffd9d2;
+  color: var(--signal-red-pale);
 }
 
 .jail-banner {
@@ -947,12 +1011,12 @@ body[data-mode='chart'] .chart-layer {
   position: absolute;
   right: 16px;
   bottom: 16px;
-  max-width: 46vw;
+  max-width: calc(46vw / var(--ui-scale, 1));
   text-align: right;
 }
 
 .menu.port {
-  width: min(1060px, calc(100vw - 32px));
+  width: min(1060px, calc((100vw - 32px) / var(--ui-scale, 1)));
 }
 
 .port-purse {
@@ -1129,11 +1193,11 @@ body[data-mode='chart'] .chart-layer {
 }
 
 .port-hold li.hot {
-  color: #7a2a12;
+  color: var(--signal-red-dark);
 }
 
 .ember {
-  color: #d4521d;
+  color: var(--signal-red-bright);
 }
 
 .port-capacity-bar {
@@ -1351,7 +1415,7 @@ body[data-mode='chart'] .chart-layer {
 .contract-outcome.stolen {
   color: var(--signal-red);
   border-color: var(--signal-red);
-  background: rgba(160, 58, 48, 0.1);
+  background: color-mix(in srgb, var(--signal-red) 10%, transparent);
 }
 
 .contract-outcome.abandoned {
@@ -1416,8 +1480,8 @@ body[data-mode='chart'] .chart-layer {
 .standing-row.burned .standing-bar {
   background: repeating-linear-gradient(
     -45deg,
-    #e8c4c0,
-    #e8c4c0 3px,
+    color-mix(in srgb, var(--signal-red) 25%, var(--paper)),
+    color-mix(in srgb, var(--signal-red) 25%, var(--paper)) 3px,
     var(--paper-dark) 3px,
     var(--paper-dark) 6px
   );
@@ -1494,7 +1558,7 @@ body[data-mode='chart'] .chart-layer {
   flex-direction: column;
   align-items: center;
   gap: 4px;
-  max-width: min(560px, calc(100vw - 32px));
+  max-width: min(560px, calc((100vw - 32px) / var(--ui-scale, 1)));
   pointer-events: none;
 }
 
@@ -1521,7 +1585,7 @@ body[data-mode='chart'] .chart-layer {
  * light, warmed and darkened at the edges.
  */
 .menu.smuggler {
-  width: min(900px, calc(100vw - 32px));
+  width: min(900px, calc((100vw - 32px) / var(--ui-scale, 1)));
   background:
     radial-gradient(ellipse at 50% 35%, rgba(255, 196, 110, 0.12), rgba(40, 24, 8, 0.28) 100%),
     var(--paper);
@@ -1597,7 +1661,7 @@ body[data-mode='chart'] .chart-layer {
 }
 
 .title-card {
-  width: min(460px, calc(100vw - 32px));
+  width: min(460px, calc((100vw - 32px) / var(--ui-scale, 1)));
   padding: 26px 30px 22px;
   text-align: center;
   background: var(--paper);
@@ -1662,7 +1726,7 @@ body[data-mode='chart'] .chart-layer {
 }
 
 .menu.create {
-  width: min(720px, calc(100vw - 32px));
+  width: min(720px, calc((100vw - 32px) / var(--ui-scale, 1)));
   max-height: none;
 }
 
@@ -2145,7 +2209,7 @@ body[data-mode='chart'] .chart-layer {
 }
 
 .stash-column li.hot {
-  background: rgba(212, 82, 29, 0.08);
+  background: color-mix(in srgb, var(--signal-red-bright) 8%, transparent);
 }
 
 .stash-cash {
@@ -2193,7 +2257,7 @@ body[data-mode='chart'] .chart-layer {
 .craft-station {
   flex: 1;
   min-width: 0;
-  max-height: min(52vh, 520px);
+  max-height: min(calc(52vh / var(--ui-scale, 1)), 520px);
   overflow-y: auto;
 }
 
@@ -2366,7 +2430,7 @@ body[data-mode='chart'] .chart-layer {
 }
 
 .menu.lie {
-  width: min(640px, calc(100vw - 32px));
+  width: min(640px, calc((100vw - 32px) / var(--ui-scale, 1)));
 }
 
 .stash-lie-label {
@@ -2618,7 +2682,7 @@ body[data-mode='chart'] .chart-layer {
 }
 
 .menu.jail {
-  width: min(600px, calc(100vw - 32px));
+  width: min(600px, calc((100vw - 32px) / var(--ui-scale, 1)));
 }
 
 .jail-lead {
@@ -3361,7 +3425,7 @@ body[data-mode='chart'] .chart-layer {
 }
 
 .back-room-lots li.hot {
-  color: #7a2a12;
+  color: var(--signal-red-dark);
 }
 
 .back-room-lots li.refused {
@@ -3387,7 +3451,7 @@ body[data-mode='chart'] .chart-layer {
  * cards with their odds, and the danger in signal red.
  */
 .menu.boarding {
-  width: min(960px, calc(100vw - 32px));
+  width: min(960px, calc((100vw - 32px) / var(--ui-scale, 1)));
 }
 
 .board-sides {
@@ -3825,7 +3889,7 @@ body[data-mode='chart'] .chart-layer {
 
 .stash-curios {
   padding: 4px 0 8px;
-  max-height: 52vh;
+  max-height: calc(52vh / var(--ui-scale, 1));
   overflow-y: auto;
 }
 
@@ -4176,7 +4240,7 @@ button.playing-card.marked {
 .card-result.caught .card-result-banner {
   box-shadow:
     inset 0 0 0 3px #f2e6c6,
-    inset 0 0 0 4px rgba(179, 54, 43, 0.7),
+    inset 0 0 0 4px color-mix(in srgb, var(--signal-red) 70%, transparent),
     0 6px 18px rgba(0, 0, 0, 0.45);
 }
 
@@ -4275,14 +4339,14 @@ button.playing-card.marked {
 
 /* The Hall of Captains (Phase 9 piece B). */
 .menu.hall {
-  width: min(560px, calc(100vw - 32px));
+  width: min(560px, calc((100vw - 32px) / var(--ui-scale, 1)));
 }
 
 .hall-list {
   list-style: none;
   margin: 0;
   padding: 0;
-  max-height: 60vh;
+  max-height: calc(60vh / var(--ui-scale, 1));
   overflow-y: auto;
 }
 
@@ -4374,7 +4438,7 @@ button.playing-card.marked {
   left: 16px;
   top: 72px;
   width: 340px;
-  max-width: calc(100vw - 32px);
+  max-width: calc((100vw - 32px) / var(--ui-scale, 1));
   padding: 10px 14px;
   background: var(--paper);
   color: var(--ink);
