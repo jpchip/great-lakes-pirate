@@ -4,6 +4,10 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-11-24
+
+Phase 9, Seasons & Secrets, and the Beta line: the year turns and the lake freezes, the islands can all be walked, and the lake gets its secrets, its wrecks, its game, its rivals and its card tables. Some of Phase 9 came out in 0.8.0 (events and letters, the lighthouse stations on foot, the island posse); the rest is below. The playtest and its checks are in [plan 11 §18.25](plans/11-exploration-islands-secrets.md).
+
 ### Added
 
 - **The hail forecast:** when the _Morrill_ or the tug hails you, a card at the top left says what each choice comes to. Heave to: she searches the hold. It names each lot she'd take, how risky it is to carry (in words), and whether a find makes you Wanted and gets you arrested. Run: a warning shot, then chain at your rigging. The card also gives the sentence, the bail and what capture here would confiscate.
@@ -41,6 +45,15 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ### Changed
 
+- **Messages in the journal:** notices at the bottom left now stay up by their length (4 to 10 seconds, was a flat 3), stack up to three instead of the next wiping the last, and every one goes into a new Messages page in the journal (J), newest first.
+- **The sweeps are shipped when the anchor goes down,** and can be run out again once it's up. Looking at the chart, or sitting at its edge before a voyage, no longer stops the ship: she sails on.
+- **Game keeps up with you ashore:** deer, and the season's bear or wolves, are put out along the way as you walk across an island, not only near your landing, and the animals you've left far behind go.
+- **The sea cave mouth** is one worn mass of bedded red sandstone with a ragged wave-cut arch, not stacked courses like a railroad tunnel, and a cave's back is closed all the way round.
+- **The market's marks:** made here is an outlined square badge with a crate, wanted here a filled round badge with a coin, so they read apart by shape and not only colour.
+- **The chart:** the red region standing labels and rings are gone (standings stay on the chart panel, the HUD and the ledger). Superior's marker sits by its docks, not out on Minnesota Point, and Outer Island's fish camp, the Hermit quarry, Julian, Quarry and Little Sand Bays and Oak Island's spit are charted where they are.
+- **Locked doors look locked:** a warehouse door is drawn shut while it's locked and open while it isn't.
+- **The end of a run goes to the Hall of Captains,** where a button reads the last run's front page.
+- **The dev console** (development) has a Give folder (money, goods clean or hot, stores, hideout stock, every site claimed, curios, health, warmth, Fame), a Hideouts folder of jumps to every site, time skips and a clear-Wanted switch; jumps no longer change the address bar.
 - **What capture takes scales with the tier** (`jail.json`'s `confiscation`): taken Clean or Suspicious, the law takes only stolen goods and contraband and leaves your purse alone. Wanted, it takes those and half the cash on hand. From Hunted up it takes everything, as before.
 
 ### Fixed
@@ -48,6 +61,17 @@ All notable changes to this project are recorded here. The format follows [Keep 
 - **Heaving to for the cutter counted as running:** she hails from 700 m but searches inside 300 m, and the 20 seconds before her warning shot ran out while she was still closing. Lying stopped then counted as surrendering to a pursuit: a full capture at Suspicious. The grace no longer runs out while you're hove to.
 - **Minnesota Point's dark light** no longer stands a second, ghost keeper's house over the hideout's shack: the old light is the tower alone now, since the hideout is its keeper's ground. The new-captain screen also says the Saloon Keeper's stash there comes with its $150 lease from the Lighthouse Board already paid.
 - **Arrested for the crime, not the pistol:** taken on foot after a killing the watch saw, you were fined for carrying a weapon about the docks, because the guard went by what you had in your hand and the murder had only been put down to "someone". Now the man who takes you knows your face: every crime the watch has on you that night is put to your name (its full heat, less what a report by name already added), you're held for the gravest of them, and the cell says so ("on a charge of murder"). With nothing graver than trespass or a bribe on the books, it's still a fine as before.
+- **A rival's ship card** said "Government stores" for her empty hold; only the revenue cutter's does now, and a rival in ballast says so.
+- **The WANTED column** lists only the regions its own paper covers, not every region once you're famous.
+- **Hideout jumps** (development) land you at the site they name.
+
+### Known limitations
+
+- **On foot in a big hideout's yard** the frame can reach about 167 draw calls (over the 150 of an on-foot frame). The fix is coming in a patch.
+- **Frame budgets** in a storm, on a hero island and in a cave aren't benched yet: `bench:island` reports draw calls, not frame times. The leak test (50 zone loads and unloads) isn't built.
+- **Beta checklist** ([plan 17 §9](plans/17-testing-performance-release.md)): the Ojibwe content review hasn't started; colourblind modes, the plain font, reduce motion and rebinding aren't checked; only Chromium has been smoke-tested; the tool terms and `assets/LICENSES.json` still need their release check.
+- The islands audio is a first draft, still to be listened to in the game (plan 15 §24). The ending air plays on if a new run starts before it ends.
+- In the full e2e run the bear-warning test in `wildlife.spec.ts` can time out (it passes alone), and the `boarding` and `winters-look` specs are flaky under CI load.
 
 ## [0.8.0] - 2026-11-18
 
