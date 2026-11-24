@@ -4,12 +4,18 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ## [Unreleased]
 
+### Added
+
+- **A warning on phones and tablets:** a touch-only device now gets a parchment card before the menu saying the game is built for a keyboard and mouse, with a **Continue anyway** button that's remembered on that device. It goes by the pointer, not the screen size or browser name, so a touchscreen laptop (touchpad or mouse as its main pointer) or an iPad with a trackpad keyboard isn't flagged.
+
 ### Changed
 
 - **People ashore have bodies:** the captain and everyone you meet on foot are now the humanoid from Phase 7 piece B instead of capsule stand-ins. You walk in the body your portrait preset dresses (skin, hair, beard, hat and coat), sit at the oars in the rowboat, and your arms swing the cosh, throw a stone, lift a man, pay a bribe or work at a lock as you do it. The watch, sailors, marshals, keepers, shopkeepers, the fence, the daytime crowd (some of them women now) and the islands' fishermen, farmers and villagers are dressed by trade, walk and run their beats, call out when alarmed, look about when searching, drink when drunk, and lie where they drop. The bodies load the first time you step ashore; until then, or if they can't load, the capsules stand in (`?body=capsule` keeps them, for comparison). Only the nearest four NPCs carry an ink outline, and after dark a far figure without a lit lantern isn't drawn, so a Most Wanted night in Bayfield with twelve guards costs no more draw calls than the capsules did ([plan 08 §20](plans/08-docks-district-stealth.md), [plan 14 §20](plans/14-art-direction-asset-pipeline.md)).
 
 ### Fixed
 
+- **Grappling a wreck from the shoal:** a ship your false light broke up lies on the shoal, so following her in puts you aground beside her. F there now casts the grapple instead of only saying "Aground". Hard aground holds the ship as still as the anchor does, so the grapple works from there too, with or without the anchor down. `__glpSalvage.wreckAt(x, z)` and `.overAt(x, z)` lay a wreck and put the ship at a point for the checks.
+- **A big wreck gives up more a cast:** a hooked cast used to bring up only 1 to 3 CU, so a steamer broken up with a few hundred CU in her gave up a handful at a time. Now a hooked cast brings up 2 to 5% of what's left of the good it hooks, up to 12 CU, and never less than the old 1 to 3. Small wrecks such as the _Lucerne_ work as before.
 - **Captain portraits look sharp:** the likeness busts on the new-captain screen, the title card and the Hall of Captains no longer come out jagged. The game now ships copies of each painting pre-sized for those spots (and for high-DPI screens) instead of having the browser shrink the full 896 px painting 10 to 20 times; `tools/assets/portraits/build.py` makes them.
 
 ## [0.9.0] - 2026-11-24

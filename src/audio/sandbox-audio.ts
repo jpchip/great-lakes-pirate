@@ -70,6 +70,7 @@ const CUE_SOUND: Record<SandboxCueId, { id: string | readonly string[]; bus: Bus
   deal: { id: SANDBOX_SOUND.deal, bus: 'sfx' },
   chips: { id: SANDBOX_SOUND.chips, bus: 'sfx' },
   rake: { id: SANDBOX_SOUND.rake, bus: 'sfx' },
+  winnings: { id: PORT_SOUND.pile, bus: 'sfx' },
   knock: { id: SANDBOX_SOUND.knock, bus: 'sfx' },
   fold: { id: SANDBOX_SOUND.fold, bus: 'sfx' },
   show: { id: SANDBOX_SOUND.show, bus: 'sfx' },

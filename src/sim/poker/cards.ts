@@ -144,6 +144,26 @@ export function rankHand(cards: readonly Card[]): HandRank {
   return { category, ranks, score, name: handName(category, ranks) };
 }
 
+/**
+ * Which of the five make the hand, by index: the pairs, trips or fours (the kickers left
+ * out); all five for a straight, a flush or a full house; the top card for high card.
+ * What the table lights up at the showdown.
+ */
+export function madeCards(cards: readonly Card[]): number[] {
+  const rank = rankHand(cards);
+  const all = cards.map((_, i) => i);
+  if (rank.category === 0) {
+    const top = rank.ranks[0];
+    const at = cards.findIndex((c) => c.r === top);
+    return at >= 0 ? [at] : [];
+  }
+  // Straight, flush, full house, straight flush: every card counts.
+  if (rank.category >= 4 && rank.category !== 7) return all;
+  const counts = new Map<number, number>();
+  for (const c of cards) counts.set(c.r, (counts.get(c.r) ?? 0) + 1);
+  return all.filter((i) => (counts.get((cards[i] as Card).r) ?? 0) >= 2);
+}
+
 function handName(category: number, ranks: readonly number[]): string {
   const a = ranks[0] ?? 2;
   const b = ranks[1] ?? 2;

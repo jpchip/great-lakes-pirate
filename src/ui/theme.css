@@ -3874,10 +3874,6 @@ body[data-mode='chart'] .chart-layer {
   opacity: 0.55;
 }
 
-.card-seat.won {
-  outline: 2px solid var(--brass-light);
-}
-
 .card-seat-name {
   font-weight: 600;
 }
@@ -4008,6 +4004,230 @@ button.playing-card.marked {
   bottom: -18px;
   font-size: 11px;
   color: var(--hud-text);
+}
+
+.playing-card {
+  transition:
+    transform 0.25s ease,
+    box-shadow 0.25s ease,
+    opacity 0.25s ease;
+}
+
+/* The cards that made the winning hand, lifted and edged in brass; the kickers stay down. */
+.playing-card.lit {
+  border-color: var(--brass);
+  box-shadow:
+    0 0 0 2px var(--brass-light),
+    0 0 12px 2px rgba(224, 185, 85, 0.75),
+    0 3px 6px rgba(0, 0, 0, 0.45);
+  transform: translateY(-6px);
+  animation: card-lit 0.5s ease-out 0.15s backwards;
+}
+
+.card-seat-cards .playing-card.lit {
+  transform: translateY(-3px);
+  box-shadow:
+    0 0 0 1.5px var(--brass-light),
+    0 0 8px 1px rgba(224, 185, 85, 0.75);
+}
+
+.playing-card.unlit {
+  opacity: 0.6;
+}
+
+@keyframes card-lit {
+  from {
+    transform: translateY(0);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
+  }
+}
+
+.card-seat.won {
+  outline: 2px solid var(--brass-light);
+  background: rgba(224, 185, 85, 0.16);
+  box-shadow: 0 0 18px rgba(224, 185, 85, 0.35);
+}
+
+.card-seat.won .card-seat-shown,
+.card-yours.won .card-hand-name {
+  color: var(--brass-light);
+}
+
+.card-seat-took {
+  display: inline-block;
+  margin-top: 3px;
+  padding: 1px 8px;
+  font-size: 11px;
+  font-variant: small-caps;
+  letter-spacing: 0.08em;
+  color: var(--ink);
+  background: var(--brass-light);
+  border-radius: 3px;
+}
+
+/*
+ * The hand's result: a paper banner across the baize where the pot sat, a brass rule for a
+ * win, a red one for a loss; the pot's chips slide off it to the winner.
+ */
+.card-result {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  margin: 12px 0 18px;
+}
+
+.card-result-pot {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  z-index: 2;
+  pointer-events: none;
+}
+
+.card-result-chips {
+  position: absolute;
+  top: -12px;
+  left: -17px;
+  width: 34px;
+  height: 14px;
+  background: radial-gradient(ellipse at 50% 45%, #f4d77a 30%, #c99a35 55%, #8b6a35 100%);
+  border: 1px solid #6b4a10;
+  border-radius: 50%;
+  box-shadow:
+    0 3px 0 #a37a2a,
+    0 4px 0 #6b4a10,
+    0 7px 0 #c99a35,
+    0 8px 0 #6b4a10,
+    0 11px 0 #a37a2a,
+    0 12px 0 #6b4a10,
+    0 14px 8px rgba(0, 0, 0, 0.55);
+  opacity: 0;
+}
+
+.card-result-banner {
+  position: relative;
+  z-index: 1;
+  min-width: min(440px, 90%);
+  padding: 8px 28px 9px;
+  color: var(--ink);
+  text-align: center;
+  background:
+    radial-gradient(ellipse at 50% 30%, rgba(255, 248, 225, 0.6), transparent 70%),
+    linear-gradient(180deg, #f2e6c6, var(--paper) 55%, var(--paper-dark));
+  border: 1px solid #8b6a35;
+  border-radius: 3px;
+  box-shadow:
+    inset 0 0 0 3px #f2e6c6,
+    inset 0 0 0 4px var(--brass),
+    0 6px 18px rgba(0, 0, 0, 0.45);
+  animation: card-result-in 0.45s cubic-bezier(0.2, 0.9, 0.3, 1.2) both;
+}
+
+/* The banner's swallowtail ends. */
+.card-result-banner::before,
+.card-result-banner::after {
+  position: absolute;
+  top: 10px;
+  z-index: -1;
+  width: 26px;
+  height: calc(100% - 20px);
+  content: '';
+  background: var(--paper-dark);
+  border: 1px solid #8b6a35;
+}
+
+.card-result-banner::before {
+  left: -20px;
+  clip-path: polygon(0 0, 100% 0, 100% 100%, 0 100%, 40% 50%);
+}
+
+.card-result-banner::after {
+  right: -20px;
+  clip-path: polygon(0 0, 100% 0, 60% 50%, 100% 100%, 0 100%);
+}
+
+.card-result-title {
+  font-size: 24px;
+  font-weight: 700;
+  font-variant: small-caps;
+  letter-spacing: 0.04em;
+  line-height: 1.15;
+}
+
+.card-result.won .card-result-title {
+  color: #6b4a10;
+  text-shadow: 0 1px 0 rgba(255, 240, 200, 0.9);
+}
+
+.card-result.won .card-result-banner {
+  box-shadow:
+    inset 0 0 0 3px #f2e6c6,
+    inset 0 0 0 5px var(--brass-light),
+    0 0 26px 4px rgba(224, 185, 85, 0.55),
+    0 6px 18px rgba(0, 0, 0, 0.45);
+}
+
+.card-result.lost .card-result-title,
+.card-result.caught .card-result-title {
+  color: var(--signal-red);
+}
+
+.card-result.lost .card-result-banner,
+.card-result.caught .card-result-banner {
+  box-shadow:
+    inset 0 0 0 3px #f2e6c6,
+    inset 0 0 0 4px rgba(179, 54, 43, 0.7),
+    0 6px 18px rgba(0, 0, 0, 0.45);
+}
+
+.card-result-how {
+  font-size: 15px;
+  font-style: italic;
+}
+
+.card-result-sums {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  justify-content: center;
+  margin-top: 3px;
+  font-size: 14px;
+}
+
+.card-result-sep {
+  color: var(--brass);
+}
+
+.card-result-net {
+  font-weight: 700;
+}
+
+.card-result-net.up {
+  color: #2e6b35;
+}
+
+.card-result-net.down {
+  color: var(--signal-red);
+}
+
+.card-result-side {
+  margin-top: 2px;
+  font-size: 13px;
+  color: #6b4a10;
+}
+
+@keyframes card-result-in {
+  from {
+    opacity: 0;
+    transform: scale(0.85) rotate(-1.5deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card-result-banner,
+  .playing-card.lit {
+    animation: none;
+  }
 }
 
 .card-controls {
@@ -4187,4 +4407,34 @@ button.playing-card.marked {
 .hail-forecast-choice ul {
   margin: 0;
   padding-left: 18px;
+}
+
+/* A phone or tablet: the game wants a keyboard and mouse (it may carry on anyway). */
+.mobile-warning {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  overflow-y: auto;
+  pointer-events: auto;
+  font-family: var(--serif);
+  color: var(--ink);
+  background: #1b2630;
+}
+
+.mobile-warning .title-card {
+  max-width: 440px;
+  box-sizing: border-box;
+}
+
+.mobile-warning p {
+  font-size: 16px;
+  line-height: 1.45;
+}
+
+.mobile-warning .title-buttons .menu-button {
+  padding: 10px 12px;
 }

@@ -145,6 +145,11 @@ describe('the rules (Phase 9 piece J)', () => {
     // Yours raked in louder than his.
     const theirs = pokerCues([{ kind: 'won', you: false, cents: 400 }], random)[0];
     expect(cues.find((c) => c.id === 'rake')?.gain).toBeGreaterThan(theirs?.gain ?? 1);
+    // A pot of yours is poured into your purse after it's raked in; his isn't.
+    expect(first('winnings')).toBeGreaterThan(first('rake'));
+    expect(
+      pokerCues([{ kind: 'won', you: false, cents: 400 }], random).some((c) => c.id === 'winnings'),
+    ).toBe(false);
   });
 
   it('quickens a long round rather than letting it drag', () => {
