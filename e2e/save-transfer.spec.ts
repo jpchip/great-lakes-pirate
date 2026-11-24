@@ -23,6 +23,9 @@ async function boot(page: Page): Promise<void> {
 }
 
 test('exports a run, refuses in danger, and imports it as Transferred', async ({ page }) => {
+  // Four page loads (boot, the menu, the import's reload, the Hall): 20-25 s locally, so
+  // more than the default 30 s on a loaded CI runner.
+  test.setTimeout(120_000);
   const errors = collectErrors(page);
   const body = page.locator('body');
   await boot(page);
