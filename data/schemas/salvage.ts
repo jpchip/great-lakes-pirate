@@ -98,8 +98,14 @@ export const salvageRulesSchema = z.object({
   /** A wreck this many years down is broken up and silted: `oldFactor`. */
   oldYears: z.number().nonnegative(),
   oldFactor: z.number().min(0).max(1),
-  /** CU a hooked cast brings up. */
+  /** CU a hooked cast brings up, at least. */
   haulCu: range,
+  /**
+   * From a big hold a hooked cast brings up more: this share of what's left of the good
+   * it hooks (picked in the range), when that's more than `haulCu`, up to `haulMaxCu`.
+   */
+  haulShare: z.tuple([z.number().min(0).max(1), z.number().min(0).max(1)]),
+  haulMaxCu: z.number().int().positive(),
   /** The chance a hooked cast brings up her papers or her curio instead, while they're there. */
   findChance: z.number().min(0).max(1),
   /** Seen from the deck on the bottom by day in clear, calm water: zone meters, and how deep. */

@@ -25,8 +25,11 @@ interface CastOutcome {
 interface Hooks {
   __glpZones: { enter(id: string): void };
   __glpSalvage: {
-    sites(): { id: string; known: boolean; depthM: number }[];
+    sites(): { id: string; known: boolean; depthM: number; x: number; z: number }[];
     over(id: string, anchor?: boolean): boolean;
+    overAt(x: number, z: number): void;
+    wreckAt(x: number, z: number, name?: string): string;
+    depthAt(x: number, z: number): number | undefined;
     look(): string[];
     offer(): { id: string; refusal?: string } | undefined;
     chip(): string | undefined;
@@ -38,6 +41,10 @@ interface Hooks {
     state(): { found: Record<string, { how: string }> };
     leads(): { id: string; clues: { text: string }[] }[];
     lead(id: string, text?: string): unknown;
+  };
+  __glpWrecking: {
+    marks(): string[];
+    shoal(mark: string): { x: number; z: number; heading: number } | undefined;
   };
   __glpSave: unknown;
 }
@@ -134,5 +141,54 @@ test('finds the Lucerne by the lead line and grapples her cargo and papers', asy
   await expect(page.locator('[data-discovery="wreck.lucerne"]')).toContainText('Grappled');
   await shot(page, '2-journal-wreck');
   await page.keyboard.press('KeyJ');
+  expect(errors).toEqual([]);
+});
+
+test("aground beside a wreck on a false light's shoal, F still casts the grapple", async ({
+  page,
+}) => {
+  const errors = collectErrors(page);
+  const body = page.locator('body');
+  await page.goto('/?renderer=null&play&debug');
+  await page.waitForFunction(() => '__glpWrecking' in window && '__glpSalvage' in window);
+  await page.evaluate(() => (window as unknown as Hooks).__glpZones.enter('zone.apostles'));
+  await expect(body).toHaveAttribute('data-zone-load', 'done');
+
+  // A steamer broken up on a mark's shoal (as a false light leaves her), charted.
+  const id = await page.evaluate(() => {
+    const w = window as unknown as Hooks;
+    const sh = w.__glpWrecking.shoal(w.__glpWrecking.marks()[0] ?? '');
+    return sh && w.__glpSalvage.wreckAt(sh.x, sh.z, 'City of Bayfield');
+  });
+  expect(id).toBeDefined();
+
+  // The schooner put on the shoal within the grapple's reach of her: hard aground, anchor up.
+  const grounded = await page.evaluate((wreckId) => {
+    const w = window as unknown as Hooks;
+    const s = w.__glpSalvage.sites().find((x) => x.id === wreckId);
+    if (!s) return false;
+    for (let r = 0; r <= 30; r += 2) {
+      for (let a = 0; a < 16; a++) {
+        const x = s.x + Math.cos((a / 16) * Math.PI * 2) * r;
+        const z = s.z + Math.sin((a / 16) * Math.PI * 2) * r;
+        const d = w.__glpSalvage.depthAt(x, z);
+        if (d !== undefined && d > 0.2 && d < 1.2) {
+          w.__glpSalvage.overAt(x, z);
+          return true;
+        }
+      }
+    }
+    return false;
+  }, id);
+  expect(grounded).toBe(true);
+  await expect(page.getByTestId('hud-status').filter({ hasText: 'Aground' })).not.toHaveCount(0);
+  await expect
+    .poll(() => page.evaluate(() => (window as unknown as Hooks).__glpSalvage.chip()))
+    .toContain('F cast the grapple');
+
+  await page.keyboard.press('KeyF');
+  await expect(
+    page.getByTestId('hud-status').filter({ hasText: 'Dragging the grapple' }),
+  ).toHaveCount(1, { timeout: 5000 });
   expect(errors).toEqual([]);
 });
