@@ -825,47 +825,242 @@ export function boulderGeometry(p: PlacedPoiPiece): THREE.BufferGeometry[] {
 
 // ---- The cave mouth.
 
-/** A cave mouth: its blocks in bedded sandstone, a turf cap, and the dark going in. */
+/** The open water's sandstone in two beds, wet and dark where the waves reach, and moss. */
+const ROCK_BED = new THREE.Color(PALETTE.sandstone);
+const ROCK_BED_DARK = new THREE.Color(PALETTE.sandstoneDark);
+const ROCK_WET = new THREE.Color(PALETTE.wetRock);
+const ROCK_MOSS = new THREE.Color(TURF);
+const ROCK_DARK = new THREE.Color(CAVE_DARK);
+
+/** A smooth 2D value noise in [0, 1), for the rock's lumps. */
+function rockNoise(x: number, y: number, seed: number): number {
+  const xi = Math.floor(x);
+  const yi = Math.floor(y);
+  const u = x - xi;
+  const v = y - yi;
+  const su = u * u * (3 - 2 * u);
+  const sv = v * v * (3 - 2 * v);
+  const h = (i: number, j: number): number => hash(seed + i * 157.31 + j * 311.7);
+  const top = h(xi, yi) + (h(xi + 1, yi) - h(xi, yi)) * su;
+  const bottom = h(xi, yi + 1) + (h(xi + 1, yi + 1) - h(xi, yi + 1)) * su;
+  return top + (bottom - top) * sv;
+}
+
+/**
+ * A cave mouth worn into the cliff: one lumpy mass of bedded sandstone, round-shouldered
+ * where it meets the slope, with a wave-cut arch through it instead of a doorway. The
+ * opening is a ragged arch over the walkable gap `caveMouthBlocks` leaves (never inside
+ * it at head height), the beds wander, the foot is dark and wet, moss takes the ledges
+ * and the top, and the passage darkens as it goes in. A mouth piece S doesn't open is
+ * shut at the back in the dark.
+ */
 export function caveMouthGeometry(p: PlacedPoiPiece): THREE.BufferGeometry[] {
-  const out: THREE.BufferGeometry[] = [];
-  const bed = 1.1;
-  for (const b of caveMouthBlocks(p)) {
-    if (b.dark) {
-      out.push(box(b.w, b.y1 - b.y0, b.d, b.right, b.y0, -b.out, CAVE_DARK));
-      continue;
-    }
-    // Courses of the two sandstone tones, set back a hand's width every other bed.
-    let y = b.y0;
-    while (y < b.y1 - 1e-3) {
-      const k = Math.floor(y / bed);
-      const top = Math.min(b.y1, (k + 1) * bed);
-      const inset = (k % 2) * 0.1;
-      const color = k % 2 ? PALETTE.sandstoneDark : PALETTE.sandstone;
-      out.push(box(b.w - inset * 0.5, top - y, b.d - inset, b.right, y, -b.out, color));
-      y = top;
-    }
-  }
-  // The passage's lining: dark walls and a dark roof, just inside the opening.
   const W = p.widthM;
   const D = p.depthM;
   const H = p.maxY - p.minY;
-  const mouth = caveMouthBlocks(p)[2];
-  const ow = mouth?.w ?? W * 0.4;
-  const oh = mouth?.y0 ?? H * 0.6;
-  const inner = D - 0.8;
-  for (const sx of [-1, 1]) {
-    out.push(
-      box(0.02, oh, inner * 0.8, sx * (ow / 2 - 0.01), 0, D / 2 - inner * 0.5 - 0.2, CAVE_DARK),
+  const seed = seedOf(p);
+  const blocks = caveMouthBlocks(p);
+  const ow = blocks[2]?.w ?? W * 0.4;
+  const oh = blocks[2]?.y0 ?? H * 0.6;
+  const n = (x: number, y: number, k: number): number => rockNoise(x, y, seed + k * 97);
+
+  // Around the opening and out to the rock's edge, by t from the right foot (0) over the
+  // top to the left foot (1): the opening's edge and the mass's edge, in (x, y).
+  const T = 26;
+  const spring = oh * 0.55;
+  const crown = oh + 0.15;
+  const inner = (t: number): THREE.Vector2 => {
+    // Up the right side, round the arch, down the left: the arch takes the middle half.
+    const half = ow / 2;
+    let x: number;
+    let y: number;
+    if (t < 0.25) {
+      x = half;
+      y = -0.6 + ((spring + 0.6) * t) / 0.25;
+    } else if (t > 0.75) {
+      x = -half;
+      y = spring - ((spring + 0.6) * (t - 0.75)) / 0.25;
+    } else {
+      const a = ((t - 0.25) / 0.5) * Math.PI;
+      // A lopsided, flattened arch, the way the beds give way.
+      x = Math.cos(a) * half * (1 + 0.06 * Math.sin(a * 3 + seed));
+      y = spring + Math.sin(a) * (crown - spring) * (1 + 0.12 * (n(a * 1.7, 0, 1) - 0.5));
+    }
+    // Ragged, and only ever outward from the walkable gap.
+    const r = n(t * 9, 1, 2) * 0.35 + 0.05;
+    const len = Math.hypot(x, y - spring * 0.5) || 1;
+    if (t < 0.25 || t > 0.75) x += Math.sign(x) * r;
+    else {
+      x += (x / len) * r;
+      y += ((y - spring * 0.5) / len) * r;
+    }
+    return new THREE.Vector2(x, y);
+  };
+  const outer = (t: number): THREE.Vector2 => {
+    // A low dome flaring out onto the slope, wider at its foot than the gap's rock, so its
+    // flanks run down into the ground either side instead of standing on it like a wall.
+    const u = 1 - 2 * t;
+    const lump = (n(t * 7, 3, 4) - 0.5) * 0.9;
+    const x = u * (W / 2 + 3.5 + lump);
+    const y = -1 + (H + 1) * Math.pow(1 - Math.pow(Math.abs(u), 2.2), 1.3) + lump * Math.abs(u);
+    return new THREE.Vector2(x, Math.max(-1, y));
+  };
+  // Rows from the opening's edge (s = 0) out to the mass's edge (1).
+  const S = 5;
+  const front = -D / 2;
+  /** How far the face stands out at a point on it: bulged mid-face, leaning back with height. */
+  const faceZ = (x: number, y: number, s: number): number =>
+    front - Math.sin(s * Math.PI) * 0.45 - (n(x * 0.6, y * 0.6, 5) - 0.5) * 0.7 + y * 0.05;
+
+  const pos: number[] = [];
+  const col: number[] = [];
+  const tri = (a: THREE.Vector3, b: THREE.Vector3, c: THREE.Vector3, dark = 0): void => {
+    const e1 = new THREE.Vector3().subVectors(b, a);
+    const e2 = new THREE.Vector3().subVectors(c, a);
+    const up = Math.abs(e1.cross(e2).normalize().y);
+    for (const v of [a, b, c]) {
+      pos.push(v.x, v.y, v.z);
+      col.push(...rockAt(v, up, dark));
+    }
+  };
+  /** The rock's color at a point: wandering beds, wet at the foot, moss on what faces up. */
+  const rockAt = (v: THREE.Vector3, up: number, dark: number): [number, number, number] => {
+    const wave = Math.sin(v.x * 0.45 + v.z * 0.3 + seed) * 0.35 + (n(v.x * 0.3, 7, 6) - 0.5) * 0.5;
+    const bed = Math.floor((v.y + wave) / 0.85);
+    const c = (bed % 2 === 0 ? ROCK_BED : ROCK_BED_DARK).clone();
+    c.lerp(ROCK_BED_DARK, n(v.x * 0.8, v.y * 0.8, 8) * 0.35);
+    c.lerp(ROCK_WET, Math.max(0, Math.min(1, (1.2 - v.y) / 1.2)) * 0.8);
+    if (up > 0.62 && v.y > 1.5 && n(v.x * 0.5, v.z * 0.5, 9) > 0.3) c.lerp(ROCK_MOSS, 0.8);
+    c.lerp(ROCK_DARK, dark);
+    return [c.r, c.g, c.b];
+  };
+  const quad = (
+    a: THREE.Vector3,
+    b: THREE.Vector3,
+    c: THREE.Vector3,
+    d: THREE.Vector3,
+    dark = 0,
+  ) => {
+    tri(a, b, c, dark);
+    tri(a, c, d, dark);
+  };
+
+  // The face: rows of points between the opening and the edge.
+  const face: THREE.Vector3[][] = [];
+  for (let i = 0; i <= T; i++) {
+    const t = i / T;
+    const a = inner(t);
+    const b = outer(t);
+    const row: THREE.Vector3[] = [];
+    for (let j = 0; j <= S; j++) {
+      const s = j / S;
+      const x = a.x + (b.x - a.x) * s;
+      const y = a.y + (b.y - a.y) * s;
+      row.push(new THREE.Vector3(x, y, faceZ(x, y, s)));
+    }
+    face.push(row);
+  }
+  for (let i = 0; i < T; i++) {
+    for (let j = 0; j < S; j++) {
+      const r0 = face[i] as THREE.Vector3[];
+      const r1 = face[i + 1] as THREE.Vector3[];
+      quad(
+        r0[j] as THREE.Vector3,
+        r1[j] as THREE.Vector3,
+        r1[j + 1] as THREE.Vector3,
+        r0[j + 1] as THREE.Vector3,
+      );
+    }
+  }
+
+  // The mass's sides and top, back from the face's edge into the cliff, settling as it goes.
+  const BACK = 3;
+  const shell: THREE.Vector3[][] = [];
+  for (let i = 0; i <= T; i++) {
+    const t = i / T;
+    const edge = face[i]?.[S] as THREE.Vector3;
+    const row: THREE.Vector3[] = [edge];
+    for (let k = 1; k <= BACK; k++) {
+      const f = k / BACK;
+      const lump = (n(t * 6, k, 10) - 0.5) * 0.6;
+      row.push(
+        new THREE.Vector3(
+          edge.x * (1 + f * 0.08) + Math.sign(edge.x) * lump,
+          edge.y < 0 ? edge.y : edge.y - (edge.y + 1) * f * 0.5 + lump,
+          edge.z + (D / 2 + 1.5 - edge.z) * f,
+        ),
+      );
+    }
+    shell.push(row);
+  }
+  for (let i = 0; i < T; i++) {
+    for (let k = 0; k < BACK; k++) {
+      const r0 = shell[i] as THREE.Vector3[];
+      const r1 = shell[i + 1] as THREE.Vector3[];
+      quad(
+        r0[k] as THREE.Vector3,
+        r0[k + 1] as THREE.Vector3,
+        r1[k + 1] as THREE.Vector3,
+        r1[k] as THREE.Vector3,
+      );
+    }
+  }
+
+  // The passage in: the opening's edge carried back, darker the deeper it goes.
+  const IN = 4;
+  const backZ = p.open ? D / 2 : D / 2 - 0.8;
+  const tunnel: THREE.Vector3[][] = [];
+  for (let i = 0; i <= T; i++) {
+    const t = i / T;
+    const lip = face[i]?.[0] as THREE.Vector3;
+    const row: THREE.Vector3[] = [lip];
+    for (let k = 1; k <= IN; k++) {
+      const f = k / IN;
+      const r = (n(t * 8, k * 2, 11) - 0.5) * 0.3 + 0.1;
+      const len = Math.hypot(lip.x, lip.y - spring * 0.5) || 1;
+      row.push(
+        new THREE.Vector3(
+          lip.x + (lip.x / len) * r,
+          lip.y < 0 ? lip.y : lip.y + ((lip.y - spring * 0.5) / len) * r,
+          lip.z + (backZ - lip.z) * f,
+        ),
+      );
+    }
+    tunnel.push(row);
+  }
+  for (let i = 0; i < T; i++) {
+    for (let k = 0; k < IN; k++) {
+      const r0 = tunnel[i] as THREE.Vector3[];
+      const r1 = tunnel[i + 1] as THREE.Vector3[];
+      quad(
+        r0[k] as THREE.Vector3,
+        r1[k] as THREE.Vector3,
+        r1[k + 1] as THREE.Vector3,
+        r0[k + 1] as THREE.Vector3,
+        Math.min(0.85, ((k + 0.5) / IN) * 0.9),
+      );
+    }
+  }
+  // A mouth that goes nowhere: shut in the dark at the back, with a floor to stand on.
+  if (!p.open) {
+    const mid = new THREE.Vector3(0, spring * 0.6, backZ);
+    for (let i = 0; i < T; i++) {
+      tri(tunnel[i]?.[IN] as THREE.Vector3, tunnel[i + 1]?.[IN] as THREE.Vector3, mid, 1);
+    }
+    const hw = ow / 2 + 0.1;
+    quad(
+      new THREE.Vector3(-hw, 0.33, front),
+      new THREE.Vector3(hw, 0.33, front),
+      new THREE.Vector3(hw, 0.33, backZ),
+      new THREE.Vector3(-hw, 0.33, backZ),
     );
   }
-  out.push(box(ow, 0.02, inner * 0.8, 0, oh - 0.56, D / 2 - inner * 0.5 - 0.2, CAVE_DARK));
-  // Its floor, unless it opens into a cave (piece S), whose own floor runs out through it.
-  if (!p.open) {
-    out.push(box(ow, 0.02, inner - 0.2, 0, 0.32, D / 2 - inner * 0.5 - 0.2, PALETTE.wetRock));
-  }
-  // Turf and moss over the top, hanging a little over the face.
-  out.push(box(W + 0.4, 0.25, D + 0.3, 0, H, 0, TURF));
-  return framed(p, out);
+
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3));
+  g.setAttribute('color', new THREE.Float32BufferAttribute(col, 3));
+  g.computeVertexNormals();
+  return framed(p, [g]);
 }
 
 // ---- Lit windows (Phase 9 piece Q).

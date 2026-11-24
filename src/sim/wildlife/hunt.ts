@@ -66,24 +66,36 @@ export function monthAt(gameSeconds: number): number {
 }
 
 export interface Visitors {
+  /** All the deer, and how they're split into groups lying up apart. */
   deer: number;
+  herds: number[];
   bear: boolean;
   wolves: number;
 }
 
 /**
- * Who's about on this landing: a few of the island's deer (never more than are left), and
- * by the season a bear (spring to fall) or a wolf pack (winter), within the tier's animal
- * budget. The same landing on the same day finds the same.
+ * Who's about on this landing: a group or two of the island's deer (never more than are
+ * left), and by the season a bear (spring to fall) or a wolf pack (winter), within the tier's
+ * animal budget. The same landing on the same day finds the same. `key` names a place further
+ * on (game met as you walk the island), `herds` how many deer groups to roll for.
  */
 export function visitors(
   island: string,
-  opts: { deerLeft: number; month: number; day: number; runSeed: number; budget: number },
+  opts: {
+    deerLeft: number;
+    month: number;
+    day: number;
+    runSeed: number;
+    budget: number;
+    herds?: number;
+    key?: string;
+  },
   file: WildlifeFile = WILDLIFE,
 ): Visitors {
   const g = islandGame(island, file);
-  if (!g || opts.budget <= 0) return { deer: 0, bear: false, wolves: 0 };
-  const rng = Rng.fromSeed(`${opts.runSeed}:visit:${island}:${opts.day}`);
+  if (!g || opts.budget <= 0) return { deer: 0, herds: [], bear: false, wolves: 0 };
+  const where = opts.key ? `:${opts.key}` : '';
+  const rng = Rng.fromSeed(`${opts.runSeed}:visit:${island}:${opts.day}${where}`);
   const deerDef = file.species.find((s) => s.id === 'animal.deer');
   const bearDef = file.species.find((s) => s.id === 'animal.bear');
   const wolfDef = file.species.find((s) => s.id === 'animal.wolf');
@@ -98,12 +110,19 @@ export function visitors(
     wolves = Math.max(0, wolves + budget);
     budget = 0;
   }
-  let deer = 0;
-  if (deerDef && opts.deerLeft > 0 && budget > 0) {
-    const want = rng.int(deerDef.group[0], deerDef.group[1]);
-    deer = Math.min(want, opts.deerLeft, budget);
+  const herds: number[] = [];
+  let left = opts.deerLeft;
+  if (deerDef) {
+    const n = opts.herds ?? file.population.herdsPerLanding;
+    for (let k = 0; k < n && left > 0 && budget > 0; k++) {
+      const want = rng.int(deerDef.group[0], deerDef.group[1]);
+      const got = Math.min(want, left, budget);
+      herds.push(got);
+      left -= got;
+      budget -= got;
+    }
   }
-  return { deer, bear, wolves };
+  return { deer: herds.reduce((a, b) => a + b, 0), herds, bear, wolves };
 }
 
 /** The chance a ball hits at this distance, and how you and it are moving. */
