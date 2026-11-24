@@ -289,7 +289,9 @@ export function attachTargets(deps: TargetsDeps): Targets {
     const dx = p.x - me.x;
     const dz = p.z - me.z;
     const rangeM = Math.hypot(dx, dz);
-    const closingMs = rangeM > 1e-6 ? -(dx * (p.vx - me.vx) + dz * (p.vz - me.vz)) / rangeM : 0;
+    // Only the player's own way counts: a ship steaming down her lane past a schooner lying
+    // at anchor isn't being run down, however fast the range closes.
+    const closingMs = rangeM > 1e-6 ? -(dx * p.vx + dz * p.vz) / rangeM : 0;
     const cpa = closestApproach(me, p);
     let friendM: number | undefined;
     let witnesses = 0;
@@ -312,6 +314,7 @@ export function attachTargets(deps: TargetsDeps): Targets {
     return {
       rangeM,
       closingKn: closingMs / knMs,
+      playerKn: Math.hypot(p.vx, p.vz) / knMs,
       cpaM: cpa.t < 120 ? cpa.d : rangeM,
       fameTier: deps.fameTier(),
       playerGuns: deps.playerGuns(),
