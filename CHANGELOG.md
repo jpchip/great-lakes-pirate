@@ -6,9 +6,13 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ### Added
 
+- **Export and import a run:** Settings (Esc) has **Export run**, which saves and downloads the run as a `.glprun` file, to move it to another computer or browser or keep it safe from cleared browser data. It isn't allowed in danger: with the law on your tail, in a fight or boarding, foundering, in a cell, in the water or freezing. On the main menu, when there's no run, **Import run** brings one in: the file is checked, brought up to date if it's from an older version and refused if it's damaged. A run brought in this way says **Transferred** in the Hall of Captains ([plan 16 §9](plans/16-save-persistence.md)).
+- **Accessibility:** a new Accessibility tab in Settings has the interface size (85% to 150%), a plain font, colour-blind palettes (red-green and blue-yellow) for the warning colours on the HUD, the menus and the chart, reduce motion (still interface, level camera), gentle lightning (soft, dim flashes, far apart) and brightness. The Controls tab now rebinds the keys on foot and on the chart too, and crouch and run can toggle instead of being held, and aiming the guns can be held instead of toggled. The on-screen prompts still name the default keys ([plan 13 §9](plans/13-ui-ux.md)).
 - **A warning on phones and tablets:** a touch-only device now gets a parchment card before the menu saying the game is built for a keyboard and mouse, with a **Continue anyway** button that's remembered on that device. It goes by the pointer, not the screen size or browser name, so a touchscreen laptop (touchpad or mouse as its main pointer) or an iPad with a trackpad keyboard isn't flagged.
 
 ### Fixed
+
+- **The ending air and a new run (a correction, not a code change):** 0.9.0's known limitations said the ending's tune plays on into a new run. It can't: the end screen goes to the main menu by reloading the page, which stops it.
 
 - **Grappling a wreck from the shoal:** a ship your false light broke up lies on the shoal, so following her in puts you aground beside her. F there now casts the grapple instead of only saying "Aground". Hard aground holds the ship as still as the anchor does, so the grapple works from there too, with or without the anchor down. `__glpSalvage.wreckAt(x, z)` and `.overAt(x, z)` lay a wreck and put the ship at a point for the checks.
 - **A big wreck gives up more a cast:** a hooked cast used to bring up only 1 to 3 CU, so a steamer broken up with a few hundred CU in her gave up a handful at a time. Now a hooked cast brings up 2 to 5% of what's left of the good it hooks, up to 12 CU, and never less than the old 1 to 3. Small wrecks such as the _Lucerne_ work as before.

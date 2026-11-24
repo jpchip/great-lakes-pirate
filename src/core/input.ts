@@ -149,8 +149,14 @@ export const DEFAULT_BINDINGS: Bindings = {
  * so `pressed()` reports each press exactly once.
  */
 export class InputMapper {
-  context: InputContext = 'menu';
+  private currentContext: InputContext = 'menu';
   private readonly held = new Set<string>();
+  /**
+   * Actions that toggle instead of being held (plan 13 §9 "Hold vs. toggle"): each press
+   * flips them on or off, and `isDown` reports that. A change of context lets them go.
+   */
+  private readonly toggled = new Set<Action>();
+  private readonly latched = new Set<Action>();
   private readonly pressedThisTick = new Set<string>();
   /** Actions pressed by the UI this tick (a screen's "Cast off" button). */
   private readonly triggered = new Set<Action>();
@@ -158,10 +164,35 @@ export class InputMapper {
 
   constructor(public bindings: Bindings = DEFAULT_BINDINGS) {}
 
+  get context(): InputContext {
+    return this.currentContext;
+  }
+
+  set context(next: InputContext) {
+    if (next !== this.currentContext) this.latched.clear();
+    this.currentContext = next;
+  }
+
+  /** Makes `action` a toggle (each press flips it) or a hold again (the default). */
+  setToggle(action: Action, on: boolean): void {
+    if (on) this.toggled.add(action);
+    else {
+      this.toggled.delete(action);
+      this.latched.delete(action);
+    }
+  }
+
   attach(target: EventTarget): void {
     this.detachListeners();
     const down = (code: string): void => {
-      if (!this.held.has(code)) this.pressedThisTick.add(code);
+      if (!this.held.has(code)) {
+        this.pressedThisTick.add(code);
+        for (const action of this.toggled) {
+          if (!this.codes(action).includes(code)) continue;
+          if (this.latched.has(action)) this.latched.delete(action);
+          else this.latched.add(action);
+        }
+      }
       this.held.add(code);
     };
     const up = (code: string): void => {
@@ -190,10 +221,12 @@ export class InputMapper {
     this.detach = undefined;
     this.held.clear();
     this.pressedThisTick.clear();
+    this.latched.clear();
   }
 
   /** True while any input bound to `action` in the current context is held. */
   isDown(action: Action): boolean {
+    if (this.toggled.has(action)) return this.latched.has(action);
     return this.codes(action).some((code) => this.held.has(code));
   }
 
@@ -250,6 +283,32 @@ export const REBINDABLE: Partial<Record<InputContext, readonly Action[]>> = {
     'AimRifle',
     'CycleAmmo',
   ],
+  onFoot: [
+    'MoveForward',
+    'MoveBack',
+    'MoveLeft',
+    'MoveRight',
+    'Sprint',
+    'Crouch',
+    'Jump',
+    'Interact',
+    'LeanLeft',
+    'LeanRight',
+    'ToggleChart',
+    'Journal',
+    'Build',
+    'Tool1',
+    'Tool2',
+    'Tool3',
+    'Tool4',
+    'Tool5',
+    'Tool6',
+    'Tool7',
+    'Tool8',
+    'Tool9',
+  ],
+  // M and J on the chart follow the sailing keys (main.ts applies them).
+  chart: ['Confirm', 'Cancel'],
 };
 
 /** Keys a rebind may not take: Escape always opens and closes the menu. */

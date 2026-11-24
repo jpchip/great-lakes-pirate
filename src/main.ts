@@ -187,6 +187,8 @@ import { offersChart } from './sim/terrain/zone-edge';
 import { arenaLoadingScreen, loadingScreen, type Arrival } from './ui/loading/model';
 import { mountGameUi } from './ui/mount';
 import { showMainMenu } from './ui/menu/mount-menu';
+import { applyAccess, signalRed } from './ui/access';
+import { setChartSignalRed } from './render/chart/chart-view';
 import { showMobileWarning } from './ui/menu/mobile-warning';
 import { hallRecords } from './sim/run/hall';
 import type { MenuChoice } from './ui/menu/MainMenu';
@@ -536,6 +538,14 @@ async function boot(): Promise<void> {
     .transition('boot');
 
   const [prepared, settings] = await Promise.all([prepareRun(), loadSettings()]);
+  // Accessibility (plan 13 §9): the scale, font and palette are on before the menu shows.
+  const applyPageAccess = (s: Settings): void => {
+    applyAccess(s.access, document.documentElement);
+    const red = signalRed(document.documentElement);
+    if (red) setChartSignalRed(red);
+  };
+  applyPageAccess(settings.value);
+  settings.subscribe(applyPageAccess);
   // The last run's end screen stays on the menu until a new run starts (plan 16 §2).
   const lastRun = prepared.db
     ? ((await readLastRun(prepared.db).catch(() => undefined)) as LastRun | undefined)
@@ -1298,9 +1308,19 @@ async function boot(): Promise<void> {
     }
     if (cameraRig) {
       const { autoRecenter, rollWithShip, sensitivity, spyglassToggle } = s.camera;
-      cameraRig.ship.options = { autoRecenter, rollWithShip, sensitivity };
+      cameraRig.ship.options = {
+        autoRecenter,
+        // Reduce motion keeps the horizon level whatever the roll setting says.
+        rollWithShip: rollWithShip && !s.access.reduceMotion,
+        sensitivity,
+      };
       cameraRig.spyglassToggle = spyglassToggle;
     }
+    if (renderer) renderer.setBrightness(s.access.brightness);
+    if (scene) scene.atmosphere.lightning.gentle = s.access.gentleFlashes;
+    // Hold vs. toggle (plan 13 §9).
+    input.setToggle('Crouch', s.access.crouchToggle);
+    input.setToggle('Sprint', s.access.runToggle);
     input.bindings = applyBindingOverrides(DEFAULT_BINDINGS, s.bindings);
     // M back off the chart follows M onto it.
     const toggle = input.bindings.sailing.ToggleChart;
@@ -2483,6 +2503,9 @@ async function boot(): Promise<void> {
     nameOf: shipNameOf,
     notice: (text) => showNotice(text),
   });
+  // Hold to aim (plan 13 §9): the setting, now and as it changes.
+  aim.holdToAim = settings.value.access.holdToAim;
+  settings.subscribe((s) => (aim.holdToAim = s.access.holdToAim));
   // The fire button counts unless it went down on a control (a button, a field, the dev
   // panel): the HUD layer covers the whole screen, so the click is rarely on the canvas.
   let fireOnSea = false;

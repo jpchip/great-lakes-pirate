@@ -7,12 +7,16 @@ import {
   RESERVED_CODES,
   type Action,
   type Bindings,
+  type InputContext,
 } from '../../core/input';
 import type { AudioSettings, VolumeId } from '../../audio/settings';
 import {
+  COLOR_MODES,
   HUD_DENSITIES,
   LOOKOUT_PREFS,
   RESOLUTION_SCALES,
+  UI_SCALES,
+  type ColorMode,
   type HudDensity,
   type Settings,
 } from '../../core/settings';
@@ -21,8 +25,10 @@ import { LOOKOUT_LABELS } from '../chart/model';
 
 /**
  * The settings screen (plan 13 §12 Phase 1): graphics preset, resolution scale and HUD
- * density; camera and sailing options; sound volumes (plan 15 §7, Phase 2 piece H); and
- * basic key rebinding for sailing. It opens
+ * density; camera and sailing options; sound volumes (plan 15 §7, Phase 2 piece H); key
+ * rebinding at the helm, on foot and on the chart, with hold or toggle; and accessibility
+ * (plan 13 §9: interface size, plain font, colour-blind palettes, reduce motion, gentle
+ * lightning, brightness). It opens
  * over the game with Esc, which pauses the tick, and every change applies and saves at
  * once (core/settings).
  */
@@ -38,7 +44,7 @@ export interface SettingsMenuProps {
   settings: ReadonlySignal<Settings>;
   bindings: ReadonlySignal<Bindings>;
   update(change: (draft: Settings) => void): void;
-  rebind(action: Action, code: string): void;
+  rebind(context: InputContext, action: Action, code: string): void;
   resetBindings(): void;
   close(): void;
   /** Shown under the preset picker when antialiasing waits for a reload. */
@@ -144,6 +150,40 @@ const ACTION_LABELS: Partial<Record<Action, string>> = {
   AimBroadside: 'Broadside',
   AimRifle: 'Rifle',
   CycleAmmo: 'Change shot',
+  MoveForward: 'Walk forward',
+  MoveBack: 'Walk back',
+  MoveLeft: 'Step left',
+  MoveRight: 'Step right',
+  Sprint: 'Run',
+  Crouch: 'Crouch',
+  Jump: 'Jump',
+  LeanLeft: 'Lean left',
+  LeanRight: 'Lean right',
+  Build: 'Build (at a hideout)',
+  Tool1: 'Tool 1',
+  Tool2: 'Tool 2',
+  Tool3: 'Tool 3',
+  Tool4: 'Tool 4',
+  Tool5: 'Tool 5',
+  Tool6: 'Tool 6',
+  Tool7: 'Tool 7',
+  Tool8: 'Tool 8',
+  Tool9: 'Tool 9',
+  Confirm: 'Set sail on the course',
+  Cancel: 'Take off the last waypoint',
+};
+
+/** The Controls tab's groups of keys, by where they act. */
+const KEY_GROUPS: [InputContext, string][] = [
+  ['sailing', 'At the helm'],
+  ['onFoot', 'On foot'],
+  ['chart', 'On the chart'],
+];
+
+const COLOR_MODE_LABELS: Record<ColorMode, string> = {
+  off: 'Off',
+  redGreen: 'Red-green (protanopia, deuteranopia)',
+  blueYellow: 'Blue-yellow (tritanopia)',
 };
 
 const HUD_LABELS: Record<HudDensity, string> = {
@@ -152,7 +192,7 @@ const HUD_LABELS: Record<HudDensity, string> = {
   off: 'Off',
 };
 
-type Tab = 'graphics' | 'camera' | 'sound' | 'controls';
+type Tab = 'graphics' | 'camera' | 'sound' | 'controls' | 'access';
 
 /** The sliders, in order. Voice joins when shouts exist. */
 const VOLUMES: [VolumeId, string][] = [
@@ -306,7 +346,7 @@ function Camera({ settings, update }: SettingsMenuProps) {
 function Sound({ audio, settings, update }: SettingsMenuProps) {
   const captions = (
     <Toggle
-      label="Captions for fog signals and whistles"
+      label="Captions for sounds (signals, whistles, shouts, guns, animals)"
       checked={settings.value.ui.captions}
       onChange={(on) => update((s) => (s.ui.captions = on))}
     />
@@ -345,23 +385,24 @@ function Sound({ audio, settings, update }: SettingsMenuProps) {
   );
 }
 
-function Controls({ bindings, rebind, resetBindings }: SettingsMenuProps) {
-  const [listening, setListening] = useState<Action | undefined>(undefined);
+function Controls({ bindings, rebind, resetBindings, settings, update }: SettingsMenuProps) {
+  const [listening, setListening] = useState<[InputContext, Action] | undefined>(undefined);
 
   // A layout effect, so the keys are listened for before "Press a key…" shows.
   useLayoutEffect(() => {
     if (!listening) return undefined;
+    const [context, action] = listening;
     // Capture before anything else sees it, so Esc cancels here and doesn't close the menu.
     const onKey = (e: KeyboardEvent): void => {
       e.preventDefault();
       e.stopPropagation();
-      if (!RESERVED_CODES.includes(e.code)) rebind(listening, e.code);
+      if (!RESERVED_CODES.includes(e.code)) rebind(context, action, e.code);
       setListening(undefined);
     };
     const onMouse = (e: MouseEvent): void => {
       e.preventDefault();
       e.stopPropagation();
-      rebind(listening, `Mouse${e.button}`);
+      rebind(context, action, `Mouse${e.button}`);
       setListening(undefined);
     };
     const onContext = (e: Event): void => e.preventDefault();
@@ -377,36 +418,139 @@ function Controls({ bindings, rebind, resetBindings }: SettingsMenuProps) {
     };
   }, [listening, rebind]);
 
-  const sailing = bindings.value.sailing;
+  const a = settings.value.access;
   return (
     <div class="menu-section">
       <p class="menu-note">Click a key, then press the new key or mouse button. Esc cancels.</p>
-      <div class="menu-keys">
-        {(REBINDABLE.sailing ?? []).map((action) => {
-          const codes = sailing[action] ?? [];
-          const changed = (codes[0] ?? '') !== (DEFAULT_BINDINGS.sailing[action]?.[0] ?? '');
-          return (
-            <div class="menu-row" key={action}>
-              <span>{ACTION_LABELS[action] ?? action}</span>
-              <button
-                type="button"
-                class={`menu-key${changed ? ' changed' : ''}${listening === action ? ' listening' : ''}`}
-                data-testid={`bind-${action}`}
-                onClick={() => setListening(action)}
-              >
-                {listening === action
-                  ? 'Press a key…'
-                  : codes.length
-                    ? codes.map(codeLabel).join(' / ')
-                    : 'Unbound'}
-              </button>
-            </div>
-          );
-        })}
-      </div>
+      <Toggle
+        label="Crouch toggles instead of hold"
+        checked={a.crouchToggle}
+        onChange={(on) => update((s) => (s.access.crouchToggle = on))}
+      />
+      <Toggle
+        label="Run toggles instead of hold"
+        checked={a.runToggle}
+        onChange={(on) => update((s) => (s.access.runToggle = on))}
+      />
+      <Toggle
+        label="Hold to aim the guns instead of toggling"
+        checked={a.holdToAim}
+        onChange={(on) => update((s) => (s.access.holdToAim = on))}
+      />
+      {KEY_GROUPS.map(([context, title]) => {
+        const keys = bindings.value[context];
+        return (
+          <div class="menu-keys" key={context} data-testid={`keys-${context}`}>
+            <h3 class="menu-keys-title">{title}</h3>
+            {(REBINDABLE[context] ?? []).map((action) => {
+              const codes = keys[action] ?? [];
+              const was = DEFAULT_BINDINGS[context][action]?.[0] ?? '';
+              const changed = (codes[0] ?? '') !== was;
+              const on = listening?.[0] === context && listening[1] === action;
+              // The helm's keys keep their old test ids (bind-RaiseSail).
+              const id = context === 'sailing' ? `bind-${action}` : `bind-${context}-${action}`;
+              return (
+                <div class="menu-row" key={action}>
+                  <span>{ACTION_LABELS[action] ?? action}</span>
+                  <button
+                    type="button"
+                    class={`menu-key${changed ? ' changed' : ''}${on ? ' listening' : ''}`}
+                    data-testid={id}
+                    onClick={() => setListening([context, action])}
+                  >
+                    {on
+                      ? 'Press a key…'
+                      : codes.length
+                        ? codes.map(codeLabel).join(' / ')
+                        : 'Unbound'}
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        );
+      })}
       <button type="button" class="menu-button" onClick={resetBindings}>
-        Reset to defaults
+        Reset keys to defaults
       </button>
+    </div>
+  );
+}
+
+/** Accessibility (plan 13 §9): size, font, colour, motion, flashes and brightness. */
+function Access({ settings, update }: SettingsMenuProps) {
+  const a = settings.value.access;
+  return (
+    <div class="menu-section">
+      <label class="menu-row">
+        <span>Interface size</span>
+        <select
+          data-testid="setting-ui-scale"
+          value={String(a.uiScale)}
+          onChange={(e) => {
+            const v = Number((e.currentTarget as HTMLSelectElement).value);
+            update((s) => (s.access.uiScale = v));
+          }}
+        >
+          {UI_SCALES.map((scale) => (
+            <option key={scale} value={String(scale)}>
+              {Math.round(scale * 100)}%
+            </option>
+          ))}
+        </select>
+      </label>
+      <Toggle
+        label="Plain font (instead of the period type)"
+        checked={a.plainFont}
+        onChange={(on) => update((s) => (s.access.plainFont = on))}
+      />
+      <label class="menu-row">
+        <span>Colour-blind palette</span>
+        <select
+          data-testid="setting-color-mode"
+          value={a.colorMode}
+          onChange={(e) => {
+            const v = (e.currentTarget as HTMLSelectElement).value as ColorMode;
+            update((s) => (s.access.colorMode = v));
+          }}
+        >
+          {COLOR_MODES.map((m) => (
+            <option key={m} value={m}>
+              {COLOR_MODE_LABELS[m]}
+            </option>
+          ))}
+        </select>
+      </label>
+      <Toggle
+        label="Reduce motion (level camera, still interface)"
+        checked={a.reduceMotion}
+        onChange={(on) => update((s) => (s.access.reduceMotion = on))}
+      />
+      <Toggle
+        label="Gentle lightning (soft, dim flashes, far apart)"
+        checked={a.gentleFlashes}
+        onChange={(on) => update((s) => (s.access.gentleFlashes = on))}
+      />
+      <label class="menu-row">
+        <span>Brightness</span>
+        <input
+          type="range"
+          min="0.6"
+          max="1.6"
+          step="0.05"
+          value={a.brightness}
+          data-testid="setting-brightness"
+          aria-label="Brightness"
+          onInput={(e) => {
+            const v = Number((e.currentTarget as HTMLInputElement).value);
+            update((s) => (s.access.brightness = v));
+          }}
+        />
+        <span class="menu-value">{Math.round(a.brightness * 100)}%</span>
+      </label>
+      <p class="menu-note">
+        Captions are on the Sound tab, and keys and hold or toggle on the Controls tab.
+      </p>
     </div>
   );
 }
@@ -418,6 +562,7 @@ export function SettingsMenu(props: SettingsMenuProps) {
     ['camera', 'Camera & sailing'],
     ['sound', 'Sound'],
     ['controls', 'Controls'],
+    ['access', 'Accessibility'],
   ];
   return (
     <div class="menu-backdrop" data-testid="settings-menu">
@@ -443,6 +588,7 @@ export function SettingsMenu(props: SettingsMenuProps) {
         {tab === 'camera' && <Camera {...props} />}
         {tab === 'sound' && <Sound {...props} />}
         {tab === 'controls' && <Controls {...props} />}
+        {tab === 'access' && <Access {...props} />}
         <footer class="menu-footer">
           {props.onExport && <ExportRun exportRun={props.onExport} />}
           {props.onAbandon && <Abandon abandon={props.onAbandon} />}

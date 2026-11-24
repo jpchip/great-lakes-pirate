@@ -15,8 +15,14 @@ import { WEATHER_REDRAW_S, WeatherLayer } from './weather-layer';
  * zoom live in the camera here; input handling is the caller's.
  */
 
-/** Plan 13 §2.2 draft color tokens. */
-export const CHART_COLORS = {
+/**
+ * Plan 13 §2.2 draft color tokens. The signal red follows the colour-blind palette
+ * (plan 13 §9; `setChartSignalRed`).
+ */
+export const CHART_COLORS: Record<
+  'ink' | 'paper' | 'land' | 'water' | 'brass' | 'signalRed' | 'lakeTeal' | 'fogGray',
+  string
+> = {
   ink: '#2b2118',
   paper: '#e9dcbb',
   land: '#d9c393',
@@ -25,7 +31,12 @@ export const CHART_COLORS = {
   signalRed: '#b3362b',
   lakeTeal: '#2f6f73',
   fogGray: '#8d8a83',
-} as const;
+};
+
+/** The chart's warning red, from the interface's palette (plan 13 §9). */
+export function setChartSignalRed(color: string): void {
+  CHART_COLORS.signalRed = color;
+}
 
 export interface ChartFrame {
   geo: ChartGeography;

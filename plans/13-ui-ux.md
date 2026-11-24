@@ -214,6 +214,8 @@ Define the look and behavior of every piece of interface:
 | Pause anywhere | Except a brief autosave write (instant) |
 | Text speed / auto-advance | For dialog vignettes |
 
+**Built (Phase 10, 2026-11-24).** A new Accessibility tab in Settings has the interface size (85–150%, a CSS `zoom` on the UI root, with the menus' viewport limits divided by it), the plain font (the system sans for `--serif`), colour-blind palettes (red-green moves the warning red family to a magenta, read as blue against the brass; blue-yellow deepens it to a crimson and greys the brass; the chart's red follows), reduce motion (the interface's animations and transitions go still and the camera stays level whatever the roll setting), gentle lightning (one soft pulse at most 30% bright, 15 s apart at least, no return stroke) and brightness (the tone mapper's exposure, 60–160%). The Controls tab now rebinds keys on foot and on the chart as well as at the helm, and has hold or toggle for crouch and run (an `InputMapper` latch) and hold to aim. Captions (Sound tab) and the spyglass toggle (Camera tab) were already in. Settings saved before this gain the defaults. **Still open:** the prompts on screen name the default keys ("F", "Hold F") even after a rebind; text speed doesn't apply (there's no typed-out dialog); and the world itself isn't recoloured for colour blindness, only the interface and the chart.
+
 ---
 
 ## 10. UI Performance (integrated GPU)
@@ -285,6 +287,7 @@ All resolved.
 ---
 
 ## Changelog
+- v0.11: Phase 10: the accessibility pass (§9): interface size, plain font, colour-blind palettes, reduce motion, gentle lightning, brightness, hold or toggle, and rebinding on foot and on the chart.
 - v0.10: Phase 7: the stealth HUD (gem, ring, conduct, eyes, dawn countdown), prompts with hold rings, the tool belt, shop counters, the jailbreak banner and the look-only chart (§12).
 - v0.9: Phase 6: aim mode and the aim HUD, the target card, the white flag, the boarding panel, looting and the aftermath, the back room, abandon ship, wrecks and grudges in the ledger (§12).
 - v0.8: Phase 5: the Wanted chip and report eye, the detection eye and lantern chip, the chart's law marks, the Harbor and Papers tabs, jail and release, the tier-5 front page and the end of the run (§12).
