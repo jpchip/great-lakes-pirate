@@ -4,7 +4,7 @@ import { R_SAILING } from '../../core/time';
 import { interpolateTransform, type Entity, type Transform } from '../../gameplay/ecs';
 import { SHIP_RECORDS } from '../../sim/sailing/ships';
 import type { Wind } from '../../sim/weather/weather';
-import type { OutlineSettings } from '../style/outline';
+import { inkByDistance, type InkByDistance, type OutlineSettings } from '../style/outline';
 import type { StyleLighting } from '../style/stylized-material';
 import { createShipWake, measureWaterline, type ShipWake, type WakeShip } from '../water/wake';
 import type { Water } from '../water/water';
@@ -35,7 +35,8 @@ export interface NpcView {
   remove(e: Entity): void;
   /**
    * `now` is the wake clock (real seconds), `frameSeconds` 0 while paused;
-   * `sunElevationDeg` and `fogDensity` light the lamps and windows.
+   * `sunElevationDeg` and `fogDensity` light the lamps and windows. `eye` is the camera:
+   * a ship far from it drops her ink (outlines and rigging), a draw call each for a pixel.
    */
   update(
     alpha: number,
@@ -43,11 +44,13 @@ export interface NpcView {
     frameSeconds: number,
     sunElevationDeg: number,
     fogDensity: number,
+    eye?: { x: number; y: number; z: number },
   ): void;
 }
 
 interface Drawn {
   model: NpcShipModel;
+  ink: InkByDistance;
   wake: ShipWake;
   sources: SmokeSource[];
   /** A consort's hawser to her steamer's stern (Phase 6 piece C). */
@@ -145,7 +148,8 @@ export function createNpcView(env: NpcViewEnv): NpcView {
         hawser.frustumCulled = false;
         scene.add(hawser);
       }
-      drawn.set(e, { model, wake, sources, ...(hawser ? { hawser } : {}) });
+      const ink = inkByDistance(model.group);
+      drawn.set(e, { model, ink, wake, sources, ...(hawser ? { hawser } : {}) });
       models.set(e, model);
     },
     remove(e) {
@@ -162,18 +166,22 @@ export function createNpcView(env: NpcViewEnv): NpcView {
       drawn.delete(e);
       models.delete(e);
     },
-    update(alpha, now, frameSeconds, sunElevationDeg, fogDensity) {
+    update(alpha, now, frameSeconds, sunElevationDeg, fogDensity, eye) {
       lastAlpha = alpha;
       for (const [e, d] of drawn) {
         if (d.hawser) drawHawser(e, d.hawser);
       }
-      for (const [e, { model, wake, sources }] of drawn) {
+      for (const [e, { model, ink, wake, sources }] of drawn) {
         interpolateTransform(e, alpha, t);
         const object = model.group;
         // A foundering ship settles (Phase 6 piece A).
         object.position.set(t.position.x, t.position.y - (e.npc?.sinkM ?? 0), t.position.z);
         // Heading is clockwise from north; three.js yaw is counter-clockwise.
         object.rotation.set(t.pitch ?? 0, -t.heading, (t.roll ?? 0) + (e.npc?.listRad ?? 0));
+        if (eye) {
+          const p = object.position;
+          ink.update(Math.hypot(p.x - eye.x, p.y - eye.y, p.z - eye.z));
+        }
         const wind = env.windAt(t.position);
         // Booms to leeward: the wind's bearing off the bow, starboard positive. A wreck
         // shows no lights: it's lit as at noon.

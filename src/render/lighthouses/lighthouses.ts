@@ -15,7 +15,13 @@ import {
 } from '../../sim/lighthouses';
 import type { QualityPreset } from '../quality';
 import { PALETTE } from '../style/palette';
-import { addOutlines, creaseNormals, type OutlineSettings } from '../style/outline';
+import {
+  addOutlines,
+  creaseNormals,
+  inkByDistance,
+  type InkByDistance,
+  type OutlineSettings,
+} from '../style/outline';
 import {
   createStylizedMaterial,
   type StyleLighting,
@@ -180,6 +186,8 @@ export interface LighthouseView {
 interface Station {
   placed: PlacedLight;
   group: THREE.Group;
+  /** The tower's outlines, dropped far off. */
+  ink: InkByDistance;
   meshes: THREE.Mesh[];
   lantern: StylizedMaterial;
   windows: StylizedMaterial | undefined;
@@ -279,6 +287,8 @@ export function createLighthouses(
     creaseNormals(root);
     // Ink outlines: lighthouses are hero objects (plan 14 §3.4), terrain is not.
     addOutlines(root, outlines);
+    // Far off, the tower's ink is a draw call each for a pixel: dropped past 400 m.
+    const ink = inkByDistance(root);
 
     const color = new THREE.Color(lampHex(def.characteristic));
     const tier = LIGHT_TIERS[def.tier];
@@ -322,6 +332,7 @@ export function createLighthouses(
     stations.push({
       placed: p,
       group: root,
+      ink,
       meshes,
       lantern: lanternMaterial,
       windows: windowMaterial,
@@ -384,6 +395,7 @@ export function createLighthouses(
 
         const station = dist < STATION_FAR_M;
         s.group.visible = station;
+        if (station) s.ink.update(dist);
         if (station) drawn += s.windows ? 3 : 2;
         // The lamp burns inside the lantern all night, whether the lens flashes or not.
         glow.copy(s.color).multiplyScalar(1.7 * dusk);
