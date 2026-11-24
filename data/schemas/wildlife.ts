@@ -108,6 +108,19 @@ export const wildlifeFileSchema = z.object({
     herdSpreadM: pos,
     /** And this far from anyone's door. */
     keepClearOfHomesM: nonneg,
+    /** Deer groups lying up round where you land (each its own roll of the species' group). */
+    herdsPerLanding: z.number().int().positive(),
+    /**
+     * Game further on as you walk the island: each time you're `everyM` from where game was
+     * last put about, a fresh group (and maybe a bear or the wolves) lies up `minFromM` to
+     * `maxFromM` from you, and what's left `dropM` behind, unbothered, goes.
+     */
+    roam: z.object({
+      everyM: pos,
+      minFromM: pos,
+      maxFromM: pos,
+      dropM: pos,
+    }),
   }),
   hunt: z.object({
     /** The rifle reaches this far at game, m, within this many degrees of where you face. */

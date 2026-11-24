@@ -19,6 +19,7 @@ import {
   hitChance,
   monthAt,
   visitors,
+  type Visitors,
   type WildlifeState,
 } from '../../sim/wildlife/hunt';
 import { gameGround, lieUp, readSign, signTrail, type Sign } from '../../sim/wildlife/spawn';
@@ -159,6 +160,9 @@ const CHEST_M = 1.3;
 /** An animal's body for walls: it squeezes past what a man does. */
 const BODY_R = 0.35;
 
+/** The sign kept about at once (the view draws this many). */
+const MAX_SIGN = 24;
+
 const nounOf = (s: SpeciesDef): string => `the ${s.noun}`;
 
 export function createIslandWildlife(opts: WildlifeOptions): IslandWildlife {
@@ -174,31 +178,25 @@ export function createIslandWildlife(opts: WildlifeOptions): IslandWildlife {
   let sign: Sign[] = [];
 
   // --- Who's about --------------------------------------------------------------------
-  const who = visitors(
-    island.id,
-    {
-      deerLeft: deerLeft(island.id, opts.state(), opts.runSeed(), t0, file),
-      month,
-      day,
-      runSeed: opts.runSeed(),
-      budget: opts.budget,
-    },
-    file,
-  );
   const pop = file.population;
+  let nextId = 0;
+  // Each sign trail's herd, by the animals in it: reading the sign tells of that herd.
+  const herdOf = new Map<Sign, readonly string[]>();
   const place = (
     species: SpeciesDef,
     n: number,
+    from: { x: number; z: number },
     minFrom: number,
     maxFrom: number,
-  ): { x: number; z: number } | undefined => {
+  ): { at: { x: number; z: number }; ids: string[] } | undefined => {
     if (n <= 0) return undefined;
-    const at = lieUp(island, heightAt, opts.landing, rng, {
+    const at = lieUp(island, heightAt, from, rng, {
       minFromM: minFrom,
       maxFromM: maxFrom,
       clearOfM: pop.keepClearOfHomesM,
     });
     if (!at) return undefined;
+    const ids: string[] = [];
     for (let k = 0; k < n; k++) {
       for (let tries = 0; tries < 12; tries++) {
         const a = rng.range(0, Math.PI * 2);
@@ -206,18 +204,100 @@ export function createIslandWildlife(opts: WildlifeOptions): IslandWildlife {
         const x = at.x + Math.sin(a) * r;
         const z = at.z - Math.cos(a) * r;
         if (!gameGround(island, heightAt, x, z)) continue;
-        const id = `${species.id.replace('animal.', '')}.${animals.length}`;
+        const id = `${species.id.replace('animal.', '')}.${nextId++}`;
         animals.push(createAnimal(id, species, { x, y: heightAt(x, z), z }, rng.range(0, 6.28)));
+        ids.push(id);
         break;
       }
     }
-    return at;
+    return { at, ids };
   };
-  const herd = place(speciesOf('animal.deer', file), who.deer, pop.herdMinFromLandingM, 480);
-  if (who.bear) place(speciesOf('animal.bear', file), 1, 160, 520);
-  if (who.wolves) place(speciesOf('animal.wolf', file), who.wolves, 180, 560);
-  if (herd) sign = signTrail(island, heightAt, opts.landing, herd, rng, file);
+  /** Puts game about round `from`: the deer groups (each with its trail of sign), a bear, the wolves. */
+  const putAbout = (
+    who: Visitors,
+    from: { x: number; z: number },
+    deerFrom: [number, number],
+    predatorFrom: [number, number],
+  ): Sign[] => {
+    const trails: Sign[] = [];
+    for (const n of who.herds) {
+      const herd = place(speciesOf('animal.deer', file), n, from, deerFrom[0], deerFrom[1]);
+      if (!herd) continue;
+      for (const k of signTrail(island, heightAt, from, herd.at, rng, file)) {
+        herdOf.set(k, herd.ids);
+        trails.push(k);
+      }
+    }
+    const [lo, hi] = predatorFrom;
+    if (who.bear) place(speciesOf('animal.bear', file), 1, from, lo, hi);
+    if (who.wolves) place(speciesOf('animal.wolf', file), who.wolves, from, lo + 20, hi + 40);
+    return trails;
+  };
+  sign = putAbout(
+    visitors(
+      island.id,
+      {
+        deerLeft: deerLeft(island.id, opts.state(), opts.runSeed(), t0, file),
+        month,
+        day,
+        runSeed: opts.runSeed(),
+        budget: opts.budget,
+      },
+      file,
+    ),
+    opts.landing,
+    [pop.herdMinFromLandingM, 480],
+    [160, 520],
+  );
   const spots = trapSpots(island, heightAt, file);
+
+  // --- Further on -----------------------------------------------------------------------
+  // Game isn't only round the landing: each time you've walked `roam.everyM` from where game
+  // was last put about, what you've left well behind (and not stirred up) goes, and the next
+  // stretch of the island gets its own, out of the same herd and the same tier budget.
+  const roam = pop.roam;
+  let lastAbout = { x: opts.landing.x, z: opts.landing.z };
+  const settled = (a: Animal): boolean =>
+    a.state === 'graze' || a.state === 'wander' || a.state === 'alert' || a.state === 'wary';
+  const roamTo = (at: { x: number; z: number }): void => {
+    lastAbout = { x: at.x, z: at.z };
+    for (let k = animals.length - 1; k >= 0; k--) {
+      const a = animals[k] as Animal;
+      const far = Math.hypot(a.x - at.x, a.z - at.z) > roam.dropM;
+      if (far && (settled(a) || a.taken)) {
+        animals.splice(k, 1);
+        lastSeen.delete(a.id);
+      }
+    }
+    const kept = sign.filter((k) => Math.hypot(k.x - at.x, k.z - at.z) < roam.dropM);
+    for (const k of sign) if (!kept.includes(k)) herdOf.delete(k);
+    const live = animals.filter((a) => !isDead(a) && !a.taken);
+    const liveDeer = live.filter((a) => a.species.kind === 'deer').length;
+    const now = opts.now();
+    const who = visitors(
+      island.id,
+      {
+        deerLeft: deerLeft(island.id, opts.state(), opts.runSeed(), now, file) - liveDeer,
+        month: monthAt(now),
+        day: dayAndHour(now).day,
+        runSeed: opts.runSeed(),
+        budget: opts.budget - live.length,
+        herds: 1,
+        key: `${Math.round(at.x / roam.everyM)},${Math.round(at.z / roam.everyM)}`,
+      },
+      file,
+    );
+    // Only one bear on a stretch at a time.
+    if (live.some((a) => a.species.id === 'animal.bear')) who.bear = false;
+    if (live.some((a) => a.species.id === 'animal.wolf')) who.wolves = 0;
+    const fresh = putAbout(
+      who,
+      at,
+      [roam.minFromM, roam.maxFromM],
+      [roam.minFromM + 20, roam.maxFromM + 60],
+    );
+    sign = [...kept, ...fresh].slice(-MAX_SIGN);
+  };
 
   // --- Senses -------------------------------------------------------------------------
   let heardM = 0;
@@ -477,8 +557,10 @@ export function createIslandWildlife(opts: WildlifeOptions): IslandWildlife {
   const signNear = (p: CharacterState): Sign | undefined =>
     sign.find((s) => Math.hypot(s.x - p.position.x, s.z - p.position.z) < file.sign.readM);
 
-  const herdNow = (): { x: number; z: number; count: number } | undefined => {
-    const live = animals.filter((a) => a.species.kind === 'deer' && !isDead(a));
+  /** The herd a trail of sign leads to, as it is now. */
+  const herdNow = (k: Sign): { x: number; z: number; count: number } | undefined => {
+    const ids = herdOf.get(k) ?? [];
+    const live = animals.filter((a) => ids.includes(a.id) && !isDead(a) && !a.taken);
     if (!live.length) return undefined;
     const x = live.reduce((s, a) => s + a.x, 0) / live.length;
     const z = live.reduce((s, a) => s + a.z, 0) / live.length;
@@ -497,6 +579,10 @@ export function createIslandWildlife(opts: WildlifeOptions): IslandWildlife {
     },
     step(dt, player, inputs) {
       reloadIn = Math.max(0, reloadIn - dt);
+      const here = player.position;
+      if (!inputs.beyond && Math.hypot(here.x - lastAbout.x, here.z - lastAbout.z) > roam.everyM) {
+        roamTo({ x: here.x, z: here.z });
+      }
       if (inputs.strideM > 0) {
         heardM = inputs.strideM;
         heardFor = HEAR_HOLD_S;
@@ -548,7 +634,7 @@ export function createIslandWildlife(opts: WildlifeOptions): IslandWildlife {
           act: () => {
             const p = player.position;
             const a = createAnimal(
-              `deer.${animals.length}`,
+              `deer.${nextId++}`,
               speciesOf('animal.deer', file),
               { x: p.x, y: heightAt(p.x, p.z), z: p.z },
               player.heading,
@@ -588,7 +674,7 @@ export function createIslandWildlife(opts: WildlifeOptions): IslandWildlife {
       if (s) {
         return {
           text: 'Read the sign',
-          act: () => opts.hooks.notice(readSign(s, herdNow(), opts.woodcraft())),
+          act: () => opts.hooks.notice(readSign(s, herdNow(s), opts.woodcraft())),
         };
       }
       const target = inSights(player);
@@ -656,7 +742,7 @@ export function createIslandWildlife(opts: WildlifeOptions): IslandWildlife {
       const def = file.species.find((s) => s.id === species);
       if (!def) return undefined;
       const a = createAnimal(
-        `${species.replace('animal.', '')}.${animals.length}`,
+        `${species.replace('animal.', '')}.${nextId++}`,
         def,
         { x: at.x, y: heightAt(at.x, at.z), z: at.z },
         0,

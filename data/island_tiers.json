@@ -8,7 +8,7 @@
       "poiTriangles": 40000,
       "maxPois": 10,
       "people": 6,
-      "animals": 4
+      "animals": 7
     },
     "standard": {
       "drawCalls": 140,
@@ -16,7 +16,7 @@
       "poiTriangles": 15000,
       "maxPois": 3,
       "people": 4,
-      "animals": 4
+      "animals": 6
     },
     "minor": {
       "drawCalls": 130,
@@ -24,7 +24,7 @@
       "poiTriangles": 4000,
       "maxPois": 1,
       "people": 0,
-      "animals": 2
+      "animals": 3
     }
   }
 }
