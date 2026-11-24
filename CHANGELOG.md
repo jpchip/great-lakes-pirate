@@ -8,6 +8,7 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 - **Grappling a wreck from the shoal:** a ship your false light broke up lies on the shoal, so following her in puts you aground beside her. F there now casts the grapple instead of only saying "Aground". Hard aground holds the ship as still as the anchor does, so the grapple works from there too, with or without the anchor down. `__glpSalvage.wreckAt(x, z)` and `.overAt(x, z)` lay a wreck and put the ship at a point for the checks.
 - **A big wreck gives up more a cast:** a hooked cast used to bring up only 1 to 3 CU, so a steamer broken up with a few hundred CU in her gave up a handful at a time. Now a hooked cast brings up 2 to 5% of what's left of the good it hooks, up to 12 CU, and never less than the old 1 to 3. Small wrecks such as the _Lucerne_ work as before.
+- **Captain portraits look sharp:** the likeness busts on the new-captain screen, the title card and the Hall of Captains no longer come out jagged. The game now ships copies of each painting pre-sized for those spots (and for high-DPI screens) instead of having the browser shrink the full 896 px painting 10 to 20 times; `tools/assets/portraits/build.py` makes them.
 
 ## [0.9.0] - 2026-11-24
 
