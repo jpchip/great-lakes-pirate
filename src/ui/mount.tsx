@@ -95,6 +95,8 @@ export interface GameUiOptions {
   jail?: JailActions | undefined;
   /** "Abandon run" on the pause menu, confirmed (plan 16 §3). */
   onAbandon?: (() => void) | undefined;
+  /** "Export run" on the pause menu (plan 16 §9). */
+  onExport?: (() => Promise<string>) | undefined;
   /** From the end screen to the main menu. */
   onEndMenu?: (() => void) | undefined;
   /** The tier-5 front page was put down (piece F). */
@@ -185,6 +187,7 @@ export function mountGameUi({
   ambitions: ambitionActions,
   jail: jailActions,
   onAbandon,
+  onExport,
   onEndMenu = () => window.location.assign(window.location.pathname),
   onFrontPageClosed = () => undefined,
   eventScene: sceneActions,
@@ -443,6 +446,7 @@ export function mountGameUi({
               close={() => setMenu(false)}
               reloadNote={reloadNote}
               audio={controls.audio}
+              onExport={onExport}
               onAbandon={
                 onAbandon &&
                 (() => {

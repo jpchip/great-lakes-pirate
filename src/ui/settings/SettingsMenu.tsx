@@ -49,6 +49,41 @@ export interface SettingsMenuProps {
   fromMainMenu?: boolean;
   /** Ends the run for good, after a confirm (plan 16 §3 "Abandon run"). */
   onAbandon?: (() => void) | undefined;
+  /**
+   * Downloads the run as a file (plan 16 §9 "Export run"). Resolves to what to tell the
+   * player: where it went, or why it can't be done now (never in danger, §4.2).
+   */
+  onExport?: (() => Promise<string>) | undefined;
+}
+
+/** Export run: saves and downloads the run, then says how it went. */
+function ExportRun({ exportRun }: { exportRun(): Promise<string> }) {
+  const [note, setNote] = useState<string | undefined>(undefined);
+  const [busy, setBusy] = useState(false);
+  return (
+    <span class="export-run">
+      <button
+        type="button"
+        class="menu-button"
+        data-testid="settings-export"
+        disabled={busy}
+        onClick={() => {
+          setBusy(true);
+          void exportRun()
+            .then(setNote)
+            .catch((err: unknown) => setNote(`The run couldn't be exported: ${String(err)}`))
+            .finally(() => setBusy(false));
+        }}
+      >
+        Export run
+      </button>
+      {note && (
+        <span class="menu-note" data-testid="settings-export-note" role="status">
+          {note}
+        </span>
+      )}
+    </span>
+  );
 }
 
 /** Abandon the run: one press asks, a second ends it (plan 13 §6: confirm the irreversible). */
@@ -409,6 +444,7 @@ export function SettingsMenu(props: SettingsMenuProps) {
         {tab === 'sound' && <Sound {...props} />}
         {tab === 'controls' && <Controls {...props} />}
         <footer class="menu-footer">
+          {props.onExport && <ExportRun exportRun={props.onExport} />}
           {props.onAbandon && <Abandon abandon={props.onAbandon} />}
           <button
             type="button"

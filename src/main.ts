@@ -10,7 +10,10 @@ import {
   clearLastRun,
   deleteRun,
   endRun,
+  importRun,
+  isTransferred,
   openSaveDb,
+  readRunSlot,
   readLastRun,
   readHall,
   type GlpDatabase,
@@ -27,6 +30,9 @@ import {
 } from './core/settings';
 import { createWorkerEncoder } from './core/save/encoder';
 import { loadRun, type LoadedRun } from './core/save/load';
+import { parseRunFile, runFileName, serializeRunFile } from './core/save/transfer';
+import { SaveCorruptError } from './core/save/decode';
+import type { SaveEnvelope } from './core/save/envelope';
 import { RunSaver } from './core/save/run-saver';
 import { AssetLoader, EMPTY_MANIFEST } from './core/assets';
 import { createGameAudio, type GameAudio } from './audio/game-audio';
@@ -557,6 +563,27 @@ async function boot(): Promise<void> {
             ? "This browser can't keep a save, so this run won't be saved."
             : undefined,
       onCreating: (creating) => machine.transition(creating ? 'characterCreation' : 'mainMenu'),
+      // Import run (plan 16 §9): only with no run in the save, so nothing is overwritten.
+      importRun:
+        prepared.db && !prepared.loaded && !prepared.problem
+          ? async (file) => {
+              const db = prepared.db;
+              if (!db) return "This browser can't keep a save.";
+              let parsed;
+              try {
+                parsed = parseRunFile(await file.text(), parseWorldState);
+              } catch (err) {
+                console.warn('Import refused', err);
+                return err instanceof SaveCorruptError
+                  ? err.message
+                  : "That run can't be read by this version of the game.";
+              }
+              await importRun(db, parsed.envelope);
+              document.body.dataset['imported'] = parsed.envelope.runId;
+              window.location.assign(window.location.pathname);
+              return undefined;
+            }
+          : undefined,
       loading: (c) =>
         c.kind === 'new'
           ? { title: startingPort(c.setup.background).portName, line: 'May 7, 1900, at dawn' }
@@ -1307,6 +1334,8 @@ async function boot(): Promise<void> {
   const captureRef: { current: ReturnType<typeof attachCapture> | undefined } = {
     current: undefined,
   };
+  /** "Export run" (plan 16 §9), attached once the danger checks are. */
+  const exportRef: { current: (() => Promise<string>) | undefined } = { current: undefined };
   const endRef: {
     current: ((cause: RunEndCause, detail?: RunEndDetail) => Promise<void>) | undefined;
   } = {
@@ -1424,6 +1453,7 @@ async function boot(): Promise<void> {
       leaveAlt: () => abandonRef.current?.leaveAlt(),
     },
     onAbandon: () => void endRef.current?.('abandoned'),
+    onExport: () => exportRef.current?.() ?? Promise.resolve('Nothing to export yet.'),
     onFrontPageClosed: () => frontPageRef.current?.(),
     eventScene: {
       choose: (choice) => eventsRef.current?.choose(choice),
@@ -3210,6 +3240,8 @@ async function boot(): Promise<void> {
     ctx.events.emit('RunEnded', { cause });
     if (prepared.db) {
       try {
+        const runId = saver?.run.runId;
+        const transferred = runId ? await isTransferred(prepared.db, runId) : false;
         await endRun(prepared.db, last, {
           captain: last.captain,
           shipName: last.shipName,
@@ -3219,8 +3251,9 @@ async function boot(): Promise<void> {
           headline: last.frontPage.headline,
           summary: last.summary,
           endedAtIso: last.endedAtIso,
-          runId: saver?.run.runId,
+          runId,
           ...(last.nickname ? { nickname: last.nickname } : {}),
+          ...(transferred ? { transferred: true } : {}),
         });
       } catch (err) {
         console.error('Could not end the run in the save', err);
@@ -6575,6 +6608,47 @@ async function boot(): Promise<void> {
       .then(() => clearDanger(db))
       .then(() => delete document.body.dataset['dangerSaved'])
       .catch((err: unknown) => console.error('Clearing the danger snapshot failed', err));
+  };
+
+  /**
+   * Export run (plan 16 §9): saves, then downloads the run as a file. Never from a danger
+   * state (§4.2), so an export can't snapshot a fight, a hunt, a cell or a cold swim.
+   */
+  const exportBlocked = (): string | undefined => {
+    if (run.over) return 'The run is over.';
+    if (!saver || !prepared.db) return "This run isn't being saved, so it can't be exported.";
+    if (run.inDanger || pursuitOn.size > 0 || pursued || ashoreRef.current?.pursued)
+      return 'Not with the law on your tail.';
+    if (arena || inArenaSpace || boarding.open) return 'Not in the middle of a fight.';
+    if (foundering()) return 'Not while she founders.';
+    if (state.jail) return 'Not from a cell.';
+    if (changingZone) return 'Wait until the ship is under way again.';
+    const body = ashoreRef.current?.active ? ashoreRef.current.hud() : undefined;
+    if (body?.swimming) return "Not while you're in the water.";
+    if (body?.warmth && (body.warmth.stage === 'freezing' || body.warmth.stage === 'frozen'))
+      return "Not while you're freezing.";
+    return undefined;
+  };
+  exportRef.current = async () => {
+    const blocked = exportBlocked();
+    if (blocked) return blocked;
+    const db = prepared.db;
+    if (!db) return "This run isn't being saved, so it can't be exported.";
+    await saveControls.saveNow();
+    if (saveControls.lastError) return `The run couldn't be saved: ${saveControls.lastError}`;
+    const slot = await readRunSlot(db, 'current');
+    if (!slot) return "There's no saved run to export yet.";
+    const text = serializeRunFile(slot as SaveEnvelope);
+    const summary = savedRunSummary(state);
+    const name = runFileName(summary.captain, summary.shipName, summary.when);
+    const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = name;
+    a.click();
+    window.setTimeout(() => URL.revokeObjectURL(url), 10_000);
+    document.body.dataset['exported'] = name;
+    return `Saved as ${name}. Import it from the main menu on another computer or browser.`;
   };
 
   const loop = createLoop({

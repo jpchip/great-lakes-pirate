@@ -32,6 +32,51 @@ export interface MainMenuProps {
   choose(choice: MenuChoice): void;
   /** Character creation opened or closed (the mode machine follows). */
   onCreating?(creating: boolean): void;
+  /**
+   * Brings in a run from an export file (plan 16 §9), offered only when there's no run.
+   * Resolves to why it was refused, or undefined once the run is in (the menu reloads).
+   */
+  importRun?: ((file: File) => Promise<string | undefined>) | undefined;
+}
+
+/** Import run: a file picker behind a menu button, and what came of it. */
+function ImportRun({ importRun }: { importRun(file: File): Promise<string | undefined> }) {
+  const input = useRef<HTMLInputElement>(null);
+  const [note, setNote] = useState<string | undefined>(undefined);
+  return (
+    <>
+      <button
+        type="button"
+        class="menu-button"
+        data-testid="menu-import"
+        onClick={() => input.current?.click()}
+      >
+        Import run
+      </button>
+      <input
+        ref={input}
+        type="file"
+        accept=".glprun,application/json"
+        hidden
+        data-testid="menu-import-file"
+        onChange={(e) => {
+          const el = e.currentTarget;
+          const file = el.files?.[0];
+          el.value = '';
+          if (!file) return;
+          setNote('Reading the run…');
+          void importRun(file)
+            .then((problem) => setNote(problem ?? 'Run imported. Making ready…'))
+            .catch((err: unknown) => setNote(`The run couldn't be imported: ${String(err)}`));
+        }}
+      />
+      {note && (
+        <p class="menu-note" data-testid="menu-import-note" role="status">
+          {note}
+        </p>
+      )}
+    </>
+  );
 }
 
 type Screen = 'title' | 'create' | 'settings' | 'replace' | 'lastRun' | 'hall';
@@ -58,11 +103,13 @@ function Title({
   savedProblem,
   go,
   resume,
+  importRun,
 }: {
   saved: SavedRunSummary | undefined;
   savedProblem: string | undefined;
   go(screen: Screen): void;
   resume(): void;
+  importRun?: ((file: File) => Promise<string | undefined>) | undefined;
 }) {
   return (
     <div class="title-card" data-testid="main-menu">
@@ -110,6 +157,7 @@ function Title({
         >
           Hall of Captains
         </button>
+        {!saved && importRun && <ImportRun importRun={importRun} />}
         <button
           type="button"
           class="menu-button"
@@ -177,6 +225,12 @@ function Hall({
                   </span>
                   <span class="hall-meta">
                     of the <i>{r.shipName}</i> · {r.epitaph}
+                    {r.transferred && (
+                      <span class="hall-transferred" data-testid="hall-transferred">
+                        {' '}
+                        · Transferred
+                      </span>
+                    )}
                   </span>
                 </span>
               </button>
@@ -403,6 +457,7 @@ export function MainMenu({
   settings,
   choose,
   onCreating,
+  importRun,
 }: MainMenuProps) {
   const [screen, setScreenState] = useState<Screen>('title');
   // The screen as of the last change, read by the Esc listener, which is added once: a
@@ -433,6 +488,7 @@ export function MainMenu({
             savedProblem={savedProblem}
             go={setScreen}
             resume={() => choose({ kind: 'continue' })}
+            importRun={importRun}
           />
         )}
         {screen === 'hall' && (
