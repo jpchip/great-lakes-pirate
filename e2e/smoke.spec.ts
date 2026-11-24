@@ -110,7 +110,9 @@ test('keeps sailing with the journal or a look at the chart open, and P holds th
 }) => {
   const errors = collectErrors(page);
   const body = page.locator('body');
-  await page.goto('/?renderer=null&play&debug');
+  // A steady breeze on her beam, so she gathers way whatever the run's weather: in irons
+  // or becalmed she drifts astern, and the checks on her speed below would fail.
+  await page.goto('/?renderer=null&play&debug&wind=110&knots=12');
   await page.waitForFunction(() => '__glpZones' in window);
   await page.evaluate(() =>
     (window as unknown as { __glpZones: ZonesHook }).__glpZones.enter('zone.apostles'),
@@ -203,6 +205,9 @@ test('keeps sailing with the journal or a look at the chart open, and P holds th
       window as unknown as { __glpChart: { travel: { takeToChart(): void } } }
     ).__glpChart.travel.takeToChart(),
   );
+  // Wait for the chart to take the keys, or P goes to the helm and is lost.
+  await expect(body).toHaveAttribute('data-mode', 'chart');
+  await expect(page.getByTestId('chart-sail-on')).toContainText('Sailing on at the helm');
   const knBeforeHold = (await zones()).kn;
   expect(knBeforeHold).toBeGreaterThan(0.03);
   await page.keyboard.press('KeyP');
