@@ -6,7 +6,7 @@ import { STYLE_LIGHT_GLSL, type StyleLighting } from '../style/stylized-material
 /**
  * The sea caves drawn (plan 11 §5, §18.4 piece S): each passage's rock swept along its
  * nodes, bedded red sandstone darkening to black the deeper in it goes, its floor, a flared
- * lip where it comes out of the cliff, and a domed end where it closes. The terrain shader
+ * lip where it comes out of the cliff, and a rounded back wall where it closes. The terrain shader
  * cuts the cliff away where the passage runs (cave-clip.ts), so this is the cave you see
  * from the water and walk in. In winter an ice cave's water is a sheet of ice under a
  * fringe of icicles.
@@ -226,21 +226,50 @@ function joinRings(s: Soup, r0: RingVertex[], r1: RingVertex[]): void {
   }
 }
 
-/** A domed end: each ring point drawn in to a point a little further on. */
-function capRing(s: Soup, r: RingVertex[], st: Station, sign: number): void {
-  const tip = {
-    x: st.x + st.tx * sign * st.hw * 0.7,
-    y: st.floor + (st.roof - st.floor) * 0.45,
-    z: st.z + st.tz * sign * st.hw * 0.7,
-  };
-  const shade = r[0]?.shade ?? DEEP_SHADE;
-  const c = rockColor(tip.y, 0.5);
-  for (let i = 0; i + 1 < r.length; i++) {
-    const a = r[i] as RingVertex;
-    const b = r[i + 1] as RingVertex;
+/**
+ * A closed end: the passage's rings drawn in round a quarter dome as far as the walkable
+ * round goes (the clip's capsule, hw + 0.3), the floor carried in under them, and the
+ * last ring closed all the way round onto the back of the dome. Solid rock every way you
+ * look, with no gap at the foot to see the cut terrain through.
+ */
+function capEnd(s: Soup, first: RingVertex[], st: Station, sign: number): void {
+  const STEPS = 5;
+  const reach = st.hw + 0.2;
+  const height = st.roof - st.floor;
+  const shade = Math.max(DEEP_SHADE, 1 - st.depth / DARK_M);
+  const at = (d: number, lat: number, rise: number): Station => ({
+    ...st,
+    x: st.x + st.tx * sign * d,
+    z: st.z + st.tz * sign * d,
+    hw: st.hw * lat,
+    roof: st.floor + height * rise,
+    along: st.along + sign * d,
+  });
+  let prevRing = first;
+  let prevSt = st;
+  for (let i = 1; i < STEPS; i++) {
+    const phi = (i / STEPS) * (Math.PI / 2);
+    // The walls come in on a circle; the roof stays up longer, then comes down to meet them.
+    const next = at(Math.sin(phi) * reach, Math.cos(phi), Math.pow(Math.cos(phi), 0.35));
+    const r = ring(next, 200 + i);
+    if (sign < 0) joinRings(s, r, prevRing);
+    else joinRings(s, prevRing, r);
+    floorStrip(s, prevSt, next);
+    prevRing = r;
+    prevSt = next;
+  }
+  // The floor to the foot of the back wall, narrowing to nothing.
+  floorStrip(s, prevSt, { ...at(reach, 0, 0.3), hw: -0.28 });
+  // The back of the dome: the last ring, closed round (feet too), drawn in to one point.
+  const tip = at(reach + 0.15, 0, 0);
+  const ty = st.floor + height * 0.3;
+  const c = rockColor(ty, 0.5);
+  for (let i = 0; i < prevRing.length; i++) {
+    const a = prevRing[i] as RingVertex;
+    const b = prevRing[(i + 1) % prevRing.length] as RingVertex;
     s.vertex(a.x, a.y, a.z, a.c, a.shade);
     s.vertex(b.x, b.y, b.z, b.c, b.shade);
-    s.vertex(tip.x, tip.y, tip.z, c, shade);
+    s.vertex(tip.x, ty, tip.z, c, shade);
   }
 }
 
@@ -343,7 +372,7 @@ export function caveMeshData(cave: PlacedCave, iceTop = 0.12): CaveMeshData {
     ];
     for (const [st, r, sign, open, lip] of ends) {
       if (!open) {
-        capRing(rock, r, st, sign);
+        capEnd(rock, r, st, sign);
         continue;
       }
       if (!lip) continue;
