@@ -272,4 +272,7 @@ test('the build camera over a full hideout at Stockton', async ({ page }) => {
   // The hideout's own calls (plan 09 §10: ≤ 80 up close), with the starter shack's few
   // already counted in the baseline.
   expect(report.buildCamera.hideoutCallsMax).toBeLessThanOrEqual(80);
+  // On foot in the yard, the whole frame within an on-foot frame's 150 (bench.island): the
+  // passing ships, the schooner and the far lighthouses drop their ink past 400 m.
+  expect(report.onFoot.drawCallsMax).toBeLessThanOrEqual(150);
 });

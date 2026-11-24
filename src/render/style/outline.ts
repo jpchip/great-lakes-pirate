@@ -158,3 +158,37 @@ export function addOutlines(
   }
   return added;
 }
+
+/** Past this, a model's ink is under a pixel or two and isn't drawn (`inkByDistance`). */
+export const INK_FAR_M = 400;
+/** And it comes back inside this, so a model at the edge doesn't flicker. */
+export const INK_NEAR_M = 360;
+
+export interface InkByDistance {
+  /** The ink's draw calls at full detail. */
+  readonly calls: number;
+  /** `distanceM` from the eye: past `INK_FAR_M` the ink is hidden, inside `INK_NEAR_M` shown. */
+  update(distanceM: number): void;
+}
+
+/**
+ * A model's ink by distance: its outline shells and edge lines (`addOutlines`) and any other
+ * line work under it (rigging, sheets), which far off are each a draw call for a pixel or
+ * two. Hidden past `INK_FAR_M`, shown again inside `INK_NEAR_M`. Call after `addOutlines`.
+ */
+export function inkByDistance(root: THREE.Object3D): InkByDistance {
+  const ink: THREE.Object3D[] = [];
+  root.traverse((node) => {
+    if (node.userData['outline'] || node instanceof THREE.Line) ink.push(node);
+  });
+  let shown = true;
+  return {
+    calls: ink.length,
+    update(distanceM) {
+      const next = shown ? distanceM <= INK_FAR_M : distanceM < INK_NEAR_M;
+      if (next === shown) return;
+      shown = next;
+      for (const node of ink) node.visible = shown;
+    },
+  };
+}

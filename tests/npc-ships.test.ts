@@ -12,7 +12,7 @@ import { createFunnelSmoke, PUFF_LIFE_S, PUFFS_PER_SECOND } from '../src/render/
 import { NPC_LINES, npcLines } from '../src/render/ships/npc-lines';
 import { createNpcShip, styleNpcShip } from '../src/render/ships/npc-ship';
 import { lampVisible } from '../src/render/ships/running-lights';
-import { OutlineSettings } from '../src/render/style/outline';
+import { inkByDistance, INK_FAR_M, INK_NEAR_M, OutlineSettings } from '../src/render/style/outline';
 import { StyleLighting, type StylizedMaterial } from '../src/render/style/stylized-material';
 import { measureWaterline } from '../src/render/water/wake';
 
@@ -91,6 +91,31 @@ describe('NPC ship models', () => {
     const total = five.reduce((n, c) => n + c, 0);
     // Plus a wake each and one shared smoke system.
     expect(total + five.length + 1).toBeLessThanOrEqual(40);
+  });
+
+  it('drops its ink (outlines and rigging) far off, and takes it back nearer', () => {
+    const { model } = styled('ship.schooner_barge');
+    const visible = (): number => {
+      let n = 0;
+      model.group.traverseVisible((o) => {
+        if ((o as THREE.Mesh).isMesh || (o as THREE.Line).isLine || (o as THREE.Points).isPoints)
+          n++;
+      });
+      return n;
+    };
+    const ink = inkByDistance(model.group);
+    const near = visible();
+    expect(ink.calls).toBeGreaterThan(2);
+    ink.update(INK_FAR_M + 1);
+    expect(visible()).toBe(near - ink.calls);
+    // Between the two, it stays as it was: no flicker at the edge.
+    ink.update((INK_NEAR_M + INK_FAR_M) / 2);
+    expect(visible()).toBe(near - ink.calls);
+    ink.update(INK_NEAR_M - 1);
+    expect(visible()).toBe(near);
+    // The hull, the windows and the sails stay at any range.
+    ink.update(5_000);
+    expect(model.sails?.visible).toBe(true);
   });
 
   it('floats at its drawn size, waterline and all', () => {

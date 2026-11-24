@@ -22,7 +22,7 @@ import { schoonerLines, type SchoonerLines } from './ships/schooner-lines';
 import type { NpcView } from './ships/npc-view';
 import { schoonerLamps } from './ships/schooner-lamps';
 import { createRunningLights, type RunningLights } from './ships/running-lights';
-import { OutlineSettings } from './style/outline';
+import { inkByDistance, OutlineSettings, type InkByDistance } from './style/outline';
 import { StyleLighting } from './style/stylized-material';
 import {
   createEnvironmentView,
@@ -404,6 +404,8 @@ export async function createTestScene(
   const drawn = world.with('transform', 'model');
   // Each ship has its own model: the sails and booms pose to its own sailing state.
   const objects = new Map<Entity, SchoonerModel>();
+  /** Each schooner's ink (outlines and rigging), dropped when she's far from the camera. */
+  const inks = new Map<Entity, InkByDistance>();
   // A schooner's own running lights, lit with her lantern (Phase 5 piece B).
   const lamps = new Map<Entity, RunningLights>();
   const wakes = new Map<Entity, ShipWake>();
@@ -446,6 +448,7 @@ export async function createTestScene(
     const lines = schoonerLines(e.sailing?.cls.id);
     const model = createSchooner(lines);
     styleSchooner(model, lighting, outlines);
+    inks.set(e, inkByDistance(model.group));
     model.group.rotation.order = 'YXZ';
     if (e.sailing) model.settle(e.sailing.state, 0);
     objects.set(e, model);
@@ -467,6 +470,7 @@ export async function createTestScene(
     const model = objects.get(e);
     if (model) scene.remove(model.group);
     objects.delete(e);
+    inks.delete(e);
     lamps.get(e)?.dispose();
     lamps.delete(e);
     npcsPending.delete(e);
@@ -662,6 +666,7 @@ export async function createTestScene(
         object.position.set(t.position.x, t.position.y, t.position.z);
         // Heading is clockwise from north; three.js yaw is counter-clockwise.
         object.rotation.set(t.pitch ?? 0, -t.heading, t.roll ?? 0);
+        inks.get(e)?.update(camera.position.distanceTo(object.position));
         if (e.playerControlled) {
           // The spyglass looks from the deck, so the ship's own rig would fill the view.
           object.visible = !cameraRig.ship.spyglass && !foot?.shipGone;
@@ -689,7 +694,14 @@ export async function createTestScene(
         }
       }
       // NPC ships: posed on the swell, their wakes, smoke into the wind, lights from dusk.
-      npcs?.update(alpha, now, frameSeconds, environment.sunElevationDeg, fog()?.density ?? 0);
+      npcs?.update(
+        alpha,
+        now,
+        frameSeconds,
+        environment.sunElevationDeg,
+        fog()?.density ?? 0,
+        camera.position,
+      );
       spray.update(frameSeconds);
       shots.update();
       combatFx.update(frameSeconds, fxWind);
