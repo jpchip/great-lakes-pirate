@@ -9,7 +9,7 @@ This is the top-level plan. It captures the vision, pillars, systems, decisions,
 
 ## 1. Vision
 
-Play as an original pirate captain on the Great Lakes around the turn of the 20th century, loosely inspired by the life of "Roaring" Dan Seavey (see `references/dan_seavey.md`). Start as a small-time schooner operator on western Lake Superior. Work honest cargo by day and thieve by night. Explore a huge, believable recreation of the lakes, then steal, trade, fight and build your way to riches and fame, while the law and the lighthouse keepers try to catch you. It's an **open sandbox**: no forced story, and you set your own goals.
+Play as an original pirate captain on Lake Superior around the turn of the 20th century, loosely inspired by the life of "Roaring" Dan Seavey (see `references/dan_seavey.md`). Start as a small-time schooner operator on western Lake Superior. Work honest cargo by day and thieve by night. Explore a huge, believable recreation of the lake, then steal, trade, fight and build your way to riches and fame, while the law and the lighthouse keepers try to catch you. It's an **open sandbox**: no forced story, and you set your own goals.
 
 **Elevator pitch:** *Sid Meier's Pirates! meets Sea of Thieves meets a grid base-builder, set on Lake Superior instead of the Caribbean, with a stealth layer in the docks at night.*
 
@@ -39,7 +39,8 @@ Play as an original pirate captain on the Great Lakes around the turn of the 20t
   - **Ojibwe communities (included):** Red Cliff and Bad River bands, and Madeline Island's history as a historic Ojibwe center. Portray them respectfully as communities with their own interests: trading partners, guides, sources of local knowledge and lore, not stereotypes or targets. R1 must research this carefully (treaty-era context, the 1854 treaty reservations, fishing and wild rice economies). Consider authenticity review/sensitivity reading before release.
 - **Seasons:** spring, summer, fall and winter change weather, ice, traffic and prices (see §4.2).
 - **Player character:** an original, customizable pirate *inspired by* Seavey. **Seavey himself does not appear.** His exploits inspire mechanics and events only.
-- **Geography (long-term):** all five lakes and the connecting waters (St. Marys River/Soo Locks, Straits of Mackinac, St. Clair/Detroit Rivers, Welland Canal).
+- **Geography (1.0):** western Lake Superior only (decided 2026-11-24). It's plenty big for a full game.
+- **Geography (after 1.0):** the other lakes and the connecting waters (St. Marys River/Soo Locks, Straits of Mackinac, St. Clair/Detroit Rivers, Welland Canal) may come later as **expansion packs** (§7.1). The tech stays data-driven so that door stays open ([01](01-tech-architecture.md)).
 - **Starting region / MVP: western Lake Superior.**
   - **Ports:** Duluth, Superior (WI), Ashland, Bayfield, Washburn, La Pointe (Madeline Island), Two Harbors, Siskiwit Bay (a fading logging landing in 1900; the Cornucopia fishing boom came later), plus the Red Cliff and Bad River communities (trade only). Profiles are in [R1a](R1a-western-superior-gazetteer.md).
   - **Apostle Islands** (22 islands, including Madeline; see R1): sea caves, sandstone cliffs, brownstone quarries (e.g., Basswood, Hermit and Stockton Islands) and fishing camps. Natural hideout and secret territory.
@@ -249,7 +250,7 @@ Each of these gets its own plan doc. Summaries capture decisions plus remaining 
 
 ## 7. Phased Roadmap
 
-**Solo developer:** phases are sized to always end with something playable. Scope cuts are expected. MVP first, other lakes later.
+**Solo developer:** phases are sized to always end with something playable. Scope cuts are expected. **1.0 is western Lake Superior only** (decided 2026-11-24); other lakes are possible expansion packs after 1.0 (§7.1).
 
 | Phase | Name | Goal | Key deliverables |
 |---|---|---|---|
@@ -263,8 +264,18 @@ Each of these gets its own plan doc. Summaries capture decisions plus remaining 
 | 7 | **On Foot: Docks & Islands** | The night loop + island exploration | On-foot mode and the rowboat, the captain's body, one docks district (**Bayfield**, with the lockup for jail and jailbreaks), stealth AI, theft, the walkable saloon and back room, the whiskey trick, one fully walkable island (Stockton). **Built as 0.7.0** ([08 §20](08-docks-district-stealth.md)) |
 | 8 | **Hideouts** | Base loop | Grid building and build mode, storage, crafting (four stations, the still's passive production), the slipway (repairs, crafted upgrades, a new T1 when shipless), laying low and pursuit ending at a hideout, two MVP hideouts (Stockton and Siskiwit Bay, the Lumberjack's start; seven sites by Beta), Ambitions. Tracked in [#136](https://github.com/jpchip/great-lakes-pirate/issues/136) ([09 §16](09-hideouts-building-crafting.md)) |
 | 9 | **Seasons & Secrets** | Depth | Full season cycle (winter rules), island secrets, wrecking, the event system and letters, newspapers, permadeath polish. **Built as 0.9.0** ([11 §18](11-exploration-islands-secrets.md)) |
-| 10 | **Expand the Lakes** | More world | Lake Michigan (Seavey's home waters), then Huron, Erie, Ontario, and the Soo Locks (before 1.0; decided 2026-10-23) |
-| 11 | **Polish & Release** | Ship it | Audio, UI polish, performance, tutorial, playtests |
+| 10 | **Polish & Release** | Ship it | Audio, UI polish, performance, tutorial, playtests, player save export/import, the full release checklist ([17 §9](17-testing-performance-release.md)). Builds are 0.10.x release candidates, then **1.0**. (Was Phase 11; the old Phase 10, Expand the Lakes, moved after 1.0 on 2026-11-24.) |
+
+### 7.1 After 1.0: expansion packs (not scheduled)
+
+Decided 2026-11-24: other lakes are not part of 1.0. They're ideas for **expansion packs** after release, each its own update on top of 1.0 (versions 1.x), with its own research plan and zones built through the same pipeline ([03 §10](03-world-scale-chart-travel.md)). Nothing here is committed or ordered yet. Candidates:
+
+- **Lake Michigan:** Seavey's home waters (Escanaba, Frankfort, Chicago, Milwaukee), and where the *Morrill* sails off to today ([06](06-fame-wanted-law-lighthouses.md)). Probably the first pack. Needs research plan R2.
+- **The Soo Locks and Lake Huron:** the St. Marys River as a gated transition zone with heavy law presence, then Huron and the Straits of Mackinac.
+- **Lakes Erie and Ontario:** the St. Clair/Detroit Rivers and the Welland Canal.
+- **The rest of Superior:** the Keweenaw, Isle Royale, Marquette and the Canadian shore (Port Arthur/Fort William smuggling) already have hooks in [03 §10](03-world-scale-chart-travel.md) and [05](05-ports-economy-trading.md), and could be a pack of their own.
+
+Until a pack exists, the "lower lakes" stay an off-chart sink and source for traffic at the east edge of the chart ([05](05-ports-economy-trading.md)).
 
 ### MVP definition
 Western Lake Superior (Apostles, Bayfield, Ashland, Duluth/Superior), arcade sailing with weather, hybrid travel, trading, Fame/Wanted with cutters and lighthouses, freighter piracy, one docks district (Bayfield, whose lockup holds all MVP prisoners), one fully walkable island, two hideouts with grid building, and the season from the May start **through freeze-up**, where MVP content ends ([04](04-water-weather-seasons.md)).
@@ -410,17 +421,19 @@ All planned documents are drafted and their open questions answered. Next:
 | 2026-10-22 | Mainland hideout sites get on-foot build pads; reaching a hideout ends pursuit; no watchdogs; no disguise items; rifles usable on foot; T3 has one swivel plus a broadside (06, 07, 08, 09, 10). |
 | 2026-10-22 | Seven Wanted regions (Apostles split; Ashland on its own); Respectable Captain Fame track included (06, R1a). |
 | 2026-10-22 | Time skips batch fast-forward; the shipyard auto-sells cargo; harbor tugs tow T3; player export/import ships (01, 05, 10, 16). |
-| 2026-10-22 | Versions: 0.8 = MVP/Alpha, 0.9 = Beta, 1.0 after Phase 11 (17). |
-| 2026-10-23 | Phase 10 (expand the lakes) comes before Phase 11 (polish); expansions ship before 1.0 as 0.10.x (17). |
+| 2026-10-22 | Versions: 0.8 = MVP/Alpha, 0.9 = Beta, 1.0 after ~~Phase 11~~ the polish phase (now Phase 10, see 2026-11-24) (17). |
+| 2026-10-23 | ~~Phase 10 (expand the lakes) comes before Phase 11 (polish); expansions ship before 1.0 as 0.10.x (17).~~ Superseded 2026-11-24. |
 | 2026-10-22 | Booth Fisheries is fictionalized as Hollister Fish & Packing everywhere, including the README. |
 | 2026-10-24 | Spike S7: C = 8, R = 24, R_foot = 6 and freighter display scale 0.85 confirmed by playtest (03 §15). |
 | 2026-10-25 | Ships are built by a procedural hull generator; Meshy is optional, for organic one-offs only (14 §5). |
 | 2026-10-25 | Spike S4: art style B (toon with per-object ink outlines) picked; costs nothing measurable on the baseline laptop (14 §3.4). |
 | 2026-11-16 | Ambitions come in Phase 8; the event system and letters wait for Phase 9 (09 §16.6, 12 §11). |
+| 2026-11-24 | **1.0 is western Lake Superior only.** The other lakes leave the 1.0 scope and become possible expansion packs after release (§7.1). Polish & Release is renumbered from Phase 11 to Phase 10 (0.10.x release candidates, then 1.0) (17). |
 
 ---
 
 ## Changelog
+- v0.13: 1.0 is western Lake Superior only (2026-11-24). Expand the Lakes leaves the roadmap; Polish & Release becomes Phase 10; new §7.1 lists the expansion-pack ideas for after 1.0; §1 and §2 say Lake Superior.
 - v0.12: Phase 9's roadmap row is marked built as 0.9.0 (11 §18.25).
 - v0.11: Phase 8's roadmap row gains Siskiwit Bay, crafting, the slipway, laying low and Ambitions (09 §16) and links its tracking issue; Phase 9's row keeps the event system and letters, as 12 §11 now does.
 - v0.10: Phase 7's roadmap row gains the rowboat, the captain's body, the walkable back room and the whiskey trick (08 §20) and is marked built as 0.7.0.

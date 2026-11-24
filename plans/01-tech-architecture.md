@@ -24,7 +24,7 @@ Define the technology choices, high-level architecture, project layout, conventi
 | **Hybrid world (coastal zones + chart travel)** | Load only the active zone. Simulate the rest of the world abstractly. |
 | **Islands walkable, docks districts walkable** | Need a character controller, collisions, navmesh AI. |
 | **Stylized art; procedural, CC0 and AI-generated assets** | A unifying shader and material approach. Asset processing pipeline. |
-| **Long-term: all five lakes** | Data-driven world. Nothing about Lake Superior hard-coded. |
+| **1.0 is western Superior; other lakes are possible expansion packs** | Data-driven world. Nothing about Lake Superior hard-coded. |
 
 ---
 

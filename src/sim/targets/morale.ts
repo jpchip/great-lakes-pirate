@@ -11,8 +11,9 @@ import type { ShipCombat, ShipRecord } from '../../../data/schemas/ships';
  *   she can outrun you, whether she's disabled or caught), plus what she's been through
  *   (`shock`: warning shots, hits, casualties), which wears off slowly once the firing
  *   stops. Every part has a name, so the HUD can say why she struck or why she didn't.
- * - **Transit** is her lane. A ship running at her, a shot near her, or gunfire close by
- *   puts her on the **alert**. Night or fog surprise costs her nerve when it does.
+ * - **Transit** is her lane. A ship running at her (under its own way: passing one at
+ *   anchor isn't being run down), a shot near her, or gunfire close by puts her on the
+ *   **alert**. Night or fog surprise costs her nerve when it does.
  * - On the alert she decides: below `strikeBelow` she **strikes her colors** (heaves to,
  *   a white flag; for good), below her flee line she **runs**, and otherwise she holds
  *   on at her best speed. A barge on her towline can't run on her own. Only an armed
@@ -35,9 +36,11 @@ export interface MoraleRules {
   /** ...when it closes this fast, knots, and would pass this close, meters. */
   alertClosingKn: number;
   alertCpaM: number;
-  /** A ship lying this close to her this long puts her on the alert too. */
+  /** A ship lying this close to her this long puts her on the alert too... */
   shadowRangeM: number;
   shadowS: number;
+  /** ...when it keeps pace under way at this many knots: passing one at anchor doesn't. */
+  shadowMinKn: number;
   /** At night or in fog her lookout sees the threat only this share as far. */
   darkAlertShare: number;
   /** Surprised at close range in the dark: this much off her nerve. */
@@ -111,6 +114,7 @@ export const MORALE_RULES: MoraleRules = {
   alertCpaM: 150,
   shadowRangeM: 180,
   shadowS: 10,
+  shadowMinKn: 1,
   darkAlertShare: 0.45,
   surpriseShock: 12,
   surpriseRangeM: 400,
@@ -156,10 +160,15 @@ export const MORALE_RULES: MoraleRules = {
 
 /** What her lookout and her master know this tick. */
 export interface TargetSituation {
-  /** The player's ship: how far, how fast it closes (knots, + closing), how close it'd pass. */
+  /**
+   * The player's ship: how far, how fast it closes on her under its own way (knots, +
+   * closing; her own speed left out), and how close it'd pass.
+   */
   rangeM: number;
   closingKn: number;
   cpaM: number;
+  /** The player's speed, knots (0 at anchor). */
+  playerKn: number;
   /** The player's Fame tier (0 Unknown … 4 Legendary). */
   fameTier: number;
   /** The guns she faces: 0 small arms only, 1 a swivel, 2 a light broadside, 3+ heavier. */
@@ -429,7 +438,7 @@ export function stepCaptain(
     const see = rules.alertRangeM * (1 - (1 - rules.darkAlertShare) * sit.dark01);
     const running =
       sit.rangeM < see && sit.closingKn > rules.alertClosingKn && sit.cpaM < rules.alertCpaM;
-    const shadowed = c.closeS >= rules.shadowS;
+    const shadowed = c.closeS >= rules.shadowS && sit.playerKn >= rules.shadowMinKn;
     const fired = c.quietS < dt * 2;
     if (!running && !shadowed && !fired) {
       moraleOf(c, sit, rules);

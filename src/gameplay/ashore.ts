@@ -1264,8 +1264,8 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
     }
     // An island's cairns and the stash's strongbox (zone meters: never in a district).
     if (!district && c.grounded && !c.swimming) {
-      // A carcass on your shoulders: the only thing to do with it is put it down (piece V).
-      if (wild?.carrying) return wild.prompt(c);
+      // A carcass on your shoulders: lay it in a hideout's stores, or put it down (piece V).
+      if (wild?.carrying) return deps.island?.stashPrompt(c.position) ?? wild.prompt(c);
       const found =
         deps.legends?.prompt(c.position) ??
         deps.island?.prompt(c.position) ??

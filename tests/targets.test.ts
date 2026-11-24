@@ -60,6 +60,7 @@ function sit(over: Partial<TargetSituation> = {}): TargetSituation {
     rangeM: 400,
     closingKn: 4,
     cpaM: 30,
+    playerKn: 4,
     fameTier: 0,
     playerGuns: 1,
     dark01: 0,
@@ -125,6 +126,17 @@ describe('morale and the captain (plan 07 §5)', () => {
     expect(c.phase).toBe('transit');
     const acts = stepCaptain(c, sit(), 0.1);
     expect(acts.some((a) => a.type === 'phase' && a.to === 'alert')).toBe(true);
+  });
+
+  it('a ship passing a schooner at anchor isn’t shadowed by her', () => {
+    const c = captainOf('ship.package_steamer');
+    // Lying close by at anchor while she steams past: no closing, no way on.
+    const s = sit({ rangeM: 120, closingKn: 0, cpaM: 60, playerKn: 0, fameTier: 3 });
+    for (let i = 0; i < 300; i++) stepCaptain(c, s, 0.1);
+    expect(c.phase).toBe('transit');
+    // Keeping pace under way, she's shadowed.
+    for (let i = 0; i < 120; i++) stepCaptain(c, { ...s, playerKn: 6 }, 0.1);
+    expect(c.phase).not.toBe('transit');
   });
 
   it('a T1 makes a fish tug strike with warning shots, killing nobody (§14.3 criterion 1)', () => {
@@ -542,6 +554,28 @@ describe('targets in an arena', () => {
     // Gunfire carried: the freighter and her barge are on the alert too.
     const phases = targets.captains().map((c) => c.phase);
     expect(phases.filter((p) => p !== 'transit').length).toBe(3);
+  });
+
+  it('a steamer coming down her lane at an anchored schooner doesn’t run, even from an Infamous one', () => {
+    const { tick, targets, ships, player, notices } = setup({
+      fameTier: () => 3,
+      dark01: () => 1,
+      playerKn: () => 0,
+    });
+    tick();
+    const f = ships[0]?.entity.transform;
+    if (!f || !player.transform || !player.previousTransform) throw new Error('no ships');
+    // Dead ahead of the freighter, 220 m off, lying still: she closes on us, not we on her.
+    const at = {
+      x: f.position.x + Math.sin(f.heading) * 220,
+      y: 0,
+      z: f.position.z - Math.cos(f.heading) * 220,
+    };
+    player.transform.position = { ...at };
+    player.previousTransform.position = { ...at };
+    for (let i = 0; i < 600; i++) tick();
+    expect(targets.captains().map((c) => c.phase)).toEqual(['transit', 'transit', 'transit']);
+    expect(notices.some((n) => n.includes('running for it'))).toBe(false);
   });
 
   it('a shot that hits isn’t also a warning shot', () => {
