@@ -182,6 +182,8 @@ export interface HudSources {
   edge?: ZoneEdge | undefined;
   /** A short-lived chip saying why the last F or anchor order was refused. */
   notice?: string | undefined;
+  /** The notices up now, oldest first (ui/hud/notices). */
+  notices?: readonly string[] | undefined;
   /** Pursued: the chart is locked (plan 13 §4.3). */
   chartLocked?: boolean | undefined;
   /** Whether "Take to the chart" is offered here; worked out from `edge` when absent. */
@@ -201,9 +203,6 @@ export interface HudSources {
   wanted?: WantedSnapshot | undefined;
   report?: ReportSnapshot | undefined;
 }
-
-/** Seconds a refusal chip stays up. */
-export const NOTICE_S = 3;
 
 /** Why a dock order was refused, as a HUD chip (plan 02 §7: "any other press says why not"). */
 export function dockRefusedNotice(reason: 'noBerth' | 'tooFast' | 'anchored' | 'aground'): string {
@@ -267,7 +266,8 @@ export function sampleHud(src: HudSources): HudSnapshot | undefined {
     src.chartOffered ??
     (!!src.terrain && !!src.edge && offersChart(src.terrain.bounds, src.edge, s.x, s.z));
   for (const chip of src.extraStatus ?? []) if (!status.includes(chip)) status.push(chip);
-  if (src.notice && !status.includes(src.notice)) status.push(src.notice);
+  const notes = src.notice ? [...(src.notices ?? []), src.notice] : (src.notices ?? []);
+  for (const n of notes) if (!status.includes(n)) status.push(n);
   return {
     headingDeg: heading,
     windAngleDeg: s.windAngle * DEG,

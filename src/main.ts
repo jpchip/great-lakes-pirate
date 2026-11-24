@@ -174,7 +174,8 @@ import { advanceWeather, placeFogBank } from './sim/weather/weather';
 import { createSea } from './sim/weather/waves';
 import { BACKGROUNDS, createWorldState, parseWorldState, type WorldState } from './sim/world-state';
 import type { ZoneDef } from '../data/schemas/zones';
-import { anchorRefusedNotice, dockRefusedNotice, NOTICE_S, sampleHud } from './ui/hud/model';
+import { anchorRefusedNotice, dockRefusedNotice, sampleHud } from './ui/hud/model';
+import { NoticeBoard } from './ui/hud/notices';
 import { offersChart } from './sim/terrain/zone-edge';
 import { arenaLoadingScreen, loadingScreen, type Arrival } from './ui/loading/model';
 import { mountGameUi } from './ui/mount';
@@ -3587,11 +3588,10 @@ async function boot(): Promise<void> {
       return true;
     }
     topTierAsked = { berthId, untilS: hudSeconds + TOP_TIER_CONFIRM_S };
-    notice = {
-      text: `Most Wanted here: capture means the rope. F again to dock at ${portInfo(port)?.name ?? 'the pier'}`,
-      untilS: hudSeconds + TOP_TIER_CONFIRM_S,
-    };
-    hudClock = HUD_INTERVAL_S;
+    showNotice(
+      `Most Wanted here: capture means the rope. F again to dock at ${portInfo(port)?.name ?? 'the pier'}`,
+      TOP_TIER_CONFIRM_S,
+    );
     return false;
   };
   // The cutter's captain runs inside the sailing tick, after the arena's helms.
@@ -3609,14 +3609,18 @@ async function boot(): Promise<void> {
   };
   const sailingMode = createSailingMode(ctx, sailingOptions);
   machine.register({ id: 'mainMenu', enter: () => (input.context = 'menu') }).register(sailingMode);
-  // A refused F or anchor order says why on the HUD for a few seconds.
-  let notice: { text: string; untilS: number } | undefined;
+  // Notices bottom left (a refused order, what a search turned up): each up long enough to
+  // read, a few stacked, and all of them kept in the journal's Messages page.
+  const notices = new NoticeBoard();
   let hudSeconds = 0;
   let discoveryClock = 0;
   const DISCOVERY_LOOK_S = 1;
   noticeRef.current = (text) => showNotice(text);
-  const showNotice = (text: string): void => {
-    notice = { text, untilS: hudSeconds + NOTICE_S };
+  /** `holdS`: at least this long up, for a line that waits on a second press. */
+  const showNotice = (text: string, holdS?: number): void => {
+    const now = state.environment.clock.gameSeconds;
+    notices.show(text, hudSeconds, `${weekLabel(now)} · ${clockLabel(now)}`, holdS);
+    ui.setNoticeLog(notices.log());
     hudClock = HUD_INTERVAL_S;
   };
   // "Look her over" and hail cards (Phase 4 piece D): up until she's out of hail or a while passes.
@@ -6661,10 +6665,7 @@ async function boot(): Promise<void> {
         }
       }
       salvage.update(frameSeconds);
-      if (notice && hudSeconds > notice.untilS) {
-        notice = undefined;
-        hudClock = HUD_INTERVAL_S;
-      }
+      if (notices.expire(hudSeconds)) hudClock = HUD_INTERVAL_S;
       if (card && (hudSeconds > card.untilS || cardOutOfHail())) {
         hideCard();
       }
@@ -6689,7 +6690,7 @@ async function boot(): Promise<void> {
           hurt: body.hurt,
           cold: body.cold,
           prompt: body.prompt,
-          notice: notice?.text,
+          notices: notices.visible(),
           inBoat: body.inBoat,
           mouseLocked: footLook.locked,
           banner: body.banner,
@@ -6765,7 +6766,7 @@ async function boot(): Promise<void> {
             draftM,
             barometer: ctx.weather.barometerAt(state.environment.clock.gameSeconds),
             edge: arena ? undefined : zoneData.edge,
-            notice: notice?.text,
+            notices: notices.visible(),
             chartLocked: pursued || !!arena?.run.pursued,
             chartOffered: arena ? false : atEdge(),
             depthSpikeM: (() => {

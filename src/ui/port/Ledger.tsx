@@ -1,5 +1,6 @@
 import { WantedIcon } from '../hud/Wanted';
 import { AmbitionsPage, useAmbitions } from '../hud/Ambitions';
+import { MessagesPage, useNoticeLog } from '../hud/NoticeLog';
 import { CuriosPage, DiscoveriesPage, LeadsPage, LegendsPage } from './JournalPages';
 import type { LedgerLawSnapshot } from './harbor-model';
 import type { ComponentChildren } from 'preact';
@@ -33,7 +34,8 @@ type LedgerTab =
   | 'leads'
   | 'legends'
   | 'discoveries'
-  | 'curios';
+  | 'curios'
+  | 'messages';
 
 /** The discovery pages (Phase 9 piece O): only when the game hands the journal its data. */
 const JOURNAL_TABS: readonly LedgerTab[] = ['leads', 'legends', 'discoveries', 'curios'];
@@ -50,6 +52,7 @@ const TABS: [LedgerTab, string][] = [
   ['legends', 'Legends'],
   ['discoveries', 'Discoveries'],
   ['curios', 'Curios'],
+  ['messages', 'Messages'],
 ];
 
 /** One rumor: what was said, who said it and how far to trust it. */
@@ -500,8 +503,13 @@ export function Ledger({ ledger, here }: { ledger: LedgerSnapshot; here?: string
   const [tab, setTab] = useState<LedgerTab>(here ? 'byPort' : 'hold');
   // The Ambitions page needs the game's buttons (Phase 8 piece H): absent, no tab.
   const ambitions = useAmbitions();
+  // The notices that went by on the HUD: absent outside the game, no tab.
+  const messages = useNoticeLog();
   const tabs = TABS.filter(
-    ([id]) => (id !== 'ambitions' || ambitions) && (!JOURNAL_TABS.includes(id) || ledger.journal),
+    ([id]) =>
+      (id !== 'ambitions' || ambitions) &&
+      (id !== 'messages' || messages) &&
+      (!JOURNAL_TABS.includes(id) || ledger.journal),
   );
   return (
     <div class="ledger" data-testid="ledger">
@@ -541,6 +549,7 @@ export function Ledger({ ledger, here }: { ledger: LedgerSnapshot; here?: string
       {tab === 'legends' && ledger.journal && <LegendsPage journal={ledger.journal} />}
       {tab === 'discoveries' && ledger.journal && <DiscoveriesPage journal={ledger.journal} />}
       {tab === 'curios' && ledger.journal && <CuriosPage journal={ledger.journal} />}
+      {tab === 'messages' && messages && <MessagesPage log={messages} />}
     </div>
   );
 }

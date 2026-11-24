@@ -37,6 +37,8 @@ import { FirstWeekPage, FirstWeekTracker } from './hud/FirstWeek';
 import type { FirstWeekSnapshot } from '../gameplay/captain';
 import { AmbitionsContext, AmbitionsTracker, type AmbitionActions } from './hud/Ambitions';
 import type { AmbitionsSnapshot } from '../gameplay/ambitions';
+import { NoticeLogContext } from './hud/NoticeLog';
+import type { NoticeLogEntry } from './hud/notices';
 import { JailScreen } from './jail/JailScreen';
 import type { JailActions, JailSnapshot } from './jail/model';
 import { EndScreen } from './end/EndScreen';
@@ -147,6 +149,8 @@ export interface GameUi {
   setFirstWeek(snapshot: FirstWeekSnapshot | undefined): void;
   /** Ambitions (Phase 8 piece H): the HUD's pinned list and the ledger's page. */
   setAmbitions(snapshot: AmbitionsSnapshot | undefined): void;
+  /** The notices that went by on the HUD, newest first: the journal's Messages page. */
+  setNoticeLog(log: readonly NoticeLogEntry[]): void;
   /** The jail, bail and release screens (piece D); undefined closes them. */
   setJail(snapshot: JailSnapshot | undefined): void;
   /** The run is over: the front page and summary over everything. */
@@ -204,6 +208,7 @@ export function mountGameUi({
   const lieDocked = signal(false);
   const firstWeek = signal<FirstWeekSnapshot | undefined>(undefined);
   const ambitions = signal<AmbitionsSnapshot | undefined>(undefined);
+  const noticeLog = signal<readonly NoticeLogEntry[]>([]);
   const ambitionsContext = computed(() =>
     ambitions.value && ambitionActions
       ? { ambitions: ambitions.value, actions: ambitionActions }
@@ -337,123 +342,128 @@ export function mountGameUi({
     const weekShown = !!firstWeek.value && !firstWeek.value.complete && !firstWeek.value.hidden;
     return (
       <AmbitionsContext.Provider value={ambitionsContext.value}>
-        <Hud
-          hud={hud}
-          density={density}
-          spyglass={spyglass}
-          onTakeToChart={onTakeToChart}
-          onOpenPort={portActions?.openDocked}
-          onWait={onWait}
-          onGoAshore={onGoAshore}
-        />
-        {!menuOpen.value && <FootHud hud={footHud} density={density} onPrompt={onFootPrompt} />}
-        {!menuOpen.value && stealthHud.value && <StealthHud hud={stealthHud.value} />}
-        {!menuOpen.value && !port.value && !journal.value && <Captions captions={captions} />}
-        {!menuOpen.value && <ShipCardView card={shipCard} />}
-        {!menuOpen.value && !port.value && <HailForecastView card={hailCard} />}
-        {!menuOpen.value && <AimHud aim={aimHud} />}
-        {!menuOpen.value && <TargetCardView card={targetCard} />}
-        {chartActions && <ChartHud chart={chart} actions={{ ...chartActions, toggleSailOn }} />}
-        {port.value && portActions && !menuOpen.value && (
-          <PortScreen
-            port={port.value}
-            actions={portActions}
-            tab={portTab.value}
-            setTab={(t) => (portTab.value = t)}
+        <NoticeLogContext.Provider value={noticeLog.value}>
+          <Hud
+            hud={hud}
+            density={density}
+            spyglass={spyglass}
+            onTakeToChart={onTakeToChart}
+            onOpenPort={portActions?.openDocked}
+            onWait={onWait}
+            onGoAshore={onGoAshore}
           />
-        )}
-        {boarding.value && boardingActions && !menuOpen.value && (
-          <BoardingScreen boarding={boarding.value} actions={boardingActions} />
-        )}
-        {smuggler.value && smugglerActions && !menuOpen.value && (
-          <SmugglerScreen smuggler={smuggler.value} actions={smugglerActions} />
-        )}
-        {stash.value && stashActions && !menuOpen.value && (
-          <StashScreen stash={stash.value} actions={stashActions} />
-        )}
-        {sleep.value && sleepActions && !menuOpen.value && (
-          <SleepDialog view={sleep.value} actions={sleepActions} />
-        )}
-        {lie.value && stashActions && !menuOpen.value && (
-          <LieDialog actions={stashActions} docked={lieDocked.value} />
-        )}
-        {journal.value && portActions && !menuOpen.value && (
-          <Journal
-            ledger={journal.value}
-            close={portActions.closeJournal}
-            sailingOn={journalSailing.value}
-            toggleSailOn={toggleSailOn}
-            extra={
-              firstWeek.value && (
-                <FirstWeekPage
-                  week={firstWeek.value}
-                  setHidden={setFirstWeekHidden}
-                  clearFromLedger={clearFirstWeek}
-                />
-              )
-            }
-          />
-        )}
-        {trackersShown && (weekShown || ambitions.value) && (
-          <div class="hud-trackers">
-            {weekShown && firstWeek.value && (
-              <FirstWeekTracker week={firstWeek.value} setHidden={setFirstWeekHidden} />
-            )}
-            {ambitions.value && ambitionActions && (
-              <AmbitionsTracker ambitions={ambitions.value} setFolded={ambitionActions.setFolded} />
-            )}
-          </div>
-        )}
-        {!menuOpen.value &&
-          !port.value &&
-          !journal.value &&
-          !smuggler.value &&
-          !boarding.value &&
-          !stash.value &&
-          !jail.value &&
-          !ended.value &&
-          !lie.value &&
-          !sleep.value && (
-            <button
-              type="button"
-              class="hud-menu-button"
-              data-testid="open-settings"
-              title="Settings (Esc)"
-              onClick={() => setMenu(true)}
-            >
-              Settings
-            </button>
+          {!menuOpen.value && <FootHud hud={footHud} density={density} onPrompt={onFootPrompt} />}
+          {!menuOpen.value && stealthHud.value && <StealthHud hud={stealthHud.value} />}
+          {!menuOpen.value && !port.value && !journal.value && <Captions captions={captions} />}
+          {!menuOpen.value && <ShipCardView card={shipCard} />}
+          {!menuOpen.value && !port.value && <HailForecastView card={hailCard} />}
+          {!menuOpen.value && <AimHud aim={aimHud} />}
+          {!menuOpen.value && <TargetCardView card={targetCard} />}
+          {chartActions && <ChartHud chart={chart} actions={{ ...chartActions, toggleSailOn }} />}
+          {port.value && portActions && !menuOpen.value && (
+            <PortScreen
+              port={port.value}
+              actions={portActions}
+              tab={portTab.value}
+              setTab={(t) => (portTab.value = t)}
+            />
           )}
-        {menuOpen.value && (
-          <SettingsMenu
-            settings={current}
-            bindings={bindings}
-            update={controls.update}
-            rebind={controls.rebind}
-            resetBindings={controls.resetBindings}
-            close={() => setMenu(false)}
-            reloadNote={reloadNote}
-            audio={controls.audio}
-            onAbandon={
-              onAbandon &&
-              (() => {
-                setMenu(false);
-                onAbandon();
-              })
-            }
-          />
-        )}
-        {jail.value && jailActions && !menuOpen.value && (
-          <JailScreen jail={jail.value} actions={jailActions} />
-        )}
-        {frontPage.value && !ended.value && (
-          <MostWantedPage page={frontPage.value} close={closeFrontPage} />
-        )}
-        {eventScene.value && sceneActions && !frontPage.value && !ended.value && (
-          <EventScene scene={eventScene.value} actions={sceneActions} />
-        )}
-        <LoadingScreen screen={loading} />
-        {ended.value && <EndScreen run={ended.value} onMenu={onEndMenu} />}
+          {boarding.value && boardingActions && !menuOpen.value && (
+            <BoardingScreen boarding={boarding.value} actions={boardingActions} />
+          )}
+          {smuggler.value && smugglerActions && !menuOpen.value && (
+            <SmugglerScreen smuggler={smuggler.value} actions={smugglerActions} />
+          )}
+          {stash.value && stashActions && !menuOpen.value && (
+            <StashScreen stash={stash.value} actions={stashActions} />
+          )}
+          {sleep.value && sleepActions && !menuOpen.value && (
+            <SleepDialog view={sleep.value} actions={sleepActions} />
+          )}
+          {lie.value && stashActions && !menuOpen.value && (
+            <LieDialog actions={stashActions} docked={lieDocked.value} />
+          )}
+          {journal.value && portActions && !menuOpen.value && (
+            <Journal
+              ledger={journal.value}
+              close={portActions.closeJournal}
+              sailingOn={journalSailing.value}
+              toggleSailOn={toggleSailOn}
+              extra={
+                firstWeek.value && (
+                  <FirstWeekPage
+                    week={firstWeek.value}
+                    setHidden={setFirstWeekHidden}
+                    clearFromLedger={clearFirstWeek}
+                  />
+                )
+              }
+            />
+          )}
+          {trackersShown && (weekShown || ambitions.value) && (
+            <div class="hud-trackers">
+              {weekShown && firstWeek.value && (
+                <FirstWeekTracker week={firstWeek.value} setHidden={setFirstWeekHidden} />
+              )}
+              {ambitions.value && ambitionActions && (
+                <AmbitionsTracker
+                  ambitions={ambitions.value}
+                  setFolded={ambitionActions.setFolded}
+                />
+              )}
+            </div>
+          )}
+          {!menuOpen.value &&
+            !port.value &&
+            !journal.value &&
+            !smuggler.value &&
+            !boarding.value &&
+            !stash.value &&
+            !jail.value &&
+            !ended.value &&
+            !lie.value &&
+            !sleep.value && (
+              <button
+                type="button"
+                class="hud-menu-button"
+                data-testid="open-settings"
+                title="Settings (Esc)"
+                onClick={() => setMenu(true)}
+              >
+                Settings
+              </button>
+            )}
+          {menuOpen.value && (
+            <SettingsMenu
+              settings={current}
+              bindings={bindings}
+              update={controls.update}
+              rebind={controls.rebind}
+              resetBindings={controls.resetBindings}
+              close={() => setMenu(false)}
+              reloadNote={reloadNote}
+              audio={controls.audio}
+              onAbandon={
+                onAbandon &&
+                (() => {
+                  setMenu(false);
+                  onAbandon();
+                })
+              }
+            />
+          )}
+          {jail.value && jailActions && !menuOpen.value && (
+            <JailScreen jail={jail.value} actions={jailActions} />
+          )}
+          {frontPage.value && !ended.value && (
+            <MostWantedPage page={frontPage.value} close={closeFrontPage} />
+          )}
+          {eventScene.value && sceneActions && !frontPage.value && !ended.value && (
+            <EventScene scene={eventScene.value} actions={sceneActions} />
+          )}
+          <LoadingScreen screen={loading} />
+          {ended.value && <EndScreen run={ended.value} onMenu={onEndMenu} />}
+        </NoticeLogContext.Provider>
       </AmbitionsContext.Provider>
     );
   }
@@ -543,6 +553,9 @@ export function mountGameUi({
     },
     setAmbitions(snapshot) {
       ambitions.value = snapshot;
+    },
+    setNoticeLog(log) {
+      noticeLog.value = [...log];
     },
     setPortTab(tab) {
       portTab.value = tab;

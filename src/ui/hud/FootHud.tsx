@@ -17,7 +17,8 @@ export interface FootHudView {
   cold: { word: string; waterC: number; lastS: number } | undefined;
   /** What F does here, if anything. */
   prompt: string | undefined;
-  notice: string | undefined;
+  /** The notices up now, oldest first (ui/hud/notices). */
+  notices: readonly string[];
   inBoat: boolean;
   /** Clicks lock the mouse for looking; until then the hint says so. */
   mouseLocked: boolean;
@@ -134,11 +135,11 @@ export function FootHud({
             )}
             {h.warmth && <WarmthBar warmth={h.warmth} />}
             {h.cold && <ColdChip cold={h.cold} />}
-            {h.notice && (
-              <div class="hud-chip" data-testid="foot-notice">
-                {h.notice}
+            {h.notices.map((n) => (
+              <div class="hud-chip" data-testid="foot-notice" key={n}>
+                {n}
               </div>
-            )}
+            ))}
           </div>
           <div class="foot-keys hud-dim" data-testid="foot-keys">
             {h.inBoat
