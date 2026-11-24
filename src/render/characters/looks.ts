@@ -103,7 +103,19 @@ export function lookFromPortrait(p: PortraitDef): Look {
 }
 
 export type NpcRole =
-  'watchman' | 'constable' | 'sailor' | 'marshal' | 'dockhand' | 'townsman' | 'townswoman';
+  | 'watchman'
+  | 'constable'
+  | 'sailor'
+  | 'marshal'
+  | 'dockhand'
+  | 'townsman'
+  | 'townswoman'
+  | 'keeper'
+  | 'shopkeeper'
+  | 'fence'
+  | 'fisherman'
+  | 'farmer'
+  | 'villager';
 
 export const NPC_ROLES: readonly NpcRole[] = [
   'watchman',
@@ -113,7 +125,28 @@ export const NPC_ROLES: readonly NpcRole[] = [
   'dockhand',
   'townsman',
   'townswoman',
+  'keeper',
+  'shopkeeper',
+  'fence',
+  'fisherman',
+  'farmer',
+  'villager',
 ];
+
+/**
+ * The role an on-foot NPC type (`npc.constable`, a resident's `npc.farmer`) is dressed as.
+ * The townsfolk and the islands' villagers are men or women by their id; an unknown type
+ * dresses as a townsman.
+ */
+export function npcRoleFor(type: string, id: string): NpcRole {
+  const role = type.startsWith('npc.') ? type.slice(4) : type;
+  if (role === 'townsman' || role === 'villager') {
+    const woman = Rng.fromSeed(`woman:${id}`).next() < 0.4;
+    if (role === 'townsman') return woman ? 'townswoman' : 'townsman';
+    return woman ? 'townswoman' : 'villager';
+  }
+  return (NPC_ROLES as readonly string[]).includes(role) ? (role as NpcRole) : 'townsman';
+}
 
 const SKINS = [0xe1b897, 0xd8a982, 0xc99872, 0xb98560, 0xa8714d, 0x8d5a3b, 0x6e4630];
 const HAIRS = [0x2b2118, 0x3c2a1c, 0x5a4632, 0x6e3f22, 0xa9783f, 0x8a8478, 0xb9b4ab, 0x1e1914];
@@ -234,6 +267,79 @@ export function npcLook(role: NpcRole, seed: string | number): Look {
           hat: 0x3a2c22,
           hatBand: pick(rng, [0x8a3426, 0x2f5a5c, 0x4a3550]),
         },
+      };
+    // The Lighthouse Service's keepers (Phase 9 piece H): a navy uniform coat and a peaked cap.
+    case 'keeper':
+      return {
+        body: 'male',
+        hair: 'short',
+        beard: beard === 'none' ? 'full' : beard,
+        hat: 'peaked',
+        jacket: true,
+        held: 'none',
+        colors: {
+          ...base,
+          coat: 0x1c2638,
+          coatTrim: 0xb8963e,
+          trousers: 0x1c2232,
+          hat: 0x1c2638,
+          hatBand: 0xb8963e,
+        },
+      };
+    // Behind the counters (piece F): shirtsleeves and a dark vest, bareheaded.
+    case 'shopkeeper':
+      return {
+        body: 'male',
+        hair: rng.next() < 0.3 ? 'bald' : 'short',
+        beard,
+        hat: 'none',
+        jacket: false,
+        held: 'none',
+        colors: { ...base, shirt: 0xe6e0d2, vest: 0x4a3b2c, trousers: 0x3b3a36 },
+      };
+    // The fence in the back room: black, with a bowler kept on indoors.
+    case 'fence':
+      return {
+        body: 'male',
+        hair: 'short',
+        beard: beard === 'full' ? 'mustache' : beard,
+        hat: 'bowler',
+        jacket: true,
+        held: 'none',
+        colors: { ...base, coat: 0x26221f, coatTrim: 0x7a2f2a, trousers: 0x1e1c1a, hat: 0x1a1816 },
+      };
+    // The islands' people (Phase 9 piece Q): a fisherman in oilskins and a sou'wester,
+    case 'fisherman':
+      return {
+        body: 'male',
+        hair: 'short',
+        beard,
+        hat: 'souwester',
+        jacket: true,
+        held: 'none',
+        colors: { ...base, coat: 0x9a7f3c, coatTrim: 0x6e5a2a, hat: 0xb08a2e, trousers: 0x3a3630 },
+      };
+    // a farmer in a canvas coat,
+    case 'farmer':
+      return {
+        body: 'male',
+        hair: 'short',
+        beard,
+        hat: rng.next() < 0.5 ? 'slouch' : 'cap',
+        jacket: true,
+        held: 'none',
+        colors: { ...base, coat: 0x6f6448, trousers: 0x4a4038, hat: 0x8a7650, hatBand: 0x3a3028 },
+      };
+    // and a villager in a gray coat and cap.
+    case 'villager':
+      return {
+        body: 'male',
+        hair: pick(rng, ['short', 'cropped'] as const),
+        beard,
+        hat: rng.next() < 0.6 ? 'cap' : 'wool',
+        jacket: true,
+        held: 'none',
+        colors: { ...base, coat: 0x5a5a58, trousers: pick(rng, DRAB), hat: 0x2e2c2a },
       };
   }
 }

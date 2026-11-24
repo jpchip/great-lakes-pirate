@@ -4,6 +4,10 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 ## [Unreleased]
 
+### Changed
+
+- **People ashore have bodies:** the captain and everyone you meet on foot are now the humanoid from Phase 7 piece B instead of capsule stand-ins. You walk in the body your portrait preset dresses (skin, hair, beard, hat and coat), sit at the oars in the rowboat, and your arms swing the cosh, throw a stone, lift a man, pay a bribe or work at a lock as you do it. The watch, sailors, marshals, keepers, shopkeepers, the fence, the daytime crowd (some of them women now) and the islands' fishermen, farmers and villagers are dressed by trade, walk and run their beats, call out when alarmed, look about when searching, drink when drunk, and lie where they drop. The bodies load the first time you step ashore; until then, or if they can't load, the capsules stand in (`?body=capsule` keeps them, for comparison). Only the nearest four NPCs carry an ink outline, and after dark a far figure without a lit lantern isn't drawn, so a Most Wanted night in Bayfield with twelve guards costs no more draw calls than the capsules did ([plan 08 §20](plans/08-docks-district-stealth.md), [plan 14 §20](plans/14-art-direction-asset-pipeline.md)).
+
 ## [0.9.0] - 2026-11-24
 
 Phase 9, Seasons & Secrets, and the Beta line: the year turns and the lake freezes, the islands can all be walked, and the lake gets its secrets, its wrecks, its game, its rivals and its card tables. Some of Phase 9 came out in 0.8.0 (events and letters, the lighthouse stations on foot, the island posse); the rest is below. The playtest and its checks are in [plan 11 §18.25](plans/11-exploration-islands-secrets.md).

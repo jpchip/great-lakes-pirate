@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import type { OutlineSettings } from '../style/outline';
 import {
   STYLE_LIGHT_GLSL,
+  type LampPoolUniforms,
   type StyleId,
   type StyleLighting,
   type StyleLightingUniforms,
@@ -101,15 +102,21 @@ export function createCharacterMaterial(
   style: StyleId,
   lighting: StyleLighting,
   palette: readonly number[],
+  /** The district's lamp pools (shared uniforms), so a figure under a lantern warms up. */
+  pools?: LampPoolUniforms,
 ): CharacterMaterial {
   const material = new THREE.ShaderMaterial({
     uniforms: {
       ...THREE.UniformsUtils.clone(THREE.UniformsLib.fog),
       ...lighting.uniforms,
+      ...(pools ?? {}),
       uRegions: { value: palette.map((hex) => new THREE.Color(hex)) },
       uGlow: { value: new THREE.Color(0, 0, 0) },
     },
-    defines: style === 'flat' ? { STYLE_FLAT: '' } : { STYLE_TOON: '' },
+    defines: {
+      ...(style === 'flat' ? { STYLE_FLAT: '' } : { STYLE_TOON: '' }),
+      ...(pools ? { LAMP_POOLS: pools.uPoolPosition.value.length } : {}),
+    },
     vertexShader,
     fragmentShader,
     // The outfit's cloth is single-layer in places (cuffs, collars): show both sides.

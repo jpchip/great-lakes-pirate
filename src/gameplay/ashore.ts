@@ -41,6 +41,8 @@ import type { Mode } from '../modes/machine';
 import { tickOnFootClock } from '../modes/on-foot';
 import type { SailingView } from '../modes/sailing';
 import type { FootFrame, GuardFrame } from '../render/onfoot/foot-view';
+import type { CaptainAct } from '../render/characters/figure-clips';
+import type { ToolEvent } from './onfoot/tools';
 import {
   BADLY_HURT,
   coldDrainPerS,
@@ -534,6 +536,26 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
   let climb: ClimbOut | undefined;
   /** F held on a held prompt (piece T's dig): which, and how long. */
   let holding: { text: string; s: number } | undefined;
+  /** F held at a job a tool or the heist took (a lock, the rope): the body works at it. */
+  let working = false;
+  /** The hands' last act (a blow, a throw) for the body's clip: real seconds since, and a count. */
+  const act: { kind: CaptainAct | undefined; ageS: number; n: number } = {
+    kind: undefined,
+    ageS: 0,
+    n: 0,
+  };
+  let actWatch: Watch | undefined;
+  const ACTS: Partial<Record<ToolEvent['type'], CaptainAct>> = {
+    KnockedOut: 'cosh',
+    Killed: 'cosh',
+    BribePaid: 'talk',
+    BribeRefused: 'talk',
+    WhiskeyTaken: 'talk',
+    WhiskeyRefused: 'talk',
+    BodyLifted: 'pickUp',
+    StoneThrown: 'throw',
+    Shot: 'shoot',
+  };
   let hole: { x: number; z: number } | undefined;
   /** Holes broken this landing, zone meters: still open when the scene is rebuilt. */
   const holes: { x: number; z: number }[] = [];
@@ -2020,6 +2042,7 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
         own !== undefined,
       );
     prompt = toolTookF ? undefined : own;
+    working = toolTookF && input.isDown('Interact');
     // A held prompt (a dig) acts once F has been held its time on the same prompt.
     if (!toolTookF && prompt?.holdS !== undefined) {
       if (input.isDown('Interact') && holding?.text === prompt.text) {
@@ -2031,6 +2054,7 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
         holding = undefined;
         prompt.act();
       }
+      if (holding) working = true;
     } else {
       holding = undefined;
       if (!toolTookF && input.pressed('Interact') && prompt) prompt.act();
@@ -2155,6 +2179,18 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
         return { x: q.x, y: p.y, z: q.z };
       };
       const at = out({ x, y, z });
+      // The hands' acts, from whichever watch this landing has.
+      if (watch !== actWatch) {
+        actWatch = watch;
+        watch?.onTool((e) => {
+          const kind = ACTS[e.type];
+          if (!kind || watch !== actWatch) return;
+          act.kind = kind;
+          act.ageS = 0;
+          act.n++;
+        });
+      }
+      act.ageS += frameSeconds;
       view.foot = {
         camera: cameraOverride?.() ?? { position: out(cam.position), target: out(cam.target) },
         district: district && {
@@ -2188,6 +2224,8 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
               heading: headingToZone(q.heading + dg * alpha),
               crouching: g.body.crouching,
               lantern: !!g.lantern?.lit,
+              gait: g.body.gait,
+              speed: Math.hypot(g.body.velocity.x, g.body.velocity.z),
             };
           }),
         ],
@@ -2199,6 +2237,17 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
           crouching: character.crouching,
           swimming: character.swimming,
           visible: !inBoat,
+          portrait: state.player.captain.portrait,
+          gait: character.gait,
+          speed: Math.hypot(character.velocity.x, character.velocity.z),
+          carrying:
+            watch?.heist?.carrying !== undefined ||
+            watch?.station?.carrying !== undefined ||
+            watch?.tools?.carrying !== undefined ||
+            !!wild?.carrying ||
+            !!deps.island?.carrying(),
+          working,
+          act: act.kind && { kind: act.kind, ageS: act.ageS, n: act.n },
           // The head's offset in the zone's frame, for the lean of the figure.
           lean: (() => {
             const h = out({ x: x + lean.offsetX, y, z: z + lean.offsetZ });
