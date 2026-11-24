@@ -842,7 +842,9 @@ The concealment and sight numbers are guesses.
 
 ### 18.25 Piece Z: the playtest and 0.9.0 (2026-11-22)
 
-**Status: the automated checks are green, and the release waits on Jared.** The tag `0.9.0` isn't cut yet: criterion 21 needs his sign-off, and the Beta gaps below need work first.
+**Status: released as 0.9.0 (2026-11-24).** Jared called the release on 2026-11-24 with the automated checks green; the tag `0.9.0` follows the release PR's merge. The open items below (criterion 19's storm and cave benches, the hideout yard's on-foot draw calls, the Beta checklist's gaps) go out as known limitations in CHANGELOG 0.9.0 and are worked in 0.9.x patches.
+
+_As written before the release:_ the automated checks are green, and the release waits on Jared. The tag `0.9.0` isn't cut yet: criterion 21 needs his sign-off, and the Beta gaps below need work first.
 
 **What ran here.** Each run is on `main` at a305f7d (PR #171 merged):
 - Static: `tsc --noEmit`, `eslint .` and `prettier --check .` pass.
@@ -902,6 +904,7 @@ Two fixes came out of the run: the Oak island bench landed before its anchor hel
 **Not in piece Z:** the playtest itself and its sign-off are Jared's. The tag and the plan records for each phase (criterion 21) follow after that.
 
 ## Changelog
+- v0.25: Phase 9 released as 0.9.0 (2026-11-24) at Jared's call; the open criteria and Beta gaps are the release's known limitations (CHANGELOG 0.9.0).
 - v0.24: Piece Z: the laptop's bench results recorded (§18.25); criteria 12 and 18 green, 19's frame budgets still need storm and cave scenes.
 - v0.23: Piece Z: the playtest checks run and the Beta gaps listed (§18.25); 0.9.0 is not tagged until Jared's sign-off.
 - v0.22: Piece Y as built (§18.24): the islands' birds, creek and surf by tier and season, a sea cave's hush, drips and surge, the animals' calls, the grapple, a dig and the ending air.
