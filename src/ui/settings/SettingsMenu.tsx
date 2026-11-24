@@ -1,4 +1,5 @@
 import { useLayoutEffect, useState } from 'preact/hooks';
+import { keyName } from '../keys';
 import type { ReadonlySignal } from '@preact/signals';
 import {
   codeLabel,
@@ -279,7 +280,7 @@ function Graphics({ settings, update, reloadNote }: SettingsMenuProps) {
   );
 }
 
-function Camera({ settings, update }: SettingsMenuProps) {
+function Camera({ settings, update, bindings }: SettingsMenuProps) {
   const c = settings.value.camera;
   return (
     <div class="menu-section">
@@ -313,12 +314,12 @@ function Camera({ settings, update }: SettingsMenuProps) {
         />
       </label>
       <Toggle
-        label="Manual sail trim (Q / E)"
+        label={`Manual sail trim (${keyName('TrimIn', 'sailing', bindings.value)} / ${keyName('TrimOut', 'sailing', bindings.value)})`}
         checked={settings.value.sailing.manualTrim}
         onChange={(on) => update((s) => (s.sailing.manualTrim = on))}
       />
       <Toggle
-        label="Keep sailing with the journal or chart open (P)"
+        label={`Keep sailing with the journal or chart open (${keyName('Port', 'sailing', bindings.value)})`}
         checked={settings.value.sailing.sailOnWhileReading}
         onChange={(on) => update((s) => (s.sailing.sailOnWhileReading = on))}
       />

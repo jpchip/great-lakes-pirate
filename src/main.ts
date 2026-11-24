@@ -188,6 +188,7 @@ import { arenaLoadingScreen, loadingScreen, type Arrival } from './ui/loading/mo
 import { mountGameUi } from './ui/mount';
 import { showMainMenu } from './ui/menu/mount-menu';
 import { applyAccess, signalRed } from './ui/access';
+import { setKeyBindings } from './ui/keys';
 import { setChartSignalRed } from './render/chart/chart-view';
 import { showMobileWarning } from './ui/menu/mobile-warning';
 import { hallRecords } from './sim/run/hall';
@@ -1327,6 +1328,8 @@ async function boot(): Promise<void> {
     if (toggle) input.bindings.chart = { ...input.bindings.chart, ToggleChart: toggle };
     const journal = input.bindings.sailing.Journal;
     if (journal) input.bindings.chart = { ...input.bindings.chart, Journal: journal };
+    // The keys named on screen follow the bindings (plan 13 §9).
+    setKeyBindings(input.bindings);
     sailing.state.manualTrim = s.sailing.manualTrim;
     if (audio) audio.captions.enabled = s.ui.captions;
   };

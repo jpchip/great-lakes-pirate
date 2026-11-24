@@ -16,9 +16,10 @@ function collectErrors(page: Page): string[] {
 }
 
 test('accessibility settings apply at once and survive a reload', async ({ page }) => {
+  test.setTimeout(90_000);
   const errors = collectErrors(page);
   const html = page.locator('html');
-  await page.goto('/?renderer=null&play');
+  await page.goto('/?renderer=null&debug&play');
   await expect(page.getByTestId('hud-wind')).toBeVisible({ timeout: 20_000 });
 
   await page.keyboard.press('Escape');
@@ -63,7 +64,32 @@ test('accessibility settings apply at once and survive a reload', async ({ page 
   await page.getByTestId('tab-controls').click();
   await expect(page.getByTestId('bind-onFoot-Crouch')).toContainText('V');
 
+  // The prompts and keys on screen name the keys as bound: ashore at Bayfield, F (Interact)
+  // moved to R, the keys line says V crouch and the prompt's key says R.
+  await page.getByTestId('bind-onFoot-Interact').click();
+  await page.keyboard.press('KeyR');
+  await expect(page.getByTestId('bind-onFoot-Interact')).toContainText('R');
+  await page.getByTestId('tab-camera').click();
+  await expect(page.getByTestId('settings-menu')).toContainText('Manual sail trim (Q / E)');
+  await page.keyboard.press('Escape');
+  await page.waitForFunction(() => '__glpFoot' in window);
+  const landed = await page.evaluate(() => {
+    const f = (
+      window as unknown as {
+        __glpFoot: { dock(k: string): boolean; land(): Promise<string | undefined> };
+      }
+    ).__glpFoot;
+    f.dock('bayfield_city');
+    return f.land();
+  });
+  expect(landed).toBeUndefined();
+  await expect(page.getByTestId('foot-keys')).toContainText('V crouch');
+  const prompt = page.getByTestId('foot-prompt').filter({ hasText: 'Go aboard' });
+  await expect(prompt).toBeVisible();
+  await expect(prompt.locator('.hud-key, .foot-key')).toHaveText('R');
+
   // Back to the game as authored.
+  await page.getByTestId('open-settings').click();
   await page.getByTestId('tab-access').click();
   await page.getByTestId('setting-color-mode').selectOption('off');
   await expect(html).not.toHaveAttribute('data-color-mode', /.*/);

@@ -49,9 +49,6 @@ import type { EventSceneView } from '../gameplay/events';
 import { EventScene, type EventSceneActions } from './events/EventScene';
 import './theme.css';
 
-/** Sail on or hold the ship, over the journal or a look at the chart. */
-const SAIL_ON_KEY = 'KeyP';
-
 /**
  * The Preact DOM overlay above the canvas (plan 01 §2.2, plan 13 §3): the sailing HUD
  * and the settings screen. It reads the sim through HUD snapshots and the settings
@@ -323,7 +320,7 @@ export function mountGameUi({
     } else if (journal.value && is('Journal')) {
       e.preventDefault();
       portActions?.closeJournal();
-    } else if (e.code === SAIL_ON_KEY && sailOnOffered()) {
+    } else if (is('Port') && sailOnOffered()) {
       e.preventDefault();
       toggleSailOn();
     }

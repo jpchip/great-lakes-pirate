@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'preact/hooks';
+import { keyName } from '../keys';
 import { formatCents } from '../../sim/economy/knowledge';
 import { LIE_CHOICES, type LieUntil } from '../../sim/hideouts/lie-at-anchor';
 import type { StashActions, StashTab } from '../../gameplay/stash';
@@ -505,10 +506,10 @@ function Slipway({
     return (
       <div class="craft slipway" data-testid="slipway">
         <p class="port-dim">
-          No slipway here yet. Lay one down in build mode (B, under Water) where the shore runs
-          straight down a steady slope into 1.5 to 4 m of water. On the ways you can make her sound
-          from your own materials, fit what you make at the bench and the forge, and, if you ever
-          lose her, build another.
+          No slipway here yet. Lay one down in build mode ({keyName('Build', 'onFoot')}, under
+          Water) where the shore runs straight down a steady slope into 1.5 to 4 m of water. On the
+          ways you can make her sound from your own materials, fit what you make at the bench and
+          the forge, and, if you ever lose her, build another.
         </p>
       </div>
     );
@@ -853,7 +854,7 @@ export function StashScreen({ stash, actions }: { stash: StashSnapshot; actions:
               data-testid="stash-go-ashore"
               onClick={actions.goAshore}
             >
-              Go ashore (G)
+              Go ashore ({keyName('GoAshore')})
             </button>
           )}
           {!shipless && (
@@ -863,7 +864,7 @@ export function StashScreen({ stash, actions }: { stash: StashSnapshot; actions:
               data-testid="stash-cast-off"
               onClick={actions.castOff}
             >
-              Cast off (F)
+              Cast off ({keyName('Interact')})
             </button>
           )}
           <button
