@@ -3623,6 +3623,10 @@ async function boot(): Promise<void> {
     ui.setNoticeLog(notices.log());
     hudClock = HUD_INTERVAL_S;
   };
+  if (params.has('debug')) {
+    // For the e2e tests: `__glpNotice('Found rope')` puts a notice up as the game would.
+    (window as unknown as { __glpNotice: typeof showNotice }).__glpNotice = showNotice;
+  }
   // "Look her over" and hail cards (Phase 4 piece D): up until she's out of hail or a while passes.
   let card: { shipId: string; untilS: number; near: boolean } | undefined;
   const CARD_S = 20;
