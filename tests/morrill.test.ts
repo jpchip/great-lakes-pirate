@@ -373,6 +373,23 @@ describe('her captain at close quarters (criterion 7, §5.1, §8.1)', () => {
     expect(cutterLocks(b, 'spotted')).toBe(false);
   });
 
+  it('waits for you when you heave to on the hail, far off: no warning shot, a search', () => {
+    // She hails at 700 m and makes 10 knots: stopped where you are, she takes over a
+    // minute to come within the 300 m of a heave-to. That isn't running.
+    const b = createCutterBrain({ hunting: true, intent: 'inspect' });
+    const out: CutterAction[] = [];
+    let d = 900;
+    for (let t = 0; t < 200 && b.phase !== 'inspecting'; t += 0.1) {
+      out.push(...stepCutter(b, sense({ distanceM: d, playerKn: 0 }), 0.1, () => 0.9));
+      d = Math.max(40, d - 5.1 * 0.1);
+    }
+    expect(types(out)).toContain('hail');
+    expect(types(out)).not.toContain('warningShot');
+    expect(types(out)).not.toContain('capture');
+    expect(b.phase).toBe('inspecting');
+    expect(b.intent).toBe('inspect');
+  });
+
   it('arrests after a find in a Wanted region: staying hove to is a surrender', () => {
     const b = createCutterBrain({ hunting: true, intent: 'inspect' });
     b.phase = 'inspecting';

@@ -1,9 +1,12 @@
+import { existsSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
 import discoveriesJson from '../data/discoveries.json';
 import curiosJson from '../data/curios.json';
 import rumorsJson from '../data/rumors.json';
 import { curiosFileSchema, discoveriesFileSchema } from '../data/schemas/discoveries';
 import { rumorsFileSchema } from '../data/schemas/rumors';
+import { ChartProjection, chartToZone } from '../src/core/coords';
 import { EventBus } from '../src/core/events';
 import { attachDiscovery, placeTalk } from '../src/gameplay/discovery';
 import { attachEconomy } from '../src/gameplay/economy';
@@ -35,8 +38,11 @@ import {
   type Lookout,
 } from '../src/sim/discovery/discovery';
 import { buyStores } from '../src/sim/economy/chandlery';
+import { ISLANDS } from '../src/sim/islands/on-foot';
 import { LIGHTHOUSES } from '../src/sim/lighthouses';
 import { rumorDrafts, type RumorWorld } from '../src/sim/rumors/rumors';
+import { loadZoneTerrain } from '../src/sim/terrain/load';
+import { manifestFrame } from '../src/sim/terrain/zones';
 import { createWorldState, parseWorldState, type Rumor } from '../src/sim/world-state';
 import { attachEconomy as economyFor } from '../src/gameplay/economy';
 
@@ -73,6 +79,47 @@ describe('discovery data', () => {
   });
 });
 
+const apostles = join(__dirname, '..', 'public', 'world', 'apostles');
+const baked =
+  existsSync(join(apostles, 'manifest.json')) &&
+  readFileSync(join(apostles, 'height', '0-0.bin')).byteLength > 200;
+
+describe('places on the baked Apostles', () => {
+  /**
+   * The chart marks a place where its `at` says, and the island scene puts the thing
+   * itself where `islands.json` says: the two have to agree. A point of interest is drawn
+   * ashore (Outer Island's fish camp was once charted half a mile out in the lake), and an
+   * anchorage is water you can lie in.
+   */
+  it.skipIf(!baked)(
+    'charts each point of interest on its island, and each anchorage afloat',
+    async () => {
+      const read = async (path: string) => new Uint8Array(readFileSync(join(apostles, path)));
+      const zone = await loadZoneTerrain(read);
+      const frame = manifestFrame(zone.manifest);
+      const projection = new ChartProjection();
+      for (const p of placeDefs()) {
+        const z = chartToZone(projection.geoToChart(p.at), frame);
+        const { sizeX, sizeZ } = zone.manifest.frame;
+        if (Math.abs(z.x) > sizeX / 2 || Math.abs(z.z) > sizeZ / 2) continue;
+        const h = zone.terrain.heightAt(z.x, z.z);
+        if (p.kind === 'poi') expect(h, `${p.id} is charted in the lake`).toBeGreaterThan(-3);
+        if (p.kind === 'anchorage') expect(h, `${p.id} is charted ashore`).toBeLessThan(-2);
+        // Where the island scene builds the same place, the chart marks it there.
+        const island = p.island && ISLANDS.find((i) => i.id === p.island);
+        const built = island && island.onFoot?.pois.find((q) => `poi.${q.id}` === p.id);
+        const tiles = zone.manifest.islands?.find((i) => i.id === p.island);
+        if (built && tiles) {
+          const off = Math.hypot(tiles.x0 + built.x - z.x, tiles.z0 + built.z - z.z);
+          expect(off, `${p.id} is charted ${Math.round(off)} m from where it stands`).toBeLessThan(
+            40,
+          );
+        }
+      }
+    },
+  );
+});
+
 describe('the lookout', () => {
   const caves = must(placeDef('wonder.devils_caves'));
   const quarry = must(placeDef('poi.hermit_quarry'));
@@ -80,13 +127,13 @@ describe('the lookout', () => {
   it('sees a point of interest by day within its range, less far at night', () => {
     const d = createDiscovery();
     const t = placeTargets();
-    expect(lookAround(d, t, lookFrom(quarry.at, 5000), T0)).toEqual([]);
-    expect(lookAround(d, t, lookFrom(quarry.at, 3500), T0)).toContainEqual({
+    expect(lookAround(d, t, lookFrom(quarry.at, -5000), T0)).toEqual([]);
+    expect(lookAround(d, t, lookFrom(quarry.at, -3500), T0)).toContainEqual({
       id: 'poi.hermit_quarry',
       how: 'sight',
     });
     const night = createDiscovery();
-    expect(lookAround(night, t, lookFrom(quarry.at, 3500, { daylight: 0 }), T0)).toEqual([]);
+    expect(lookAround(night, t, lookFrom(quarry.at, -3500, { daylight: 0 }), T0)).toEqual([]);
     expect(sightRangeM(4000, lookFrom(quarry.at, 0, { daylight: 0 }))).toBeCloseTo(1200);
   });
 

@@ -21,7 +21,7 @@
     "id": "port.superior",
     "kind": "port",
     "name": "Superior",
-    "at": [-92.03, 46.718],
+    "at": [-92.085, 46.728],
     "zone": "zone.twin_ports"
   },
   {

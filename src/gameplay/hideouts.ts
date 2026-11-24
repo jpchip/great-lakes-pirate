@@ -75,8 +75,11 @@ export interface Hideouts {
   colliders(): Collider[];
   /** F on foot at a storage piece or the strongbox: open that hideout's storage. */
   prompt(at: { x: number; y: number; z: number }): HideoutPrompt | undefined;
-  /** For the dev hooks: the strongbox you'd open on foot, zone meters. */
-  strongbox(): { x: number; y: number; z: number; hideout: string } | undefined;
+  /**
+   * For the dev hooks: the strongbox you'd open on foot, zone meters. With `hideoutId`,
+   * that hideout's only (the zone may hold more than one claimed site).
+   */
+  strongbox(hideoutId?: string): { x: number; y: number; z: number; hideout: string } | undefined;
   /** For the dev hooks: a bunk you'd sleep in, zone meters (Phase 8 piece F). */
   bunk(): { x: number; y: number; z: number; hideout: string } | undefined;
   /**
@@ -417,8 +420,8 @@ export function attachHideouts(deps: HideoutsDeps): Hideouts {
         },
       };
     },
-    strongbox() {
-      const b = stashPoints().find((p) => p.box);
+    strongbox(hideoutId) {
+      const b = stashPoints().find((p) => p.box && (!hideoutId || p.hideout === hideoutId));
       return b && { x: b.x, y: b.y, z: b.z, hideout: b.hideout };
     },
     bunk() {

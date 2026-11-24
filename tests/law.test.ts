@@ -453,7 +453,7 @@ describe('Wanted regions (plan 06 §3.1)', () => {
   it("finds each port's region from where it lies, too", () => {
     const at: Record<string, [number, number]> = {
       'port.duluth': [-92.098, 46.787],
-      'port.superior': [-92.03, 46.718],
+      'port.superior': [-92.085, 46.728],
       'port.two_harbors': [-91.672, 47.018],
       'port.bayfield': [-90.822, 46.812],
       'port.la_pointe': [-90.788, 46.775],

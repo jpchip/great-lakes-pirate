@@ -18,6 +18,15 @@ import {
   type CutterIntent,
 } from '../sim/law/cutter';
 import { tierIn } from '../sim/law/law';
+import { wantedTier, tierDef } from '../sim/law/defs';
+import { captureOutcome, captureTakes, gameJail, type CaptureOutcome } from '../sim/law/jail';
+import {
+  hailForecast,
+  type CaptureTakes,
+  type ForecastLot,
+  type HailForecast,
+} from '../ui/hud/hail-forecast';
+import type { CargoStack } from '../sim/economy/hold';
 import { CUTTER_CLASS_ID } from '../sim/law/observers';
 import type { Witness } from '../sim/law/witness';
 import { damageRigging } from '../sim/sailing/hazards';
@@ -100,6 +109,11 @@ export interface LawAtSeaDeps {
   /** A hidden compartment's multiplier on the search (the shipyard's instruments). */
   searchMul(): number;
   notice(text: string): void;
+  /**
+   * What her hail is likely to cost (heave to or run), shown while she's after you;
+   * undefined takes it down.
+   */
+  forecast?(card: HailForecast | undefined): void;
   /** A shot falling into the water at (x, z): the warning shot and the misses. */
   splash?(x: number, z: number): void;
   /** At least this tier, whatever the region's (the `?cutter=hunt` dev flag). */
@@ -276,6 +290,84 @@ export function attachLawAtSea(deps: LawAtSeaDeps): LawAtSea {
     return found.length > 0;
   };
 
+  /** What heaving to or running from this hail comes to, from the hold and the law now. */
+  const forecastFor = (
+    e: Entity,
+    intent: CutterIntent,
+    arrest: boolean,
+    tier: number,
+  ): HailForecast => {
+    const region = deps.region();
+    const now = ctx.state.environment.clock.gameSeconds;
+    const cargo = ctx.state.player.cargo;
+    const jail = gameJail();
+    const heat = Math.max(
+      region ? (ctx.state.wanted[region]?.heat ?? 0) : 0,
+      tierDef(law.defs, tier).minHeat,
+    );
+    const lots: ForecastLot[] = [];
+    for (const stack of cargo) {
+      const kind = offerKind(deps.economy, stack);
+      if (!kind) continue;
+      lots.push({
+        name: deps.economy.goods.get(stack.good)?.name ?? stack.good,
+        qty: stack.qty,
+        kind,
+        chance: searchChance(deps.economy, stack, tier, region, now, deps.searchMul()),
+      });
+    }
+    // A find files at once (the cutter is the witness): each kind is its crime's heat.
+    const kinds = [...new Set(lots.map((l) => l.kind))].map(
+      (k) =>
+        law.defs.crimes.get(k === 'contraband' ? 'crime.contraband' : 'crime.hot_goods')?.heat ?? 0,
+    );
+    const wantedAt = (h: number) => wantedTier(law.defs, h) >= PURSUES_FROM_TIER;
+    const least = kinds.length > 0 ? Math.min(...kinds) : 0;
+    const most = kinds.reduce((a, b) => a + b, 0);
+    const arrestOnFind =
+      kinds.length === 0
+        ? 'none'
+        : wantedAt(heat + least)
+          ? 'any'
+          : wantedAt(heat + most)
+            ? 'all'
+            : 'none';
+    const after =
+      arrestOnFind === 'none'
+        ? undefined
+        : captureOutcome(law.defs, jail, heat + (arrestOnFind === 'any' ? least : most));
+    const purse = ctx.state.player.purse;
+    const takesAt = (o: CaptureOutcome, hold: readonly CargoStack[]): CaptureTakes => {
+      const t = captureTakes(jail, o.tier, hold, purse, deps.economy);
+      return {
+        cargoCU: t.cargo.reduce((n, s) => n + s.qty, 0),
+        wholeHold: t.cargo.length === hold.length,
+        cashCents: t.cashCents,
+        purseCents: purse,
+      };
+    };
+    const captureNow = captureOutcome(law.defs, jail, heat);
+    return hailForecast({
+      by: e.id ?? '',
+      name: e.id === TUG_ID ? 'The tug' : 'The Morrill',
+      intent,
+      arrest,
+      tierName: tierDef(law.defs, tier).name,
+      lots,
+      captureNow,
+      takes: takesAt(captureNow, cargo),
+      arrestOnFind,
+      captureAfterFind: after,
+      // Arrested after a find, the lots she found are gone already: say what's left to take.
+      takesAfterFind:
+        after &&
+        takesAt(
+          after,
+          cargo.filter((s) => !offerKind(deps.economy, s)),
+        ),
+    });
+  };
+
   const act = (t: Tracked, a: CutterAction, tier: number): void => {
     const by = lawIdOf(t.entity);
     const name = t.entity.id === TUG_ID ? 'The tug' : 'The Morrill';
@@ -286,6 +378,7 @@ export function attachLawAtSea(deps: LawAtSeaDeps): LawAtSea {
         break;
       case 'hail':
         ctx.events.emit('CutterHailed', { by, intent: a.intent, arrest: a.arrest });
+        deps.forecast?.(forecastFor(t.entity, a.intent, a.arrest, tier));
         deps.notice(
           a.arrest
             ? `${name}: "You're under arrest. Lie to and stand by to be boarded."`
@@ -366,8 +459,10 @@ export function attachLawAtSea(deps: LawAtSeaDeps): LawAtSea {
       case 'inspect': {
         const found = search(t.entity, tier);
         for (const next of afterInspection(t.brain, found, tierNow(), PURSUES_FROM_TIER)) {
-          if (next.type === 'release') deps.notice(`${name} lets you go on your way.`);
-          else act(t, next, tier);
+          if (next.type === 'release') {
+            deps.forecast?.(undefined);
+            deps.notice(`${name} lets you go on your way.`);
+          } else act(t, next, tier);
         }
         break;
       }
@@ -375,6 +470,7 @@ export function attachLawAtSea(deps: LawAtSeaDeps): LawAtSea {
         break;
       case 'capture':
         captured = true;
+        deps.forecast?.(undefined);
         ctx.events.emit('PlayerCaptured', {
           by,
           region: deps.region() ?? '',
@@ -388,6 +484,7 @@ export function attachLawAtSea(deps: LawAtSeaDeps): LawAtSea {
         );
         break;
       case 'gaveUp':
+        deps.forecast?.(undefined);
         if (a.why === 'hideout') {
           const hideout = deps.refuge?.() ?? '';
           deps.notice(`${name} breaks off: you're home.`);
@@ -553,6 +650,7 @@ export function attachLawAtSea(deps: LawAtSeaDeps): LawAtSea {
       for (const [id, t] of tracked) {
         if (seen.has(id)) continue;
         if (t.locked) ctx.events.emit('PursuitChanged', { pursued: false, by: lawIdOf(t.entity) });
+        if (t.brain.hails > 0) deps.forecast?.(undefined);
         tracked.delete(id);
       }
     },
@@ -599,6 +697,7 @@ export function attachLawAtSea(deps: LawAtSeaDeps): LawAtSea {
       }
       tracked.clear();
       captured = false;
+      deps.forecast?.(undefined);
     },
     steeredLand() {
       if (deps.arena()) return [];

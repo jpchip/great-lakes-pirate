@@ -61,7 +61,7 @@ async function takenAt(page: Page, region: string, tier: number): Promise<void> 
 
 const APOSTLES = 'region.apostles';
 
-test('captured below tier 5: cargo and cash taken, the sentence served, the ship back at Bayfield', async ({
+test('captured Hunted: all cargo and cash taken, the sentence served, the ship back at Bayfield', async ({
   page,
 }) => {
   const errors = collectErrors(page);
@@ -73,10 +73,11 @@ test('captured below tier 5: cargo and cash taken, the sentence served, the ship
   });
   expect(before.purse).toBeGreaterThan(0);
 
-  await takenAt(page, APOSTLES, 2);
+  // From Hunted up the law takes everything (Wanted and below, jail.json's confiscation).
+  await takenAt(page, APOSTLES, 3);
   const screen = page.getByTestId('jail-screen');
   await expect(screen).toHaveAttribute('data-kind', 'cell');
-  await expect(page.getByTestId('jail-sentence')).toHaveText(/^[23] weeks$/);
+  await expect(page.getByTestId('jail-sentence')).toHaveText(/^[4-6] weeks$/);
   await expect(page.getByTestId('jail-confiscated')).toContainText('in cash');
   const jailed = await page.evaluate(() => {
     const w = window as unknown as Hooks;
@@ -116,8 +117,8 @@ test('captured below tier 5: cargo and cash taken, the sentence served, the ship
     };
   });
   expect(out.jail).toBeNull();
-  // Two or three weeks skipped (a game day each), plus any fee worked off.
-  expect(out.clock - before.clock).toBeGreaterThanOrEqual(2 * 86_400);
+  // Four to six weeks skipped (a game day each), plus any fee worked off.
+  expect(out.clock - before.clock).toBeGreaterThanOrEqual(4 * 86_400);
   expect(out.heat).toBeGreaterThanOrEqual(20);
   expect(out.heat).toBeLessThan(60);
   expect(out.record.stats.captures).toBe(1);
