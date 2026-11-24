@@ -124,7 +124,14 @@
     "regrowPerWeek": 0.5,
     "herdMinFromLandingM": 140,
     "herdSpreadM": 18,
-    "keepClearOfHomesM": 90
+    "keepClearOfHomesM": 90,
+    "herdsPerLanding": 2,
+    "roam": {
+      "everyM": 350,
+      "minFromM": 120,
+      "maxFromM": 320,
+      "dropM": 600
+    }
   },
   "hunt": {
     "rangeM": 110,

@@ -29,7 +29,7 @@ import {
   visitors,
   WEEK_S,
 } from '../src/sim/wildlife/hunt';
-import { compassWord, readSign } from '../src/sim/wildlife/spawn';
+import { compassWord, gameGround, readSign } from '../src/sim/wildlife/spawn';
 import { checkTrap } from '../src/sim/wildlife/traps';
 import { createWorldState } from '../src/sim/world-state';
 import recipesJson from '../data/recipes.json';
@@ -254,7 +254,9 @@ describe('the hunt', () => {
         budget: animalBudget('standard'),
       });
       expect(summer.wolves).toBe(0);
-      expect(summer.deer + summer.wolves + (summer.bear ? 1 : 0)).toBeLessThanOrEqual(4);
+      expect(summer.deer + summer.wolves + (summer.bear ? 1 : 0)).toBeLessThanOrEqual(
+        animalBudget('standard'),
+      );
       if (summer.bear) bears++;
       const winter = visitors('island.madeline', {
         deerLeft: 6,
@@ -264,7 +266,7 @@ describe('the hunt', () => {
         budget: animalBudget('hero'),
       });
       expect(winter.bear).toBe(false);
-      expect(winter.deer + winter.wolves).toBeLessThanOrEqual(4);
+      expect(winter.deer + winter.wolves).toBeLessThanOrEqual(animalBudget('hero'));
       if (winter.wolves) packs++;
     }
     expect(bears).toBeGreaterThan(30);
@@ -273,6 +275,40 @@ describe('the hunt', () => {
     expect(
       visitors('island.oak', { deerLeft: 0, month: 7, day: 3, runSeed: 1, budget: 4 }).deer,
     ).toBe(0);
+  });
+
+  it('two deer groups on a landing, one further on, never past what is left', () => {
+    let two = 0;
+    for (let day = 0; day < 50; day++) {
+      const v = visitors('island.stockton', {
+        deerLeft: 9,
+        month: 1,
+        day,
+        runSeed: 3,
+        budget: animalBudget('hero'),
+      });
+      expect(v.deer).toBe(v.herds.reduce((a, b) => a + b, 0));
+      if (v.herds.length === 2) two++;
+      const on = visitors('island.stockton', {
+        deerLeft: 9,
+        month: 1,
+        day,
+        runSeed: 3,
+        budget: animalBudget('hero'),
+        herds: 1,
+        key: '4,-2',
+      });
+      expect(on.herds.length).toBe(1);
+    }
+    expect(two).toBe(50);
+    const few = visitors('island.stockton', {
+      deerLeft: 3,
+      month: 1,
+      day: 1,
+      runSeed: 3,
+      budget: animalBudget('hero'),
+    });
+    expect(few.deer).toBeLessThanOrEqual(3);
   });
 
   it('reads the way in the sign, and with woodcraft how many and how near', () => {
@@ -448,6 +484,64 @@ describe('a hunt on the baked terrain', () => {
       expect(w.sign.length, id).toBeGreaterThan(0);
       for (const a of w.animals) expect(a.y, `${id} ${a.id}`).toBeGreaterThan(0.5);
     }
+  });
+
+  it.skipIf(!baked)('walking Stockton, game turns up further on, within the budget', () => {
+    const { w, island } = wildlifeOn('island.stockton', JULY);
+    const from = island.landings[0] ?? island.anchor;
+    if (!from) throw new Error('no landing');
+    // Walk the island on its own ground, well away from the landing, a stretch at a time.
+    const heightAt = (x: number, z: number) => zone.terrain.heightAt(x, z);
+    const me = createCharacter({ x: from.x, y: heightAt(from.x, from.z), z: from.z });
+    me.grounded = true;
+    // Its walkable ground, every 40 m.
+    const land: { x: number; z: number }[] = [];
+    for (let x = from.x - 2000; x < from.x + 2000; x += 40) {
+      for (let z = from.z - 2000; z < from.z + 2000; z += 40) {
+        if (gameGround(island, heightAt, x, z)) land.push({ x, z });
+      }
+    }
+    // A walk of stretches, each a little more than the roam step from the last.
+    const step = WILDLIFE.population.roam.everyM;
+    const ground: { x: number; z: number }[] = [];
+    let cur = from;
+    for (let k = 0; k < 6; k++) {
+      const next = land.find((p) => {
+        const d = Math.hypot(p.x - cur.x, p.z - cur.z);
+        return (
+          d > step + 20 &&
+          d < step + 160 &&
+          ground.every((g) => Math.hypot(g.x - p.x, g.z - p.z) > step)
+        );
+      });
+      if (!next) break;
+      ground.push(next);
+      cur = next;
+    }
+    expect(ground.length).toBeGreaterThan(2);
+    let metFurtherOn = 0;
+    let last = { x: from.x, z: from.z };
+    for (const at of ground) {
+      const moved = Math.hypot(at.x - last.x, at.z - last.z) > WILDLIFE.population.roam.everyM;
+      me.position.x = at.x;
+      me.position.z = at.z;
+      me.position.y = heightAt(at.x, at.z);
+      w.step(0.1, me, { strideM: 0, interactDown: false, beyond: false });
+      expect(w.animals.filter((a) => !a.taken).length).toBeLessThanOrEqual(
+        animalBudget(island.tier),
+      );
+      const near = w.animals.filter(
+        (a) => Math.hypot(a.x - at.x, a.z - at.z) < WILDLIFE.population.roam.maxFromM + 40,
+      );
+      if (near.some((a) => a.species.id === 'animal.deer')) metFurtherOn++;
+      if (!moved) continue;
+      last = at;
+      // None left behind out of reach.
+      for (const a of w.animals) {
+        expect(Math.hypot(a.x - at.x, a.z - at.z)).toBeLessThan(WILDLIFE.population.roam.dropM + 1);
+      }
+    }
+    expect(metFurtherOn).toBeGreaterThan(0);
   });
 
   it.skipIf(!baked)('trap spots round the trappers’ cabins', () => {
