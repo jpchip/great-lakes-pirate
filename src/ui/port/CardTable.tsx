@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'preact/hooks';
+import { useEffect, useLayoutEffect, useRef, useState } from 'preact/hooks';
 import { formatCents } from '../../sim/economy/knowledge';
-import type { BetAction } from '../../sim/poker/table';
-import type { CardTableSnapshot, CardView, SeatView } from './cards-model';
+import { YOU, type BetAction } from '../../sim/poker/table';
+import type { CardTableSnapshot, CardView, HandOutcome, SeatView } from './cards-model';
 import { Help } from './Help';
 import type { PortActions } from './PortScreen';
 
@@ -16,18 +16,23 @@ import type { PortActions } from './PortScreen';
 function PlayingCard({
   card,
   marked,
+  lit,
   onClick,
   testid,
 }: {
   card: CardView | undefined;
   marked?: boolean | undefined;
+  /** At the showdown: true, it made the winning hand; false, a kicker beside those that did. */
+  lit?: boolean | undefined;
   onClick?: (() => void) | undefined;
   testid?: string | undefined;
 }) {
   if (!card) {
     return <span class="playing-card back" aria-label="a card, face down" data-testid={testid} />;
   }
-  const cls = `playing-card${card.red ? ' red' : ''}${marked ? ' marked' : ''}`;
+  const cls =
+    `playing-card${card.red ? ' red' : ''}${marked ? ' marked' : ''}` +
+    (lit === true ? ' lit' : lit === false ? ' unlit' : '');
   const inner = (
     <>
       <span class="playing-card-rank">{card.rank}</span>
@@ -36,7 +41,13 @@ function PlayingCard({
   );
   if (!onClick) {
     return (
-      <span class={cls} title={card.name} aria-label={card.name} data-testid={testid}>
+      <span
+        class={cls}
+        title={card.name}
+        aria-label={card.name}
+        data-testid={testid}
+        data-lit={lit === true ? '' : undefined}
+      >
         {inner}
       </span>
     );
@@ -57,7 +68,12 @@ function PlayingCard({
   );
 }
 
-function Seat({ seat }: { seat: SeatView }) {
+/** A card's place in the winning hand, when there is one to light. */
+const litAt = (made: number[] | undefined, i: number): boolean | undefined =>
+  made ? made.includes(i) : undefined;
+
+function Seat({ seat, outcome }: { seat: SeatView; outcome: HandOutcome | undefined }) {
+  const took = !!outcome && outcome.kind !== 'caught' && outcome.winners.includes(seat.id);
   const status =
     seat.status === 'gone'
       ? 'Gone up to bed'
@@ -80,10 +96,17 @@ function Seat({ seat }: { seat: SeatView }) {
         {seat.status === 'gone' || seat.status === 'idle' || seat.status === 'folded'
           ? null
           : (seat.cards ?? [undefined, undefined, undefined, undefined, undefined]).map((c, i) => (
-              <PlayingCard key={i} card={c} />
+              <PlayingCard key={i} card={c} lit={litAt(seat.made, i)} />
             ))}
       </div>
-      <div class="card-seat-stack hud-num">{formatCents(seat.stackCents)}</div>
+      <div class="card-seat-stack hud-num" data-pot-target={seat.id}>
+        {formatCents(seat.stackCents)}
+      </div>
+      {took && (
+        <div class="card-seat-took" data-testid="card-seat-took">
+          Takes the pot
+        </div>
+      )}
       {seat.shown && (
         <div class="card-seat-shown" data-testid="card-seat-shown">
           {seat.won ? '★ ' : ''}
@@ -101,6 +124,78 @@ function Seat({ seat }: { seat: SeatView }) {
           Holds up {seat.marker}
         </div>
       )}
+    </div>
+  );
+}
+
+const reducedMotion = (): boolean =>
+  typeof matchMedia === 'function' && matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/**
+ * The hand's result across the middle of the baize, where the pot sat: a paper banner that
+ * says whose pot it is, what took it and what it did to your purse, with the pot's chips
+ * sliding off to whoever won them. Stays until the next deal.
+ */
+function ResultBanner({ outcome, hand }: { outcome: HandOutcome; hand: number }) {
+  const ref = useRef<HTMLDivElement>(null);
+  // The chips slide from the pot to the winner's stack (or to your hand), once a hand.
+  useLayoutEffect(() => {
+    const root = ref.current;
+    const baize = root?.closest('.card-baize');
+    if (!root || !baize || outcome.kind === 'caught' || reducedMotion()) return;
+    const chips = [...root.querySelectorAll<HTMLElement>('.card-result-chips')];
+    chips.forEach((chip, i) => {
+      const id = outcome.winners[i];
+      const target = id
+        ? baize.querySelector<HTMLElement>(`[data-pot-target="${CSS.escape(id)}"]`)
+        : null;
+      if (!target || typeof chip.animate !== 'function') return;
+      const from = chip.getBoundingClientRect();
+      const to = target.getBoundingClientRect();
+      const dx = to.left + to.width / 2 - (from.left + from.width / 2);
+      const dy = to.top + to.height / 2 - (from.top + from.height / 2);
+      chip.animate(
+        [
+          { transform: 'translate(0, 0) scale(1)', opacity: 1 },
+          { transform: `translate(${dx}px, ${dy}px) scale(0.7)`, opacity: 1, offset: 0.85 },
+          { transform: `translate(${dx}px, ${dy}px) scale(0.5)`, opacity: 0 },
+        ],
+        { duration: 1100, delay: 250, easing: 'cubic-bezier(.45,0,.3,1)', fill: 'both' },
+      );
+    });
+  }, [hand, outcome.kind]);
+  const net = outcome.netCents;
+  return (
+    <div
+      ref={ref}
+      class={`card-result ${outcome.kind}`}
+      data-testid="card-result"
+      data-kind={outcome.kind}
+      role="status"
+      aria-live="polite"
+    >
+      <div class="card-result-pot" aria-hidden="true">
+        {(outcome.kind === 'caught' ? [] : outcome.winners).map((id) => (
+          <span key={id} class="card-result-chips" />
+        ))}
+      </div>
+      <div class="card-result-banner">
+        <div class="card-result-title">{outcome.title}</div>
+        <div class="card-result-how">{outcome.how}</div>
+        <div class="card-result-sums">
+          <span>
+            Pot <strong class="hud-num">{formatCents(outcome.potCents)}</strong>
+          </span>
+          <span class="card-result-sep" aria-hidden="true">
+            ❦
+          </span>
+          <span class={`card-result-net hud-num ${net > 0 ? 'up' : net < 0 ? 'down' : ''}`}>
+            {net > 0 ? '+' : net < 0 ? '−' : '±'}
+            {formatCents(Math.abs(net))} to you
+          </span>
+        </div>
+        {outcome.side && <div class="card-result-side">{outcome.side}</div>}
+      </div>
     </div>
   );
 }
@@ -165,30 +260,35 @@ export function CardTable({
       <div class="card-baize">
         <div class="card-seats">
           {table.seats.map((s) => (
-            <Seat key={s.id} seat={s} />
+            <Seat key={s.id} seat={s} outcome={table.outcome} />
           ))}
         </div>
-        <div class="card-pot" data-testid="card-pot">
-          {table.potCents > 0 ? (
-            <>
-              Pot <strong class="hud-num">{formatCents(table.potCents)}</strong>
-            </>
-          ) : (
-            <span class="port-dim">No hand dealt</span>
-          )}
-          {table.side && (
-            <div class="card-side" data-testid="card-side">
-              Side stake with {table.side.captain}: {table.side.his}, against {table.side.yours}
-            </div>
-          )}
-        </div>
-        <div class="card-yours">
+        {table.outcome ? (
+          <ResultBanner outcome={table.outcome} hand={table.hands} />
+        ) : (
+          <div class="card-pot" data-testid="card-pot">
+            {table.potCents > 0 ? (
+              <>
+                Pot <strong class="hud-num">{formatCents(table.potCents)}</strong>
+              </>
+            ) : (
+              <span class="port-dim">No hand dealt</span>
+            )}
+            {table.side && (
+              <div class="card-side" data-testid="card-side">
+                Side stake with {table.side.captain}: {table.side.his}, against {table.side.yours}
+              </div>
+            )}
+          </div>
+        )}
+        <div class={`card-yours${table.you.won ? ' won' : ''}`} data-pot-target={YOU}>
           <div class="card-hand" data-testid="card-hand">
             {table.you.cards.map((c, i) => (
               <PlayingCard
                 key={i}
                 card={c}
                 marked={drawing && discards.includes(i)}
+                lit={litAt(table.you.made, i)}
                 onClick={drawing ? () => toggle(i) : undefined}
                 testid={`card-${i}`}
               />
@@ -196,6 +296,7 @@ export function CardTable({
           </div>
           {table.you.hand && (
             <div class="card-hand-name" data-testid="card-hand-name">
+              {table.you.won ? '★ ' : ''}
               {table.you.folded ? 'Folded: ' : ''}
               {table.you.hand}
             </div>

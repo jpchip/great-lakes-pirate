@@ -214,6 +214,8 @@ test('keeps sailing with the journal or a look at the chart open, and P holds th
   await expect(page.getByTestId('chart-sail-on')).toContainText('The ship is held');
   await page.waitForTimeout(500);
   await page.keyboard.press('KeyM');
+  // Back at the helm before J, or the chart still has the keys and J is lost.
+  await expect(body).toHaveAttribute('data-mode', 'sailing');
   await expect.poll(async () => (await zones()).kn).toBeGreaterThan(0.03);
 
   // The choice is the setting, kept for next time.
