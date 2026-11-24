@@ -52,6 +52,7 @@ import type { ZoneFrame } from '../src/core/coords';
 import { loadZoneTerrain, type LoadedZone } from '../src/sim/terrain/load';
 import { defFrame, manifestFrame, setPieceFootprint, zoneDef } from '../src/sim/terrain/zones';
 import { createWorldState } from '../src/sim/world-state';
+import { curioSlots } from '../src/sim/discovery/discovery';
 
 const def = (id: string) => structure(`build.${id}`);
 const held = (id: string, o: Partial<Held> = {}): Held => ({
@@ -280,6 +281,7 @@ for (const [siteId, background] of [
         heightAt: (x, z) => zone.terrain.heightAt(x, z),
         openStash: () => true,
         notice: () => undefined,
+        curiosShown: () => ['curio.ships_bell'],
       });
       const s = hideouts.sites()[0]!;
       expect(s.hideoutId).toBe(`hideout.${siteId.replace('site.', '')}`);
@@ -303,8 +305,9 @@ for (const [siteId, background] of [
       ] as const) {
         expect(log.placeMany(grid, s.build, dragPieces(def('wall'), a, b)).refused).toEqual([]);
       }
-      // A crate stack inside, and a roof over it.
+      // A crate stack inside, a table for a curio, and a roof over it.
       expect(log.place(grid, s.build, at(5, 33, 'crate_stack')).ok).toBe(true);
+      expect(log.place(grid, s.build, at(5, 35, 'table')).ok).toBe(true);
       const roof = def('roof_flat');
       const ra = aimPiece(roof, held('roof_flat'), { x: 3, z: 31 }, 1);
       const rb = aimPiece(roof, held('roof_flat'), { x: 7, z: 35 }, 1);
@@ -367,6 +370,12 @@ for (const [siteId, background] of [
         'Open the stores',
       );
       expect(hideouts.siteAt(mid)?.hideoutId).toBe(s.hideoutId);
+      // F beside the ship's bell set out on the table: a look at it.
+      const slot = curioSlots(hideouts.draw()[0]!.pieces)[0]!;
+      const bell = siteToZone(s.frame, slot.x, slot.z);
+      expect(hideouts.prompt({ x: bell.x + 0.5, y: s.frame.baseM, z: bell.z })?.text).toBe(
+        "Look at a ship's bell",
+      );
     });
   });
 }

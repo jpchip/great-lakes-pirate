@@ -1676,6 +1676,18 @@ function catalog(): PieceDef[] {
     }),
   );
   defs.push(
+    prop('build.curio_shelf', 'Wall shelf', 'decor', ['timber'], (s, out) => {
+      // A plank on two iron brackets, its back to the wall at +z (as the wall lantern), for
+      // curios set out: its top is at 1.43 m.
+      out.body.push(box(1.4, 0.04, 0.22, 0, 1.39, -0.01, s.light));
+      out.body.push(box(1.4, 0.1, 0.03, 0, 1.43, 0.085, s.dark));
+      for (const x of [-0.55, 0.55]) {
+        out.body.push(box(0.04, 0.22, 0.03, x, 1.17, 0.085, IRON));
+        out.body.push(strut(v(x, 1.2, 0.08), v(x, 1.385, -0.08), 0.018, IRON));
+      }
+    }),
+  );
+  defs.push(
     prop('build.rug', 'Rag rug', 'decor', ['plank'], (_s, out) => {
       out.body.push(box(1.6, 0.02, 1.0, 0, 0.02, 0, 0x7a3a32));
       out.body.push(box(1.3, 0.025, 0.7, 0, 0.02, 0, 0x4a5a6e));

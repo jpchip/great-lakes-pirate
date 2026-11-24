@@ -6,7 +6,9 @@ import { box, frustum, merged, part } from '../style/parts';
  * The curios set out at a hideout, drawn on its shelves, tables and sea chests (plan 11
  * §7.1, §12; Phase 9 piece O's catalog, drawn in piece P). Each is a handful of palette
  * parts a hand or two across, standing on its slot; all of a site's curios merge into one
- * mesh in the site's frame.
+ * mesh in the site's frame. Their fronts face -z, the way a piece's do (the room side of
+ * a wall shelf). Lamp glass carries the hideout kit's `glow`, so the lanterns are lit
+ * after dark as the hideout's windows are.
  */
 
 const BRASS = 0xb8913a;
@@ -22,6 +24,14 @@ const TWINE = 0xb9a77f;
 const GLASS_MILKY = 0x7fa892;
 
 type Builder = () => THREE.BufferGeometry[];
+
+/** Parts that are lamp glass: lit at night. */
+const LIT = new WeakSet<THREE.BufferGeometry>();
+const lit = (g: THREE.BufferGeometry): THREE.BufferGeometry => {
+  LIT.add(g);
+  return g;
+};
+const FLAME = 0xffc870;
 
 const CURIOS: Record<string, Builder> = {
   'curio.brass_compass': () => [
@@ -74,7 +84,7 @@ const CURIOS: Record<string, Builder> = {
   },
   'curio.wreck_lantern': () => [
     box(0.14, 0.22, 0.12, 0, 0, 0, BRASS),
-    box(0.1, 0.15, 0.01, 0, 0.035, 0.062, GLASS_MILKY),
+    lit(box(0.1, 0.15, 0.01, 0, 0.035, -0.062, GLASS_MILKY)),
     frustum(0.03, 0.06, 0.05, 8, 0, 0.22, 0, BRASS),
     box(0.012, 0.06, 0.06, 0, 0.27, 0, IRON),
   ],
@@ -89,7 +99,9 @@ const CURIOS: Record<string, Builder> = {
   ],
   'curio.dark_lantern': () => [
     frustum(0.06, 0.06, 0.2, 10, 0, 0, 0, 0x4a4a46),
-    box(0.06, 0.09, 0.012, 0, 0.06, 0.058, 0x2a2a28),
+    // The shutter slid half open over a slit of flame.
+    lit(box(0.05, 0.08, 0.008, 0, 0.065, -0.058, FLAME)),
+    box(0.06, 0.05, 0.012, 0, 0.1, -0.062, 0x2a2a28),
     frustum(0.025, 0.065, 0.06, 10, 0, 0.2, 0, 0x4a4a46),
     box(0.012, 0.05, 0.05, 0, 0.27, 0, IRON),
   ],
@@ -109,6 +121,11 @@ export function curiosGeometry(
   const parts: THREE.BufferGeometry[] = [];
   for (const { id, slot } of shown) {
     for (const g of (CURIOS[id] ?? fallback)()) {
+      const n = g.getAttribute('position').count;
+      g.setAttribute(
+        'glow',
+        new THREE.BufferAttribute(new Float32Array(n).fill(LIT.has(g) ? 1 : 0), 1),
+      );
       g.rotateY(slot.yaw);
       parts.push(g.translate(slot.x, slot.y, slot.z));
     }
