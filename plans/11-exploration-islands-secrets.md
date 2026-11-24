@@ -865,29 +865,44 @@ The concealment and sight numbers are guesses.
 | 9 | False light and investigations | Piece I's sim tests | Green in CI |
 | 10 | A year, freeze-up to ice-out; v10 save fixture | `save-migrations.test.ts`, the year tests | Green here and in CI |
 | 11 | Cold and ice warnings, the ice road | Piece M's tests and e2e | Green in CI |
-| 12 | 22 islands land and walk; draw-call budgets | `islands.test.ts` (over every landing), `bench:island` | Tests green here; the bench needs the laptop |
+| 12 | 22 islands land and walk; draw-call budgets | `islands.test.ts` (over every landing), `bench:island` | **Green:** tests here, and the bench on the laptop (below) |
 | 13 | Six legends finishable, caches seeded | Piece T's tests and per-legend e2e | Green in CI |
 | 14 | Salvage from three kinds of wreck | Piece U's tests | Green in CI |
 | 15 | Poaching, bears and wolves warn, traps | Piece V's tests and `e2e/wildlife.spec.ts` | Green in CI, with the bear-warning timing caveat above |
 | 16 | Every background at its own site | Piece W's tests and `e2e/sites.spec.ts` | Green in CI |
 | 17 | Districts burgled, jails hold | Piece X's tests and e2e | Green in CI |
-| 18 | Saves round-trip, a long run in budget | `save-*.test.ts` and `bench:save` | Tests green here; `bench:save` needs the laptop |
-| 19 | Audio within 8 MB; frame budgets in a storm, on a hero island, in a cave | Pipeline test (green); the benches | Audio budget green; frame budgets need the laptop |
+| 18 | Saves round-trip, a long run in budget | `save-*.test.ts` and `bench:save` | **Green:** tests here, and `bench:save` on the laptop (below) |
+| 19 | Audio within 8 MB; frame budgets in a storm, on a hero island, in a cave | Pipeline test (green); the benches | Audio budget green. **Open:** no bench yet walks a storm or a cave, and `bench:island` reports draw calls, not frame times |
 | 20 | The seasons feel different; an island is worth landing on | Jared decides | **Open: for the playtest** |
 | 21 | Plans recorded, CI green, Beta checklist worked, 0.9.0 tagged | This release PR | **Open: the tag waits on sign-off and the gaps below** |
+
+**The benches on the laptop (2026-11-22, Jared, `GPU=1 npm run bench:all`).** Headed Chromium on its GPU for the island, docks, stream and hideout benches, which have the `GPU` switch; frame times hold the display's 60 Hz (16.7 ms median, 16.8 ms p95, the vsync interval's jitter) wherever a bench reports them.
+
+| Bench | Result | Budget |
+|---|---|---|
+| `bench:save` | Packed save 211 KB compressed; clone median 3.9 ms; the worker path 67 ms median, off the main thread; no long tasks while saving | Clone ≤ 4 ms |
+| `bench:island` | Stockton (hero) 72 calls, 342k triangles; Long 105–110 calls, 308k–337k; Oak 61 calls, 330k; Cat (minor) 91–95 calls, 338k–359k. POI kits: hero 12.5k triangles, standard 6.7k, minor 216 | Each tier's calls (`island_tiers.json`); 400k triangles; POI 40k / 15k / 4k |
+| `bench:docks` | Bayfield at night with 12 guards: 101 calls, 255k triangles. Duluth: 138 calls, 318k | Within the gate |
+| `bench:hideout` | Kit bench 1,500 pieces: 77 calls near, 1 far. In the game, 1,542 pieces: the hideout adds 15 calls (79 for the whole frame); on foot in the yard, 167 calls at most (83 median), over the 150 of an on-foot frame and up from 126 on 2026-11-17: not gated by the bench, **to look at** | The hideout's own ≤ 80 |
+| `bench:stream` | Apostles at Medium: no hitches over 33 ms, 23 draw calls at most, streaming 0.2 ms p95 | No hitch over 33 ms |
+| `bench:chart` | Still and panning p95 0.6 / 0.9 ms; a settled redraw 81 ms p95, once | Still and panning p95 ≤ 8 ms |
+| `bench:transitions` | Zone loads 1.4–6.6 s; heap 180.2 MB before a round trip and 181.4 MB after (one trip, not the leak test) | — |
+
+Two fixes came out of the run: the Oak island bench landed before its anchor held and failed before measuring (the landing helper now sets the anchor again until it holds, 8ef5e48), and a one-off spike of 165 calls in the hideout's build camera didn't come back on a second laptop run (79), so its max gate stays.
 
 **Piece Y's listen, folded in.** Jared said he'll listen to the islands audio during this playtest. The list is in plan 15 §24: the birds and creek against the forest bed; the wolves' and bear's levels and reach (300 m is a guess); the cave's drips, hush and surge; the spade and the grapple; and the ending air (about 55 s, which doesn't stop if a new run starts first).
 
 **Beta checklist (plan 17 §9): gaps.** These block the Beta tag, and aren't in this piece's code:
 - **Ojibwe content review:** the cultural offices (Red Cliff, Bad River) or a paid reviewer, before Beta. Not started.
 - **Accessibility pass** (13 §9): captions are in; colourblind modes, the plain font, reduce motion and rebinding aren't checked here.
-- **Bench gate and the leak test** on the baseline laptop (§4.4): not run here.
+- **Bench gate and the leak test** on the baseline laptop (§4.4): the bench gate ran (below) and passes; the leak test (plan 17 §3: 50 zone loads and unloads, heap and GPU memory within 10%) isn't built, and neither are the storm, winter and cave scenes.
 - **Browser matrix smoke** (§5): only Chromium was run here.
 - **Licensing:** `CREDITS.md` lists the island and ending sounds; the tool terms and `assets/LICENSES.json` still need the release check.
 
 **Not in piece Z:** the playtest itself and its sign-off are Jared's. The tag and the plan records for each phase (criterion 21) follow after that.
 
 ## Changelog
+- v0.24: Piece Z: the laptop's bench results recorded (§18.25); criteria 12 and 18 green, 19's frame budgets still need storm and cave scenes.
 - v0.23: Piece Z: the playtest checks run and the Beta gaps listed (§18.25); 0.9.0 is not tagged until Jared's sign-off.
 - v0.22: Piece Y as built (§18.24): the islands' birds, creek and surf by tier and season, a sea cave's hush, drips and surge, the animals' calls, the grapple, a dig and the ending air.
 - v0.21: Piece W as built (§18.23): the five new hideout sites, every background at its own, claiming by building, Minnesota Point leased or squatted.
