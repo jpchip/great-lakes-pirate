@@ -198,6 +198,7 @@ import { attachSalvage, type GameSalvage } from './gameplay/salvage';
 import { oldWrecks } from './sim/salvage';
 import {
   CHARTED_SHOAL_WARN_DRAFTS,
+  curioDef,
   curioSlots,
   discoveriesFile,
   worldChart,
@@ -3902,6 +3903,12 @@ async function boot(): Promise<void> {
       };
     },
     notice: (text) => showNotice(text),
+    // The curios set out at each hideout, and F at one (Phase 9 piece O).
+    curiosShown: (id) => discovery.curios.filter((c) => c.shownAt === id).map((c) => c.id),
+    lookAt: (id) => {
+      const def = curioDef(id);
+      if (def) showNotice(`${def.name}. ${def.text}`, 12);
+    },
     claimed: (site, hideout, how) => {
       if (how !== 'leased') {
         showNotice(

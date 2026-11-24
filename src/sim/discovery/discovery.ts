@@ -457,6 +457,7 @@ export const DISPLAY_PIECES: Readonly<Record<string, number>> = {
   'build.shelving': 1,
   'build.table': 2,
   'build.chest': 1,
+  'build.curio_shelf': 2,
 };
 
 /**
@@ -464,14 +465,31 @@ export const DISPLAY_PIECES: Readonly<Record<string, number>> = {
  * the gap on the shelving's top shelf, two places on a table's top clear of its jug and
  * cup, the middle of a sea chest's lid. Meters; y up from the piece's foot.
  */
-const DISPLAY_SPOTS: Readonly<Record<string, readonly { x: number; y: number; z: number }[]>> = {
+const DISPLAY_SPOTS: Readonly<
+  Record<string, readonly { x: number; y: number; z: number; wall?: boolean }[]>
+> = {
   'build.shelving': [{ x: 0.64, y: 1.94, z: 0.6 }],
   'build.table': [
     { x: -0.5, y: 0.8, z: 0.2 },
     { x: 0.55, y: 0.8, z: -0.2 },
   ],
   'build.chest': [{ x: 0, y: 0.53, z: 0 }],
+  // The wall shelf's plank, its back to the wall at +z (as the wall lantern's bracket).
+  'build.curio_shelf': [
+    { x: -0.35, y: 1.43, z: -0.02, wall: true },
+    { x: 0.35, y: 1.43, z: -0.02, wall: true },
+  ],
 };
+
+/**
+ * Curios that want a wall behind them: the nameboard and the medal on its plaque stand
+ * up against it, the spyglass lies along it. They take a wall shelf's places first.
+ */
+export const WALL_CURIOS: ReadonlySet<string> = new Set([
+  'curio.nameboard',
+  'curio.trade_medal',
+  'curio.keepers_spyglass',
+]);
 
 /** A display place in a hideout, site meters, and the yaw of the piece it's on (radians). */
 export interface CurioSlot {
@@ -479,6 +497,8 @@ export interface CurioSlot {
   y: number;
   z: number;
   yaw: number;
+  /** On a wall shelf, against the wall. */
+  wall?: boolean;
 }
 
 /**
@@ -506,10 +526,44 @@ export function curioSlots(
     const c = Math.cos(yaw);
     const s = Math.sin(yaw);
     for (const o of spots) {
-      out.push({ x: p.x + o.x * c + o.z * s, y: p.y + o.y, z: p.z - o.x * s + o.z * c, yaw });
+      const slot: CurioSlot = {
+        x: p.x + o.x * c + o.z * s,
+        y: p.y + o.y,
+        z: p.z - o.x * s + o.z * c,
+        yaw,
+      };
+      if (o.wall) slot.wall = true;
+      out.push(slot);
     }
   }
   return out;
+}
+
+/**
+ * Which curio goes where: in the order they were set out, each takes the first free place
+ * of the kind it wants (a wall for the `WALL_CURIOS`, a shelf, table or chest for the
+ * rest), then any free place; past the places there are, none.
+ */
+export function placeCurios(
+  ids: readonly string[],
+  slots: readonly CurioSlot[],
+): { id: string; slot: CurioSlot }[] {
+  const taken = new Set<number>();
+  const at = new Map<string, number>();
+  const take = (id: string, ok: (s: CurioSlot) => boolean): void => {
+    if (at.has(id)) return;
+    const k = slots.findIndex((s, i) => !taken.has(i) && ok(s));
+    if (k < 0) return;
+    taken.add(k);
+    at.set(id, k);
+  };
+  for (const id of ids) take(id, (s) => !!s.wall === WALL_CURIOS.has(id));
+  for (const id of ids) take(id, () => true);
+  return ids.flatMap((id) => {
+    const k = at.get(id);
+    const slot = k === undefined ? undefined : slots[k];
+    return slot ? [{ id, slot }] : [];
+  });
 }
 
 /** How many curios a hideout's built pieces can show (its shelves, tables and sea chests). */
