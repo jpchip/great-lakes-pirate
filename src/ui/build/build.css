@@ -224,7 +224,7 @@
 
 .build-cursor.bad {
   border-left-color: var(--signal-red);
-  color: #ffd7cf;
+  color: var(--signal-red-pale);
 }
 
 .build-queue {
@@ -250,7 +250,7 @@
 }
 
 .build-needs .short {
-  color: #ff9d8c;
+  color: var(--signal-red-light);
 }
 
 .build-go {

@@ -5,6 +5,7 @@ import {
   rebind,
   type Action,
   type Bindings,
+  type InputContext,
 } from '../../core/input';
 import { applyBindingOverrides, type Settings, type SettingsStore } from '../../core/settings';
 import type { AudioSettings, VolumeId } from '../../audio/settings';
@@ -21,7 +22,7 @@ export interface SettingsControls {
   current: Signal<Settings>;
   bindings: ReadonlySignal<Bindings>;
   update(change: (draft: Settings) => void): void;
-  rebind(action: Action, code: string): void;
+  rebind(context: InputContext, action: Action, code: string): void;
   resetBindings(): void;
   audio: AudioControls | undefined;
 }
@@ -43,8 +44,8 @@ export function settingsControls(
     current,
     bindings,
     update: (change) => settings.update(change),
-    rebind(action, code) {
-      const next = rebind(bindings.value, 'sailing', action, code);
+    rebind(context, action, code) {
+      const next = rebind(bindings.value, context, action, code);
       settings.update((s) => (s.bindings = bindingOverrides(next)));
     },
     resetBindings: () => settings.update((s) => (s.bindings = {})),

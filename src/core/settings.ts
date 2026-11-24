@@ -67,12 +67,37 @@ const uiSchema = z.object({
   captions: z.boolean().catch(true),
 });
 
+export const COLOR_MODES = ['off', 'redGreen', 'blueYellow'] as const;
+export type ColorMode = (typeof COLOR_MODES)[number];
+export const UI_SCALES = [0.85, 1, 1.15, 1.3, 1.5] as const;
+
+/** Accessibility (plan 13 §9), beyond the captions, rebinding and camera roll. */
+const accessSchema = z.object({
+  /** The interface's size, as a multiple of the authored one. */
+  uiScale: z.number().min(0.75).max(1.5).catch(1),
+  /** Swap the period serif for the system's plain sans. */
+  plainFont: z.boolean().catch(false),
+  /** A colour-blind palette for the warning colours. */
+  colorMode: z.enum(COLOR_MODES).catch('off'),
+  /** Still the interface's animations, and keep the camera level whatever the roll setting. */
+  reduceMotion: z.boolean().catch(false),
+  /** Photosensitivity: lightning flashes soft, dim and far apart. */
+  gentleFlashes: z.boolean().catch(false),
+  /** Brightness, the tone mapper's exposure: 1 as authored (night readability). */
+  brightness: z.number().min(0.6).max(1.6).catch(1),
+  /** Hold vs. toggle: crouch and run toggle on a press; aim lasts while its key is held. */
+  crouchToggle: z.boolean().catch(false),
+  runToggle: z.boolean().catch(false),
+  holdToAim: z.boolean().catch(false),
+});
+
 export const settingsSchema = z.object({
   graphics: graphicsSchema.catch(() => graphicsSchema.parse({})),
   camera: cameraSchema.catch(() => cameraSchema.parse({})),
   sailing: sailingSchema.catch(() => sailingSchema.parse({})),
   chart: chartSchema.catch(() => chartSchema.parse({})),
   ui: uiSchema.catch(() => uiSchema.parse({})),
+  access: accessSchema.catch(() => accessSchema.parse({})),
   bindings: bindingOverridesSchema,
 });
 

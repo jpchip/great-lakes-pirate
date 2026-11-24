@@ -107,6 +107,11 @@ export interface GameAim {
   readonly side: 'port' | 'starboard';
   /** One sailing tick: Tab, 1/2/3, C, and the left mouse (`fireAllowed` when it hit the sea). */
   step(input: InputMapper, fireAllowed: boolean): void;
+  /**
+   * Hold to aim (plan 13 §9 "Hold vs. toggle"): aim mode lasts while the key is held. Off,
+   * the default, the key toggles it.
+   */
+  holdToAim: boolean;
   /** Every frame: the cursor's ray from the camera, and the real seconds since the last. */
   setCursor(ray: Ray, frameSeconds: number): void;
   /** Lay on a point on the water directly (tests, the dev hook). */
@@ -306,6 +311,7 @@ export function attachAim(deps: AimDeps): GameAim {
   };
 
   const api: GameAim = {
+    holdToAim: false,
     get active() {
       return active;
     },
@@ -398,7 +404,10 @@ export function attachAim(deps: AimDeps): GameAim {
         if (active) api.exit();
         return;
       }
-      if (input.pressed('AimMode')) {
+      if (api.holdToAim) {
+        if (!active && input.pressed('AimMode')) api.enter();
+        else if (active && !input.isDown('AimMode')) api.exit();
+      } else if (input.pressed('AimMode')) {
         if (active) api.exit();
         else api.enter();
       }

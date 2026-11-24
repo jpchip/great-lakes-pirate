@@ -528,9 +528,10 @@ All resolved.
 ### Still to do
 
 1. **A listen in the game** (row Y: "Listen by ear"): none of this has been heard by a person yet. Judge the birds and the creek against the forest bed, the wolves' and the bear's levels and their reach, the cave's drips and surge, the spade and the grapple, and the length of the ending air.
-2. **Not built:** a bear's crash off through the brush (a bear that flees makes no sound), a separate wolf growl, the diving suit's sounds, and stopping the ending air when a new run starts.
+2. **Not built:** a bear's crash off through the brush (a bear that flees makes no sound), a separate wolf growl, and the diving suit's sounds. ~~Stopping the ending air when a new run starts~~: checked 2026-11-24, it can't carry over. The end screen's only way on is the main menu, which reloads the page (`onEndMenu` in `ui/mount.tsx`), and the reload stops every sound.
 
 ## Changelog
+- v1.9: The ending air can't play into a new run (§24): the way from the end screen reloads the page.
 - v1.8: Phase 9 piece Y built (§24): the islands' birds, creek and surf by tier and season, the woodpecker, a sea cave's hush, drips and surge, the deer, bear and wolves, the grapple, a dig and the ending air.
 - v1.7: Phase 9 piece N built (§23): thin ice cracking, groaning and giving way and the haul out, footsteps on ice and squeaking snow, the sled's runners and load, gusts, a shivering breath and chattering teeth as warmth drops, the winter wind, a frozen harbor's still night with the ice booming far off, and snowfall silent. Decoded audio 6.59 MB of 8 MB.
 - v1.6: Phase 9 piece J built (§22): the saloon's piano and fiddle by night, cards and chips at the poker table, the lighthouse station's clockwork, lamp, stair, oil and keepers, the harbor master's bell and the letters, a rival's stinger for piece E, and a ship aground. Decoded audio 6.13 MB of 8 MB.

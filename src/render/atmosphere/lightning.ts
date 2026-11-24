@@ -25,6 +25,11 @@ export interface Lightning {
   readonly direction: THREE.Vector3;
   /** Strikes so far, for the readout. */
   readonly strikes: number;
+  /**
+   * Photosensitivity (plan 13 §9): flashes at most a third as bright, one soft pulse with no
+   * return stroke, and at least `GENTLE_GAP_S` between strikes, so nothing flickers.
+   */
+  gentle: boolean;
   onStrike(listener: (strike: Strike) => void): void;
   /** Forces one now, for tests and the dev panel. */
   strikeNow(camera: THREE.Vector3): void;
@@ -37,6 +42,17 @@ export interface Lightning {
 const CLOUD_BASE_M = 650;
 const MIN_DISTANCE_M = 900;
 const MAX_DISTANCE_M = 6500;
+/** The shortest wait between strikes when flashes are gentled, seconds. */
+export const GENTLE_GAP_S = 15;
+/** The brightest a gentled flash gets, 0–1. */
+export const GENTLE_PEAK = 0.3;
+
+/** A gentled flash: one slow, soft rise and fall over a second, with no second peak. */
+export function gentleFlashAt(tau: number): number {
+  if (tau < 0 || tau > 1.2) return 0;
+  return GENTLE_PEAK * Math.sin((Math.PI * tau) / 1.2) ** 2;
+}
+
 /** The speed of sound, m/s, for whoever times the thunder. */
 export const SOUND_MS = 343;
 
@@ -80,6 +96,9 @@ export function createLightning(seed = 0x1f57): Lightning {
   let startedAt = -10;
   let strength = 1;
   let strikes = 0;
+  let gentle = false;
+  const flashNow = (): number =>
+    gentle ? strength * gentleFlashAt(clock - startedAt) : strength * flashAt(clock - startedAt);
 
   /** A jagged line from the cloud to the water by midpoint displacement, as segments. */
   const buildBolt = (x: number, z: number): void => {
@@ -153,7 +172,13 @@ export function createLightning(seed = 0x1f57): Lightning {
   return {
     group,
     get flash01() {
-      return strength * flashAt(clock - startedAt);
+      return flashNow();
+    },
+    get gentle() {
+      return gentle;
+    },
+    set gentle(on: boolean) {
+      gentle = on;
     },
     direction,
     get strikes() {
@@ -173,13 +198,13 @@ export function createLightning(seed = 0x1f57): Lightning {
         strike(camera);
         // A strike every 5–25 s, sooner the stronger the storm.
         const mean = 28 - 23 * Math.min(1, storm01);
-        nextAt = clock + mean * (0.4 + 1.2 * rand());
+        nextAt = clock + Math.max(gentle ? GENTLE_GAP_S : 0, mean * (0.4 + 1.2 * rand()));
       }
-      const f = strength * flashAt(clock - startedAt);
+      const f = flashNow();
       if (bolt.visible) {
         // The bolt shows for the first stroke and the return, then goes out.
         bolt.visible = clock - startedAt < 0.4;
-        material.opacity = Math.min(1, f * 1.6);
+        material.opacity = Math.min(gentle ? 0.5 : 1, f * 1.6);
       }
     },
     dispose() {
