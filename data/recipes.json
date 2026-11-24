@@ -21,7 +21,7 @@
     "id": "recipe.crates",
     "name": "Crates",
     "station": "station.workbench",
-    "blurb": "A load of lumber knocked into four plain crates.",
+    "blurb": "A load of lumber knocked into four plain crates. At a cooperage, re-crating a stolen lot takes one crate per load and strips the company's marks off it.",
     "hours": 1,
     "inputs": { "goods": { "good.lumber": 1 } },
     "output": { "things": { "item.crate": 4 } }
