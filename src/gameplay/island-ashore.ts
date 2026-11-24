@@ -129,7 +129,7 @@ export interface IslandAshore {
       }
     | undefined;
   /** For the dev hooks: the stash strongbox you'd open on foot, zone meters. */
-  strongbox(): { x: number; y: number; z: number; hideout: string } | undefined;
+  strongbox(hideoutId?: string): { x: number; y: number; z: number; hideout: string } | undefined;
 }
 
 /** The island is built this far past its tiles, so its shore is never at the edge. */
@@ -577,8 +577,8 @@ export function attachIslandAshore(deps: IslandAshoreDeps): IslandAshore {
         looted: s?.looted ?? false,
       };
     },
-    strongbox() {
-      return deps.hideouts?.strongbox();
+    strongbox(hideoutId) {
+      return deps.hideouts?.strongbox(hideoutId);
     },
   };
 }
