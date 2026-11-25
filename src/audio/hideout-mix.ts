@@ -172,3 +172,41 @@ export function stillLevel(distanceM: number): { gain: number; lowpassHz: number
 
 /** Chimes come no closer than this, seconds: a night's batches all done ring once. */
 export const CHIME_GAP_S = 2;
+
+/** The alarm's second stroke follows the first this soon, seconds. */
+export const ALARM_STROKE_S = 0.32;
+
+/**
+ * Notification chimes by priority (plan 13 §7, plan 15 §4.6): what a notice's event rings
+ * when nothing else in the game already sounds for it. Critical is the alarm (the bright
+ * bell twice, low); important the soft bell. Ambient news rings nothing, and neither do
+ * the refusals most notices are. The events with a sound of their own (a tier's stinger,
+ * the ice giving, the pursuit's music, a contract's bell) are left out, so nothing rings
+ * twice.
+ */
+export const NOTICE_CHIMES = {
+  // Critical: the law has your name, she's going down, they've found your hideout.
+  ReportFiled: 'alarm',
+  ShipFoundering: 'alarm',
+  HideoutSpotted: 'alarm',
+  // Important: something to read or follow up.
+  LetterReceived: 'chimeSoft',
+  LeadUpdated: 'chimeSoft',
+  ClueFound: 'chimeSoft',
+  RivalEmerged: 'chimeSoft',
+  LegendCompleted: 'chimeBright',
+} as const;
+
+export type NoticeChimeEvent = keyof typeof NOTICE_CHIMES;
+
+/** The slipway's work as Build's materials: planking and caulking, iron where it's fitted. */
+export const SLIPWAY_REPAIR: readonly string[] = ['plank', 'plank', 'iron', 'plank'];
+export const SLIPWAY_FIT: readonly string[] = ['iron', 'plank', 'iron'];
+export const SLIPWAY_BUILD: readonly string[] = [
+  'plank',
+  'plank',
+  'iron',
+  'plank',
+  'plank',
+  'iron',
+];

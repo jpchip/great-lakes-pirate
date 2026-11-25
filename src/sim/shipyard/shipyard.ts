@@ -364,6 +364,8 @@ export interface UpgradeEvent {
   cents: number;
   /** Game hours the work takes (0 at a chandlery). */
   hours: number;
+  /** Fitted by your own hands on a hideout's slipway (Phase 8 piece G). */
+  how?: 'slipway';
 }
 
 /** Why an upgrade can't go in here now, or undefined if it can. */

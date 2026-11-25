@@ -8,7 +8,14 @@ All notable changes to this project are recorded here. The format follows [Keep 
 
 - **Export and import a run:** Settings (Esc) has **Export run**, which saves and downloads the run as a `.glprun` file, to move it to another computer or browser or keep it safe from cleared browser data. It isn't allowed in danger: with the law on your tail, in a fight or boarding, foundering, in a cell, in the water or freezing. On the main menu, when there's no run, **Import run** brings one in: the file is checked, brought up to date if it's from an older version and refused if it's damaged. A run brought in this way says **Transferred** in the Hall of Captains ([plan 16 §9](plans/16-save-persistence.md)).
 - **Accessibility:** a new Accessibility tab in Settings has the interface size (85% to 150%), a plain font, colour-blind palettes (red-green and blue-yellow) for the warning colours on the HUD, the menus and the chart, reduce motion (still interface, level camera), gentle lightning (soft, dim flashes, far apart) and brightness. The Controls tab now rebinds the keys on foot and on the chart too, and crouch and run can toggle instead of being held, and aiming the guns can be held instead of toggled. The prompts, notices and key hints on screen name the keys as you've bound them ([plan 13 §9](plans/13-ui-ux.md)).
+- **Squalls blow:** a squall's heart now lifts the wind, up to about 12 knots in a light summer air, and makes it gusty, so a thunder squall blows as well as rains. In a blow the squall comes as gusts on top rather than more sustained wind ([plan 04](plans/04-water-weather-seasons.md)).
+- **The glass on the chart:** hover over the chart and a slip beside the pointer reads the barometer there, at the hour the chart is showing; over a low or a high it names it and says where it's heading ([plan 04 §12](plans/04-water-weather-seasons.md)).
+- **Sounds for the last gaps:** a bell for notices by importance (two low strokes for a report filed against you, your ship foundering or a hideout spotted; a soft bell for a letter, a lead or a clue), the ice grinding and knocking on the hull as you force it, a bear crashing off through the brush when it runs, and work on the slipway and the launch of a ship you built. The island birds are brought down to sit with the creek and the surf ([plan 15 §26](plans/15-audio.md)).
 - **A warning on phones and tablets:** a touch-only device now gets a parchment card before the menu saying the game is built for a keyboard and mouse, with a **Continue anyway** button that's remembered on that device. It goes by the pointer, not the screen size or browser name, so a touchscreen laptop (touchpad or mouse as its main pointer) or an iPad with a trackpad keyboard isn't flagged.
+
+### Changed
+
+- **After 1.0:** harbor launches, bounty hunters, a tutorial (First Week's hints stay) and walkable Ashland, Washburn, Superior and Two Harbors are moved past 1.0 ([plan 00 §7.2](plans/00-master-plan.md)).
 
 ### Fixed
 

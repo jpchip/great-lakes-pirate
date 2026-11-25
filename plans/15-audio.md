@@ -454,8 +454,8 @@ All resolved.
 ### Still to do
 
 1. **A listen in the game** (row I: "Listen by ear"): none of this has been heard by a person. The yard's level under the beats, the knock against the thud, and whether the forge and the cooperage read as what they are, are for the Phase 8 playtest (piece J).
-2. **Not built from §4.6:** notification chimes per priority for the HUD's notices (only the two bells above), the chart unrolling.
-3. **The slipway (piece G):** a ship's launch and work on the ways have no sounds yet; they'd reuse the yard, the saw and the hammer.
+2. **Not built from §4.6:** the chart unrolling. ~~Notification chimes per priority~~: built in the polish pass (§26).
+3. ~~**The slipway (piece G):** a ship's launch and work on the ways have no sounds yet~~: built in the polish pass (§26).
 
 ## 22. Phase 9 Piece J: Stage 1 Audio (2026-11-19)
 
@@ -508,7 +508,7 @@ All resolved.
 ### Still to do
 
 1. **A listen in the game** (row N: "Listen by ear"): none of this has been heard by a person yet. Still to judge in the stage 2 playtest: whether the crack's pew reads as lake ice, how the groan sits against the wind, how often the gusts and chattering come, and whether the frozen night is too empty.
-2. **Not built:** a wind through bare rigging aboard a frozen-in ship, the ice grinding on a hull under way (piece K's `IceGrinding` has no sound yet), shore-ice ridges heaving, sled dogs, skates.
+2. **Not built:** a wind through bare rigging aboard a frozen-in ship, shore-ice ridges heaving, sled dogs, skates. ~~The ice grinding on a hull under way~~: built in the polish pass (§26).
 
 ## 24. Phase 9 Piece Y: Islands Audio (2026-11-21)
 
@@ -528,7 +528,7 @@ All resolved.
 ### Still to do
 
 1. **A listen in the game** (row Y: "Listen by ear"): none of this has been heard by a person yet. Judge the birds and the creek against the forest bed, the wolves' and the bear's levels and their reach, the cave's drips and surge, the spade and the grapple, and the length of the ending air.
-2. **Not built:** a bear's crash off through the brush (a bear that flees makes no sound), a separate wolf growl, and the diving suit's sounds. ~~Stopping the ending air when a new run starts~~: checked 2026-11-24, it can't carry over. The end screen's only way on is the main menu, which reloads the page (`onEndMenu` in `ui/mount.tsx`), and the reload stops every sound.
+2. **Not built:** a separate wolf growl, and the diving suit's sounds. ~~A bear's crash off through the brush~~: built in the polish pass (§26). ~~Stopping the ending air when a new run starts~~: checked 2026-11-24, it can't carry over. The end screen's only way on is the main menu, which reloads the page (`onEndMenu` in `ui/mount.tsx`), and the reload stops every sound.
 
 ## 25. Great Lakes Song Motifs: Red Iron Ore (2026-11-24)
 
@@ -563,7 +563,30 @@ Rickaby (Harvard University Press, 1926) is on the Internet Archive (`3176103494
 1. **A listen:** nobody has heard the arrangement yet. Judge the tempo, the whistle's octave and the drone's level.
 2. **The other songs** in the table above, one cue at a time.
 
+## 26. Polish: The Last Gaps and a Loudness Pass (2026-11-24)
+
+**Scope:** what §21, §23 and §24 left as "not built" that the 1.0 audit kept in 1.0 ([00 §7.2](00-master-plan.md)): notification chimes per priority, the ice grinding on a hull, a bear crashing off, and the slipway; plus the measured half of the mix and loudness pass (§11 Phase 10).
+
+| Part | Where | What it does |
+|---|---|---|
+| Notice chimes | `hideout-mix.ts` (`NOTICE_CHIMES`), `UiCues` (`alarm`), `game-audio.ts` | Plan 13 §7's priorities, by event rather than by notice text: **critical** (a report filed, your own ship foundering, a hideout spotted) is the alarm, the bright bell struck twice a fourth down and 0.32 s apart; **important** (a letter, a lead opened, a clue, a rival emerging) the soft bell, and a legend completed the bright one. Events with a sound of their own (a tier's stinger, the ice giving, the pursuit's music, a contract's bell) aren't in the table, so nothing rings twice. The 2 s gap still holds, but an alarm cuts in on a bell. |
+| Hull in the ice | `winter-mix.ts` (`grindLevel`), `WinterSounds.grinding`, `main.ts` (`IceGrinding` now emitted) | Forcing ice, her hull grinds: a looped bed (`sfx.ice.grind`, 5 s) by the hull HP a second she's losing, lower and duller at a crawl and fuller and brighter driven hard (full at 1.2 HP/s), with a floe's knock or a crack running off every 1–2.6 s. Afloat only, your own ship only. |
+| Bear running off | `island-mix.ts` (`animalCue` for `flee`) | A bear that runs huffs and crashes off through the brush (`sfx.bear.crash`): a gallop of heavy footfalls in threes, branches snapping, going away over three seconds. Captioned. |
+| The slipway | `HideoutSounds.onTheWays`, `launched` | A repair or an upgrade fitted on the ways is heard like Build's work (the yard with saws and hammers, iron for fittings) by the hours it took; `UpgradeInstalled` gains `how: 'slipway'` to tell it from a chandlery's. A ship of your own building is the days on the ways, then the launch (`sfx.slipway.launch`): the dog-shores knocked out, the cradle groaning, the rumble down the greased ways, the splash and the wash. |
+| Sounds | `synth-winter.ts` (`hullGrind`), `synth-island.ts` (`bearCrash`), `synth-hideout.ts` (`shipLaunch`) | Synthesized like the rest, CC BY 4.0, credited. 105 KB more in their bundles. |
+
+**The loudness pass, measured.** Every shipped sound run through ffmpeg's EBU R128 meter (integrated loudness and true peak):
+
+- **Music** sits where §9 asks: the cues at −17.5 to −18 LUFS, the stingers −15 to −20.
+- **Ambience** beds have a median of −23.7 LUFS against the −24 target. The outlier was the island's birds at **−15.5**: sparse calls over silence, which the build's RMS levelling leaves about 8 LU hot. Their bed level drops from 1 to 0.45 (`island-audio.ts`). The clockwork (−28.9) and the frozen night (−27.6) were already brought up at runtime (×1.4, ×1.3).
+- **SFX** are peak-levelled, so their loudness spreads (−8 to −20 LUFS) by design. Two encode a hair over 0 dBTP after Opus (`poker/deal-2` +0.6, `sled-runners` +0.3); every bus plays them well under unity, so nothing clips at the output.
+
+### Still to do
+
+1. **The by-ear half of the pass** (§11 Phase 10: "Mix polish, loudness pass, captions review"): the meter can't judge balance in play. Listen to a run end to end for anything that pokes out or vanishes: the grind under the wind and the wash, the alarm against the stingers, the birds at their new level, and the launch.
+
 ## Changelog
+- v2.1: The polish pass (§26): notification chimes by priority, the ice grinding on a hull, a bear crashing off, the slipway's work and launch, and a measured loudness pass (the island birds brought down 7 dB).
 - v2.0: Great Lakes song motifs (§25): the public-domain sources for the songs of §2, and *Red Iron Ore* from Rickaby (1926) as the open-water day cue in place of the waltz.
 - v1.9: The ending air can't play into a new run (§24): the way from the end screen reloads the page.
 - v1.8: Phase 9 piece Y built (§24): the islands' birds, creek and surf by tier and season, the woodpecker, a sea cave's hush, drips and surge, the deer, bear and wolves, the grapple, a dig and the ending air.
