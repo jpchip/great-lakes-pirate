@@ -1,0 +1,19 @@
+{
+  "source": "procedural",
+  "tool": "tools/audio/synth.ts (tools/audio/lib/synth.ts)",
+  "author": "Great Lakes Pirate contributors",
+  "reference": "Traditional melody, public domain: Ernest Gagnon, Chansons populaires du Canada (Québec: Bureaux du Foyer canadien, 1865), \"En roulant ma boule\", p. 12. Original arrangement; synthesized free-reed concertina, tin whistle and Karplus-Strong guitar, Freeverb-style reverb",
+  "date": "2026-11-25",
+  "license": "CC BY 4.0",
+  "attribution": "Great Lakes Pirate contributors",
+  "modifications": [],
+  "description": "Open-water music by day among the Apostle Islands: \"En roulant ma boule\" (traditional voyageur song) on concertina, tin whistle and guitar",
+  "durationS": 66,
+  "pipeline": [
+    "decoded to mono 48000 Hz",
+    "edge fades",
+    "RMS-normalized toward -18 dB (+1.7 dB)",
+    "Opus 112 kbps mono in Ogg (ffmpeg libopus)"
+  ],
+  "inputHash": "b01e510cc5a6d27e"
+}

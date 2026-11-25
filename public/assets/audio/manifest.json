@@ -1055,6 +1055,26 @@
       "type": "audio",
       "url": "music/ending-air.ogg",
       "bytes": 1003788
+    },
+    "music.open-water.day-apostles": {
+      "type": "audio",
+      "url": "songs/open-water-day-apostles.ogg",
+      "bytes": 1082923
+    },
+    "music.open-water.night-duluth": {
+      "type": "audio",
+      "url": "songs/open-water-night-duluth.ogg",
+      "bytes": 1032675
+    },
+    "music.saloon.day-duluth": {
+      "type": "audio",
+      "url": "songs/saloon-day-duluth.ogg",
+      "bytes": 346103
+    },
+    "music.saloon.night-duluth": {
+      "type": "audio",
+      "url": "songs/saloon-night-duluth.ogg",
+      "bytes": 319109
     }
   },
   "bundles": {
@@ -1076,7 +1096,9 @@
     ],
     "music-open-water": [
       "music.open-water.day",
-      "music.open-water.night"
+      "music.open-water.night",
+      "music.open-water.day-apostles",
+      "music.open-water.night-duluth"
     ],
     "world-audio": [
       "sfx.signal.fog-bell",
@@ -1302,6 +1324,10 @@
     ],
     "ending-audio": [
       "music.ending.air"
+    ],
+    "saloon-music": [
+      "music.saloon.day-duluth",
+      "music.saloon.night-duluth"
     ]
   }
 }

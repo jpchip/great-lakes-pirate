@@ -1,5 +1,17 @@
 import { describe, expect, it } from 'vitest';
 import {
+  EN_ROULANT,
+  LADY_ELGIN,
+  MICHIGAN_I_O,
+  MICHIGAN_I_O_S,
+  SHANTY_MANS_LIFE,
+  SHANTY_MANS_LIFE_S,
+  enRoulant,
+  enRoulantForm,
+  ladyElgin,
+  michiganIO,
+  notes,
+  shantyMansLife,
   BIGLER,
   GERRYS_ROCKS,
   LITTLE_BROWN_BULLS,
@@ -132,6 +144,57 @@ describe('the rest of the shortlist (plan 15 §25)', () => {
     ] as const) {
       expect(x.length / RATE, name).toBeGreaterThan(80);
       expect(x.length / RATE, name).toBeLessThan(105);
+      expect(peak(x), name).toBeGreaterThan(0.05);
+    }
+  }, 60_000);
+});
+
+describe('the alternates (plan 15 §25.2)', () => {
+  it('reads "pitch:beats" words, bar lines ignored', () => {
+    expect(notes('E4:1 | G4:0.5 R:2')).toEqual([
+      ['E4', 1],
+      ['G4', 0.5],
+      ['R', 2],
+    ]);
+    expect(() => notes('E4')).toThrow();
+  });
+
+  it('keeps every tune to whole bars', () => {
+    // En roulant: refrain, verse twice, the ducks, refrain, the closing rest: twenty bars.
+    expect(beats(enRoulantForm())).toBe(20 * EN_ROULANT.beatsPerBar);
+    expect(EN_ROULANT.chords).toHaveLength(40);
+    expect(beats(LADY_ELGIN.verse)).toBe(12 * LADY_ELGIN.beatsPerBar);
+    expect(beats(LADY_ELGIN.chorus)).toBe(6 * LADY_ELGIN.beatsPerBar);
+    expect(beats(SHANTY_MANS_LIFE.tune)).toBe(28 * SHANTY_MANS_LIFE.beatsPerBar);
+    expect(SHANTY_MANS_LIFE.chords).toHaveLength(28);
+    expect(beats(MICHIGAN_I_O.tune)).toBe(16 * MICHIGAN_I_O.beatsPerBar);
+    expect(MICHIGAN_I_O.chords).toHaveLength(32);
+  });
+
+  it('names each printed source', () => {
+    expect(EN_ROULANT.source).toMatch(/Gagnon.*1865.*p\. 12/);
+    expect(LADY_ELGIN.source).toMatch(/Work.*1861/);
+    expect(SHANTY_MANS_LIFE.source).toMatch(/no\. 9.*p\. 43/);
+    expect(MICHIGAN_I_O.source).toMatch(/no\. 8.*p\. 41/);
+  });
+
+  it('renders the open-water cues to about a minute', () => {
+    for (const [name, x] of [
+      ['roulant', enRoulant(RATE)],
+      ['elgin', ladyElgin(RATE)],
+    ] as const) {
+      expect(x.length / RATE, name).toBeGreaterThan(55);
+      expect(x.length / RATE, name).toBeLessThan(75);
+      expect(peak(x), name).toBeGreaterThan(0.05);
+    }
+  }, 60_000);
+
+  it('renders the saloon loops to exactly one time through', () => {
+    for (const [name, x, s] of [
+      ['shanty', shantyMansLife(RATE), SHANTY_MANS_LIFE_S],
+      ['michigan', michiganIO(RATE), MICHIGAN_I_O_S],
+    ] as const) {
+      expect(x.length, name).toBe(Math.round(s * RATE));
       expect(peak(x), name).toBeGreaterThan(0.05);
     }
   }, 60_000);

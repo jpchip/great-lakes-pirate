@@ -21,6 +21,8 @@ import {
   tensionGain,
   voiceRate,
   type PlaceInputs,
+  DEFAULT_SALOON_TUNES,
+  saloonTunes,
 } from '../src/audio/foot-mix';
 import { LAW_SOUND } from '../src/audio/law-audio';
 import type { AudioMixer, OneShot } from '../src/audio/mixer';
@@ -757,5 +759,17 @@ describe('foot synthesis (Phase 7 piece I)', () => {
         );
       }
     }
+  });
+});
+
+describe("each saloon's tunes (plan 15 §25.2)", () => {
+  it("gives Duluth its own and everywhere else Bayfield's", () => {
+    expect(saloonTunes('district.duluth')).toEqual({
+      day: 'music.saloon.day-duluth',
+      night: 'music.saloon.night-duluth',
+    });
+    expect(saloonTunes('district.bayfield')).toEqual(DEFAULT_SALOON_TUNES);
+    expect(saloonTunes(undefined)).toEqual(DEFAULT_SALOON_TUNES);
+    expect(DEFAULT_SALOON_TUNES.day).toBe(FOOT_SOUND.tune);
   });
 });

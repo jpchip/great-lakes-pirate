@@ -9,7 +9,14 @@ import {
   WORLD_AUDIO_BUNDLE,
 } from '../src/audio/game-audio';
 import { WORLD_SOUND } from '../src/audio/world-audio';
-import { FOOT_AUDIO_BUNDLE, FOOT_SOUND } from '../src/audio/foot-audio';
+import {
+  FOOT_AUDIO_BUNDLE,
+  FOOT_SOUND,
+  SALOON_MUSIC_BUNDLE,
+  SALOON_MUSIC_SOUND,
+} from '../src/audio/foot-audio';
+import { SALOON_TUNES } from '../src/audio/foot-mix';
+import { MUSIC_ALTERNATES } from '../src/audio/world-mix';
 import { STEP_GROUNDS, STEP_VARIANTS, stepSoundId } from '../src/audio/foot-mix';
 import { HARBOR_AUDIO_BUNDLE, HARBOR_SOUND } from '../src/audio/harbor-audio';
 import {
@@ -180,6 +187,20 @@ describe('shipped sounds (plan 15 §3.2, §8)', () => {
     for (const id of Object.values(WORLD_SOUND).flat()) expect(bundle, id).toContain(id);
     const music = manifest.bundles[MUSIC_BUNDLE] ?? [];
     for (const id of Object.values(MUSIC_CUES)) expect(music, id).toContain(id);
+    // And every region's own song (plan 15 §25.2).
+    for (const m of Object.values(MUSIC_ALTERNATES)) {
+      for (const id of Object.values(m)) expect(music, id).toContain(id);
+    }
+  });
+
+  it("has every saloon's tunes, and the saloon bundle nothing else (plan 15 §25.2)", () => {
+    const bundle = manifest.bundles[SALOON_MUSIC_BUNDLE] ?? [];
+    expect([...bundle].sort()).toEqual(Object.values(SALOON_MUSIC_SOUND).sort());
+    const all = new Set(Object.values(manifest.bundles).flat());
+    for (const t of Object.values(SALOON_TUNES)) {
+      expect(all, t.day).toContain(t.day);
+      expect(all, t.night).toContain(t.night);
+    }
   });
 
   it("has every NPC class's whistle or fog horn in the world bundle (Phase 3 piece J)", () => {
@@ -311,6 +332,7 @@ describe('shipped sounds (plan 15 §3.2, §8)', () => {
       COMBAT_AUDIO_BUNDLE,
       COMBAT_MUSIC_BUNDLE,
       FOOT_AUDIO_BUNDLE,
+      SALOON_MUSIC_BUNDLE,
       HIDEOUT_AUDIO_BUNDLE,
       UI_AUDIO_BUNDLE,
       SANDBOX_AUDIO_BUNDLE,

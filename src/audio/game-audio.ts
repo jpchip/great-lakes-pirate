@@ -15,7 +15,7 @@ import {
   stingerFor,
 } from './chart-audio';
 import { CaptionFeed, type CaptionView } from './captions';
-import { FOOT_AUDIO_BUNDLE, FootSounds, type FootFrame } from './foot-audio';
+import { FOOT_AUDIO_BUNDLE, FootSounds, SALOON_MUSIC_BUNDLE, type FootFrame } from './foot-audio';
 import { HARBOR_AUDIO_BUNDLE, HarborWorks } from './harbor-audio';
 import { HIDEOUT_AUDIO_BUNDLE, HideoutSounds, UI_AUDIO_BUNDLE, UiCues } from './hideout-audio';
 import { SANDBOX_AUDIO_BUNDLE, SandboxSounds } from './sandbox-audio';
@@ -50,7 +50,7 @@ import { loadAudioSettings, saveAudioSettings, type VolumeId } from './settings'
 import { SHIP_RECORDS } from '../sim/sailing/ships';
 import { ShipWhistles, type WhistleShip } from './ship-whistles';
 import { WorldSoundscape, type SignalStation } from './world-audio';
-import { fogMix, musicMood, type MusicMood } from './world-mix';
+import { MUSIC_ALTERNATES, fogMix, musicAlternate, musicMood, type MusicMood } from './world-mix';
 
 /**
  * Audio for the running game: the mixer on three.js's shared AudioContext (plan 01 §2),
@@ -208,6 +208,7 @@ export async function createGameAudio(options: GameAudioOptions): Promise<GameAu
         COMBAT_AUDIO_BUNDLE,
         COMBAT_MUSIC_BUNDLE,
         FOOT_AUDIO_BUNDLE,
+        SALOON_MUSIC_BUNDLE,
         HIDEOUT_AUDIO_BUNDLE,
         UI_AUDIO_BUNDLE,
         SANDBOX_AUDIO_BUNDLE,
@@ -256,7 +257,19 @@ export async function createGameAudio(options: GameAudioOptions): Promise<GameAu
     const url = musicUrls.get(id);
     if (url) players[mood] = createStreamPlayer(ctx, url, mixer.buses.music, target.document);
   }
-  const music = new MusicDirector({ players });
+  // A stretch of water's own song (plan 15 §25.2), chosen by region when a cue starts.
+  const alternates = new Map<string, MusicPlayer>();
+  for (const id of new Set(Object.values(MUSIC_ALTERNATES).flatMap((m) => Object.values(m)))) {
+    const url = musicUrls.get(id);
+    if (url) alternates.set(id, createStreamPlayer(ctx, url, mixer.buses.music, target.document));
+  }
+  const music = new MusicDirector({
+    players,
+    alternate: (mood) => {
+      const id = musicAlternate(mood, options.region?.());
+      return id === undefined ? undefined : alternates.get(id);
+    },
+  });
   const chartUrl = chartUrls.get(CHART_MUSIC_CUE);
   const chartMusic = new ChartMusic(
     chartUrl

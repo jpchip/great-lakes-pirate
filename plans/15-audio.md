@@ -541,12 +541,12 @@ All resolved.
 | *Red Iron Ore* (Laws D9) | Rickaby 1926, no. 45, p. 161 | Open water by day (built here) |
 | *The Bigler's Crew* (Laws D8) | Rickaby no. 47, p. 168; Colcord, *Roll and Go* (1924), p. 109 | Chart travel (built, §25.1) |
 | *The Persian's Crew* (Laws D4) | Rickaby no. 46, p. 164 (two tunes); Colcord p. 111 (a third) | Night, fog, a wreck, the death ending (night built, §25.1) |
-| *The Shanty-Man's Life* | Rickaby no. 9, p. 43 | Port by day in the lumber towns |
+| *The Shanty-Man's Life* | Rickaby no. 9, p. 43 | Port by day in the lumber towns; the Duluth saloon by day (built, §25.2) |
 | *The Little Brown Bulls* | Rickaby no. 13, p. 65 (a variant of *Red Iron Ore*'s tune) | The saloon (built, §25.1) |
-| *Michigan-I-O* | Rickaby no. 8, p. 41 | The saloon at night, winter |
+| *Michigan-I-O* | Rickaby no. 8, p. 41 | The saloon at night, winter; the Duluth saloon at night (built, §25.2) |
 | *The Jam on Gerry's Rocks* | Rickaby no. 2, p. 11 (A), p. 15 (B, "Geary's Rock") | A death or gallows stinger; the ending air (built, §25.1) |
-| *Lost on the Lady Elgin* | Henry Clay Work's sheet music (1861) | Saloon piano late at night, an ending |
-| *En roulant ma boule* | Gagnon, *Chansons populaires du Canada* (1865) | Rowing ashore, La Pointe |
+| *Lost on the Lady Elgin* | Henry Clay Work's sheet music (1861) | Saloon piano late at night, an ending; night at sea off Duluth (built, §25.2) |
+| *En roulant ma boule* | Gagnon, *Chansons populaires du Canada* (1865), p. 12 | Rowing ashore, La Pointe; day at sea in the Apostles (built, §25.2) |
 
 Rickaby (Harvard University Press, 1926) is on the Internet Archive (`31761034948356`) and IMSLP. Protected, though the songs are not: Alan Lomax's 1938 Michigan recordings at the Library of Congress (pre-1972 sound recordings), Walton and Grimm's *Windjammers* (2002), *Pinery Boys* (2017), Fowke (1970), Beck (1941 on), and all modern recordings and arrangements. Colcord died in 1960, so her editing is protected in life-plus-70 countries until 2030; Rickaby prints the same two songs, so arrange from him.
 
@@ -576,14 +576,40 @@ Four more songs replace the original placeholder tunes, each from Rickaby's page
 
 **Calls made here.** The chords are again a guess, since Rickaby prints the tunes alone. Tune B of *Gerry's Rocks* was picked over A because it fits the drone and reads as a lament. The replaced tunes are in git history.
 
-**Not done yet.** *The Shanty-Man's Life*, *Michigan-I-O*, *Lost on the Lady Elgin* and *En roulant ma boule* have no cue of their own in the game today (a lumber-town port by day, a winter saloon, a late piano, rowing ashore). Each needs its cue added to the music director first, which is a design call, not a transcription.
+**Not done here.** The last four songs had no cue of their own; §25.2 adds them as alternates by place.
 
 ### Still to do (§25.1)
 
 1. **A listen** to all four new cues, as for *Red Iron Ore*.
-2. **New cues** for the four songs above, if wanted.
+2. **New cues** for the four songs above (done in §25.2).
+
+### 25.2 The alternates: a song by place (2026-11-25)
+
+**Scope** (Jared, 2026-11-25: "use them as alternatives, e.g. one plays in one saloon not the other, plays in different zones"): the last four songs of the table, each played in a place of its own instead of that place's usual tune.
+
+| Where | Song | Source | Cue |
+|---|---|---|---|
+| Open water by day, the Apostle Islands (`region.apostles`) | *En roulant ma boule*, the voyageurs' paddling song, for La Pointe's fur-trade canoes | Gagnon 1865, p. 12: 6/8 in C, the refrain, the verse twice, "Trois beaux canards" and the refrain (the book's dal segno), 20 bars | `music.open-water.day-apostles`: two bars of guitar, once on concertina, once on tin whistle with the concertina back low for the last refrain, oom-pah-pah guitar, dotted quarter 84. 66 s. |
+| Open water at night off Duluth and the North Shore (`region.duluth`, `region.north_shore`) | *Lost on the Lady Elgin*, the 1860 Lake Michigan wreck | Work 1861, pp. 46–48, the voice part: 4/4 in A, a 12-bar verse and the 6-bar chorus | `music.open-water.night-duluth`: the verse on tin whistle an octave up, the chorus low on concertina, over an A and E drone, quarter at 72 (the book's Lento). 68 s. |
+| The Duluth saloon by day (`district.duluth`) | *The Shanty-Man's Life* | Rickaby no. 9 (A), p. 43: 2/4 in D minor with the raised seventh, 28 bars | `music.saloon.day-duluth`: concertina an octave up over a 2/4 boom-chick, quarter at 104, the pickup moved to the end. 32.3 s loop. |
+| The Duluth saloon at night | *Michigan-I-O* | Rickaby no. 8, p. 41: 6/8 in C, 16 bars | `music.saloon.night-duluth`: fiddle an octave up over the upright piano (the voices of "The Late Boat Waltz"), dotted quarter at 64. 30 s loop. |
+
+Everywhere else is as before: *Red Iron Ore* and *The Persian's Crew* at sea, *The Little Brown Bulls* and "The Late Boat Waltz" in the Bayfield saloon (and any saloon without its own).
+
+| Part | Where | What it does |
+|---|---|---|
+| Open-water choice | `world-mix.ts` (`MUSIC_ALTERNATES`, `musicAlternate`), `music.ts` (`alternate`), `game-audio.ts` | When a cue starts, the director asks for the region's own song (the Wanted region you're in) and plays it in place of the mood's cue; ducking, quiet and the gaps follow whichever plays. A cue already playing finishes when you sail into another region. |
+| Saloon choice | `foot-mix.ts` (`SALOON_TUNES`, `saloonTunes`), `foot-audio.ts`, `ashore.ts` (`saloon.district`) | The ashore frame names the saloon's district; the tune and night-tune beds play that saloon's songs, starting over when the town changes. |
+| The sounds | `tools/audio/lib/synth-songs.ts` (`EN_ROULANT`, `LADY_ELGIN`, `SHANTY_MANS_LIFE`, `MICHIGAN_I_O` and their renderers), `tools/audio/synth.ts songs`, `public/assets/audio/songs/` | The open-water pair streams with `music-open-water`; the saloon pair is a new decoded bundle, `saloon-music` (650 KB), since the foot bundle is near its 1.5 MB ceiling. Decoded audio about 7.8 MB of 8 MB; streamed music 6.8 MB of 7 MB. |
+
+**Calls made here.** The places are a guess at fit, easy to move in the two tables: the voyageur song where the canoes ran, the wreck song on the open lake by Duluth, the lumber songs in the bigger lumber port. Two transcription calls: *Michigan-I-O* twice holds a note under a fermata in a bar of seven eighths, shortened here to six; *Lost on the Lady Elgin* is the voice part only, with the piano part left out. The chords are a guess again. The Duluth tunes are not in the stage 1 sandbox bundle, which stays under its 1 MB ceiling.
+
+### Still to do (§25.2)
+
+1. **A listen** to the four alternates, in place: the Apostles by day, off Duluth at night, the Duluth saloon by day and at night.
 
 ## Changelog
+- v2.2: The alternates (§25.2): *En roulant ma boule* by day among the Apostle Islands and *Lost on the Lady Elgin* by night off Duluth and the North Shore at sea, and *The Shanty-Man's Life* and *Michigan-I-O* in the Duluth saloon, chosen by region and by district.
 - v2.1: The rest of the song shortlist (§25.1): *The Bigler's Crew* for chart travel, *The Persian's Crew* for night at sea, *The Little Brown Bulls* for the saloon by day and *The Jam on Gerry's Rocks* for the ending, all from Rickaby (1926), replacing the original placeholder tunes.
 - v2.0: Great Lakes song motifs (§25): the public-domain sources for the songs of §2, and *Red Iron Ore* from Rickaby (1926) as the open-water day cue in place of the waltz.
 - v1.9: The ending air can't play into a new run (§24): the way from the end screen reloads the page.

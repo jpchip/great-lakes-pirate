@@ -21,6 +21,7 @@ import {
   whistleNote,
   type Note,
 } from './synth.ts';
+import { fiddleNote, pianoNote } from './synth-sandbox.ts';
 
 /**
  * "Red Iron Ore" (Laws D9, Roud 2233), the ore-boat ballad of the schooner E. C. Roberts:
@@ -228,6 +229,8 @@ const RICKABY =
 const SONG_CHORDS: Record<string, { bass: string; tones: string[] }> = {
   ...CHORDS,
   Am: { bass: 'A2', tones: ['A3', 'C4', 'E4'] },
+  F: { bass: 'F2', tones: ['A3', 'C4', 'F4'] },
+  Dm: { bass: 'D3', tones: ['A3', 'D4', 'F4'] },
 };
 
 /** Every note an octave (or `n` octaves) higher. */
@@ -812,4 +815,309 @@ export function transpose(notes: readonly Note[], semis: number): Note[] {
     const n = Number(m[2]) * 12 + idx + semis;
     return [`${names[((n % 12) + 12) % 12]}${Math.floor(n / 12)}`, b];
   });
+}
+
+// ---------------------------------------------------------------------------------------
+// The alternates (plan 15 §25.2): four more songs for other places, so a saloon or a stretch
+// of water has a tune of its own. Written as "pitch:beats" words, a bar to a group.
+
+/** Parses "E4:1 G4:1 R:2" into notes. */
+export function notes(text: string): Note[] {
+  return text
+    .trim()
+    .split(/\s+/)
+    .filter((w) => w !== '|')
+    .map((w) => {
+      const [p, b] = w.split(':');
+      if (!p || b === undefined || !Number.isFinite(Number(b))) throw new Error(`bad note ${w}`);
+      return [p, Number(b)] as Note;
+    });
+}
+
+/** Folds whatever runs past `loopS` back onto the head, so the loop has no seam. */
+function folded(x: Float32Array, loopS: number, rate: number): Float32Array {
+  const n = Math.round(loopS * rate);
+  const out = x.slice(0, n);
+  for (let i = n; i < x.length; i++) {
+    out[(i - n) % n] = (out[(i - n) % n] as number) + (x[i] as number);
+  }
+  return out;
+}
+
+/**
+ * "En roulant ma boule", the voyageurs' paddling song: Ernest Gagnon, *Chansons populaires
+ * du Canada* (Québec, 1865), p. 12. 6/8, no key signature: C major. Eighths. The refrain
+ * ("En roulant ma boule roulant") opens and closes it; the verse is sung twice ("Derrièr'
+ * chez nous, ya-t-un étang"), then "Trois beaux canards" and the refrain again (the book's
+ * dal segno to its Fin). The book's opening eighth rest falls at the end of the last bar.
+ */
+export const EN_ROULANT = {
+  source:
+    'Ernest Gagnon, Chansons populaires du Canada (Québec: Bureaux du Foyer canadien, 1865), "En roulant ma boule", p. 12',
+  /** Eighths a minute: a dotted quarter at 84, a paddling stroke. */
+  bpm: 252,
+  beatsPerBar: 6,
+  refrain: notes(`
+    E5:2 D5:1 C5:2 G4:1 | A4:1 G4:1 A4:1 G4:3 |
+    E5:2 D5:1 C5:2 G4:1 | A4:2 B4:1 C5:2`),
+  verse: notes(`
+    G4:1 | C5:2 D5:1 C5:2 G4:1 | A4:2 A4:1 G4:3 |
+    C5:2 D5:1 C5:2 G4:1 | A4:3 G4:2`),
+  ducks: notes(`
+    G4:1 | C5:2 C5:1 D5:2 C5:1 | E5:2 C5:1 D5:2 C5:1 |
+    E5:2 C5:1 D5:2 C5:1 | E5:1 D5:1 C5:1 D5:3`),
+  /** A chord a half bar, for the twenty bars. */
+  chords: [
+    ...['C', 'C', 'F', 'C', 'C', 'C', 'G', 'C'],
+    ...['C', 'C', 'F', 'C', 'C', 'C', 'F', 'G'],
+    ...['C', 'C', 'F', 'C', 'C', 'C', 'F', 'G'],
+    ...['C', 'G', 'C', 'G', 'C', 'G', 'C', 'G'],
+    ...['C', 'C', 'F', 'C', 'C', 'C', 'G', 'C'],
+  ],
+} as const;
+
+/** One time through: refrain, verse twice, the ducks, refrain, and the closing rest. */
+export function enRoulantForm(): Note[] {
+  const e = EN_ROULANT;
+  return [...e.refrain, ...e.verse, ...e.verse, ...e.ducks, ...e.refrain, ['R', 1]];
+}
+
+/**
+ * Open-water music by day among the Apostle Islands: "En roulant ma boule", the paddling
+ * song of the fur trade's canoes out of La Pointe. Two bars of guitar, once through on
+ * concertina, once on tin whistle, over a 6/8 oom-pah-pah.
+ */
+export function enRoulant(rate: number, seed = 1865): Float32Array {
+  const random = seeded(seed);
+  const e = EN_ROULANT;
+  const pass = enRoulantForm();
+  const passBeats = beatsOfNotes(pass);
+  const intro = 2 * e.beatsPerBar;
+  const beatS = 60 / e.bpm;
+  const out = new Float32Array(Math.round(((intro + 2 * passBeats) * beatS + 3.5) * rate));
+  const reed = (hz: number, s: number): Float32Array => reedNote(hz, s * 0.9, rate, random);
+  const whistle = (hz: number, s: number): Float32Array => whistleNote(hz, s, rate, random);
+  renderMelody(out, pass, e.bpm, intro, rate, reed, 0.85, random);
+  renderMelody(out, pass, e.bpm, intro + passBeats, rate, whistle, 0.6, random);
+  // The concertina comes back under the whistle for the last refrain, an octave down.
+  const lastRefrain = beatsOfNotes(e.refrain) + 1;
+  renderMelody(
+    out,
+    octave(e.refrain, -1),
+    e.bpm,
+    intro + 2 * passBeats - lastRefrain,
+    rate,
+    reed,
+    0.45,
+    random,
+  );
+  const chords = ['C', 'C', 'C', 'C', ...e.chords, ...e.chords, 'C'];
+  guitar(out, chords, 3, [1, 2], e.bpm, 0, rate, random, 0.75);
+  return reverb(out, rate, 0.22, 0.8);
+}
+
+/**
+ * "Lost on the Lady Elgin", Henry Clay Work's song on the sidewheeler sunk off Winnetka on
+ * Lake Michigan, 8 September 1860, with some three hundred lost: the sheet music (1861;
+ * this copy J. L. Peters, New York), pp. 46–48, the voice part. 4/4,
+ * three sharps: A major. Quarters. Twelve bars of verse and the six-bar chorus ("Lost on the
+ * Lady Elgin! Sleeping to wake no more!"). The fermata on "waters" and "hundred" is kept
+ * in time.
+ */
+export const LADY_ELGIN = {
+  source:
+    'Henry Clay Work, "Lost on the Lady Elgin" (sheet music, 1861; this copy J. L. Peters, New York), pp. 46–48',
+  /** Quarters a minute: the book's Lento. */
+  bpm: 72,
+  beatsPerBar: 4,
+  verse: notes(`
+    E4:1 E4:0.75 E4:0.25 F#4:1 E4:1 | E4:0.5 A4:1.5 A4:1 A4:0.75 A4:0.25 |
+    G#4:1 A4:1 B4:2 | C#5:1 A4:0.75 A4:0.25 A4:0.75 B4:0.25 C#5:1 |
+    D5:0.5 D5:1 B4:0.5 B4:1.5 A4:0.5 | C#5:1 B4:1 A4:2 |
+    B4:1 B4:0.75 B4:0.25 B4:1.5 A4:0.5 | G#4:0.5 E4:1.5 B4:1 B4:0.75 B4:0.25 |
+    G#4:1 A4:1 B4:2 | C#5:1 A4:0.75 A4:0.25 A4:0.75 B4:0.25 C#5:1 |
+    D5:0.5 D5:1 B4:0.5 B4:1.5 A4:0.5 | C#5:1 B4:1 A4:2`),
+  chorus: notes(`
+    C#5:1 A4:0.75 A4:0.25 A4:1.5 A4:0.5 | A4:0.5 A4:1.5 F#4:1 F#4:0.75 G#4:0.25 |
+    A4:1 B4:1 B4:2 | C#5:1 A4:0.75 A4:0.25 A4:0.75 B4:0.25 C#5:1 |
+    D5:0.5 D5:1 B4:0.5 B4:1.5 A4:0.5 | C#5:1 B4:1 A4:2`),
+} as const;
+
+/**
+ * Open-water music at night off Duluth and the North Shore: "Lost on the Lady Elgin". The
+ * verse on tin whistle an octave up, the chorus low on concertina, over an A and E drone,
+ * slow, like the night's other song.
+ */
+export function ladyElgin(rate: number, seed = 1860): Float32Array {
+  const random = seeded(seed);
+  const l = LADY_ELGIN;
+  const beatS = 60 / l.bpm;
+  const lead = 2;
+  const verseBeats = beatsOfNotes(l.verse);
+  const seconds = (lead + verseBeats + beatsOfNotes(l.chorus)) * beatS + 4;
+  const out = new Float32Array(Math.round(seconds * rate));
+  mixInto(out, fiddleDrone(['A2', 'E3'], seconds - 1, rate, random, 4), 0, 1);
+  renderMelody(
+    out,
+    octave(l.verse),
+    l.bpm,
+    lead,
+    rate,
+    (hz, s) => whistleNote(hz, s, rate, random),
+    0.75,
+    random,
+  );
+  renderMelody(
+    out,
+    l.chorus,
+    l.bpm,
+    lead + verseBeats,
+    rate,
+    (hz, s) => reedNote(hz, s, rate, random),
+    0.75,
+    random,
+  );
+  return reverb(out, rate, 0.3, 0.85);
+}
+
+/**
+ * "The Shanty-Man's Life", the lumber camp's complaint: Rickaby no. 9, version A, p. 43,
+ * "sung by Mr. A. C. Hannah, Bemidji, Minnesota". 2/4, one flat, ending on D: D minor with
+ * a raised seventh (the B naturals and C sharps that lead back to D). Eighths, four to the
+ * bar. The opening pickup ("Oh, a") is moved to the end of the last bar so the tune loops;
+ * the book's fermatas are kept in time.
+ */
+export const SHANTY_MANS_LIFE = {
+  source: `${RICKABY}, no. 9 "The Shanty-man's Life" (A), p. 43`,
+  /** Eighths a minute: a quarter at 104, the saloon's day tune. */
+  bpm: 208,
+  beatsPerBar: 4,
+  tune: notes(`
+    A4:2 A4:1.5 G4:0.5 | F4:2 C5:1 A4:1 | G4:2 F4:1 D4:1 | C4:2 F4:1 G4:1 |
+    A4:2 G4:1 F4:1 | D4:2 D4:2 | D4:2 R:2 |
+    A4:2 A4:1.5 G4:0.5 | F4:2 C5:1 A4:1 | G4:2 G4:1.5 E4:0.5 | C4:2 F4:1 G4:1 |
+    A4:2 G4:1 F4:1 | D4:1 D4:1 D4:2 | D4:2 R:2 |
+    F4:1 E4:1 F4:1 G4:1 | A4:2 B4:1 C#5:1 | D5:2 C5:1 A4:1 | G4:2 D4:1 E4:1 |
+    F4:1 E4:1 F4:1 G4:1 | A4:1 A4:1 B4:1 C#5:1 | D5:2 D5:1 C5:1 | B4:2 B4:1.5 G4:0.5 |
+    A4:2 F4:2 | G4:2 F4:1 E4:1 | C4:2 D4:1 E4:1 | A4:2 G4:1 F4:1 | D4:2 D4:2 |
+    D4:2 F4:1.5 G4:0.5`),
+  /** A chord a bar. */
+  chords: [
+    ...['F', 'F', 'Dm', 'C', 'F', 'Dm', 'Dm'],
+    ...['F', 'F', 'C', 'C', 'F', 'Dm', 'Dm'],
+    ...['C', 'A', 'Dm', 'C', 'Dm', 'A', 'Dm', 'G'],
+    ...['Dm', 'C', 'C', 'F', 'Dm', 'Dm'],
+  ],
+} as const;
+
+/** The loop's length, seconds: the 28 bars once through. */
+export const SHANTY_MANS_LIFE_S = (beatsOfNotes(SHANTY_MANS_LIFE.tune) * 60) / SHANTY_MANS_LIFE.bpm;
+
+/**
+ * The Duluth saloon's day tune: "The Shanty-Man's Life" on concertina an octave up over a
+ * 2/4 boom-chick on guitar, once through, looping. Mixed plain and close like the other
+ * saloon tunes, so the street's low-pass and the room place it.
+ */
+export function shantyMansLife(rate: number, seed = 1926): Float32Array {
+  const random = seeded(seed);
+  const s = SHANTY_MANS_LIFE;
+  const out = new Float32Array(Math.round((SHANTY_MANS_LIFE_S + 3) * rate));
+  renderMelody(
+    out,
+    octave(s.tune),
+    s.bpm,
+    0,
+    rate,
+    (hz, d) => reedNote(hz, d * 0.92, rate, random),
+    0.5,
+    random,
+  );
+  guitar(out, [...s.chords, s.chords[0]], s.beatsPerBar, [2], s.bpm, 0, rate, random, 0.8);
+  return folded(reverb(out, rate, 0.14, 0.6, 0.5), SHANTY_MANS_LIFE_S, rate);
+}
+
+/**
+ * "Michigan-I-O", the shanty-boys hired to Saginaw for a winter they cursed: Rickaby no. 8,
+ * p. 41, "sung by Mr. Arthur Milloy, Omemee, North Dakota". 6/8, no key signature, ending
+ * on C: C major. Eighths. The pickup ("It") is moved to the end. Twice the book holds a
+ * note under a fermata ("gospel", "fellow") and gives its bar seven eighths; the held D is
+ * a quarter here so every bar is six.
+ */
+export const MICHIGAN_I_O = {
+  source: `${RICKABY}, no. 8 "Michigan-I-O", p. 41`,
+  /** Eighths a minute: a dotted quarter at 64, late and easy. */
+  bpm: 192,
+  beatsPerBar: 6,
+  tune: notes(`
+    G4:1 G4:1 A4:1 E4:2 D4:1 | D4:3 B3:2 C4:1 | D4:2 E4:1 C4:2 C4:1 | C4:3 R:2 A4:1 |
+    C5:2 B4:1 A4:1 B4:1 C5:1 | D5:2 B4:1 C5:1 B4:1 A4:1 | G4:2 F4:1 E4:2 F4:1 |
+    G4:3 R:2 A4:1 | C5:2 B4:1 A4:1 B4:1 C5:1 | D5:2 B4:1 C5:1 B4:1 A4:1 |
+    G4:2 F4:1 E4:2 G4:1 | C5:3 R:2 E4:1 | G4:2 A4:1 E4:2 D4:1 | D4:2 C4:1 B3:2 C4:1 |
+    D4:2 E4:1 C4:2 C4:1 | C4:5 E4:1`),
+  /** A chord a half bar. */
+  chords: [
+    ...['C', 'C', 'G', 'G', 'G', 'C', 'C', 'F'],
+    ...['F', 'C', 'G', 'F', 'C', 'Dm', 'C', 'F'],
+    ...['F', 'C', 'G', 'F', 'C', 'G', 'C', 'C'],
+    ...['C', 'G', 'G', 'G', 'G', 'C', 'C', 'C'],
+  ],
+} as const;
+
+export const MICHIGAN_I_O_S = (beatsOfNotes(MICHIGAN_I_O.tune) * 60) / MICHIGAN_I_O.bpm;
+
+/** The piano's left hand in C: a bass note, then the chord. */
+const PIANO_IN_C: Record<string, { bass: string[]; tones: string[] }> = {
+  C: { bass: ['C2', 'C3'], tones: ['E3', 'G3', 'C4'] },
+  F: { bass: ['F2', 'F3'], tones: ['F3', 'A3', 'C4'] },
+  G: { bass: ['G2', 'G3'], tones: ['D3', 'G3', 'B3'] },
+  Dm: { bass: ['D2', 'D3'], tones: ['F3', 'A3', 'D4'] },
+};
+
+/**
+ * The Duluth saloon by night: "Michigan-I-O" on the fiddle an octave up over the upright
+ * piano (the same voices as "The Late Boat Waltz" at Bayfield): a bass note on each
+ * dotted-quarter beat and the chord on the two eighths after it. Once through, looping.
+ */
+export function michiganIO(rate: number, seed = 1925): Float32Array {
+  const random = seeded(seed);
+  const m = MICHIGAN_I_O;
+  const beatS = 60 / m.bpm;
+  const out = new Float32Array(Math.round((MICHIGAN_I_O_S + 3.5) * rate));
+  renderMelody(
+    out,
+    octave(m.tune),
+    m.bpm,
+    0,
+    rate,
+    (hz, s) => fiddleNote(hz, s * 0.95, rate, random),
+    0.38,
+    random,
+  );
+  m.chords.forEach((name, half) => {
+    const c = PIANO_IN_C[name];
+    if (!c) throw new Error(`chord ${name}`);
+    for (let k = 0; k < 3; k++) {
+      const at = (half * 3 + k) * beatS + (random() - 0.5) * 0.018;
+      if (k === 0) {
+        for (const b of c.bass) {
+          mixInto(
+            out,
+            pianoNote(noteHz(b), beatS * 2.8, rate, random, 0.7),
+            Math.round(at * rate),
+            0.75,
+          );
+        }
+      } else {
+        c.tones.forEach((tone, i) =>
+          mixInto(
+            out,
+            pianoNote(noteHz(tone), beatS * 0.9, rate, random, k === 1 ? 0.5 : 0.42),
+            Math.round((at + i * 0.004) * rate),
+            0.5,
+          ),
+        );
+      }
+    }
+  });
+  return folded(reverb(out, rate, 0.16, 0.62, 0.5), MICHIGAN_I_O_S, rate);
 }

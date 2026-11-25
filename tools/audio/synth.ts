@@ -42,12 +42,22 @@ import {
 import {
   BIGLER,
   bigler,
+  EN_ROULANT,
+  enRoulant,
   GERRYS_ROCKS,
+  LADY_ELGIN,
+  ladyElgin,
   LITTLE_BROWN_BULLS,
+  MICHIGAN_I_O,
+  MICHIGAN_I_O_S,
+  michiganIO,
   PERSIANS_CREW,
   persiansCrew,
   RED_IRON_ORE,
   redIronOre,
+  SHANTY_MANS_LIFE,
+  SHANTY_MANS_LIFE_S,
+  shantyMansLife,
 } from './lib/synth-songs.ts';
 import { fogFade, stinger, STINGERS, type StingerName } from './lib/synth-chart.ts';
 import { millSaw, oreDump } from './lib/synth-harbor.ts';
@@ -349,6 +359,7 @@ function main(): void {
     persiansCrew(RATE),
     `Traditional melody, public domain: ${PERSIANS_CREW.source}. Original arrangement; synthesized tin whistle, free-reed concertina and bowed fiddle drone, Freeverb-style reverb`,
   );
+  renderSongs();
   const whistles: [keyof typeof SHIP_WHISTLES, string, string][] = [
     ['freighter', 'Steam ore freighter whistle: one deep bell, one long blast', 'One 138 Hz bell'],
     ['tug', 'Fish tug whistle: a small shrill bell, one long blast', 'One 587 Hz bell, fast valve'],
@@ -1789,6 +1800,77 @@ function endingTheme(): Float32Array {
   mixInto(out, fiddleDrone(ENDING_DRONE, seconds - 1, RATE, random, 5), 0, 0.8);
   renderMelody(out, notes, bpm, 0.5, RATE, (hz, s) => whistleNote(hz, s, RATE, random), 1);
   return trimmed(reverb(out, RATE, 0.18, 0.7, 0.4));
+}
+
+/**
+ * The alternates (plan 15 §25.2): a song for a stretch of water or a saloon of its own.
+ * `node tools/audio/synth.ts songs` renders just these.
+ */
+function renderSongs(): void {
+  const TODAY_SONGS = '2026-11-25';
+  const song = (
+    hints: Omit<SoundHints, 'source' | 'trimStartS' | 'loopCrossfadeS' | 'kind' | 'bus'> & {
+      loop?: boolean;
+    },
+    samples: Float32Array,
+    how: string,
+  ): void => {
+    const { loop, ...rest } = hints;
+    writeSound(
+      'songs',
+      loop
+        ? // A bed (64 kbps) like the other saloon tunes, played on the music bus.
+          { ...rest, kind: 'loop', bus: 'ambience', loopCrossfadeS: 0 }
+        : { ...rest, kind: 'oneshot', bus: 'music' },
+      samples,
+      how,
+      TODAY_SONGS,
+    );
+  };
+  song(
+    {
+      id: 'music.open-water.day-apostles',
+      name: 'open-water-day-apostles',
+      description:
+        'Open-water music by day among the Apostle Islands: "En roulant ma boule" (traditional voyageur song) on concertina, tin whistle and guitar',
+      bundles: ['music-open-water'],
+    },
+    enRoulant(RATE),
+    `Traditional melody, public domain: ${EN_ROULANT.source}. Original arrangement; synthesized free-reed concertina, tin whistle and Karplus-Strong guitar, Freeverb-style reverb`,
+  );
+  song(
+    {
+      id: 'music.open-water.night-duluth',
+      name: 'open-water-night-duluth',
+      description:
+        'Open-water music by night off Duluth and the North Shore: "Lost on the Lady Elgin" (Henry Clay Work, 1861) on tin whistle and concertina over a fiddle drone',
+      bundles: ['music-open-water'],
+    },
+    ladyElgin(RATE),
+    `Melody public domain: ${LADY_ELGIN.source}. Original arrangement; synthesized tin whistle, free-reed concertina and bowed fiddle drone, Freeverb-style reverb`,
+  );
+  song(
+    {
+      id: 'music.saloon.day-duluth',
+      name: 'saloon-day-duluth',
+      description: `"The Shanty-Man's Life" (traditional; 28 bars of 2/4 in D minor, ${SHANTY_MANS_LIFE_S.toFixed(2)} s, looped): the Duluth saloon's concertina over a guitar`,
+      bundles: ['saloon-music'],
+      loop: true,
+    },
+    shantyMansLife(RATE),
+    `Traditional melody, public domain: ${SHANTY_MANS_LIFE.source}. Original arrangement; synthesized concertina and plucked guitar, a little reverb, the tail folded onto the head for a seamless loop`,
+  );
+  song(
+    {
+      id: 'music.saloon.night-duluth',
+      name: 'saloon-night-duluth',
+      description: `"Michigan-I-O" (traditional; 16 bars of 6/8 in C, ${MICHIGAN_I_O_S.toFixed(2)} s, looped): the Duluth saloon's fiddle and upright piano after dark`,
+      bundles: ['saloon-music'],
+      loop: true,
+    },
+    michiganIO(RATE),
+    `Traditional melody, public domain: ${MICHIGAN_I_O.source}. Original arrangement; bowed fiddle and additive upright piano, a little reverb, the tail folded onto the head for a seamless loop`,
+  );
 }
 
 main();
