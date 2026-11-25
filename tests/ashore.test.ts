@@ -24,7 +24,9 @@ import {
   secondsToDrown,
 } from '../src/sim/ashore/body';
 import {
+  boatIceDrag,
   createRowboat,
+  iceStopsBoat,
   launchRefusal,
   ROWBOAT,
   stepRowboat,
@@ -262,6 +264,45 @@ describe('the boat (plan 02 §6.5, plan 08 §20.6 decision 2)', () => {
     const b = createRowboat(0, 0, NORTH);
     for (let t = 0; t < 2; t += DT) stepRowboat(b, { pull: 0, turn: 1 }, { depthAt: () => 5 }, DT);
     expect(b.heading).toBeGreaterThan(0.5);
+  });
+
+  it('stops at closed ice as at a beach, and backs off it, but not stern first into it', () => {
+    // Open water south of z = -15, fast ice 25 cm thick north of it.
+    const iceAt = (_x: number, z: number) =>
+      z < -15
+        ? { coverage: 1, thicknessCm: 25, kind: 'fast' as const }
+        : { coverage: 0, thicknessCm: 0, kind: 'open' as const };
+    const env = { depthAt: () => 10, iceAt };
+    const b = createRowboat(0, 0, NORTH);
+    for (let t = 0; t < 20; t += DT) stepRowboat(b, { pull: 1, turn: 0 }, env, DT);
+    expect(b.beached).toBe(true);
+    expect(b.iced).toBe(true);
+    expect(b.speed).toBe(0);
+    // Her bow at the ice edge, not through it.
+    expect(b.z - ROWBOAT.lengthM / 2).toBeGreaterThan(-15.2);
+    for (let t = 0; t < 2; t += DT) stepRowboat(b, { pull: -1, turn: 0 }, env, DT);
+    expect(b.iced).toBe(false);
+    // Turned about, she won't back into it either.
+    const s = createRowboat(0, 0, Math.PI);
+    for (let t = 0; t < 20; t += DT) stepRowboat(s, { pull: -1, turn: 0 }, env, DT);
+    expect(s.z + ROWBOAT.lengthM / 2).toBeLessThan(0);
+    expect(s.z - ROWBOAT.lengthM / 2).toBeGreaterThan(-15.2);
+  });
+
+  it('is slowed, not stopped, by loose ice and floes in a lead', () => {
+    const floes = { coverage: 0.6, thicknessCm: 30, kind: 'floes' as const };
+    const slush = { coverage: 0.4, thicknessCm: 2, kind: 'forming' as const };
+    expect(boatIceDrag({ coverage: 0, thicknessCm: 0, kind: 'open' })).toBe(1);
+    expect(boatIceDrag(floes)).toBeLessThan(0.7);
+    expect(iceStopsBoat(floes)).toBe(false);
+    expect(iceStopsBoat(slush)).toBe(false);
+    const b = createRowboat(0, 0, NORTH);
+    for (let t = 0; t < 8; t += DT) {
+      stepRowboat(b, { pull: 1, turn: 0 }, { depthAt: () => 10, iceAt: () => floes }, DT);
+    }
+    expect(b.beached).toBe(false);
+    expect(b.speed).toBeGreaterThan(0.5);
+    expect(b.speed).toBeLessThan(ROWBOAT.pullMs * 0.7);
   });
 
   it("won't go over the side in a sea, and swamps in a bigger one", () => {

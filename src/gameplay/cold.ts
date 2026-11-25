@@ -23,6 +23,11 @@ export interface AshoreWinter {
    * at its two ends (zone meters, the decks' height), if the zone has it.
    */
   road(): (IceRoad & { fromHead: XZ & { y: number }; toHead: XZ & { y: number } }) | undefined;
+  /**
+   * The road's marked and open now: the channel ice is thick enough all the way across
+   * (`cold.json` `road.openCm`). The same answer the papers and the harbor card give.
+   */
+  roadOpen(): boolean;
   /** The pier the road starts from (Bayfield's city dock). */
   roadPier: string;
   /** The port at its far end, whose trading post buys a sled's load. */

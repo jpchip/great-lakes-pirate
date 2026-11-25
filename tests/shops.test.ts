@@ -269,6 +269,19 @@ describe('the back room walked into (§20.3 #8)', () => {
     expect(walked.last()?.tabs).toEqual(['backRoom']);
   });
 
+  it("opens a village's screen from its dock with its own tabs and none of the ship's", () => {
+    const g = game(NOON, false);
+    const also = ['chandlery', 'saloon', 'papers', 'harbor', 'ledger'] as const;
+    expect(g.ports.openShop('port.la_pointe', 'market', 'La Pointe', also)).toBeUndefined();
+    const tabs = g.last()?.tabs ?? [];
+    expect(tabs).toContain('market');
+    expect(tabs).toContain('harbor');
+    expect(tabs).not.toContain('shipyard');
+    expect(tabs).not.toContain('freight');
+    expect(g.last()?.canWait).toBeUndefined();
+    expect(g.last()?.canGoAshore).toBeUndefined();
+  });
+
   it('finds nobody at the table by day', () => {
     const g = game(NOON, true);
     expect(g.ports.openShop('port.bayfield', 'backRoom', 'The back room')).toMatch(/Nobody/);

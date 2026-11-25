@@ -62,7 +62,12 @@ export interface PortControl {
    * Walked up to a counter ashore (Phase 7 piece F): the screen with that one tab, under
    * the shop's name, and no ship's business on it. The refusal if the tab isn't there now.
    */
-  openShop(port: string, tab: PortTab, title: string): string | undefined;
+  openShop(
+    port: string,
+    tab: PortTab,
+    title: string,
+    also?: readonly PortTab[],
+  ): string | undefined;
   /** The shop whose counter the screen is open at, if it was walked into. */
   readonly openShopTab: PortTab | undefined;
   close(): void;
@@ -127,7 +132,12 @@ export interface PortControlOptions {
    * its ice-out, and laying her up there until then (the refusal, or undefined).
    */
   winter?:
-    | { frozenUntil(port: string): string | undefined; layUp(port: string): string | undefined }
+    | {
+        frozenUntil(port: string): string | undefined;
+        layUp(port: string): string | undefined;
+        /** The ice road's word at its two ports in winter (piece M). */
+        iceRoad?(port: string): string | undefined;
+      }
     | undefined;
   /** "Cast off" on the port screen: press F at the helm for the next tick. */
   castOff(): void;
@@ -215,7 +225,7 @@ export function attachPorts(opts: PortControlOptions): PortControl {
   let openPort: string | undefined;
   let journalOpen = false;
   /** Walked into a shop ashore: the one tab the screen shows, and the name over the door. */
-  let shop: { tab: PortTab; title: string } | undefined;
+  let shop: { tab: PortTab; title: string; also?: readonly PortTab[] | undefined } | undefined;
   /** What happened on arriving at the open port, shown until the screen closes. */
   let notices: string[] = [];
   const contractSources = () => {
@@ -260,6 +270,7 @@ export function attachPorts(opts: PortControlOptions): PortControl {
       if (snap.harbor) snap.tabs.splice(snap.tabs.indexOf('ledger'), 0, 'harbor');
       if (snap.harbor && opts.winter && !shop)
         snap.harbor.frozenUntil = opts.winter.frozenUntil(port);
+      if (snap.harbor && opts.winter?.iceRoad) snap.harbor.iceRoad = opts.winter.iceRoad(port);
       if (snap.harbor && opts.events && !shop) {
         snap.harbor.letters = opts.events.letters();
         snap.harbor.unreadLetters = opts.events.unread();
@@ -333,8 +344,9 @@ export function attachPorts(opts: PortControlOptions): PortControl {
           : hint;
     }
     if (shop) {
-      // At a counter ashore: that tab alone, and nothing of the ship's.
-      snap.tabs = snap.tabs.filter((t) => t === shop?.tab);
+      // At a counter ashore: that tab alone (or a village's few, from its dock), and nothing
+      // of the ship's.
+      snap.tabs = snap.tabs.filter((t) => t === shop?.tab || !!shop?.also?.includes(t));
       snap.shop = { title: shop.title };
       return snap;
     }
@@ -375,9 +387,14 @@ export function attachPorts(opts: PortControlOptions): PortControl {
     if (!wasOpen) opts.onOpen(true);
   };
   /** The screen at a counter ashore: no arrival, no paper boy, only the one tab. */
-  const openShop = (port: string, tab: PortTab, title: string): string | undefined => {
+  const openShop = (
+    port: string,
+    tab: PortTab,
+    title: string,
+    also?: readonly PortTab[],
+  ): string | undefined => {
     if (!portInfo(port) || openPort || journalOpen) return 'Not now';
-    shop = { tab, title };
+    shop = { tab, title, also };
     const snap = snapshot(port);
     if (snap.tabs.length === 0) {
       shop = undefined;

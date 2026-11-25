@@ -174,6 +174,7 @@ export function Harbor({
           </div>
         )}
         <ul class="harbor-notes">
+          {h.iceRoad && <li data-testid="harbor-ice-road">{h.iceRoad}</li>}
           {h.reportsComing > 0 && (
             <li data-testid="harbor-reports">
               Word is on its way to him: {h.reportsComing} report

@@ -2,6 +2,8 @@ import type { Chart } from '../core/coords';
 import type { Contact } from '../sim/chart/traffic';
 import type { EconomyDefs } from '../sim/economy/defs';
 import { shockMarket } from '../sim/economy/market';
+import { COLD } from '../sim/cold/footing';
+import { carriesRoad } from '../sim/cold/road';
 import { firstArrivalAfter } from '../sim/ice/first-boat';
 import {
   closesHull,
@@ -33,6 +35,11 @@ import type { GameContext } from '../modes/context';
  *   weather raises it); the papers and the saloons tell of it as it breaks.
  * - **Frozen in.** A port's harbor closed by the ice keeps a ship in or out of it until its
  *   ice-out: `harborClosed` and `openAgainAt` answer the berths and the harbor master.
+ * - **The ice road** (piece M) between Bayfield and La Pointe is marked once the channel ice
+ *   is `road.openCm` thick all the way across, and closed when it goes rotten in the spring
+ *   (or a thaw takes it). The bus hears `IceRoadOpened` and `IceRoadClosed`, the papers and
+ *   the saloons tell it (`event.ice_road_open`, `event.ice_road_closed`), and `roadOpen`
+ *   answers the dock's ladder, the harbor card and the boughs on the ice.
  */
 export interface GameIce {
   readonly ice: LakeIce;
@@ -42,6 +49,10 @@ export interface GameIce {
   harborClosed(port: string): boolean;
   /** When a frozen port opens again (its ice-out), game seconds; undefined when open. */
   openAgainAt(port: string): number | undefined;
+  /** The Bayfield–La Pointe ice road is marked and open now. */
+  roadOpen(): boolean;
+  /** The thinnest ice across the road's channel now, cm (0 in open water). */
+  roadIceCm(): number;
   /** Ice at a chart point closes it to the player's ship (the ice bow takes more). */
   closesHere(p: Chart): boolean;
   /** When the ice holding a chart point goes out, if it's closed to her now. */
@@ -82,6 +93,23 @@ export function attachIce(opts: IceOptions): GameIce {
   const iceBow = (): boolean => !!ctx.state.player.ship?.upgrades.includes(ICE_BOW_UPGRADE);
   const race = ICE.firstBoat.port;
 
+  // The road's channel on the chart: the water between its two ports, sampled at the
+  // points between (the ports themselves stand on the shore).
+  const roadPoints: Chart[] = (() => {
+    const a = ice.geo.ports.find((p) => p.id === COLD.road.fromPort)?.pos;
+    const b = ice.geo.ports.find((p) => p.id === COLD.road.toPort)?.pos;
+    if (!a || !b) return [];
+    const n = 12;
+    return Array.from({ length: n - 1 }, (_, k) => {
+      const f = (k + 1) / n;
+      return { x: a.x + (b.x - a.x) * f, y: a.y + (b.y - a.y) * f };
+    });
+  })();
+  const roadOpenAt = (t: number): boolean =>
+    roadPoints.length > 0 && roadPoints.every((p) => carriesRoad(ice.at(p, t)));
+  const roadIceAt = (t: number): number =>
+    roadPoints.length ? Math.min(...roadPoints.map((p) => ice.at(p, t).thicknessCm)) : 0;
+
   const yearOf = (t: number): string => String(new Date(calendarMs(t)).getUTCFullYear());
 
   const settleNpcRace = (t: number): void => {
@@ -114,6 +142,13 @@ export function attachIce(opts: IceOptions): GameIce {
         opts.fire?.(closed ? 'event.freeze_up' : 'event.ice_out', port);
       }
     }
+    const road = roadOpenAt(t);
+    if (s.road === undefined) s.road = road;
+    else if (road !== s.road) {
+      s.road = road;
+      ctx.events.emit(road ? 'IceRoadOpened' : 'IceRoadClosed', { port: COLD.road.fromPort });
+      opts.fire?.(road ? 'event.ice_road_open' : 'event.ice_road_closed', COLD.road.fromPort);
+    }
     settleNpcRace(t);
     const storm = mataafa();
     if (
@@ -130,6 +165,7 @@ export function attachIce(opts: IceOptions): GameIce {
   if (!ctx.state.ice) {
     const t = now();
     st().frozen = Object.keys(ICE.harbors).filter((p) => ice.harborClosed(p, t));
+    st().road = roadOpenAt(t);
   }
 
   const offs = [
@@ -180,6 +216,8 @@ export function attachIce(opts: IceOptions): GameIce {
     drag: (p) => hullInIce(ice.at(p, now()), iceBow()).drag,
     at: (p) => ice.at(p, now()),
     harborClosed: (port) => ice.harborClosed(port, now()),
+    roadOpen: () => roadOpenAt(now()),
+    roadIceCm: () => roadIceAt(now()),
     openAgainAt: (port) => ice.openAgainAt(port, now()),
     closesHere: (p) => closesHull(ice.at(p, now()), stopCmFor(iceBow())),
     openAgainAtPoint: (p) => ice.openAgainAtPoint(p, now(), stopCmFor(iceBow())),

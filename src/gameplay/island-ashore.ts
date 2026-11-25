@@ -10,7 +10,7 @@ import {
   type PlacedIsland,
   type PlacedPoiPiece,
 } from '../sim/islands/on-foot';
-import type { HarborLayout, PlacedBuilding } from '../sim/harbors';
+import type { HarborLayout, PlacedBuilding, PlacedPier } from '../sim/harbors';
 import type { PlacedSolid, PlacedStation } from '../sim/light-stations';
 import { bearingBox, type AshoreGround } from './onfoot/ashore-scene';
 import type { BoxCollider, Collider } from './onfoot/colliders';
@@ -85,6 +85,11 @@ export interface IslandAshoreDeps {
   /** Opens a port's market at a counter on foot (La Pointe's trading post); the refusal. */
   trade?(port: string, title: string): string | undefined;
   /**
+   * Opens a village's port screen from its dock on foot (come over the ice road): its
+   * market, saloon, papers and harbor master, none of the ship's business. The refusal.
+   */
+  portOnFoot?(port: string, title: string): string | undefined;
+  /**
    * The zone's sea caves (Phase 9 piece S): a mainland cave has a pad of its own round its
    * mouth, as a light station does, so a boat can land you at it.
    */
@@ -150,6 +155,22 @@ export const CAVE_PAD_M = 360;
 const REACH_M = 2.2;
 /** From this far off a building's front you're at its counter (the trading post). */
 const COUNTER_M = 3.2;
+
+/** Standing on a pier's deck, from where it meets the land to its head. */
+export function onPierDeck(pier: PlacedPier, at: { x: number; y: number; z: number }): boolean {
+  const fx = Math.sin(pier.bearing);
+  const fz = -Math.cos(pier.bearing);
+  const dx = at.x - pier.root.x;
+  const dz = at.z - pier.root.z;
+  const along = dx * fx + dz * fz;
+  const across = Math.abs(dx * -fz + dz * fx);
+  return (
+    along >= pier.shoreM &&
+    along <= pier.lengthM &&
+    across <= pier.widthM / 2 &&
+    Math.abs(at.y - pier.deckM) < 1.2
+  );
+}
 
 /** Within reach of a harbor building's front door (its -z side faces `facing`). */
 export function atFrontDoor(b: PlacedBuilding, x: number, z: number, reachM = COUNTER_M): boolean {
@@ -530,7 +551,33 @@ export function attachIslandAshore(deps: IslandAshoreDeps): IslandAshore {
         }
       }
     }
-    return deps.salvage?.prompt(at) ?? deps.hideouts?.prompt(at) ?? tradingPost(at);
+    return (
+      deps.salvage?.prompt(at) ?? deps.hideouts?.prompt(at) ?? tradingPost(at) ?? villageDock(at)
+    );
+  };
+
+  /**
+   * On a village's own dock (La Pointe's, walked to over the ice road): the port's screen,
+   * as the ship would have it docked there, less the ship's business.
+   */
+  const villageDock = (at: { x: number; y: number; z: number }): IslandPrompt | undefined => {
+    if (!deps.portOnFoot || !deps.harbors) return undefined;
+    for (const island of deps.islands()) {
+      const v = island.village;
+      if (!v) continue;
+      const layout = deps.harbors().find((l) => l.def.id === v.harbor);
+      const pier = layout?.piers.find((p) => p.port === v.port && p.kind === 'city');
+      if (!layout || !pier || !onPierDeck(pier, at)) continue;
+      const open = deps.portOnFoot;
+      return {
+        text: `Into ${layout.def.name}: trade, the saloon, the harbor master`,
+        act: () => {
+          const refused = open(v.port, layout.def.name);
+          if (refused) deps.notice(refused);
+        },
+      };
+    }
+    return undefined;
   };
 
   /** At a village's trading post counter (La Pointe's general store): its market (piece Q). */

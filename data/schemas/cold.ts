@@ -107,6 +107,8 @@ export const coldFileSchema = z.object({
     /** The piers the road runs between (harbors.json ids). */
     from: z.string(),
     to: z.string(),
+    /** The port at its near end (the papers' and the harbor card's). */
+    fromPort: z.string(),
     /** The port at its far end, whose trading post buys the sled's load. */
     toPort: z.string(),
     /** The ice along the road is this thick or more: it's open. */

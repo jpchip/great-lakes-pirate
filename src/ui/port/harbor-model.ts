@@ -73,6 +73,11 @@ export interface HarborSnapshot {
    * April 21", and she can be laid up here till then. Undefined while the harbor's open.
    */
   frozenUntil?: string | undefined;
+  /**
+   * The ice road across the channel (piece M), at Bayfield and La Pointe in winter: marked
+   * and open, not yet (and how thick the channel ice is), or closed for the spring.
+   */
+  iceRoad?: string | undefined;
 }
 
 /** The HUD's regional Wanted indicator (plan 13 §4.1). */

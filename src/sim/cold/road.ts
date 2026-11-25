@@ -1,5 +1,6 @@
 import { calendarMs, winterDay, winterOf } from '../ice/season';
-import { COLD } from './footing';
+import type { IceSample } from '../ice/season';
+import { COLD, iceUnderfoot } from './footing';
 
 /**
  * Snow on the ground and the ice road (plan 04 §8.2; Phase 9 piece M).
@@ -82,6 +83,14 @@ export function roadDistance(road: IceRoad, p: XZ): { d: number; t: number } {
   return { d: Math.hypot(p.x - x, p.z - z), t };
 }
 
+/**
+ * Ice that will carry the road at a point: there to stand on, and `openCm` thick or more.
+ * Every point along the road has to say so for it to be marked.
+ */
+export function carriesRoad(s: IceSample): boolean {
+  return iceUnderfoot(s) && s.thicknessCm >= COLD.road.openCm;
+}
+
 /** The road's open: the thinnest ice along it (sampled `samples` times) is thick enough. */
 export function roadOpen(road: IceRoad, thicknessAt: (p: XZ) => number, samples = 12): boolean {
   return thinnestOnRoad(road, thicknessAt, samples) >= COLD.road.openCm;
@@ -104,4 +113,29 @@ export function thinnestOnRoad(
     );
   }
   return min;
+}
+
+/** Centimeters as a man on the shore would say them: whole inches. */
+const inches = (cm: number): number => Math.round(cm / 2.54);
+
+/**
+ * What the harbor master says of the ice road at either of its ports (piece M): marked and
+ * open, not yet (with how thick the channel ice has got, and what they mark it at), or
+ * closed for the spring. Nothing at other ports, or with no ice in the channel.
+ */
+export function iceRoadWord(port: string, open: boolean, thinnestCm: number): string | undefined {
+  const { fromPort, toPort, openCm } = COLD.road;
+  if (port !== fromPort && port !== toPort) return undefined;
+  const near = port === fromPort;
+  const other = near ? 'La Pointe' : 'Bayfield';
+  if (open) {
+    return near
+      ? `The ice road to ${other} is marked. Go down the ladder at the end of the city dock.`
+      : `The ice road to ${other} is marked across the channel.`;
+  }
+  if (thinnestCm < 1) return undefined;
+  if (thinnestCm >= openCm) {
+    return `The ice road to ${other} is closed. The channel ice has gone rotten.`;
+  }
+  return `No ice road to ${other} yet. The channel ice is about ${Math.max(1, inches(thinnestCm))} in.; they mark the road at ${inches(openCm)}.`;
 }
