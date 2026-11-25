@@ -1252,6 +1252,23 @@ interface ShipyardHook {
   sailing(): string;
 }
 
+// Phase 10: the T3 three-master sails, with no sweeps (she waits on the wind).
+test('sails the T3 three-master, which has no sweeps', async ({ page }) => {
+  const errors = collectErrors(page);
+  const body = page.locator('body');
+  await page.goto('/?renderer=null&play&debug&ship=t3');
+  await expect(body).toHaveAttribute('data-mode', 'sailing');
+  await page.waitForFunction(() => '__glpShipyard' in window);
+  const ship = (): Promise<string> =>
+    page.evaluate(() =>
+      (window as unknown as { __glpShipyard: ShipyardHook }).__glpShipyard.sailing(),
+    );
+  expect(await ship()).toBe('ship.t3_schooner');
+  await page.keyboard.press('KeyW');
+  await expect(body).toHaveAttribute('data-mode', 'sailing');
+  expect(errors).toEqual([]);
+});
+
 // Phase 4 piece G: Ashland's shipyard sells the T2 with the T1 in trade, fits an upgrade,
 // and repairs her; at sea, K uses a patch kit from the lockers.
 test('buys a T2 at Ashland, fits and repairs her, and patches the hull at sea', async ({

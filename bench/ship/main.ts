@@ -13,7 +13,7 @@ import { createSailingState, type SailingState } from '../../src/sim/sailing/con
  * /bench/ship/. One cell per sail level and point of sail, the T1 schooner in style B,
  * so a change to the lines or the sail shapes can be judged at a glance.
  *
- * Query options: `?ship=t2` draws the T2 schooner (the camera backs off to suit), `?time=day|dusk|night`, `?t=3` freezes the flutter clock at 3 s (for
+ * Query options: `?ship=t2` (or `t3`) draws the T2 schooner (or the T3 three-master) (the camera backs off to suit), `?time=day|dusk|night`, `?t=3` freezes the flutter clock at 3 s (for
  * screenshots), `?view=bow|beam|stern|hull|deck|quarter` moves the camera, `?cols=4` sets the grid
  * width, `?cell=3` draws one cell full size and `?outline=0` hides the ink.
  */

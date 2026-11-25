@@ -12,9 +12,15 @@ import {
   schoonerLines,
   T1_SCHOONER_LINES,
   T2_SCHOONER_LINES,
+  T3_SCHOONER_LINES,
 } from '../src/render/ships/schooner-lines';
 import { createSailingState, type SailingState } from '../src/sim/sailing/controller';
-import { sailShipRecord, T1_SCHOONER_ID, T2_SCHOONER_ID } from '../src/sim/sailing/ships';
+import {
+  sailShipRecord,
+  T1_SCHOONER_ID,
+  T2_SCHOONER_ID,
+  T3_SCHOONER_ID,
+} from '../src/sim/sailing/ships';
 
 const DEG = Math.PI / 180;
 
@@ -269,5 +275,93 @@ describe('procedural T2 schooner (plan 10 §2, Phase 4 piece G)', () => {
     expect(visible()).toEqual(['fore', 'main', 'staysail']);
     model.settle(state({ sailSetting: 3 }), 0);
     expect(visible()).toEqual(['fore', 'foreTopsail', 'jib', 'main', 'mainTopsail', 'staysail']);
+  });
+});
+
+describe('the T3 three-master (Phase 10)', () => {
+  const bounds = (object: THREE.Object3D): THREE.Box3 => {
+    object.updateMatrixWorld(true);
+    return new THREE.Box3().setFromObject(object);
+  };
+  const count = (model: ReturnType<typeof createSchooner>): [number, number] => {
+    let triangles = 0;
+    let meshes = 0;
+    model.group.traverse((node) => {
+      if (!(node instanceof THREE.Mesh)) return;
+      meshes++;
+      const g = node.geometry;
+      triangles += (g.index ? g.index.count : g.getAttribute('position').count) / 3;
+    });
+    return [triangles, meshes];
+  };
+  it('matches its ship record and is looked up by it', () => {
+    const record = sailShipRecord(T3_SCHOONER_ID);
+    expect(record.tier).toBe(3);
+    expect(record.sweeps).toBe(false);
+    expect(T3_SCHOONER_LINES.length).toBe(record.lengthM);
+    expect(T3_SCHOONER_LINES.length).toBeGreaterThanOrEqual(record.buoyancy.length);
+    expect(T3_SCHOONER_LINES.beam).toBeGreaterThanOrEqual(record.buoyancy.beam);
+    expect(T3_SCHOONER_LINES.draft).toBeGreaterThanOrEqual(record.draftEmptyM);
+    expect(T3_SCHOONER_LINES.draft).toBeLessThanOrEqual(record.draftFullM);
+    expect(schoonerLines(T3_SCHOONER_ID)).toBe(T3_SCHOONER_LINES);
+  });
+
+  it('carries three masts, the mizzen aft with the longest boom over the stern', () => {
+    const model = createSchooner(T3_SCHOONER_LINES);
+    model.settle(state({ sailSetting: 0 }), 0);
+    model.group.updateMatrixWorld(true);
+    const z = (name: string): THREE.Box3 =>
+      new THREE.Box3().setFromObject(model.group.getObjectByName(name) as THREE.Object3D);
+    const fore = z('fore-mast');
+    const main = z('main-mast');
+    const mizzen = z('mizzen-mast');
+    expect(fore.min.z).toBeLessThan(main.min.z);
+    expect(main.min.z).toBeLessThan(mizzen.min.z);
+    const spanker = z('mizzen-boom');
+    expect(spanker.max.z).toBeGreaterThan(T3_SCHOONER_LINES.length / 2);
+    // The yawl boat's davits stay under the spanker boom as it swings over them.
+    const hull = model.group.getObjectByName('schooner-hull') as THREE.Mesh;
+    const p = hull.geometry.getAttribute('position');
+    let top = -Infinity;
+    for (let i = 0; i < p.count; i++)
+      if (p.getZ(i) > T3_SCHOONER_LINES.length / 2) top = Math.max(top, p.getY(i));
+    expect(top).toBeLessThan(spanker.max.y - 0.3);
+  });
+
+  it('is bigger again than the T2, and inside the hero-ship budget', () => {
+    const t2 = createSchooner(T2_SCHOONER_LINES);
+    const t3 = createSchooner(T3_SCHOONER_LINES);
+    for (const m of [t2, t3]) m.settle(state({ sailSetting: 3 }), 0);
+    const h2 = bounds(t2.group.getObjectByName('schooner-hull') as THREE.Object3D);
+    const h3 = bounds(t3.group.getObjectByName('schooner-hull') as THREE.Object3D);
+    expect(h3.getSize(new THREE.Vector3()).z / h2.getSize(new THREE.Vector3()).z).toBeGreaterThan(
+      1.3,
+    );
+    expect(bounds(t3.group).max.y).toBeGreaterThan(bounds(t2.group).max.y * 1.15);
+    const [triangles, meshes] = count(t3);
+    expect(triangles).toBeLessThan(12_000);
+    expect(meshes).toBeLessThan(30);
+  });
+
+  it('sets the mizzen and its topsail with the others', () => {
+    const model = createSchooner(T3_SCHOONER_LINES);
+    const visible = (): string[] =>
+      Object.entries(model.sails)
+        .filter(([, sail]) => sail.visible)
+        .map(([name]) => name)
+        .sort();
+    model.settle(state({ sailSetting: 1 }), 0);
+    expect(visible()).toEqual(['fore', 'main', 'mizzen', 'staysail']);
+    model.settle(state({ sailSetting: 3 }), 0);
+    expect(visible()).toEqual([
+      'fore',
+      'foreTopsail',
+      'jib',
+      'main',
+      'mainTopsail',
+      'mizzen',
+      'mizzenTopsail',
+      'staysail',
+    ]);
   });
 });

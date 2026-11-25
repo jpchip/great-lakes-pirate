@@ -33,6 +33,12 @@
       "trim": "cosmetic.trim_green",
       "sails": "cosmetic.sails_white",
       "pennant": "cosmetic.pennant_red"
+    },
+    "ship.t3_schooner": {
+      "hull": "cosmetic.hull_black",
+      "trim": "cosmetic.trim_buff",
+      "sails": "cosmetic.sails_white",
+      "pennant": "cosmetic.pennant_red"
     }
   },
   "options": [

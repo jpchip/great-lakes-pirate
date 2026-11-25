@@ -122,6 +122,67 @@
     }
   },
   {
+    "id": "ship.t3_schooner",
+    "name": "Three-master",
+    "role": "player",
+    "tier": 3,
+    "propulsion": "sail",
+    "lengthM": 42,
+    "displayScale": 1,
+    "hullMaxSpeedKn": 13.5,
+    "accelTau": 8,
+    "decelTau": 13,
+    "turnRateCurve": [
+      [0, 1],
+      [2, 6.2],
+      [4, 10.2],
+      [6, 11.8],
+      [9, 11]
+    ],
+    "polar": [
+      [0, 0],
+      [40, 0],
+      [45, 0.55],
+      [60, 0.78],
+      [90, 0.95],
+      [120, 1],
+      [135, 1],
+      [150, 0.92],
+      [180, 0.78]
+    ],
+    "sailChangeTimeS": 2,
+    "sweeps": false,
+    "sweepsKn": 0,
+    "sweepsTurnDegS": 0,
+    "draftEmptyM": 3.5,
+    "draftFullM": 4.5,
+    "cargoCapacity": 90,
+    "hullHP": 240,
+    "riggingHP": 200,
+    "anchorRodeM": 60,
+    "buoyancy": {
+      "length": 36,
+      "beam": 8.6,
+      "heavePeriod": 3.8,
+      "pitchPeriod": 4.6,
+      "rollPeriod": 5.6,
+      "damping": 0.6
+    },
+    "visibilityProfile": "high",
+    "conspicuity": 1.1,
+    "modelId": "ship.t3_schooner",
+    "LODs": [],
+    "priceCents": 420000,
+    "slots": {
+      "hull": 2,
+      "rigging": 3,
+      "cargo": 2,
+      "instruments": 3,
+      "utility": 2,
+      "weaponMods": 3
+    }
+  },
+  {
     "id": "ship.ore_freighter",
     "name": "Steam ore freighter",
     "role": "npc",

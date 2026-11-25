@@ -384,7 +384,27 @@ Hideout repairs (§8) and shipless shipbuilding (§9) are built at a hideout's s
 
 Not built, per §7's list and its cut line: figureheads, a nameboard's lettering style, lantern style, deck clutter and trophies, and a live preview before paying (the model repaints as soon as you choose, and a coat costs a few dollars).
 
+---
+
+## 20. Phase 10: The T3 Three-Master (2026-11-25)
+
+The third tier, kept in 1.0 by the audit ([00 §7.2](00-master-plan.md)). Sold at the three yards for $4,200 (§2), with the T2 or T1 in trade.
+
+| Part | Where | What |
+|---|---|---|
+| Ship record | `data/ships.json` `ship.t3_schooner` | 42 m (≈140 ft), tier 3, hull speed 13.5 kn (02 §10), accelTau 8 s, decelTau 13 s, sail changes 2 s (a crew of eight), **no sweeps** (02 §3.6), draft 3.5 → 4.5 m, hold 90 CU, hull 240 and rigging 200 HP, a 60 m anchor rode, visibility high (conspicuity 1.1). Slots per §4: hull 2, rigging 3, cargo 2, instruments 3, utility 2, weapon mods 3. |
+| Guns | `data/weapons.json` mounts | One bow swivel (07, decided 2026-10-22) and four guns a side. |
+| Lines | `T3_SCHOONER_LINES` in `schooner-lines.ts` | 42 × 9.4 m, 3.5 m draft, 1.9 m freeboard, a 14 m bowsprit, rig scale 1.85; fore, main and **mizzen** of 24–24.5 m with 8.8–9.2 m topmasts, and the long spanker boom (14.5 m) over the stern and the yawl boat's davits. A forecastle house, four hatches between the masts and the after cabin under the spanker. Black topsides, a red boot and buff rail and houses, so she reads apart from the white T1 and T2. |
+| The rig | `createSchooner` | `SchoonerLines.mizzen` (optional): a third gaff rig, its shrouds and stays to the main, backstays from the aftermost topmast, a sheet of its own; the mizzen and its topsail set with the others at each level (`sails.mizzen`, `sails.mizzenTopsail`). The T1 and T2 build as before. About 3.3k triangles at Full. |
+| Colors | `data/cosmetics.json` `classDefaults` | Her own colors among the options (black, buff), so §19's paint works on her. |
+| Dev | `?ship=t3`, `/bench/ship/?ship=t3` | Starts the run in her; her contact sheet. |
+
+**Handling against the T2** (14 kn true, Full, auto-trim; `tests/sailing.test.ts`): at least 4% faster on a beam reach, broad reach and run, under her 13.5 kn hull speed; slower to gather way (over 1.15× the T2's time to 90% of beam-reach speed) and to come about (but under 10 s from 55°, inside 02 §4).
+
+**Not built:** the harbor tug tow (02 §3.6, 05 §7): in a calm she waits on the wind (Z) instead; the lumber-schooner variant (§2.1, cut list); her own sailing mix (she uses the schooners' shared sounds).
+
 ## Changelog
+- v0.9: Phase 10 (§20): the T3 three-master.
 - v0.8: Phase 10 (§19): paint, canvas, pennant and name at a shipyard and a slipway; naming a new hull at purchase.
 - v0.7: Phase 9 piece K: the ice bow at the shipyard.
 - v0.6: Phase 8 piece G (§18): slipway repairs, installs of crafted upgrades and shipless shipbuilding.

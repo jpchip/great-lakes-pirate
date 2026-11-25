@@ -75,6 +75,7 @@
   ],
   "mounts": {
     "ship.t1_schooner": { "bow": 1, "broadside": 0, "hand": 1 },
-    "ship.t2_schooner": { "bow": 1, "broadside": 2, "hand": 1 }
+    "ship.t2_schooner": { "bow": 1, "broadside": 2, "hand": 1 },
+    "ship.t3_schooner": { "bow": 1, "broadside": 4, "hand": 1 }
   }
 }
