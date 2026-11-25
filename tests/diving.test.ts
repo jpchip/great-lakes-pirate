@@ -15,6 +15,10 @@ import { hasDivingSuit, upgradeDef } from '../src/sim/shipyard/fit';
 import { defaultShipState, installUpgrade, soldAt } from '../src/sim/shipyard/shipyard';
 import { createWorldState } from '../src/sim/world-state';
 import { yardSnapshot } from '../src/ui/port/shipyard-model';
+import { chartToZone } from '../src/core/coords';
+import { worldChart } from '../src/sim/discovery/discovery';
+import salvageFile from '../data/salvage.json';
+import apostles from '../public/world/apostles/manifest.json';
 
 /** Phase 10: the hard-hat diving suit and the deep wrecks (plan 11 §6.2, plan 10 §5.7). */
 
@@ -95,6 +99,21 @@ describe('deep wrecks', () => {
     expect(day).toBe(D.chance);
     expect(diveChance(R, { daylight: 0, ageYears: 1 })).toBeLessThan(day);
     expect(diveChance(R, { daylight: 1, ageYears: 20 })).toBeLessThan(day);
+  });
+});
+
+describe('the seeded spots', () => {
+  // The zone's baked terrain is centered on its frame; a wreck past its edge never shows up
+  // (the salvage sites need a depth there), so a seed that drew her lost a wreck.
+  it('all lie inside the Apostles terrain, clear of its edge', () => {
+    const { frame } = apostles;
+    const margin = 350;
+    const spots = [...salvageFile.seeded.spots, ...salvageFile.seeded.deep.spots];
+    for (const spot of spots) {
+      const p = chartToZone(worldChart(spot.at), frame);
+      expect(Math.abs(p.x), spot.where).toBeLessThan(frame.sizeX / 2 - margin);
+      expect(Math.abs(p.z), spot.where).toBeLessThan(frame.sizeZ / 2 - margin);
+    }
   });
 });
 
