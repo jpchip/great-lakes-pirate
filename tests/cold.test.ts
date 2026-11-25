@@ -27,8 +27,16 @@ import {
   towSled,
   unloadSled,
 } from '../src/sim/cold/sled';
+import { onPierDeck } from '../src/gameplay/island-ashore';
 import { TrackLog } from '../src/sim/cold/tracks';
-import { layRoad, roadDistance, roadOpen, snowLies } from '../src/sim/cold/road';
+import {
+  carriesRoad,
+  iceRoadWord,
+  layRoad,
+  roadDistance,
+  roadOpen,
+  snowLies,
+} from '../src/sim/cold/road';
 import { gameSecondsAt } from '../src/sim/ice/season';
 import type { CargoStack } from '../src/sim/economy/hold';
 
@@ -284,5 +292,47 @@ describe('snow and the ice road', () => {
     expect(roadDistance(road, { x: 5, z: 150 })).toEqual({ d: 5, t: 0.5 });
     expect(roadOpen(road, () => 30)).toBe(true);
     expect(roadOpen(road, (p) => (p.z > 200 ? 8 : 30))).toBe(false);
+  });
+
+  it('is carried only by closed ice openCm thick, not by floes however thick', () => {
+    expect(carriesRoad({ coverage: 1, thicknessCm: COLD.road.openCm, kind: 'fast' })).toBe(true);
+    expect(carriesRoad({ coverage: 1, thicknessCm: COLD.road.openCm - 1, kind: 'fast' })).toBe(
+      false,
+    );
+    expect(carriesRoad({ coverage: 0.8, thicknessCm: 60, kind: 'floes' })).toBe(false);
+  });
+
+  it("the harbor master's word of it at its two ports, and nowhere else", () => {
+    expect(iceRoadWord('port.bayfield', true, 30)).toMatch(/marked.*ladder.*city dock/);
+    expect(iceRoadWord('port.la_pointe', true, 30)).toMatch(/to Bayfield is marked/);
+    expect(iceRoadWord('port.bayfield', false, 10)).toMatch(/No ice road .* about 4 in.*at 8/);
+    expect(iceRoadWord('port.bayfield', false, 40)).toMatch(/closed/);
+    expect(iceRoadWord('port.bayfield', false, 0)).toBeUndefined();
+    expect(iceRoadWord('port.duluth', true, 30)).toBeUndefined();
+  });
+});
+
+describe("La Pointe's dock on foot", () => {
+  const pier = {
+    id: 'pier.test',
+    name: 'Village dock',
+    root: { x: 0, z: 0 },
+    bearing: 0,
+    lengthM: 60,
+    widthM: 7,
+    deckM: 1.6,
+    kind: 'city' as const,
+    port: 'port.la_pointe',
+    site: undefined,
+    shoreM: 10,
+  };
+  it('knows when you stand on its deck, from the shore end to the head', () => {
+    expect(onPierDeck(pier, { x: 0, y: 1.6, z: -30 })).toBe(true);
+    expect(onPierDeck(pier, { x: 3, y: 1.6, z: -59 })).toBe(true);
+    // Ashore, off its side, past its head, and down on the ice beside it.
+    expect(onPierDeck(pier, { x: 0, y: 1.6, z: -5 })).toBe(false);
+    expect(onPierDeck(pier, { x: 5, y: 1.6, z: -30 })).toBe(false);
+    expect(onPierDeck(pier, { x: 0, y: 1.6, z: -65 })).toBe(false);
+    expect(onPierDeck(pier, { x: 0, y: 0.04, z: -30 })).toBe(false);
   });
 });

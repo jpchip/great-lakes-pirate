@@ -324,6 +324,33 @@ describe('the game side: freeze-up, ice-out and the first boat in', () => {
     expect(mid.fired).toHaveLength(0);
   });
 
+  it('marks the ice road once in the winter and closes it once in the spring, as news', () => {
+    const start = at(1900, 10, 1);
+    const { state, events, game, fired } = setup(start);
+    const seen: string[] = [];
+    events.on('IceRoadOpened', () => seen.push('open'));
+    events.on('IceRoadClosed', () => seen.push('closed'));
+    expect(game.roadOpen()).toBe(false);
+    let openedAt: number | undefined;
+    for (let t = start; t < at(1901, 5, 1); t += 3600 * 6) {
+      state.environment.clock.gameSeconds = t;
+      game.check();
+      if (openedAt === undefined && seen.includes('open')) openedAt = t;
+    }
+    expect(seen[0]).toBe('open');
+    expect(seen.at(-1)).toBe('closed');
+    expect(fired).toContain('event.ice_road_open@port.bayfield');
+    expect(fired).toContain('event.ice_road_closed@port.bayfield');
+    // Marked in the deep of winter, not at the first skim of ice.
+    const month = new Date(calendarMs(openedAt as number)).getUTCMonth();
+    expect([11, 0, 1, 2]).toContain(month);
+    // A save loaded with the road open doesn't announce it.
+    const mid = setup(at(1901, 1, 10));
+    expect(mid.game.roadOpen()).toBe(true);
+    expect(mid.state.ice?.road).toBe(true);
+    expect(mid.fired).toHaveLength(0);
+  });
+
   it('gives you the first boat in if you tie up at Duluth before the traffic, at a premium', () => {
     const { state, events, game, seed } = setup(at(1900, 10, 1));
     const ice = lakeIceFor(seed);

@@ -1101,7 +1101,33 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
     await deps.save();
   };
 
+  /** Over her bow onto the ice she's stopped against (piece M's ice to walk on). */
+  const stepOntoIce = async (): Promise<string | undefined> => {
+    if (!active || !inBoat || !boat || busy) return 'Not in the boat';
+    if (!boat.iced) return 'No ice at her bow';
+    const b = boat;
+    const out = bowPoint(b, ROWBOAT.lengthM / 2 + 0.6);
+    busy = true;
+    try {
+      await deps.fade('Onto the ice', 'Over the bow, the boat drawn up at the edge', () => {
+        b.speed = 0;
+        b.turn = 0;
+        boatState = 'beached';
+        inBoat = false;
+        scene = build(out);
+        placeCharacter(character, { x: out.x, y: COLD.ice.topM, z: out.z }, b.heading);
+        copyPrevious();
+        walkCamera.yaw = b.heading;
+      });
+    } finally {
+      busy = false;
+    }
+    await deps.save();
+    return undefined;
+  };
+
   const stepAshore = async (): Promise<string | undefined> => {
+    if (boat?.iced) return stepOntoIce();
     if (!active || !inBoat || !boat || busy) return 'Not in the boat';
     const terrain = deps.terrain();
     // Over the bow first; grounded broadside or stern-on, over whichever side is dry. In a
@@ -1205,6 +1231,7 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
       if (toHull(b.x, b.z) < ROWBOAT.beamM / 2 + ALONGSIDE_M) {
         return { text: 'Go aboard', act: () => void goAboard() };
       }
+      if (b.iced) return { text: 'Step out onto the ice', act: () => void stepOntoIce() };
       if (b.beached) return { text: 'Step ashore', act: () => void stepAshore() };
       const k = ladderNear(b.x, b.z, REACH_M + ROWBOAT.beamM / 2);
       if (k !== undefined) return { text: 'Climb the ladder', act: () => boatToLadder(k) };
@@ -1258,7 +1285,7 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
       const road = winter.road();
       const head = road && toScene(road.fromHead);
       if (road && head && Math.hypot(c.position.x - head.x, c.position.z - head.z) < 5) {
-        if (iceUnderfoot(winter.iceAt(road.from.x, road.from.z))) {
+        if (winter.roadOpen()) {
           return { text: 'Down onto the ice road to La Pointe', act: () => void goIceRoad() };
         }
       }
@@ -1398,7 +1425,7 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
   /** The fires at the ice road's two ends (a fish-house stove's barrel), zone meters. */
   const roadFires = (): { x: number; z: number }[] => {
     const road = winter?.road();
-    if (!road || !winter || !iceUnderfoot(winter.iceAt(road.from.x, road.from.z))) return [];
+    if (!road || !winter?.roadOpen()) return [];
     return [road.from, road.to].map((e) => ({ x: e.x + 3, z: e.z + 3 }));
   };
 
@@ -1563,7 +1590,7 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
     const road = winter?.road();
     if (!winter || !road) return 'No ice road here';
     if (!active) return 'Not ashore';
-    if (!iceUnderfoot(winter.iceAt(road.from.x, road.from.z))) return 'The ice is not in yet';
+    if (!winter.roadOpen()) return "The ice road isn't marked yet";
     if (busy) return 'Not now';
     busy = true;
     try {
@@ -1688,7 +1715,7 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
     if (!winter || !scene || district) return undefined;
     const c = character.position;
     const road = winter.road();
-    const iced = !!road && iceUnderfoot(winter.iceAt(road.from.x, road.from.z));
+    const iced = !!road && winter.roadOpen();
     const sl = sled();
     if (road && iced) {
       const end = COLD.road.endM;
@@ -1811,6 +1838,8 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
       }
       return undefined;
     },
+    // The lake's ice is a shore to her: it stops her bow, and loose ice drags (piece K).
+    ...(winter ? { iceAt: (x: number, z: number) => winter.iceAt(x, z) } : {}),
   };
 
   const stepAshoreTick = (dt: number): void => {
@@ -2068,7 +2097,7 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
     }
     const sl = sled();
     const road = winter.road();
-    const iced = !!road && iceUnderfoot(winter.iceAt(road.from.x, road.from.z));
+    const iced = !!road && winter.roadOpen();
     return {
       sled: sl && {
         x: sl.x,

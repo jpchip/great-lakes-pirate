@@ -77,7 +77,7 @@ import { portInfo } from './sim/economy/defs';
 import { formatCents } from './sim/economy/knowledge';
 import { takeCleanFromHold, type CargoStack } from './sim/economy/hold';
 import { COLD } from './sim/cold/footing';
-import { layRoad, roadOpen, snowLies, thinnestOnRoad } from './sim/cold/road';
+import { iceRoadWord, layRoad, roadOpen, snowLies, thinnestOnRoad } from './sim/cold/road';
 import type { AshoreWinter } from './gameplay/cold';
 import { pierSideKey, sideOfBerth } from './sim/traffic/berths';
 import { clearArena, materializeArena, type ArenaPlay } from './gameplay/arena';
@@ -2007,6 +2007,7 @@ async function boot(): Promise<void> {
         void saveControls.saveNow();
         return 'The winter passes ashore. The ice is going out of the harbor, and she lies ready at the dock.';
       },
+      iceRoad: (port) => iceRoadWord(port, gameIce.roadOpen(), gameIce.roadIceCm()),
     },
     feuds,
     backRoom,
@@ -3740,6 +3741,16 @@ async function boot(): Promise<void> {
     ui.setNoticeLog(notices.log());
     hudClock = HUD_INTERVAL_S;
   };
+  // The ice road marked and closed (piece M): word of it wherever you are.
+  ctx.events.on('IceRoadOpened', () =>
+    showNotice(
+      "The ice road to La Pointe is marked. Go down the ladder at the end of Bayfield's city dock.",
+      8,
+    ),
+  );
+  ctx.events.on('IceRoadClosed', () =>
+    showNotice('The ice road to La Pointe is closed. The channel ice has gone rotten.', 8),
+  );
   if (params.has('debug')) {
     // For the e2e tests: `__glpNotice('Found rope')` puts a notice up as the game would.
     (window as unknown as { __glpNotice: typeof showNotice }).__glpNotice = showNotice;
@@ -4044,6 +4055,21 @@ async function boot(): Promise<void> {
       if (!refused) ui.setPortTab('market');
       return refused;
     },
+    // La Pointe from its own dock, walked to over the ice road: its screen without the ship's
+    // business (no shipyard or freight, no casting off).
+    portOnFoot: (port, title) => {
+      const refused = ports.openShop(port, 'market', title, [
+        'chandlery',
+        'saloon',
+        'backRoom',
+        'cards',
+        'papers',
+        'harbor',
+        'ledger',
+      ]);
+      if (!refused) ui.setPortTab('market');
+      return refused;
+    },
     runSeed: () => state.environment.weather.noiseSeed,
     notice: (text) => showNotice(text),
     // A cache's curio kept, and a lead to it run down (piece O).
@@ -4271,6 +4297,7 @@ async function boot(): Promise<void> {
       }
       return iceRoadCache.road;
     },
+    roadOpen: () => gameIce.roadOpen(),
     roadPier: COLD.road.from,
     roadPort: COLD.road.toPort,
     weightOf: (g) => economy.defs.goods.get(g)?.weightFactor ?? 1,

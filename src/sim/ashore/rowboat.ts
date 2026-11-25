@@ -1,3 +1,6 @@
+import { iceUnderfoot } from '../cold/footing';
+import type { IceSample } from '../ice/season';
+
 /**
  * The schooner's boat (plan 02 §6.5, plan 08 §20.6 decision 2; Phase 7 piece A). At
  * anchor you put her over the side and row the short way to a beach or landing; she's
@@ -6,6 +9,10 @@
  *
  * Her speed is set at the sailing scale (about 2.5 kn as the helm would show it), so a
  * row from an anchorage to the beach takes a minute or two, not five.
+ *
+ * In winter the lake's ice (piece K) is a shore to her: ice closed over its water and there
+ * to stand on stops her bow as a beach does, and you can step out onto it; loose ice, slush
+ * and floes in the leads only drag at her oars.
  */
 
 export interface RowboatState {
@@ -17,8 +24,10 @@ export interface RowboatState {
   speed: number;
   /** Turning, rad/s. */
   turn: number;
-  /** Her bow is on the beach: she won't go farther in. */
+  /** Her bow is on the beach (or against the ice): she won't go farther in. */
   beached: boolean;
+  /** What stops her bow is the lake's ice, not the bottom. */
+  iced: boolean;
 }
 
 export interface RowInput {
@@ -47,10 +56,12 @@ export const ROWBOAT = {
   launchMaxHsM: 1.1,
   /** A sea this big swamps her under you. */
   swampHsM: 1.6,
+  /** Loose ice at full cover takes this share off her way (floes, slush, thin new ice). */
+  iceDrag: 0.6,
 } as const;
 
 export function createRowboat(x: number, z: number, heading: number): RowboatState {
-  return { x, z, heading, speed: 0, turn: 0, beached: false };
+  return { x, z, heading, speed: 0, turn: 0, beached: false, iced: false };
 }
 
 /** What the boat needs of the world: the depth under a point, and anything she'd hit. */
@@ -66,6 +77,22 @@ export interface RowEnv {
     z: number,
     radius: number,
   ): { nx: number; nz: number; depth: number } | undefined;
+  /** The lake's ice at a point (piece K); absent, the water's open. */
+  iceAt?(x: number, z: number): IceSample;
+}
+
+/**
+ * The ice at her bow stops her: closed over its water and there to stand on, the same ice
+ * you can walk out onto (whether it holds you is the walking's business).
+ */
+export function iceStopsBoat(s: IceSample): boolean {
+  return iceUnderfoot(s);
+}
+
+/** What ice she's rowing through leaves of her way, 0–1 (1 in open water). */
+export function boatIceDrag(s: IceSample): number {
+  if (s.kind === 'open' || s.coverage <= 0) return 1;
+  return Math.max(0.2, 1 - ROWBOAT.iceDrag * Math.min(1, s.coverage));
 }
 
 const bow = (s: RowboatState, ahead = ROWBOAT.lengthM / 2): { x: number; z: number } => ({
@@ -73,15 +100,16 @@ const bow = (s: RowboatState, ahead = ROWBOAT.lengthM / 2): { x: number; z: numb
   z: s.z - Math.cos(s.heading) * ahead,
 });
 
-/** The bow's point, for the "step ashore" check. */
-export function bowPoint(s: RowboatState): { x: number; z: number } {
-  return bow(s);
+/** The bow's point (or one `ahead` m from her middle), for the "step ashore" check. */
+export function bowPoint(s: RowboatState, ahead?: number): { x: number; z: number } {
+  return bow(s, ahead);
 }
 
 /** One fixed tick of rowing. */
 export function stepRowboat(s: RowboatState, input: RowInput, env: RowEnv, dt: number): void {
   const pull = Math.max(-1, Math.min(1, input.pull));
-  const want = pull >= 0 ? pull * ROWBOAT.pullMs : pull * ROWBOAT.backMs;
+  const drag = env.iceAt ? boatIceDrag(env.iceAt(s.x, s.z)) : 1;
+  const want = (pull >= 0 ? pull * ROWBOAT.pullMs : pull * ROWBOAT.backMs) * drag;
   const tau = pull !== 0 ? ROWBOAT.accelTau : ROWBOAT.dragTau;
   s.speed += (want - s.speed) * Math.min(1, dt / tau);
   // Oars turn her even when she's stopped; a little better with way on.
@@ -89,10 +117,18 @@ export function stepRowboat(s: RowboatState, input: RowInput, env: RowEnv, dt: n
   const wantTurn = Math.max(-1, Math.min(1, input.turn)) * ROWBOAT.turnRad * (0.7 + 0.3 * way);
   s.turn += (wantTurn - s.turn) * Math.min(1, dt / 0.4);
 
-  // Aground at the bow: she only backs off.
-  const shallowAhead = env.depthAt(bow(s).x, bow(s).z) < ROWBOAT.beachDepthM;
-  if (shallowAhead && s.speed > 0) s.speed = 0;
-  s.beached = shallowAhead;
+  // Aground at the bow, or her bow against the ice: she only backs off.
+  const b = bow(s);
+  const shallowAhead = env.depthAt(b.x, b.z) < ROWBOAT.beachDepthM;
+  const icedAhead = !shallowAhead && !!env.iceAt && iceStopsBoat(env.iceAt(b.x, b.z));
+  if ((shallowAhead || icedAhead) && s.speed > 0) s.speed = 0;
+  s.beached = shallowAhead || icedAhead;
+  s.iced = icedAhead;
+  // Nor can she back through it stern first.
+  if (env.iceAt && s.speed < 0) {
+    const st = bow(s, -ROWBOAT.lengthM / 2);
+    if (iceStopsBoat(env.iceAt(st.x, st.z))) s.speed = 0;
+  }
   if (s.beached) s.turn *= 0.3;
 
   s.heading += s.turn * dt;

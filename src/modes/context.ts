@@ -386,6 +386,10 @@ export interface GameEvents {
   /** A chart voyage stopped short of its course (piece K: ice closed the way). */
   VoyageStopped: { reason: 'ice' };
   HarborOpened: { port: string };
+  /** The Bayfield–La Pointe ice road marked and open (piece M), at its near port. */
+  IceRoadOpened: { port: string };
+  /** The ice road closed: the channel ice gone rotten or thin under it. */
+  IceRoadClosed: { port: string };
   FirstBoatIn: { port: string; you: boolean; ship: string };
   IceStopped: { shipId: string | undefined; thicknessCm: number };
   IceGrinding: { shipId: string | undefined; damage: number };

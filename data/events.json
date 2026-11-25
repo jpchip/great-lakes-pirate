@@ -414,6 +414,44 @@
       }
     },
     {
+      "id": "event.ice_road_open",
+      "name": "The ice road marked",
+      "type": "flavor",
+      "weight": 1,
+      "cooldownDays": 0,
+      "hours": 72,
+      "draw": false,
+      "channels": ["rumor", "paper"],
+      "rumor": [
+        "the ice road's marked to La Pointe: boughs every few rods from the end of the city dock, and the mail sled went over this morning.",
+        "they've tested the channel ice and staked the road across to La Pointe. Eight inches and better all the way, so a man can walk it, or haul a sled."
+      ],
+      "paper": {
+        "headline": "Ice Road to La Pointe Opened",
+        "deck": "Channel Ice Tested and the Way Marked with Evergreens",
+        "body": "The ice in the channel between {port} and La Pointe has been tested and found sound, eight inches and upward the whole way across, and the road has been marked with evergreen boughs from the foot of the city dock. The mail goes over by sled, and foot travel and light hauling are expected to begin at once. Travelers are cautioned to keep to the marked way."
+      }
+    },
+    {
+      "id": "event.ice_road_closed",
+      "name": "The ice road closed",
+      "type": "flavor",
+      "weight": 1,
+      "cooldownDays": 0,
+      "hours": 72,
+      "draw": false,
+      "channels": ["rumor", "paper"],
+      "rumor": [
+        "nobody's crossing to La Pointe now. The ice in the channel has gone rotten and they've pulled up the boughs.",
+        "the ice road's done for the season. You'd go through out in the middle; wait for a boat."
+      ],
+      "paper": {
+        "headline": "Ice Road to La Pointe Closed",
+        "deck": "Channel Ice Unsafe; Markers Taken Up",
+        "body": "The ice road between {port} and La Pointe is closed. The channel ice has gone soft and honeycombed, the evergreen markers have been taken up, and the public is warned against crossing on foot or by sled until the ice is out and the boats are running."
+      }
+    },
+    {
       "id": "event.mataafa",
       "name": "The Mataafa storm",
       "type": "flavor",

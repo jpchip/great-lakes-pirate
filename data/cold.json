@@ -62,6 +62,7 @@
     "name": "The ice road to La Pointe",
     "from": "pier.bayfield_city",
     "to": "pier.la_pointe_city",
+    "fromPort": "port.bayfield",
     "toPort": "port.la_pointe",
     "openCm": 20,
     "markerM": 30,
