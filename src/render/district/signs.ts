@@ -1,5 +1,5 @@
 import * as THREE from 'three';
-import { CELL_M, WALL_M } from '../../sim/district/kit';
+import { CELL_M, DOOR_HEIGHT_M, WALL_M } from '../../sim/district/kit';
 import type {
   DistrictBuilding,
   DistrictDoor,
@@ -109,7 +109,16 @@ export function signPlacement(b: DistrictBuilding, door: DistrictDoor): SignPlac
     };
   }
   // Over the door's lintel, but no higher than just under the eaves.
-  const y = Math.min(door.y + 2.7, b.eavesY - heightM - 0.2);
+  // On brick, under the corbelled course below the eaves (kit-meshes `dress`); never down
+  // on the door's lintel.
+  const brick = b.def.wall?.startsWith('kit.wall_brick') ?? false;
+  const y = Math.min(
+    Math.max(
+      door.y + DOOR_HEIGHT_M + 0.17,
+      Math.min(door.y + 2.7, b.eavesY - heightM - (brick ? 0.55 : 0.2)),
+    ),
+    b.eavesY - heightM - 0.05,
+  );
   const wallLen = door.alongX ? b.maxX - b.minX : b.maxZ - b.minZ;
   const widthM = Math.min(wallLen - 0.6, Math.max(door.widthM + 2.4, 3.2));
   if (door.alongX) {
@@ -174,6 +183,8 @@ function boardLook(b: DistrictBuilding): Look {
 
 export interface SignSpec {
   building: string;
+  /** The door a board hangs over. */
+  door?: string;
   kind: SignKind;
   lines: readonly string[];
   look: Look;
@@ -281,18 +292,28 @@ export function districtSigns(model: DistrictModel): SignSpec[] {
         placement: wallPlacement(b, big, trade ? 1.9 : 1.5),
         sides: 1,
       });
-    } else {
+    }
+    const word = bladeWord(b);
+    const board = big ? undefined : signPlacement(b, door);
+    // A blade sign hangs past the end of the board over the door, never through it.
+    const hang = word ? bladeSpot(b, door, board) : undefined;
+    if (board) {
+      if (hang?.shrink) {
+        board.widthM -= hang.shrink;
+        if (door.alongX) board.x -= (hang.side * hang.shrink) / 2;
+        else board.z -= (hang.side * hang.shrink) / 2;
+      }
       out.push({
         building: b.def.id,
         kind: 'board',
+        door: door.id,
         lines: trade && b.def.roof === 'falseFront' ? [label, trade] : [label],
         look: boardLook(b),
-        placement: signPlacement(b, door),
+        placement: board,
         sides: 1,
       });
     }
-    const word = bladeWord(b);
-    if (word) out.push(blade(b, door, word));
+    if (word && hang) out.push(blade(b, door, word, hang.along));
     // An advertisement on a front-street building's blank side.
     if (!WORKS.has(b.def.kind) && b.def.kind !== 'house' && adsLeft > 0) {
       const run = runs.find((r) => r.to - r.from >= 7 && r.side !== 0);
@@ -321,7 +342,39 @@ export function districtSigns(model: DistrictModel): SignSpec[] {
 }
 
 /** A blade sign hung off the wall beside the door (or off a false front's corner). */
-function blade(b: DistrictBuilding, door: DistrictDoor, word: string): SignSpec {
+/** Clear of the corner trim at a wall's end. */
+const CORNER_M = 0.4;
+/** From a board's end to the blade sign's arm. */
+const BLADE_GAP_M = 0.35;
+
+/**
+ * Where along the door's wall a blade sign hangs (offset from the door), on whichever side
+ * of the board has room. With no room either side, the board gives up `shrink` meters on
+ * `side` so the sign fits past its end.
+ */
+export function bladeSpot(
+  b: DistrictBuilding,
+  door: DistrictDoor,
+  board: SignPlacement | undefined,
+): { along: number; side: number; shrink: number } {
+  if (b.def.roof === 'falseFront') return { along: b.maxX - 0.25 - door.x, side: 1, shrink: 0 };
+  const at = door.alongX ? door.x : door.z;
+  const lo = (door.alongX ? b.minX : b.minZ) + CORNER_M;
+  const hi = (door.alongX ? b.maxX : b.maxZ) - CORNER_M;
+  const mid = board ? (door.alongX ? board.x : board.z) : at;
+  const half = board ? board.widthM / 2 : door.widthM / 2 + 0.3;
+  const right = mid + half + BLADE_GAP_M;
+  const left = mid - half - BLADE_GAP_M;
+  if (right <= hi && (hi - right >= left - lo || left < lo))
+    return { along: right - at, side: 1, shrink: 0 };
+  if (left >= lo) return { along: left - at, side: -1, shrink: 0 };
+  // Neither end has room: cut the board back on the roomier side.
+  const side = hi - (mid + half) >= lo - (mid - half) ? 1 : -1;
+  const shrink = side > 0 ? right - hi : lo - left;
+  return { along: (side > 0 ? hi : lo) - at, side, shrink };
+}
+
+function blade(b: DistrictBuilding, door: DistrictDoor, word: string, along: number): SignSpec {
   const cx = (b.minX + b.maxX) / 2;
   const cz = (b.minZ + b.maxZ) / 2;
   const reach = 0.95;
@@ -332,7 +385,6 @@ function blade(b: DistrictBuilding, door: DistrictDoor, word: string): SignSpec 
   const y = front ? b.eavesY - 0.9 : Math.min(door.y + 2.55, b.eavesY - heightM - 0.1);
   if (door.alongX) {
     const out = door.z >= cz ? 1 : -1;
-    const along = front ? b.maxX - 0.25 - door.x : door.widthM / 2 + 0.9;
     return {
       building: b.def.id,
       kind: 'blade',
@@ -358,7 +410,7 @@ function blade(b: DistrictBuilding, door: DistrictDoor, word: string): SignSpec 
     placement: {
       x: door.x + out * (WALL_M / 2 + reach),
       y,
-      z: door.z + door.widthM / 2 + 0.9,
+      z: door.z + along,
       rotY: 0,
       widthM,
       heightM,

@@ -150,6 +150,16 @@ describe.skipIf(!baked)('the signs on the Bayfield district', () => {
     const blades = signs.placed.filter((s) => s.kind === 'blade').map((s) => s.building);
     expect(blades).toEqual(expect.arrayContaining(['saloon', 'chandlery', 'general_store']));
     expect(signs.placed.some((s) => s.kind === 'painted')).toBe(true);
+    // A blade sign hangs past the end of its building's board, not through it.
+    for (const bl of signs.placed.filter((s) => s.kind === 'blade')) {
+      const bd = signs.placed.find((s) => s.kind === 'board' && s.building === bl.building);
+      if (!bd) continue;
+      const alongX = Math.abs(Math.sin(bd.placement.rotY)) < 0.5;
+      const gap = alongX
+        ? Math.abs(bl.placement.x - bd.placement.x)
+        : Math.abs(bl.placement.z - bd.placement.z);
+      expect(gap, bl.building).toBeGreaterThanOrEqual(bd.placement.widthM / 2 + 0.2);
+    }
     // Lit by the hour: full by day, dim away from the lamps at night.
     const colors = signs.meshes[0]?.geometry.getAttribute('color');
     signs.light(1, new Set());
