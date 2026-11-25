@@ -74,7 +74,7 @@
     "music.open-water.day": {
       "type": "audio",
       "url": "music/open-water-day.ogg",
-      "bytes": 1030254
+      "bytes": 1082923
     },
     "music.open-water.night": {
       "type": "audio",
@@ -1059,7 +1059,7 @@
     "music.open-water.day-apostles": {
       "type": "audio",
       "url": "songs/open-water-day-apostles.ogg",
-      "bytes": 1082923
+      "bytes": 1030254
     },
     "music.open-water.night-duluth": {
       "type": "audio",

@@ -337,13 +337,14 @@ function main(): void {
       id: 'music.open-water.day',
       name: 'open-water-day',
       description:
-        'Open-water music by day: "Red Iron Ore" (traditional) on concertina, tin whistle and guitar',
+        'Open-water music by day: "En roulant ma boule" (traditional voyageur song) on concertina, tin whistle and guitar',
       kind: 'oneshot',
       bus: 'music',
       bundles: ['music-open-water'],
     },
-    redIronOre(RATE),
-    `Traditional melody, public domain: ${RED_IRON_ORE.source}. Original arrangement; synthesized free-reed concertina (additive), tin whistle, fiddle drone, Karplus-Strong guitar, Freeverb-style reverb`,
+    enRoulant(RATE),
+    `Traditional melody, public domain: ${EN_ROULANT.source}. Original arrangement; synthesized free-reed concertina, tin whistle and Karplus-Strong guitar, Freeverb-style reverb`,
+    '2026-11-25',
   );
   writeSound(
     'music',
@@ -1832,11 +1833,11 @@ function renderSongs(): void {
       id: 'music.open-water.day-apostles',
       name: 'open-water-day-apostles',
       description:
-        'Open-water music by day among the Apostle Islands: "En roulant ma boule" (traditional voyageur song) on concertina, tin whistle and guitar',
+        'Open-water music by day among the Apostle Islands: "Red Iron Ore" (traditional) on concertina, tin whistle and guitar',
       bundles: ['music-open-water'],
     },
-    enRoulant(RATE),
-    `Traditional melody, public domain: ${EN_ROULANT.source}. Original arrangement; synthesized free-reed concertina, tin whistle and Karplus-Strong guitar, Freeverb-style reverb`,
+    redIronOre(RATE),
+    `Traditional melody, public domain: ${RED_IRON_ORE.source}. Original arrangement; synthesized free-reed concertina (additive), tin whistle, fiddle drone, Karplus-Strong guitar, Freeverb-style reverb`,
   );
   song(
     {

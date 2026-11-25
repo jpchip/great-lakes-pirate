@@ -267,9 +267,10 @@ export function musicMood(i: MusicInput): MusicMood {
 
 /**
  * A stretch of water's own song (plan 15 §25.2): by Wanted region, the cue that plays there
- * in place of the mood's own. "En roulant ma boule" by day among the Apostle Islands, where
- * the voyageurs' canoes came and went from La Pointe; "Lost on the Lady Elgin" by night off
- * Duluth and the North Shore. Everywhere else, "Red Iron Ore" and "The Persian's Crew".
+ * in place of the mood's own. "Red Iron Ore" by day among the Apostle Islands (§25.3: it
+ * swapped places with "En roulant ma boule", now the day's song elsewhere); "Lost on the
+ * Lady Elgin" by night off Duluth and the North Shore. Everywhere else, "En roulant ma
+ * boule" and "The Persian's Crew".
  */
 export const MUSIC_ALTERNATES: Readonly<
   Record<string, Partial<Record<Exclude<MusicMood, 'quiet'>, string>>>

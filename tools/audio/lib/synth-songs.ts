@@ -154,7 +154,7 @@ export function redIronOreForm(): { concertina: Note[]; whistle: Note[]; chords:
 }
 
 /**
- * Open-water music by day: "Red Iron Ore" on concertina, then the tin whistle with a low
+ * Open-water music by day among the Apostle Islands (plan 15 §25.3): "Red Iron Ore" on concertina, then the tin whistle with a low
  * fiddle drone, then the concertina again, over a guitar's 6/8 boom-chick in E minor.
  */
 export function redIronOre(rate: number, seed = 1871): Float32Array {
@@ -883,8 +883,8 @@ export function enRoulantForm(): Note[] {
 }
 
 /**
- * Open-water music by day among the Apostle Islands: "En roulant ma boule", the paddling
- * song of the fur trade's canoes out of La Pointe. Two bars of guitar, once through on
+ * Open-water music by day (plan 15 §25.3): "En roulant ma boule", the paddling song of the
+ * fur trade's canoes. Two bars of guitar, once through on
  * concertina, once on tin whistle, over a 6/8 oom-pah-pah.
  */
 export function enRoulant(rate: number, seed = 1865): Float32Array {

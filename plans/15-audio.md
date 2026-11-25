@@ -608,7 +608,12 @@ Everywhere else is as before: *Red Iron Ore* and *The Persian's Crew* at sea, *T
 
 1. **A listen** to the four alternates, in place: the Apostles by day, off Duluth at night, the Duluth saloon by day and at night.
 
+### 25.3 The day songs swap places (2026-11-25)
+
+Jared asked for the Apostle Islands song and the other daytime song to switch. *En roulant ma boule* is now open-water music by day everywhere (`music.open-water.day`), and *Red Iron Ore* plays by day among the Apostle Islands (`music.open-water.day-apostles`). Cue ids, the region table and the arrangements are unchanged; only which recording each cue holds.
+
 ## Changelog
+- v2.3: The day songs swap places (§25.3): *En roulant ma boule* by day everywhere, *Red Iron Ore* among the Apostle Islands.
 - v2.2: The alternates (§25.2): *En roulant ma boule* by day among the Apostle Islands and *Lost on the Lady Elgin* by night off Duluth and the North Shore at sea, and *The Shanty-Man's Life* and *Michigan-I-O* in the Duluth saloon, chosen by region and by district.
 - v2.1: The rest of the song shortlist (§25.1): *The Bigler's Crew* for chart travel, *The Persian's Crew* for night at sea, *The Little Brown Bulls* for the saloon by day and *The Jam on Gerry's Rocks* for the ending, all from Rickaby (1926), replacing the original placeholder tunes.
 - v2.0: Great Lakes song motifs (§25): the public-domain sources for the songs of §2, and *Red Iron Ore* from Rickaby (1926) as the open-water day cue in place of the waltz.
