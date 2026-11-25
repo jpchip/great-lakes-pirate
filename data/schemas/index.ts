@@ -6,6 +6,7 @@ import { chartFileSchema } from './chart';
 import { climateFileSchema } from './climate';
 import { ammoFileSchema, weaponsFileSchema } from './combat';
 import { contractsFileSchema } from './contracts';
+import { cosmeticsFileSchema } from './cosmetics';
 import { itemsFileSchema, recipesFileSchema, stationsFileSchema } from './crafting';
 import { districtsFileSchema, kitFileSchema } from './districts';
 import { curiosFileSchema, discoveriesFileSchema } from './discoveries';
@@ -120,6 +121,7 @@ export const dataFileSchemas: Readonly<Record<string, z.ZodType>> = {
   'structures.json': structuresFileSchema,
   'tools.json': toolsFileSchema,
   'upgrades.json': upgradesFileSchema,
+  'cosmetics.json': cosmeticsFileSchema,
   'wanted_tiers.json': wantedTiersFileSchema,
   'weapons.json': weaponsFileSchema,
   'wildlife.json': wildlifeFileSchema,

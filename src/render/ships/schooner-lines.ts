@@ -84,6 +84,8 @@ export interface SchoonerLines extends HullLines {
     canvas: number;
     rope: number;
     pennant: number;
+    /** A two-color pennant's fly (outer half). */
+    pennantFly?: number;
     telltale: number;
   };
 }
@@ -244,4 +246,35 @@ export const SCHOONER_LINES: Readonly<Record<string, SchoonerLines>> = {
 /** A player class's lines; the T1's for anything unknown, so a new record still draws. */
 export function schoonerLines(id: string | undefined): SchoonerLines {
   return (id !== undefined ? SCHOONER_LINES[id] : undefined) ?? T1_SCHOONER_LINES;
+}
+
+/** Colors to draw a ship in over her class's (plan 10 §7): see `sim/shipyard/cosmetics`. */
+export interface LiveryColors {
+  topsides?: number;
+  trim?: number;
+  canvas?: number;
+  pennant?: number;
+  pennantFly?: number;
+}
+
+/**
+ * Her lines in her own paint: topsides, the rail (and houses painted to match it, as the
+ * T2's are), the canvas, and the pennant. The lines are shared, so this makes a copy.
+ */
+export function liveried(lines: SchoonerLines, livery: LiveryColors | undefined): SchoonerLines {
+  if (!livery || Object.keys(livery).length === 0) return lines;
+  const p = lines.paint;
+  const paint = { ...p };
+  if (livery.topsides !== undefined) paint.topsides = livery.topsides;
+  if (livery.trim !== undefined) {
+    paint.rail = livery.trim;
+    if (p.house === p.rail) paint.house = livery.trim;
+  }
+  if (livery.canvas !== undefined) paint.canvas = livery.canvas;
+  if (livery.pennant !== undefined) {
+    paint.pennant = livery.pennant;
+    if (livery.pennantFly !== undefined) paint.pennantFly = livery.pennantFly;
+    else delete paint.pennantFly;
+  }
+  return { ...lines, paint };
 }

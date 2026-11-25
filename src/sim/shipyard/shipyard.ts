@@ -1,4 +1,5 @@
 import type { SailShipRecord } from '../../../data/schemas/ships';
+import type { CosmeticKind } from '../../../data/schemas/cosmetics';
 import type { Upgrade, UpgradeCategory, UpgradeSource } from '../../../data/schemas/upgrades';
 import type { EconomyDefs } from '../economy/defs';
 import { holdUsed, isClean, reduceStack, type CargoStack, type Hold } from '../economy/hold';
@@ -28,6 +29,11 @@ export interface ShipState {
   upgrades: string[];
   /** Her guns in their mounts (plan 07 §10; Phase 6 piece A). */
   weapons: MountedWeapon[];
+  /**
+   * Her paint, canvas and pennant (plan 10 §7): cosmetic option ids by kind, absent for
+   * the class's own colors. Cosmetic only, so the law never hears of it.
+   */
+  cosmetics?: Partial<Record<CosmeticKind, string>> | undefined;
 }
 
 /** What every captain carries aboard (plan 07 §14.5): small arms, and no ship's guns. */
@@ -335,6 +341,10 @@ export function buyHull(
   ship.hull01 = 1;
   ship.rigging01 = 1;
   ship.upgrades = [...q.tradeIn.moving];
+  // Paint and canvas stay with the old hull; the pennant is yours, and comes across.
+  const pennant = ship.cosmetics?.pennant;
+  if (pennant) ship.cosmetics = { pennant };
+  else delete ship.cosmetics;
   // Guns move with her where the new hull has a place for them (piece E prices it).
   ship.weapons = fittingWeapons(gameCombat(), classId, ship.weapons);
   return {

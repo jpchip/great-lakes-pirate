@@ -268,6 +268,7 @@ export function createSchooner(l: SchoonerLines): SchoonerModel {
       length: 4.2 * k,
       width: 0.42 * k,
       taper: 1,
+      ...(l.paint.pennantFly !== undefined ? { fly: new THREE.Color(l.paint.pennantFly) } : {}),
     },
     ...telltaleAnchors.map((anchor) => ({ anchor, length: 0.75, width: 0.07, taper: 0.4 })),
   ]);

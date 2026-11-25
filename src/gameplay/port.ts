@@ -585,8 +585,14 @@ export function attachPorts(opts: PortControlOptions): PortControl {
         refresh();
         return undefined;
       },
-      buyHull(classId) {
-        return yardWork((y, port) => y.buyHull(port, classId));
+      buyHull(classId, name) {
+        return yardWork((y, port) => y.buyHull(port, classId, name));
+      },
+      paint(option) {
+        return yardWork((y, port) => y.paint(port, option));
+      },
+      rename(name) {
+        return yardWork((y, port) => y.rename(port, name));
       },
       fit(upgrade, place) {
         if (place === 'backRoom' && !(openPort && opts.backRoom?.isOpen(openPort)))

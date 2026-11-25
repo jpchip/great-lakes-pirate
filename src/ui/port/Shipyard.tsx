@@ -1,3 +1,4 @@
+import { useState } from 'preact/hooks';
 import { formatCents } from '../../sim/economy/knowledge';
 import type { FitSource } from '../../sim/shipyard/shipyard';
 import { Help } from './Help';
@@ -6,6 +7,7 @@ import {
   CATEGORY_NAMES,
   type HullOffer,
   type HullStats,
+  type LooksSnapshot,
   type UpgradeRow,
   type YardSnapshot,
 } from './shipyard-model';
@@ -183,10 +185,13 @@ export function UpgradeTable({
 
 function HullCard({
   hull,
+  name,
   actions,
   setMessage,
 }: {
   hull: HullOffer;
+  /** What you'll call her. */
+  name: string;
   actions: PortActions;
   setMessage(m: string | undefined): void;
 }) {
@@ -223,7 +228,10 @@ function HullCard({
             disabled={!!hull.refusal}
             title={hull.refusal}
             onClick={() =>
-              setMessage(actions.buyHull(hull.classId) ?? `She's yours: the ${hull.name}.`)
+              setMessage(
+                actions.buyHull(hull.classId, name) ??
+                  `She's yours: the ${name.trim() || hull.name}, a ${hull.name.toLowerCase()}.`,
+              )
             }
           >
             Buy
@@ -243,16 +251,33 @@ export function Shipyard({
   actions: PortActions;
   setMessage(m: string | undefined): void;
 }) {
+  const [newName, setNewName] = useState(yard.shipName);
   return (
     <div class="port-chandlery yard" data-testid="shipyard">
       <RepairLine yard={yard} actions={actions} setMessage={setMessage} />
       <h3>
         Hulls
-        <Help text="One ship at a time: a new hull trades yours in at half her price by her condition, plus a quarter of the value of gear left aboard. Instruments and the anchor come across if she has slots; cargo that won't fit is sold here at 80%." />
+        <Help text="One ship at a time: a new hull trades yours in at half her price by her condition, plus a quarter of the value of gear left aboard. Instruments and the anchor come across if she has slots; cargo that won't fit is sold here at 80%. Paint and canvas stay with the old hull; your pennant comes across." />
       </h3>
+      <label class="yard-name">
+        <span>Name her</span>
+        <input
+          type="text"
+          data-testid="hull-name"
+          maxLength={32}
+          value={newName}
+          onInput={(e) => setNewName((e.target as HTMLInputElement).value)}
+        />
+      </label>
       <div class="yard-hulls">
         {yard.hulls.map((h) => (
-          <HullCard key={h.classId} hull={h} actions={actions} setMessage={setMessage} />
+          <HullCard
+            key={h.classId}
+            hull={h}
+            name={newName}
+            actions={actions}
+            setMessage={setMessage}
+          />
         ))}
       </div>
       <h3>Upgrades</h3>
@@ -262,6 +287,106 @@ export function Shipyard({
         actions={actions}
         setMessage={setMessage}
       />
+      {yard.looks && (
+        <Looks
+          looks={yard.looks}
+          shipName={yard.shipName}
+          paint={actions.paint}
+          rename={actions.rename}
+          setMessage={setMessage}
+        />
+      )}
+    </div>
+  );
+}
+
+/**
+ * Paint, canvas, pennant and her name (plan 10 §7): a row of swatches for each, the price
+ * on the row. Cosmetic only, which the "?" says, since a player will wonder about heat.
+ */
+export function Looks({
+  looks,
+  shipName,
+  paint,
+  rename,
+  setMessage,
+}: {
+  looks: LooksSnapshot;
+  shipName: string;
+  paint(option: string): string | undefined;
+  rename(name: string): string | undefined;
+  setMessage(m: string | undefined): void;
+}) {
+  const [name, setName] = useState(shipName);
+  const time = (h: number): string => (hoursText(h) ? ` · ${hoursText(h)}` : '');
+  return (
+    <div class="yard-looks" data-testid="yard-looks">
+      <h3>
+        Paint and colors
+        <Help text="For the look of her only: she sails the same, and the law knows her by her lines whatever her paint or name." />
+      </h3>
+      {looks.rows.map((row) => (
+        <div class="yard-look-row" key={row.kind} data-testid={`looks-${row.kind}`}>
+          <span class="yard-look-label">
+            {row.label}
+            <small class="port-dim hud-num">
+              {' '}
+              {formatCents(row.priceCents)}
+              {time(row.hours)}
+            </small>
+          </span>
+          <span class="yard-swatches">
+            {row.options.map((o) => (
+              <button
+                type="button"
+                key={o.id}
+                class={`yard-swatch${o.current ? ' current' : ''}`}
+                data-testid={`swatch-${o.id}`}
+                aria-pressed={o.current}
+                aria-label={o.name}
+                title={row.refusal ?? (o.current ? `${o.name}: hers now` : o.name)}
+                disabled={!!row.refusal || o.current || !row.affordable}
+                style={{
+                  background: o.fly
+                    ? `linear-gradient(90deg, ${o.color} 50%, ${o.fly} 50%)`
+                    : o.color,
+                }}
+                onClick={() => setMessage(paint(o.id) ?? `${row.label}: ${o.name.toLowerCase()}.`)}
+              />
+            ))}
+          </span>
+        </div>
+      ))}
+      <div class="yard-look-row">
+        <span class="yard-look-label">
+          Her name
+          <small class="port-dim hud-num">
+            {' '}
+            {formatCents(looks.rename.priceCents)}
+            {time(looks.rename.hours)}
+          </small>
+        </span>
+        <span class="yard-swatches">
+          <input
+            type="text"
+            data-testid="rename-input"
+            maxLength={32}
+            value={name}
+            onInput={(e) => setName((e.target as HTMLInputElement).value)}
+          />
+          <button
+            type="button"
+            class="port-mini"
+            data-testid="rename"
+            disabled={!looks.rename.affordable || name.trim() === shipName}
+            onClick={() =>
+              setMessage(rename(name) ?? `New letters on her transom: the ${name.trim()}.`)
+            }
+          >
+            Rename
+          </button>
+        </span>
+      </div>
     </div>
   );
 }

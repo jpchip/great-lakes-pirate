@@ -1239,7 +1239,13 @@ test('a new captain completes the First Week', async ({ page }) => {
 });
 
 interface ShipyardHook {
-  ship(): { classId: string; hull01: number; rigging01: number; upgrades: string[] };
+  ship(): {
+    classId: string;
+    hull01: number;
+    rigging01: number;
+    upgrades: string[];
+    cosmetics?: Record<string, string>;
+  };
   grant(cents: number): void;
   damage(hull01: number, rigging01: number): void;
   sailing(): string;
@@ -1268,8 +1274,11 @@ test('buys a T2 at Ashland, fits and repairs her, and patches the hull at sea', 
 
   await page.getByTestId('port-tab-shipyard').click();
   await expect(page.getByTestId('shipyard')).toBeVisible();
+  // Phase 10: you name her as you buy her.
+  await page.getByTestId('hull-name').fill('Iron Duke');
   await page.getByTestId('buy-hull-ship.t2_schooner').click();
-  await expect(page.getByTestId('port-message')).toContainText("She's yours");
+  await expect(page.getByTestId('port-message')).toContainText("She's yours: the Iron Duke");
+  await expect(page.getByTestId('yard-ship').locator('h3')).toHaveText('Iron Duke');
   const yard = (): Promise<ReturnType<ShipyardHook['ship']>> =>
     page.evaluate(() =>
       (window as unknown as { __glpShipyard: ShipyardHook }).__glpShipyard.ship(),
@@ -1284,6 +1293,21 @@ test('buys a T2 at Ashland, fits and repairs her, and patches the hull at sea', 
   await page.getByTestId('fit-upgrade.quality_canvas').click();
   await expect(page.getByTestId('upgrade-row-upgrade.quality_canvas')).toHaveClass(/selected/);
   expect((await yard()).upgrades).toEqual(['upgrade.quality_canvas']);
+
+  // Paint, a pennant and a new name (plan 10 §7), cosmetic only.
+  await page.getByTestId('swatch-cosmetic.hull_blue').click();
+  await expect(page.getByTestId('swatch-cosmetic.hull_blue')).toHaveAttribute(
+    'aria-pressed',
+    'true',
+  );
+  await page.getByTestId('swatch-cosmetic.pennant_red_white').click();
+  expect((await yard()).cosmetics).toEqual({
+    hull: 'cosmetic.hull_blue',
+    pennant: 'cosmetic.pennant_red_white',
+  });
+  await page.getByTestId('rename-input').fill('Moth');
+  await page.getByTestId('rename').click();
+  await expect(page.getByTestId('yard-ship').locator('h3')).toHaveText('Moth');
 
   // Damage her, then the yard makes her sound.
   await page.keyboard.press('Escape');

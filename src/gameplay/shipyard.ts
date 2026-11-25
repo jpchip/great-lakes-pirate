@@ -20,6 +20,14 @@ import {
   type ShipState,
   type ShipyardRefusal,
 } from '../sim/shipyard/shipyard';
+import {
+  applyCosmetic,
+  cleanShipName,
+  liveryOf,
+  renameShip,
+  type CosmeticRefusal,
+  type ShipLivery,
+} from '../sim/shipyard/cosmetics';
 import type { Buoyancy } from './buoyancy';
 import { createBuoyancy } from './buoyancy';
 import type { GameEconomy } from './economy';
@@ -41,15 +49,30 @@ export interface GameShipyard {
   /** Writes the hazard state's hull and rigging into `player.ship`. */
   sync(): void;
   /** Each returns why it was refused, in a few words, or undefined when it went through. */
-  buyHull(port: string, classId: string): string | undefined;
+  /** `name` is what you call her; absent, she keeps the old ship's name (plan 10 §3). */
+  buyHull(port: string, classId: string, name?: string): string | undefined;
   install(port: string, upgrade: string, source: FitSource): string | undefined;
   remove(port: string, upgrade: string, source: FitSource): string | undefined;
   repair(port: string, place: RepairPlace): string | undefined;
+  /** Paint, canvas or a pennant at a yard (plan 10 §7): an option id from cosmetics.json. */
+  paint(port: string, option: string): string | undefined;
+  /** New letters on her transom: the law's profile keeps the old name (plan 06 §2.3). */
+  rename(port: string, name: string): string | undefined;
+  /** Her colors as she stands, for the view. */
+  readonly livery: ShipLivery;
   /** Uses the kit the ship needs most at sea (K): a line for the HUD notice. */
   useKit(): string;
   /** Applies `player.ship` to the entity again (a reload, the dev hook). */
   refit(): void;
 }
+
+export const COSMETIC_REFUSALS: Record<CosmeticRefusal, string> = {
+  unknown: "They've no such paint.",
+  same: 'She has that already.',
+  noMoney: "You haven't the money.",
+  badName: 'A name, of up to 32 letters.',
+  tanned: 'Her canvas is tanned dark; it takes no other color.',
+};
 
 export interface ShipyardOptions {
   ctx: GameContext;
@@ -66,6 +89,8 @@ export interface ShipyardOptions {
   adjustClass?(cls: SailingClass): SailingClass;
   /** Her class changed: the view rebuilds her model. */
   onHullChanged(classId: string): void;
+  /** Her paint, canvas or pennant changed on the same hull: the view repaints her. */
+  onLiveryChanged?(livery: ShipLivery): void;
   /** Her instruments changed: the camera's spyglass, the chart's forecast. */
   onInstruments?(instruments: Instruments): void;
   /** The captain's Fame tier, for the shady shipwright's gated gear (Phase 6 piece E). */
@@ -100,6 +125,7 @@ export function attachShipyard(opts: ShipyardOptions): GameShipyard {
   const ship = (): ShipState => player.ship ?? (player.ship = defaultShipState());
   let fit: ShipFit = fitShip(sailShipRecord(ship().classId), opts.rules, ship().upgrades);
   let classId = '';
+  let looks = '';
 
   const sync = (): void => {
     const s = ship();
@@ -122,7 +148,15 @@ export function attachShipyard(opts: ShipyardOptions): GameShipyard {
       const changed = classId !== '';
       classId = s.classId;
       Object.assign(opts.buoyancy, createBuoyancy(base.buoyancy));
+      looks = JSON.stringify(liveryOf(s));
       if (changed) opts.onHullChanged(classId);
+    } else {
+      const now = liveryOf(s);
+      const key = JSON.stringify(now);
+      if (key !== looks) {
+        looks = key;
+        opts.onLiveryChanged?.(now);
+      }
     }
     opts.onInstruments?.(fit.instruments);
   };
@@ -151,9 +185,14 @@ export function attachShipyard(opts: ShipyardOptions): GameShipyard {
     get instruments() {
       return fit.instruments;
     },
+    get livery() {
+      return liveryOf(ship());
+    },
     sync,
     refit,
-    buyHull(port, to) {
+    buyHull(port, to, name) {
+      const called = name === undefined ? player.captain.shipName : cleanShipName(name);
+      if (!called) return COSMETIC_REFUSALS.badName;
       sync();
       const r = buyHull(
         economy.defs,
@@ -165,6 +204,8 @@ export function attachShipyard(opts: ShipyardOptions): GameShipyard {
         ctx.state.environment.clock.gameSeconds,
       );
       if (!r.ok) return REFUSALS[r.reason];
+      // Named before the news goes out, so the law's new profile carries her new name.
+      player.captain.shipName = called;
       refit();
       ctx.events.emit('ShipPurchased', r.event);
       return undefined;
@@ -203,6 +244,21 @@ export function attachShipyard(opts: ShipyardOptions): GameShipyard {
       refit();
       skip(r.event.hours);
       ctx.events.emit('ShipRepaired', r.event);
+      return undefined;
+    },
+    paint(port, option) {
+      const r = applyCosmetic(player, ship(), port, option);
+      if (!r.ok) return COSMETIC_REFUSALS[r.reason];
+      refit();
+      skip(r.event.hours);
+      ctx.events.emit('CosmeticChanged', r.event);
+      return undefined;
+    },
+    rename(port, name) {
+      const r = renameShip(player, player.captain, port, name);
+      if (!r.ok) return COSMETIC_REFUSALS[r.reason];
+      skip(r.event.hours);
+      ctx.events.emit('CosmeticChanged', r.event);
       return undefined;
     },
     useKit() {

@@ -1,0 +1,200 @@
+{
+  "work": {
+    "hull": {
+      "priceCents": 1200,
+      "hours": 10
+    },
+    "trim": {
+      "priceCents": 400,
+      "hours": 4
+    },
+    "sails": {
+      "priceCents": 1800,
+      "hours": 6
+    },
+    "pennant": {
+      "priceCents": 100,
+      "hours": 0
+    },
+    "name": {
+      "priceCents": 200,
+      "hours": 2
+    }
+  },
+  "classDefaults": {
+    "ship.t1_schooner": {
+      "hull": "cosmetic.hull_white",
+      "trim": "cosmetic.trim_brown",
+      "sails": "cosmetic.sails_white",
+      "pennant": "cosmetic.pennant_red"
+    },
+    "ship.t2_schooner": {
+      "hull": "cosmetic.hull_white",
+      "trim": "cosmetic.trim_green",
+      "sails": "cosmetic.sails_white",
+      "pennant": "cosmetic.pennant_red"
+    }
+  },
+  "options": [
+    {
+      "id": "cosmetic.hull_white",
+      "kind": "hull",
+      "name": "White",
+      "color": "#d6d0c2"
+    },
+    {
+      "id": "cosmetic.hull_black",
+      "kind": "hull",
+      "name": "Black",
+      "color": "#2c302f"
+    },
+    {
+      "id": "cosmetic.hull_green",
+      "kind": "hull",
+      "name": "Lake green",
+      "color": "#3c5244"
+    },
+    {
+      "id": "cosmetic.hull_blue",
+      "kind": "hull",
+      "name": "Navy blue",
+      "color": "#2f3d52"
+    },
+    {
+      "id": "cosmetic.hull_red",
+      "kind": "hull",
+      "name": "Barn red",
+      "color": "#7a3328"
+    },
+    {
+      "id": "cosmetic.hull_cream",
+      "kind": "hull",
+      "name": "Cream",
+      "color": "#d9c9a3"
+    },
+    {
+      "id": "cosmetic.hull_grey",
+      "kind": "hull",
+      "name": "Grey",
+      "color": "#7d817c"
+    },
+    {
+      "id": "cosmetic.trim_brown",
+      "kind": "trim",
+      "name": "Varnished",
+      "color": "#6a4b31"
+    },
+    {
+      "id": "cosmetic.trim_green",
+      "kind": "trim",
+      "name": "Green",
+      "color": "#34463b"
+    },
+    {
+      "id": "cosmetic.trim_white",
+      "kind": "trim",
+      "name": "White",
+      "color": "#d8d0bc"
+    },
+    {
+      "id": "cosmetic.trim_black",
+      "kind": "trim",
+      "name": "Black",
+      "color": "#262b2a"
+    },
+    {
+      "id": "cosmetic.trim_red",
+      "kind": "trim",
+      "name": "Red",
+      "color": "#8a3426"
+    },
+    {
+      "id": "cosmetic.trim_blue",
+      "kind": "trim",
+      "name": "Blue",
+      "color": "#3d5470"
+    },
+    {
+      "id": "cosmetic.trim_buff",
+      "kind": "trim",
+      "name": "Buff",
+      "color": "#c4a06a"
+    },
+    {
+      "id": "cosmetic.sails_white",
+      "kind": "sails",
+      "name": "White",
+      "color": "#e2d6bc"
+    },
+    {
+      "id": "cosmetic.sails_cream",
+      "kind": "sails",
+      "name": "Cream",
+      "color": "#dbc89e"
+    },
+    {
+      "id": "cosmetic.sails_ochre",
+      "kind": "sails",
+      "name": "Ochre",
+      "color": "#c19a5b"
+    },
+    {
+      "id": "cosmetic.pennant_red",
+      "kind": "pennant",
+      "name": "Red",
+      "color": "#b3392b"
+    },
+    {
+      "id": "cosmetic.pennant_blue",
+      "kind": "pennant",
+      "name": "Blue",
+      "color": "#3d5a85"
+    },
+    {
+      "id": "cosmetic.pennant_black",
+      "kind": "pennant",
+      "name": "Black",
+      "color": "#262b2a"
+    },
+    {
+      "id": "cosmetic.pennant_white",
+      "kind": "pennant",
+      "name": "White",
+      "color": "#e4ddcc"
+    },
+    {
+      "id": "cosmetic.pennant_yellow",
+      "kind": "pennant",
+      "name": "Yellow",
+      "color": "#d3a83a"
+    },
+    {
+      "id": "cosmetic.pennant_red_white",
+      "kind": "pennant",
+      "name": "Red and white",
+      "color": "#b3392b",
+      "fly": "#e4ddcc"
+    },
+    {
+      "id": "cosmetic.pennant_blue_white",
+      "kind": "pennant",
+      "name": "Blue and white",
+      "color": "#3d5a85",
+      "fly": "#e4ddcc"
+    },
+    {
+      "id": "cosmetic.pennant_green_yellow",
+      "kind": "pennant",
+      "name": "Green and yellow",
+      "color": "#3c5a44",
+      "fly": "#d3a83a"
+    },
+    {
+      "id": "cosmetic.pennant_black_red",
+      "kind": "pennant",
+      "name": "Black and red",
+      "color": "#262b2a",
+      "fly": "#b3392b"
+    }
+  ]
+}

@@ -357,7 +357,7 @@ The four instruments and the anchor move to a new hull; sails, planking, the hol
 - Jared's feel of the upgrades (§16.4's "Upgrade feel").
 - Piece F's Standing discount into `hullPriceCents` and `upgradePriceCents`, and piece C's perks into `adjustClass`.
 - The sailing bench before and after (criterion 8) with the T2 and a full fit.
-- Ship naming at purchase (§3) comes with character creation's name field (piece C); the new hull keeps the captain's `shipName` until then.
+- ~~Ship naming at purchase (§3) comes with character creation's name field (piece C); the new hull keeps the captain's `shipName` until then.~~ Built in Phase 10 (§19).
 
 ---
 
@@ -365,7 +365,27 @@ The four instruments and the anchor move to a new hull; sails, planking, the hol
 
 Hideout repairs (§8) and shipless shipbuilding (§9) are built at a hideout's slipway; the details are in [09 §16.10](09-hideouts-building-crafting.md). In numbers: a full hull's repair is 10 lumber, 2 hardware and 2 rope and canvas (tar folded in) and 16 game hours solo, a rig 4 rope and canvas and 8 hours, scaled by what's missing; the crafted repair stores and improved carriages are fitted there in their install hours; and §9's T1 is 30 lumber, 6 hardware and 6 rope and canvas over three game days (09 §16.5's smaller numbers, not §9's ~40/10/8/8/4). A schooner launched there is a new hull to the law.
 
+---
+
+## 19. Phase 10: Paint, Canvas, Pennant and Name (2026-11-25)
+
+§7's minimum (paint, name and flag), built at a shipyard and at a hideout slipway.
+
+| Part | Where | What |
+|---|---|---|
+| Data | `data/cosmetics.json`, `data/schemas/cosmetics.ts` | Four kinds: topsides (7 colors), rail and trim (7), canvas (white, cream, ochre: §7's three) and the pennant (5 plain, 4 two-color, hoist and fly). Each kind has one price and yard time: topsides $12 and 10 h, trim $4 and 4 h, canvas $18 and 6 h, a pennant $1 on the spot, a new name $2 and 2 h. `classDefaults` names each class's own colors among the options, so the screen marks what she wears and choosing it again is refused. Colors are soft photochrom tones, not pure hues (plan 14 §2). |
+| Sim | `src/sim/shipyard/cosmetics.ts` | `applyCosmetic`, `renameShip` (tidied the way character creation tidies a name, up to 32 letters), `liveryOf` (her colors as 0xrrggbb). Dark-tanned sails (§5.2) draw the canvas a wet-hull brown and refuse another sail color. |
+| Save | `player.ship.cosmetics` | Option ids by kind, optional, so no version bump; absent means her class's colors. |
+| New hull | `buyHull` | Paint, trim and canvas stay with the old hull; the pennant is yours and comes across (§3's "cosmetic flags" are transferable). The Hulls panel has a **Name her** field: the new hull takes that name, set before `ShipPurchased`, so the law's new profile carries it. |
+| Rename | `GameShipyard.rename`, `StashActions.slipwayRename` | `captain.shipName` changes; `law.profiles.ship.name` keeps the name the law knew her by, so it sheds nothing (§7, 06 §2.3). |
+| View | `liveried()` in `schooner-lines.ts`, `Entity.livery` | Applies the colors over the class's lines: topsides, the rail (and houses painted the rail's color, as the T2's are; the T1's weathered-wood house stays), canvas, and the pennant, two-color pennants split along the fly (`Streamers` per-spec colors). A change rebuilds the model as a new hull does (`onLiveryChanged`). |
+| UI | `Looks` in `Shipyard.tsx` | **Paint and colors** under the shipyard's upgrades and on the slipway tab with her hauled out: a row of swatches per kind with its price and time, and her name with **Rename**. The "?" says it's for the look of her only. |
+| Events | `CosmeticChanged {port, kind, value, cents, hours, how?}` | At a slipway, the work on the ways plays (plan 15 §25). |
+
+Not built, per §7's list and its cut line: figureheads, a nameboard's lettering style, lantern style, deck clutter and trophies, and a live preview before paying (the model repaints as soon as you choose, and a coat costs a few dollars).
+
 ## Changelog
+- v0.8: Phase 10 (§19): paint, canvas, pennant and name at a shipyard and a slipway; naming a new hull at purchase.
 - v0.7: Phase 9 piece K: the ice bow at the shipyard.
 - v0.6: Phase 8 piece G (§18): slipway repairs, installs of crafted upgrades and shipless shipbuilding.
 - v0.6: Phase 6 as built (§13): the shady shipwright's guns and weapon mods, powder at the chandlery, the worn hull after abandoning ship.

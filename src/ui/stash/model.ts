@@ -31,6 +31,7 @@ import { sailShipRecord } from '../../sim/sailing/ships';
 import { upgradeDef } from '../../sim/shipyard/fit';
 import type { ShipState } from '../../sim/shipyard/shipyard';
 import type { StashTab } from '../../gameplay/stash';
+import { looksSnapshot, type LooksSnapshot } from '../port/shipyard-model';
 import {
   hasStrongbox,
   siteDef,
@@ -147,6 +148,8 @@ export interface SlipwayUpgradeRow {
 export interface SlipwaySnapshot {
   /** A slipway is built here. */
   built: boolean;
+  /** Paint, canvas, pennant and name, by your own hands (plan 10 §7): with her hauled out. */
+  looks?: LooksSnapshot;
   /** The captain has no ship (shipless at a hideout). */
   shipless: boolean;
   /** Her ship is moored here, so she can be hauled out. */
@@ -323,6 +326,7 @@ function slipway(opts: {
   shipHere: boolean;
   crewTier: number;
   gameSeconds: number;
+  purse: number;
 }): SlipwaySnapshot {
   const { defs, hideout: h, ship } = opts;
   const onHand = materialsOnHand(opts.sources);
@@ -355,6 +359,9 @@ function slipway(opts: {
   const newClass = sailShipRecord(SLIPWAY.newShip.classId);
   return {
     built: hasSlipway(h),
+    ...(hauled && ship && opts.shipHere && hasSlipway(h)
+      ? { looks: looksSnapshot(ship, opts.purse) }
+      : {}),
     shipless: opts.shipless,
     shipHere: opts.shipHere,
     shipName: opts.shipName,
@@ -436,6 +443,7 @@ export function stashSnapshot(opts: {
       shipHere: !!opts.shipHere,
       crewTier: opts.crewTier ?? 1,
       gameSeconds: opts.gameSeconds,
+      purse: player.purse,
     }),
     tab: opts.tab,
     ...(opts.canGoAshore ? { canGoAshore: true } : {}),

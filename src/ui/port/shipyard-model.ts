@@ -5,6 +5,14 @@ import { formatCents } from '../../sim/economy/knowledge';
 import type { MarketsState } from '../../sim/economy/market';
 import { sailShipRecord } from '../../sim/sailing/ships';
 import { fitShip, slotsOf, slotsUsed, upgradeDefs } from '../../sim/shipyard/fit';
+import {
+  COSMETIC_KINDS,
+  cosmeticOptions,
+  cosmeticWork,
+  currentCosmetic,
+  hasTannedSails,
+  type CosmeticKind,
+} from '../../sim/shipyard/cosmetics';
 import { defaultHazardRules } from '../../sim/sailing/hazard-rules';
 import {
   fitRefusal,
@@ -83,6 +91,71 @@ export interface SlotRow {
   total: number;
 }
 
+/** One swatch of paint, canvas or pennant (plan 10 §7). */
+export interface LooksOption {
+  id: string;
+  name: string;
+  /** CSS colors: the swatch, and a two-color pennant's fly. */
+  color: string;
+  fly: string | undefined;
+  current: boolean;
+}
+
+export interface LooksRow {
+  kind: CosmeticKind;
+  label: string;
+  priceCents: number;
+  hours: number;
+  affordable: boolean;
+  /** Why none of it can be changed, or undefined. */
+  refusal: string | undefined;
+  options: LooksOption[];
+}
+
+/** Paint, canvas, pennant and her name, at a shipyard or a hideout slipway. */
+export interface LooksSnapshot {
+  rows: LooksRow[];
+  rename: { priceCents: number; hours: number; affordable: boolean };
+}
+
+const LOOKS_LABELS: Record<CosmeticKind, string> = {
+  hull: 'Topsides',
+  trim: 'Rail and trim',
+  sails: 'Canvas',
+  pennant: 'Pennant',
+};
+
+/** What she can be painted, and what it costs: `timed` false at a slipway, your own hands. */
+export function looksSnapshot(ship: ShipState, purse: number, timed = true): LooksSnapshot {
+  const rename = cosmeticWork('name');
+  return {
+    rows: COSMETIC_KINDS.map((kind) => {
+      const work = cosmeticWork(kind);
+      const current = currentCosmetic(ship, kind);
+      return {
+        kind,
+        label: LOOKS_LABELS[kind],
+        priceCents: work.priceCents,
+        hours: timed ? work.hours : 0,
+        affordable: work.priceCents <= purse,
+        refusal: kind === 'sails' && hasTannedSails(ship) ? 'Her canvas is tanned dark' : undefined,
+        options: cosmeticOptions(kind).map((o) => ({
+          id: o.id,
+          name: o.name,
+          color: o.color,
+          fly: o.fly,
+          current: o.id === current,
+        })),
+      };
+    }),
+    rename: {
+      priceCents: rename.priceCents,
+      hours: timed ? rename.hours : 0,
+      affordable: rename.priceCents <= purse,
+    },
+  };
+}
+
 export interface YardSnapshot {
   place: FitSource;
   shipName: string;
@@ -96,6 +169,8 @@ export interface YardSnapshot {
   /** At a shipyard only. */
   hulls: HullOffer[];
   upgrades: UpgradeRow[];
+  /** Paint, canvas, pennant and name: at a shipyard only. */
+  looks: LooksSnapshot | undefined;
 }
 
 export interface YardSources {
@@ -217,5 +292,6 @@ export function yardSnapshot(src: YardSources): YardSnapshot {
     repair,
     hulls,
     upgrades,
+    looks: place === 'shipyard' ? looksSnapshot(ship, owner.purse) : undefined,
   };
 }
