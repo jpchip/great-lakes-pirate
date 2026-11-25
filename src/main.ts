@@ -3653,7 +3653,9 @@ async function boot(): Promise<void> {
           iceBow: (e) => !!e.playerControlled && gameIce.iceBow(),
           onEvent: (e, ev) => {
             if (ev.kind === 'hazard') emitHazard(ctx.events, e.id, ev.event);
-            else if (ev.kind === 'stopped') {
+            else if (ev.kind === 'grinding') {
+              ctx.events.emit('IceGrinding', { shipId: e.id, damage: ev.damage });
+            } else if (ev.kind === 'stopped') {
               ctx.events.emit('IceStopped', { shipId: e.id, thicknessCm: ev.thicknessCm });
               if (e.playerControlled) {
                 const cm = Math.round(ev.thicknessCm);

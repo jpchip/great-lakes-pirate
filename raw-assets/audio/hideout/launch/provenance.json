@@ -1,0 +1,10 @@
+{
+  "source": "procedural",
+  "tool": "tools/audio/synth.ts (tools/audio/lib/synth.ts)",
+  "author": "Great Lakes Pirate contributors",
+  "reference": "Sine thuds and band-passed ticks, stick-slip creaks, doubly low-passed noise rumble under a band-passed hiss with a value-noise judder, a band-passed and low-passed noise splash with spray, a low-passed wash, reverb",
+  "date": "2026-11-24",
+  "license": "CC BY 4.0",
+  "attribution": "Great Lakes Pirate contributors",
+  "modifications": []
+}

@@ -62,7 +62,7 @@ test('exports a run, refuses in danger, and imports it as Transferred', async ({
   // The run ends; the menu offers Import run with nothing to continue.
   await page.getByTestId('settings-abandon').click();
   await page.getByTestId('settings-abandon-confirm').click();
-  await expect(page.getByTestId('end-screen')).toBeVisible();
+  await expect(page.getByTestId('end-screen')).toBeVisible({ timeout: 20_000 });
   await page.goto('/?renderer=null');
   await expect(page.getByTestId('menu-continue')).toHaveCount(0);
 
@@ -82,12 +82,16 @@ test('exports a run, refuses in danger, and imports it as Transferred', async ({
   await expect(page.getByTestId('menu-import')).toHaveCount(0);
   await page.getByTestId('menu-continue').click();
   await expect(body).toHaveAttribute('data-save', 'loaded');
+  // The run is up once its zone is: as `boot` waits for, so the ending isn't asked of a
+  // game still loading on a slow runner.
+  await expect(body).toHaveAttribute('data-terrain', 'loaded', { timeout: 30_000 });
 
-  // Ended, its Hall record says it was transferred.
+  // Ended, its Hall record says it was transferred. The ending writes the Hall and the
+  // last run before the screen shows, which a loaded CI runner can take a while over.
   await page.getByTestId('open-settings').click();
   await page.getByTestId('settings-abandon').click();
   await page.getByTestId('settings-abandon-confirm').click();
-  await expect(page.getByTestId('end-screen')).toBeVisible();
+  await expect(page.getByTestId('end-screen')).toBeVisible({ timeout: 20_000 });
   await page.getByTestId('end-menu').click();
   await page.getByTestId('menu-hall').click();
   await expect(page.getByTestId('hall-transferred').first()).toBeVisible();

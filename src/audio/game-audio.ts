@@ -17,7 +17,14 @@ import {
 import { CaptionFeed, type CaptionView } from './captions';
 import { FOOT_AUDIO_BUNDLE, FootSounds, SALOON_MUSIC_BUNDLE, type FootFrame } from './foot-audio';
 import { HARBOR_AUDIO_BUNDLE, HarborWorks } from './harbor-audio';
-import { HIDEOUT_AUDIO_BUNDLE, HideoutSounds, UI_AUDIO_BUNDLE, UiCues } from './hideout-audio';
+import {
+  HIDEOUT_AUDIO_BUNDLE,
+  HideoutSounds,
+  UI_AUDIO_BUNDLE,
+  UiCues,
+  type UiCue,
+} from './hideout-audio';
+import { NOTICE_CHIMES, type NoticeChimeEvent } from './hideout-mix';
 import { SANDBOX_AUDIO_BUNDLE, SandboxSounds } from './sandbox-audio';
 import { WINTER_AUDIO_BUNDLE, WinterSounds } from './winter-audio';
 import { nightOf, snowShare } from './winter-mix';
@@ -333,6 +340,16 @@ export async function createGameAudio(options: GameAudioOptions): Promise<GameAu
   game.events.on('ItemCrafted', ({ station, seconds }) => {
     if (running()) hideout.crafted(station, seconds ?? 0);
   });
+  // The slipway (Phase 8 piece G; plan 15 §21's gap): work on the ways, and a launch.
+  game.events.on('ShipRepaired', ({ how, hours }) => {
+    if (running() && how === 'slipway') hideout.onTheWays('repair', hours * 3600);
+  });
+  game.events.on('UpgradeInstalled', ({ how, hours }) => {
+    if (running() && how === 'slipway') hideout.onTheWays('fit', hours * 3600);
+  });
+  game.events.on('ShipLaunched', ({ seconds }) => {
+    if (running()) hideout.launched(seconds ?? 7 * 86_400);
+  });
   game.events.on('SalvageTaken', ({ good }) => {
     if (running()) hideout.salvage(good);
   });
@@ -348,6 +365,16 @@ export async function createGameAudio(options: GameAudioOptions): Promise<GameAu
   game.events.on('ContractAccepted', () => {
     if (running()) ui.play('stamp');
   });
+  // Notification chimes by priority (plan 13 §7); only the player's own ship founders here.
+  for (const [event, cue] of Object.entries(NOTICE_CHIMES) as [NoticeChimeEvent, UiCue][]) {
+    game.events.on(event, (e: unknown) => {
+      if (!running()) return;
+      const ship = (e as { shipId?: string }).shipId;
+      if (event === 'ShipFoundering' && ship !== undefined && ship !== PLAYER_ID) return;
+      if (event === 'LeadUpdated' && !(e as { opened?: boolean }).opened) return;
+      ui.play(cue);
+    });
+  }
   game.events.on('NewspaperBought', () => {
     if (running()) ui.play('newspaper');
   });
@@ -388,6 +415,9 @@ export async function createGameAudio(options: GameAudioOptions): Promise<GameAu
   });
   game.events.on('SledHandled', ({ act }) => {
     if (running()) winter.sled(act);
+  });
+  game.events.on('IceGrinding', ({ shipId, damage }) => {
+    if (running() && (shipId === undefined || shipId === PLAYER_ID)) winter.grinding(damage);
   });
   game.events.on('WarmthCritical', ({ stage }) => {
     if (running()) winter.warmthFell(stage);

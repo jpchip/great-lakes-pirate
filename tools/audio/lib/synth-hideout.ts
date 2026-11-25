@@ -627,3 +627,62 @@ export function chimeBright(rate: number, seed = 8341): Float32Array {
   mixInto(out, bellStroke(rate, random, 1568, 0.9), secs(0.17, rate), 1);
   return trimTail(out, rate);
 }
+
+// ---------------------------------------------------------------------------------------
+// The slipway (Phase 8 piece G; polish)
+
+/**
+ * A ship launched from the slipway: two mallet blows knocking out the dog-shores, the
+ * cradle groaning as she takes her weight, the long rumble of the hull running down the
+ * greased ways and gathering speed, the stern taking the water in a great splash, and the
+ * wash running back up the shore.
+ */
+export function shipLaunch(rate: number, seed = 8400): Float32Array {
+  const random = seeded(seed);
+  const seconds = 8;
+  const out = new Float32Array(secs(seconds, rate));
+  // The dog-shores knocked out.
+  mixInto(out, thud(rate, random, 0.3, 140), secs(0.1, rate), 0.9);
+  mixInto(out, burst(rate, random, 0.05, 1800, 1.3, 0.01), secs(0.1, rate), 0.5);
+  mixInto(out, thud(rate, random, 0.3, 150), secs(0.75, rate), 1);
+  mixInto(out, burst(rate, random, 0.05, 1700, 1.3, 0.01), secs(0.75, rate), 0.55);
+  // The cradle groaning as she takes her weight.
+  mixInto(out, creak(rate, random, 1.4, 120, 6, 18), secs(1.1, rate), 0.35);
+  mixInto(out, creak(rate, random, 1.0, 180, 10, 26), secs(1.6, rate), 0.25);
+  // Down the ways: a rumble and a hiss of tallow, rising as she gathers way.
+  const runS = 3.2;
+  const n = secs(runS, rate);
+  const rumble = lowpass(lowpass(noise(n, random), 110, rate), 110, rate);
+  const hiss = bandpass(noise(n, random), 1300, 0.6, rate);
+  const judder = wander(n, 9, rate, random);
+  const run = new Float32Array(n);
+  for (let i = 0; i < n; i++) {
+    const u = i / n;
+    const swell = smooth(u / 0.7) * (u < 0.92 ? 1 : (1 - u) / 0.08);
+    const j = 0.75 + 0.25 * Math.abs(judder[i] as number);
+    run[i] =
+      swell * j * (2.6 * (rumble[i] as number) + 0.35 * (0.3 + 0.7 * u) * (hiss[i] as number));
+  }
+  mixInto(out, run, secs(2.0, rate), 1);
+  // The stern takes the water.
+  const at = 2.0 + runS - 0.25;
+  const splashS = 2.6;
+  const m = secs(splashS, rate);
+  const crash = bandpass(noise(m, random), 900, 0.4, rate);
+  const body = lowpass(noise(m, random), 260, rate);
+  const spray = bandpass(noise(m, random), 4200, 0.8, rate);
+  const splash = new Float32Array(m);
+  for (let i = 0; i < m; i++) {
+    const t = i / rate;
+    const hit = Math.min(1, t / 0.03) * Math.exp(-t / 0.55);
+    const fall = smooth((t - 0.25) / 0.4) * Math.exp(-(t - 0.25) / 0.9);
+    splash[i] =
+      hit * (1.1 * (crash[i] as number) + 1.6 * (body[i] as number)) +
+      0.45 * Math.max(0, fall) * (spray[i] as number);
+  }
+  mixInto(out, splash, secs(at, rate), 1);
+  mixInto(out, thud(rate, random, 0.6, 60), secs(at, rate), 0.8);
+  // The wash running back up the shore.
+  mixInto(out, hush(rate, random, 1.6, 900, 0.5), secs(at + 1.6, rate), 0.35);
+  return trimTail(reverb(out, rate, 0.2, 0.5, 0.35), rate);
+}

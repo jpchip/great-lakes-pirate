@@ -318,6 +318,51 @@ export function windAt(state: WeatherState, p: Chart, t: number): Wind {
 /** `windAt` with the gustiness exposed, for a zone that adds its own gusts in the lee. */
 export function simWindAt(state: WeatherState, p: Chart, t: number): SimWind {
   const climate = climateAtTime(t);
+  const steady = steadyWind(state, climate, p, t);
+  let { x, y } = steady;
+
+  // A squall blows as well as rains (plan 04 §5.3): its outflow lifts the wind and makes
+  // it gusty. A summer thunder squall in a light air comes through at about 20 knots, gusting more; in a
+  // blow the lift tapers off and the squall is felt as gusts, so gales don't grow by it.
+  // Only a cell's heart blows: the sim's squall patches are tens of kilometers across at
+  // low strength, and the outflow is a few miles of it (the chart's cells, at 0.55 and up).
+  const squall = smoothstep(0.35, 0.8, squallFor(state, p, t, steady.speedKn));
+  let speedKn = steady.speedKn;
+  if (squall > 0) {
+    const lift = SQUALL_WIND_KN * squall * (1 - smoothstep(12, 28, steady.speedKn));
+    speedKn = capWind(steady.raw + lift);
+    if (steady.raw > 0) {
+      x *= speedKn / steady.speedKn;
+      y *= speedKn / steady.speedKn;
+    } else {
+      // Dead calm under the cell: the outflow comes from the cell's own west.
+      x = speedKn;
+      y = 0;
+    }
+  }
+
+  // Gusts: livelier in lows, when cold air crosses warm water in the fall, and in a squall.
+  const air = airTempAt(state, p, t);
+  const instability = Math.max(0, Math.min(1, (climate.waterC - air - 2) / 8));
+  const gustiness = Math.min(1, 0.2 + 0.5 * steady.nearLow + 0.3 * instability + 0.8 * squall);
+  const gustNoise = 0.5 + 0.5 * valueNoise(state.noiseSeed + 13, t / 90);
+  const gust01 = Math.max(0, Math.min(1, gustiness * gustNoise * Math.min(1, speedKn / 8)));
+
+  // Meteorological "from": the opposite of the direction the air moves.
+  const fromRad = (Math.atan2(-x, -y) + 2 * Math.PI) % (2 * Math.PI);
+  return { fromRad, speedKn, gust01, toKn: { x, y }, gustiness };
+}
+
+/** How much a full squall adds to the wind, knots. */
+export const SQUALL_WIND_KN = 12;
+
+/** The systems' wind with its slow drift, before any squall. */
+function steadyWind(
+  state: WeatherState,
+  climate: Climate,
+  p: Chart,
+  t: number,
+): { x: number; y: number; raw: number; speedKn: number; nearLow: number } {
   const base = baseWind(state, climate, p, t);
   // Slow drift: ±12° over a few hours and ±15% in speed.
   const hours = t / HOUR;
@@ -333,17 +378,7 @@ export function simWindAt(state: WeatherState, p: Chart, t: number): SimWind {
     x *= speedKn / raw;
     y *= speedKn / raw;
   }
-
-  // Gusts: livelier in lows and when cold air crosses warm water in the fall.
-  const air = airTempAt(state, p, t);
-  const instability = Math.max(0, Math.min(1, (climate.waterC - air - 2) / 8));
-  const gustiness = Math.min(1, 0.2 + 0.5 * base.nearLow + 0.3 * instability);
-  const gustNoise = 0.5 + 0.5 * valueNoise(state.noiseSeed + 13, t / 90);
-  const gust01 = Math.max(0, Math.min(1, gustiness * gustNoise * Math.min(1, speedKn / 8)));
-
-  // Meteorological "from": the opposite of the direction the air moves.
-  const fromRad = (Math.atan2(-x, -y) + 2 * Math.PI) % (2 * Math.PI);
-  return { fromRad, speedKn, gust01, toKn: { x, y }, gustiness };
+  return { x, y, raw, speedKn, nearLow: base.nearLow };
 }
 
 // ---------------------------------------------------------------------------------
@@ -469,18 +504,22 @@ const SQUALL_FULL_KN = 32;
  * Squall intensity, 0–1 (plan 04 §15, Phase 3 piece E): the thunderstorms of summer, and
  * in the cold months the squalls embedded in a gale's rain, where the same storm cells
  * stand. It is never less than `thunderstormAt`; the difference is the cold squall, which
- * brings the wind and rain but no lightning. The chart draws and meets these as storm cells.
+ * brings the wind and rain but no lightning. The chart draws and meets these as storm cells,
+ * and `windAt` blows harder and gustier inside them.
  */
 export function squallAt(state: WeatherState, p: Chart, t: number): number {
+  return squallFor(state, p, t, steadyWind(state, climateAtTime(t), p, t).speedKn);
+}
+
+/** `squallAt` given the wind before the squall, so the squall's own wind doesn't feed it. */
+function squallFor(state: WeatherState, p: Chart, t: number, steadyKn: number): number {
   const rain = precipitationAt(state, p, t);
   if (rain < 0.1) return 0;
   const cell = smoothstep(0.4, 0.7, stormCell(state, p, t));
   if (cell <= 0) return 0;
   const warm = smoothstep(STORM_WARM_C, STORM_HOT_C, climateAtTime(t).airMaxC);
   const drive =
-    warm >= 1
-      ? 1
-      : Math.max(warm, smoothstep(SQUALL_GALE_KN, SQUALL_FULL_KN, windAt(state, p, t).speedKn));
+    warm >= 1 ? 1 : Math.max(warm, smoothstep(SQUALL_GALE_KN, SQUALL_FULL_KN, steadyKn));
   return drive * smoothstep(0.1, 0.4, rain) * cell;
 }
 
@@ -677,6 +716,20 @@ const ADVECTION_PER_HOUR = 1.6;
 /** Radiation-fog spawn rate per game hour per site at full weight. */
 const RADIATION_PER_HOUR = 0.35;
 
+/**
+ * The systems' wind without squalls, knots and the way it blows. The fog lives by it: fog
+ * is gone from a squall's rain anyway, and keeping squalls out of the fog's draws keeps the
+ * season's weather the same whether or not squalls blow.
+ */
+export function steadyWindAt(
+  state: WeatherState,
+  p: Chart,
+  t: number,
+): { speedKn: number; toKn: Chart } {
+  const w = steadyWind(state, climateAtTime(t), p, t);
+  return { speedKn: w.speedKn, toKn: { x: w.x, y: w.y } };
+}
+
 function spawnFog(state: WeatherState, rng: Rng, climate: Climate, t: number, dt: number): void {
   if (state.fogBanks.length >= MAX_FOG_BANKS) return;
   const { hour } = dayAndHour(t);
@@ -687,7 +740,7 @@ function spawnFog(state: WeatherState, rng: Rng, climate: Climate, t: number, dt
     y: rng.range(LAKE_BOUNDS.minY, LAKE_BOUNDS.maxY),
   };
   if (inPolygon(at, WESTERN_SUPERIOR)) {
-    const wind = windAt(state, at, t);
+    const wind = steadyWindAt(state, at, t);
     const warmth = airTempAt(state, at, t) - climate.waterC;
     // Moist air comes off the land to the south and southwest; a north wind is dry.
     const moisture = Math.max(0, Math.min(1, 0.35 + wind.toKn.y / 12));
@@ -721,7 +774,7 @@ function spawnFog(state: WeatherState, rng: Rng, climate: Climate, t: number, dt
       (b) => b.kind === 'radiation' && Math.hypot(b.x - site.at.x, b.y - site.at.y) < 8000,
     );
     if (pooled) continue;
-    const wind = windAt(state, site.at, t);
+    const wind = steadyWindAt(state, site.at, t);
     const clear = pressureAt(state, site.at, t) >= STANDARD_HPA - 2;
     // Bays are sheltered and the night air settles, so the bay sees less wind than the lake.
     const bayWind = wind.speedKn * 0.6;
@@ -752,7 +805,7 @@ function updateFog(state: WeatherState, climate: Climate, t: number, dt: number)
     b.y += b.vy * dt;
     b.age += dt;
     const at = { x: b.x, y: b.y };
-    const wind = windAt(state, at, t);
+    const wind = steadyWindAt(state, at, t);
     const drift = knotsToMs(1) * (b.kind === 'advection' ? 0.8 : 0.2);
     b.vx = wind.toKn.x * drift;
     b.vy = wind.toKn.y * drift;

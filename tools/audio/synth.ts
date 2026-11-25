@@ -145,6 +145,7 @@ import {
   forge,
   hammerNail,
   handSaw,
+  shipLaunch,
   newspaperShake,
   pageTurn,
   placeKnock,
@@ -190,6 +191,8 @@ import {
 import {
   FROZEN_NIGHT_S,
   RUNNERS_LOOP_S,
+  GRIND_LOOP_S,
+  hullGrind,
   WINTER_WIND_S,
   frozenNight,
   iceBreak,
@@ -213,6 +216,7 @@ import {
   caveRoom,
   caveSurge,
   creek,
+  bearCrash,
   deerBound,
   deerSnort,
   endingAir,
@@ -241,6 +245,8 @@ const TODAY_P8I = '2026-11-17';
 const TODAY_P9J = '2026-11-19';
 const TODAY_P9N = '2026-11-20';
 const TODAY_P9Y = '2026-11-21';
+/** The polish pass's additions (plan 15 §21–§24's gaps). */
+const TODAY_P10 = '2026-11-24';
 /** Render only this category (e.g. `ships`), leaving the other sources untouched. */
 const ONLY = process.argv[2];
 
@@ -1076,6 +1082,7 @@ function renderHideout(): void {
     how: string,
     bus: SoundHints['bus'],
     loopCrossfadeS?: number,
+    date = TODAY_P8I,
   ): void =>
     writeSound(
       category,
@@ -1090,7 +1097,7 @@ function renderHideout(): void {
       },
       samples,
       how,
-      TODAY_P8I,
+      date,
     );
   const hideout = (
     id: string,
@@ -1100,7 +1107,8 @@ function renderHideout(): void {
     how: string,
     bus: SoundHints['bus'] = 'sfx',
     loopCrossfadeS?: number,
-  ): void => sound('hideout', id, name, description, samples, how, bus, loopCrossfadeS);
+    date?: string,
+  ): void => sound('hideout', id, name, description, samples, how, bus, loopCrossfadeS, date);
   const ui = (
     id: string,
     name: string,
@@ -1109,6 +1117,16 @@ function renderHideout(): void {
     how: string,
   ): void => sound('ui', id, name, description, samples, how, 'ui');
 
+  hideout(
+    'sfx.slipway.launch',
+    'launch',
+    'A ship launched from the slipway: the dog-shores knocked out, the cradle groaning, the rumble down the greased ways, the splash and the wash',
+    shipLaunch(RATE),
+    'Sine thuds and band-passed ticks, stick-slip creaks, doubly low-passed noise rumble under a band-passed hiss with a value-noise judder, a band-passed and low-passed noise splash with spray, a low-passed wash, reverb',
+    'sfx',
+    undefined,
+    TODAY_P10,
+  );
   hideout(
     'sfx.build.saw',
     'saw',
@@ -1480,6 +1498,7 @@ function renderWinter(): void {
     how: string,
     bus: SoundHints['bus'] = 'sfx',
     loopCrossfadeS?: number,
+    date = TODAY_P9N,
   ): void =>
     writeSound(
       'winter',
@@ -1494,7 +1513,7 @@ function renderWinter(): void {
       },
       samples,
       how,
-      TODAY_P9N,
+      date,
     );
 
   // Thin ice.
@@ -1567,6 +1586,17 @@ function renderWinter(): void {
     'sfx',
     0.5,
   );
+  // The hull in the ice.
+  sound(
+    'sfx.ice.grind',
+    'hull-grind',
+    `A hull forcing through lake ice (${GRIND_LOOP_S} s, looped): the crunch at her stem, plates scraping down the planking, floes knocking, the timbers creaking`,
+    hullGrind(RATE),
+    'Band-passed noise chopped by a value-noise grain, a smoother high scrape, low noise, sine thuds and ticks, stick-slip creaks, a falling sine chirp, folded to loop',
+    'sfx',
+    0.5,
+    TODAY_P10,
+  );
   sound(
     'sfx.sled.load',
     'sled-load',
@@ -1628,6 +1658,7 @@ function renderIsland(): void {
     how: string,
     bus: SoundHints['bus'] = 'sfx',
     loop = false,
+    date = TODAY_P9Y,
   ): void =>
     writeSound(
       'island',
@@ -1643,7 +1674,7 @@ function renderIsland(): void {
       },
       samples,
       how,
-      TODAY_P9Y,
+      date,
     );
 
   island(
@@ -1721,6 +1752,16 @@ function renderIsland(): void {
     'A deer bounding off through brush: four heavy landings and the crackle of stems between',
     deerBound(RATE),
     'Band-passed crackle and low sine thumps, sparse leaf ticks, a short room reverb',
+  );
+  island(
+    'sfx.bear.crash',
+    'bear-crash',
+    'A bear crashing off through the brush: a heavy gallop, branches snapping, going away',
+    bearCrash(RATE),
+    'Low sine thumps in threes with band-passed brush, short band-passed twig snaps, fading and low-passed with distance, a short reverb',
+    'sfx',
+    false,
+    TODAY_P10,
   );
   island(
     'voice.bear.huff',

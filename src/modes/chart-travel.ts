@@ -705,6 +705,7 @@ export function createChartTravel(host: ChartTravelHost): ChartTravel {
           forecastLead: Math.min(forecastLead, host.forecastHours?.() ?? Infinity),
           forecastHours: host.forecastHours?.(),
           forecastSkill: forecastSkill(ctx.state.player.captain),
+          pointer: plotting.pointer,
         }),
       );
     },

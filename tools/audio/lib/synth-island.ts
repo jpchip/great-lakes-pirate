@@ -282,6 +282,56 @@ export function deerBound(rate: number, seed = 9961): Float32Array {
   return reverb(out, rate, 0.12, 0.4, 0.5);
 }
 
+/**
+ * A bear crashing off through the brush (one that runs rather than fights): a gallop of
+ * heavy, soft footfalls in threes, branches snapping and the brush thrashing, all of it
+ * going away, duller and fainter, over about three seconds.
+ */
+export function bearCrash(rate: number, seed = 9966): Float32Array {
+  const random = seeded(seed);
+  const seconds = 3.4;
+  const out = new Float32Array(secs(seconds, rate));
+  // A bear's gallop: the forefeet close together, then the hind, about 2.5 strides a second.
+  const strides = [0, 0.4, 0.8, 1.2, 1.62, 2.05, 2.5];
+  strides.forEach((at, s) => {
+    const away = s / strides.length;
+    for (const [dt, w] of [
+      [0, 1],
+      [0.07, 0.8],
+      [0.19, 0.9],
+    ] as const) {
+      const len = secs(0.2, rate);
+      const thump = multiply(
+        glide(len, () => 70 + random() * 20, rate),
+        pluck(len, rate, 0.004, 0.07),
+      );
+      const brush = bandpass(whiteNoise(len, random), 600 + random() * 500, 1.1, rate);
+      const hit = new Float32Array(len);
+      const lp = 1 - 0.55 * away;
+      for (let i = 0; i < len; i++) {
+        hit[i] = (thump[i] as number) + (brush[i] as number) * 0.45 * lp;
+      }
+      mixInto(out, hit, secs(at + dt, rate), w * (1 - 0.7 * away) * (0.8 + 0.2 * random()));
+    }
+  });
+  // The brush thrashing and branches snapping as it goes through.
+  for (let k = 0; k < 24; k++) {
+    const t = 0.05 + random() * 2.8;
+    const away = t / 3;
+    const len = secs(0.03 + random() * 0.05, rate);
+    const twig = bandpass(whiteNoise(len, random), 1600 + random() * 1800, 1.4, rate);
+    for (let i = 0; i < len; i++) twig[i] = (twig[i] as number) * Math.exp((-i / rate) * 60);
+    mixInto(out, twig, secs(t, rate), (0.12 + random() * 0.18) * (1 - 0.75 * away));
+  }
+  for (const t of [0.55, 1.45]) {
+    const len = secs(0.06, rate);
+    const snap = bandpass(whiteNoise(len, random), 1100, 0.9, rate);
+    for (let i = 0; i < len; i++) snap[i] = (snap[i] as number) * Math.exp((-i / rate) * 45);
+    mixInto(out, snap, secs(t, rate), 0.6 * (1 - 0.5 * (t / 3)));
+  }
+  return reverb(lowpass(out, 5200, rate), rate, 0.15, 0.45, 0.5);
+}
+
 /** A bear's huff: breath forced out of a big chest, a pop of the jaw, the air sucked back. */
 export function bearHuff(rate: number, seed = 9970): Float32Array {
   const random = seeded(seed);

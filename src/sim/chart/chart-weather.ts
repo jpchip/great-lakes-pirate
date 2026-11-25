@@ -536,6 +536,38 @@ export function forecastAt(
   };
 }
 
+/**
+ * The glass at a chart point (plan 04 §12, "a barometer readout on hover"): what a
+ * barometer there would read at `t`, and the low or high whose heart the point is in, if
+ * any, with its course.
+ */
+export interface ChartGlass {
+  barometer: BarometerReading;
+  centre: ChartPressureCentre | undefined;
+}
+
+/** A point this deep in a system's radius reads as at its centre. */
+const CENTRE_PICK = 0.2;
+
+export function glassAt(
+  state: WeatherState,
+  geo: ChartGeography,
+  p: Chart,
+  t: number,
+  centres: readonly ChartPressureCentre[] = pressureCentres(state, geo, t),
+): ChartGlass {
+  let centre: ChartPressureCentre | undefined;
+  let best = Infinity;
+  for (const c of centres) {
+    const d = distance(p, c.pos);
+    if (d < CENTRE_PICK * c.radiusM && d < best) {
+      best = d;
+      centre = c;
+    }
+  }
+  return { barometer: barometerAt(state, toWorldChart(geo, p), t), centre };
+}
+
 /** Weather met along a laid course: the first squall or fog the ship would sail into. */
 export interface CourseWeather {
   kind: 'squall' | 'fog' | 'gale';

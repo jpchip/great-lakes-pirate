@@ -1056,6 +1056,21 @@
       "url": "music/ending-air.ogg",
       "bytes": 1003788
     },
+    "sfx.ice.grind": {
+      "type": "audio",
+      "url": "winter/hull-grind.ogg",
+      "bytes": 29385
+    },
+    "sfx.bear.crash": {
+      "type": "audio",
+      "url": "island/bear-crash.ogg",
+      "bytes": 25119
+    },
+    "sfx.slipway.launch": {
+      "type": "audio",
+      "url": "hideout/launch.ogg",
+      "bytes": 52440
+    },
     "music.open-water.day-apostles": {
       "type": "audio",
       "url": "songs/open-water-day-apostles.ogg",
@@ -1245,7 +1260,8 @@
       "amb.craft.still",
       "sfx.craft.still-load",
       "sfx.build.stone",
-      "amb.build.work"
+      "amb.build.work",
+      "sfx.slipway.launch"
     ],
     "ui-audio": [
       "ui.chime.bright",
@@ -1300,7 +1316,8 @@
       "sfx.foot.step-ice-2",
       "sfx.foot.step-squeak-1",
       "sfx.foot.step-squeak-2",
-      "amb.winter.wind"
+      "amb.winter.wind",
+      "sfx.ice.grind"
     ],
     "island-audio": [
       "voice.bear.growl",
@@ -1320,7 +1337,8 @@
       "amb.island.surf",
       "voice.wolf.howl-1",
       "voice.wolf.howl-2",
-      "sfx.island.woodpecker"
+      "sfx.island.woodpecker",
+      "sfx.bear.crash"
     ],
     "ending-audio": [
       "music.ending.air"
