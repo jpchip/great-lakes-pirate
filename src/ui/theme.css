@@ -766,22 +766,6 @@ body[data-mode='chart'] .chart-layer {
   font-variant-numeric: tabular-nums;
 }
 
-/* The glass under the pointer (plan 04 §12): a slip of paper beside it. */
-.chart-hover-glass {
-  position: fixed;
-  padding: 3px 8px;
-  font-size: 13px;
-  font-style: italic;
-  font-variant-numeric: tabular-nums;
-  color: var(--ink);
-  background: var(--paper);
-  border: 1px solid var(--paper-dark);
-  box-shadow: 0 1px 5px rgba(43, 33, 24, 0.25);
-  pointer-events: none;
-  white-space: nowrap;
-  z-index: 2;
-}
-
 .chart-forecast {
   margin-top: 8px;
 }

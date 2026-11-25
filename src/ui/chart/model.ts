@@ -1,10 +1,8 @@
-import { KNOT_MS, type Chart } from '../../core/coords';
 import { dayAndHour } from '../../core/time';
 import { sessionShip, sessionWeatherFactor, type ChartSession } from '../../modes/chart';
 import {
   courseWeather,
   forecastAt,
-  glassAt,
   type CourseWeather,
   type ChartForecast,
 } from '../../sim/chart/chart-weather';
@@ -104,18 +102,6 @@ export interface ChartWeatherHud {
   /** "The chart shows the weather expected at 02:00." when a forecast is up. */
   leadText: string | undefined;
   leads: readonly number[];
-  /** The glass under the pointer (plan 04 §12), drawn beside it; undefined off the chart. */
-  hover?: ChartGlassHover | undefined;
-}
-
-/** The barometer readout beside the pointer on the chart. */
-export interface ChartGlassHover {
-  /** Where to draw it: the pointer, CSS px in the window. */
-  x: number;
-  y: number;
-  /** "Low 29.28 ↘ falling, moving ENE 18 kn" or "Glass 29.71 → steady". */
-  text: string;
-  warning: boolean;
 }
 
 /** Forecast leads the chart offers, game hours. */
@@ -138,8 +124,6 @@ export interface ChartHudSources {
   forecastSkill?: number;
   /** The furthest lead the ship's barometer gives, game hours; all leads when absent. */
   forecastHours?: number | undefined;
-  /** The pointer over the chart: its chart point and window position. */
-  pointer?: { at: Chart; x: number; y: number } | undefined;
 }
 
 export const LOOKOUT_LABELS: Record<LookoutPref, string> = {
@@ -268,32 +252,7 @@ function weatherHud(src: ChartHudSources): ChartWeatherHud | undefined {
       ? `The chart shows the weather expected at ${clockLabel(gameSeconds + src.forecastLead * 3600)}.`
       : undefined,
     leads: FORECAST_LEADS.filter((h) => h <= (src.forecastHours ?? Infinity)),
-    hover: src.pointer && glassHover(src, src.pointer),
   };
-}
-
-/** The readout beside the pointer, at the hour the chart's weather is drawn for. */
-function glassHover(
-  src: ChartHudSources,
-  pointer: { at: Chart; x: number; y: number },
-): ChartGlassHover | undefined {
-  const sky = src.session.sky;
-  if (!sky) return undefined;
-  const t = src.gameSeconds + (src.forecastLead ?? 0) * 3600;
-  const g = glassAt(sky.state, src.session.geo, pointer.at, t);
-  const glass = barometerSnapshot(g.barometer);
-  const reading = `${glass.inHgText} ${glass.arrow} ${glass.trend}`;
-  let text = `Glass ${reading}`;
-  if (g.centre) {
-    const c = g.centre;
-    const kn = Math.hypot(c.vx, c.vy) / KNOT_MS;
-    const moving =
-      kn < 2
-        ? 'nearly stationary'
-        : `moving ${compassPoint(Math.atan2(c.vx, c.vy))} ${Math.round(kn)} kn`;
-    text = `${c.kind === 'low' ? 'Low' : 'High'} ${reading}, ${moving}`;
-  }
-  return { x: pointer.x, y: pointer.y, text, warning: g.barometer.trend === 'falling fast' };
 }
 
 export function chartHud(src: ChartHudSources): ChartHudSnapshot {

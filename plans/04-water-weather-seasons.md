@@ -242,7 +242,7 @@ At each new year (and at game start), roll seeded variation: ice-out date, freez
 
 ## 12. Chart Representation
 
-- Pressure systems as stylized swirl symbols with a "barometer" readout on hover. Fronts as period-style hand-drawn lines. *Built in Phase 3 ([03 §28](03-world-scale-chart-travel.md)) as L and H with their pressure and tracks, isobars every 0.02 inHg, and warm and cold fronts. The hover readout is built (polish, 2026-11-24): a slip beside the pointer reads the glass there at the hour the chart shows ("Glass 29.71 ↘ falling"), and on a low or high's centre names it with its course ("Low 29.28 ↘ falling, moving ENE 18 kn"); `glassAt` in `chart-weather.ts`.*
+- Pressure systems as stylized swirl symbols with a "barometer" readout on hover. Fronts as period-style hand-drawn lines. *Built in Phase 3 ([03 §28](03-world-scale-chart-travel.md)) as L and H with their pressure and tracks, isobars every 0.02 inHg, and warm and cold fronts. A hover readout was built (polish, 2026-11-24) and taken out after play-testing (2026-11-25): a slip that followed the pointer was more than the chart needs. The weather card's glass and the L and H labels carry the reading.*
 - Fog banks as shaded patches. Ice extent as a hatched overlay. Storm warning flags at port icons.
 - **Uncertainty:** known positions are stale (from rumors and signals) unless observed. The forecast cone grows over time. A barometer upgrade or a *Fisherman* background perk improves it.
 
@@ -805,6 +805,7 @@ The ice layer adds no draw call (it's in the water shader); floes and falling sn
 6. **Sea smoke** (steam fog over open water in hard cold) would suit the lake; not built.
 
 ## Changelog
+- v0.16: The chart's barometer readout on hover taken out after play-testing (§12).
 - v0.15: Polish (2026-11-24): squalls blow (§9, §15): a squall's heart lifts the wind up to 12 kn in a light air, tapering off in a blow, and makes it gusty; the fog keeps to the squall-free wind (`steadyWindAt`), so the season's statistics hold. The chart's barometer readout on hover (§12).
 - v0.14: §26 Not covered yet: piece M built (plan 11 §18.15).
 - v0.13: Phase 9 piece L (§27): the ice sheet, floes, snow on the ground and on everything, falling snow, frozen spray, winter palettes and the aurora (cut #3 lifted).
