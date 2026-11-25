@@ -547,6 +547,7 @@ export function attachStash(opts: StashControlOptions): StashControl {
           upgrade,
           cents: 0,
           hours: r.event.seconds / 3600,
+          how: 'slipway',
         });
         const name = upgradeDef(upgrade)?.name.toLowerCase() ?? upgrade;
         const text = `You fitted the ${name} on the ways (${spanText(r.event.seconds)}).`;
@@ -569,6 +570,7 @@ export function attachStash(opts: StashControlOptions): StashControl {
           from: 'slipway',
           hideout: id,
           classId: r.event.ship.classId,
+          seconds: r.event.seconds,
         });
         close();
         opts.launched?.(id);

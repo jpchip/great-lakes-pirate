@@ -1,0 +1,11 @@
+{
+  "id": "sfx.bear.crash",
+  "name": "bear-crash",
+  "description": "A bear crashing off through the brush: a heavy gallop, branches snapping, going away",
+  "kind": "oneshot",
+  "bus": "sfx",
+  "bundles": [
+    "island-audio"
+  ],
+  "source": "source.flac"
+}

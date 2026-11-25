@@ -78,7 +78,8 @@ describe("the chart's glass on hover", () => {
   it("names a low or high when the pointer is on its centre, with where it's going", () => {
     const centres = pressureCentres(state, geo, t);
     expect(centres.length).toBeGreaterThan(0);
-    const c = centres[0]!;
+    const c = centres[0];
+    if (!c) throw new Error('no centre');
     const g = glassAt(state, geo, c.pos, t);
     expect(g.centre?.id).toBe(c.id);
     const hud = chartHud({

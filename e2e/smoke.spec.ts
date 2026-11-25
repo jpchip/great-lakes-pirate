@@ -235,7 +235,8 @@ test('loads the sailing and world sounds and unlocks audio on the first key pres
   const body = page.locator('body');
   await page.goto('/?renderer=null&play');
   await expect(body).toHaveAttribute('data-mode', 'sailing');
-  await expect(body).toHaveAttribute('data-audio-bank', '207');
+  // 207 before the polish pass's hull grind, bear crash and launch (plan 15 §25).
+  await expect(body).toHaveAttribute('data-audio-bank', '210');
   await page.keyboard.press('KeyW');
   await expect(body).toHaveAttribute('data-audio', 'running');
   expect(errors).toEqual([]);
@@ -438,6 +439,15 @@ test('sails from the Apostles to the Twin Ports on the chart, through a reload',
   await expect(page.getByTestId('chart-forecast-note')).toContainText('expected at');
   await page.getByTestId('chart-forecast-0').click();
   await expect(page.getByTestId('chart-forecast-note')).toHaveCount(0);
+  // The glass on hover (plan 04 §12): a slip beside the pointer reads the barometer there.
+  const canvas = page.getByTestId('chart-canvas');
+  const box = await canvas.boundingBox();
+  if (!box) throw new Error('no chart canvas');
+  await page.mouse.move(box.x + box.width * 0.4, box.y + box.height * 0.5);
+  await page.mouse.move(box.x + box.width * 0.42, box.y + box.height * 0.5);
+  await expect(page.getByTestId('chart-hover-glass')).toContainText(
+    /^(Glass|Low|High) \d\d\.\d\d /,
+  );
   await page.keyboard.press('Enter');
   await expect(page.getByTestId('chart-status')).toContainText('Under way');
 

@@ -247,6 +247,33 @@ export function runnerLevel(speedMps: number, loadCu: number, onBareIce: boolean
 }
 
 // ---------------------------------------------------------------------------------------
+// The hull in the ice
+
+/** Hull HP a second she loses forcing ice at which the grinding is at its loudest. */
+export const GRIND_FULL_HP_S = 1.2;
+
+/**
+ * The player's hull forcing through ice (piece K's `IceGrinding`): the grind's bed by how
+ * hard she's being worked (hull HP a second), lower and duller at a crawl, fuller and
+ * brighter driven hard; and how often a floe knocks on her or a crack runs off.
+ */
+export function grindLevel(hpPerS: number): {
+  gain: number;
+  rate: number;
+  lowpassHz: number;
+  knockEveryS: number | undefined;
+} {
+  if (!(hpPerS > 0.005)) return { gain: 0, rate: 1, lowpassHz: 2500, knockEveryS: undefined };
+  const k = clamp01(hpPerS / GRIND_FULL_HP_S);
+  return {
+    gain: 0.35 + 0.65 * smooth(k),
+    rate: 0.82 + 0.25 * k,
+    lowpassHz: 2500 + 6500 * k,
+    knockEveryS: 2.6 - 1.6 * k,
+  };
+}
+
+// ---------------------------------------------------------------------------------------
 // The ice far off, and a harbor frozen in
 
 /**

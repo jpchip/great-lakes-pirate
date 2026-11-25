@@ -447,7 +447,8 @@ export interface GameEvents {
    * A schooner built at a hideout's slipway and launched (Phase 8 piece G raises it; the
    * builder Ambition counts it).
    */
-  ShipLaunched: { from: 'slipway'; hideout: string; classId: string };
+  /** `seconds`: the game seconds she took on the ways. */
+  ShipLaunched: { from: 'slipway'; hideout: string; classId: string; seconds?: number };
   PaperCried: { port: string; paper: string; headline: string; aboutYou: boolean };
   /**
    * Targets and their will (plan 07 §5, §8.2; Phase 6 piece C). `TargetStateChanged` is

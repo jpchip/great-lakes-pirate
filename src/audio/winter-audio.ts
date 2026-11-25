@@ -4,6 +4,7 @@ import { FOOT_SOUND } from './foot-audio';
 import { PRIORITY, type AudioMixer, type AudioPoint } from './mixer';
 import type { BusId } from './settings';
 import {
+  grindLevel,
   chatterEveryS,
   chatterGain,
   frozenHarbor,
@@ -57,6 +58,7 @@ export const WINTER_SOUND = {
   stepIce: ['sfx.foot.step-ice-1', 'sfx.foot.step-ice-2'],
   stepSqueak: ['sfx.foot.step-squeak-1', 'sfx.foot.step-squeak-2'],
   runners: 'sfx.sled.runners',
+  grind: 'sfx.ice.grind',
   load: 'sfx.sled.load',
   chatter: 'voice.cold.chatter',
   gust: ['amb.winter.gust-1', 'amb.winter.gust-2'],
@@ -99,7 +101,7 @@ export interface WinterFrame {
 
 export type SledAct = 'down' | 'loaded' | 'unloaded' | 'stowed' | 'sold' | 'hitched' | 'dropped';
 
-type BedId = 'wind' | 'night' | 'runners';
+type BedId = 'wind' | 'night' | 'runners' | 'grind';
 
 const BEDS: Record<BedId, { sound: string; bus: BusId; level: number }> = {
   // Encoded as beds (RMS −24 dB), brought up where they need to sit.
@@ -107,6 +109,8 @@ const BEDS: Record<BedId, { sound: string; bus: BusId; level: number }> = {
   night: { sound: WINTER_SOUND.night, bus: 'ambience', level: 1.3 },
   // A one-shot level (peak −1 dB) looped.
   runners: { sound: WINTER_SOUND.runners, bus: 'sfx', level: 0.45 },
+  // The player's own hull in the ice: a one-shot level looped, under the sailing set.
+  grind: { sound: WINTER_SOUND.grind, bus: 'sfx', level: 0.6 },
 };
 
 const BED_TAU_S = 0.5;
@@ -129,7 +133,7 @@ export class WinterSounds {
     cues: 0,
     winter: 0,
     hush: 0,
-    beds: { wind: 0, night: 0, runners: 0 } as Record<BedId, number>,
+    beds: { wind: 0, night: 0, runners: 0, grind: 0 } as Record<BedId, number>,
     gusts: 0,
     chatters: 0,
     booms: 0,
@@ -148,6 +152,10 @@ export class WinterSounds {
   private boomS = 20;
   private sledAt: { x: number; z: number } | undefined;
   private sledSpeed = 0;
+  /** Hull HP the ice took from her since the last frame, and the rate it's going at. */
+  private grindHp = 0;
+  private grindRate = 0;
+  private knockS = 1;
 
   constructor(
     private readonly mixer: AudioMixer,
@@ -190,6 +198,13 @@ export class WinterSounds {
       this.play(this.pick(WINTER_SOUND.crack), 'sfx', 0.85, { rate: 0.8 });
       this.play(FOOT_SOUND.splash, 'sfx', 0.55, { delay: 0.15 });
     }
+  }
+
+  // --- The hull in the ice ---------------------------------------------------------------
+
+  /** The ice took `damage` hull HP from the player's ship this tick (`IceGrinding`). */
+  grinding(damage: number): void {
+    if (damage > 0) this.grindHp += damage;
   }
 
   // --- The sled --------------------------------------------------------------------------
@@ -270,6 +285,26 @@ export class WinterSounds {
       }
     } else {
       this.boomS = Math.min(Math.max(this.boomS, 8), 30);
+    }
+
+    // Her hull forcing the ice: the rate eases in and out over a few tenths of a second.
+    const hpPerS = f.body ? 0 : this.grindHp / dt;
+    this.grindHp = 0;
+    this.grindRate += (hpPerS - this.grindRate) * Math.min(1, dt / 0.3);
+    const grind = grindLevel(this.grindRate);
+    this.bed('grind', grind.gain, grind.lowpassHz, dt, grind.rate);
+    if (grind.knockEveryS !== undefined) {
+      this.knockS -= dt;
+      if (this.knockS <= 0) {
+        this.knockS = grind.knockEveryS * (0.6 + 0.8 * this.random());
+        this.levels.ice++;
+        this.play(this.pick(WINTER_SOUND.crack), 'sfx', 0.35 + 0.35 * grind.gain, {
+          rate: 0.7 + 0.2 * this.random(),
+          lowpassHz: grind.lowpassHz,
+        });
+      }
+    } else {
+      this.knockS = 0.4;
     }
 
     const b = f.body;

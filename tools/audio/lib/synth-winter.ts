@@ -350,6 +350,53 @@ export function sledRunners(rate: number, seed = 9770): Float32Array {
   return out;
 }
 
+export const GRIND_LOOP_S = 5;
+
+/**
+ * A hull forcing her way through lake ice (looped; plan 15 §4.5, piece K's `IceGrinding`):
+ * the crunch of the sheet breaking at her stem, plates scraping down the planking, floes
+ * knocking on the hull, the timbers creaking under it, and now and then a crack running
+ * off across the ice.
+ */
+export function hullGrind(rate: number, seed = 9830): Float32Array {
+  const random = seeded(seed);
+  const n = secs(GRIND_LOOP_S, rate);
+  const tail = secs(1.5, rate);
+  const out = new Float32Array(n + tail);
+  // The crunch: mid noise chopped by a fast grain, so it breaks up rather than hisses.
+  const crunch = bandpass(noise(n, random), 750, 0.55, rate);
+  const grain = wander(n, 28, rate, random);
+  const push = wander(n, 0.7, rate, random);
+  // The scrape: higher, smoother, the ice sliding along the planks.
+  const scrape = bandpass(noise(n, random), 2300, 0.9, rate);
+  const slide = wander(n, 1.6, rate, random);
+  for (let i = 0; i < n; i++) {
+    const p = 0.65 + 0.35 * (push[i] as number);
+    const g = Math.max(0, Math.abs(grain[i] as number) - 0.15) * 1.6;
+    out[i] =
+      p * g * (crunch[i] as number) +
+      0.35 * p * (0.5 + 0.5 * (slide[i] as number)) * (scrape[i] as number);
+  }
+  // The weight of it under the bow.
+  mixInto(out, lowpass(lowpass(noise(n, random), 140, rate), 140, rate), 0, 2.2);
+  // Floes knocking on the hull.
+  for (let t = 0.2; t < GRIND_LOOP_S; t += 0.35 + 0.7 * random()) {
+    mixInto(
+      out,
+      thud(rate, random, 0.25, 95 + 70 * random()),
+      secs(t, rate),
+      0.3 + 0.25 * random(),
+    );
+    if (random() < 0.4)
+      mixInto(out, burst(rate, random, 0.08, 1400, 1.2, 0.015), secs(t, rate), 0.25);
+  }
+  // The planking taking it, and a crack running off.
+  mixInto(out, creak(rate, random, 0.6, 110, 240), secs(1.3, rate), 0.14);
+  mixInto(out, creak(rate, random, 0.5, 130, 260), secs(3.6, rate), 0.12);
+  mixInto(out, chirp(rate, random, 0.9, 1900, 380), secs(2.4, rate), 0.12);
+  return folded(out, GRIND_LOOP_S, rate);
+}
+
 /** A load set down on the sled's slats and lashed: the thump, a slide, the rope drawn tight. */
 export function sledLoad(rate: number, seed = 9780): Float32Array {
   const random = seeded(seed);

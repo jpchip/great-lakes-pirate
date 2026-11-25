@@ -1,0 +1,10 @@
+{
+  "source": "procedural",
+  "tool": "tools/audio/synth.ts (tools/audio/lib/synth.ts)",
+  "author": "Great Lakes Pirate contributors",
+  "reference": "Band-passed noise chopped by a value-noise grain, a smoother high scrape, low noise, sine thuds and ticks, stick-slip creaks, a falling sine chirp, folded to loop",
+  "date": "2026-11-24",
+  "license": "CC BY 4.0",
+  "attribution": "Great Lakes Pirate contributors",
+  "modifications": []
+}

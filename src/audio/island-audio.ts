@@ -43,6 +43,7 @@ export const ISLAND_SOUND = {
   deerSnort: 'voice.deer.snort',
   deerBound: 'sfx.deer.bound',
   bearHuff: 'voice.bear.huff',
+  bearCrash: 'sfx.bear.crash',
   bearGrowl: 'voice.bear.growl',
   wolfHowls: ['voice.wolf.howl-1', 'voice.wolf.howl-2'],
   grappleCast: 'sfx.salvage.grapple-cast',
@@ -82,7 +83,12 @@ const BED_BUS: Record<BedId, BusId> = {
   surf: 'ambience',
   cave: 'ambience',
 };
-const BED_LEVEL: Record<BedId, number> = { birds: 1, creek: 0.8, surf: 0.9, cave: 0.9 };
+/**
+ * The beds' levels. The birds are sparse calls over silence, so the build's RMS levelling
+ * leaves them about 8 LU hotter than the other beds (−15.5 LUFS against about −23): the
+ * loudness pass (plan 15 §25) brings them down to sit with the creek and the surf.
+ */
+const BED_LEVEL: Record<BedId, number> = { birds: 0.45, creek: 0.8, surf: 0.9, cave: 0.9 };
 
 /** The tier an island is walked at (`islands.json`); a standard island if it isn't set. */
 export function tierOf(islandId: string | undefined): IslandTier {

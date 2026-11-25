@@ -17,6 +17,7 @@ import {
 import type { AudioMixer, OneShot } from '../src/audio/mixer';
 import {
   ENDING_DRONE,
+  bearCrash,
   bearGrowl,
   bearHuff,
   caveDrip,
@@ -205,7 +206,12 @@ describe('the animals', () => {
     expect(animalCue('bear', 'threaten').sounds).toEqual([ISLAND_SOUND.bearHuff]);
     expect(animalCue('bear', 'attack').sounds).toEqual([ISLAND_SOUND.bearGrowl]);
     expect(animalCue('bear', 'wary').sounds).toEqual([]);
-    expect(animalCue('bear', 'flee').sounds).toEqual([]);
+    // One that runs crashes off through the brush (plan 15 §24's gap, built in polish).
+    expect(animalCue('bear', 'flee').sounds).toEqual([
+      ISLAND_SOUND.bearHuff,
+      ISLAND_SOUND.bearCrash,
+    ]);
+    expect(animalCue('bear', 'flee').caption).toMatch(/crashing off/);
   });
 
   it('howls the wolves from the trees, and the nearer pack answers with the second', () => {
@@ -356,6 +362,7 @@ describe('the synthesis', () => {
     ['deer snort', deerSnort(RATE)],
     ['deer bound', deerBound(RATE)],
     ['bear huff', bearHuff(RATE)],
+    ['bear crash', bearCrash(RATE)],
     ['bear growl', bearGrowl(RATE)],
     ['wolf howl', wolfHowl(1, RATE)],
     ['grapple cast', grappleCast(RATE)],
