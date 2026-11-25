@@ -187,6 +187,8 @@ export interface EdgePaint {
   out?: number;
   /** The wall turns the building's corner at its local −x and +x ends. */
   corners?: readonly [boolean, boolean];
+  /** A door with the building's sign board over it: no transom or hood under the board. */
+  signed?: boolean;
 }
 
 /** A flat panel facing +z (or −z with `flip`), its foot at y: siding lines, paint. */
@@ -455,7 +457,7 @@ export function edgeGeometry(
             body.push(
               box(0.14, DOOR_HEIGHT_M, 0.07, sx * (w / 2 + 0.07), 0, face(0.07), trimColor),
             );
-          if (style.transom && lintel && height > DOOR_HEIGHT_M + 0.6 && w < 1.7) {
+          if (style.transom && !paint.signed && lintel && height > DOOR_HEIGHT_M + 0.6 && w < 1.7) {
             const lighted = hash(paint.seed * 5.3 + p.x * 0.7 + p.z) < 0.6;
             const t = box(
               w - 0.2,
@@ -469,7 +471,7 @@ export function edgeGeometry(
             (lighted ? lit : body).push(t);
             body.push(box(w + 0.1, 0.08, 0.1, 0, DOOR_HEIGHT_M + 0.54, face(0.1), trimColor));
           }
-          if (style.doorHood && height > DOOR_HEIGHT_M + 0.75) {
+          if (style.doorHood && !paint.signed && height > DOOR_HEIGHT_M + 0.75) {
             const hy = DOOR_HEIGHT_M + 0.62;
             body.push(box(w + 0.6, 0.1, 0.7, 0, hy, face(0.7), trimColor));
             body.push(box(w + 0.7, 0.06, 0.8, 0, hy + 0.1, face(0.8), style.roof));

@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import type { DistrictModel, PlacedPiece } from '../../gameplay/district/district';
 import { kitPiece } from '../../sim/district/kit';
-import { buildingSigns } from './signs';
+import { buildingSigns, districtSigns } from './signs';
 import { PALETTE } from '../style/palette';
 import { merged, place } from '../style/parts';
 import {
@@ -129,6 +129,10 @@ export function createDistrictView(
   for (const pile of model.piles) pileGeometry(pile, sinkAt(pile.x, pile.z));
   const styles = new Map(model.buildings.map((b) => [b.def.id, buildingStyle(b)] as const));
   const near = (a: number, b: number): boolean => Math.abs(a - b) < 0.05;
+  // Doors with a sign board over them keep the wall above clear for it.
+  const signedDoors = new Set(
+    districtSigns(model).flatMap((k) => (k.kind === 'board' && k.door ? [k.door] : [])),
+  );
   const paintOf = (p: PlacedPiece): EdgePaint => {
     const b = p.building ? model.buildings.find((k) => k.def.id === p.building) : undefined;
     const wallPiece = b ? kitPiece(b.def.wall) : undefined;
@@ -141,6 +145,7 @@ export function createDistrictView(
         (wallPiece?.id.startsWith('kit.wall_brick') ?? false),
       seed: b ? b.def.paint * 17 + b.minX : 3,
       style,
+      signed: p.door !== undefined && signedDoors.has(p.door),
     };
     if (!b) return paint;
     // Which face is outside, in the piece's frame (front toward −z; an edge along z is
