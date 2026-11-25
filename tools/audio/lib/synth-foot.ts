@@ -12,8 +12,9 @@
  */
 
 import { clang, thud } from './synth-harbor.ts';
-import { drumHit, reedChord, strum, trimTail } from './synth-chart.ts';
+import { drumHit, reedChord, trimTail } from './synth-chart.ts';
 import { syllable, type Syllable } from './synth-law.ts';
+import { littleBrownBullsForm, littleBrownBullsGuitar } from './synth-songs.ts';
 import {
   bandpass,
   fiddleDrone,
@@ -752,100 +753,23 @@ export function saloonRoom(rate: number, seed = 7610): Float32Array {
   return folded(reverb(lowpass(out, 3200, rate), rate, 0.25, 0.7, 0.5), seconds, rate);
 }
 
-export const SALOON_TUNE = { bpm: 104, bars: 16, beatsPerBar: 4 } as const;
+/** The saloon's day tune: "The Little Brown Bulls" twice through, 6/8 in eighths. */
+export const SALOON_TUNE = { bpm: 276, bars: 20, beatsPerBar: 6 } as const;
 export const SALOON_TUNE_S = (SALOON_TUNE.bars * SALOON_TUNE.beatsPerBar * 60) / SALOON_TUNE.bpm;
 
-/** The tune's two eight-bar strains, in G: a polka-ish thing a concertina man would know. */
-const SALOON_A: readonly Note[] = [
-  ['D5', 1],
-  ['G5', 1],
-  ['B5', 1],
-  ['G5', 1],
-  ['A5', 1],
-  ['F#5', 1],
-  ['D5', 2],
-  ['E5', 1],
-  ['G5', 1],
-  ['C6', 1],
-  ['B5', 1],
-  ['A5', 2],
-  ['D5', 2],
-  ['D5', 1],
-  ['G5', 1],
-  ['B5', 1],
-  ['G5', 1],
-  ['A5', 1],
-  ['C6', 1],
-  ['B5', 1],
-  ['A5', 1],
-  ['G5', 1],
-  ['E5', 1],
-  ['F#5', 1],
-  ['A5', 1],
-  ['G5', 3],
-  ['R', 1],
-];
-const SALOON_B: readonly Note[] = [
-  ['B5', 1.5],
-  ['A5', 0.5],
-  ['G5', 1],
-  ['E5', 1],
-  ['C5', 1],
-  ['E5', 1],
-  ['G5', 2],
-  ['A5', 1.5],
-  ['G5', 0.5],
-  ['F#5', 1],
-  ['D5', 1],
-  ['A4', 1],
-  ['D5', 1],
-  ['F#5', 2],
-  ['B5', 1.5],
-  ['A5', 0.5],
-  ['G5', 1],
-  ['E5', 1],
-  ['C5', 1],
-  ['E5', 1],
-  ['A5', 1],
-  ['G5', 1],
-  ['F#5', 1],
-  ['D5', 1],
-  ['E5', 1],
-  ['F#5', 1],
-  ['G5', 3],
-  ['R', 1],
-];
-const SALOON_CHORDS = [
-  'G',
-  'D',
-  'C',
-  'D',
-  'G',
-  'D',
-  'C',
-  'G',
-  'G',
-  'C',
-  'D',
-  'D',
-  'G',
-  'C',
-  'D',
-  'G',
-] as const;
-
 /**
- * "The Booth Street Polka": the saloon's concertina and a guitar vamping under it, sixteen
- * bars that loop. Heard through the wall from the street, so it's mixed plain and close.
+ * The saloon's concertina playing "The Little Brown Bulls" (traditional, Rickaby 1926;
+ * tools/audio/lib/synth-songs.ts) with a guitar vamping under it, twenty bars that loop.
+ * Heard through the wall from the street, so it's mixed plain and close.
  */
 export function saloonTune(rate: number, seed = 7620): Float32Array {
   const random = seeded(seed);
   const out = new Float32Array(secs(SALOON_TUNE_S + 3, rate));
-  const { bpm, beatsPerBar } = SALOON_TUNE;
-  const beatS = 60 / bpm;
+  const { bpm } = SALOON_TUNE;
+  const { melody } = littleBrownBullsForm();
   renderMelody(
     out,
-    [...SALOON_A, ...SALOON_B],
+    melody,
     bpm,
     0,
     rate,
@@ -853,14 +777,7 @@ export function saloonTune(rate: number, seed = 7620): Float32Array {
     0.5,
     random,
   );
-  SALOON_CHORDS.forEach((chord, bar) => {
-    for (let beat = 0; beat < beatsPerBar; beat++) {
-      const at = (bar * beatsPerBar + beat) * beatS;
-      // Oom-pah: the bass string on one and three, the chord on two and four.
-      if (beat % 2 === 0) strum(out, chord, at, beatS * 0.9, rate, random, 0.16, 0);
-      else strum(out, chord, at, beatS * 0.6, rate, random, 0.22, 0.012);
-    }
-  });
+  littleBrownBullsGuitar(out, bpm, rate, random);
   return folded(reverb(out, rate, 0.14, 0.6, 0.5), SALOON_TUNE_S, rate);
 }
 

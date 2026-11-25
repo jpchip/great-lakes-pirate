@@ -20,8 +20,13 @@ import {
   pileGeometry,
   propGeometry,
   roofGeometry,
+  type EdgePaint,
   type KitSink,
 } from './kit-meshes';
+import { buildingStyle } from './styles';
+import { decorGeometry } from './decor';
+import { createDistrictLife } from './life';
+import { CELL_M } from '../../sim/district/kit';
 
 /**
  * A docks district drawn (plan 08 §2, §13–14; Phase 7 piece C). The static kit is merged
@@ -122,22 +127,45 @@ export function createDistrictView(
   const groundAt = (x: number, z: number): number => g.heightAt(x, z);
   for (const c of model.cells) cellGeometry(c, groundAt, sinkAt(c.x, c.z));
   for (const pile of model.piles) pileGeometry(pile, sinkAt(pile.x, pile.z));
-  const paintOf = (
-    p: PlacedPiece,
-  ): { wall: number; trim: number; brick: boolean; seed: number } => {
+  const styles = new Map(model.buildings.map((b) => [b.def.id, buildingStyle(b)] as const));
+  const near = (a: number, b: number): boolean => Math.abs(a - b) < 0.05;
+  const paintOf = (p: PlacedPiece): EdgePaint => {
     const b = p.building ? model.buildings.find((k) => k.def.id === p.building) : undefined;
     const wallPiece = b ? kitPiece(b.def.wall) : undefined;
-    return {
-      wall: b ? (PAINTS[b.def.paint % PAINTS.length] as number) : 0x7a6450,
-      trim: 0xe8e2d2,
+    const style = b ? styles.get(b.def.id) : undefined;
+    const paint: EdgePaint = {
+      wall: style ? style.wall : b ? (PAINTS[b.def.paint % PAINTS.length] as number) : 0x7a6450,
+      trim: style ? style.trim : 0xe8e2d2,
       brick:
         p.piece.id.startsWith('kit.wall_brick') ||
         (wallPiece?.id.startsWith('kit.wall_brick') ?? false),
       seed: b ? b.def.paint * 17 + b.minX : 3,
+      style,
     };
+    if (!b) return paint;
+    // Which face is outside, in the piece's frame (front toward −z; an edge along z is
+    // turned a quarter, so its −z looks east), and whether the wall ends at a corner.
+    const half = CELL_M / 2;
+    if (p.heading === 0) {
+      if (near(p.z, b.minZ)) paint.out = -1;
+      else if (near(p.z, b.maxZ)) paint.out = 1;
+      paint.corners = [near(p.x - half, b.minX), near(p.x + half, b.maxX)];
+    } else {
+      if (near(p.x, b.maxX)) paint.out = -1;
+      else if (near(p.x, b.minX)) paint.out = 1;
+      paint.corners = [near(p.z - half, b.minZ), near(p.z + half, b.maxZ)];
+    }
+    if (!paint.out) delete paint.corners;
+    return paint;
   };
   for (const e of model.edges) edgeGeometry(e, paintOf(e), sinkAt(e.x, e.z), true);
   for (const p of model.props) propGeometry(p, sinkAt(p.x, p.z));
+  // The lived-in clutter (wash lines, rain barrels, shop goods, telegraph wires).
+  for (const d of decorGeometry(model)) {
+    d.computeBoundingBox();
+    const c = d.boundingBox?.getCenter(new THREE.Vector3()) ?? new THREE.Vector3();
+    sinkAt(c.x, c.z).body.push(d);
+  }
   for (const [key, sink] of blocks) {
     if (sink.body.length > 0) addMesh(merged(sink.body), body, `block:${key}`);
     if (sink.lit.length > 0) addMesh(merged(sink.lit), lit, `lit:${key}`);
@@ -157,8 +185,17 @@ export function createDistrictView(
   for (const m of sign.meshes) {
     group.add(m);
     meshes++;
-    triangles += 2;
+    triangles += m.geometry.getAttribute('position').count / 3;
   }
+  if (sign.brackets.length > 0) addMesh(merged(sign.brackets), body, 'sign-irons');
+
+  // --- What moves: chimney smoke, gulls, flags (0.9) ---------------------------------------
+  const life = createDistrictLife(model);
+  for (const o of life.objects) {
+    group.add(o);
+    meshes++;
+  }
+  const born = performance.now();
 
   for (const child of group.children) child.updateMatrix();
 
@@ -220,7 +257,8 @@ export function createDistrictView(
     }
     const parts: THREE.BufferGeometry[] = [];
     for (const e of leafEdges) {
-      const g = doorLeafGeometry(e, e.door !== undefined && closed.has(e.door));
+      const color = e.building ? styles.get(e.building)?.door : undefined;
+      const g = doorLeafGeometry(e, e.door !== undefined && closed.has(e.door), color);
       if (g) parts.push(g);
     }
     if (parts.length === 0) return;
@@ -273,6 +311,8 @@ export function createDistrictView(
         pos.set(lampAt.x, lampAt.y, lampAt.z, l.radiusM * POOL_REACH);
         color.copy(lampColors[k] ?? color).multiplyScalar(night);
       }
+      sign.light(night, out);
+      life.update((performance.now() - born) / 1000, night);
       // Lamp glass and lit windows: dull glass by day, glowing after dusk.
       const litU = (lit as StylizedMaterial).uniforms;
       litU.uEmissive.value.copy(glow).multiplyScalar(0.9 * night);
@@ -295,6 +335,7 @@ export function createDistrictView(
       body.dispose();
       lit.dispose();
       sign.dispose();
+      life.dispose();
       groundMat.dispose();
       waterMat.dispose();
     },

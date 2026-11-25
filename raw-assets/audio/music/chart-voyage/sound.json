@@ -1,7 +1,7 @@
 {
   "id": "music.chart.voyage",
   "name": "chart-voyage",
-  "description": "Chart music: \"The Long Reach\", a 6/8 traveling tune on concertina, guitar and tin whistle",
+  "description": "Chart music: \"The Bigler's Crew\" (traditional), a 6/8 sailing song on concertina, guitar and tin whistle",
   "kind": "oneshot",
   "bus": "music",
   "bundles": [

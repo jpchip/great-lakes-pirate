@@ -2,18 +2,18 @@
   "source": "procedural",
   "tool": "tools/audio/synth.ts (tools/audio/lib/synth.ts)",
   "author": "Great Lakes Pirate contributors",
-  "reference": "Original tune; synthesized free-reed concertina, Karplus-Strong guitar, tin whistle and fiddle drone, Freeverb-style reverb",
+  "reference": "Traditional melody, public domain: Franz Rickaby, Ballads and Songs of the Shanty-Boy (Harvard University Press, 1926), no. 47 \"The Bigler's Crew\", p. 168. Original arrangement; synthesized free-reed concertina, Karplus-Strong guitar, tin whistle and fiddle drone, Freeverb-style reverb",
   "date": "2026-11-01",
   "license": "CC BY 4.0",
   "attribution": "Great Lakes Pirate contributors",
   "modifications": [],
-  "description": "Chart music: \"The Long Reach\", a 6/8 traveling tune on concertina, guitar and tin whistle",
-  "durationS": 89.5,
+  "description": "Chart music: \"The Bigler's Crew\" (traditional), a 6/8 sailing song on concertina, guitar and tin whistle",
+  "durationS": 91.214,
   "pipeline": [
     "decoded to mono 48000 Hz",
     "edge fades",
-    "RMS-normalized toward -18 dB (+1.6 dB)",
+    "RMS-normalized toward -18 dB (+2.1 dB)",
     "Opus 112 kbps mono in Ogg (ffmpeg libopus)"
   ],
-  "inputHash": "373cf7264580db0d"
+  "inputHash": "5cc75fce6ef1cb13"
 }

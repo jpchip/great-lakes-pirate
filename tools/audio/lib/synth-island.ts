@@ -19,6 +19,7 @@ import {
   type Note,
   type Random,
 } from './synth.ts';
+import { GERRYS_ROCKS, transpose } from './synth-songs.ts';
 
 const TAU = Math.PI * 2;
 
@@ -474,41 +475,13 @@ export function spade(variant: number, rate: number): Float32Array {
 // ---------------------------------------------------------------------------------------
 // The ending.
 
-/** The end of a run: a slow air in D minor, eight bars and a turn home (about 40 s). */
+/**
+ * The end of a run: "Gerry's Rocks" (traditional, Rickaby 1926; synth-songs.ts), the
+ * woods' great lament, slow on the whistle, moved up a tone to D (about a minute).
+ */
 export function endingAir(): { notes: Note[]; bpm: number } {
-  const notes: Note[] = [
-    ['D4', 2],
-    ['F4', 1],
-    ['A4', 2],
-    ['G4', 1],
-    ['F4', 2],
-    ['E4', 1],
-    ['D4', 1],
-    ['C4', 2],
-    ['D4', 2],
-    ['A3', 2],
-    ['C4', 1],
-    ['D4', 1],
-    ['E4', 2],
-    ['F4', 2],
-    ['G4', 1],
-    ['F4', 1],
-    ['E4', 2],
-    ['D4', 1],
-    ['E4', 1],
-    ['D4', 4],
-    ['F4', 2],
-    ['A4', 1],
-    ['G4', 1],
-    ['F4', 2],
-    ['E4', 2],
-    ['D4', 1],
-    ['C4', 1],
-    ['A3', 2],
-    ['B3', 2],
-    ['A3', 4],
-  ];
-  return { notes, bpm: 58 };
+  const g = GERRYS_ROCKS;
+  return { notes: transpose([...g.pickup, ...g.tune], 2), bpm: 63 };
 }
 
 /** The ending's drone under the air, in D. */

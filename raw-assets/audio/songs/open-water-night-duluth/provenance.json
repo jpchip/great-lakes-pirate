@@ -1,0 +1,10 @@
+{
+  "source": "procedural",
+  "tool": "tools/audio/synth.ts (tools/audio/lib/synth.ts)",
+  "author": "Great Lakes Pirate contributors",
+  "reference": "Melody public domain: Henry Clay Work, \"Lost on the Lady Elgin\" (sheet music, 1861; this copy J. L. Peters, New York), pp. 46–48. Original arrangement; synthesized tin whistle, free-reed concertina and bowed fiddle drone, Freeverb-style reverb",
+  "date": "2026-11-25",
+  "license": "CC BY 4.0",
+  "attribution": "Great Lakes Pirate contributors",
+  "modifications": []
+}

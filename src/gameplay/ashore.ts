@@ -297,7 +297,7 @@ export interface AshoreSound {
   /** Under a roof. */
   inside: boolean;
   /** The saloon's bar, whether it keeps its hours now, and whether you're in the room. */
-  saloon: { x: number; z: number; open: boolean; within: boolean } | undefined;
+  saloon: { x: number; z: number; open: boolean; within: boolean; district?: string } | undefined;
   guards: GuardReadout[];
   /** F held on a lock with a pick: how far it's got, 0–1. */
   picking: number | undefined;
@@ -2500,6 +2500,7 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
             z: z.z,
             open: !hours || withinHours(hour, hours),
             within: district.model.buildingAt(c.x, c.y + 1, c.z)?.def.id === bar.ref,
+            district: district.def.id,
           };
         }
       }

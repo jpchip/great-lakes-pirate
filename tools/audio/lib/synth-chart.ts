@@ -1,6 +1,6 @@
 /**
- * Phase 3 piece J, part 2 (plan 15 §6.1, §11): the chart's traveling theme, the encounter
- * stingers, and the fade-to-fog transition sound, synthesized with the same instruments
+ * Phase 3 piece J, part 2 (plan 15 §6.1, §11): the encounter stingers and the fade-to-fog
+ * transition sound (the chart's theme is "The Bigler's Crew" in synth-songs.ts since §25), synthesized with the same instruments
  * as open-water music v1 (tools/audio/lib/synth.ts) plus a frame drum and a ship's bell.
  * Everything here is original, so it carries the repo's CC BY 4.0 license like v1.
  */
@@ -156,93 +156,8 @@ export function strum(
 }
 
 // ---------------------------------------------------------------------------------------
-// The chart's traveling theme: "The Long Reach"
+// Extra chords for the strum helper
 
-/**
- * "The Long Reach": a calm 6/8 traveling tune in G for chart mode (plan 15 §6.1), the
- * concertina over a guitar's boom-chick, the tin whistle taking the last A part. Beats
- * are eighth notes; two bars of guitar lead in.
- */
-export const REACH = {
-  /** Eighth notes a minute: a dotted quarter at 60, a slow walk. */
-  bpm: 180,
-  beatsPerBar: 6,
-  a: [
-    ['D4', 2],
-    ['G4', 1],
-    ['B4', 2],
-    ['G4', 1],
-    ['A4', 2],
-    ['B4', 1],
-    ['C5', 2],
-    ['A4', 1],
-    ['B4', 3],
-    ['D5', 3],
-    ['C5', 2],
-    ['B4', 1],
-    ['A4', 3],
-    ['G4', 2],
-    ['B4', 1],
-    ['D5', 2],
-    ['B4', 1],
-    ['C5', 2],
-    ['E5', 1],
-    ['D5', 2],
-    ['B4', 1],
-    ['A4', 2],
-    ['G4', 1],
-    ['F#4', 2],
-    ['A4', 1],
-  ] as Note[],
-  aFirst: [
-    ['A4', 3],
-    ['D4', 3],
-  ] as Note[],
-  aSecond: [['G4', 6]] as Note[],
-  b: [
-    ['E5', 2],
-    ['D5', 1],
-    ['B4', 2],
-    ['D5', 1],
-    ['E5', 2],
-    ['F#5', 1],
-    ['G5', 3],
-    ['D5', 2],
-    ['B4', 1],
-    ['G4', 2],
-    ['B4', 1],
-    ['A4', 2],
-    ['B4', 1],
-    ['C5', 2],
-    ['D5', 1],
-    ['E5', 2],
-    ['D5', 1],
-    ['B4', 2],
-    ['D5', 1],
-    ['G5', 2],
-    ['F#5', 1],
-    ['E5', 2],
-    ['D5', 1],
-    ['B4', 2],
-    ['A4', 1],
-    ['G4', 2],
-    ['A4', 1],
-  ] as Note[],
-  bFirst: [
-    ['B4', 3],
-    ['A4', 3],
-  ] as Note[],
-  bSecond: [['G4', 6]] as Note[],
-  /** One chord a bar. */
-  chordsA: ['G', 'Am', 'G', 'D', 'G', 'C', 'D'],
-  chordsAFirst: 'D',
-  chordsASecond: 'G',
-  chordsB: ['Em', 'Em', 'G', 'D', 'Em', 'C', 'D'],
-  chordsBFirst: 'D',
-  chordsBSecond: 'G',
-} as const;
-
-/** Chords the waltz didn't need. */
 const MORE_CHORDS: Record<string, { bass: string; tones: string[] }> = {
   Am: { bass: 'A2', tones: ['A3', 'C4', 'E4'] },
 };
@@ -250,82 +165,6 @@ function chordOf(name: string): { bass: string; tones: string[] } {
   const chord = CHORDS[name] ?? MORE_CHORDS[name];
   if (!chord) throw new Error(`chord ${name}`);
   return chord;
-}
-
-/** The tune bar by bar: [melody, chords, which bars the whistle plays]. */
-export function reachForm(): { concertina: Note[]; whistle: Note[]; chords: string[] } {
-  const r = REACH;
-  const intro: Note[] = [['R', 2 * r.beatsPerBar]];
-  const a1 = [...r.a, ...r.aFirst];
-  const a2 = [...r.a, ...r.aSecond];
-  const b1 = [...r.b, ...r.bFirst];
-  const b2 = [...r.b, ...r.bSecond];
-  const bars = (notes: Note[]): number => notes.reduce((s, [, b]) => s + b, 0) / r.beatsPerBar;
-  const rest = (notes: Note[]): Note[] => [['R', bars(notes) * r.beatsPerBar]];
-  // Concertina: A A B B, then rests while the whistle has the last A.
-  const concertina = [...intro, ...a1, ...a2, ...b1, ...b2];
-  // Whistle: an octave up, the last A part with the second ending.
-  const up = (notes: Note[]): Note[] =>
-    notes.map(([p, b]) => [p === 'R' ? p : p.replace(/\d/, (d) => String(Number(d) + 1)), b]);
-  const whistle = [...rest(concertina), ...up(a2)];
-  const ca1 = [...r.chordsA, r.chordsAFirst];
-  const ca2 = [...r.chordsA, r.chordsASecond];
-  const cb1 = [...r.chordsB, r.chordsBFirst];
-  const cb2 = [...r.chordsB, r.chordsBSecond];
-  const chords = ['G', 'D', ...ca1, ...ca2, ...cb1, ...cb2, ...ca2];
-  return { concertina, whistle, chords };
-}
-
-export function chartTheme(rate: number, seed = 1679): Float32Array {
-  const random = seeded(seed);
-  const { concertina, whistle, chords } = reachForm();
-  const beatS = 60 / REACH.bpm;
-  const barS = REACH.beatsPerBar * beatS;
-  const seconds = chords.length * barS + 3;
-  const out = new Float32Array(Math.round(seconds * rate));
-  renderMelody(
-    out,
-    concertina,
-    REACH.bpm,
-    0,
-    rate,
-    (hz, s) => reedNote(hz, s, rate, random),
-    0.9,
-    random,
-  );
-  renderMelody(
-    out,
-    whistle,
-    REACH.bpm,
-    0,
-    rate,
-    (hz, s) => whistleNote(hz, s, rate, random),
-    0.55,
-    random,
-  );
-  // Guitar: the bass on one, the chord on four (a 6/8 boom-chick), the last chord ringing.
-  chords.forEach((name, bar) => {
-    const chord = chordOf(name);
-    const at = bar * barS;
-    const last = bar === chords.length - 1;
-    mixInto(
-      out,
-      pluckNote(noteHz(chord.bass), last ? 3 : 3 * beatS, rate, random, 0.35),
-      Math.round((at + (random() - 0.5) * 0.01) * rate),
-      0.5,
-    );
-    if (last) strum(out, name, at + 0.02, 3, rate, random, 0.24, 0.03);
-    else strum(out, name, at + 3 * beatS, 2.6 * beatS, rate, random, 0.17);
-  });
-  // A low fiddle drone under the whistle's A, to lift the last time through.
-  const whistleStart = (chords.length - 8) * barS;
-  mixInto(
-    out,
-    fiddleDrone(['G3', 'D4'], 8 * barS, rate, random, 2.5),
-    Math.round(whistleStart * rate),
-    0.45,
-  );
-  return reverb(out, rate, 0.22, 0.8);
 }
 
 // ---------------------------------------------------------------------------------------
