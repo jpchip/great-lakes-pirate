@@ -284,6 +284,7 @@ Decided 2026-11-24, from the polish-phase audit against the plans: these were pl
 - **Harbor launches and bounty hunters** ([06 §5.2–5.3](06-fame-wanted-law-lighthouses.md)). At sea, the *Morrill* stays the law; ashore, constables, watchmen, marshals and the posse cover tiers 3–5.
 - **A tutorial.** 1.0 keeps the First Week hints only, which fits [12](12-sandbox-events-character-failure.md)'s "no forced tutorial". A guided opening can come later if playtests ask for one.
 - **The other walkable districts** (Ashland, Washburn, Superior and Two Harbors, [08 §2.2](08-docks-district-stealth.md)). They stay port screens in 1.0; Bayfield and Duluth are the walkable towns.
+- **Walking the lake bed in the diving suit** ([11 §6.2](11-exploration-islands-secrets.md)). Decided 2026-11-25: 1.0 dives from the deck ([11 §19](11-exploration-islands-secrets.md)); the on-foot dive can come later on top of it.
 
 ### MVP definition
 Western Lake Superior (Apostles, Bayfield, Ashland, Duluth/Superior), arcade sailing with weather, hybrid travel, trading, Fame/Wanted with cutters and lighthouses, freighter piracy, one docks district (Bayfield, whose lockup holds all MVP prisoners), one fully walkable island, two hideouts with grid building, and the season from the May start **through freeze-up**, where MVP content ends ([04](04-water-weather-seasons.md)).

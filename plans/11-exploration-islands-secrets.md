@@ -907,7 +907,7 @@ Two fixes came out of the run: the Oak island bench landed before its anchor hel
 
 ## 19. Phase 10: The Diving Suit and Deep Wrecks (2026-11-25)
 
-§6.2's deep-wreck salvage, kept in 1.0 by the audit ([00 §7.2](00-master-plan.md)). **Built as a dive from the deck** (Jared's call on the lake-bed walk is pending): the dive is worked from the deck at anchor, like the grapple, with its air, hose, snags and weather; walking the lake bed in the suit (§6.2's on-foot segment, plan 14's heavy walk) waits until after 1.0.
+§6.2's deep-wreck salvage, kept in 1.0 by the audit ([00 §7.2](00-master-plan.md)). **Decided 2026-11-25 (Jared): a dive from the deck.** The dive is worked from the deck at anchor, like the grapple, with its air, hose, snags and weather; walking the lake bed in the suit (§6.2's on-foot segment, plan 14's heavy walk) waits until after 1.0.
 
 | Part | Where | What |
 |---|---|---|
