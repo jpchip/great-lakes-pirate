@@ -264,7 +264,7 @@ Each of these gets its own plan doc. Summaries capture decisions plus remaining 
 | 7 | **On Foot: Docks & Islands** | The night loop + island exploration | On-foot mode and the rowboat, the captain's body, one docks district (**Bayfield**, with the lockup for jail and jailbreaks), stealth AI, theft, the walkable saloon and back room, the whiskey trick, one fully walkable island (Stockton). **Built as 0.7.0** ([08 §20](08-docks-district-stealth.md)) |
 | 8 | **Hideouts** | Base loop | Grid building and build mode, storage, crafting (four stations, the still's passive production), the slipway (repairs, crafted upgrades, a new T1 when shipless), laying low and pursuit ending at a hideout, two MVP hideouts (Stockton and Siskiwit Bay, the Lumberjack's start; seven sites by Beta), Ambitions. Tracked in [#136](https://github.com/jpchip/great-lakes-pirate/issues/136) ([09 §16](09-hideouts-building-crafting.md)) |
 | 9 | **Seasons & Secrets** | Depth | Full season cycle (winter rules), island secrets, wrecking, the event system and letters, newspapers, permadeath polish. **Built as 0.9.0** ([11 §18](11-exploration-islands-secrets.md)) |
-| 10 | **Polish & Release** | Ship it | Audio, UI polish, performance, tutorial, playtests, player save export/import, the full release checklist ([17 §9](17-testing-performance-release.md)). Builds are 0.10.x release candidates, then **1.0**. (Was Phase 11; the old Phase 10, Expand the Lakes, moved after 1.0 on 2026-11-24.) |
+| 10 | **Polish & Release** | Ship it | Audio, UI polish, performance, First Week hints (no separate tutorial, §7.2), playtests, player save export/import, the full release checklist ([17 §9](17-testing-performance-release.md)). Builds are 0.10.x release candidates, then **1.0**. (Was Phase 11; the old Phase 10, Expand the Lakes, moved after 1.0 on 2026-11-24.) |
 
 ### 7.1 After 1.0: expansion packs (not scheduled)
 
@@ -276,6 +276,14 @@ Decided 2026-11-24: other lakes are not part of 1.0. They're ideas for **expansi
 - **The rest of Superior:** the Keweenaw, Isle Royale, Marquette and the Canadian shore (Port Arthur/Fort William smuggling) already have hooks in [03 §10](03-world-scale-chart-travel.md) and [05](05-ports-economy-trading.md), and could be a pack of their own.
 
 Until a pack exists, the "lower lakes" stay an off-chart sink and source for traffic at the east edge of the chart ([05](05-ports-economy-trading.md)).
+
+### 7.2 After 1.0: deferred features (not scheduled)
+
+Decided 2026-11-24, from the polish-phase audit against the plans: these were planned but aren't built, and they move after 1.0 rather than hold it up. Each can come in a 1.x update.
+
+- **Harbor launches and bounty hunters** ([06 §5.2–5.3](06-fame-wanted-law-lighthouses.md)). At sea, the *Morrill* stays the law; ashore, constables, watchmen, marshals and the posse cover tiers 3–5.
+- **A tutorial.** 1.0 keeps the First Week hints only, which fits [12](12-sandbox-events-character-failure.md)'s "no forced tutorial". A guided opening can come later if playtests ask for one.
+- **The other walkable districts** (Ashland, Washburn, Superior and Two Harbors, [08 §2.2](08-docks-district-stealth.md)). They stay port screens in 1.0; Bayfield and Duluth are the walkable towns.
 
 ### MVP definition
 Western Lake Superior (Apostles, Bayfield, Ashland, Duluth/Superior), arcade sailing with weather, hybrid travel, trading, Fame/Wanted with cutters and lighthouses, freighter piracy, one docks district (Bayfield, whose lockup holds all MVP prisoners), one fully walkable island, two hideouts with grid building, and the season from the May start **through freeze-up**, where MVP content ends ([04](04-water-weather-seasons.md)).
@@ -429,10 +437,12 @@ All planned documents are drafted and their open questions answered. Next:
 | 2026-10-25 | Spike S4: art style B (toon with per-object ink outlines) picked; costs nothing measurable on the baseline laptop (14 §3.4). |
 | 2026-11-16 | Ambitions come in Phase 8; the event system and letters wait for Phase 9 (09 §16.6, 12 §11). |
 | 2026-11-24 | **1.0 is western Lake Superior only.** The other lakes leave the 1.0 scope and become possible expansion packs after release (§7.1). Polish & Release is renumbered from Phase 11 to Phase 10 (0.10.x release candidates, then 1.0) (17). |
+| 2026-11-24 | Harbor launches, bounty hunters, a tutorial and the Ashland, Washburn, Superior and Two Harbors districts move after 1.0 (§7.2). The T3 hull, ship paint, name and flag, the diving suit and deep wrecks, the audio odds and ends and squall gusts with the chart barometer stay in 1.0. |
 
 ---
 
 ## Changelog
+- v0.14: New §7.2 lists the planned features deferred past 1.0 (harbor launches, bounty hunters, a tutorial, four walkable districts); Phase 10's row drops the tutorial (2026-11-24).
 - v0.13: 1.0 is western Lake Superior only (2026-11-24). Expand the Lakes leaves the roadmap; Polish & Release becomes Phase 10; new §7.1 lists the expansion-pack ideas for after 1.0; §1 and §2 say Lake Superior.
 - v0.12: Phase 9's roadmap row is marked built as 0.9.0 (11 §18.25).
 - v0.11: Phase 8's roadmap row gains Siskiwit Bay, crafting, the slipway, laying low and Ambitions (09 §16) and links its tracking issue; Phase 9's row keeps the event system and letters, as 12 §11 now does.

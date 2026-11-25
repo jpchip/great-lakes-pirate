@@ -65,6 +65,8 @@ Interiors are part of the same scene (no load); roofs fade when the player is in
 | Two Harbors | Small | 9+ | Ore dock, rail yard, rough saloon |
 | La Pointe | Tiny | 9+ | Village pier and a trading post |
 
+**After 1.0 (decided 2026-11-24, [00 §7.2](00-master-plan.md)):** Ashland, Washburn, Superior and Two Harbors stay port screens in 1.0. Bayfield and Duluth are the walkable districts, and the other four can come in 1.x updates.
+
 Layouts draw on **Sanborn fire insurance maps** and period photos where available ([R1 §6](R1-western-superior-1900-research.md)), simplified for gameplay.
 
 ### 2.3 Day vs. night
@@ -626,6 +628,7 @@ Piece E's stretch (§20.4 row E, §20.5), which missed 0.7.0 (§20.8 "Scope that
 **First drafts for Jared:** the layout and all its names; which regions Duluth holds; the lock tiers; the two new loot tables; and the fills. The fence's `where` still says "the back room of a Superior Street saloon", while the saloon stands on Lake Avenue. **Not done:** the harbor kit's piers are drawn with 2.0–2.4 m decks against the district's 1.6 m, and the made land differs from the shore seen when sailing. Screenshots are in the project files (`duluth-district/`).
 
 ## Changelog
+- v0.18: §2.2: Ashland, Washburn, Superior and Two Harbors move after 1.0 ([00 §7.2](00-master-plan.md)).
 - v0.17: Phase 9 piece X (2026-11-20): Duluth's district as built (§21). The waterfront layout, made land, three police beats and a station constable with names, a list of lockups by region with Duluth's police station holding the Duluth, Superior and North Shore regions, and the back room replacing Duluth's port-screen tab.
 - v0.16: Phase 9 piece F (2026-11-17): the island posse searches (§20.10). The marshals land by your boat, sweep outward, give up and put off, and break off at a hideout's build bounds without setting foot in them.
 - v0.15.1: 0.7.2 (2026-11-16), from Jared's play of 0.7.1: `render/district/signs.ts` hangs a painted board (a canvas texture, one material per building) over each building's first door, on the wall that door is set in and clear of its battens. It says the building's `name`, or else its use by kind. A false front's blank board (kit-meshes `roofGeometry`) gets the words instead. The salt sacks at (-27, 0) and the net reel at (-74, 0) moved off the track to z = 2, and the navmesh was rebaked. Parked at Jared's call: a soft disc on the ground that follows the player by day, cause not yet found.
