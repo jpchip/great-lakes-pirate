@@ -1,0 +1,11 @@
+{
+  "id": "music.open-water.day-apostles",
+  "name": "open-water-day-apostles",
+  "description": "Open-water music by day among the Apostle Islands: \"Red Iron Ore\" (traditional) on concertina, tin whistle and guitar",
+  "bundles": [
+    "music-open-water"
+  ],
+  "kind": "oneshot",
+  "bus": "music",
+  "source": "source.flac"
+}

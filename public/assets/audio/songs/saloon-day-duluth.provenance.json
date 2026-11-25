@@ -1,0 +1,18 @@
+{
+  "source": "procedural",
+  "tool": "tools/audio/synth.ts (tools/audio/lib/synth.ts)",
+  "author": "Great Lakes Pirate contributors",
+  "reference": "Traditional melody, public domain: Franz Rickaby, Ballads and Songs of the Shanty-Boy (Harvard University Press, 1926), no. 9 \"The Shanty-man's Life\" (A), p. 43. Original arrangement; synthesized concertina and plucked guitar, a little reverb, the tail folded onto the head for a seamless loop",
+  "date": "2026-11-25",
+  "license": "CC BY 4.0",
+  "attribution": "Great Lakes Pirate contributors",
+  "modifications": [],
+  "description": "\"The Shanty-Man's Life\" (traditional; 28 bars of 2/4 in D minor, 32.31 s, looped): the Duluth saloon's concertina over a guitar",
+  "durationS": 32.308,
+  "pipeline": [
+    "decoded to mono 48000 Hz",
+    "RMS-normalized toward -24 dB (-1.6 dB)",
+    "Opus 64 kbps mono in Ogg (ffmpeg libopus)"
+  ],
+  "inputHash": "1e11001c56271a38"
+}

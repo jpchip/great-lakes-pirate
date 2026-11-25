@@ -1,7 +1,7 @@
 {
   "id": "music.foot.saloon",
   "name": "saloon-tune",
-  "description": "\"The Booth Street Polka\" (16 bars in G at 104, 36.92 s, looped): the saloon's concertina over a vamping guitar",
+  "description": "\"The Little Brown Bulls\" (traditional; 20 bars of 6/8 in E minor at 276 eighths a minute, 26.09 s, looped): the saloon's concertina over a vamping guitar",
   "kind": "loop",
   "bus": "ambience",
   "loopCrossfadeS": 0,

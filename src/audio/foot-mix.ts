@@ -312,3 +312,31 @@ export function shiverEveryS(waterC: number): number | undefined {
   if (waterC >= 18) return undefined;
   return 3 + 6 * clamp01((waterC - 2) / 16);
 }
+
+// ---------------------------------------------------------------------------------------
+// Each saloon's tunes (plan 15 §25.2)
+
+/** The songs a saloon plays by day and from supper on, by sound id. */
+export interface SaloonTunes {
+  day: string;
+  night: string;
+}
+
+/** Bayfield's (and any saloon without its own): "The Little Brown Bulls", "The Late Boat Waltz". */
+export const DEFAULT_SALOON_TUNES: SaloonTunes = {
+  day: 'music.foot.saloon',
+  night: 'music.saloon.night',
+};
+
+/**
+ * A saloon's own tunes, by district: Duluth's plays "The Shanty-Man's Life" by day and
+ * "Michigan-I-O" on the fiddle and piano at night, so the two towns don't sound alike.
+ */
+export const SALOON_TUNES: Readonly<Record<string, SaloonTunes>> = {
+  'district.bayfield': DEFAULT_SALOON_TUNES,
+  'district.duluth': { day: 'music.saloon.day-duluth', night: 'music.saloon.night-duluth' },
+};
+
+export function saloonTunes(district: string | undefined): SaloonTunes {
+  return (district === undefined ? undefined : SALOON_TUNES[district]) ?? DEFAULT_SALOON_TUNES;
+}

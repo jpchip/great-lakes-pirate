@@ -20,6 +20,11 @@ export interface MusicPlayer {
 
 export interface MusicDirectorOptions {
   players: Partial<Record<Exclude<MusicMood, 'quiet'>, MusicPlayer>>;
+  /**
+   * The cue to play instead of the mood's own, asked each time one starts: a stretch of
+   * water's own song (plan 15 §25.2). Undefined plays the mood's cue.
+   */
+  alternate?: (mood: Exclude<MusicMood, 'quiet'>) => MusicPlayer | undefined;
   random?: () => number;
   /** Silence before the first cue, seconds. */
   firstWaitS?: [number, number];
@@ -41,6 +46,8 @@ export class MusicDirector {
   private readonly gap: [number, number];
   private ducked = false;
   private enabled = false;
+  /** The cue playing now: the mood's own or its alternate. */
+  private player: MusicPlayer | undefined;
 
   constructor(private readonly options: MusicDirectorOptions) {
     this.random = options.random ?? Math.random;
@@ -64,10 +71,11 @@ export class MusicDirector {
 
   update(dt: number, mood: MusicMood, signalHeard: boolean): void {
     if (!this.enabled) return;
-    const player = this.current ? this.options.players[this.current] : undefined;
+    const player = this.current ? this.player : undefined;
     if (player && !player.playing) {
       // The cue ended on its own: wait out a silence before the next.
       this.current = undefined;
+      this.player = undefined;
       this.waitS = this.draw(this.gap);
       return;
     }
@@ -77,10 +85,7 @@ export class MusicDirector {
     }
     if (this.current && signalHeard !== this.ducked) {
       this.ducked = signalHeard;
-      this.options.players[this.current]?.setLevel(
-        signalHeard ? DUCK_LEVEL : 1,
-        signalHeard ? 0.4 : 2.5,
-      );
+      this.player?.setLevel(signalHeard ? DUCK_LEVEL : 1, signalHeard ? 0.4 : 2.5);
     }
     if (this.current) return;
     this.waitS -= dt;
@@ -88,20 +93,22 @@ export class MusicDirector {
   }
 
   private start(mood: Exclude<MusicMood, 'quiet'>): void {
-    const player = this.options.players[mood];
+    const player = this.options.alternate?.(mood) ?? this.options.players[mood];
     if (!player) {
       this.waitS = this.draw(this.gap);
       return;
     }
     this.current = mood;
+    this.player = player;
     this.ducked = false;
     player.play();
   }
 
   private stopCurrent(fadeS: number): void {
     if (!this.current) return;
-    this.options.players[this.current]?.stop(fadeS);
+    this.player?.stop(fadeS);
     this.current = undefined;
+    this.player = undefined;
   }
 
   private draw([lo, hi]: [number, number]): number {

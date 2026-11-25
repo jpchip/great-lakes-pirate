@@ -1,0 +1,11 @@
+{
+  "id": "music.open-water.night-duluth",
+  "name": "open-water-night-duluth",
+  "description": "Open-water music by night off Duluth and the North Shore: \"Lost on the Lady Elgin\" (Henry Clay Work, 1861) on tin whistle and concertina over a fiddle drone",
+  "bundles": [
+    "music-open-water"
+  ],
+  "kind": "oneshot",
+  "bus": "music",
+  "source": "source.flac"
+}
