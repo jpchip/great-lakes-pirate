@@ -493,7 +493,7 @@ export async function createTestScene(
       lampPools.uPoolColor.value[i]?.setRGB(0, 0, 0);
     }
   };
-  const footView = createFootView(lighting, lampPools);
+  const footView = createFootView(lighting, lampPools, outlines);
   scene.add(footView.group);
   const hideouts = createHideoutSitesView(lighting, lampPools);
   scene.add(hideouts.group);

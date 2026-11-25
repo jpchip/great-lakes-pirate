@@ -3,7 +3,12 @@ import { createWildlifeView, type WildlifeFrameView } from './wildlife-view';
 import * as THREE from 'three';
 import type { DistrictModel } from '../../gameplay/district/district';
 import type { DistrictFrame } from '../../gameplay/district/ground';
-import { DEFAULT_CONTROLLER } from '../../gameplay/onfoot/controller';
+import { DEFAULT_CONTROLLER, type Gait } from '../../gameplay/onfoot/controller';
+import { portraitDef } from '../../sim/character/backgrounds';
+import { captainClip, idleFor, npcClip, type CaptainAct } from '../characters/figure-clips';
+import { lookFromPortrait, type Look } from '../characters/looks';
+import { OutlineSettings } from '../style/outline';
+import { createFigures } from './figures';
 import { ROWBOAT } from '../../sim/ashore/rowboat';
 import { PALETTE } from '../style/palette';
 import { box, frustum, merged, part, place } from '../style/parts';
@@ -15,9 +20,10 @@ import {
 } from '../style/stylized-material';
 
 /**
- * The captain on foot and the ship's boat (Phase 7 piece A). The captain is a capsule
- * stand-in in a coat and hat until piece B's body lands; the boat a small clinker-ish
- * hull. Two draw calls, toon-lit like the harbors.
+ * The captain on foot and the ship's boat (Phase 7 piece A), and everyone else ashore.
+ * People are piece B's humanoid (`figures.ts`), dressed from the portrait preset and by
+ * trade, once the bodies have loaded; until then, or if they can't load, the capsule
+ * stand-ins in a coat and hat draw them. The boat is a small clinker-ish hull.
  */
 
 /** What main hands the scene each frame while you're ashore, interpolated already. */
@@ -38,6 +44,17 @@ export interface FootFrame {
     swimming: boolean;
     /** Leaning (Q/E): where the head is from the feet, zone meters; the figure tips toward it. */
     lean?: { x: number; z: number };
+    /** The portrait preset (`data/portraits.json`) the body is dressed from. */
+    portrait?: string | undefined;
+    /** The controller's gait and horizontal speed (m/s), for the body's clip. */
+    gait?: Gait | undefined;
+    speed?: number | undefined;
+    /** Arms full: a crate, a man over the shoulder, a carcass. */
+    carrying?: boolean | undefined;
+    /** F held at a held job (a lock, rope on a man, a dig). */
+    working?: boolean | undefined;
+    /** The last thing the hands did (a blow, a throw), with a count that grows each time. */
+    act?: { kind: CaptainAct; ageS: number; n: number } | undefined;
   };
   boat:
     | {
@@ -90,6 +107,9 @@ export interface GuardFrame {
   crouching: boolean;
   /** Their lantern is lit. */
   lantern: boolean;
+  /** The controller's gait and horizontal speed (the watch); else worked out from motion. */
+  gait?: Gait | undefined;
+  speed?: number | undefined;
 }
 
 export interface FootView {
@@ -126,9 +146,9 @@ function captainGeometry(
 }
 
 /**
- * The watch as capsule figures like the captain's until piece B's bodies are wired into
- * the game: the watchman in a brown coat, the constable in blue with brass buttons and a
- * tall hat, the marshal in a duster, the sailor in a pea coat.
+ * The watch as capsule figures like the captain's, the stand-ins until piece B's bodies
+ * have loaded (`figures.ts`): the watchman in a brown coat, the constable in blue with
+ * brass buttons and a tall hat, the marshal in a duster, the sailor in a pea coat.
  */
 const GUARD_LOOKS: Record<string, { coat: number; hat: number; front: number; tall: boolean }> = {
   'npc.watchman': { coat: 0x6b4f35, hat: 0x2b241c, front: 0x8f8a7a, tall: false },
@@ -194,9 +214,27 @@ export function createFootView(
    * unlit set for callers that draw the captain without a district (none today).
    */
   pools: LampPoolUniforms = createLampPools(),
+  /** The ink settings (resolution and width) shared with the ships. */
+  outline: OutlineSettings = new OutlineSettings(),
 ): FootView {
   const group = new THREE.Group();
   group.name = 'on-foot';
+  const figures = createFigures({ lighting, outline, pools });
+  group.add(figures.group);
+  /** Each NPC's last place and smoothed speed, for those the frame gives no speed. */
+  const motion = new Map<string, { x: number; z: number; speed: number }>();
+  let looks: { portrait: string | undefined; look: Look } | undefined;
+  const captainLook = (portrait: string | undefined): Look => {
+    if (!looks || looks.portrait !== portrait) {
+      looks = { portrait, look: lookFromPortrait(portraitDef(portrait)) };
+    }
+    return looks.look;
+  };
+  let lastNow: number | undefined;
+  const capsulesOnly =
+    typeof location !== 'undefined' &&
+    new URLSearchParams(location.search).get('body') === 'capsule';
+  const cameraAt = new THREE.Vector3();
   const material = createStylizedMaterial('toon', lighting, { vertexColors: true, pools });
   const standGeo = captainGeometry(DEFAULT_CONTROLLER.standHeight);
   const crouchGeo = captainGeometry(DEFAULT_CONTROLLER.crouchHeight);
@@ -246,8 +284,37 @@ export function createFootView(
   const guards = new THREE.Group();
   guards.name = 'guards';
   group.add(guards);
-  const placeGuards = (list: readonly GuardFrame[] | undefined): void => {
+  const placeGuards = (list: readonly GuardFrame[] | undefined, dt: number): void => {
     const seen = new Set<string>();
+    if (figures.ready) {
+      for (const g of list ?? []) {
+        seen.add(g.id);
+        const was = motion.get(g.id);
+        const moved = was && dt > 0 ? Math.hypot(g.x - was.x, g.z - was.z) / dt : 0;
+        // A jump (a teleport, a fresh scene) is not a sprint.
+        const raw = moved > 12 ? 0 : moved;
+        const speed = g.speed ?? (was ? was.speed + (raw - was.speed) * Math.min(1, dt * 8) : 0);
+        motion.set(g.id, { x: g.x, z: g.z, speed });
+        figures.npc(g.id, g.type, {
+          x: g.x,
+          y: g.y,
+          z: g.z,
+          heading: g.heading,
+          clip: npcClip({
+            state: g.state,
+            speed,
+            gait: g.gait,
+            crouching: g.crouching,
+            lantern: g.lantern,
+            idle: idleFor(g.type, g.id),
+          }),
+          glow: g.lantern,
+        });
+      }
+      for (const id of motion.keys()) if (!seen.has(id)) motion.delete(id);
+      for (const m of guardMeshes.values()) m.body.visible = false;
+      return;
+    }
     for (const g of list ?? []) {
       seen.add(g.id);
       let m = guardMeshes.get(g.id);
@@ -271,6 +338,14 @@ export function createFootView(
     for (const [id, m] of guardMeshes) if (!seen.has(id)) m.body.visible = false;
   };
 
+  /** A new act (its count grew) plays its clip from the start, even the same blow again. */
+  let lastAct: number | undefined;
+  const actRestart = (n: number | undefined): boolean => {
+    const fresh = n !== undefined && n !== lastAct;
+    lastAct = n;
+    return fresh;
+  };
+
   const UP = new THREE.Vector3(0, 1, 0);
   const yawQ = new THREE.Quaternion();
   const tiltQ = new THREE.Quaternion();
@@ -279,15 +354,26 @@ export function createFootView(
     group,
     update(frame, waterY) {
       group.visible = !!frame;
-      if (!frame) return;
-      placeGuards(frame.guards);
+      if (!frame) {
+        lastNow = undefined;
+        return;
+      }
+      // `?body=capsule` keeps the stand-ins (comparing frames and calls with the bodies).
+      if (!capsulesOnly) figures.load();
+      const now = performance.now() / 1000;
+      const dt = lastNow === undefined ? 1 / 60 : Math.min(0.1, Math.max(0, now - lastNow));
+      lastNow = now;
+      figures.begin();
+      placeGuards(frame.guards, dt);
       clock.t += 1 / 60;
       winter.update(frame.winter, clock.t);
       const c = frame.captain;
       wildlife.update(frame.wildlife, c, clock.t);
-      captain.visible = c.visible;
+      const body = figures.captain(captainLook(c.portrait));
+      captain.visible = c.visible && !body;
       captain.geometry = c.crouching || c.swimming ? crouchGeo : standGeo;
       captain.position.set(c.x, c.y, c.z);
+      const rowing = !c.visible && !!frame.boat?.manned;
       // Heading is clockwise from north; three.js yaw is counter-clockwise.
       yawQ.setFromAxisAngle(UP, -c.heading);
       // Leaning tips the figure about its feet toward the head's offset.
@@ -307,10 +393,36 @@ export function createFootView(
       if (b) {
         boat.position.set(b.x, b.beached ? Math.max(waterY, 0) - 0.25 : waterY - 0.2, b.z);
         boat.rotation.set(b.beached ? 0.06 : 0, -b.heading, 0);
-        rower.visible = b.manned;
+        rower.visible = b.manned && !body;
       }
+      if (body) {
+        body.root.visible = c.visible || rowing;
+        const clip = captainClip({
+          gait: c.gait ?? (c.swimming ? 'swim' : c.crouching ? 'sneak' : 'idle'),
+          speed: c.speed ?? 0,
+          carrying: c.carrying,
+          working: c.working,
+          act: c.act,
+          rowing,
+        });
+        if (rowing) {
+          // On the thwart, facing aft: the boat carries you.
+          if (body.root.parent !== boat) boat.add(body.root);
+          body.root.position.copy(rower.position).setY(ROWBOAT.freeboardM - 0.42);
+          body.root.rotation.set(0, Math.PI, 0);
+          body.play(clip.clip, 0.2, clip.timeScale);
+        } else {
+          if (body.root.parent !== figures.group) figures.group.add(body.root);
+          body.root.position.copy(captain.position);
+          body.root.quaternion.copy(captain.quaternion);
+          body.play(clip.clip, 0.2, clip.timeScale, clip.loop ?? false, actRestart(c.act?.n));
+        }
+      }
+      cameraAt.set(frame.camera.position.x, frame.camera.position.y, frame.camera.position.z);
+      figures.end(dt, cameraAt);
     },
     dispose() {
+      figures.dispose();
       winter.dispose();
       wildlife.dispose();
       for (const g of guardGeo.values()) g.dispose();

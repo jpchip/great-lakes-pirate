@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import type { GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import type { OutlineSettings } from '../style/outline';
-import type { StyleId, StyleLighting } from '../style/stylized-material';
+import type { LampPoolUniforms, StyleId, StyleLighting } from '../style/stylized-material';
 import {
   beardGeometry,
   hatGeometry,
@@ -267,6 +267,8 @@ export interface CharacterOptions {
   style: StyleId;
   lighting: StyleLighting;
   outline?: OutlineSettings;
+  /** The docks district's lamp pools (plan 08 §14). */
+  pools?: LampPoolUniforms;
 }
 
 /**
@@ -302,7 +304,12 @@ export class Character {
       return bone;
     });
     const skeleton = new THREE.Skeleton(bones, body.boneInverses);
-    this.material = createCharacterMaterial(options.style, options.lighting, lookPalette(look));
+    this.material = createCharacterMaterial(
+      options.style,
+      options.lighting,
+      lookPalette(look),
+      options.pools,
+    );
     this.mesh = new THREE.SkinnedMesh(library.geometry(look, 0), this.material);
     this.mesh.name = 'character';
     this.mesh.bind(skeleton, new THREE.Matrix4());
@@ -364,23 +371,28 @@ export class Character {
 
   /**
    * Cross-fade to a clip. Loops loop; one-shots play once and hold their last frame.
-   * `timeScale` matches a gait's clip to the controller's speed.
+   * `timeScale` matches a gait's clip to the controller's speed. `loop` repeats a clip
+   * the library plays once (held work at a lock); `restart` plays a one-shot again from
+   * its start when it's already the current clip (a second blow).
    */
-  play(name: ClipName, fadeSeconds = 0.2, timeScale = 1): void {
+  play(name: ClipName, fadeSeconds = 0.2, timeScale = 1, loop = false, restart = false): void {
     const body = this.library.body(this.look.body);
     let action = this.actions.get(name);
     if (!action) {
       const clip = body.clips.get(name);
       if (!clip) return;
       action = this.mixer.clipAction(clip);
-      if (!LOOPING_CLIPS.has(name)) {
-        action.setLoop(THREE.LoopOnce, 1);
-        action.clampWhenFinished = true;
-      }
+      if (!LOOPING_CLIPS.has(name)) action.clampWhenFinished = true;
       this.actions.set(name, action);
     }
+    if (!LOOPING_CLIPS.has(name)) {
+      action.setLoop(loop ? THREE.LoopRepeat : THREE.LoopOnce, loop ? Infinity : 1);
+    }
     action.timeScale = timeScale;
-    if (this.current === action) return;
+    if (this.current === action) {
+      if (restart) action.reset().play();
+      return;
+    }
     action.reset().setEffectiveWeight(1).play();
     if (this.current && fadeSeconds > 0) action.crossFadeFrom(this.current, fadeSeconds, false);
     else this.current?.stop();
@@ -396,9 +408,12 @@ export class Character {
   /**
    * Advance the animation. `cameraDistance` picks the mesh LOD and how often the mixer
    * runs: far characters animate at a quarter rate, which nobody can see at that size.
+   * `ink` false drops the outline whatever the distance.
    */
-  update(dt: number, cameraDistance: number): void {
+  update(dt: number, cameraDistance: number, ink = true): void {
     this.setLod(lodForDistance(cameraDistance));
+    // A crowd keeps its ink for the nearest few (the caller's call budget).
+    if (this.outline) this.outline.visible = ink && this.lod < 2;
     this.pendingSeconds += dt;
     this.frame++;
     if (this.frame % animationStride(cameraDistance) !== 0) return;

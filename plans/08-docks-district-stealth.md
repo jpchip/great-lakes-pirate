@@ -589,7 +589,7 @@ Piece E's stretch (§20.4 row E, §20.5), which missed 0.7.0 (§20.8 "Scope that
 
 **Found on the way:** with no clouds under a bright moon the sky's light is over `LAMPS_LIT_BELOW` (0.3), so the district's lamps aren't lit at all on those nights (as the guards' lanterns aren't). It's the old "moonlight schedule" some towns kept, so it's left as it is, but it means there's nothing to douse on a clear full-moon night. `lineBlocked` doesn't honor a collider's `blocksSight: false`; the relight's sight line ends just this side of the lamp's own post to get round it.
 
-**Not done:** the lean has no sound and no animation beyond the figure's tilt (the captain is still the capsule in the game); putting out a lamp has no sound of its own, since the audio is at 4.96 MB of the 5 MB budget (§20.8.3 decision 4); a lit window can't be doused; doused lamps aren't saved.
+**Not done:** the lean has no sound and no animation beyond the figure's tilt (the captain was still the capsule in the game then; the bodies went in on 2026-11-24, [14 §20](14-art-direction-asset-pipeline.md)); putting out a lamp has no sound of its own, since the audio is at 4.96 MB of the 5 MB budget (§20.8.3 decision 4); a lit window can't be doused; doused lamps aren't saved.
 
 ---
 
