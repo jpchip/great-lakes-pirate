@@ -1071,7 +1071,7 @@ Bayfield and Ashland are 33k triangles together, so the Twin Ports are the heavi
 ### 28.4 Still to do
 
 - Criterion 2 in May with the sim's winds: 35 s with the calm floor. If it still feels long on the laptop (piece K), the next step is a slightly faster chart clock.
-- A barometer readout on hover over the chart (04 §12) and port storm flags (Phase 5).
+- ~~A barometer readout on hover over the chart (04 §12)~~: built, then taken out after play-testing (2026-11-25). Port storm flags (Phase 5).
 - The chart redraw and the weather sampling on the laptop (piece K).
 - ~~Squall gusts in the sim, so a summer squall blows as well as rains.~~ Done (polish, 2026-11-24).
 

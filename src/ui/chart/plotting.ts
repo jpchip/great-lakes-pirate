@@ -16,8 +16,6 @@ const SNAP_PX = 12;
 export interface Plotting {
   /** The waypoint under the cursor, for the view to highlight. */
   readonly hoverWaypoint: number | undefined;
-  /** The pointer over the chart, not dragging: its chart point and window position. */
-  readonly pointer: { at: Chart; x: number; y: number } | undefined;
   detach(): void;
 }
 
@@ -57,7 +55,6 @@ export function attachPlotting({ view, session, canPlot, replot }: PlottingOptio
   let dragWaypoint: number | undefined;
   let pan: { x: number; y: number; moved: boolean } | undefined;
   let hoverWaypoint: number | undefined;
-  let pointer: { at: Chart; x: number; y: number } | undefined;
 
   const pick = (x: number, y: number): number | undefined => {
     let best: number | undefined;
@@ -90,10 +87,6 @@ export function attachPlotting({ view, session, canPlot, replot }: PlottingOptio
   };
 
   const onMove = (e: PointerEvent): void => {
-    pointer =
-      dragWaypoint === undefined && !pan?.moved
-        ? { at: view.toChart(e.offsetX, e.offsetY), x: e.clientX, y: e.clientY }
-        : undefined;
     if (dragWaypoint !== undefined) {
       session.waypoints[dragWaypoint] = snap(e.offsetX, e.offsetY);
       replot();
@@ -140,10 +133,6 @@ export function attachPlotting({ view, session, canPlot, replot }: PlottingOptio
     replot();
   };
 
-  const onLeave = (): void => {
-    pointer = undefined;
-  };
-
   const onWheel = (e: WheelEvent): void => {
     e.preventDefault();
     view.zoomAt(e.offsetX, e.offsetY, e.deltaY < 0 ? 1.15 : 1 / 1.15);
@@ -153,22 +142,17 @@ export function attachPlotting({ view, session, canPlot, replot }: PlottingOptio
   canvas.addEventListener('pointermove', onMove);
   canvas.addEventListener('pointerup', onUp);
   canvas.addEventListener('contextmenu', onContext);
-  canvas.addEventListener('pointerleave', onLeave);
   canvas.addEventListener('wheel', onWheel, { passive: false });
 
   return {
     get hoverWaypoint() {
       return hoverWaypoint;
     },
-    get pointer() {
-      return pointer;
-    },
     detach() {
       canvas.removeEventListener('pointerdown', onDown);
       canvas.removeEventListener('pointermove', onMove);
       canvas.removeEventListener('pointerup', onUp);
       canvas.removeEventListener('contextmenu', onContext);
-      canvas.removeEventListener('pointerleave', onLeave);
       canvas.removeEventListener('wheel', onWheel);
     },
   };
