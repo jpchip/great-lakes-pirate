@@ -2388,12 +2388,14 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
         inBoat,
         ...(berthId ? { berthId } : {}),
         ...(anchor ? { anchor: { ...anchor } } : {}),
+        ...(from === 'berth' && !district ? { offDistrict: true } : {}),
       };
     },
     resume(saved) {
-      // Back into a district (Bayfield) once it has loaded; else the stand-in at once.
+      // Back into a district (Bayfield) once it has loaded; else the stand-in at once. Down
+      // on the ice off its dock, the ice is built around you instead.
       const pier = saved.from === 'berth' ? pierOf(saved.berthId) : undefined;
-      if (pier && deps.districtFrame) {
+      if (pier && deps.districtFrame && !savedOnTheIce(saved)) {
         void districtLanding(pier).then((landing) => resumeIn(saved, landing));
         return;
       }
@@ -2571,6 +2573,19 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
       };
     },
   };
+
+  /**
+   * The save was made out on the ice, not in the district: said so, or (a save from before
+   * that was kept) standing at the ice's top over the lake where the ice lies now.
+   */
+  function savedOnTheIce(saved: AshoreState): boolean {
+    if (saved.offDistrict !== undefined) return saved.offDistrict;
+    if (!winter || saved.inBoat) return false;
+    const { x, y, z } = saved.at;
+    if (Math.abs(y - COLD.ice.topM) > 0.3) return false;
+    if ((deps.terrain()?.heightAt(x, z) ?? 1) > 0) return false;
+    return iceUnderfoot(winter.iceAt(x, z));
+  }
 
   function resumeIn(saved: AshoreState, landing: DistrictLanding | undefined): void {
     hitched = false;

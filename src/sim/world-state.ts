@@ -507,6 +507,12 @@ export const ashoreSchema = z.object({
   berthId: z.string().optional(),
   /** Where her anchor lies (`from: 'anchor'`), so she's anchored again on a reload. */
   anchor: z.object({ x: z.number(), z: z.number() }).optional(),
+  /**
+   * Out of a berth's docks district though she lies at one (down on the ice road from
+   * Bayfield's city dock, piece M): a reload builds the ice around you, not the district.
+   * Optional: absent, a district berth reloads into its district.
+   */
+  offDistrict: z.boolean().optional(),
 });
 export type AshoreState = z.infer<typeof ashoreSchema>;
 
