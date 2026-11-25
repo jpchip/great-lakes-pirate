@@ -128,6 +128,7 @@ const DEER_SNORT = 'voice.deer.snort';
 const DEER_BOUND = 'sfx.deer.bound';
 const BEAR_HUFF = 'voice.bear.huff';
 const BEAR_GROWL = 'voice.bear.growl';
+const BEAR_CRASH = 'sfx.bear.crash';
 const WOLF_HOWL = ['voice.wolf.howl-1', 'voice.wolf.howl-2'] as const;
 
 /**
@@ -151,6 +152,12 @@ export function animalCue(kind: AnimalKind, state: AnimalCueState, variant = 0):
       return { sounds: [BEAR_HUFF], delayS: [0], caption: 'A bear huffing, close by' };
     if (state === 'attack')
       return { sounds: [BEAR_GROWL], delayS: [0], caption: 'A bear growling, charging' };
+    if (state === 'flee')
+      return {
+        sounds: [BEAR_HUFF, BEAR_CRASH],
+        delayS: [0, 0.2],
+        caption: 'A bear crashing off through the brush',
+      };
     return none;
   }
   if (state === 'wary')

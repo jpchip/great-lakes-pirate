@@ -1055,7 +1055,7 @@ Bayfield and Ashland are 33k triangles together, so the Twin Ports are the heavi
 
 - **The sim's wind made crossings slower than criterion 2 assumed.** At the default 3.5 s per game hour, Duluth → the Apostles averaged 41.5 real seconds in May, against 23.1 s at a steady 12 kn (§24.2). The May mean wind is about 10 kn, but calms and head winds dominate the time sailed. Jared chose a floor under the chart's speed in a calm over a faster clock (§28.3). With it the May crossing is 35.2 s and October's 25.5 s: October is inside the 20–30 s target, May still a little over it, because head winds (not calms) are much of the rest. Criterion 2's unit test still holds at 12 kn.
 - **Fog banks are the commonest weather met in spring** (most of the weather encounters in May runs), squalls in summer, and November's are cold squalls in a gale's rain.
-- **The sim's squalls don't raise the wind.** A summer thunder squall brings rain, dark and lightning but the wind of the low around it (9.7 kn in the arena check); a cold squall is windy because the gale is. Squall gusts are a sim change for later (04 §5.3).
+- **The sim's squalls don't raise the wind.** A summer thunder squall brings rain, dark and lightning but the wind of the low around it (9.7 kn in the arena check); a cold squall is windy because the gale is. ~~Squall gusts are a sim change for later (04 §5.3).~~ Built in the polish pass (2026-11-24): `windAt` lifts the wind in a squall's heart and makes it gusty, so a summer squall blows as well as rains.
 
 ### 28.3 Decisions made in the piece
 
@@ -1073,7 +1073,7 @@ Bayfield and Ashland are 33k triangles together, so the Twin Ports are the heavi
 - Criterion 2 in May with the sim's winds: 35 s with the calm floor. If it still feels long on the laptop (piece K), the next step is a slightly faster chart clock.
 - A barometer readout on hover over the chart (04 §12) and port storm flags (Phase 5).
 - The chart redraw and the weather sampling on the laptop (piece K).
-- Squall gusts in the sim, so a summer squall blows as well as rains.
+- ~~Squall gusts in the sim, so a summer squall blows as well as rains.~~ Done (polish, 2026-11-24).
 
 ## 29. Phase 3 Piece K: Playtest and Release (2026-11-01)
 

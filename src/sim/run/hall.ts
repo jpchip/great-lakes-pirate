@@ -18,6 +18,8 @@ export const hallRecordSchema = z.object({
   runId: z.string().optional(),
   /** The papers' name for the captain (absent before piece B, or never coined). */
   nickname: z.string().optional(),
+  /** The run was brought in from an export file (plan 16 §9). */
+  transferred: z.boolean().optional(),
 });
 export type HallRecord = z.infer<typeof hallRecordSchema>;
 

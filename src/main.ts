@@ -10,7 +10,10 @@ import {
   clearLastRun,
   deleteRun,
   endRun,
+  importRun,
+  isTransferred,
   openSaveDb,
+  readRunSlot,
   readLastRun,
   readHall,
   type GlpDatabase,
@@ -27,6 +30,9 @@ import {
 } from './core/settings';
 import { createWorkerEncoder } from './core/save/encoder';
 import { loadRun, type LoadedRun } from './core/save/load';
+import { parseRunFile, runFileName, serializeRunFile } from './core/save/transfer';
+import { SaveCorruptError } from './core/save/decode';
+import type { SaveEnvelope } from './core/save/envelope';
 import { RunSaver } from './core/save/run-saver';
 import { AssetLoader, EMPTY_MANIFEST } from './core/assets';
 import { createGameAudio, type GameAudio } from './audio/game-audio';
@@ -181,6 +187,9 @@ import { offersChart } from './sim/terrain/zone-edge';
 import { arenaLoadingScreen, loadingScreen, type Arrival } from './ui/loading/model';
 import { mountGameUi } from './ui/mount';
 import { showMainMenu } from './ui/menu/mount-menu';
+import { applyAccess, signalRed } from './ui/access';
+import { setKeyBindings } from './ui/keys';
+import { setChartSignalRed } from './render/chart/chart-view';
 import { showMobileWarning } from './ui/menu/mobile-warning';
 import { hallRecords } from './sim/run/hall';
 import type { MenuChoice } from './ui/menu/MainMenu';
@@ -200,6 +209,7 @@ import { attachSalvage, type GameSalvage } from './gameplay/salvage';
 import { oldWrecks } from './sim/salvage';
 import {
   CHARTED_SHOAL_WARN_DRAFTS,
+  curioDef,
   curioSlots,
   discoveriesFile,
   worldChart,
@@ -529,6 +539,14 @@ async function boot(): Promise<void> {
     .transition('boot');
 
   const [prepared, settings] = await Promise.all([prepareRun(), loadSettings()]);
+  // Accessibility (plan 13 §9): the scale, font and palette are on before the menu shows.
+  const applyPageAccess = (s: Settings): void => {
+    applyAccess(s.access, document.documentElement);
+    const red = signalRed(document.documentElement);
+    if (red) setChartSignalRed(red);
+  };
+  applyPageAccess(settings.value);
+  settings.subscribe(applyPageAccess);
   // The last run's end screen stays on the menu until a new run starts (plan 16 §2).
   const lastRun = prepared.db
     ? ((await readLastRun(prepared.db).catch(() => undefined)) as LastRun | undefined)
@@ -556,6 +574,27 @@ async function boot(): Promise<void> {
             ? "This browser can't keep a save, so this run won't be saved."
             : undefined,
       onCreating: (creating) => machine.transition(creating ? 'characterCreation' : 'mainMenu'),
+      // Import run (plan 16 §9): only with no run in the save, so nothing is overwritten.
+      importRun:
+        prepared.db && !prepared.loaded && !prepared.problem
+          ? async (file) => {
+              const db = prepared.db;
+              if (!db) return "This browser can't keep a save.";
+              let parsed;
+              try {
+                parsed = parseRunFile(await file.text(), parseWorldState);
+              } catch (err) {
+                console.warn('Import refused', err);
+                return err instanceof SaveCorruptError
+                  ? err.message
+                  : "That run can't be read by this version of the game.";
+              }
+              await importRun(db, parsed.envelope);
+              document.body.dataset['imported'] = parsed.envelope.runId;
+              window.location.assign(window.location.pathname);
+              return undefined;
+            }
+          : undefined,
       loading: (c) =>
         c.kind === 'new'
           ? { title: startingPort(c.setup.background).portName, line: 'May 7, 1900, at dawn' }
@@ -1270,15 +1309,27 @@ async function boot(): Promise<void> {
     }
     if (cameraRig) {
       const { autoRecenter, rollWithShip, sensitivity, spyglassToggle } = s.camera;
-      cameraRig.ship.options = { autoRecenter, rollWithShip, sensitivity };
+      cameraRig.ship.options = {
+        autoRecenter,
+        // Reduce motion keeps the horizon level whatever the roll setting says.
+        rollWithShip: rollWithShip && !s.access.reduceMotion,
+        sensitivity,
+      };
       cameraRig.spyglassToggle = spyglassToggle;
     }
+    if (renderer) renderer.setBrightness(s.access.brightness);
+    if (scene) scene.atmosphere.lightning.gentle = s.access.gentleFlashes;
+    // Hold vs. toggle (plan 13 §9).
+    input.setToggle('Crouch', s.access.crouchToggle);
+    input.setToggle('Sprint', s.access.runToggle);
     input.bindings = applyBindingOverrides(DEFAULT_BINDINGS, s.bindings);
     // M back off the chart follows M onto it.
     const toggle = input.bindings.sailing.ToggleChart;
     if (toggle) input.bindings.chart = { ...input.bindings.chart, ToggleChart: toggle };
     const journal = input.bindings.sailing.Journal;
     if (journal) input.bindings.chart = { ...input.bindings.chart, Journal: journal };
+    // The keys named on screen follow the bindings (plan 13 §9).
+    setKeyBindings(input.bindings);
     sailing.state.manualTrim = s.sailing.manualTrim;
     if (audio) audio.captions.enabled = s.ui.captions;
   };
@@ -1306,6 +1357,8 @@ async function boot(): Promise<void> {
   const captureRef: { current: ReturnType<typeof attachCapture> | undefined } = {
     current: undefined,
   };
+  /** "Export run" (plan 16 §9), attached once the danger checks are. */
+  const exportRef: { current: (() => Promise<string>) | undefined } = { current: undefined };
   const endRef: {
     current: ((cause: RunEndCause, detail?: RunEndDetail) => Promise<void>) | undefined;
   } = {
@@ -1423,6 +1476,7 @@ async function boot(): Promise<void> {
       leaveAlt: () => abandonRef.current?.leaveAlt(),
     },
     onAbandon: () => void endRef.current?.('abandoned'),
+    onExport: () => exportRef.current?.() ?? Promise.resolve('Nothing to export yet.'),
     onFrontPageClosed: () => frontPageRef.current?.(),
     eventScene: {
       choose: (choice) => eventsRef.current?.choose(choice),
@@ -2452,6 +2506,9 @@ async function boot(): Promise<void> {
     nameOf: shipNameOf,
     notice: (text) => showNotice(text),
   });
+  // Hold to aim (plan 13 §9): the setting, now and as it changes.
+  aim.holdToAim = settings.value.access.holdToAim;
+  settings.subscribe((s) => (aim.holdToAim = s.access.holdToAim));
   // The fire button counts unless it went down on a control (a button, a field, the dev
   // panel): the HUD layer covers the whole screen, so the click is rarely on the canvas.
   let fireOnSea = false;
@@ -3209,6 +3266,8 @@ async function boot(): Promise<void> {
     ctx.events.emit('RunEnded', { cause });
     if (prepared.db) {
       try {
+        const runId = saver?.run.runId;
+        const transferred = runId ? await isTransferred(prepared.db, runId) : false;
         await endRun(prepared.db, last, {
           captain: last.captain,
           shipName: last.shipName,
@@ -3218,8 +3277,9 @@ async function boot(): Promise<void> {
           headline: last.frontPage.headline,
           summary: last.summary,
           endedAtIso: last.endedAtIso,
-          runId: saver?.run.runId,
+          runId,
           ...(last.nickname ? { nickname: last.nickname } : {}),
+          ...(transferred ? { transferred: true } : {}),
         });
       } catch (err) {
         console.error('Could not end the run in the save', err);
@@ -3593,7 +3653,9 @@ async function boot(): Promise<void> {
           iceBow: (e) => !!e.playerControlled && gameIce.iceBow(),
           onEvent: (e, ev) => {
             if (ev.kind === 'hazard') emitHazard(ctx.events, e.id, ev.event);
-            else if (ev.kind === 'stopped') {
+            else if (ev.kind === 'grinding') {
+              ctx.events.emit('IceGrinding', { shipId: e.id, damage: ev.damage });
+            } else if (ev.kind === 'stopped') {
               ctx.events.emit('IceStopped', { shipId: e.id, thicknessCm: ev.thicknessCm });
               if (e.playerControlled) {
                 const cm = Math.round(ev.thicknessCm);
@@ -3911,6 +3973,12 @@ async function boot(): Promise<void> {
       };
     },
     notice: (text) => showNotice(text),
+    // The curios set out at each hideout, and F at one (Phase 9 piece O).
+    curiosShown: (id) => discovery.curios.filter((c) => c.shownAt === id).map((c) => c.id),
+    lookAt: (id) => {
+      const def = curioDef(id);
+      if (def) showNotice(`${def.name}. ${def.text}`, 12);
+    },
     claimed: (site, hideout, how) => {
       if (how !== 'leased') {
         showNotice(
@@ -6568,6 +6636,47 @@ async function boot(): Promise<void> {
       .then(() => clearDanger(db))
       .then(() => delete document.body.dataset['dangerSaved'])
       .catch((err: unknown) => console.error('Clearing the danger snapshot failed', err));
+  };
+
+  /**
+   * Export run (plan 16 §9): saves, then downloads the run as a file. Never from a danger
+   * state (§4.2), so an export can't snapshot a fight, a hunt, a cell or a cold swim.
+   */
+  const exportBlocked = (): string | undefined => {
+    if (run.over) return 'The run is over.';
+    if (!saver || !prepared.db) return "This run isn't being saved, so it can't be exported.";
+    if (run.inDanger || pursuitOn.size > 0 || pursued || ashoreRef.current?.pursued)
+      return 'Not with the law on your tail.';
+    if (arena || inArenaSpace || boarding.open) return 'Not in the middle of a fight.';
+    if (foundering()) return 'Not while she founders.';
+    if (state.jail) return 'Not from a cell.';
+    if (changingZone) return 'Wait until the ship is under way again.';
+    const body = ashoreRef.current?.active ? ashoreRef.current.hud() : undefined;
+    if (body?.swimming) return "Not while you're in the water.";
+    if (body?.warmth && (body.warmth.stage === 'freezing' || body.warmth.stage === 'frozen'))
+      return "Not while you're freezing.";
+    return undefined;
+  };
+  exportRef.current = async () => {
+    const blocked = exportBlocked();
+    if (blocked) return blocked;
+    const db = prepared.db;
+    if (!db) return "This run isn't being saved, so it can't be exported.";
+    await saveControls.saveNow();
+    if (saveControls.lastError) return `The run couldn't be saved: ${saveControls.lastError}`;
+    const slot = await readRunSlot(db, 'current');
+    if (!slot) return "There's no saved run to export yet.";
+    const text = serializeRunFile(slot as SaveEnvelope);
+    const summary = savedRunSummary(state);
+    const name = runFileName(summary.captain, summary.shipName, summary.when);
+    const url = URL.createObjectURL(new Blob([text], { type: 'application/json' }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = name;
+    a.click();
+    window.setTimeout(() => URL.revokeObjectURL(url), 10_000);
+    document.body.dataset['exported'] = name;
+    return `Saved as ${name}. Import it from the main menu on another computer or browser.`;
   };
 
   const loop = createLoop({

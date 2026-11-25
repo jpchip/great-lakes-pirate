@@ -8,7 +8,13 @@ import { pieceColliders } from '../src/gameplay/island-ashore';
 import type { Collider } from '../src/gameplay/onfoot/colliders';
 import { DRAWN_CURIOS, curiosGeometry } from '../src/render/hideout/curios';
 import { pieceGeometry } from '../src/render/onfoot/poi-view';
-import { DISPLAY_PIECES, curioDefs, curioSlots } from '../src/sim/discovery/discovery';
+import {
+  DISPLAY_PIECES,
+  WALL_CURIOS,
+  curioDefs,
+  curioSlots,
+  placeCurios,
+} from '../src/sim/discovery/discovery';
 import {
   FLAT_KINDS,
   ISLANDS,
@@ -250,6 +256,44 @@ describe('curios on the shelves (piece O, drawn in piece P)', () => {
     expect(slots[0]?.y).toBeCloseTo(1.94, 5);
     expect(slots[1]?.yaw).toBeCloseTo(-Math.PI / 2, 5);
     for (const s of slots.slice(1, 3)) expect(Math.hypot(s.x - 4, s.z)).toBeLessThan(0.8);
+  });
+
+  it('a wall shelf offers two places against the wall, and the wall curios take them', () => {
+    const slots = curioSlots([piece('build.table', 0, 0), piece('build.curio_shelf', 4, 0)]);
+    expect(slots).toHaveLength(
+      (DISPLAY_PIECES['build.table'] ?? 0) + (DISPLAY_PIECES['build.curio_shelf'] ?? 0),
+    );
+    expect(slots.filter((s) => s.wall)).toHaveLength(2);
+    const ids = ['curio.ships_bell', 'curio.nameboard', 'curio.glass_float', 'curio.lens_prism'];
+    const placed = placeCurios(ids, slots);
+    // In the order set out; the nameboard on the wall, the bell and float on the table,
+    // and the prism, with the table full, on the shelf's other place.
+    expect(placed.map((p) => p.id)).toEqual(ids);
+    const at = Object.fromEntries(placed.map((p) => [p.id, p.slot]));
+    expect(at['curio.nameboard']?.wall).toBe(true);
+    expect(at['curio.ships_bell']?.wall).toBeUndefined();
+    expect(at['curio.glass_float']?.wall).toBeUndefined();
+    expect(at['curio.lens_prism']?.wall).toBe(true);
+    // More curios than places: the last set out wait aboard.
+    expect(placeCurios([...ids, 'curio.brass_compass'], slots)).toHaveLength(slots.length);
+    for (const id of WALL_CURIOS)
+      expect(
+        curioDefs().some((c) => c.id === id),
+        id,
+      ).toBe(true);
+  });
+
+  it('the lanterns carry lit glass; the rest none', () => {
+    const glowOf = (id: string): number => {
+      const g = curiosGeometry([{ id, slot: { x: 0, y: 0, z: 0, yaw: 0 } }]);
+      const a = g?.getAttribute('glow');
+      let n = 0;
+      for (let i = 0; a && i < a.count; i++) n += a.getX(i);
+      return n;
+    };
+    expect(glowOf('curio.wreck_lantern')).toBeGreaterThan(0);
+    expect(glowOf('curio.dark_lantern')).toBeGreaterThan(0);
+    expect(glowOf('curio.ships_bell')).toBe(0);
   });
 
   it('every curio in the catalog is drawn, small', () => {

@@ -1,10 +1,18 @@
 import type { FootToolsSnapshot } from './foot-tools-model';
+import { keyName, keyText } from '../keys';
+import type { Action } from '../../core/input';
 import './foot-tools.css';
 
 /**
  * The tool belt (1–5), the conduct line over it and the F prompt (plan 13 §4.2, plan 08
  * §12; Phase 7 piece E). A prompt that can't be done says why, in words, and is dimmed.
  */
+/** A belt slot's key as bound now: slot "1" is the Tool1 key. */
+function beltKey(slot: string): string {
+  const n = Number(slot);
+  return n >= 1 && n <= 9 ? keyName(`Tool${n}` as Action, 'onFoot') : slot;
+}
+
 export function FootTools({ hud }: { hud: FootToolsSnapshot }) {
   return (
     <div class="foot-tools" data-testid="foot-tools">
@@ -27,10 +35,10 @@ export function FootTools({ hud }: { hud: FootToolsSnapshot }) {
                 />
               </svg>
             )}
-            {hud.prompt.key}
+            {keyText(hud.prompt.key, 'onFoot')}
           </span>
-          <span class="foot-label">{hud.prompt.label}</span>
-          {!hud.prompt.ok && <span class="foot-why">{hud.prompt.why}</span>}
+          <span class="foot-label">{keyText(hud.prompt.label, 'onFoot')}</span>
+          {!hud.prompt.ok && <span class="foot-why">{keyText(hud.prompt.why, 'onFoot')}</span>}
         </div>
       )}
       {hud.load && (
@@ -53,7 +61,7 @@ export function FootTools({ hud }: { hud: FootToolsSnapshot }) {
               data-tool={s.id}
               aria-current={s.selected ? 'true' : undefined}
             >
-              <span class="foot-slot-key">{s.key}</span>
+              <span class="foot-slot-key">{beltKey(s.key)}</span>
               <span class="foot-slot-name">{s.name}</span>
               {s.count && <span class="foot-slot-count">{s.count}</span>}
             </li>

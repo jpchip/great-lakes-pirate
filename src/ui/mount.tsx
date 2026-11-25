@@ -49,9 +49,6 @@ import type { EventSceneView } from '../gameplay/events';
 import { EventScene, type EventSceneActions } from './events/EventScene';
 import './theme.css';
 
-/** Sail on or hold the ship, over the journal or a look at the chart. */
-const SAIL_ON_KEY = 'KeyP';
-
 /**
  * The Preact DOM overlay above the canvas (plan 01 §2.2, plan 13 §3): the sailing HUD
  * and the settings screen. It reads the sim through HUD snapshots and the settings
@@ -95,6 +92,8 @@ export interface GameUiOptions {
   jail?: JailActions | undefined;
   /** "Abandon run" on the pause menu, confirmed (plan 16 §3). */
   onAbandon?: (() => void) | undefined;
+  /** "Export run" on the pause menu (plan 16 §9). */
+  onExport?: (() => Promise<string>) | undefined;
   /** From the end screen to the main menu. */
   onEndMenu?: (() => void) | undefined;
   /** The tier-5 front page was put down (piece F). */
@@ -185,6 +184,7 @@ export function mountGameUi({
   ambitions: ambitionActions,
   jail: jailActions,
   onAbandon,
+  onExport,
   onEndMenu = () => window.location.assign(window.location.pathname),
   onFrontPageClosed = () => undefined,
   eventScene: sceneActions,
@@ -320,7 +320,7 @@ export function mountGameUi({
     } else if (journal.value && is('Journal')) {
       e.preventDefault();
       portActions?.closeJournal();
-    } else if (e.code === SAIL_ON_KEY && sailOnOffered()) {
+    } else if (is('Port') && sailOnOffered()) {
       e.preventDefault();
       toggleSailOn();
     }
@@ -443,6 +443,7 @@ export function mountGameUi({
               close={() => setMenu(false)}
               reloadNote={reloadNote}
               audio={controls.audio}
+              onExport={onExport}
               onAbandon={
                 onAbandon &&
                 (() => {

@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import type { PlacedRender } from '../../sim/hideouts/placed';
 import type { SiteFrame } from '../../sim/hideouts/site-frame';
-import { curioSlots } from '../../sim/discovery/discovery';
+import { curioSlots, placeCurios } from '../../sim/discovery/discovery';
 import {
   createStylizedMaterial,
   type LampPoolUniforms,
@@ -24,8 +24,8 @@ export interface SiteDraw {
   frame: SiteFrame;
   pieces: readonly PlacedRender[];
   /**
-   * The curios set out here (Phase 9 piece P), in the order they fill the shelves, tables
-   * and sea chests; any past the places there are aren't drawn.
+   * The curios set out here (Phase 9 piece P), in the order they fill the shelves, tables,
+   * sea chests and wall shelves (`placeCurios`); any past the places there are aren't drawn.
    */
   curios?: readonly string[];
 }
@@ -107,15 +107,13 @@ export function createHideoutSitesView(
   const plannedMat = ghostMaterial(0.38, false);
   const cursorMat = ghostMaterial(0.55, false);
   const markedMat = ghostMaterial(0.45, true);
-  const curioMat = createStylizedMaterial('toon', lighting, { vertexColors: true });
+  // Lit by night as the kit's glass is (the lanterns among them).
+  const curioMat = createStylizedMaterial('toon', lighting, { vertexColors: true, glow: true });
+  const curioGlow = new THREE.Color();
 
   /** The curios on the site's display pieces, redrawn when they or the pieces change. */
   const drawCurios = (d: Drawn, s: SiteDraw): void => {
-    const slots = curioSlots(s.pieces);
-    const shown = (s.curios ?? []).slice(0, slots.length).flatMap((id, k) => {
-      const slot = slots[k];
-      return slot ? [{ id, slot }] : [];
-    });
+    const shown = placeCurios(s.curios ?? [], curioSlots(s.pieces));
     const sig = JSON.stringify(shown);
     if (sig === d.curiosSig) return;
     d.curiosSig = sig;
@@ -276,6 +274,8 @@ export function createHideoutSitesView(
     },
     update(camera, night, lightPools) {
       const now = performance.now();
+      curioMat.uniforms.uGlow?.value.copy(curioGlow.setScalar(1.15 * night));
+      if (curioMat.uniforms.uGlowDim) curioMat.uniforms.uGlowDim.value = 0.32 + 0.68 * night;
       let nearest: Drawn | undefined;
       let best = Infinity;
       for (const d of drawn.values()) {

@@ -1,4 +1,5 @@
 import type { ReadonlySignal } from '@preact/signals';
+import { keyName } from '../keys';
 import type { AimHudSnapshot, TargetCardSnapshot } from '../../gameplay/aim';
 
 /**
@@ -23,7 +24,7 @@ export function AimHud({ aim }: { aim: ReadonlySignal<AimHudSnapshot | undefined
               {c.name}
             </span>
           ))}
-          <span class="hud-key">C</span>
+          <span class="hud-key">{keyName('CycleAmmo')}</span>
         </span>
       </div>
       <div class="aim-hud-row">
@@ -67,19 +68,19 @@ export function AimHud({ aim }: { aim: ReadonlySignal<AimHudSnapshot | undefined
       </div>
       <div class="aim-hud-keys">
         <span class={a.weapon === 'swivel' ? 'on' : a.available.swivel ? '' : 'off'}>
-          <span class="hud-key">1</span> Swivel
+          <span class="hud-key">{keyName('AimSwivel')}</span> Swivel
         </span>
         <span class={a.weapon === 'broadside' ? 'on' : a.available.broadside ? '' : 'off'}>
-          <span class="hud-key">2</span> Broadside
+          <span class="hud-key">{keyName('AimBroadside')}</span> Broadside
         </span>
         <span class={a.weapon === 'rifle' ? 'on' : a.available.rifle ? '' : 'off'}>
-          <span class="hud-key">3</span> Rifle
+          <span class="hud-key">{keyName('AimRifle')}</span> Rifle
         </span>
         <span>
-          <span class="hud-key">LMB</span> Fire
+          <span class="hud-key">{keyName('Fire')}</span> Fire
         </span>
         <span>
-          <span class="hud-key">Tab</span> Stand down
+          <span class="hud-key">{keyName('AimMode')}</span> Stand down
         </span>
       </div>
     </div>

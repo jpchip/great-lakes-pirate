@@ -17,6 +17,7 @@ import { claimSite, hideoutIdOf, leaseSite, SITES, type HideoutState } from '../
 import { emptyLayout } from '../sim/hideouts/grid';
 import { slipwayHead } from '../sim/hideouts/slipway';
 import { structure } from '../sim/hideouts/structures';
+import { curioDef, curioSlots, placeCurios } from '../sim/discovery/discovery';
 import type { WorldState } from '../sim/world-state';
 import type { Collider } from './onfoot/colliders';
 
@@ -117,6 +118,10 @@ export interface HideoutsDeps {
    */
   carrying?(): { text: string; stow(hideoutId: string): void } | undefined;
   notice(text: string): void;
+  /** The curios set out at a hideout, in the order they were (Phase 9 piece O). */
+  curiosShown?(hideoutId: string): readonly string[];
+  /** F at a curio on display: its name and story. Without it, a notice says so. */
+  lookAt?(curioId: string): void;
   /** A site claimed by building on it, or by its lease (Phase 9 piece W). */
   claimed?(site: SiteDef, hideoutId: string, how: 'built' | 'leased' | 'squatted'): void;
 }
@@ -128,8 +133,17 @@ const LEASE_MARGIN_M = 6;
 const REACH_M = 2.2;
 /** Reach to the head of the ways: anywhere on its dry cell. */
 const WAYS_REACH_M = 2.5;
+/**
+ * Reach to a curio on display. Within `CURIO_AT_M` (stood at it) the look takes F even on
+ * shelving that's also stores; further off, only when no stores, stash or bunk is in reach.
+ */
+const CURIO_REACH_M = 1.4;
+const CURIO_AT_M = 0.8;
 /** The stash is what F usually means: the bunk takes it only when this much nearer. */
 const BUNK_HANDICAP_M = 0.8;
+
+/** "A ship's bell" → "a ship's bell", for the middle of a prompt. */
+const lower = (name: string): string => name.charAt(0).toLowerCase() + name.slice(1);
 
 export function attachHideouts(deps: HideoutsDeps): Hideouts {
   const { state } = deps;
@@ -253,6 +267,22 @@ export function attachHideouts(deps: HideoutsDeps): Hideouts {
     }
     // The strongbox first, so it's the one named when both are in reach; bunks last.
     return out.sort((a, b) => Number(b.box) - Number(a.box) || Number(a.bed) - Number(b.bed));
+  };
+
+  /** The curios on display at every site, zone meters (where they're drawn). */
+  const curioPoints = (): { id: string; x: number; y: number; z: number }[] => {
+    const out: { id: string; x: number; y: number; z: number }[] = [];
+    const shownAt = deps.curiosShown;
+    if (!shownAt) return out;
+    for (const s of sites()) {
+      const ids = shownAt(s.hideoutId);
+      if (ids.length === 0) continue;
+      for (const { id, slot } of placeCurios(ids, curioSlots(placedRender(s.grid, s.build)))) {
+        const p = siteToZone(s.frame, slot.x, slot.z);
+        out.push({ id, ...p, y: s.frame.baseM + slot.y });
+      }
+    }
+    return out;
   };
 
   const STILL_PIECE = 'build.distillery';
@@ -407,6 +437,19 @@ export function attachHideouts(deps: HideoutsDeps): Hideouts {
       const reach = (p: Point): number =>
         Math.hypot(at.x - p.x, at.z - p.z) + (p.bed ? BUNK_HANDICAP_M : 0);
       const nearest = [...near].sort((a, b) => reach(a) - reach(b))[0];
+      // A curio on display when you're stood at it, or in reach with nothing else to open.
+      const flat = (p: { x: number; z: number }): number => Math.hypot(at.x - p.x, at.z - p.z);
+      const curio = curioPoints()
+        .filter((c) => flat(c) <= CURIO_REACH_M && c.y - at.y > -0.5 && c.y - at.y < 2.6)
+        .sort((a, b) => flat(a) - flat(b))[0];
+      const def = curio && curioDef(curio.id);
+      if (curio && def && (!nearest || flat(curio) <= CURIO_AT_M)) {
+        const lookAt = deps.lookAt;
+        return {
+          text: `Look at ${lower(def.name)}`,
+          act: () => (lookAt ? lookAt(curio.id) : deps.notice(`${def.name}. ${def.text}`)),
+        };
+      }
       const sleep = deps.sleep;
       if (nearest?.bed && sleep) {
         return { text: 'Sleep in the bunk', act: () => sleep(nearest.hideout) };

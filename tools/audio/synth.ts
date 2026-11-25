@@ -27,26 +27,21 @@ import { fileURLToPath } from 'node:url';
 import { SAMPLE_RATE, type SoundHints } from './lib/audio.ts';
 import {
   AIR,
-  CHORDS,
-  WALTZ,
   airForm,
   fiddleDrone,
   fogBell,
   fogWhistle,
   foghorn,
   mixInto,
-  noteHz,
   peak,
-  pluckNote,
-  reedNote,
   renderMelody,
   reverb,
   seeded,
   SHIP_WHISTLES,
   shipWhistle,
-  waltzForm,
   whistleNote,
 } from './lib/synth.ts';
+import { RED_IRON_ORE, redIronOre } from './lib/synth-songs.ts';
 import { chartTheme, fogFade, stinger, STINGERS, type StingerName } from './lib/synth-chart.ts';
 import { millSaw, oreDump } from './lib/synth-harbor.ts';
 import {
@@ -133,6 +128,7 @@ import {
   forge,
   hammerNail,
   handSaw,
+  shipLaunch,
   newspaperShake,
   pageTurn,
   placeKnock,
@@ -178,6 +174,8 @@ import {
 import {
   FROZEN_NIGHT_S,
   RUNNERS_LOOP_S,
+  GRIND_LOOP_S,
+  hullGrind,
   WINTER_WIND_S,
   frozenNight,
   iceBreak,
@@ -201,6 +199,7 @@ import {
   caveRoom,
   caveSurge,
   creek,
+  bearCrash,
   deerBound,
   deerSnort,
   endingAir,
@@ -229,6 +228,8 @@ const TODAY_P8I = '2026-11-17';
 const TODAY_P9J = '2026-11-19';
 const TODAY_P9N = '2026-11-20';
 const TODAY_P9Y = '2026-11-21';
+/** The polish pass's additions (plan 15 §21–§24's gaps). */
+const TODAY_P10 = '2026-11-24';
 /** Render only this category (e.g. `ships`), leaving the other sources untouched. */
 const ONLY = process.argv[2];
 
@@ -292,54 +293,6 @@ function writeSound(
   console.log(`synth: ${category}/${hints.name} (${(samples.length / RATE).toFixed(1)} s)`);
 }
 
-function renderWaltz(): Float32Array {
-  const random = seeded(1900);
-  const { melody, chords } = waltzForm();
-  const beatS = 60 / WALTZ.bpm;
-  const totalBeats = melody.reduce((sum, [, b]) => sum + b, 0) + 3;
-  const out = new Float32Array(Math.round((totalBeats * beatS + 2) * RATE));
-  // Concertina melody.
-  renderMelody(
-    out,
-    melody,
-    WALTZ.bpm,
-    0,
-    RATE,
-    (hz, s) => reedNote(hz, s, RATE, random),
-    1,
-    random,
-  );
-  // Guitar: bass on the one, chord strums on two and three ("oom-pah-pah").
-  chords.forEach((name, bar) => {
-    const chord = CHORDS[name];
-    if (!chord) throw new Error(`chord ${name}`);
-    const barStart = bar * 3 * beatS;
-    const bassAt = Math.round((barStart + (random() - 0.5) * 0.01) * RATE);
-    mixInto(out, pluckNote(noteHz(chord.bass), 3 * beatS, RATE, random, 0.35), bassAt, 0.55);
-    for (const beat of [1, 2]) {
-      chord.tones.forEach((tone, k) => {
-        const at = Math.round(
-          (barStart + beat * beatS + k * 0.012 + (random() - 0.5) * 0.008) * RATE,
-        );
-        mixInto(out, pluckNote(noteHz(tone), beatS * 0.9, RATE, random, 0.6), at, 0.22);
-      });
-    }
-  });
-  // The last chord rings.
-  const end = chords.length * 3 * beatS;
-  const last = CHORDS['D'] as { bass: string; tones: string[] };
-  mixInto(out, pluckNote(noteHz(last.bass), 3, RATE, random, 0.35), Math.round(end * RATE), 0.5);
-  last.tones.forEach((tone, k) =>
-    mixInto(
-      out,
-      pluckNote(noteHz(tone), 3, RATE, random, 0.5),
-      Math.round((end + k * 0.03) * RATE),
-      0.25,
-    ),
-  );
-  return reverb(out, RATE, 0.22, 0.78);
-}
-
 function renderAir(): Float32Array {
   const random = seeded(1874);
   const notes = airForm();
@@ -393,13 +346,14 @@ function main(): void {
     {
       id: 'music.open-water.day',
       name: 'open-water-day',
-      description: 'Open-water music v1, day: "The Chequamegon Waltz" on concertina and guitar',
+      description:
+        'Open-water music by day: "Red Iron Ore" (traditional) on concertina, tin whistle and guitar',
       kind: 'oneshot',
       bus: 'music',
       bundles: ['music-open-water'],
     },
-    renderWaltz(),
-    'Original tune; synthesized free-reed concertina (additive), Karplus-Strong guitar, Freeverb-style reverb',
+    redIronOre(RATE),
+    `Traditional melody, public domain: ${RED_IRON_ORE.source}. Original arrangement; synthesized free-reed concertina (additive), tin whistle, fiddle drone, Karplus-Strong guitar, Freeverb-style reverb`,
   );
   writeSound(
     'music',
@@ -1130,6 +1084,7 @@ function renderHideout(): void {
     how: string,
     bus: SoundHints['bus'],
     loopCrossfadeS?: number,
+    date = TODAY_P8I,
   ): void =>
     writeSound(
       category,
@@ -1144,7 +1099,7 @@ function renderHideout(): void {
       },
       samples,
       how,
-      TODAY_P8I,
+      date,
     );
   const hideout = (
     id: string,
@@ -1154,7 +1109,8 @@ function renderHideout(): void {
     how: string,
     bus: SoundHints['bus'] = 'sfx',
     loopCrossfadeS?: number,
-  ): void => sound('hideout', id, name, description, samples, how, bus, loopCrossfadeS);
+    date?: string,
+  ): void => sound('hideout', id, name, description, samples, how, bus, loopCrossfadeS, date);
   const ui = (
     id: string,
     name: string,
@@ -1163,6 +1119,16 @@ function renderHideout(): void {
     how: string,
   ): void => sound('ui', id, name, description, samples, how, 'ui');
 
+  hideout(
+    'sfx.slipway.launch',
+    'launch',
+    'A ship launched from the slipway: the dog-shores knocked out, the cradle groaning, the rumble down the greased ways, the splash and the wash',
+    shipLaunch(RATE),
+    'Sine thuds and band-passed ticks, stick-slip creaks, doubly low-passed noise rumble under a band-passed hiss with a value-noise judder, a band-passed and low-passed noise splash with spray, a low-passed wash, reverb',
+    'sfx',
+    undefined,
+    TODAY_P10,
+  );
   hideout(
     'sfx.build.saw',
     'saw',
@@ -1534,6 +1500,7 @@ function renderWinter(): void {
     how: string,
     bus: SoundHints['bus'] = 'sfx',
     loopCrossfadeS?: number,
+    date = TODAY_P9N,
   ): void =>
     writeSound(
       'winter',
@@ -1548,7 +1515,7 @@ function renderWinter(): void {
       },
       samples,
       how,
-      TODAY_P9N,
+      date,
     );
 
   // Thin ice.
@@ -1621,6 +1588,17 @@ function renderWinter(): void {
     'sfx',
     0.5,
   );
+  // The hull in the ice.
+  sound(
+    'sfx.ice.grind',
+    'hull-grind',
+    `A hull forcing through lake ice (${GRIND_LOOP_S} s, looped): the crunch at her stem, plates scraping down the planking, floes knocking, the timbers creaking`,
+    hullGrind(RATE),
+    'Band-passed noise chopped by a value-noise grain, a smoother high scrape, low noise, sine thuds and ticks, stick-slip creaks, a falling sine chirp, folded to loop',
+    'sfx',
+    0.5,
+    TODAY_P10,
+  );
   sound(
     'sfx.sled.load',
     'sled-load',
@@ -1682,6 +1660,7 @@ function renderIsland(): void {
     how: string,
     bus: SoundHints['bus'] = 'sfx',
     loop = false,
+    date = TODAY_P9Y,
   ): void =>
     writeSound(
       'island',
@@ -1697,7 +1676,7 @@ function renderIsland(): void {
       },
       samples,
       how,
-      TODAY_P9Y,
+      date,
     );
 
   island(
@@ -1775,6 +1754,16 @@ function renderIsland(): void {
     'A deer bounding off through brush: four heavy landings and the crackle of stems between',
     deerBound(RATE),
     'Band-passed crackle and low sine thumps, sparse leaf ticks, a short room reverb',
+  );
+  island(
+    'sfx.bear.crash',
+    'bear-crash',
+    'A bear crashing off through the brush: a heavy gallop, branches snapping, going away',
+    bearCrash(RATE),
+    'Low sine thumps in threes with band-passed brush, short band-passed twig snaps, fading and low-passed with distance, a short reverb',
+    'sfx',
+    false,
+    TODAY_P10,
   );
   island(
     'voice.bear.huff',

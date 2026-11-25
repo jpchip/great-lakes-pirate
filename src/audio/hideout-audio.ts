@@ -1,5 +1,9 @@
 import type { SoundBank } from './bank';
 import {
+  ALARM_STROKE_S,
+  SLIPWAY_BUILD,
+  SLIPWAY_FIT,
+  SLIPWAY_REPAIR,
   CHIME_GAP_S,
   craftCues,
   mainFamily,
@@ -44,6 +48,7 @@ export const HIDEOUT_SOUND = {
   still: 'amb.craft.still',
   place: 'ui.build.place',
   refused: 'ui.build.refused',
+  launch: 'sfx.slipway.launch',
 } as const;
 
 export const UI_SOUND = {
@@ -86,7 +91,7 @@ interface StillBed {
 
 export class HideoutSounds {
   /** The latest readout, for the dev panel and the tests. */
-  readonly levels = { last: '', cues: 0, still: 0, workBedS: 0 };
+  readonly levels = { last: '', cues: 0, still: 0, workBedS: 0, launches: 0 };
   private still: StillBed | undefined;
 
   constructor(
@@ -157,6 +162,27 @@ export class HideoutSounds {
       });
     }
     this.cues(v.cues);
+  }
+
+  // --- The slipway -----------------------------------------------------------------------
+
+  /**
+   * Work on the ways (Phase 8 piece G): a repair or an upgrade fitted after hauling her out
+   * is heard like Build's work, a vignette of the yard with saws and hammers (iron for the
+   * fastenings and fittings), its length by the hours it took.
+   */
+  onTheWays(job: 'repair' | 'fit', seconds: number): void {
+    this.built(job === 'repair' ? SLIPWAY_REPAIR : SLIPWAY_FIT, seconds);
+  }
+
+  /**
+   * A ship of your own building launched: the days on the ways as a vignette, then the
+   * dog-shores knocked out and the hull running down into the water.
+   */
+  launched(seconds: number): void {
+    this.built(SLIPWAY_BUILD, seconds);
+    this.levels.launches++;
+    this.sound(HIDEOUT_SOUND.launch, 'sfx', 0.9, 1, this.levels.workBedS + 0.2);
   }
 
   // --- Crafting --------------------------------------------------------------------------
@@ -292,8 +318,8 @@ export class HideoutSounds {
   }
 }
 
-/** Which UI cue an event plays. */
-export type UiCue = 'stamp' | 'newspaper' | 'telegraph' | 'chimeSoft' | 'chimeBright';
+/** Which UI cue an event plays. `alarm` is the bright bell struck twice, low and quick. */
+export type UiCue = 'stamp' | 'newspaper' | 'telegraph' | 'chimeSoft' | 'chimeBright' | 'alarm';
 
 /**
  * The rest of plan 15 §4.6's UI set, on the UI bus and not placed: a contract taken is
@@ -313,15 +339,32 @@ export class UiCues {
   ) {}
 
   play(cue: UiCue): void {
-    if (cue === 'chimeSoft' || cue === 'chimeBright') {
+    if (cue === 'chimeSoft' || cue === 'chimeBright' || cue === 'alarm') {
       const t = this.now();
-      if (t - this.chimedAt < CHIME_GAP_S) return;
+      // An alarm cuts in on a bell; a bell never on an alarm.
+      if (t - this.chimedAt < CHIME_GAP_S && !(cue === 'alarm' && this.last !== 'alarm')) return;
       this.chimedAt = t;
+    }
+    this.last = cue;
+    if (cue === 'alarm') {
+      // Two strokes of the bright bell, a fourth down and close together: a warning, not a prize.
+      const buffer = this.bank.get(UI_SOUND.chimeBright);
+      if (!buffer) return;
+      for (const delay of [0, ALARM_STROKE_S]) {
+        this.mixer.play({
+          buffer,
+          bus: 'ui',
+          gain: 0.55,
+          rate: 0.75,
+          delay,
+          priority: PRIORITY.sfx,
+        });
+      }
+      return;
     }
     const gain = { stamp: 0.75, newspaper: 0.6, telegraph: 0.5, chimeSoft: 0.4, chimeBright: 0.5 }[
       cue
     ];
-    this.last = cue;
     const buffer = this.bank.get(UI_SOUND[cue]);
     if (buffer) this.mixer.play({ buffer, bus: 'ui', gain, priority: PRIORITY.sfx });
   }

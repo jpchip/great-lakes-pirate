@@ -1,4 +1,5 @@
 import type { ReadonlySignal } from '@preact/signals';
+import { keyName } from '../keys';
 import type { EncounterChoice } from '../../modes/chart';
 import type { LookoutPref } from '../../sim/chart/traffic';
 import { ChartLockedBanner } from '../hud/Hud';
@@ -141,7 +142,8 @@ export function ChartHud({
               aria-pressed={c.sailingOn}
               onClick={actions.toggleSailOn}
             >
-              {c.sailingOn ? 'Hold the ship' : 'Sail on'} <span class="hud-key">P</span>
+              {c.sailingOn ? 'Hold the ship' : 'Sail on'}{' '}
+              <span class="hud-key">{keyName('Port')}</span>
             </button>
           </div>
         )}
@@ -153,7 +155,7 @@ export function ChartHud({
               data-testid="chart-back"
               onClick={actions.back}
             >
-              {c.backLabel} <span class="hud-key">M</span>
+              {c.backLabel} <span class="hud-key">{keyName('ToggleChart')}</span>
             </button>
           </div>
         )}
@@ -163,6 +165,20 @@ export function ChartHud({
         </div>
       </div>
       {c.weather && <WeatherCard weather={c.weather} setForecast={actions.setForecast} />}
+      {c.weather?.hover && (
+        <div
+          class={c.weather.hover.warning ? 'chart-hover-glass chart-problem' : 'chart-hover-glass'}
+          data-testid="chart-hover-glass"
+          style={{
+            // The page's interface zoom (Accessibility) scales these too; undo it.
+            left: `calc(${c.weather.hover.x + 16}px / var(--ui-scale, 1))`,
+            top: `calc(${c.weather.hover.y + 16}px / var(--ui-scale, 1))`,
+          }}
+          aria-hidden="true"
+        >
+          {c.weather.hover.text}
+        </div>
+      )}
       {enc && (
         <div class="chart-card chart-encounter" data-testid="chart-encounter" role="dialog">
           <div class="chart-kicker">{enc.kind}</div>

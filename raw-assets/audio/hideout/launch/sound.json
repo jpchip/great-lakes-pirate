@@ -1,0 +1,11 @@
+{
+  "id": "sfx.slipway.launch",
+  "name": "launch",
+  "description": "A ship launched from the slipway: the dog-shores knocked out, the cradle groaning, the rumble down the greased ways, the splash and the wash",
+  "kind": "oneshot",
+  "bus": "sfx",
+  "bundles": [
+    "hideout-audio"
+  ],
+  "source": "source.flac"
+}

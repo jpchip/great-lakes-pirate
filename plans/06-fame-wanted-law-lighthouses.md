@@ -165,6 +165,7 @@ Defined in [05 §5.2](05-ports-economy-trading.md): per port and company. Crimes
 ### 5.3 Marshals & bounty hunters (tier 4+)
 - **US Marshal posse / county sheriff:** on-foot searchers in docks districts and **islands** (they can land on islands to search hideout areas, but **can't raid hideouts**, per the decision; hideouts remain safe zones).
 - **Bounty hunters:** independent armed men who appear at tier 4+ and high Fame, sometimes in a hired boat. They're beatable, but killing them adds heat.
+- **After 1.0 (decided 2026-11-24, [00 §7.2](00-master-plan.md)):** harbor launches (§5.2) and bounty hunters aren't in 1.0. The *Morrill* is the law at sea, and the watch, marshals and posse cover the shore.
 
 ### 5.4 Hideouts end pursuit (decided 2026-10-22)
 - Reaching your hideout's boundary **ends any pursuit**: the cutter, harbor launches, constables, marshals and bounty hunters break off, and the chart lock lifts ([09 §3](09-hideouts-building-crafting.md)).
@@ -614,6 +615,7 @@ So by day the T1 on auto-trim outruns her only from outside 800 m; once she's fi
 ---
 
 ## Changelog
+- v1.6: Harbor launches and bounty hunters move after 1.0 (§5.3 note, [00 §7.2](00-master-plan.md)).
 - v1.5: Islanders as witnesses (Phase 9 piece Q, [11 §18.17](11-exploration-islands-secrets.md)): the `townsfolk` witness kind reports at its island's speed (§2.4).
 - v1.4: Phase 7 as built (§14.6): the watch on foot, crimes ashore, minor arrests, the jailbreak and the jailer's debt; launches and lighthouse raids still to come.
 - v1.4: A slower cutter, a chase she gives up, and her sent away from the lockup port (§14.14.6, Jared's playtest).

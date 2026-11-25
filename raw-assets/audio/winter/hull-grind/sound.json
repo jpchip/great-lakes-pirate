@@ -1,0 +1,12 @@
+{
+  "id": "sfx.ice.grind",
+  "name": "hull-grind",
+  "description": "A hull forcing through lake ice (5 s, looped): the crunch at her stem, plates scraping down the planking, floes knocking, the timbers creaking",
+  "kind": "loop",
+  "bus": "sfx",
+  "loopCrossfadeS": 0.5,
+  "bundles": [
+    "winter-audio"
+  ],
+  "source": "source.flac"
+}

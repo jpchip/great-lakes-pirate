@@ -1610,6 +1610,27 @@
     "groundOk": false
   },
   {
+    "id": "build.curio_shelf",
+    "name": "Wall shelf",
+    "category": "decor",
+    "placement": "prop",
+    "stand": "onFloor",
+    "sizeM": [1.4, 0.3],
+    "heightM": 1.6,
+    "collider": "none",
+    "variants": [
+      {
+        "material": "timber",
+        "cost": {
+          "good.lumber": 1,
+          "good.hardware": 1
+        }
+      }
+    ],
+    "buildHours": 0.25,
+    "groundOk": false
+  },
+  {
     "id": "build.rug",
     "name": "Rug",
     "category": "decor",
