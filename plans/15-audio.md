@@ -539,12 +539,12 @@ All resolved.
 | Song | Printed melody | Fits |
 |---|---|---|
 | *Red Iron Ore* (Laws D9) | Rickaby 1926, no. 45, p. 161 | Open water by day (built here) |
-| *The Bigler's Crew* (Laws D8) | Rickaby no. 47, p. 168; Colcord, *Roll and Go* (1924), p. 109 | Chart travel |
-| *The Persian's Crew* (Laws D4) | Rickaby no. 46, p. 164 (two tunes); Colcord p. 111 (a third) | Night, fog, a wreck, the death ending |
+| *The Bigler's Crew* (Laws D8) | Rickaby no. 47, p. 168; Colcord, *Roll and Go* (1924), p. 109 | Chart travel (built, §25.1) |
+| *The Persian's Crew* (Laws D4) | Rickaby no. 46, p. 164 (two tunes); Colcord p. 111 (a third) | Night, fog, a wreck, the death ending (night built, §25.1) |
 | *The Shanty-Man's Life* | Rickaby no. 9, p. 43 | Port by day in the lumber towns |
-| *The Little Brown Bulls* | Rickaby no. 13, p. 65 (a variant of *Red Iron Ore*'s tune) | The saloon |
+| *The Little Brown Bulls* | Rickaby no. 13, p. 65 (a variant of *Red Iron Ore*'s tune) | The saloon (built, §25.1) |
 | *Michigan-I-O* | Rickaby no. 8, p. 41 | The saloon at night, winter |
-| *The Jam on Gerry's Rocks* | Rickaby no. 2, p. 11 | A death or gallows stinger |
+| *The Jam on Gerry's Rocks* | Rickaby no. 2, p. 11 (A), p. 15 (B, "Geary's Rock") | A death or gallows stinger; the ending air (built, §25.1) |
 | *Lost on the Lady Elgin* | Henry Clay Work's sheet music (1861) | Saloon piano late at night, an ending |
 | *En roulant ma boule* | Gagnon, *Chansons populaires du Canada* (1865) | Rowing ashore, La Pointe |
 
@@ -561,9 +561,30 @@ Rickaby (Harvard University Press, 1926) is on the Internet Archive (`3176103494
 ### Still to do
 
 1. **A listen:** nobody has heard the arrangement yet. Judge the tempo, the whistle's octave and the drone's level.
-2. **The other songs** in the table above, one cue at a time.
+2. **The other songs** in the table above, one cue at a time (four more done in §25.1).
+
+### 25.1 The rest of the shortlist (2026-11-25)
+
+Four more songs replace the original placeholder tunes, each from Rickaby's page, note for note, with the book's held notes kept in time:
+
+| Part | Where | What it does |
+|---|---|---|
+| Chart travel | `synth-songs.ts` (`BIGLER`, `biglerForm`, `bigler`), `music/chart-voyage` | *The Bigler's Crew* (no. 47, p. 168): 6/8 in D mixolydian, a 16-bar verse and a 15-bar chorus, at a dotted quarter of 70. Two bars of guitar, verse and chorus on concertina, then the chorus again on tin whistle an octave up over a D and A fiddle drone, all over a boom-chick. 91.2 s. Replaces "The Long Reach". |
+| Night at sea | `synth-songs.ts` (`PERSIANS_CREW`, `persiansCrew`), `music/open-water-night` | *The Persian's Crew* (no. 46, tune A, p. 164): 15 bars in F, slow (eighth at 132). Tin whistle an octave up, then concertina, over an F and C drone, no guitar. 95.1 s. Replaces "Devils Island Air". |
+| The saloon by day | `synth-songs.ts` (`LITTLE_BROWN_BULLS`, `littleBrownBullsForm`, `littleBrownBullsGuitar`), `synth-foot.ts` (`saloonTune`), `foot/saloon-tune` | *The Little Brown Bulls* (no. 13, p. 65): ten bars of 6/8, played twice at a quick pace with the pickup moved to the end so the loop is seamless, guitar on half-bar chords (Em, D, G). 26.1 s loop. Replaces "The Booth Street Polka"; "The Late Boat Waltz" still plays at night. |
+| The ending | `synth-songs.ts` (`GERRYS_ROCKS`, `transpose`), `synth-island.ts` (`endingAir`), `music/ending-air` | *The Jam on Gerry's Rocks* (no. 2, tune B, p. 15): 16 bars of cut time, raised a tone to D to sit on the existing D and A drone, slow (quarter at 63). 64 s. Replaces the original ending air. |
+
+**Calls made here.** The chords are again a guess, since Rickaby prints the tunes alone. Tune B of *Gerry's Rocks* was picked over A because it fits the drone and reads as a lament. The replaced tunes are in git history.
+
+**Not done yet.** *The Shanty-Man's Life*, *Michigan-I-O*, *Lost on the Lady Elgin* and *En roulant ma boule* have no cue of their own in the game today (a lumber-town port by day, a winter saloon, a late piano, rowing ashore). Each needs its cue added to the music director first, which is a design call, not a transcription.
+
+### Still to do (§25.1)
+
+1. **A listen** to all four new cues, as for *Red Iron Ore*.
+2. **New cues** for the four songs above, if wanted.
 
 ## Changelog
+- v2.1: The rest of the song shortlist (§25.1): *The Bigler's Crew* for chart travel, *The Persian's Crew* for night at sea, *The Little Brown Bulls* for the saloon by day and *The Jam on Gerry's Rocks* for the ending, all from Rickaby (1926), replacing the original placeholder tunes.
 - v2.0: Great Lakes song motifs (§25): the public-domain sources for the songs of §2, and *Red Iron Ore* from Rickaby (1926) as the open-water day cue in place of the waltz.
 - v1.9: The ending air can't play into a new run (§24): the way from the end screen reloads the page.
 - v1.8: Phase 9 piece Y built (§24): the islands' birds, creek and surf by tier and season, the woodpecker, a sea cave's hush, drips and surge, the deer, bear and wolves, the grapple, a dig and the ending air.

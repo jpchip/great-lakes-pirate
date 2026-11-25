@@ -79,7 +79,7 @@
     "music.open-water.night": {
       "type": "audio",
       "url": "music/open-water-night.ogg",
-      "bytes": 1717252
+      "bytes": 1511247
     },
     "sfx.signal.fog-bell": {
       "type": "audio",
@@ -214,7 +214,7 @@
     "music.chart.voyage": {
       "type": "audio",
       "url": "music/chart-voyage.ogg",
-      "bytes": 1435462
+      "bytes": 1445434
     },
     "amb.harbor.car-bang": {
       "type": "audio",
@@ -554,7 +554,7 @@
     "music.foot.saloon": {
       "type": "audio",
       "url": "foot/saloon-tune.ogg",
-      "bytes": 396905
+      "bytes": 281955
     },
     "voice.foot.shiver": {
       "type": "audio",
@@ -1054,7 +1054,7 @@
     "music.ending.air": {
       "type": "audio",
       "url": "music/ending-air.ogg",
-      "bytes": 883331
+      "bytes": 1003788
     }
   },
   "bundles": {

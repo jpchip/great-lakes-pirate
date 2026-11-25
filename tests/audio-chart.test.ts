@@ -9,15 +9,7 @@ import {
 } from '../src/audio/chart-audio';
 import type { AudioMixer, OneShot } from '../src/audio/mixer';
 import type { MusicPlayer } from '../src/audio/music';
-import {
-  REACH,
-  STINGERS,
-  chartTheme,
-  drumHit,
-  fogFade,
-  reachForm,
-  stinger,
-} from '../tools/audio/lib/synth-chart';
+import { STINGERS, drumHit, fogFade, stinger } from '../tools/audio/lib/synth-chart';
 import { peak, seeded } from '../tools/audio/lib/synth';
 
 interface FakePlayer extends MusicPlayer {
@@ -123,25 +115,6 @@ describe('chart music (plan 15 §6.1 "Chart travel")', () => {
 
 describe('chart audio synthesis', () => {
   const RATE = 8000;
-
-  it('fits "The Long Reach" to whole 6/8 bars, one chord a bar', () => {
-    const { concertina, whistle, chords } = reachForm();
-    const bars = (notes: readonly (readonly [string, number])[]): number =>
-      notes.reduce((s, [, b]) => s + b, 0) / REACH.beatsPerBar;
-    expect(Number.isInteger(bars(REACH.a))).toBe(true);
-    expect(Number.isInteger(bars(REACH.b))).toBe(true);
-    expect(bars(concertina)).toBe(34);
-    expect(bars(whistle)).toBe(chords.length);
-    expect(chords).toHaveLength(42);
-  });
-
-  it('renders the theme to about a minute and a half', () => {
-    const theme = chartTheme(RATE);
-    const seconds = theme.length / RATE;
-    expect(seconds).toBeGreaterThan(80);
-    expect(seconds).toBeLessThan(100);
-    expect(peak(theme)).toBeGreaterThan(0.05);
-  }, 60_000);
 
   it('renders each stinger as a few seconds of sound', () => {
     for (const name of STINGERS) {
