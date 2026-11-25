@@ -162,7 +162,7 @@ Numbers are draft tuning values. ★ = visible on the model.
 | Heavy anchor | Holds in gales (no dragging) | Chandlery |
 | Improved pumps | Slower flooding from hull damage | Shipyard; smithy |
 | Repair stores | Carry more patch and mend kits (doesn't use cargo CU) | Workbench |
-| **Hard-hat diving suit** ★ | **Unlocks deep-wreck salvage** ([11 §6.2](11-exploration-islands-secrets.md)); dive time is longer with a crew to pump | Chandlery or shipyard in Duluth or Superior (**expensive**, ~$600 draft); transferable |
+| **Hard-hat diving suit** ★ | **Unlocks deep-wreck salvage** ([11 §6.2](11-exploration-islands-secrets.md)); dive time is longer with a crew to pump | Chandlery or shipyard in Duluth or Superior (**expensive**, $600); transferable. Built in Phase 10 ([11 §19](11-exploration-islands-secrets.md)) |
 
 ---
 

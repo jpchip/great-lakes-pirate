@@ -585,6 +585,13 @@ export interface GameEvents {
    * The line goes down at `GrappleCast` (the sound of it, piece Y).
    */
   GrappleCast: { wreck: string };
+  /**
+   * The diving suit (Phase 10): down the shot line to a deep wreck, and up again (`finds`:
+   * how many trips brought something; an empty `wreck` when you were hauled up for want of
+   * the anchor). For the helmet's sounds.
+   */
+  DiveStarted: { wreck: string };
+  DiveEnded: { wreck: string; minutes: number; finds: number };
   WreckWorked: {
     wreck: string;
     kind: 'nothing' | 'cargo' | 'papers' | 'curio';

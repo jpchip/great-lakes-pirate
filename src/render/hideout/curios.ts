@@ -109,6 +109,13 @@ const CURIOS: Record<string, Builder> = {
     box(0.62, 0.14, 0.03, 0, 0, 0.1, NAMEBOARD),
     box(0.5, 0.04, 0.032, 0, 0.05, 0.1, GILT),
   ],
+  // Phase 10: a chronometer in its box, the lid open, from a deep wreck the suit reached.
+  'curio.chronometer': () => [
+    box(0.2, 0.12, 0.2, 0, 0, 0, 0x5a3a24),
+    frustum(0.07, 0.07, 0.012, 14, 0, 0.12, 0, BRASS),
+    frustum(0.06, 0.06, 0.004, 14, 0, 0.132, 0, 0xeee6cc),
+    box(0.2, 0.18, 0.015, 0, 0.12, 0.105, 0x5a3a24),
+  ],
 };
 
 /** A curio not in the list: a small wrapped bundle. */

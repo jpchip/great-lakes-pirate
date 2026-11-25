@@ -398,6 +398,10 @@ export function fitRefusal(
   return undefined;
 }
 
+/** Whether a port's yard or chandler carries it (the diving suit: Duluth and Superior only). */
+export const soldAt = (upgrade: Pick<Upgrade, 'ports'>, port: string): boolean =>
+  !upgrade.ports || upgrade.ports.includes(port);
+
 /** Fits an upgrade (plan 10 §6): a yard takes its install hours, a chandler fits it on the spot. */
 export function installUpgrade(
   defs: EconomyDefs,
@@ -411,6 +415,7 @@ export function installUpgrade(
 ): ShipyardResult<UpgradeEvent> {
   const u = upgradeDef(upgradeId);
   if (!u) return { ok: false, reason: 'unknown' };
+  if (!soldAt(u, port)) return { ok: false, reason: 'notHere' };
   const price = upgradePriceCents(defs, port, u, discount);
   const refusal = fitRefusal(owner, ship, u, source, price, fameTier);
   if (refusal) return { ok: false, reason: refusal };

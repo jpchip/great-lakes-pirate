@@ -20,6 +20,7 @@ import {
   hullsForSale,
   REMOVAL_REFUND,
   repairQuote,
+  soldAt,
   upgradePriceCents,
   type FitSource,
   type Owner,
@@ -257,7 +258,7 @@ export function yardSnapshot(src: YardSources): YardSnapshot {
       : [];
 
   const upgrades: UpgradeRow[] = [...upgradeDefs().values()]
-    .filter((u) => u.sources.includes(place))
+    .filter((u) => u.sources.includes(place) && soldAt(u, port))
     .map((u) => {
       const price = upgradePriceCents(defs, port, u);
       const fitted = ship.upgrades.includes(u.id);

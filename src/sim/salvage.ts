@@ -118,6 +118,37 @@ export function oldWrecks(seed: string, file: SalvageFile = salvageFile()): OldW
       seeded: true,
     };
   });
+  // The deep ones (Phase 10), after the shallow ones: their own spots, drawn the same way.
+  const deep = s.deep;
+  if (deep) {
+    const drng = Rng.fromSeed(`${seed}|salvage|deep`);
+    const deepSpots = shuffle(drng, deep.spots).slice(0, Math.min(deep.count, deep.spots.length));
+    deepSpots.forEach((spot, k) => {
+      const year = drng.int(s.years[0], s.years[1]);
+      const classText = drng.pick(deep.classes);
+      const name = names[(spots.length + k) % names.length] as string;
+      const cargo = drng
+        .pick(deep.cargoes)
+        .map((c) => ({ good: c.good, qty: drng.int(c.qty[0], c.qty[1]) }))
+        .filter((c) => c.qty > 0);
+      const lostMs = Date.UTC(year, 9 + drng.int(0, 1), drng.int(1, 28));
+      made.push({
+        id: `wreck.deep_${k + 1}`,
+        name,
+        classText,
+        lostMs,
+        lostYear: year,
+        at: { ...spot.at },
+        where: spot.where,
+        deep: true,
+        logged: false,
+        cargo,
+        curio: deep.curios[k],
+        lore: fill(s.lore, { classText, name, where: spot.where, year: String(year) }),
+        seeded: true,
+      });
+    });
+  }
   made.forEach((w, i) => {
     const next = made[i + 1];
     w.papers = next
@@ -388,6 +419,94 @@ export function castGrapple(
   addLine(p.raised, line.good, sound);
   addLine(p.spoiled, line.good, spoiled);
   return { hooked: true, kind: 'cargo', good: line.good, sound, spoiled };
+}
+
+// --- The diving suit (plan 11 §6.2; Phase 10).
+
+/** A wreck the grapple can't reach: the record calls her deep, or she lies past its depth. */
+export const beyondGrapple = (rules: SalvageRules, deep: boolean, depthM: number): boolean =>
+  deep || depthM > rules.maxDepthM;
+
+/** Why the suit can't go down to her now, or undefined. */
+export function diveRefusal(
+  rules: SalvageRules,
+  c: { depthM: number; hsM: number; holdFree: number; pickedClean: boolean; findsLeft?: boolean },
+): string | undefined {
+  const d = rules.dive;
+  if (c.depthM > d.maxDepthM)
+    return `She lies in ${Math.round(c.depthM)} m: deeper than the suit's hose will reach.`;
+  if (c.pickedClean) return "There's nothing left in her worth a dive: she's picked clean.";
+  if (c.hsM > d.maxHsM) return 'Too much sea to go down in the suit. Wait for a calm.';
+  if (c.holdFree <= 0 && !c.findsLeft) return 'No room in the hold for anything she gives up.';
+  return undefined;
+}
+
+/** The chance one trip across her finds something: by lamp at night less, an old wreck less. */
+export function diveChance(rules: SalvageRules, c: { daylight: number; ageYears: number }): number {
+  let p = rules.dive.chance;
+  if (c.daylight < 0.5) p *= rules.nightFactor;
+  if (c.ageYears >= rules.oldYears) p *= rules.oldFactor;
+  return Math.max(0, Math.min(1, p));
+}
+
+export interface DiveResult {
+  /** Trips made across her before the air ran down. */
+  trips: number;
+  /** Fouled in her wreckage and worked free: a trip lost. */
+  snagged: boolean;
+  /** The ship pitched on the hose and the tender called you up at half the air. */
+  cutShort: boolean;
+  /** Game minutes it all took, dressing included. */
+  minutes: number;
+  /** What came up, a trip at a time (the empty ones left out). */
+  finds: Exclude<CastResult, { hooked: false }>[];
+}
+
+/**
+ * One dive (plan 11 §6.2): into the dress, down the shot line, then trips across her and
+ * back to the hoist line while the air lasts (a crew on the pump gives three times a lone
+ * captain's reservoir). Each trip finds something by `chance` and brings up what a cast
+ * would, but more of it (`dive.haulCu`, `haulShare`, `haulMaxCu`) and her papers and curio
+ * more readily. A pitching ship halves the air; a snag in her wreckage costs a trip.
+ */
+export function diveWreck(
+  rules: SalvageRules,
+  t: SalvageTarget,
+  p: WreckProgress,
+  c: { chance: number; crewed: boolean; hsM: number },
+  rng: Rng,
+  holdFree: number,
+  now: number,
+): DiveResult {
+  const d = rules.dive;
+  const cutShort = c.hsM > d.pitchHsM;
+  const air = (c.crewed ? d.airMinutes.crewed : d.airMinutes.solo) * (cutShort ? 0.5 : 1);
+  let trips = Math.max(1, Math.floor(air / d.tripMinutes));
+  const snagged = rng.chance(d.snagChance);
+  if (snagged) trips = Math.max(0, trips - 1);
+  const asCast: SalvageRules = {
+    ...rules,
+    haulCu: d.haulCu,
+    haulShare: d.haulShare,
+    haulMaxCu: d.haulMaxCu,
+    findChance: d.findChance,
+  };
+  const finds: DiveResult['finds'] = [];
+  let free = holdFree;
+  let made = 0;
+  for (let i = 0; i < trips; i++) {
+    if (pickedClean(t, p)) break;
+    made++;
+    const r = castGrapple(asCast, t, p, c.chance, rng, free, now);
+    if (!r.hooked) continue;
+    if (r.kind === 'cargo') free -= r.sound;
+    finds.push(r);
+  }
+  const minutes =
+    d.dressMinutes +
+    Math.max(made, snagged ? 1 : 0) * d.tripMinutes +
+    (snagged ? d.snagMinutes : 0);
+  return { trips: made, snagged, cutShort, minutes, finds };
 }
 
 // --- A wreck of the run, and the law.

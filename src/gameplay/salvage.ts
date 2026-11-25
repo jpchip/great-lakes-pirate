@@ -12,7 +12,11 @@ import {
   castGrapple,
   castRefusal,
   cargoLeft,
+  beyondGrapple,
   depthSpike,
+  diveChance,
+  diveRefusal,
+  diveWreck,
   freshSalvage,
   oldWrecks,
   pickedClean,
@@ -21,6 +25,7 @@ import {
   seenOnBottom,
   wreckClaim,
   type CastResult,
+  type DiveResult,
   type OldWreck,
   type SalvageState,
   type SalvageTarget,
@@ -74,8 +79,18 @@ export interface SalvageSite {
 export interface SalvageOffer {
   site: SalvageSite;
   depthM: number;
-  /** Why the grapple can't go down, or undefined: it can. */
+  /** The grapple from the deck, or the suit down to her (deep, and the suit aboard). */
+  how: 'grapple' | 'dive';
+  /** Why the grapple (or the suit) can't go down, or undefined: it can. */
   refusal: string | undefined;
+}
+
+export interface DiveOutcome {
+  site: string;
+  result: DiveResult;
+  chance: number;
+  hot: boolean;
+  text: string;
 }
 
 export interface CastOutcome {
@@ -108,6 +123,10 @@ export interface SalvageDeps {
   visibilityM(): number;
   passTime(gameSeconds: number): void;
   notice(text: string): void;
+  /** The hard-hat diving suit is aboard (Phase 10). */
+  suit?(): boolean;
+  /** A crew to work the pump (a T2 or bigger): long dives, not a lone captain's short ones. */
+  crewed?(): boolean;
   /**
    * The grapple hooked at a wreck: a legend's strongbox up instead of what she'd give
    * (piece T: the Lucerne's). Its line, or undefined.
@@ -134,9 +153,13 @@ export interface GameSalvage {
   /** The line's down: is it, and on which wreck. */
   working(): string | undefined;
   /** Real seconds pass: the cast comes up when its time is done. */
-  update(realS: number): CastOutcome | undefined;
+  update(realS: number): CastOutcome | DiveOutcome | undefined;
   /** One cast at once (the dev hook; `chance` overrides the odds). */
   castNow(chance?: number): CastOutcome | string;
+  /** One dive at once (the dev hook; `chance` overrides each trip's odds). */
+  diveNow(chance?: number): DiveOutcome | string;
+  /** The suit is down: the wreck's id, for the sounds. */
+  diving(): string | undefined;
   /** Found old wrecks for the chart. */
   marks(): { at: Geo; label: string; kind: 'wreck' }[];
   /** The journal's line on what's come up from her. */
@@ -156,7 +179,8 @@ export function attachSalvage(deps: SalvageDeps): GameSalvage {
   const old = oldWrecks(deps.seed);
   const goodName = (id: string): string =>
     (deps.economy.defs.goods.get(id)?.name ?? id).toLowerCase();
-  let working: { id: string; leftS: number; chance?: number | undefined } | undefined;
+  let working:
+    { id: string; leftS: number; how: 'grapple' | 'dive'; chance?: number | undefined } | undefined;
 
   const siteOf = (frame: ZoneFrame, zoneId: string, w: Wreck | OldWreck): SalvageSite => {
     const isRun = 'shipId' in w;
@@ -214,17 +238,19 @@ export function attachSalvage(deps: SalvageDeps): GameSalvage {
     const s = best.s;
     const depthM = depthOf(s);
     const p = salvage().wrecks[s.id];
-    const refusal = castRefusal(rules, {
+    const c = {
       depthM,
       hsM: deps.hsAt(ship.x, ship.z),
-      deep: s.deep,
       holdFree: holdFree(state.player.cargo, deps.economy.capacity),
       pickedClean: pickedClean(s.target, p),
       findsLeft:
         (s.target.papers && p?.papersAt === undefined) ||
         (!!s.target.curio && p?.curioAt === undefined),
-    });
-    return { site: s, depthM, refusal };
+    };
+    if (beyondGrapple(rules, s.deep, depthM) && deps.suit?.())
+      return { site: s, depthM, how: 'dive', refusal: diveRefusal(rules, c) };
+    const refusal = castRefusal(rules, { ...c, deep: s.deep });
+    return { site: s, depthM, how: 'grapple', refusal };
   };
 
   const hotFor = (s: SalvageSite, good: string) => {
@@ -309,6 +335,118 @@ export function attachSalvage(deps: SalvageDeps): GameSalvage {
     });
   };
 
+  /**
+   * What came up goes where it belongs: cargo into the hold (hot from a recent wreck, and
+   * the law hears if you're seen), her papers to the journal's lead, a curio to the sea
+   * chest. Raises `WreckWorked`. Returns whether it was hot.
+   */
+  const take = (
+    s: SalvageSite,
+    r: Exclude<CastResult, { hooked: false }>,
+    t: number,
+    by: string,
+  ): boolean => {
+    if (r.kind === 'cargo') {
+      const h = hotFor(s, r.good);
+      if (r.sound > 0) {
+        addToHold(state.player.cargo, { good: r.good, qty: r.sound, ...(h ? { hot: h } : {}) });
+        deps.economy.syncLoad();
+        lawAt(s);
+      }
+      ctx.events.emit('WreckWorked', {
+        wreck: s.id,
+        kind: 'cargo',
+        good: r.good,
+        qty: r.sound,
+        spoiled: r.spoiled,
+        hot: !!h,
+      });
+      return !!h;
+    }
+    if (r.kind === 'papers') {
+      const papers = s.oldWreck?.papers;
+      log(state, t, `${by} ${papers?.name ?? 'her papers'} from the wreck of the ${s.name}.`);
+      papersLead(s);
+    } else {
+      deps.discovery.giveCurio(r.curio, `the wreck of the ${s.name}`);
+      log(state, t, `${by} a curio from the wreck of the ${s.name}.`);
+    }
+    ctx.events.emit('WreckWorked', { wreck: s.id, kind: r.kind, qty: 0, spoiled: 0, hot: false });
+    return false;
+  };
+
+  const finishDive = (id: string, forced?: number): DiveOutcome | string => {
+    const s = sites().find((x) => x.id === id);
+    const ship = deps.ship();
+    if (!s || !ship) return 'No wreck under you.';
+    const hsM = deps.hsAt(ship.x, ship.z);
+    const p = progressOf(salvage(), s.id, now());
+    const chance =
+      forced ??
+      diveChance(rules, {
+        daylight: deps.daylight(),
+        ageYears: s.target.ageDays / CALENDAR_YEAR_DAYS,
+      });
+    const rng = Rng.fromSeed(`${deps.seed}|dive|${s.id}|${p.casts}`);
+    const free = holdFree(state.player.cargo, deps.economy.capacity);
+    const result = diveWreck(
+      rules,
+      s.target,
+      p,
+      { chance, crewed: !!deps.crewed?.(), hsM },
+      rng,
+      free,
+      now(),
+    );
+    deps.passTime(result.minutes * 60);
+    const t = now();
+    let hot = false;
+    const parts: string[] = [];
+    const box = result.finds.length > 0 ? deps.strongbox?.(s.id) : undefined;
+    if (box) parts.push(box);
+    for (const f of result.finds) {
+      hot = take(s, f, t, 'Brought up in the suit') || hot;
+      if (f.kind === 'cargo') {
+        const name = goodName(f.good);
+        const marks = hotFor(s, f.good) ? ', hot' : '';
+        if (f.sound > 0) parts.push(`${f.sound} CU of ${name}${marks}`);
+        if (f.spoiled > 0) parts.push(`${f.spoiled} CU of ${name} spoiled, left down there`);
+      } else if (f.kind === 'papers') {
+        parts.push(`${s.oldWreck?.papers?.name ?? 'her papers'}: a lead for the journal`);
+      } else {
+        parts.push('something odd for the sea chest');
+      }
+    }
+    const h = Math.floor(result.minutes / 60);
+    const m = Math.round(result.minutes % 60);
+    const span = h > 0 ? `${h} h${m ? ` ${m} min` : ''}` : `${m} min`;
+    const how: string[] = [`${result.trips} ${result.trips === 1 ? 'trip' : 'trips'} across her`];
+    if (result.snagged) how.push('fouled in her wreckage and worked free');
+    if (result.cutShort) how.push('called up early as she pitched');
+    let text =
+      parts.length > 0
+        ? `Down on the ${s.name} in the suit (${how.join(', ')}; ${span}): ${parts.join('; ')}.`
+        : `Down on the ${s.name} in the suit (${how.join(', ')}; ${span}), and nothing worth the hoist.`;
+    log(
+      state,
+      t,
+      `Dived on the wreck of the ${s.name}${parts.length ? `: ${parts.join('; ')}` : ''}.`,
+    );
+    ctx.events.emit('DiveEnded', {
+      wreck: s.id,
+      minutes: result.minutes,
+      finds: result.finds.length,
+    });
+    if (result.finds.length === 0)
+      ctx.events.emit('WreckWorked', { wreck: s.id, kind: 'nothing', qty: 0, spoiled: 0, hot });
+    if (pickedClean(s.target, p)) {
+      text += ' Nothing more in her worth the dive.';
+      log(state, t, `Picked the wreck of the ${s.name} clean.`);
+    }
+    deps.notice(text);
+    return { site: s.id, result, chance, hot, text };
+  };
+
   const finish = (id: string, forced?: number): CastOutcome | string => {
     const s = sites().find((x) => x.id === id);
     const ship = deps.ship();
@@ -345,18 +483,8 @@ export function attachSalvage(deps: SalvageDeps): GameSalvage {
       ctx.events.emit('WreckWorked', { wreck: s.id, kind: 'nothing', qty: 0, spoiled: 0, hot });
     } else if (result.kind === 'cargo') {
       const name = goodName(result.good);
-      const h = hotFor(s, result.good);
-      hot = !!h;
-      if (result.sound > 0) {
-        addToHold(state.player.cargo, {
-          good: result.good,
-          qty: result.sound,
-          ...(h ? { hot: h } : {}),
-        });
-        deps.economy.syncLoad();
-        lawAt(s);
-      }
-      const marks = h ? (s.wreck?.owner ? ", her owners' marks on it" : ', hot') : '';
+      hot = take(s, result, t, 'Grappled');
+      const marks = hot ? (s.wreck?.owner ? ", her owners' marks on it" : ', hot') : '';
       text =
         result.sound > 0 && result.spoiled > 0
           ? `Up from the ${s.name}: ${result.sound} CU of ${name}${marks}, and ${result.spoiled} spoiled, over the side (${minutes} min).`
@@ -364,25 +492,13 @@ export function attachSalvage(deps: SalvageDeps): GameSalvage {
             ? `Up from the ${s.name}: ${result.sound} CU of ${name}${marks} (${minutes} min).`
             : `Up from the ${s.name}: ${result.spoiled} CU of ${name}, spoiled past saving. Over the side (${minutes} min).`;
       log(state, t, text.replace(/ \(\d+ min\)\.$/, '.'));
-      ctx.events.emit('WreckWorked', {
-        wreck: s.id,
-        kind: 'cargo',
-        good: result.good,
-        qty: result.sound,
-        spoiled: result.spoiled,
-        hot,
-      });
     } else if (result.kind === 'papers') {
       const papers = s.oldWreck?.papers;
       text = `The grapple brought up ${papers?.name ?? 'her papers'} from the ${s.name}: a lead for the journal.`;
-      log(state, t, `Grappled ${papers?.name ?? 'her papers'} from the wreck of the ${s.name}.`);
-      papersLead(s);
-      ctx.events.emit('WreckWorked', { wreck: s.id, kind: 'papers', qty: 0, spoiled: 0, hot });
+      take(s, result, t, 'Grappled');
     } else {
-      deps.discovery.giveCurio(result.curio, `the wreck of the ${s.name}`);
       text = `Something odd in the grapple's flukes, from the ${s.name}: a curio for the sea chest.`;
-      log(state, t, `Grappled a curio from the wreck of the ${s.name}.`);
-      ctx.events.emit('WreckWorked', { wreck: s.id, kind: 'curio', qty: 0, spoiled: 0, hot });
+      take(s, result, t, 'Grappled');
     }
     if (pickedClean(s.target, p)) {
       text += ' Nothing more in her worth the grapple.';
@@ -426,12 +542,15 @@ export function attachSalvage(deps: SalvageDeps): GameSalvage {
     chip() {
       if (working) {
         const s = sites().find((x) => x.id === working?.id);
-        return `Dragging the grapple over the ${s?.name ?? 'wreck'}…`;
+        return working.how === 'dive'
+          ? `Down on the ${s?.name ?? 'wreck'} in the suit…`
+          : `Dragging the grapple over the ${s?.name ?? 'wreck'}…`;
       }
       const o = offer();
       if (!o) return undefined;
-      return o.refusal
-        ? `The wreck of the ${o.site.name}, ${Math.round(o.depthM)} m down`
+      if (o.refusal) return `The wreck of the ${o.site.name}, ${Math.round(o.depthM)} m down`;
+      return o.how === 'dive'
+        ? `F go down in the suit · the ${o.site.name}, ${Math.round(o.depthM)} m down`
         : `F cast the grapple · the ${o.site.name}, ${Math.round(o.depthM)} m down`;
     },
     start() {
@@ -442,32 +561,54 @@ export function attachSalvage(deps: SalvageDeps): GameSalvage {
         deps.notice(o.refusal);
         return true;
       }
-      working = { id: o.site.id, leftS: rules.workRealS };
+      if (o.how === 'dive') {
+        working = { id: o.site.id, leftS: rules.dive.workRealS, how: 'dive' };
+        ctx.events.emit('DiveStarted', { wreck: o.site.id });
+        deps.notice(`Into the dress and down the shot line to the ${o.site.name}…`);
+        return true;
+      }
+      working = { id: o.site.id, leftS: rules.workRealS, how: 'grapple' };
       ctx.events.emit('GrappleCast', { wreck: o.site.id });
       deps.notice(`The grapple's down on the ${o.site.name}…`);
       return true;
     },
     working: () => working?.id,
+    diving: () => (working?.how === 'dive' ? working.id : undefined),
     update(realS) {
       if (!working) return undefined;
       if (!deps.anchored() || !deps.ship()) {
+        const was = working.how;
         working = undefined;
-        deps.notice('The grapple came in: she has to lie at anchor to work a wreck.');
+        if (was === 'dive') {
+          ctx.events.emit('DiveEnded', { wreck: '', minutes: 0, finds: 0 });
+          deps.notice('They hauled you up: she has to lie at anchor over the wreck.');
+        } else {
+          deps.notice('The grapple came in: she has to lie at anchor to work a wreck.');
+        }
         return undefined;
       }
       working.leftS -= realS;
       if (working.leftS > 0) return undefined;
       const w = working;
       working = undefined;
-      const r = finish(w.id, w.chance);
+      const r = w.how === 'dive' ? finishDive(w.id, w.chance) : finish(w.id, w.chance);
       return typeof r === 'string' ? undefined : r;
     },
     castNow(chance) {
       const o = offer();
       if (!o) return 'Not anchored over a wreck you know.';
       if (o.refusal) return o.refusal;
+      if (o.how === 'dive') return 'Over a deep wreck: dive instead.';
       ctx.events.emit('GrappleCast', { wreck: o.site.id });
       return finish(o.site.id, chance);
+    },
+    diveNow(chance) {
+      const o = offer();
+      if (!o) return 'Not anchored over a wreck you know.';
+      if (o.how !== 'dive') return o.refusal ?? 'She lies shallow enough for the grapple.';
+      if (o.refusal) return o.refusal;
+      ctx.events.emit('DiveStarted', { wreck: o.site.id });
+      return finishDive(o.site.id, chance);
     },
     marks() {
       return old

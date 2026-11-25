@@ -67,7 +67,7 @@ import { slipwayHead, withSlipway } from './sim/hideouts/slipway';
 import { CELL_M } from './sim/hideouts/structures';
 import { LIE_REFUSALS, type LieUntil } from './sim/hideouts/lie-at-anchor';
 import { attachShipyard } from './gameplay/shipyard';
-import { BASE_INSTRUMENTS, type Instruments } from './sim/shipyard/fit';
+import { BASE_INSTRUMENTS, hasDivingSuit, type Instruments } from './sim/shipyard/fit';
 import { defaultShipState } from './sim/shipyard/shipyard';
 import { liveryOf } from './sim/shipyard/cosmetics';
 import { DEFAULT_SHIP_CAMERA } from './gameplay/camera/ship-camera';
@@ -129,7 +129,7 @@ import { createTestScene } from './render/test-scene';
 import { createSailingState } from './sim/sailing/controller';
 import type { ZoneFrame } from './core/coords';
 import { createHazardState, mooringBerths, type MooringBerth } from './sim/sailing/hazards';
-import { PLAYER_SHIP_IDS, sailShipRecord } from './sim/sailing/ships';
+import { PLAYER_SHIP_IDS, sailShipRecord, T1_SCHOONER_ID } from './sim/sailing/ships';
 import { httpBytes, loadIslandGround, loadZoneTerrain, type LoadedZone } from './sim/terrain/load';
 import type { GridField } from './sim/terrain/grid-field';
 import {
@@ -2657,6 +2657,9 @@ async function boot(): Promise<void> {
     notice: (text) => showNotice(text),
     // The Lucerne's strongbox, once the lead knows where in her to hook (piece T).
     strongbox: (wreck) => legends.wreckHooked(wreck),
+    // The hard-hat suit (Phase 10): a T2's crew pumps for long dives, a T1 captain alone.
+    suit: () => hasDivingSuit(state.player.ship?.upgrades),
+    crewed: () => (sailShipRecord(state.player.ship?.classId ?? T1_SCHOONER_ID).tier ?? 1) >= 2,
   });
   salvageRef.current = salvage;
   if (import.meta.env.DEV || params.has('debug')) {
@@ -2712,6 +2715,8 @@ async function boot(): Promise<void> {
         return w.id;
       },
       look: () => salvage.look(),
+      /** One dive at once (the suit must be aboard); `chance` overrides each trip's odds. */
+      dive: (chance?: number) => salvage.diveNow(chance),
       /** Depth at zone meters, and the geo of a zone point / zone point of a geo (placing wrecks). */
       depthAt: (x: number, z: number) => ctx.terrain?.depthAt(x, z),
       geoAt: (x: number, z: number) => worldGeo(zoneToChart({ x, z }, zoneFrame(zone, zoneData))),

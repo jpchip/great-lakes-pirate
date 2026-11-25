@@ -15,13 +15,37 @@
     "haulShare": [0.02, 0.05],
     "haulMaxCu": 12,
     "findChance": 0.25,
-    "sight": { "rangeM": 70, "maxDepthM": 12, "maxHsM": 0.7, "daylight": 0.5 },
+    "sight": {
+      "rangeM": 70,
+      "maxDepthM": 12,
+      "maxHsM": 0.7,
+      "daylight": 0.5
+    },
     "soundingM": 22,
     "reliefM": 2.5,
     "hotHeat": 0.6,
     "crime": "crime.wreck_plunder",
     "crimeEveryHours": 24,
-    "ownVictimHeat": 20
+    "ownVictimHeat": 20,
+    "dive": {
+      "maxDepthM": 35,
+      "maxHsM": 0.6,
+      "workRealS": 6,
+      "dressMinutes": 30,
+      "airMinutes": {
+        "solo": 30,
+        "crewed": 90
+      },
+      "tripMinutes": 15,
+      "chance": 0.7,
+      "haulCu": [3, 6],
+      "haulShare": [0.05, 0.1],
+      "haulMaxCu": 18,
+      "findChance": 0.45,
+      "snagChance": 0.12,
+      "snagMinutes": 15,
+      "pitchHsM": 0.4
+    }
   },
   "halfLifeDays": {
     "good.fresh_fish": 3,
@@ -47,10 +71,18 @@
       "name": "Lucerne",
       "classText": "three-masted schooner",
       "lost": "1886-11-17",
-      "at": { "lat": 46.7289, "lon": -90.7789 },
+      "at": {
+        "lat": 46.7289,
+        "lon": -90.7789
+      },
       "where": "off Long Island",
       "logged": true,
-      "cargo": [{ "good": "good.iron_ore", "qty": 60 }],
+      "cargo": [
+        {
+          "good": "good.iron_ore",
+          "qty": 60
+        }
+      ],
       "papers": {
         "name": "her log, in an oilskin wallet",
         "text": "The Lucerne's log, the last page in her master's hand: running for Chequamegon Bay in a northwest gale, the company's box \"stowed aft under my bunk, as agreed.\"",
@@ -64,13 +96,25 @@
       "name": "R.G. Stewart",
       "classText": "wooden steam barge",
       "lost": "1899-06-01",
-      "at": { "lat": 46.8722, "lon": -90.4705 },
+      "at": {
+        "lat": 46.8722,
+        "lon": -90.4705
+      },
       "where": "off Michigan Island",
       "logged": true,
       "cargo": [
-        { "good": "good.hardware", "qty": 6 },
-        { "good": "good.provisions", "qty": 4 },
-        { "good": "good.kerosene", "qty": 3 }
+        {
+          "good": "good.hardware",
+          "qty": 6
+        },
+        {
+          "good": "good.provisions",
+          "qty": 4
+        },
+        {
+          "good": "good.kerosene",
+          "qty": 3
+        }
       ],
       "curio": "curio.ships_bell",
       "lore": "The wooden steam barge R.G. Stewart, burned to the waterline and sunk off Michigan Island in 1899. Her crew got away in the boats.",
@@ -81,28 +125,75 @@
       "name": "Antelope",
       "classText": "schooner-barge",
       "lost": "1897-10-07",
-      "at": { "lat": 46.9105, "lon": -90.5101 },
+      "at": {
+        "lat": 46.9105,
+        "lon": -90.4036
+      },
       "where": "north of Michigan Island",
       "deep": true,
       "logged": true,
-      "cargo": [{ "good": "good.coal", "qty": 40 }],
-      "lore": "The schooner-barge Antelope, an old sidewheeler cut down to a tow, sprang a leak under the tug's line and went down north of Michigan Island in 1897 with her coal. She lies far deeper than any grapple reaches.",
+      "cargo": [
+        {
+          "good": "good.coal",
+          "qty": 40
+        }
+      ],
+      "lore": "The schooner-barge Antelope, an old sidewheeler cut down to a tow, sprang a leak under the tug's line and went down north of Michigan Island in 1897 with her coal. She lies far deeper than any grapple reaches: a diver's work.",
       "confidence": "verify"
     }
   ],
   "seeded": {
     "count": 3,
     "spots": [
-      { "at": { "lat": 46.9425, "lon": -91.0315 }, "where": "off Eagle Island" },
-      { "at": { "lat": 46.9905, "lon": -90.9204 }, "where": "off Sand Island's east shore" },
-      { "at": { "lat": 46.9046, "lon": -90.4347 }, "where": "on the Gull Island shoal" },
-      { "at": { "lat": 47.0902, "lon": -90.417 }, "where": "on the reef off Outer Island" },
-      { "at": { "lat": 46.9274, "lon": -90.5447 }, "where": "in Presque Isle Bay on Stockton" },
       {
-        "at": { "lat": 46.8807, "lon": -90.7655 },
+        "at": {
+          "lat": 46.9425,
+          "lon": -91.0315
+        },
+        "where": "off Eagle Island"
+      },
+      {
+        "at": {
+          "lat": 46.9905,
+          "lon": -90.9204
+        },
+        "where": "off Sand Island's east shore"
+      },
+      {
+        "at": {
+          "lat": 46.9046,
+          "lon": -90.4347
+        },
+        "where": "on the Gull Island shoal"
+      },
+      {
+        "at": {
+          "lat": 47.0902,
+          "lon": -90.417
+        },
+        "where": "on the reef off Outer Island"
+      },
+      {
+        "at": {
+          "lat": 46.9274,
+          "lon": -90.5447
+        },
+        "where": "in Presque Isle Bay on Stockton"
+      },
+      {
+        "at": {
+          "lat": 46.8807,
+          "lon": -90.7655
+        },
         "where": "off the north end of Basswood Island"
       },
-      { "at": { "lat": 47.0396, "lon": -90.6669 }, "where": "off Rocky Island" }
+      {
+        "at": {
+          "lat": 47.0396,
+          "lon": -90.6669
+        },
+        "where": "off Rocky Island"
+      }
     ],
     "names": [
       "Emma Thorsen",
@@ -120,23 +211,62 @@
     "years": [1868, 1898],
     "cargoes": [
       [
-        { "good": "good.salt", "qty": [4, 8] },
-        { "good": "good.provisions", "qty": [2, 5] }
-      ],
-      [{ "good": "good.whiskey", "qty": [3, 6] }],
-      [
-        { "good": "good.hardware", "qty": [3, 6] },
-        { "good": "good.dry_goods", "qty": [2, 4] }
-      ],
-      [{ "good": "good.lumber", "qty": [8, 14] }],
-      [{ "good": "good.brownstone", "qty": [8, 12] }],
-      [
-        { "good": "good.copper", "qty": [2, 4] },
-        { "good": "good.flour", "qty": [3, 6] }
+        {
+          "good": "good.salt",
+          "qty": [4, 8]
+        },
+        {
+          "good": "good.provisions",
+          "qty": [2, 5]
+        }
       ],
       [
-        { "good": "good.furs", "qty": [2, 4] },
-        { "good": "good.kerosene", "qty": [2, 3] }
+        {
+          "good": "good.whiskey",
+          "qty": [3, 6]
+        }
+      ],
+      [
+        {
+          "good": "good.hardware",
+          "qty": [3, 6]
+        },
+        {
+          "good": "good.dry_goods",
+          "qty": [2, 4]
+        }
+      ],
+      [
+        {
+          "good": "good.lumber",
+          "qty": [8, 14]
+        }
+      ],
+      [
+        {
+          "good": "good.brownstone",
+          "qty": [8, 12]
+        }
+      ],
+      [
+        {
+          "good": "good.copper",
+          "qty": [2, 4]
+        },
+        {
+          "good": "good.flour",
+          "qty": [3, 6]
+        }
+      ],
+      [
+        {
+          "good": "good.furs",
+          "qty": [2, 4]
+        },
+        {
+          "good": "good.kerosene",
+          "qty": [2, 3]
+        }
       ]
     ],
     "papers": {
@@ -145,6 +275,73 @@
       "alone": "The {name}'s papers: a bill of lading you can just read and a crew list, every name on it drowned or long gone."
     },
     "curios": ["curio.wreck_lantern"],
-    "lore": "The {classText} {name}, lost {where} in the fall of {year}. Nobody now living remembers just where she went down."
+    "lore": "The {classText} {name}, lost {where} in the fall of {year}. Nobody now living remembers just where she went down.",
+    "deep": {
+      "count": 2,
+      "spots": [
+        {
+          "at": {
+            "lat": 46.9933,
+            "lon": -90.8265
+          },
+          "where": "in the deep channel between York and Raspberry islands"
+        },
+        {
+          "at": {
+            "lat": 46.9861,
+            "lon": -90.3366
+          },
+          "where": "in deep water off the south end of Outer Island"
+        },
+        {
+          "at": {
+            "lat": 47.094,
+            "lon": -90.5603
+          },
+          "where": "in deep water north of North Twin Island"
+        },
+        {
+          "at": {
+            "lat": 46.8134,
+            "lon": -90.6348
+          },
+          "where": "off Madeline Island's east shore, in deep water"
+        }
+      ],
+      "classes": ["steam barge", "schooner", "propeller"],
+      "cargoes": [
+        [
+          {
+            "good": "good.copper",
+            "qty": [10, 18]
+          },
+          {
+            "good": "good.hardware",
+            "qty": [4, 8]
+          }
+        ],
+        [
+          {
+            "good": "good.whiskey",
+            "qty": [8, 14]
+          },
+          {
+            "good": "good.dry_goods",
+            "qty": [4, 8]
+          }
+        ],
+        [
+          {
+            "good": "good.iron_ore",
+            "qty": [20, 30]
+          },
+          {
+            "good": "good.hardware",
+            "qty": [4, 8]
+          }
+        ]
+      ],
+      "curios": ["curio.chronometer"]
+    }
   }
 }

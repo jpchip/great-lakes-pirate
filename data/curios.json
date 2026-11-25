@@ -53,5 +53,10 @@
     "id": "curio.dark_lantern",
     "name": "A smuggler's dark lantern",
     "text": "A tin lantern with a sliding shutter, for showing a light to one boat and nobody else. Dug up at the foot of a dead lighthouse."
+  },
+  {
+    "id": "curio.chronometer",
+    "name": "A ship's chronometer",
+    "text": "A marine chronometer in its brass-bound box, brought up by hand from a wreck too deep for any grapple. The box kept the water out; it still ticks when wound."
   }
 ]

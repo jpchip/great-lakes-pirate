@@ -205,6 +205,7 @@ import {
   caveSurge,
   creek,
   bearCrash,
+  diveDown,
   deerBound,
   deerSnort,
   endingAir,
@@ -235,6 +236,7 @@ const TODAY_P9N = '2026-11-20';
 const TODAY_P9Y = '2026-11-21';
 /** The polish pass's additions (plan 15 §21–§24's gaps). */
 const TODAY_P10 = '2026-11-24';
+const TODAY_P10B = '2026-11-25';
 /** Render only this category (e.g. `ships`), leaving the other sources untouched. */
 const ONLY = process.argv[2];
 
@@ -1850,6 +1852,16 @@ function renderIsland(): void {
     'The grapple going down: the line whirring out over the rail, the splash at its end (3 s)',
     grappleCast(RATE),
     'Band-passed noise hum with a slow whirr, a decaying band-passed splash',
+  );
+  island(
+    'sfx.salvage.dive',
+    'dive',
+    'Going down in the hard-hat suit: the faceplate screwed shut, the deck pump hissing air in at each stroke, bubbles off the exhaust valve, the helmet creaking, all muffled as the water closes over (6 s)',
+    diveDown(RATE),
+    'A band-passed clank and a sine ring, band-passed noise gated by the pump stroke, rising sine chirps for bubbles, band-passed creaks, low-passed after the first second',
+    'sfx',
+    false,
+    TODAY_P10B,
   );
   island(
     'sfx.salvage.grapple-haul',

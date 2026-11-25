@@ -34,6 +34,7 @@ interface Hooks {
     offer(): { id: string; refusal?: string } | undefined;
     chip(): string | undefined;
     cast(chance?: number): CastOutcome | string;
+    dive(chance?: number): { result: { trips: number; finds: unknown[] }; text: string } | string;
     left(id: string): { good: string; qty: number }[];
     state(): { wrecks: Record<string, { casts: number; papersAt?: number }> };
   };
@@ -41,7 +42,13 @@ interface Hooks {
     state(): { found: Record<string, { how: string }> };
     leads(): { id: string; clues: { text: string }[] }[];
     lead(id: string, text?: string): unknown;
+    chart(id: string, how?: string): unknown;
   };
+  __glpShipyard: {
+    grant(cents: number): void;
+    install(port: string, id: string, source?: 'shipyard' | 'chandlery'): string | undefined;
+  };
+  __glpEconomy: { cargo(): { good: string; qty: number }[] };
   __glpWrecking: {
     marks(): string[];
     shoal(mark: string): { x: number; z: number; heading: number } | undefined;
@@ -141,6 +148,70 @@ test('finds the Lucerne by the lead line and grapples her cargo and papers', asy
   await expect(page.locator('[data-discovery="wreck.lucerne"]')).toContainText('Grappled');
   await shot(page, '2-journal-wreck');
   await page.keyboard.press('KeyJ');
+  expect(errors).toEqual([]);
+});
+
+// Phase 10: the Antelope lies past the grapple's reach; with the hard-hat suit aboard, F at
+// anchor over her goes down, and her coal comes up into the hold.
+test('dives on the Antelope in the suit, where the grapple can’t reach', async ({ page }) => {
+  const errors = collectErrors(page);
+  const body = page.locator('body');
+  await page.goto('/?renderer=null&play&debug&weather=calm');
+  await page.waitForFunction(() => '__glpZones' in window && '__glpSalvage' in window);
+  await page.evaluate(() => (window as unknown as Hooks).__glpZones.enter('zone.apostles'));
+  await expect(body).toHaveAttribute('data-zone-load', 'done');
+
+  const antelope = await page.evaluate(() =>
+    (window as unknown as Hooks).__glpSalvage.sites().find((s) => s.id === 'wreck.antelope'),
+  );
+  expect(antelope?.depthM).toBeGreaterThan(15);
+  expect(antelope?.depthM).toBeLessThan(35);
+  // Two deep wrecks of the run's own, for the suit.
+  const sites = await page.evaluate(() => (window as unknown as Hooks).__glpSalvage.sites());
+  expect(sites.filter((s) => s.id.startsWith('wreck.deep_'))).toHaveLength(2);
+
+  // Without the suit: the grapple won't reach her.
+  await page.evaluate(() => {
+    const w = window as unknown as Hooks;
+    w.__glpDiscovery.chart('wreck.antelope', 'sounding');
+    w.__glpSalvage.over('wreck.antelope', true);
+  });
+  await expect
+    .poll(() => page.evaluate(() => (window as unknown as Hooks).__glpSalvage.offer()?.refusal))
+    .toContain('A diving suit would reach her');
+
+  // The suit from Superior's chandler, then F goes down.
+  const fitted = await page.evaluate(() => {
+    const w = window as unknown as Hooks;
+    w.__glpShipyard.grant(100_000);
+    return w.__glpShipyard.install('port.superior', 'upgrade.diving_suit', 'chandlery');
+  });
+  expect(fitted).toBeUndefined();
+  await expect
+    .poll(() => page.evaluate(() => (window as unknown as Hooks).__glpSalvage.chip()))
+    .toContain('F go down in the suit');
+  await page.keyboard.press('KeyF');
+  await expect(page.getByTestId('hud-status').filter({ hasText: 'in the suit' })).toHaveCount(1, {
+    timeout: 5000,
+  });
+  await expect
+    .poll(
+      () =>
+        page.evaluate(
+          () =>
+            (window as unknown as Hooks).__glpSalvage.state().wrecks['wreck.antelope']?.casts ?? 0,
+        ),
+      { timeout: 15000 },
+    )
+    .toBeGreaterThan(0);
+
+  // A sure dive brings up her coal.
+  const dived = await page.evaluate(() => (window as unknown as Hooks).__glpSalvage.dive(1));
+  expect(typeof dived).not.toBe('string');
+  const coal = await page.evaluate(() =>
+    (window as unknown as Hooks).__glpEconomy.cargo().find((c) => c.good === 'good.coal'),
+  );
+  expect(coal?.qty ?? 0).toBeGreaterThan(0);
   expect(errors).toEqual([]);
 });
 

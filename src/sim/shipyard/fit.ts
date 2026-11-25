@@ -81,6 +81,10 @@ export function stealthOf(upgrades: readonly string[] | undefined): Stealth {
   return out;
 }
 
+/** The diving suit is aboard (plan 11 §6.2; Phase 10): deep wrecks can be worked. */
+export const hasDivingSuit = (upgrades: readonly string[] | undefined): boolean =>
+  (upgrades ?? []).some((id) => upgradeDef(id)?.effects.divingSuit);
+
 /**
  * The weapon mods' effect on her guns (plan 10 §5.4; Phase 6 piece E): the multipliers
  * the mods fold in. The guns themselves are `player.ship.weapons` (piece A), and a mod
