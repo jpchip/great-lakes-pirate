@@ -165,6 +165,20 @@ export function ChartHud({
         </div>
       </div>
       {c.weather && <WeatherCard weather={c.weather} setForecast={actions.setForecast} />}
+      {c.weather?.hover && (
+        <div
+          class={c.weather.hover.warning ? 'chart-hover-glass chart-problem' : 'chart-hover-glass'}
+          data-testid="chart-hover-glass"
+          style={{
+            // The page's interface zoom (Accessibility) scales these too; undo it.
+            left: `calc(${c.weather.hover.x + 16}px / var(--ui-scale, 1))`,
+            top: `calc(${c.weather.hover.y + 16}px / var(--ui-scale, 1))`,
+          }}
+          aria-hidden="true"
+        >
+          {c.weather.hover.text}
+        </div>
+      )}
       {enc && (
         <div class="chart-card chart-encounter" data-testid="chart-encounter" role="dialog">
           <div class="chart-kicker">{enc.kind}</div>
