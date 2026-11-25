@@ -1,0 +1,19 @@
+{
+  "source": "procedural",
+  "tool": "tools/audio/synth.ts (tools/audio/lib/synth.ts)",
+  "author": "Great Lakes Pirate contributors",
+  "reference": "A band-passed clank and a sine ring, band-passed noise gated by the pump stroke, rising sine chirps for bubbles, band-passed creaks, low-passed after the first second",
+  "date": "2026-11-25",
+  "license": "CC BY 4.0",
+  "attribution": "Great Lakes Pirate contributors",
+  "modifications": [],
+  "description": "Going down in the hard-hat suit: the faceplate screwed shut, the deck pump hissing air in at each stroke, bubbles off the exhaust valve, the helmet creaking, all muffled as the water closes over (6 s)",
+  "durationS": 6,
+  "pipeline": [
+    "decoded to mono 48000 Hz",
+    "edge fades",
+    "peak-normalized toward -1 dB (+9.5 dB)",
+    "Opus 56 kbps mono in Ogg (ffmpeg libopus)"
+  ],
+  "inputHash": "a5d91b94bce0cdea"
+}

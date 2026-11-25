@@ -313,6 +313,9 @@ export async function createGameAudio(options: GameAudioOptions): Promise<GameAu
   game.events.on('GrappleCast', () => {
     if (running()) island.grappleCast();
   });
+  game.events.on('DiveStarted', () => {
+    if (running()) island.dive();
+  });
   game.events.on('WreckWorked', () => {
     if (running()) island.grappleHaul();
   });
@@ -346,6 +349,9 @@ export async function createGameAudio(options: GameAudioOptions): Promise<GameAu
   });
   game.events.on('UpgradeInstalled', ({ how, hours }) => {
     if (running() && how === 'slipway') hideout.onTheWays('fit', hours * 3600);
+  });
+  game.events.on('CosmeticChanged', ({ how, hours }) => {
+    if (running() && how === 'slipway' && hours > 0) hideout.onTheWays('fit', hours * 3600);
   });
   game.events.on('ShipLaunched', ({ seconds }) => {
     if (running()) hideout.launched(seconds ?? 7 * 86_400);

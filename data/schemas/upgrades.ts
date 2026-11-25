@@ -88,6 +88,11 @@ export const upgradeEffectsSchema = z.object({
   iceBow: z.boolean().optional(),
   /** Corrected charts: chart voyages run this much faster (plan 10 §5.5's better routing). */
   chartSpeedMul: z.number().positive().optional(),
+  /**
+   * The hard-hat diving suit (plan 10 §5.7, plan 11 §6.2; Phase 10): she can work wrecks
+   * too deep for the grapple, going down from the deck at anchor.
+   */
+  divingSuit: z.boolean().optional(),
 });
 
 export const upgradeSchema = z.object({
@@ -106,6 +111,8 @@ export const upgradeSchema = z.object({
   effects: upgradeEffectsSchema,
   /** The Fame tier the seller wants before he'll deal (plan 10 §6: illicit gear is gated). */
   fameTier: z.number().int().min(0).optional(),
+  /** Sold only in these ports (the diving suit: Duluth and Superior). Absent, anywhere it's sold. */
+  ports: z.array(idOf('port')).optional(),
   /** A gun work item: it needs a gun aboard to fit (guns are in `guns.json`). */
   needsGun: z.boolean().optional(),
 });

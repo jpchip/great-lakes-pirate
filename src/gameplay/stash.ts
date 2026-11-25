@@ -18,11 +18,15 @@ import {
 import { sailShipRecord } from '../sim/sailing/ships';
 import {
   buildShipAtSlipway,
+  hasSlipway,
   installAtSlipway,
   repairAtSlipway,
   SLIPWAY_REFUSALS,
 } from '../sim/hideouts/slipway';
 import { upgradeDef } from '../sim/shipyard/fit';
+import { applyCosmetic, renameShip, type CosmeticResult } from '../sim/shipyard/cosmetics';
+import type { ShipState } from '../sim/shipyard/shipyard';
+import { COSMETIC_REFUSALS } from './shipyard';
 import {
   LIE_REFUSALS,
   lieAtAnchor,
@@ -78,6 +82,9 @@ export interface StashActions {
    */
   slipwayRepair(): string | undefined;
   slipwayInstall(upgrade: string): string | undefined;
+  /** Paint, canvas or a pennant, and a new name, on the ways (plan 10 §7). */
+  slipwayPaint(option: string): string | undefined;
+  slipwayRename(name: string): string | undefined;
   buildShip(): string | undefined;
   /** Shipless at a hideout: give it up and make for the nearest yard's worn hull. */
   toYard(): void;
@@ -365,6 +372,26 @@ export function attachStash(opts: StashControlOptions): StashControl {
       .map(([g, n]) => `${n} ${economy.defs.goods.get(g)?.name.toLowerCase() ?? g}`)
       .join(', ');
 
+  /** Paint or a name on the ways: bought paint, your own hands, the hours passing. */
+  const looksWork = (
+    work: (ship: ShipState, hideout: string) => CosmeticResult,
+  ): string | undefined => {
+    const id = openHideout;
+    const h = current();
+    if (!id || !h || !hasSlipway(h)) return 'The shed is shut.';
+    const why = haulRefusal(id);
+    if (why) return why;
+    const ship = ctx.state.player.ship;
+    if (!ship) return SLIPWAY_REFUSALS.shipless;
+    const r = work(ship, id);
+    if (!r.ok) return COSMETIC_REFUSALS[r.reason];
+    opts.shipyard?.refit();
+    if (r.event.hours > 0) runFor(r.event.hours * 3600);
+    ctx.events.emit('CosmeticChanged', { ...r.event, how: 'slipway' });
+    refresh();
+    return undefined;
+  };
+
   const lie = (until: LieUntil): string | undefined => {
     const why = refusalText();
     if (why) return why;
@@ -554,6 +581,14 @@ export function attachStash(opts: StashControlOptions): StashControl {
         refresh();
         opts.afterLie(text);
         return undefined;
+      },
+      slipwayPaint(option) {
+        return looksWork((ship, id) => applyCosmetic(ctx.state.player, ship, id, option));
+      },
+      slipwayRename(name) {
+        return looksWork(() =>
+          renameShip(ctx.state.player, ctx.state.player.captain, openHideout ?? '', name),
+        );
       },
       buildShip() {
         const id = openHideout;

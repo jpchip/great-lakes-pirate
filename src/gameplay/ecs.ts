@@ -3,6 +3,7 @@ import type { Buoyancy } from './buoyancy';
 import type { ShipHazards } from './hazards';
 import type { SailingShip } from './sailing';
 import type { ShipDamage } from '../sim/combat/damage';
+import type { ShipLivery } from '../sim/shipyard/cosmetics';
 
 /**
  * Materialized entities in the active zone (plan 01 §3.4), managed with miniplex.
@@ -51,6 +52,8 @@ export interface Entity {
   playerControlled?: true;
   /** The ship's running lights (plan 06 §7.1, Phase 5 piece B): lit or dark running. */
   lantern?: { lit: boolean };
+  /** Her own paint, canvas and pennant over her class's (plan 10 §7); render/ draws it. */
+  livery?: ShipLivery;
   /** An NPC ship's damage pools once she's been fired on (Phase 6 piece A; gameplay/combat). */
   damage?: ShipDamage;
 }

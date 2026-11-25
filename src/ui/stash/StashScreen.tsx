@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'preact/hooks';
 import { keyName } from '../keys';
+import { Looks } from '../port/Shipyard';
 import { formatCents } from '../../sim/economy/knowledge';
 import { LIE_CHOICES, type LieUntil } from '../../sim/hideouts/lie-at-anchor';
 import type { StashActions, StashTab } from '../../gameplay/stash';
@@ -638,6 +639,17 @@ function Slipway({
           </ul>
         )}
       </section>
+      {s.looks && (
+        <section class="craft-things">
+          <Looks
+            looks={s.looks}
+            shipName={s.shipName}
+            paint={actions.slipwayPaint}
+            rename={actions.slipwayRename}
+            setMessage={setMessage}
+          />
+        </section>
+      )}
     </div>
   );
 }

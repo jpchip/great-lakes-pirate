@@ -528,7 +528,7 @@ All resolved.
 ### Still to do
 
 1. **A listen in the game** (row Y: "Listen by ear"): none of this has been heard by a person yet. Judge the birds and the creek against the forest bed, the wolves' and the bear's levels and their reach, the cave's drips and surge, the spade and the grapple, and the length of the ending air.
-2. **Not built:** a separate wolf growl, and the diving suit's sounds. ~~A bear's crash off through the brush~~: built in the polish pass (§26). ~~Stopping the ending air when a new run starts~~: checked 2026-11-24, it can't carry over. The end screen's only way on is the main menu, which reloads the page (`onEndMenu` in `ui/mount.tsx`), and the reload stops every sound.
+2. **Not built:** a separate wolf growl. ~~The diving suit's sounds~~: its descent is built in Phase 10 ([11 §19](11-exploration-islands-secrets.md)). ~~A bear's crash off through the brush~~: built in the polish pass (§26). ~~Stopping the ending air when a new run starts~~: checked 2026-11-24, it can't carry over. The end screen's only way on is the main menu, which reloads the page (`onEndMenu` in `ui/mount.tsx`), and the reload stops every sound.
 
 ## 25. Great Lakes Song Motifs: Red Iron Ore (2026-11-24)
 
@@ -635,6 +635,7 @@ Jared asked for the Apostle Islands song and the other daytime song to switch. *
 1. **The by-ear half of the pass** (§11 Phase 10: "Mix polish, loudness pass, captions review"): the meter can't judge balance in play. Listen to a run end to end for anything that pokes out or vanishes: the grind under the wind and the wash, the alarm against the stingers, the birds at their new level, and the launch.
 
 ## Changelog
+- v2.5: The diving suit's descent (`sfx.salvage.dive`, Phase 10).
 - v2.4: The day songs swap places (§25.3): *En roulant ma boule* by day everywhere, *Red Iron Ore* among the Apostle Islands.
 - v2.3: The alternates (§25.2): *En roulant ma boule* by day among the Apostle Islands and *Lost on the Lady Elgin* by night off Duluth and the North Shore at sea, and *The Shanty-Man's Life* and *Michigan-I-O* in the Duluth saloon, chosen by region and by district.
 - v2.2: The rest of the song shortlist (§25.1): *The Bigler's Crew* for chart travel, *The Persian's Crew* for night at sea, *The Little Brown Bulls* for the saloon by day and *The Jam on Gerry's Rocks* for the ending, all from Rickaby (1926), replacing the original placeholder tunes.

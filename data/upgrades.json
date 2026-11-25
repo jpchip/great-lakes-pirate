@@ -229,6 +229,20 @@
     }
   },
   {
+    "id": "upgrade.diving_suit",
+    "name": "Hard-hat diving suit",
+    "category": "utility",
+    "blurb": "Copper helmet, canvas dress, lead boots, hose and air pump: at anchor in a calm, go down to a wreck too deep for the grapple. Alone you pump a reservoir and get short dives; with a crew on the pump, long ones.",
+    "priceCents": 60000,
+    "sources": ["shipyard", "chandlery"],
+    "ports": ["port.duluth", "port.superior"],
+    "installHours": 0,
+    "transferable": true,
+    "effects": {
+      "divingSuit": true
+    }
+  },
+  {
     "id": "upgrade.gun_sights",
     "name": "Gun sights",
     "category": "weaponMods",

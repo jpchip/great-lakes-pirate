@@ -48,11 +48,13 @@ export interface SchoonerModel {
   update(state: RigInput, time: number, dt: number): void;
   /** Snap the booms to their targets (no swing), e.g. for a still frame. */
   settle(state: RigInput, time: number): void;
-  /** Named sails, for tests and the contact sheet. */
-  readonly sails: Readonly<Record<SailName, SailMesh>>;
+  /** Named sails, for tests and the contact sheet; a three-master's mizzen besides. */
+  readonly sails: Readonly<Record<SailName, SailMesh>> &
+    Readonly<Partial<Record<MizzenSailName, SailMesh>>>;
 }
 
 export type SailName = 'fore' | 'main' | 'foreTopsail' | 'mainTopsail' | 'staysail' | 'jib';
+export type MizzenSailName = 'mizzen' | 'mizzenTopsail';
 
 const UP = new THREE.Vector3(0, 1, 0);
 const AFT = new THREE.Vector3(0, 0, 1);
@@ -134,7 +136,9 @@ export function createSchooner(l: SchoonerLines): SchoonerModel {
   buildHull(l, fixed);
   buildDeckFittings(l, shape, fixed);
   buildYawlBoat(l, shape, fixed);
-  for (const m of [l.fore, l.main]) {
+  // Fore and main, and a three-master's mizzen aft of the main.
+  const masts = l.mizzen ? [l.fore, l.main, l.mizzen] : [l.fore, l.main];
+  for (const m of masts) {
     const step = mastPoint(shape, l, m, -0.2);
     const hounds = mastPoint(shape, l, m, m.height);
     const truck = mastPoint(shape, l, m, m.height + m.topmast);
@@ -188,6 +192,8 @@ export function createSchooner(l: SchoonerLines): SchoonerModel {
   };
   const fore = rig(l.fore, 'fore');
   const main = rig(l.main, 'main');
+  const mizzen = l.mizzen ? rig(l.mizzen, 'mizzen') : undefined;
+  const rigs = mizzen ? [fore, main, mizzen] : [fore, main];
 
   // Headsails on their stays: the staysail from the fore hounds to the stem, the jib from
   // the fore topmast head to the end of the bowsprit.
@@ -218,7 +224,7 @@ export function createSchooner(l: SchoonerLines): SchoonerModel {
   const chainplate = (z: number, side: number): THREE.Vector3 =>
     new THREE.Vector3(side * (shape.railHalfBreadthAt(z) + 0.04), shape.sheerAt(z) - 0.3, z);
   const telltaleAnchors: THREE.Vector3[] = [];
-  for (const m of [l.fore, l.main]) {
+  for (const m of masts) {
     const hounds = mastPoint(shape, l, m, m.height);
     const truck = mastPoint(shape, l, m, m.height + m.topmast);
     const z = -half + m.station;
@@ -240,11 +246,19 @@ export function createSchooner(l: SchoonerLines): SchoonerModel {
   line(foreTruck, spritEnd);
   line(mainHounds, foreHounds.clone().addScaledVector(UP, 0.4));
   line(mainTruck, foreTruck);
+  // A three-master's mizzen is stayed to the main the same way.
+  let aftTruck = mainTruck;
+  if (l.mizzen) {
+    const mizzenHounds = mastPoint(shape, l, l.mizzen, l.mizzen.height);
+    aftTruck = mastPoint(shape, l, l.mizzen, l.mizzen.height + l.mizzen.topmast);
+    line(mizzenHounds, mainHounds.clone().addScaledVector(UP, 0.4));
+    line(aftTruck, mainTruck);
+  }
   line(spritEnd, new THREE.Vector3(0, 0.15, -half + l.stemRake * 0.5));
   for (const side of [-1, 1]) {
     line(stem.clone().addScaledVector(sprit, l.bowsprit * 0.6), chainplate(-half + 1.2 * k, side));
-    // Backstays from the main topmast to the quarters.
-    line(mainTruck.clone().setX(side * 0.06), chainplate(half - 2.4 * k, side));
+    // Backstays from the aftermost topmast to the quarters.
+    line(aftTruck.clone().setX(side * 0.06), chainplate(half - 2.4 * k, side));
   }
   const standing = new THREE.BufferGeometry();
   standing.setAttribute('position', new THREE.Float32BufferAttribute(rope, 3));
@@ -252,8 +266,8 @@ export function createSchooner(l: SchoonerLines): SchoonerModel {
   rigging.name = 'schooner-rigging';
   group.add(rigging);
 
-  // Running rigging that moves: the four sheets.
-  const sheetPositions = new Float32Array(4 * 2 * 3);
+  // Running rigging that moves: a sheet for each boom and each headsail.
+  const sheetPositions = new Float32Array((rigs.length + 2) * 2 * 3);
   const sheetGeometry = new THREE.BufferGeometry();
   sheetGeometry.setAttribute('position', new THREE.BufferAttribute(sheetPositions, 3));
   const sheets = new THREE.LineSegments(sheetGeometry, edgeMaterial);
@@ -268,6 +282,7 @@ export function createSchooner(l: SchoonerLines): SchoonerModel {
       length: 4.2 * k,
       width: 0.42 * k,
       taper: 1,
+      ...(l.paint.pennantFly !== undefined ? { fly: new THREE.Color(l.paint.pennantFly) } : {}),
     },
     ...telltaleAnchors.map((anchor) => ({ anchor, length: 0.75, width: 0.07, taper: 0.4 })),
   ]);
@@ -392,7 +407,7 @@ export function createSchooner(l: SchoonerLines): SchoonerModel {
     return out.applyMatrix4(r.swing.matrix).applyMatrix4(r.mast.matrix);
   };
   const poseSheets = (hoists: { staysail: number; jib: number }, lee: number): void => {
-    for (const [i, r] of [fore, main].entries()) {
+    for (const [i, r] of rigs.entries()) {
       const end = boomEnd(r, v);
       const z = Math.min(end.z, half - 0.5);
       writeSheet(i, end, sheetEnd.set(0, shape.deckAt(z) + 0.1, z));
@@ -400,7 +415,7 @@ export function createSchooner(l: SchoonerLines): SchoonerModel {
     for (const [i, h] of [staysail, jib].entries()) {
       const hoist = i === 0 ? hoists.staysail : hoists.jib;
       if (hoist <= 0.02) {
-        writeSheet(2 + i, h.tack, h.tack);
+        writeSheet(rigs.length + i, h.tack, h.tack);
         continue;
       }
       const sheetAngle = headsailSheet(fore.angle);
@@ -413,7 +428,11 @@ export function createSchooner(l: SchoonerLines): SchoonerModel {
         .multiplyScalar(hoist)
         .add(h.tack);
       const z = Math.min(clew.z + 1.8, half);
-      writeSheet(2 + i, clew, sheetEnd.set(lee * shape.railHalfBreadthAt(z), shape.sheerAt(z), z));
+      writeSheet(
+        rigs.length + i,
+        clew,
+        sheetEnd.set(lee * shape.railHalfBreadthAt(z), shape.sheerAt(z), z),
+      );
     }
     sheetGeometry.getAttribute('position').needsUpdate = true;
   };
@@ -423,7 +442,7 @@ export function createSchooner(l: SchoonerLines): SchoonerModel {
     const luffing = sailShape(state) === 'luffing';
     const windSide = Number.isFinite(state.windAngle) && state.windAngle < 0 ? 1 : -1;
     const jibing = Number.isFinite(state.windAngle) && Math.abs(state.windAngle) > Math.PI / 2;
-    for (const r of [fore, main]) {
+    for (const r of rigs) {
       const target = boomTarget(state, hoists.gaff);
       if (dt === undefined) r.angle = target;
       else {
@@ -431,8 +450,7 @@ export function createSchooner(l: SchoonerLines): SchoonerModel {
         r.angle = swingBoom(r.angle, target, dt, crossing && jibing);
       }
     }
-    poseGaffRig(fore, hoists.gaff, hoists.topsail, luffing, windSide, time);
-    poseGaffRig(main, hoists.gaff, hoists.topsail, luffing, windSide, time);
+    for (const r of rigs) poseGaffRig(r, hoists.gaff, hoists.topsail, luffing, windSide, time);
     const sheetAngle = headsailSheet(fore.angle);
     poseHeadsail(staysail, hoists.staysail, sheetAngle, luffing, windSide);
     poseHeadsail(jib, hoists.jib, sheetAngle, luffing, windSide);
@@ -450,6 +468,7 @@ export function createSchooner(l: SchoonerLines): SchoonerModel {
       mainTopsail: main.topsail,
       staysail: staysail.sail,
       jib: jib.sail,
+      ...(mizzen ? { mizzen: mizzen.sail, mizzenTopsail: mizzen.topsail } : {}),
     },
     update: (state, time, dt) => pose(state, time, dt),
     settle: (state, time) => pose(state, time, undefined),

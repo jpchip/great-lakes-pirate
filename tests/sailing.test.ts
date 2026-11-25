@@ -22,6 +22,7 @@ import {
   SHIP_RECORDS,
   T1_SCHOONER_ID,
   T2_SCHOONER_ID,
+  T3_SCHOONER_ID,
 } from '../src/sim/sailing/ships';
 import { createSea } from '../src/sim/weather/waves';
 
@@ -465,5 +466,54 @@ describe('against a steamer (plan 07 §14.3 criterion 3; Phase 6 piece H)', () =
     expect(broadReach(20, true)).toBeGreaterThan(flank);
     expect(broadReach(17)).toBeLessThan(classServiceSpeedKn('ship.package_steamer'));
     expect(broadReach(14)).toBeGreaterThan(classServiceSpeedKn('ship.fish_tug'));
+  });
+});
+
+describe('T3 three-master tuning (plan 02 §10, plan 10 §2; Phase 10)', () => {
+  const c2 = (): ReturnType<typeof compileSailingClass> =>
+    compileSailingClass(sailShipRecord(T2_SCHOONER_ID), defaultHandling());
+  const c3 = (): ReturnType<typeof compileSailingClass> =>
+    compileSailingClass(sailShipRecord(T3_SCHOONER_ID), defaultHandling());
+  const steadyOn = (c: ReturnType<typeof compileSailingClass>, headingDeg: number): number =>
+    speedKn(run(ship(headingDeg), 90, north(14), {}, c));
+
+  it('is the fastest off the wind, under its 13.5 kn hull speed', () => {
+    for (const a of [90, 130, 180]) {
+      expect(steadyOn(c3(), a)).toBeGreaterThan(steadyOn(c2(), a) * 1.04);
+      expect(steadyOn(c3(), a)).toBeLessThan(13.5);
+    }
+  });
+
+  it('gathers way and comes about slower than the T2, still inside plan 02 §4', () => {
+    const toNinety = (c: ReturnType<typeof compileSailingClass>): number => {
+      const target = steadyOn(c, 90) * 0.9;
+      const s = ship(90);
+      let t = 0;
+      while (speedKn(s) < target && t < 90) {
+        run(s, DT, north(14), {}, c);
+        t += DT;
+      }
+      return t;
+    };
+    expect(toNinety(c3())).toBeGreaterThan(toNinety(c2()) * 1.15);
+    const tack = (c: ReturnType<typeof compileSailingClass>): number => {
+      const s = run(ship(55), 90, north(14), {}, c);
+      let t = 0;
+      while (s.heading > -55 * DEG && t < 20) {
+        run(s, DT, north(14), { steer: -1 }, c);
+        t += DT;
+      }
+      return t;
+    };
+    expect(tack(c3())).toBeGreaterThan(tack(c2()));
+    expect(tack(c3())).toBeLessThan(10);
+  });
+
+  it('changes sail fastest with a crew of eight, and has no sweeps', () => {
+    expect(c3().sailChangeTimeS).toBeLessThan(c2().sailChangeTimeS);
+    const r = sailShipRecord(T3_SCHOONER_ID);
+    expect(r.sweeps).toBe(false);
+    expect([r.draftEmptyM, r.draftFullM]).toEqual([3.5, 4.5]);
+    expect(r.cargoCapacity).toBeGreaterThan(sailShipRecord(T2_SCHOONER_ID).cargoCapacity * 1.8);
   });
 });

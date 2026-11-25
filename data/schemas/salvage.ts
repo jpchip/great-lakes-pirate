@@ -70,6 +70,19 @@ export const seededWrecksSchema = z.object({
     /** With nothing to point at. */
     alone: z.string().min(1),
   }),
+  /**
+   * Deep wrecks for the diving suit (Phase 10): `count` of these spots, too deep for the
+   * grapple, with richer cargoes; the last shallow wreck's papers lead to the first of them.
+   */
+  deep: z
+    .object({
+      count: z.number().int().nonnegative(),
+      spots: z.array(z.object({ at: geo, where: z.string().min(1) })).min(1),
+      classes: z.array(z.string().min(1)).min(1),
+      cargoes: z.array(z.array(z.object({ good: idOf('good'), qty: range })).min(1)).min(1),
+      curios: z.array(idOf('curio')),
+    })
+    .optional(),
   /** One of the seeded wrecks carries each of these curios. */
   curios: z.array(idOf('curio')),
   /** "The {classText} {name}, lost {where} in {year} with ..." */
@@ -122,6 +135,37 @@ export const salvageRulesSchema = z.object({
   reliefM: z.number().positive(),
   /** A recent wreck's cargo under her owners' marks: the heat it carries (as looted freight). */
   hotHeat: z.number().min(0).max(1),
+  /**
+   * The hard-hat diving suit (plan 11 §6.2; Phase 10): going down from the deck at anchor
+   * to a wreck too deep for the grapple. One dive is dressing, then trips to the wreck and
+   * back to the hoist line while the air lasts; each trip finds something by a chance, as a
+   * cast does, and brings up more of her.
+   */
+  dive: z.object({
+    /** The hose reaches no deeper, meters. */
+    maxDepthM: z.number().positive(),
+    /** No dive over this significant wave height: the ship pitches on the hose. */
+    maxHsM: z.number().positive(),
+    /** Real seconds the dive lasts on screen. */
+    workRealS: z.number().nonnegative(),
+    /** Getting into the dress and out again, game minutes. */
+    dressMinutes: z.number().nonnegative(),
+    /** Game minutes of air: pumping your own reservoir alone (a T1), a crew on the pump. */
+    airMinutes: z.object({ solo: z.number().positive(), crewed: z.number().positive() }),
+    /** One trip across the wreck and back to the hoist line, game minutes. */
+    tripMinutes: z.number().positive(),
+    /** The chance a trip finds something, in calm water by day (night and age cut it). */
+    chance: z.number().min(0).max(1),
+    haulCu: range,
+    haulShare: z.tuple([z.number().min(0).max(1), z.number().min(0).max(1)]),
+    haulMaxCu: z.number().int().positive(),
+    findChance: z.number().min(0).max(1),
+    /** A dive fouls in the wreckage: a trip lost working free, and this many minutes. */
+    snagChance: z.number().min(0).max(1),
+    snagMinutes: z.number().nonnegative(),
+    /** Over this sea the ship pitches and the tender calls you up after half the air. */
+    pitchHsM: z.number().positive(),
+  }),
   /** Seen at it: the crime, at most once a wreck in this many game hours. */
   crime: idOf('crime'),
   crimeEveryHours: z.number().positive(),

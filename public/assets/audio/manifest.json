@@ -1071,6 +1071,11 @@
       "url": "hideout/launch.ogg",
       "bytes": 52440
     },
+    "sfx.salvage.dive": {
+      "type": "audio",
+      "url": "island/dive.ogg",
+      "bytes": 56806
+    },
     "music.open-water.day-apostles": {
       "type": "audio",
       "url": "songs/open-water-day-apostles.ogg",
@@ -1338,7 +1343,8 @@
       "voice.wolf.howl-1",
       "voice.wolf.howl-2",
       "sfx.island.woodpecker",
-      "sfx.bear.crash"
+      "sfx.bear.crash",
+      "sfx.salvage.dive"
     ],
     "ending-audio": [
       "music.ending.air"

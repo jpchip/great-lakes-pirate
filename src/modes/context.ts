@@ -18,6 +18,7 @@ import type { SmugglerDealtEvent } from '../sim/economy/smuggler';
 import type { FenceDealtEvent } from '../sim/economy/fence';
 import type { GunBoughtEvent } from '../sim/shipyard/guns';
 import type { LawEventOf } from '../sim/law/law';
+import type { CosmeticEvent } from '../sim/shipyard/cosmetics';
 import type { ShipPurchasedEvent, ShipRepairedEvent, UpgradeEvent } from '../sim/shipyard/shipyard';
 import type { GameWorld } from '../gameplay/ecs';
 import type { LocalWeather } from '../sim/weather/local-weather';
@@ -222,6 +223,8 @@ export interface GameEvents {
   UpgradeInstalled: UpgradeEvent;
   UpgradeRemoved: UpgradeEvent;
   ShipRepaired: ShipRepairedEvent;
+  /** Paint, canvas, a pennant or a new name (plan 10 §7; Phase 10): cosmetic only. */
+  CosmeticChanged: CosmeticEvent;
   /**
    * The law (plan 06 §2.1, §10; Phase 5 piece A): a crime committed (witnessed or not), a
    * witness setting off with a report, the report landing (heat or alertness) or stopped
@@ -582,6 +585,13 @@ export interface GameEvents {
    * The line goes down at `GrappleCast` (the sound of it, piece Y).
    */
   GrappleCast: { wreck: string };
+  /**
+   * The diving suit (Phase 10): down the shot line to a deep wreck, and up again (`finds`:
+   * how many trips brought something; an empty `wreck` when you were hauled up for want of
+   * the anchor). For the helmet's sounds.
+   */
+  DiveStarted: { wreck: string };
+  DiveEnded: { wreck: string; minutes: number; finds: number };
   WreckWorked: {
     wreck: string;
     kind: 'nothing' | 'cargo' | 'papers' | 'curio';

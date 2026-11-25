@@ -53,7 +53,11 @@ export interface PortActions {
   abandonContract(contractId: string): string | undefined;
   stealContract(contractId: string): string | undefined;
   /** The shipyard and the chandlery's fittings (piece G). */
-  buyHull(classId: string): string | undefined;
+  /** `name`: what you call her; absent, she keeps her name. */
+  buyHull(classId: string, name?: string): string | undefined;
+  /** Paint, canvas or a pennant at the yard (plan 10 §7), and a new name on her transom. */
+  paint(option: string): string | undefined;
+  rename(name: string): string | undefined;
   fit(upgrade: string, place: FitSource): string | undefined;
   unfit(upgrade: string, place: FitSource): string | undefined;
   repair(place: 'shipyard' | 'chandlery'): string | undefined;

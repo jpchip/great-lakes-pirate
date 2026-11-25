@@ -15,7 +15,12 @@ import {
 import { defaultHandling } from '../src/sim/sailing/handling';
 import { defaultHazardRules } from '../src/sim/sailing/hazard-rules';
 import { compileSailingClass } from '../src/sim/sailing/ship-class';
-import { sailShipRecord, T1_SCHOONER_ID, T2_SCHOONER_ID } from '../src/sim/sailing/ships';
+import {
+  sailShipRecord,
+  T1_SCHOONER_ID,
+  T2_SCHOONER_ID,
+  T3_SCHOONER_ID,
+} from '../src/sim/sailing/ships';
 import { fitShip, upgradeDefs } from '../src/sim/shipyard/fit';
 import {
   buyHull,
@@ -32,6 +37,8 @@ import {
   type Owner,
 } from '../src/sim/shipyard/shipyard';
 import { createWorldState, parseWorldState } from '../src/sim/world-state';
+import { mountCapacity } from '../src/sim/combat/armament';
+import { gameCombat } from '../src/sim/combat/defs';
 import { portSnapshot } from '../src/ui/port/model';
 
 /** Phase 4 piece G: the shipyard, upgrades, repairs and the ship's condition in the save. */
@@ -308,6 +315,22 @@ describe('in the game', () => {
     expect(bought).toHaveLength(1);
   });
 
+  it('sells the T3 three-master (Phase 10): her hold, pools, swivel and broadside mounts', () => {
+    const { state, schooner, economy, yard, rebuilt } = setup();
+    state.player.purse = 500_000;
+    expect(yard.buyHull(SUPERIOR, T3_SCHOONER_ID, 'Rouse Simmons')).toBeUndefined();
+    expect(state.player.captain.shipName).toBe('Rouse Simmons');
+    expect(schooner.sailing.cls.id).toBe(T3_SCHOONER_ID);
+    expect(schooner.hazards.cls.hullHP).toBe(240);
+    expect(economy.capacity).toBe(90);
+    expect(rebuilt).toEqual([T3_SCHOONER_ID]);
+    const t3 = sailShipRecord(T3_SCHOONER_ID);
+    expect(t3.priceCents).toBe(420_000);
+    expect(t3.slots).toMatchObject({ rigging: 3, cargo: 2, weaponMods: 3 });
+    expect(mountCapacity(gameCombat(), T3_SCHOONER_ID, 'bow')).toBe(1);
+    expect(mountCapacity(gameCombat(), T3_SCHOONER_ID, 'port')).toBe(4);
+  });
+
   it('keeps damage as a share of the pool through an upgrade, and yard time passes', () => {
     const { state, schooner, yard } = setup();
     schooner.hazards.state.hull = 50;
@@ -374,7 +397,11 @@ describe('in the game', () => {
       });
     const sup = snap(SUPERIOR);
     expect(sup.tabs).toContain('shipyard');
-    expect(sup.shipyard?.hulls.map((h) => h.classId)).toEqual([T1_SCHOONER_ID, T2_SCHOONER_ID]);
+    expect(sup.shipyard?.hulls.map((h) => h.classId)).toEqual([
+      T1_SCHOONER_ID,
+      T2_SCHOONER_ID,
+      T3_SCHOONER_ID,
+    ]);
     expect(sup.shipyard?.hulls[1]?.netCents).toBe(135_000);
     const bay = snap('port.bayfield');
     expect(bay.tabs).not.toContain('shipyard');

@@ -52,16 +52,20 @@ describe('salvage data and old wrecks', () => {
     const c = oldWrecks('run-zz');
     expect(a.map((w) => w.name)).toEqual(b.map((w) => w.name));
     const seededA = a.filter((w) => w.seeded);
-    expect(seededA).toHaveLength(3);
+    // Three shallow, then two deep for the diving suit (Phase 10).
+    expect(seededA).toHaveLength(5);
+    expect(seededA.map((w) => w.deep)).toEqual([false, false, false, true, true]);
     const key = (ws: typeof a) =>
       ws
         .filter((w) => w.seeded)
         .map((w) => `${w.name}@${w.where}`)
         .join('|');
     expect(key(a)).not.toEqual(key(c));
-    // Each seeded wreck's papers name the next; the last stands alone.
+    // Each seeded wreck's papers name the next, the last shallow one's the first deep one;
+    // the last stands alone.
     expect(seededA[0]?.papers?.lead).toBe(seededA[1]?.id);
-    expect(seededA[2]?.papers?.lead).toBeUndefined();
+    expect(seededA[2]?.papers?.lead).toBe('wreck.deep_1');
+    expect(seededA[4]?.papers?.lead).toBeUndefined();
     expect(seededA.every((w) => w.lostYear >= 1868 && w.lostYear <= 1898)).toBe(true);
   });
 });
@@ -162,7 +166,10 @@ describe('finding and working a wreck', () => {
 });
 
 describe('salvage in the game', () => {
-  function setup(seen: Witness[] = []) {
+  function setup(
+    seen: Witness[] = [],
+    opts: { suit?: boolean; crewed?: boolean; depthM?: number } = {},
+  ) {
     const state = createWorldState('salvage', T0);
     const events = new EventBus<GameEvents>();
     const ctx = { state, events } as unknown as GameContext;
@@ -205,8 +212,10 @@ describe('salvage in the game', () => {
       discovery,
       seed: 'seed',
       zone: () => ({ id: APOSTLES_ID, frame }),
-      depthAt: () => 6,
+      depthAt: () => opts.depthM ?? 6,
       hsAt: () => 0.2,
+      suit: () => !!opts.suit,
+      crewed: () => !!opts.crewed,
       ship: () => ship,
       anchored: () => anchored,
       daylight: () => 1,
@@ -220,6 +229,7 @@ describe('salvage in the game', () => {
     };
     return {
       state,
+      events,
       salvage,
       discovery,
       commits,
@@ -250,6 +260,50 @@ describe('salvage in the game', () => {
       cargo: [{ good: 'good.salted_fish', qty: 6 }],
     });
   };
+
+  it('dives on the Antelope with the suit aboard (Phase 10), and only with it', () => {
+    const antelope = must(oldWrecks('seed').find((w) => w.id === 'wreck.antelope'));
+    const bare = setup([], { depthM: 24 });
+    bare.discovery.chart('wreck.antelope', 'sounding');
+    bare.goTo(antelope.at);
+    expect(bare.salvage.offer()).toMatchObject({ how: 'grapple' });
+    expect(bare.salvage.offer()?.refusal).toMatch(/diving suit would reach her/);
+
+    const g = setup([], { depthM: 24, suit: true, crewed: true });
+    g.discovery.chart('wreck.antelope', 'sounding');
+    g.goTo(antelope.at);
+    expect(g.salvage.offer()).toMatchObject({ how: 'dive', refusal: undefined });
+    expect(g.salvage.chip()).toMatch(/^F go down in the suit · the Antelope, 24 m down/);
+    const seen: string[] = [];
+    g.events.on('DiveStarted', () => seen.push('down'));
+    g.events.on('DiveEnded', () => seen.push('up'));
+    g.events.on('WreckWorked', (e) => seen.push(e.kind));
+    // F: the suit goes down, a few real seconds, and up she comes.
+    expect(g.salvage.start()).toBe(true);
+    expect(g.salvage.diving()).toBe('wreck.antelope');
+    expect(g.salvage.chip()).toMatch(/in the suit/);
+    const t0 = g.state.environment.clock.gameSeconds;
+    let out;
+    for (let i = 0; i < 20 && !out; i++) out = g.salvage.update(0.5);
+    expect(out && 'result' in out && 'trips' in out.result).toBe(true);
+    expect(g.salvage.diving()).toBeUndefined();
+    expect(g.state.environment.clock.gameSeconds).toBeGreaterThan(t0 + 3600);
+    expect(seen[0]).toBe('down');
+    expect(seen).toContain('up');
+    expect(g.notices.at(-1)).toMatch(/^Down on the Antelope in the suit \(/);
+    // A sure dive brings up her coal.
+    const g2 = setup([], { depthM: 24, suit: true });
+    g2.discovery.chart('wreck.antelope', 'sounding');
+    g2.goTo(antelope.at);
+    expect(typeof g2.salvage.diveNow(1)).not.toBe('string');
+    expect(g2.state.player.cargo.find((c) => c.good === 'good.coal')?.qty ?? 0).toBeGreaterThan(0);
+    // The shallow Lucerne is still the grapple's, suit or no.
+    const lucerne = must(oldWrecks('seed').find((w) => w.id === 'wreck.lucerne'));
+    const sh = setup([], { suit: true });
+    sh.discovery.chart('wreck.lucerne', 'sounding');
+    sh.goTo(lucerne.at);
+    expect(sh.salvage.offer()?.how).toBe('grapple');
+  });
 
   it('finds the Lucerne by sight over her, and grapples her ore up clean', () => {
     const g = setup();

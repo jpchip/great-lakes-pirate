@@ -15,6 +15,10 @@ export interface StreamerSpec {
   width: number;
   /** 1 tapers to a point (a pennant), 0 keeps the width (a ribbon). */
   taper: number;
+  /** Its own color, over the mesh's. */
+  color?: THREE.Color;
+  /** A two-color pennant: the outer half in this one. */
+  fly?: THREE.Color;
 }
 
 const SEGMENTS = 10;
@@ -30,7 +34,14 @@ export class Streamers {
     const count = specs.length * (SEGMENTS + 1) * 2;
     this.positions = new Float32Array(count * 3);
     const colors = new Float32Array(count * 3);
-    for (let i = 0; i < count; i++) colors.set([color.r, color.g, color.b], i * 3);
+    let v = 0;
+    for (const spec of specs) {
+      for (let s = 0; s <= SEGMENTS; s++) {
+        const c = spec.fly && s > SEGMENTS / 2 ? spec.fly : (spec.color ?? color);
+        colors.set([c.r, c.g, c.b, c.r, c.g, c.b], v * 3);
+        v += 2;
+      }
+    }
     const index: number[] = [];
     specs.forEach((_, k) => {
       const base = k * (SEGMENTS + 1) * 2;
