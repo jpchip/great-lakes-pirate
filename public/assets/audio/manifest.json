@@ -74,12 +74,12 @@
     "music.open-water.day": {
       "type": "audio",
       "url": "music/open-water-day.ogg",
-      "bytes": 1030254
+      "bytes": 1082923
     },
     "music.open-water.night": {
       "type": "audio",
       "url": "music/open-water-night.ogg",
-      "bytes": 1717252
+      "bytes": 1511247
     },
     "sfx.signal.fog-bell": {
       "type": "audio",
@@ -214,7 +214,7 @@
     "music.chart.voyage": {
       "type": "audio",
       "url": "music/chart-voyage.ogg",
-      "bytes": 1435462
+      "bytes": 1445434
     },
     "amb.harbor.car-bang": {
       "type": "audio",
@@ -554,7 +554,7 @@
     "music.foot.saloon": {
       "type": "audio",
       "url": "foot/saloon-tune.ogg",
-      "bytes": 396905
+      "bytes": 281955
     },
     "voice.foot.shiver": {
       "type": "audio",
@@ -1054,7 +1054,7 @@
     "music.ending.air": {
       "type": "audio",
       "url": "music/ending-air.ogg",
-      "bytes": 883331
+      "bytes": 1003788
     },
     "sfx.ice.grind": {
       "type": "audio",
@@ -1075,6 +1075,26 @@
       "type": "audio",
       "url": "island/dive.ogg",
       "bytes": 56806
+    },
+    "music.open-water.day-apostles": {
+      "type": "audio",
+      "url": "songs/open-water-day-apostles.ogg",
+      "bytes": 1030254
+    },
+    "music.open-water.night-duluth": {
+      "type": "audio",
+      "url": "songs/open-water-night-duluth.ogg",
+      "bytes": 1032675
+    },
+    "music.saloon.day-duluth": {
+      "type": "audio",
+      "url": "songs/saloon-day-duluth.ogg",
+      "bytes": 346103
+    },
+    "music.saloon.night-duluth": {
+      "type": "audio",
+      "url": "songs/saloon-night-duluth.ogg",
+      "bytes": 319109
     }
   },
   "bundles": {
@@ -1096,7 +1116,9 @@
     ],
     "music-open-water": [
       "music.open-water.day",
-      "music.open-water.night"
+      "music.open-water.night",
+      "music.open-water.day-apostles",
+      "music.open-water.night-duluth"
     ],
     "world-audio": [
       "sfx.signal.fog-bell",
@@ -1326,6 +1348,10 @@
     ],
     "ending-audio": [
       "music.ending.air"
+    ],
+    "saloon-music": [
+      "music.saloon.day-duluth",
+      "music.saloon.night-duluth"
     ]
   }
 }

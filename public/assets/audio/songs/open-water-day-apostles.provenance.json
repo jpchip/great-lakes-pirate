@@ -1,0 +1,19 @@
+{
+  "source": "procedural",
+  "tool": "tools/audio/synth.ts (tools/audio/lib/synth.ts)",
+  "author": "Great Lakes Pirate contributors",
+  "reference": "Traditional melody, public domain: Franz Rickaby, Ballads and Songs of the Shanty-Boy (Harvard University Press, 1926), no. 45 \"Red Iron Ore\", p. 161. Original arrangement; synthesized free-reed concertina (additive), tin whistle, fiddle drone, Karplus-Strong guitar, Freeverb-style reverb",
+  "date": "2026-10-30",
+  "license": "CC BY 4.0",
+  "attribution": "Great Lakes Pirate contributors",
+  "modifications": [],
+  "description": "Open-water music by day among the Apostle Islands: \"Red Iron Ore\" (traditional) on concertina, tin whistle and guitar",
+  "durationS": 63.735,
+  "pipeline": [
+    "decoded to mono 48000 Hz",
+    "edge fades",
+    "RMS-normalized toward -18 dB (+0.9 dB)",
+    "Opus 112 kbps mono in Ogg (ffmpeg libopus)"
+  ],
+  "inputHash": "0cb2659064c0bbf2"
+}

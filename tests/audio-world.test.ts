@@ -10,6 +10,7 @@ import {
   fogMix,
   gullRate,
   loonRate,
+  musicAlternate,
   musicMood,
   rainMix,
   signalLevel,
@@ -265,6 +266,41 @@ describe('open-water music (plan 15 §6)', () => {
     expect(day.stops).toBe(2);
     music.update(1000, 'day', false);
     expect(day.plays).toBe(2);
+  });
+
+  it("plays a stretch of water's own song where it has one (plan 15 §25.2)", () => {
+    const day = fakePlayer();
+    const apostles = fakePlayer();
+    let region: string | undefined = 'region.apostles';
+    const music = new MusicDirector({
+      players: { day },
+      alternate: (mood) =>
+        musicAlternate(mood, region) === 'music.open-water.day-apostles' ? apostles : undefined,
+      random: () => 0,
+      firstWaitS: [0, 0],
+      gapS: [0, 0],
+    });
+    music.setActive(true);
+    music.update(0.1, 'day', false);
+    expect(apostles.plays).toBe(1);
+    expect(day.plays).toBe(0);
+    // Ducking and the end follow the alternate, not the mood's own cue.
+    music.update(0.1, 'day', true);
+    expect(apostles.level).toBe(DUCK_LEVEL);
+    apostles.end();
+    region = 'region.superior';
+    music.update(0.1, 'day', false);
+    music.update(0.1, 'day', false);
+    expect(day.plays).toBe(1);
+  });
+
+  it('maps the regions to their songs', () => {
+    expect(musicAlternate('day', 'region.apostles')).toBe('music.open-water.day-apostles');
+    expect(musicAlternate('night', 'region.apostles')).toBeUndefined();
+    expect(musicAlternate('night', 'region.duluth')).toBe('music.open-water.night-duluth');
+    expect(musicAlternate('night', 'region.north_shore')).toBe('music.open-water.night-duluth');
+    expect(musicAlternate('day', 'region.duluth')).toBeUndefined();
+    expect(musicAlternate('day', undefined)).toBeUndefined();
   });
 });
 

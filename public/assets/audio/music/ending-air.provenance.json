@@ -2,18 +2,18 @@
   "source": "procedural",
   "tool": "tools/audio/synth.ts (tools/audio/lib/synth.ts)",
   "author": "Great Lakes Pirate contributors",
-  "reference": "Original air; whistle voice with breath and Freeverb-style reverb over a fiddle drone",
+  "reference": "Traditional melody, public domain: Franz Rickaby, Ballads and Songs of the Shanty-Boy (Harvard University Press, 1926), no. 2 \"Gerry's Rocks\" (B, \"Geary's Rock\"), p. 15, moved up a tone. Original arrangement; whistle voice with breath and Freeverb-style reverb over a fiddle drone",
   "date": "2026-11-21",
   "license": "CC BY 4.0",
   "attribution": "Great Lakes Pirate contributors",
   "modifications": [],
-  "description": "The end of a run: a slow air in D minor over a drone (about 40 s)",
-  "durationS": 54.712,
+  "description": "The end of a run: \"Gerry's Rocks\" (traditional), slow on the whistle in D over a drone (about a minute)",
+  "durationS": 63.968,
   "pipeline": [
     "decoded to mono 48000 Hz",
     "edge fades",
-    "RMS-normalized toward -18 dB (-3.2 dB)",
+    "RMS-normalized toward -18 dB (-3.0 dB)",
     "Opus 112 kbps mono in Ogg (ffmpeg libopus)"
   ],
-  "inputHash": "c18753fe190a062a"
+  "inputHash": "a64a3e51201aeaca"
 }

@@ -8,6 +8,7 @@ import {
   heardAt,
   landGain,
   placeMix,
+  saloonTunes,
   shiverEveryS,
   stepSound,
   tension01,
@@ -43,6 +44,12 @@ import type { WinterBody } from './winter-audio';
  */
 
 export const FOOT_AUDIO_BUNDLE = 'foot-audio';
+/** The saloons' own tunes beyond Bayfield's (plan 15 §25.2): decoded like the beds. */
+export const SALOON_MUSIC_BUNDLE = 'saloon-music';
+export const SALOON_MUSIC_SOUND = {
+  dayDuluth: 'music.saloon.day-duluth',
+  nightDuluth: 'music.saloon.night-duluth',
+} as const;
 
 export const FOOT_SOUND = {
   land: 'sfx.foot.land',
@@ -110,7 +117,16 @@ export interface FootFrame {
   windKn: number;
   rain01: number;
   /** The saloon's door, zone meters; open at this hour; you inside it. */
-  saloon: { x: number; z: number; open: boolean; within: boolean } | undefined;
+  saloon:
+    | {
+        x: number;
+        z: number;
+        open: boolean;
+        within: boolean;
+        /** The saloon's district, for its own tunes (`saloonTunes`). */
+        district?: string | undefined;
+      }
+    | undefined;
   /** F held on a lock with a pick: how far it's got, 0–1. Undefined otherwise. */
   picking: number | undefined;
   /** Stills with a batch running in the zone, zone meters (Phase 8 piece I). */
@@ -130,6 +146,7 @@ export interface FootFrame {
 type BedId = 'docks' | 'forest' | 'crickets' | 'room' | 'tune' | 'nightTune' | 'tension';
 
 interface Bed {
+  sound: string;
   source: AudioBufferSourceNode;
   filter: BiquadFilterNode;
   gain: GainNode;
@@ -514,8 +531,10 @@ export class FootSounds {
     // From supper on the piano and fiddle take over from the polka (piece J).
     const night = f.hour !== undefined && saloonNight(f.hour);
     const tune = mix.tune * (1 - 0.6 * tension);
-    this.bed('tune', night ? 0 : tune, mix.saloonLowpassHz, dt);
-    this.bed('nightTune', night ? tune : 0, mix.saloonLowpassHz, dt);
+    // Each saloon plays its own (plan 15 §25.2).
+    const tunes = saloonTunes(f.saloon?.district);
+    this.bed('tune', night ? 0 : tune, mix.saloonLowpassHz, dt, tunes.day);
+    this.bed('nightTune', night ? tune : 0, mix.saloonLowpassHz, dt, tunes.night);
     this.bed('tension', tensionGain(tension), 12000, dt);
   }
 
@@ -592,15 +611,20 @@ export class FootSounds {
     });
   }
 
-  private bed(id: BedId, want: number, lowpassHz: number, dt: number): void {
+  private bed(id: BedId, want: number, lowpassHz: number, dt: number, sound?: string): void {
     const def = BEDS[id];
     const ctx = this.mixer.ctx;
     this.levels.beds[id] = want;
     if (typeof ctx.createBufferSource !== 'function') return;
+    const wanted = sound ?? def.sound;
+    // Another saloon's tune: start it over rather than play the last town's.
+    if (this.beds.get(id)?.sound !== undefined && this.beds.get(id)?.sound !== wanted) {
+      this.dispose(id);
+    }
     let bed = this.beds.get(id);
     if (!bed) {
       if (want <= 0.001) return;
-      const buffer = this.bank.get(def.sound);
+      const buffer = this.bank.get(wanted) ?? (sound ? this.bank.get(def.sound) : undefined);
       if (!buffer) return;
       const source = ctx.createBufferSource();
       source.buffer = buffer;
@@ -614,7 +638,7 @@ export class FootSounds {
       // The tune and the layer from the top; the beds from anywhere, so they never line up.
       const musical = id === 'tune' || id === 'nightTune' || id === 'tension';
       source.start(ctx.currentTime, musical ? 0 : this.random() * buffer.duration);
-      bed = { source, filter, gain, silentS: 0 };
+      bed = { sound: wanted, source, filter, gain, silentS: 0 };
       this.beds.set(id, bed);
     }
     const now = ctx.currentTime;

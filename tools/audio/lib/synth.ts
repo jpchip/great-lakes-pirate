@@ -598,9 +598,8 @@ export function reverb(
 }
 
 // ---------------------------------------------------------------------------------------
-// Music v1: the tunes. "Devils Island Air" is original (written for this game), so it carries
-// the repo's CC BY 4.0 license. The day cue is now a traditional song, "Red Iron Ore"
-// (tools/audio/lib/synth-songs.ts), which replaced the original "Chequamegon Waltz".
+// Music v1: the tunes are traditional Great Lakes songs now (tools/audio/lib/synth-songs.ts),
+// which replaced the original placeholders ("The Chequamegon Waltz", "Devils Island Air").
 
 /** Plays a melody with `voice` at `bpm`, from `startBeat`. Notes slur into each other a little. */
 export function renderMelody(
@@ -635,51 +634,3 @@ export const CHORDS: Record<string, { bass: string; tones: string[] }> = {
   Em: { bass: 'E3', tones: ['B3', 'E4', 'G4'] },
   C: { bass: 'C3', tones: ['C4', 'E4', 'G4'] },
 };
-
-/** "Devils Island Air": slow, E aeolian, for the night. Beats at 58 bpm. */
-export const AIR = {
-  bpm: 58,
-  phrases: [
-    [
-      ['E5', 2],
-      ['G5', 1],
-      ['A5', 1],
-      ['B5', 3],
-      ['A5', 1],
-      ['G5', 1.5],
-      ['F#5', 0.5],
-      ['E5', 1],
-      ['D5', 1],
-      ['E5', 4],
-    ],
-    [
-      ['G5', 2],
-      ['A5', 1],
-      ['B5', 1],
-      ['D6', 2],
-      ['B5', 2],
-      ['A5', 1],
-      ['G5', 1],
-      ['A5', 1],
-      ['B5', 1],
-      ['A5', 4],
-    ],
-    [
-      ['B5', 2],
-      ['A5', 1],
-      ['G5', 1],
-      ['E5', 3],
-      ['D5', 1],
-      ['E5', 1],
-      ['G5', 1],
-      ['F#5', 1],
-      ['D5', 1],
-      ['E5', 4],
-    ],
-  ] as Note[][],
-} as const;
-
-export function airForm(): Note[] {
-  const [p1, p2, p3] = AIR.phrases as [Note[], Note[], Note[]];
-  return [['R', 6], ...p1, ...p2, ...p3, ['R', 8], ...p1, ...p3, ['R', 6]];
-}

@@ -182,7 +182,12 @@ export function pianoNote(
 }
 
 /** A fiddle's melody note: the bowed string through the fiddle's body. */
-function fiddleNote(hz: number, seconds: number, rate: number, random: Random): Float32Array {
+export function fiddleNote(
+  hz: number,
+  seconds: number,
+  rate: number,
+  random: Random,
+): Float32Array {
   const raw = bowedNote(hz, seconds, rate, random, seconds > 0.4);
   const out = new Float32Array(raw.length);
   for (const [f, q, g] of [

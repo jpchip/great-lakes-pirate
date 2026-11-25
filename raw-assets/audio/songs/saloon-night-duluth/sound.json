@@ -1,0 +1,12 @@
+{
+  "id": "music.saloon.night-duluth",
+  "name": "saloon-night-duluth",
+  "description": "\"Michigan-I-O\" (traditional; 16 bars of 6/8 in C, 30.00 s, looped): the Duluth saloon's fiddle and upright piano after dark",
+  "bundles": [
+    "saloon-music"
+  ],
+  "kind": "loop",
+  "bus": "ambience",
+  "loopCrossfadeS": 0,
+  "source": "source.flac"
+}

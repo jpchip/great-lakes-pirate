@@ -1,0 +1,12 @@
+{
+  "id": "music.saloon.day-duluth",
+  "name": "saloon-day-duluth",
+  "description": "\"The Shanty-Man's Life\" (traditional; 28 bars of 2/4 in D minor, 32.31 s, looped): the Duluth saloon's concertina over a guitar",
+  "bundles": [
+    "saloon-music"
+  ],
+  "kind": "loop",
+  "bus": "ambience",
+  "loopCrossfadeS": 0,
+  "source": "source.flac"
+}

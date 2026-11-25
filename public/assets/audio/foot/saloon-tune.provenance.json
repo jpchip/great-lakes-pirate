@@ -2,17 +2,17 @@
   "source": "procedural",
   "tool": "tools/audio/synth.ts (tools/audio/lib/synth.ts)",
   "author": "Great Lakes Pirate contributors",
-  "reference": "Original tune; synthesized concertina and plucked guitar, a little reverb, the tail folded onto the head for a seamless loop",
+  "reference": "Traditional melody, public domain: Franz Rickaby, Ballads and Songs of the Shanty-Boy (Harvard University Press, 1926), no. 13 \"The Little Brown Bulls\", p. 65. Original arrangement; synthesized concertina and plucked guitar, a little reverb, the tail folded onto the head for a seamless loop",
   "date": "2026-11-15",
   "license": "CC BY 4.0",
   "attribution": "Great Lakes Pirate contributors",
   "modifications": [],
-  "description": "\"The Booth Street Polka\" (16 bars in G at 104, 36.92 s, looped): the saloon's concertina over a vamping guitar",
-  "durationS": 36.923,
+  "description": "\"The Little Brown Bulls\" (traditional; 20 bars of 6/8 in E minor at 276 eighths a minute, 26.09 s, looped): the saloon's concertina over a vamping guitar",
+  "durationS": 26.087,
   "pipeline": [
     "decoded to mono 48000 Hz",
-    "RMS-normalized toward -24 dB (-2.4 dB)",
+    "RMS-normalized toward -24 dB (-2.3 dB)",
     "Opus 64 kbps mono in Ogg (ffmpeg libopus)"
   ],
-  "inputHash": "3961da69fdada981"
+  "inputHash": "adad26a8810e8297"
 }

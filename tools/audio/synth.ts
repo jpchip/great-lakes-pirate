@@ -26,8 +26,6 @@ import { join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { SAMPLE_RATE, type SoundHints } from './lib/audio.ts';
 import {
-  AIR,
-  airForm,
   fiddleDrone,
   fogBell,
   fogWhistle,
@@ -41,8 +39,27 @@ import {
   shipWhistle,
   whistleNote,
 } from './lib/synth.ts';
-import { RED_IRON_ORE, redIronOre } from './lib/synth-songs.ts';
-import { chartTheme, fogFade, stinger, STINGERS, type StingerName } from './lib/synth-chart.ts';
+import {
+  BIGLER,
+  bigler,
+  EN_ROULANT,
+  enRoulant,
+  GERRYS_ROCKS,
+  LADY_ELGIN,
+  ladyElgin,
+  LITTLE_BROWN_BULLS,
+  MICHIGAN_I_O,
+  MICHIGAN_I_O_S,
+  michiganIO,
+  PERSIANS_CREW,
+  persiansCrew,
+  RED_IRON_ORE,
+  redIronOre,
+  SHANTY_MANS_LIFE,
+  SHANTY_MANS_LIFE_S,
+  shantyMansLife,
+} from './lib/synth-songs.ts';
+import { fogFade, stinger, STINGERS, type StingerName } from './lib/synth-chart.ts';
 import { millSaw, oreDump } from './lib/synth-harbor.ts';
 import {
   bowGun,
@@ -295,27 +312,6 @@ function writeSound(
   console.log(`synth: ${category}/${hints.name} (${(samples.length / RATE).toFixed(1)} s)`);
 }
 
-function renderAir(): Float32Array {
-  const random = seeded(1874);
-  const notes = airForm();
-  const beatS = 60 / AIR.bpm;
-  const beats = notes.reduce((sum, [, b]) => sum + b, 0);
-  const seconds = beats * beatS + 3;
-  const out = new Float32Array(Math.round(seconds * RATE));
-  mixInto(out, fiddleDrone(['E3', 'B3'], seconds - 1, RATE, random, 4), 0, 1);
-  renderMelody(
-    out,
-    notes,
-    AIR.bpm,
-    0,
-    RATE,
-    (hz, s) => whistleNote(hz, s, RATE, random),
-    0.8,
-    random,
-  );
-  return reverb(out, RATE, 0.3, 0.85);
-}
-
 function main(): void {
   writeSound(
     'signals',
@@ -349,13 +345,14 @@ function main(): void {
       id: 'music.open-water.day',
       name: 'open-water-day',
       description:
-        'Open-water music by day: "Red Iron Ore" (traditional) on concertina, tin whistle and guitar',
+        'Open-water music by day: "En roulant ma boule" (traditional voyageur song) on concertina, tin whistle and guitar',
       kind: 'oneshot',
       bus: 'music',
       bundles: ['music-open-water'],
     },
-    redIronOre(RATE),
-    `Traditional melody, public domain: ${RED_IRON_ORE.source}. Original arrangement; synthesized free-reed concertina (additive), tin whistle, fiddle drone, Karplus-Strong guitar, Freeverb-style reverb`,
+    enRoulant(RATE),
+    `Traditional melody, public domain: ${EN_ROULANT.source}. Original arrangement; synthesized free-reed concertina, tin whistle and Karplus-Strong guitar, Freeverb-style reverb`,
+    '2026-11-25',
   );
   writeSound(
     'music',
@@ -363,14 +360,15 @@ function main(): void {
       id: 'music.open-water.night',
       name: 'open-water-night',
       description:
-        'Open-water music v1, night: "Devils Island Air" on tin whistle over a fiddle drone',
+        'Open-water music by night: "The Persian\'s Crew" (traditional) on tin whistle and concertina over a fiddle drone',
       kind: 'oneshot',
       bus: 'music',
       bundles: ['music-open-water'],
     },
-    renderAir(),
-    'Original tune; synthesized tin whistle and bowed fiddle drone (additive with body resonances), Freeverb-style reverb',
+    persiansCrew(RATE),
+    `Traditional melody, public domain: ${PERSIANS_CREW.source}. Original arrangement; synthesized tin whistle, free-reed concertina and bowed fiddle drone, Freeverb-style reverb`,
   );
+  renderSongs();
   const whistles: [keyof typeof SHIP_WHISTLES, string, string][] = [
     ['freighter', 'Steam ore freighter whistle: one deep bell, one long blast', 'One 138 Hz bell'],
     ['tug', 'Fish tug whistle: a small shrill bell, one long blast', 'One 587 Hz bell, fast valve'],
@@ -417,13 +415,13 @@ function main(): void {
       id: 'music.chart.voyage',
       name: 'chart-voyage',
       description:
-        'Chart music: "The Long Reach", a 6/8 traveling tune on concertina, guitar and tin whistle',
+        'Chart music: "The Bigler\'s Crew" (traditional), a 6/8 sailing song on concertina, guitar and tin whistle',
       kind: 'oneshot',
       bus: 'music',
       bundles: ['music-chart'],
     },
-    chartTheme(RATE),
-    'Original tune; synthesized free-reed concertina, Karplus-Strong guitar, tin whistle and fiddle drone, Freeverb-style reverb',
+    bigler(RATE),
+    `Traditional melody, public domain: ${BIGLER.source}. Original arrangement; synthesized free-reed concertina, Karplus-Strong guitar, tin whistle and fiddle drone, Freeverb-style reverb`,
     TODAY_J2,
   );
   const stingers: Record<StingerName, string> = {
@@ -1048,9 +1046,9 @@ function renderFoot(): void {
   foot(
     'music.foot.saloon',
     'saloon-tune',
-    `"The Booth Street Polka" (${SALOON_TUNE.bars} bars in G at ${SALOON_TUNE.bpm}, ${SALOON_TUNE_S.toFixed(2)} s, looped): the saloon's concertina over a vamping guitar`,
+    `"The Little Brown Bulls" (traditional; ${SALOON_TUNE.bars} bars of 6/8 in E minor at ${SALOON_TUNE.bpm} eighths a minute, ${SALOON_TUNE_S.toFixed(2)} s, looped): the saloon's concertina over a vamping guitar`,
     saloonTune(RATE),
-    'Original tune; synthesized concertina and plucked guitar, a little reverb, the tail folded onto the head for a seamless loop',
+    `Traditional melody, public domain: ${LITTLE_BROWN_BULLS.source}. Original arrangement; synthesized concertina and plucked guitar, a little reverb, the tail folded onto the head for a seamless loop`,
     // Encoded as a bed (64 kbps) to keep the download small; it plays on the music bus.
     'ambience',
     0,
@@ -1833,13 +1831,14 @@ function renderIsland(): void {
     {
       id: 'music.ending.air',
       name: 'ending-air',
-      description: 'The end of a run: a slow air in D minor over a drone (about 40 s)',
+      description:
+        'The end of a run: "Gerry\'s Rocks" (traditional), slow on the whistle in D over a drone (about a minute)',
       kind: 'oneshot',
       bus: 'music',
       bundles: ['ending-audio'],
     },
     endingTheme(),
-    'Original air; whistle voice with breath and Freeverb-style reverb over a fiddle drone',
+    `Traditional melody, public domain: ${GERRYS_ROCKS.source}, moved up a tone. Original arrangement; whistle voice with breath and Freeverb-style reverb over a fiddle drone`,
     TODAY_P9Y,
   );
 }
@@ -1855,6 +1854,77 @@ function endingTheme(): Float32Array {
   mixInto(out, fiddleDrone(ENDING_DRONE, seconds - 1, RATE, random, 5), 0, 0.8);
   renderMelody(out, notes, bpm, 0.5, RATE, (hz, s) => whistleNote(hz, s, RATE, random), 1);
   return trimmed(reverb(out, RATE, 0.18, 0.7, 0.4));
+}
+
+/**
+ * The alternates (plan 15 §25.2): a song for a stretch of water or a saloon of its own.
+ * `node tools/audio/synth.ts songs` renders just these.
+ */
+function renderSongs(): void {
+  const TODAY_SONGS = '2026-11-25';
+  const song = (
+    hints: Omit<SoundHints, 'source' | 'trimStartS' | 'loopCrossfadeS' | 'kind' | 'bus'> & {
+      loop?: boolean;
+    },
+    samples: Float32Array,
+    how: string,
+  ): void => {
+    const { loop, ...rest } = hints;
+    writeSound(
+      'songs',
+      loop
+        ? // A bed (64 kbps) like the other saloon tunes, played on the music bus.
+          { ...rest, kind: 'loop', bus: 'ambience', loopCrossfadeS: 0 }
+        : { ...rest, kind: 'oneshot', bus: 'music' },
+      samples,
+      how,
+      TODAY_SONGS,
+    );
+  };
+  song(
+    {
+      id: 'music.open-water.day-apostles',
+      name: 'open-water-day-apostles',
+      description:
+        'Open-water music by day among the Apostle Islands: "Red Iron Ore" (traditional) on concertina, tin whistle and guitar',
+      bundles: ['music-open-water'],
+    },
+    redIronOre(RATE),
+    `Traditional melody, public domain: ${RED_IRON_ORE.source}. Original arrangement; synthesized free-reed concertina (additive), tin whistle, fiddle drone, Karplus-Strong guitar, Freeverb-style reverb`,
+  );
+  song(
+    {
+      id: 'music.open-water.night-duluth',
+      name: 'open-water-night-duluth',
+      description:
+        'Open-water music by night off Duluth and the North Shore: "Lost on the Lady Elgin" (Henry Clay Work, 1861) on tin whistle and concertina over a fiddle drone',
+      bundles: ['music-open-water'],
+    },
+    ladyElgin(RATE),
+    `Melody public domain: ${LADY_ELGIN.source}. Original arrangement; synthesized tin whistle, free-reed concertina and bowed fiddle drone, Freeverb-style reverb`,
+  );
+  song(
+    {
+      id: 'music.saloon.day-duluth',
+      name: 'saloon-day-duluth',
+      description: `"The Shanty-Man's Life" (traditional; 28 bars of 2/4 in D minor, ${SHANTY_MANS_LIFE_S.toFixed(2)} s, looped): the Duluth saloon's concertina over a guitar`,
+      bundles: ['saloon-music'],
+      loop: true,
+    },
+    shantyMansLife(RATE),
+    `Traditional melody, public domain: ${SHANTY_MANS_LIFE.source}. Original arrangement; synthesized concertina and plucked guitar, a little reverb, the tail folded onto the head for a seamless loop`,
+  );
+  song(
+    {
+      id: 'music.saloon.night-duluth',
+      name: 'saloon-night-duluth',
+      description: `"Michigan-I-O" (traditional; 16 bars of 6/8 in C, ${MICHIGAN_I_O_S.toFixed(2)} s, looped): the Duluth saloon's fiddle and upright piano after dark`,
+      bundles: ['saloon-music'],
+      loop: true,
+    },
+    michiganIO(RATE),
+    `Traditional melody, public domain: ${MICHIGAN_I_O.source}. Original arrangement; bowed fiddle and additive upright piano, a little reverb, the tail folded onto the head for a seamless loop`,
+  );
 }
 
 main();

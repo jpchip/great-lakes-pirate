@@ -1,7 +1,7 @@
 {
   "id": "music.ending.air",
   "name": "ending-air",
-  "description": "The end of a run: a slow air in D minor over a drone (about 40 s)",
+  "description": "The end of a run: \"Gerry's Rocks\" (traditional), slow on the whistle in D over a drone (about a minute)",
   "kind": "oneshot",
   "bus": "music",
   "bundles": [

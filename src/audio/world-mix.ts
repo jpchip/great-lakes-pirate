@@ -254,8 +254,8 @@ export interface MusicInput {
 }
 
 /**
- * Which open-water cue fits now (plan 15 §6.1, §11 Phase 2): the waltz by day, the air at
- * night, and none in fog (the music thins out so the fog signals lead) or in heavy
+ * Which open-water cue fits now (plan 15 §6.1, §11 Phase 2): the day's song or the night's
+ * (§25), and none in fog (the music thins out so the fog signals lead) or in heavy
  * weather (the storm layer comes in a later phase).
  */
 export function musicMood(i: MusicInput): MusicMood {
@@ -263,4 +263,27 @@ export function musicMood(i: MusicInput): MusicMood {
     return 'quiet';
   }
   return i.sunElevationDeg < -4 ? 'night' : 'day';
+}
+
+/**
+ * A stretch of water's own song (plan 15 §25.2): by Wanted region, the cue that plays there
+ * in place of the mood's own. "Red Iron Ore" by day among the Apostle Islands (§25.3: it
+ * swapped places with "En roulant ma boule", now the day's song elsewhere); "Lost on the
+ * Lady Elgin" by night off Duluth and the North Shore. Everywhere else, "En roulant ma
+ * boule" and "The Persian's Crew".
+ */
+export const MUSIC_ALTERNATES: Readonly<
+  Record<string, Partial<Record<Exclude<MusicMood, 'quiet'>, string>>>
+> = {
+  'region.apostles': { day: 'music.open-water.day-apostles' },
+  'region.duluth': { night: 'music.open-water.night-duluth' },
+  'region.north_shore': { night: 'music.open-water.night-duluth' },
+};
+
+/** The alternate cue for this mood in this region, or undefined for the mood's own. */
+export function musicAlternate(
+  mood: Exclude<MusicMood, 'quiet'>,
+  region: string | undefined,
+): string | undefined {
+  return region === undefined ? undefined : MUSIC_ALTERNATES[region]?.[mood];
 }
