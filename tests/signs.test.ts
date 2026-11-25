@@ -111,13 +111,14 @@ const baked =
 
 describe.skipIf(!baked)('the signs on the Bayfield district', () => {
   it('names every named building, and boards only doors that have a label', async () => {
-    // No DOM in the node test environment: a blank canvas stands in for the painted board.
-    const ctx = {
-      fillRect() {},
-      strokeRect() {},
-      fillText() {},
-      measureText: () => ({ width: 10 }),
-    };
+    // No DOM in the node test environment: a canvas whose every call does nothing.
+    const ctx: unknown = new Proxy(
+      {},
+      {
+        get: (_, key) => (key === 'measureText' ? () => ({ width: 10 }) : () => undefined),
+        set: () => true,
+      },
+    );
     (globalThis as { document?: unknown }).document = {
       createElement: () => ({ width: 0, height: 0, getContext: () => ctx }),
     };
@@ -133,7 +134,11 @@ describe.skipIf(!baked)('the signs on the Bayfield district', () => {
     const withSign = model.buildings.filter(
       (b) => signLabel(b.def) && model.doors.some((d) => d.building === b.def.id),
     );
-    expect(signs.meshes.length).toBe(withSign.length);
+    // One name each (a board over the door, or painted large on a warehouse wall)…
+    const names = signs.placed.filter((s) => s.kind === 'board' || s.kind === 'painted');
+    expect(names.map((s) => s.building).sort()).toEqual(withSign.map((b) => b.def.id).sort());
+    // …and all of them drawn as one mesh, so signs cost a single draw call.
+    expect(signs.meshes.length).toBe(1);
     for (const name of [
       'Lake Superior Saloon',
       'Halvorsen Chandlery',
@@ -141,6 +146,16 @@ describe.skipIf(!baked)('the signs on the Bayfield district', () => {
     ]) {
       expect(model.buildings.some((b) => b.def.name === name)).toBe(true);
     }
+    // The shops and the saloon hang a blade sign; a warehouse has its name on the wall.
+    const blades = signs.placed.filter((s) => s.kind === 'blade').map((s) => s.building);
+    expect(blades).toEqual(expect.arrayContaining(['saloon', 'chandlery', 'general_store']));
+    expect(signs.placed.some((s) => s.kind === 'painted')).toBe(true);
+    // Lit by the hour: full by day, dim away from the lamps at night.
+    const colors = signs.meshes[0]?.geometry.getAttribute('color');
+    signs.light(1, new Set());
+    const night = colors?.getX(0) ?? 1;
+    signs.light(0, new Set());
+    expect(colors?.getX(0)).toBeGreaterThan(night);
     signs.dispose();
     delete (globalThis as { document?: unknown }).document;
   });
