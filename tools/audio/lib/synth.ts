@@ -598,9 +598,9 @@ export function reverb(
 }
 
 // ---------------------------------------------------------------------------------------
-// Music v1: the tunes. Both are original (written for this game), so they carry the repo's
-// CC BY 4.0 license; the traditional-song motifs of plan 15 §2 wait for R1's check of
-// which melodies are public domain.
+// Music v1: the tunes. "Devils Island Air" is original (written for this game), so it carries
+// the repo's CC BY 4.0 license. The day cue is now a traditional song, "Red Iron Ore"
+// (tools/audio/lib/synth-songs.ts), which replaced the original "Chequamegon Waltz".
 
 /** Plays a melody with `voice` at `bpm`, from `startBeat`. Notes slur into each other a little. */
 export function renderMelody(
@@ -627,70 +627,6 @@ export function renderMelody(
   return beat;
 }
 
-/** "The Chequamegon Waltz": 3/4, in D with a mixolydian turn in the B part. */
-export const WALTZ = {
-  bpm: 104,
-  beatsPerBar: 3,
-  a1: [
-    ['D4', 1],
-    ['F#4', 1],
-    ['A4', 1],
-    ['B4', 2],
-    ['A4', 1],
-    ['F#4', 1],
-    ['A4', 1],
-    ['D5', 1],
-    ['E5', 2],
-    ['F#5', 1],
-    ['D5', 1],
-    ['B4', 1],
-    ['A4', 1],
-    ['F#4', 2],
-    ['E4', 1],
-    ['D4', 1],
-    ['E4', 1],
-    ['F#4', 1],
-    ['E4', 3],
-  ] as Note[],
-  a2End: [
-    ['E4', 1],
-    ['F#4', 1],
-    ['E4', 1],
-    ['D4', 3],
-  ] as Note[],
-  b1: [
-    ['A4', 1],
-    ['D5', 1],
-    ['E5', 1],
-    ['F#5', 2],
-    ['E5', 1],
-    ['D5', 1],
-    ['B4', 1],
-    ['A4', 1],
-    ['B4', 3],
-    ['G4', 1],
-    ['B4', 1],
-    ['D5', 1],
-    ['E5', 2],
-    ['D5', 1],
-    ['C5', 1],
-    ['B4', 1],
-    ['A4', 1],
-    ['A4', 3],
-  ] as Note[],
-  b2End: [
-    ['A4', 1],
-    ['F#4', 1],
-    ['E4', 1],
-    ['D4', 3],
-  ] as Note[],
-  /** One chord per bar: [bass, chord tones]. */
-  chordsA: ['D', 'G', 'D', 'A', 'Bm', 'D', 'G', 'A'],
-  chordsAEnd: ['A', 'D'],
-  chordsB: ['D', 'D', 'G', 'G', 'G', 'Em', 'C', 'A'],
-  chordsBEnd: ['A', 'D'],
-} as const;
-
 export const CHORDS: Record<string, { bass: string; tones: string[] }> = {
   D: { bass: 'D3', tones: ['A3', 'D4', 'F#4'] },
   G: { bass: 'G2', tones: ['B3', 'D4', 'G4'] },
@@ -699,40 +635,6 @@ export const CHORDS: Record<string, { bass: string; tones: string[] }> = {
   Em: { bass: 'E3', tones: ['B3', 'E4', 'G4'] },
   C: { bass: 'C3', tones: ['C4', 'E4', 'G4'] },
 };
-
-/** The waltz's bar-by-bar melody and chords, intro to final chord. */
-export function waltzForm(): { melody: Note[]; chords: string[]; introBars: number } {
-  const w = WALTZ;
-  const aFirst = w.a1;
-  const aSecond = [...w.a1.slice(0, -4), ...w.a2End];
-  const bFirst = w.b1;
-  const bSecond = [...w.b1.slice(0, -6), ...w.b2End];
-  const chordsA1 = [...w.chordsA];
-  const chordsA2 = [...w.chordsA.slice(0, 6), ...w.chordsAEnd];
-  const chordsB1 = [...w.chordsB];
-  const chordsB2 = [...w.chordsB.slice(0, 6), ...w.chordsBEnd];
-  const introBars = 2;
-  const melody: Note[] = [
-    ['R', introBars * w.beatsPerBar],
-    ...aFirst,
-    ...aSecond,
-    ...bFirst,
-    ...bSecond,
-    ...aFirst,
-    ...aSecond,
-  ];
-  const chords = [
-    'D',
-    'A',
-    ...chordsA1,
-    ...chordsA2,
-    ...chordsB1,
-    ...chordsB2,
-    ...chordsA1,
-    ...chordsA2,
-  ];
-  return { melody, chords, introBars };
-}
 
 /** "Devils Island Air": slow, E aeolian, for the night. Beats at 58 bpm. */
 export const AIR = {

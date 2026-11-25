@@ -87,7 +87,7 @@ const BED_BUS: Record<BedId, BusId> = {
 /**
  * The beds' levels. The birds are sparse calls over silence, so the build's RMS levelling
  * leaves them about 8 LU hotter than the other beds (−15.5 LUFS against about −23): the
- * loudness pass (plan 15 §25) brings them down to sit with the creek and the surf.
+ * loudness pass (plan 15 §26) brings them down to sit with the creek and the surf.
  */
 const BED_LEVEL: Record<BedId, number> = { birds: 0.45, creek: 0.8, surf: 0.9, cave: 0.9 };
 

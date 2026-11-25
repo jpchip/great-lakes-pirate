@@ -74,7 +74,7 @@
     "music.open-water.day": {
       "type": "audio",
       "url": "music/open-water-day.ogg",
-      "bytes": 1476207
+      "bytes": 1030254
     },
     "music.open-water.night": {
       "type": "audio",

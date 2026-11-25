@@ -27,26 +27,21 @@ import { fileURLToPath } from 'node:url';
 import { SAMPLE_RATE, type SoundHints } from './lib/audio.ts';
 import {
   AIR,
-  CHORDS,
-  WALTZ,
   airForm,
   fiddleDrone,
   fogBell,
   fogWhistle,
   foghorn,
   mixInto,
-  noteHz,
   peak,
-  pluckNote,
-  reedNote,
   renderMelody,
   reverb,
   seeded,
   SHIP_WHISTLES,
   shipWhistle,
-  waltzForm,
   whistleNote,
 } from './lib/synth.ts';
+import { RED_IRON_ORE, redIronOre } from './lib/synth-songs.ts';
 import { chartTheme, fogFade, stinger, STINGERS, type StingerName } from './lib/synth-chart.ts';
 import { millSaw, oreDump } from './lib/synth-harbor.ts';
 import {
@@ -300,54 +295,6 @@ function writeSound(
   console.log(`synth: ${category}/${hints.name} (${(samples.length / RATE).toFixed(1)} s)`);
 }
 
-function renderWaltz(): Float32Array {
-  const random = seeded(1900);
-  const { melody, chords } = waltzForm();
-  const beatS = 60 / WALTZ.bpm;
-  const totalBeats = melody.reduce((sum, [, b]) => sum + b, 0) + 3;
-  const out = new Float32Array(Math.round((totalBeats * beatS + 2) * RATE));
-  // Concertina melody.
-  renderMelody(
-    out,
-    melody,
-    WALTZ.bpm,
-    0,
-    RATE,
-    (hz, s) => reedNote(hz, s, RATE, random),
-    1,
-    random,
-  );
-  // Guitar: bass on the one, chord strums on two and three ("oom-pah-pah").
-  chords.forEach((name, bar) => {
-    const chord = CHORDS[name];
-    if (!chord) throw new Error(`chord ${name}`);
-    const barStart = bar * 3 * beatS;
-    const bassAt = Math.round((barStart + (random() - 0.5) * 0.01) * RATE);
-    mixInto(out, pluckNote(noteHz(chord.bass), 3 * beatS, RATE, random, 0.35), bassAt, 0.55);
-    for (const beat of [1, 2]) {
-      chord.tones.forEach((tone, k) => {
-        const at = Math.round(
-          (barStart + beat * beatS + k * 0.012 + (random() - 0.5) * 0.008) * RATE,
-        );
-        mixInto(out, pluckNote(noteHz(tone), beatS * 0.9, RATE, random, 0.6), at, 0.22);
-      });
-    }
-  });
-  // The last chord rings.
-  const end = chords.length * 3 * beatS;
-  const last = CHORDS['D'] as { bass: string; tones: string[] };
-  mixInto(out, pluckNote(noteHz(last.bass), 3, RATE, random, 0.35), Math.round(end * RATE), 0.5);
-  last.tones.forEach((tone, k) =>
-    mixInto(
-      out,
-      pluckNote(noteHz(tone), 3, RATE, random, 0.5),
-      Math.round((end + k * 0.03) * RATE),
-      0.25,
-    ),
-  );
-  return reverb(out, RATE, 0.22, 0.78);
-}
-
 function renderAir(): Float32Array {
   const random = seeded(1874);
   const notes = airForm();
@@ -401,13 +348,14 @@ function main(): void {
     {
       id: 'music.open-water.day',
       name: 'open-water-day',
-      description: 'Open-water music v1, day: "The Chequamegon Waltz" on concertina and guitar',
+      description:
+        'Open-water music by day: "Red Iron Ore" (traditional) on concertina, tin whistle and guitar',
       kind: 'oneshot',
       bus: 'music',
       bundles: ['music-open-water'],
     },
-    renderWaltz(),
-    'Original tune; synthesized free-reed concertina (additive), Karplus-Strong guitar, Freeverb-style reverb',
+    redIronOre(RATE),
+    `Traditional melody, public domain: ${RED_IRON_ORE.source}. Original arrangement; synthesized free-reed concertina (additive), tin whistle, fiddle drone, Karplus-Strong guitar, Freeverb-style reverb`,
   );
   writeSound(
     'music',

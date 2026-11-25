@@ -36,7 +36,7 @@ Define the soundscape and music:
 | Layer | Direction |
 |---|---|
 | **Music** | Period folk ensemble: **fiddle, concertina/accordion, acoustic guitar, tin whistle, upright piano (saloons), hand percussion**, sparse low strings or a drone for tension. Moody and modal on the water, lively in saloons, sparse and tense at night. |
-| **Song tradition (decided)** | Arrangements of **traditional Great Lakes and lumberjack songs** (public-domain melodies) as motifs, e.g., *"Red Iron Ore"* (an ore-boat song from this very trade), *"The Bigler"*, *"The Persian's Crew"*, *"The Shanty-Man's Life"*. Verify public-domain status and origins in R1 before use. |
+| **Song tradition (decided)** | Arrangements of **traditional Great Lakes and lumberjack songs** (public-domain melodies) as motifs, e.g., *"Red Iron Ore"* (an ore-boat song from this very trade), *"The Bigler"*, *"The Persian's Crew"*, *"The Shanty-Man's Life"*. All four are printed with their melodies in Franz Rickaby, *Ballads and Songs of the Shanty-Boy* (1926), public domain in the US and abroad (Rickaby died in 1925); arrange from that book, not from Lomax's 1938 recordings or Walton's *Windjammers* (2002), which are protected. Sources and the full shortlist: §25. |
 | **Ambience** | Naturalistic, slightly heightened (stylized clarity over realism) |
 | **SFX** | Punchy and readable: wood, rope, canvas, iron, steam, black powder |
 | **Voice (decided)** | **No spoken dialogue.** All dialog is text ([13 §5](13-ui-ux.md)). Guards and crews only get **short shouts and whistles** as gameplay alerts ("Hey!", a police whistle, grunts). |
@@ -273,7 +273,7 @@ All resolved.
 
 1. ~~**Captions for directional cues** (§5): the fog signals have no caption or arrow yet. They belong with the UI captions of plan 13 §9.~~ Done (§17).
 2. **Fog signal history:** which Apostles stations had signals in 1900, and their codes, need R1 sources; the data marks all three as assumptions.
-3. **Music:** the synthesized tunes are placeholders, and the *Red Iron Ore* motif waits for R1 to confirm which Great Lakes melodies are public domain (§2).
+3. ~~**Music:** the synthesized tunes are placeholders, and the *Red Iron Ore* motif waits for R1 to confirm which Great Lakes melodies are public domain (§2).~~ *Red Iron Ore* is the day cue now (§25); the night air is still a placeholder.
 4. **Storm music** is a later phase (§11); ~~harbor work sounds~~ came in Phase 4 (§17).
 
 ## 15. Phase 3 Piece J, Part 1: Ship Whistles (2026-10-31)
@@ -454,8 +454,8 @@ All resolved.
 ### Still to do
 
 1. **A listen in the game** (row I: "Listen by ear"): none of this has been heard by a person. The yard's level under the beats, the knock against the thud, and whether the forge and the cooperage read as what they are, are for the Phase 8 playtest (piece J).
-2. **Not built from §4.6:** the chart unrolling. ~~Notification chimes per priority~~: built in the polish pass (§25).
-3. ~~**The slipway (piece G):** a ship's launch and work on the ways have no sounds yet~~: built in the polish pass (§25).
+2. **Not built from §4.6:** the chart unrolling. ~~Notification chimes per priority~~: built in the polish pass (§26).
+3. ~~**The slipway (piece G):** a ship's launch and work on the ways have no sounds yet~~: built in the polish pass (§26).
 
 ## 22. Phase 9 Piece J: Stage 1 Audio (2026-11-19)
 
@@ -508,7 +508,7 @@ All resolved.
 ### Still to do
 
 1. **A listen in the game** (row N: "Listen by ear"): none of this has been heard by a person yet. Still to judge in the stage 2 playtest: whether the crack's pew reads as lake ice, how the groan sits against the wind, how often the gusts and chattering come, and whether the frozen night is too empty.
-2. **Not built:** a wind through bare rigging aboard a frozen-in ship, shore-ice ridges heaving, sled dogs, skates. ~~The ice grinding on a hull under way~~: built in the polish pass (§25).
+2. **Not built:** a wind through bare rigging aboard a frozen-in ship, shore-ice ridges heaving, sled dogs, skates. ~~The ice grinding on a hull under way~~: built in the polish pass (§26).
 
 ## 24. Phase 9 Piece Y: Islands Audio (2026-11-21)
 
@@ -528,9 +528,42 @@ All resolved.
 ### Still to do
 
 1. **A listen in the game** (row Y: "Listen by ear"): none of this has been heard by a person yet. Judge the birds and the creek against the forest bed, the wolves' and the bear's levels and their reach, the cave's drips and surge, the spade and the grapple, and the length of the ending air.
-2. **Not built:** a separate wolf growl. ~~The diving suit's sounds~~: its descent is built in Phase 10 ([11 §19](11-exploration-islands-secrets.md)). ~~A bear's crash off through the brush~~: built in the polish pass (§25). ~~Stopping the ending air when a new run starts~~: checked 2026-11-24, it can't carry over. The end screen's only way on is the main menu, which reloads the page (`onEndMenu` in `ui/mount.tsx`), and the reload stops every sound.
+2. **Not built:** a separate wolf growl. ~~The diving suit's sounds~~: its descent is built in Phase 10 ([11 §19](11-exploration-islands-secrets.md)). ~~A bear's crash off through the brush~~: built in the polish pass (§26). ~~Stopping the ending air when a new run starts~~: checked 2026-11-24, it can't carry over. The end screen's only way on is the main menu, which reloads the page (`onEndMenu` in `ui/mount.tsx`), and the reload stops every sound.
 
-## 25. Polish: The Last Gaps and a Loudness Pass (2026-11-24)
+## 25. Great Lakes Song Motifs: Red Iron Ore (2026-11-24)
+
+**Scope** (§2 "Song tradition", §6.1 "Open water (day)"): find which Great Lakes songs are public domain and where their melodies are printed, then put the first one, *Red Iron Ore*, into the game.
+
+**The sources.** Every melody is arranged from a book printed before 1931, never from a recording or a modern songbook:
+
+| Song | Printed melody | Fits |
+|---|---|---|
+| *Red Iron Ore* (Laws D9) | Rickaby 1926, no. 45, p. 161 | Open water by day (built here) |
+| *The Bigler's Crew* (Laws D8) | Rickaby no. 47, p. 168; Colcord, *Roll and Go* (1924), p. 109 | Chart travel |
+| *The Persian's Crew* (Laws D4) | Rickaby no. 46, p. 164 (two tunes); Colcord p. 111 (a third) | Night, fog, a wreck, the death ending |
+| *The Shanty-Man's Life* | Rickaby no. 9, p. 43 | Port by day in the lumber towns |
+| *The Little Brown Bulls* | Rickaby no. 13, p. 65 (a variant of *Red Iron Ore*'s tune) | The saloon |
+| *Michigan-I-O* | Rickaby no. 8, p. 41 | The saloon at night, winter |
+| *The Jam on Gerry's Rocks* | Rickaby no. 2, p. 11 | A death or gallows stinger |
+| *Lost on the Lady Elgin* | Henry Clay Work's sheet music (1861) | Saloon piano late at night, an ending |
+| *En roulant ma boule* | Gagnon, *Chansons populaires du Canada* (1865) | Rowing ashore, La Pointe |
+
+Rickaby (Harvard University Press, 1926) is on the Internet Archive (`31761034948356`) and IMSLP. Protected, though the songs are not: Alan Lomax's 1938 Michigan recordings at the Library of Congress (pre-1972 sound recordings), Walton and Grimm's *Windjammers* (2002), *Pinery Boys* (2017), Fowke (1970), Beck (1941 on), and all modern recordings and arrangements. Colcord died in 1960, so her editing is protected in life-plus-70 countries until 2030; Rickaby prints the same two songs, so arrange from him.
+
+| Part | Where | What it does |
+|---|---|---|
+| The tune | `tools/audio/lib/synth-songs.ts` (`RED_IRON_ORE`) | Rickaby's melody note for note: 6/8, E aeolian, a one-eighth pickup and ten bars with the "Derry down" refrain. The book's fermatas are kept in time except the last. |
+| The arrangement | `synth-songs.ts` (`redIronOreForm`, `redIronOre`) | At a dotted quarter of 68: two bars of guitar, the verse on concertina, again on tin whistle an octave up over an E and B fiddle drone, and once more on concertina, over a 6/8 boom-chick in E minor (Em, D, G, C). 63.7 s. |
+| The cue | `music/open-water-day` | Replaces "The Chequamegon Waltz"; the music director and the cue id are unchanged. |
+
+**Calls made here.** The waltz is removed rather than kept beside the song, since the day state plays one cue; it is in git history. The chords are a plain guess at period accompaniment, not from the book, which prints the tune alone.
+
+### Still to do
+
+1. **A listen:** nobody has heard the arrangement yet. Judge the tempo, the whistle's octave and the drone's level.
+2. **The other songs** in the table above, one cue at a time.
+
+## 26. Polish: The Last Gaps and a Loudness Pass (2026-11-24)
 
 **Scope:** what §21, §23 and §24 left as "not built" that the 1.0 audit kept in 1.0 ([00 §7.2](00-master-plan.md)): notification chimes per priority, the ice grinding on a hull, a bear crashing off, and the slipway; plus the measured half of the mix and loudness pass (§11 Phase 10).
 
@@ -553,8 +586,9 @@ All resolved.
 1. **The by-ear half of the pass** (§11 Phase 10: "Mix polish, loudness pass, captions review"): the meter can't judge balance in play. Listen to a run end to end for anything that pokes out or vanishes: the grind under the wind and the wash, the alarm against the stingers, the birds at their new level, and the launch.
 
 ## Changelog
-- v2.1: The diving suit's descent (`sfx.salvage.dive`, Phase 10).
-- v2.0: The polish pass (§25): notification chimes by priority, the ice grinding on a hull, a bear crashing off, the slipway's work and launch, and a measured loudness pass (the island birds brought down 7 dB).
+- v2.2: The diving suit's descent (`sfx.salvage.dive`, Phase 10).
+- v2.1: The polish pass (§26): notification chimes by priority, the ice grinding on a hull, a bear crashing off, the slipway's work and launch, and a measured loudness pass (the island birds brought down 7 dB).
+- v2.0: Great Lakes song motifs (§25): the public-domain sources for the songs of §2, and *Red Iron Ore* from Rickaby (1926) as the open-water day cue in place of the waltz.
 - v1.9: The ending air can't play into a new run (§24): the way from the end screen reloads the page.
 - v1.8: Phase 9 piece Y built (§24): the islands' birds, creek and surf by tier and season, the woodpecker, a sea cave's hush, drips and surge, the deer, bear and wolves, the grapple, a dig and the ending air.
 - v1.7: Phase 9 piece N built (§23): thin ice cracking, groaning and giving way and the haul out, footsteps on ice and squeaking snow, the sled's runners and load, gusts, a shivering breath and chattering teeth as warmth drops, the winter wind, a frozen harbor's still night with the ice booming far off, and snowfall silent. Decoded audio 6.59 MB of 8 MB.
