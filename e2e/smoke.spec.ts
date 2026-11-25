@@ -235,7 +235,7 @@ test('loads the sailing and world sounds and unlocks audio on the first key pres
   const body = page.locator('body');
   await page.goto('/?renderer=null&play');
   await expect(body).toHaveAttribute('data-mode', 'sailing');
-  // 207 before the polish pass's hull grind, bear crash and launch (plan 15 §25).
+  // 207 before the polish pass's hull grind, bear crash and launch (plan 15 §26).
   await expect(body).toHaveAttribute('data-audio-bank', '210');
   await page.keyboard.press('KeyW');
   await expect(body).toHaveAttribute('data-audio', 'running');
