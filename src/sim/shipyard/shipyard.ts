@@ -1,4 +1,5 @@
 import type { SailShipRecord } from '../../../data/schemas/ships';
+import type { CosmeticKind } from '../../../data/schemas/cosmetics';
 import type { Upgrade, UpgradeCategory, UpgradeSource } from '../../../data/schemas/upgrades';
 import type { EconomyDefs } from '../economy/defs';
 import { holdUsed, isClean, reduceStack, type CargoStack, type Hold } from '../economy/hold';
@@ -28,6 +29,11 @@ export interface ShipState {
   upgrades: string[];
   /** Her guns in their mounts (plan 07 §10; Phase 6 piece A). */
   weapons: MountedWeapon[];
+  /**
+   * Her paint, canvas and pennant (plan 10 §7): cosmetic option ids by kind, absent for
+   * the class's own colors. Cosmetic only, so the law never hears of it.
+   */
+  cosmetics?: Partial<Record<CosmeticKind, string>> | undefined;
 }
 
 /** What every captain carries aboard (plan 07 §14.5): small arms, and no ship's guns. */
@@ -335,6 +341,10 @@ export function buyHull(
   ship.hull01 = 1;
   ship.rigging01 = 1;
   ship.upgrades = [...q.tradeIn.moving];
+  // Paint and canvas stay with the old hull; the pennant is yours, and comes across.
+  const pennant = ship.cosmetics?.pennant;
+  if (pennant) ship.cosmetics = { pennant };
+  else delete ship.cosmetics;
   // Guns move with her where the new hull has a place for them (piece E prices it).
   ship.weapons = fittingWeapons(gameCombat(), classId, ship.weapons);
   return {
@@ -388,6 +398,10 @@ export function fitRefusal(
   return undefined;
 }
 
+/** Whether a port's yard or chandler carries it (the diving suit: Duluth and Superior only). */
+export const soldAt = (upgrade: Pick<Upgrade, 'ports'>, port: string): boolean =>
+  !upgrade.ports || upgrade.ports.includes(port);
+
 /** Fits an upgrade (plan 10 §6): a yard takes its install hours, a chandler fits it on the spot. */
 export function installUpgrade(
   defs: EconomyDefs,
@@ -401,6 +415,7 @@ export function installUpgrade(
 ): ShipyardResult<UpgradeEvent> {
   const u = upgradeDef(upgradeId);
   if (!u) return { ok: false, reason: 'unknown' };
+  if (!soldAt(u, port)) return { ok: false, reason: 'notHere' };
   const price = upgradePriceCents(defs, port, u, discount);
   const refusal = fitRefusal(owner, ship, u, source, price, fameTier);
   if (refusal) return { ok: false, reason: refusal };

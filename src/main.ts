@@ -67,8 +67,9 @@ import { slipwayHead, withSlipway } from './sim/hideouts/slipway';
 import { CELL_M } from './sim/hideouts/structures';
 import { LIE_REFUSALS, type LieUntil } from './sim/hideouts/lie-at-anchor';
 import { attachShipyard } from './gameplay/shipyard';
-import { BASE_INSTRUMENTS, type Instruments } from './sim/shipyard/fit';
+import { BASE_INSTRUMENTS, hasDivingSuit, type Instruments } from './sim/shipyard/fit';
 import { defaultShipState } from './sim/shipyard/shipyard';
+import { liveryOf } from './sim/shipyard/cosmetics';
 import { DEFAULT_SHIP_CAMERA } from './gameplay/camera/ship-camera';
 import { attachTraffic, HAIL_RANGE_M, LOOK_RANGE_M, type TrafficZone } from './gameplay/traffic';
 import { createContacts, type Contact } from './sim/chart/traffic';
@@ -128,7 +129,7 @@ import { createTestScene } from './render/test-scene';
 import { createSailingState } from './sim/sailing/controller';
 import type { ZoneFrame } from './core/coords';
 import { createHazardState, mooringBerths, type MooringBerth } from './sim/sailing/hazards';
-import { PLAYER_SHIP_IDS, sailShipRecord } from './sim/sailing/ships';
+import { PLAYER_SHIP_IDS, sailShipRecord, T1_SCHOONER_ID } from './sim/sailing/ships';
 import { httpBytes, loadIslandGround, loadZoneTerrain, type LoadedZone } from './sim/terrain/load';
 import type { GridField } from './sim/terrain/grid-field';
 import {
@@ -781,6 +782,8 @@ async function boot(): Promise<void> {
     hazards,
     model: 'schooner',
     playerControlled: true,
+    // Her paint, canvas and pennant (plan 10 §7); the shipyard repaints her below.
+    livery: liveryOf(state.player.ship),
   });
   // The lantern (Phase 5 piece B): L lights or douses her running lights, burning lamp oil.
   // `?lantern=on` (or `off`) sets it for checks, with no oil used.
@@ -827,6 +830,12 @@ async function boot(): Promise<void> {
     // the start and on every hull or upgrade, so the Deckhand's hands survive a new ship.
     adjustClass: (cls) => withSailingPerks(cls, state.player.captain),
     onHullChanged: () => {
+      playerShip.livery = liveryOf(ctx.state.player.ship ?? defaultShipState());
+      ctx.world.remove(playerShip);
+      ctx.world.add(playerShip);
+    },
+    onLiveryChanged: (livery) => {
+      playerShip.livery = livery;
       ctx.world.remove(playerShip);
       ctx.world.add(playerShip);
     },
@@ -1386,7 +1395,9 @@ async function boot(): Promise<void> {
       acceptContract: (id) => portsRef.current?.actions.acceptContract(id),
       abandonContract: (id) => portsRef.current?.actions.abandonContract(id),
       stealContract: (id) => portsRef.current?.actions.stealContract(id),
-      buyHull: (classId) => portsRef.current?.actions.buyHull(classId),
+      buyHull: (classId, name) => portsRef.current?.actions.buyHull(classId, name),
+      paint: (option) => portsRef.current?.actions.paint(option),
+      rename: (name) => portsRef.current?.actions.rename(name),
       fit: (upgrade, place) => portsRef.current?.actions.fit(upgrade, place),
       unfit: (upgrade, place) => portsRef.current?.actions.unfit(upgrade, place),
       repair: (place) => portsRef.current?.actions.repair(place),
@@ -1439,6 +1450,8 @@ async function boot(): Promise<void> {
       stashThing: (id, qty) => stashRef.current?.actions.stashThing(id, qty),
       slipwayRepair: () => stashRef.current?.actions.slipwayRepair(),
       slipwayInstall: (id) => stashRef.current?.actions.slipwayInstall(id),
+      slipwayPaint: (id) => stashRef.current?.actions.slipwayPaint(id),
+      slipwayRename: (name) => stashRef.current?.actions.slipwayRename(name),
       buildShip: () => stashRef.current?.actions.buildShip(),
       toYard: () => stashRef.current?.actions.toYard(),
       close: () => stashRef.current?.actions.close(),
@@ -2644,6 +2657,9 @@ async function boot(): Promise<void> {
     notice: (text) => showNotice(text),
     // The Lucerne's strongbox, once the lead knows where in her to hook (piece T).
     strongbox: (wreck) => legends.wreckHooked(wreck),
+    // The hard-hat suit (Phase 10): a T2's crew pumps for long dives, a T1 captain alone.
+    suit: () => hasDivingSuit(state.player.ship?.upgrades),
+    crewed: () => (sailShipRecord(state.player.ship?.classId ?? T1_SCHOONER_ID).tier ?? 1) >= 2,
   });
   salvageRef.current = salvage;
   if (import.meta.env.DEV || params.has('debug')) {
@@ -2699,6 +2715,8 @@ async function boot(): Promise<void> {
         return w.id;
       },
       look: () => salvage.look(),
+      /** One dive at once (the suit must be aboard); `chance` overrides each trip's odds. */
+      dive: (chance?: number) => salvage.diveNow(chance),
       /** Depth at zone meters, and the geo of a zone point / zone point of a geo (placing wrecks). */
       depthAt: (x: number, z: number) => ctx.terrain?.depthAt(x, z),
       geoAt: (x: number, z: number) => worldGeo(zoneToChart({ x, z }, zoneFrame(zone, zoneData))),

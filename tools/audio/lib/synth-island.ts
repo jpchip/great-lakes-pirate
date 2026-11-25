@@ -450,6 +450,53 @@ export function grappleHaul(rate: number, seed = 9991): Float32Array {
   return out;
 }
 
+/**
+ * Going down in the hard-hat suit (Phase 10; plan 15 §2's "pump hiss, bubbles, creaking
+ * helmet"), 6 s: the faceplate screwed shut with a clank, then inside the helmet: the deck
+ * pump's air hissing in at each stroke, a slow breath, bubbles rising off the exhaust valve,
+ * the copper creaking, everything low-passed as the water closes over.
+ */
+export function diveDown(rate: number, seed = 9993): Float32Array {
+  const random = seeded(seed);
+  const seconds = 6;
+  const n = secs(seconds, rate);
+  const out = new Float32Array(n);
+  // The faceplate: a metal clank and a short ring.
+  const ring = multiply(
+    glide(secs(0.6, rate), () => 1180, rate),
+    pluck(secs(0.6, rate), rate, 0.001, 0.12),
+  );
+  mixInto(out, bandpass(whiteNoise(secs(0.06, rate), random), 2400, 2, rate), 0, 0.7);
+  mixInto(out, ring, 0, 0.18);
+  // The pump's strokes, about 50 a minute: air hissing in down the hose.
+  const hiss = bandpass(whiteNoise(n, random), 900, 0.8, rate);
+  for (let i = 0; i < n; i++) {
+    const t = i / rate;
+    if (t < 0.8) continue;
+    const stroke = Math.pow(Math.max(0, Math.sin(TAU * 0.85 * (t - 0.8))), 3);
+    const env = Math.min(1, (t - 0.8) / 0.6) * Math.min(1, (seconds - t) / 0.5);
+    out[i] = (out[i] as number) + (hiss[i] as number) * 0.35 * stroke * env;
+  }
+  // Bubbles off the exhaust: short rising chirps in bursts after each breath out.
+  for (let k = 0; k < 26; k++) {
+    const at = 1.2 + random() * (seconds - 1.8);
+    const len = 0.03 + random() * 0.05;
+    const f0 = 380 + random() * 500;
+    const bubble = multiply(
+      glide(secs(len, rate), (t) => f0 * (1 + 3 * (t / len)), rate),
+      pluck(secs(len, rate), rate, 0.002, len / 3),
+    );
+    mixInto(out, bubble, secs(at, rate), 0.22 + random() * 0.15);
+  }
+  // The helmet creaking as the weight comes on it.
+  const creak = bandpass(whiteNoise(secs(0.5, rate), random), 260, 8, rate);
+  for (const at of [2.1, 4.3]) mixInto(out, creak, secs(at, rate), 0.35);
+  // The water closing over: everything muffled after the first second.
+  const under = lowpass(out, 1400, rate);
+  for (let i = secs(1, rate); i < n; i++) out[i] = under[i] as number;
+  return out;
+}
+
 /** A spade going into the ground (0.9 s): the bite, the crumb of soil, a thunk of the blade. */
 export function spade(variant: number, rate: number): Float32Array {
   const random = seeded(9995 + variant);

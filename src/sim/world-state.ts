@@ -1,3 +1,4 @@
+import { COSMETIC_KINDS } from '../../data/schemas/cosmetics';
 import { wrecksSchema } from './wrecks';
 import { wreckingStateSchema } from './wrecking';
 import { pokerStateSchema } from './poker/state';
@@ -442,6 +443,8 @@ export const shipStateSchema = z.object({
    * A): a bow swivel, broadside cannon, small arms. A 0.5.0 run carries small arms only.
    */
   weapons: z.array(z.object({ weapon: z.string(), mount: z.enum(MOUNTS) })),
+  /** Her paint, canvas and pennant (plan 10 §7; Phase 10): absent, the class's own. */
+  cosmetics: z.partialRecord(z.enum(COSMETIC_KINDS), z.string()).optional(),
 });
 
 /** Loose powder charges out of opened kegs (plan 07 §10 `player.ammo`; save v8). */

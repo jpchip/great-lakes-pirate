@@ -48,6 +48,7 @@ export const ISLAND_SOUND = {
   wolfHowls: ['voice.wolf.howl-1', 'voice.wolf.howl-2'],
   grappleCast: 'sfx.salvage.grapple-cast',
   grappleHaul: 'sfx.salvage.grapple-haul',
+  dive: 'sfx.salvage.dive',
   spades: ['sfx.dig.spade-1', 'sfx.dig.spade-2'],
 } as const;
 
@@ -223,6 +224,12 @@ export class IslandSounds {
   }
 
   /** The line coming up taut and the wreck's cargo or papers hauled in. */
+  /** Down in the hard-hat suit (Phase 10): the faceplate, the pump, the bubbles. */
+  dive(): void {
+    this.one(ISLAND_SOUND.dive, 0.8, 'sfx', undefined);
+    this.levels.last = ISLAND_SOUND.dive;
+  }
+
   grappleHaul(): void {
     this.one(ISLAND_SOUND.grappleHaul, 0.8, 'sfx', undefined);
     this.levels.last = ISLAND_SOUND.grappleHaul;

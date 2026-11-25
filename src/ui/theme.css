@@ -2079,6 +2079,64 @@ body[data-mode='chart'] .chart-layer {
   margin: 4px 0;
 }
 
+.yard-looks {
+  margin-top: 16px;
+}
+
+.yard-name,
+.yard-look-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  margin: 4px 0;
+  font-size: 14px;
+}
+
+.yard-name {
+  justify-content: flex-start;
+  margin-bottom: 8px;
+}
+
+.yard-name input,
+.yard-look-row input {
+  width: 14em;
+  padding: 1px 6px;
+  font: 14px var(--serif);
+  color: var(--ink);
+  background: rgba(255, 255, 255, 0.4);
+  border: 1px solid var(--paper-dark);
+  border-radius: 3px;
+}
+
+.yard-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+
+.yard-swatch {
+  width: 22px;
+  height: 18px;
+  padding: 0;
+  border: 1px solid var(--ink);
+  border-radius: 2px;
+  cursor: pointer;
+}
+
+.yard-swatch.current {
+  outline: 2px solid var(--brass);
+  outline-offset: 1px;
+  cursor: default;
+}
+
+.yard-swatch:disabled:not(.current) {
+  opacity: 0.45;
+  cursor: default;
+}
+
 .yard-bar {
   display: grid;
   grid-template-columns: 40px 1fr 40px;

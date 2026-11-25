@@ -18,7 +18,7 @@ import { heightAt as seaHeightAt, seaScaleAt, type Sea } from '../sim/weather/wa
 import { CameraRig } from './camera-rig';
 import type { GameRenderer } from './renderer';
 import { createSchooner, styleSchooner, type SchoonerModel } from './ships/schooner';
-import { schoonerLines, type SchoonerLines } from './ships/schooner-lines';
+import { liveried, schoonerLines, type SchoonerLines } from './ships/schooner-lines';
 import type { NpcView } from './ships/npc-view';
 import { schoonerLamps } from './ships/schooner-lamps';
 import { createRunningLights, type RunningLights } from './ships/running-lights';
@@ -445,7 +445,7 @@ export async function createTestScene(
         .catch((err: unknown) => console.error('NPC ships unavailable', err));
       return;
     }
-    const lines = schoonerLines(e.sailing?.cls.id);
+    const lines = liveried(schoonerLines(e.sailing?.cls.id), e.livery);
     const model = createSchooner(lines);
     styleSchooner(model, lighting, outlines);
     inks.set(e, inkByDistance(model.group));
