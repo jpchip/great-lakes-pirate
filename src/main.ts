@@ -5415,6 +5415,8 @@ async function boot(): Promise<void> {
             markers: r.markers.length,
             thinnestCm: thinnestOnRoad(r, ice),
             open: roadOpen(r, ice),
+            marked: gameIce.roadOpen(),
+            channelCm: gameIce.roadIceCm(),
           }
         );
       },

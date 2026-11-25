@@ -26,11 +26,12 @@ interface Hooks {
     land(): Promise<string | undefined>;
     interact(): void;
     state(): { active: boolean; prompt: string | undefined; swimming: boolean };
+    save(): Promise<void>;
   };
   __glpIce: { skipTo(iso: string): string };
   __glpCold: {
     state(): ColdState;
-    road(): { open: boolean; lengthM: number; markers: number } | undefined;
+    road(): { open: boolean; marked: boolean; lengthM: number; markers: number } | undefined;
     toRoad(): Promise<string | undefined>;
     toShip(side?: number): void;
     walk(t: number, offM?: number): boolean;
@@ -61,6 +62,7 @@ test('the ice road: a sled of the hold to La Pointe, tracks, thin ice and the co
   await hooks(page, (w) => w.__glpIce.skipTo('1901-02-05'));
   const road = await hooks(page, (w) => w.__glpCold.road());
   expect(road?.open).toBe(true);
+  expect(road?.marked).toBe(true);
   expect(road?.markers).toBeGreaterThan(5);
 
   await hooks(page, (w) => void w.__glpFoot.land());
@@ -117,5 +119,37 @@ test('the ice road: a sled of the hold to La Pointe, tracks, thin ice and the co
   await hooks(page, (w) => w.__glpCold.warmth(0, 1));
   await expect(page.getByTestId('foot-warmth')).toBeVisible();
   await expect.poll(() => hooks(page, (w) => w.__glpCold.health())).toBeLessThan(health);
+  expect(errors).toEqual([]);
+});
+
+test('a reload out on the ice wakes you on the ice, not in the water off the dock', async ({
+  page,
+}) => {
+  test.setTimeout(180_000);
+  const errors: string[] = [];
+  page.on('pageerror', (e) => errors.push(e.message));
+  await page.goto('/?renderer=null&debug&play&newrun=deckhand');
+  await page.waitForFunction(() => '__glpFoot' in window && '__glpCold' in window);
+  await expect
+    .poll(() => hooks(page, (w) => w.__glpFoot.dock('bayfield_city')), { timeout: 60_000 })
+    .toBe(true);
+  await hooks(page, (w) => w.__glpIce.skipTo('1901-02-05'));
+  expect((await hooks(page, (w) => w.__glpCold.road()))?.marked).toBe(true);
+  await hooks(page, (w) => void w.__glpFoot.land());
+  await expect.poll(() => hooks(page, (w) => w.__glpFoot.state().active)).toBe(true);
+  expect(await hooks(page, (w) => w.__glpCold.toRoad())).toBeUndefined();
+  await expect.poll(async () => (await cold(page)).onIce).toBe(true);
+  await page.evaluate(() => (window as unknown as Hooks).__glpCold.walk(0.3));
+  await page.waitForTimeout(300);
+  await hooks(page, (w) => w.__glpFoot.save());
+
+  // Back to the run as Continue finds it (without the new-run flag the first load had).
+  await page.goto('/?renderer=null&debug&play');
+  await page.waitForFunction(() => '__glpFoot' in window && '__glpCold' in window);
+  await expect(page.locator('body')).toHaveAttribute('data-start', 'ashore');
+  await expect.poll(() => hooks(page, (w) => w.__glpFoot.state().active)).toBe(true);
+  await expect.poll(async () => (await cold(page)).onIce, { timeout: 30_000 }).toBe(true);
+  expect(await hooks(page, (w) => w.__glpFoot.state().swimming)).toBe(false);
+  expect((await cold(page)).road).toBeDefined();
   expect(errors).toEqual([]);
 });
