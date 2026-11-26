@@ -817,6 +817,18 @@
           }
         ]
       },
+      "ambition.walked_the_ice_road": {
+        "fame": 3,
+        "weight": 2,
+        "feat": true,
+        "plain": [
+          {
+            "headline": "OVER THE ICE TO LA POINTE",
+            "deck": "{WHO} Walks the Channel Road",
+            "body": "With the boughs set out across the channel and the ice called good, {who} walked the road between Bayfield and La Pointe on foot. The fishermen say it is the first crossing of the season worth a mention."
+          }
+        ]
+      },
       "ambition.two_hideouts": {
         "fame": 3,
         "weight": 1,

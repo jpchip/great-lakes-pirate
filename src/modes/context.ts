@@ -390,6 +390,8 @@ export interface GameEvents {
   IceRoadOpened: { port: string };
   /** The ice road closed: the channel ice gone rotten or thin under it. */
   IceRoadClosed: { port: string };
+  /** The ice road walked on foot from one end to the other: the port you came to. */
+  IceRoadCrossed: { from: string; to: string };
   FirstBoatIn: { port: string; you: boolean; ship: string };
   IceStopped: { shipId: string | undefined; thicknessCm: number };
   IceGrinding: { shipId: string | undefined; damage: number };

@@ -94,3 +94,41 @@ export function unloadSled(s: Sled, hold: CargoStack[]): number {
   s.load = [];
   return moved;
 }
+
+/**
+ * Moves `qty` CU of one lot between a hold and the sled (the picker): out of `from[index]`
+ * into a like lot in `to` (same good, both clean or the same hot lot's copy), the price paid
+ * split by share. Contract cargo stays put. Returns the CU moved (clamped to the lot and,
+ * onto the sled, to her room).
+ */
+export function moveLot(
+  from: CargoStack[],
+  to: CargoStack[],
+  index: number,
+  qty: number,
+  room = Infinity,
+): number {
+  const lot = from[index];
+  if (!lot || lot.contract || !Number.isInteger(qty) || qty <= 0) return 0;
+  const take = Math.min(qty, lot.qty, Math.max(0, room));
+  if (take <= 0) return 0;
+  const paid =
+    lot.paidCents !== undefined ? Math.round((lot.paidCents * take) / lot.qty) : undefined;
+  const like = lot.hot ? undefined : to.find((h) => h.good === lot.good && !h.contract && !h.hot);
+  if (like) {
+    like.qty += take;
+    if (like.paidCents !== undefined && paid !== undefined) like.paidCents += paid;
+    else delete like.paidCents;
+  } else {
+    to.push({
+      good: lot.good,
+      qty: take,
+      ...(lot.hot ? { hot: { ...lot.hot } } : {}),
+      ...(paid !== undefined ? { paidCents: paid } : {}),
+    });
+  }
+  lot.qty -= take;
+  if (paid !== undefined && lot.paidCents !== undefined) lot.paidCents -= paid;
+  if (lot.qty <= 0) from.splice(index, 1);
+  return take;
+}

@@ -21,7 +21,7 @@ import {
   type PortTab,
 } from '../ui/port/model';
 import type { PortActions } from '../ui/port/PortScreen';
-import type { GameEconomy } from './economy';
+import { carried, type Carrier, type GameEconomy } from './economy';
 import { contractsOf, type GameContracts } from './contracts';
 import { cargoName, companyName, type AcceptRefusal } from '../sim/economy/contracts';
 import type { ShipHazards } from './hazards';
@@ -137,6 +137,11 @@ export interface PortControlOptions {
         layUp(port: string): string | undefined;
         /** The ice road's word at its two ports in winter (piece M). */
         iceRoad?(port: string): string | undefined;
+        /**
+         * At an ice road port on foot (piece M): the hand sled, when it lies at that end of
+         * the road (`carrier`), or none. Undefined at any other port.
+         */
+        sledAt?(port: string): { carrier: Carrier | undefined } | undefined;
       }
     | undefined;
   /** "Cast off" on the port screen: press F at the helm for the next tick. */
@@ -234,15 +239,34 @@ export function attachPorts(opts: PortControlOptions): PortControl {
     return { defs: opts.contracts.defs, state: contracts, standing: captain.standing };
   };
 
+  /**
+   * Walked over the ice to a road port she isn't at (piece M): the market trades in and out
+   * of the hand sled lying at the road's end, or nothing, not the hold far off across the
+   * ice. Undefined anywhere else.
+   */
+  const overTheIce = (port: string): { carrier: Carrier | undefined } | undefined =>
+    shop && port !== dockedPort ? opts.winter?.sledAt?.(port) : undefined;
+
   const snapshot = (port: string): PortSnapshot => {
     const player = ctx.state.player;
+    const away = overTheIce(port);
+    const sled = away?.carrier;
+    const awayNote = away
+      ? sled
+        ? `Trading from the hand sled at the road's end: ${sled.cargo.reduce((n, l) => n + l.qty, 0)} of ${sled.capacity} CU loaded.`
+        : "She's not here: bring the hand sled across the ice to carry what you buy."
+      : undefined;
     const snap = portSnapshot({
       defs: economy.defs,
       markets: ctx.state.markets,
       knowledge: ctx.state.knowledge.prices,
-      trader: player,
+      trader: away
+        ? Object.assign(carried(player, sled ?? { cargo: [], capacity: 0 }), {
+            stores: player.stores,
+          })
+        : player,
       fameTier: fameTier(gameLaw(), ctx.state.fame.value),
-      capacity: economy.capacity,
+      capacity: away ? (sled?.capacity ?? 0) : economy.capacity,
       load01: hazards.state.cargo01,
       cargoSpeedLoss: hazards.cls.rules.cargoSpeedLoss,
       port,
@@ -258,7 +282,7 @@ export function attachPorts(opts: PortControlOptions): PortControl {
         const c = contractSources();
         return c && { ...c, board: opts.contracts?.board(port) ?? [] };
       })(),
-      notices,
+      notices: awayNote ? [awayNote, ...notices] : notices,
       ship: opts.shipyard && {
         state: (opts.shipyard.sync(), opts.shipyard.ship),
         name: player.captain.shipName,
@@ -465,8 +489,22 @@ export function attachPorts(opts: PortControlOptions): PortControl {
         ? opts.law?.restricted(port, good)
         : opts.feuds?.sellTerms(port, good)?.refused;
     if (restricted) return restricted;
-    const r = side === 'buy' ? economy.buy(port, good, qty) : economy.sell(port, good, qty);
-    if (!r.ok) return TRADE_REFUSALS[r.reason];
+    const away = overTheIce(port);
+    if (away && !away.carrier) {
+      return side === 'buy'
+        ? 'Nothing to carry it in: bring the hand sled across the ice.'
+        : "Your cargo's aboard her, not here.";
+    }
+    const carrier = away?.carrier;
+    const r =
+      side === 'buy'
+        ? economy.buy(port, good, qty, carrier)
+        : economy.sell(port, good, qty, carrier);
+    if (!r.ok) {
+      if (carrier && r.reason === 'noRoom') return 'There is no room on the sled.';
+      if (carrier && r.reason === 'noCargo') return "You haven't that much on the sled.";
+      return TRADE_REFUSALS[r.reason];
+    }
     note(port);
     refresh();
     return undefined;
@@ -543,6 +581,8 @@ export function attachPorts(opts: PortControlOptions): PortControl {
       offer(index) {
         const port = openPort;
         if (!port) return 'The market is closed.';
+        // The hold's lots are aboard her, not at this end of the ice road.
+        if (overTheIce(port)) return "Your cargo's aboard her, not here.";
         const r = economy.offer(port, index);
         if (r.ok && r.outcome === 'sold') note(port);
         refresh();

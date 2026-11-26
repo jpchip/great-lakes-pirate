@@ -135,6 +135,15 @@
       "logbook": "Came in through a November gale with the storm signal flying."
     },
     {
+      "id": "ambition.walked_the_ice_road",
+      "category": "seamanship",
+      "name": "Over the ice road",
+      "text": "Walk the marked ice road across the channel, Bayfield to La Pointe or back",
+      "goal": { "kind": "counter", "counter": "iceRoadCrossings", "target": 1 },
+      "reward": { "cents": 2500, "fame": 2 },
+      "logbook": "Walked the ice road across the channel, boughs on either hand and the lake gone still under foot."
+    },
+    {
       "id": "ambition.two_hideouts",
       "category": "builder",
       "name": "Two hideouts",

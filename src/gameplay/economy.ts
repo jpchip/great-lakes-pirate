@@ -1,9 +1,9 @@
 import { WORLD_TICK_GAME_SECONDS } from '../core/time';
 import { cargoCapacity, gameEconomy, type EconomyDefs } from '../sim/economy/defs';
-import { holdLoad01 } from '../sim/economy/hold';
+import { holdLoad01, type Hold } from '../sim/economy/hold';
 import { lakeIceFor } from '../sim/ice/ice';
 import { shockMarket, tickMarkets, unitPrices, quote, type TradeSide } from '../sim/economy/market';
-import { buy, maxBuyable, sell, type TradeResult } from '../sim/economy/trade';
+import { buy, maxBuyable, sell, type Trader, type TradeResult } from '../sim/economy/trade';
 import type { GameContext } from '../modes/context';
 import type { ShipHazards } from './hazards';
 import { makeHot, offerLot, type OfferResult } from '../sim/economy/contraband';
@@ -15,14 +15,39 @@ import { freshContrabandState } from '../sim/economy/smuggler';
  * `TradeCompleted`, and the hold's load sets the player ship's draft and speed. The port
  * and trade screens (piece B) call these; until then the dev hook does.
  */
+/** Something other than the hold to trade in and out of: the hand sled, on foot. */
+export interface Carrier {
+  cargo: Hold;
+  /** CU. */
+  capacity: number;
+}
+
+/** The captain's purse with a carrier's load for a hold. */
+export function carried(player: Trader, carrier: Carrier): Trader {
+  return {
+    get purse() {
+      return player.purse;
+    },
+    set purse(v) {
+      player.purse = v;
+    },
+    cargo: carrier.cargo,
+  };
+}
+
 export interface GameEconomy {
   defs: EconomyDefs;
   /** The hold's size, CU: the ship's class with her upgrades (piece G). */
   readonly capacity: number;
   /** A new hull or a bigger hold (piece G). */
   setCapacity(cu: number): void;
-  buy(port: string, good: string, qty: number): TradeResult;
-  sell(port: string, good: string, qty: number): TradeResult;
+  /**
+   * Buys into the hold, or into `carrier` (the hand sled, on foot at a port she isn't at:
+   * its load and its capacity, CU); the purse pays either way.
+   */
+  buy(port: string, good: string, qty: number, carrier?: Carrier): TradeResult;
+  /** Sells out of the hold, or out of `carrier`. */
+  sell(port: string, good: string, qty: number, carrier?: Carrier): TradeResult;
   quote(
     port: string,
     good: string,
@@ -103,11 +128,31 @@ export function attachEconomy(
       capacity = cu;
       syncLoad();
     },
-    buy: (port, good, qty) =>
-      settle(buy(defs, markets(), player(), capacity, port, good, qty, now())),
-    sell: (port, good, qty) =>
+    buy: (port, good, qty, carrier) =>
       settle(
-        sell(defs, markets(), player(), port, good, qty, now(), economy.sellFactor(port, good)),
+        buy(
+          defs,
+          markets(),
+          carrier ? carried(player(), carrier) : player(),
+          carrier?.capacity ?? capacity,
+          port,
+          good,
+          qty,
+          now(),
+        ),
+      ),
+    sell: (port, good, qty, carrier) =>
+      settle(
+        sell(
+          defs,
+          markets(),
+          carrier ? carried(player(), carrier) : player(),
+          port,
+          good,
+          qty,
+          now(),
+          economy.sellFactor(port, good),
+        ),
       ),
     quote(port, good, qty, side) {
       const q = quote(defs, markets(), port, good, qty, side, now());

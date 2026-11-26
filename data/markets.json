@@ -61,7 +61,13 @@
       "good.tobacco",
       "good.rope_canvas"
     ],
-    "absent": ["good.iron_ore", "good.brownstone", "good.copper", "good.grain"]
+    "absent": ["good.iron_ore", "good.brownstone", "good.copper", "good.grain"],
+    "iceBound": {
+      "exports": ["good.furs", "good.salted_fish"],
+      "exportStock": 3,
+      "importStock": 0.2,
+      "word": "The island's cut off till spring: flour, coal oil and whiskey fetch a price here, and the winter's furs and salt fish go cheap with no boat to take them."
+    }
   },
   {
     "id": "market.red_cliff",

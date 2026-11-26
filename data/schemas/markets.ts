@@ -21,6 +21,20 @@ export const marketSchema = z.object({
   exportPrice: z.number().positive().optional(),
   /** Multiplier on export role target stock for this port only. */
   exportStock: z.number().positive().optional(),
+  /**
+   * Cut off by the ice (an island village, frozen in for the winter): its imports run
+   * shorter than a frozen port's (`importStock` × target in place of the rules'), and what
+   * the winter's fishing and trapping piles up there with no boat to take it goes cheap
+   * (`exports`, `exportStock` × target). The harbor master says so (`word`).
+   */
+  iceBound: z
+    .object({
+      exports: z.array(idOf('good')).min(1),
+      exportStock: z.number().min(1),
+      importStock: z.number().gt(0).max(1),
+      word: z.string().min(1),
+    })
+    .optional(),
 });
 
 export const marketsFileSchema = z.array(marketSchema).refine(

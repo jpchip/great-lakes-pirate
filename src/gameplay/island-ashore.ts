@@ -1,4 +1,5 @@
 import type { WorldState } from '../sim/world-state';
+import { COLD } from '../sim/cold/footing';
 import type { GridField } from '../sim/terrain/grid-field';
 import type { Hideouts } from './hideouts';
 import {
@@ -111,6 +112,8 @@ export interface IslandAshoreDeps {
 }
 
 export interface IslandAshore {
+  /** The fires kept on the walked islands in winter (`cold.json` `hearths`), zone meters. */
+  hearths(): { x: number; y: number; z: number }[];
   /** True when (x, z) is within a hero island's walkable tiles (plus landing pad). */
   walkableAt(at: { x: number; z: number }): boolean;
   /** The island scene for a landing here, or undefined off the walkable islands. */
@@ -601,7 +604,54 @@ export function attachIslandAshore(deps: IslandAshoreDeps): IslandAshore {
     return undefined;
   };
 
+  /** A hearth's ground stands this far above the lake, m. */
+  const HEARTH_DRY_M = 0.4;
+  /** Laid out once: the islands and the harbors don't move. */
+  let hearthsCache: { x: number; y: number; z: number }[] | undefined;
+  const hearths = (): { x: number; y: number; z: number }[] => {
+    if (hearthsCache) return hearthsCache;
+    const out: { x: number; y: number; z: number }[] = [];
+    for (const h of COLD.hearths) {
+      const island = deps.islands().find((i) => i.id === h.island);
+      if (!island) continue;
+      let at: { x: number; z: number; facing: number } | undefined;
+      if (h.poi) {
+        const marks = island.marks.filter((m) => m.poi === h.poi);
+        at = marks.find((m) => m.kind === 'resident') ?? marks[0];
+      } else if (h.building && island.village) {
+        const v = island.village;
+        const b = deps
+          .harbors?.()
+          .find((l) => l.def.id === v.harbor)
+          ?.buildings.find((k) => k.name === h.building);
+        if (b) {
+          const out0 = b.depthM / 2;
+          at = {
+            x: b.x + Math.sin(b.facing) * out0,
+            z: b.z - Math.cos(b.facing) * out0,
+            facing: b.facing,
+          };
+        }
+      }
+      if (!at) continue;
+      // Out in front, or beside or behind where the front's over the water (a fish camp).
+      const a0 = at.facing;
+      for (const turn of [0, Math.PI / 2, -Math.PI / 2, Math.PI]) {
+        const x = at.x + Math.sin(a0 + turn) * h.outM;
+        const z = at.z - Math.cos(a0 + turn) * h.outM;
+        const y = deps.heightAt(x, z);
+        if (y < HEARTH_DRY_M) continue;
+        out.push({ x, y, z });
+        break;
+      }
+    }
+    // Before the harbors are laid out, try again next time.
+    if (out.length === COLD.hearths.length) hearthsCache = out;
+    return out;
+  };
+
   return {
+    hearths,
     walkableAt: (at) =>
       islandAt(at.x, at.z) !== undefined ||
       stationNear(deps.stations?.() ?? [], at.x, at.z) !== undefined ||

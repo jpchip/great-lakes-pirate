@@ -163,7 +163,8 @@ const record = (v: unknown): Record<string, unknown> =>
  * - `ShipLaunched` from a slipway (Phase 8 piece G);
  * - `PokerPlayed` that won a captain's cargo or contract off him (Phase 9 piece C);
  * - venison sold, fresh or smoked, on the quiet, to a fence or to a smuggler, counted by
- *   the CU (`counterAmount`; Phase 9 piece V).
+ *   the CU (`counterAmount`; Phase 9 piece V);
+ * - `IceRoadCrossed`: the ice road walked from one end to the other (piece M).
  */
 export function counterForEvent(
   type: string,
@@ -182,6 +183,8 @@ export function counterForEvent(
         return calendarDate(now).getUTCMonth() === 10 ? 'novemberGales' : undefined;
       }
       return undefined;
+    case 'IceRoadCrossed':
+      return 'iceRoadCrossings';
     case 'ShipLaunched':
       return p['from'] === 'slipway' ? 'slipwayLaunches' : undefined;
     case 'PokerPlayed':

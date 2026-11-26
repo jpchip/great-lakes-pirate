@@ -299,6 +299,8 @@ const AUTOSAVE_INTERVAL_MS = 2 * 60_000;
 
 /** The fog fade's length (ui/theme.css `.loading`), so a zone swaps out of sight. */
 const FADE_MS = 650;
+/** How far past the ice road's end the hand sled may lie and still carry what you buy, m. */
+const SLED_AT_END_M = 30;
 
 /** HUD numbers update at most this often (plan 13 §10). */
 const HUD_INTERVAL_S = 0.1;
@@ -2007,7 +2009,27 @@ async function boot(): Promise<void> {
         void saveControls.saveNow();
         return 'The winter passes ashore. The ice is going out of the harbor, and she lies ready at the dock.';
       },
-      iceRoad: (port) => iceRoadWord(port, gameIce.roadOpen(), gameIce.roadIceCm()),
+      iceRoad: (port) => {
+        const road = iceRoadWord(port, gameIce.roadOpen(), gameIce.roadIceCm());
+        // An island village cut off by the ice: what it's short of, and what's piling up.
+        const bound = gameIce.harborClosed(port)
+          ? economy.defs.markets.get(port)?.def.iceBound?.word
+          : undefined;
+        return [road, bound].filter(Boolean).join(' ') || undefined;
+      },
+      // Over the ice to a road port she isn't at: trade off the hand sled at the road's end.
+      sledAt: (port) => {
+        const { fromPort, toPort, endM } = COLD.road;
+        if (port !== fromPort && port !== toPort) return undefined;
+        const road = ashoreWinter.road();
+        const sled = state.player.sled;
+        const end = road && (port === fromPort ? road.from : road.to);
+        const near =
+          !!sled && !!end && Math.hypot(sled.x - end.x, sled.z - end.z) < endM + SLED_AT_END_M;
+        return {
+          carrier: near && sled ? { cargo: sled.load, capacity: COLD.sled.capacityCu } : undefined,
+        };
+      },
     },
     feuds,
     backRoom,
@@ -4092,6 +4114,7 @@ async function boot(): Promise<void> {
   // Hideout life (Phase 8 piece F): the bunk, the refuge at the anchorage, being spotted
   // and the ruins' salvage.
   let contextBeforeSleep: InputContext = 'onFoot';
+  let contextBeforeSled: InputContext = 'onFoot';
   const life = attachHideoutLife({
     ctx,
     law,
@@ -4302,8 +4325,30 @@ async function boot(): Promise<void> {
     roadPort: COLD.road.toPort,
     weightOf: (g) => economy.defs.goods.get(g)?.weightFactor ?? 1,
     valueOf: (g) => economy.defs.goods.get(g)?.basePriceCents ?? 0,
+    goodName: (g) => economy.defs.goods.get(g)?.name ?? g,
+    // The hand sled's picker beside her on the ice: over the game, like the bunk's choice.
+    showSled: (view) => ui.setSled(view),
+    sledOpen(open) {
+      if (open) {
+        if (document.pointerLockElement) document.exitPointerLock();
+        machine.pushOverlay('trade');
+        contextBeforeSled = input.context;
+        input.context = 'menu';
+      } else {
+        machine.removeOverlay('trade');
+        input.context = contextBeforeSled;
+        input.endTick();
+      }
+      document.body.dataset['sled'] = open ? 'open' : 'closed';
+      hudClock = HUD_INTERVAL_S;
+    },
     hold: () => state.player.cargo,
     holdChanged: () => economy.syncLoad(),
+    sellable: (port, lot) =>
+      !lot.hot &&
+      !lot.contract &&
+      economy.defs.goods.get(lot.good)?.legal === 'legal' &&
+      !!economy.defs.markets.get(port)?.goods.has(lot.good),
     sell: (port, load) => {
       const left: CargoStack[] = [];
       let cents = 0;
@@ -4919,6 +4964,7 @@ async function boot(): Promise<void> {
     iceCover01: ashoreWinter.iceAt(at.x, at.z).coverage,
   }));
   ashoreRef.current = ashore;
+  ui.attachSled(ashore.sledActions);
   goAshoreRef.current = () => goAshore();
   ashoreOfferedRef.current = () => ashore.landingHere();
   machine.register(ashore.mode);

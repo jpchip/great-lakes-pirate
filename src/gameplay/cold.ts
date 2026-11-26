@@ -1,3 +1,4 @@
+import type { SledView } from './sled-picker';
 import type { CargoStack } from '../sim/economy/hold';
 import { COLD } from '../sim/cold/footing';
 import type { IceRoad, XZ } from '../sim/cold/road';
@@ -40,6 +41,13 @@ export interface AshoreWinter {
   holdChanged(): void;
   /** Sells a sled's load at a port's market: what's left unsold, and a line saying how it went. */
   sell(port: string, load: CargoStack[]): { left: CargoStack[]; line: string };
+  /** The port's trading post will buy this lot off the sled (clean, legal, traded there). */
+  sellable?(port: string, lot: CargoStack): boolean;
+  /** A good's name, for the sled's picker. */
+  goodName?(good: string): string;
+  /** The sled's picker shown (or closed: undefined), and opened or closed over the game. */
+  showSled?(view: SledView | undefined): void;
+  sledOpen?(open: boolean): void;
 }
 
 /** Ice cells are looked up this coarsely while a scene is built (the ice is 125 m cells). */

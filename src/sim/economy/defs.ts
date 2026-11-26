@@ -55,7 +55,12 @@ export function compileEconomy(
   const goods = new Map(goodsList.map((g) => [g.id, g]));
   const markets = new Map<string, PortMarket>();
   for (const def of marketDefs) {
-    for (const id of [...def.exports, ...def.imports, ...def.absent]) {
+    for (const id of [
+      ...def.exports,
+      ...def.imports,
+      ...def.absent,
+      ...(def.iceBound?.exports ?? []),
+    ]) {
       if (!goods.has(id)) throw new Error(`${def.id} names unknown good ${id}`);
     }
     const portGoods = new Map<string, MarketGood>();

@@ -67,5 +67,10 @@
     "openCm": 20,
     "markerM": 30,
     "endM": 12
-  }
+  },
+  "hearths": [
+    { "island": "island.madeline", "building": "General store", "outM": 5 },
+    { "island": "island.madeline", "poi": "madeline_trapper_cabin", "outM": 4 },
+    { "island": "island.madeline", "poi": "madeline_north_camp", "outM": 4 }
+  ]
 }

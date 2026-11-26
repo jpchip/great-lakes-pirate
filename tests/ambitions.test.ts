@@ -142,6 +142,9 @@ describe('measuring the goals', () => {
     );
     expect(counterForEvent('FeatAccomplished', { kind: 'galeRun' }, inMonth(9))).toBeUndefined();
     expect(counterForEvent('ShipLaunched', { from: 'slipway' }, 0)).toBe('slipwayLaunches');
+    expect(
+      counterForEvent('IceRoadCrossed', { from: 'port.bayfield', to: 'port.la_pointe' }, 0),
+    ).toBe('iceRoadCrossings');
     expect(counterForEvent('TradeCompleted', {}, 0)).toBeUndefined();
   });
 

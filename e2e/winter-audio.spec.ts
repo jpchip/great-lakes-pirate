@@ -74,6 +74,8 @@ test('winter heard: the wind, the sled, steps on the ice, thin ice and chatterin
   await hooks(page, (w) => w.__glpFoot.interact());
   await expect.poll(() => prompt(page)).toMatch(/^Load the sled from the hold/);
   await hooks(page, (w) => w.__glpFoot.interact());
+  await page.getByTestId('sled-fill').click();
+  await page.getByTestId('sled-close').click();
   await expect.poll(async () => (await levels(page)).sled).toBeGreaterThanOrEqual(2);
   const stepsBefore = (await levels(page)).steps;
   await page.keyboard.down('KeyW');

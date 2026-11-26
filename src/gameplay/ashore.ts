@@ -78,6 +78,7 @@ import type { PlacedStation } from '../sim/light-stations';
 import type { PlacedIsland } from '../sim/islands/on-foot';
 import type { StationSoundView } from './onfoot/station-watch';
 import type { XZ } from './onfoot/nav';
+import { attachSledPicker, type SledActions } from './sled-picker';
 import {
   districtBerthPiers,
   districtForHarbor,
@@ -135,6 +136,9 @@ import {
  *
  * The world runs on at R = 6 behind you; the schooner rides at her berth or anchor.
  */
+
+/** The islands' hearths are lit below this air temperature, °C. */
+const HEARTH_LIT_C = 2;
 
 export interface AshoreDeps {
   ctx: GameContext;
@@ -444,6 +448,8 @@ export interface GameAshore {
   winter(): WinterSnapshot;
   /** For the dev hooks: down onto the ice road from wherever you stand (piece M). */
   iceRoad(): Promise<string | undefined>;
+  /** The sled's picker's buttons (piece M), when the game shows one. */
+  readonly sledActions: SledActions | undefined;
   /** The prints you've left (zone meters), for the dev hooks and the view. */
   readonly tracks: TrackLog;
 }
@@ -560,6 +566,8 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
   /** Holes broken this landing, zone meters: still open when the scene is rebuilt. */
   const holes: { x: number; z: number }[] = [];
   let iceNow: { thicknessCm: number } | undefined;
+  /** The ice road's end you last stood at (piece M), so reaching the other is a crossing. */
+  let roadEnd: 'from' | 'to' | undefined;
   /** Your prints in the snow, zone meters. */
   const tracks = new TrackLog();
   let lastClock = state.environment.clock.gameSeconds;
@@ -568,6 +576,26 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
   /** The sled's on your rope. She lies in `state.player.sled` (zone meters) while out. */
   let hitched = false;
   const sled = (): Sled | undefined => state.player.sled;
+  /** The sled's picker beside the ship (piece M), when the game shows it. */
+  const sledPicker =
+    winter?.showSled && winter.sledOpen
+      ? attachSledPicker({
+          sled,
+          hold: () => winter.hold(),
+          holdChanged: () => winter.holdChanged(),
+          goodName: (g) => winter.goodName?.(g) ?? g,
+          valueOf: (g) => winter.valueOf(g),
+          show: winter.showSled,
+          onOpen: winter.sledOpen,
+          handled: (act) => {
+            if (act === 'stowed') {
+              state.player.sled = undefined;
+              hitched = false;
+            }
+            ctx.events.emit('SledHandled', { act });
+          },
+        })
+      : undefined;
   const weightOf = (g: string): number => winter?.weightOf(g) ?? 1;
 
   // The scene's frame: a district's local meters, or the zone's own.
@@ -866,6 +894,7 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
 
   const enter = (): void => {
     active = true;
+    roadEnd = undefined;
     dead = false;
     walkCamera.yaw = character.heading;
     walkCamera.pitch = 0.25;
@@ -1071,6 +1100,7 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
   };
 
   const leave = (): void => {
+    sledPicker?.actions.close();
     // Back aboard by her side, the sled comes aboard with you, her load into the hold.
     const sl = sled();
     const ship = shipPose();
@@ -1090,6 +1120,7 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
     thin = freshThinIce();
     tracks.lift();
     active = false;
+    roadEnd = undefined;
     posse = undefined;
     scene = undefined;
     district = undefined;
@@ -1292,7 +1323,9 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
     // An island's cairns and the stash's strongbox (zone meters: never in a district).
     if (!district && c.grounded && !c.swimming) {
       // A carcass on your shoulders: lay it in a hideout's stores, or put it down (piece V).
-      if (wild?.carrying) return deps.island?.stashPrompt(c.position) ?? wild.prompt(c);
+      if (wild?.carrying) {
+        return deps.island?.stashPrompt(c.position) ?? sledCarcassPrompt() ?? wild.prompt(c);
+      }
       const found =
         deps.legends?.prompt(c.position) ??
         deps.island?.prompt(c.position) ??
@@ -1451,13 +1484,19 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
     return [road.from, road.to].map((e) => ({ x: e.x + 3, z: e.z + 3 }));
   };
 
+  /** Every fire to warm yourself at now: the road's, and the islands' hearths in the cold. */
+  const fires = (): { x: number; y: number; z: number }[] => [
+    ...roadFires().map((f) => ({ ...f, y: COLD.ice.topM })),
+    ...(winter && deps.island && winter.air().airC < HEARTH_LIT_C ? deps.island.hearths() : []),
+  ];
+
   /** The warmth meter, a real second at a time: on foot, in the water or at the oars. */
   const warmthTick = (dt: number): void => {
     if (!winter || !scene) return;
     const air = winter.air();
     const c = character;
     const at = toZone(c.position.x, c.position.z);
-    const nearFire = roadFires().some(
+    const nearFire = fires().some(
       (f) => Math.hypot(at.x - f.x, at.z - f.z) < COLD.warmth.heatRadiusM,
     );
     const indoors = underRoof && !inBoat;
@@ -1585,6 +1624,23 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
       tracks.lift();
     }
     if (sl && hitched && !district) towSled(sl, p.x, p.z);
+    // Across the ice road: at one end, having last stood at the other (Ambitions).
+    if (district) roadEnd = undefined;
+    if (road && !district) {
+      const end = COLD.road.endM;
+      const at = (e: XZ): boolean => Math.hypot(p.x - e.x, p.z - e.z) < end;
+      const here = at(road.from) ? 'from' : at(road.to) ? 'to' : undefined;
+      if (here && here !== roadEnd) {
+        if (roadEnd && winter.roadOpen()) {
+          const [from, to] =
+            here === 'to'
+              ? [COLD.road.fromPort, COLD.road.toPort]
+              : [COLD.road.toPort, COLD.road.fromPort];
+          ctx.events.emit('IceRoadCrossed', { from, to });
+        }
+        roadEnd = here;
+      }
+    }
     followS += dt;
     if (followS >= 0.5) {
       followS = 0;
@@ -1633,6 +1689,7 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
             maxZ: Math.max(road.from.z, road.to.z) + m,
           };
           scene = build(road.from);
+          roadEnd = 'from';
           const h = Math.atan2(road.to.x - road.from.x, -(road.to.z - road.from.z));
           placeCharacter(character, { x: road.from.x, y: COLD.ice.topM, z: road.from.z }, h);
           walkCamera.yaw = h;
@@ -1732,6 +1789,27 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
     return undefined;
   };
 
+  /** A carcass on your shoulders beside the sled (piece V on the ice): lay it on her. */
+  const sledCarcassPrompt = (): Prompt | undefined => {
+    const sl = sled();
+    const load = wild?.carrying;
+    if (!sl || !load || !wild) return undefined;
+    const c = character.position;
+    if (Math.hypot(sl.x - c.x, sl.z - c.z) > COLD.sled.ropeM + 3) return undefined;
+    const w = wild;
+    return {
+      text: `Lay the carcass on the sled (${load.cu} CU)`,
+      act: () =>
+        w.stashCarcass((good, cu) => {
+          if (sledFree(sl) < cu)
+            return `No room on the sled: ${cu} CU wanted, ${sledFree(sl)} free.`;
+          sl.load.push({ good, qty: cu });
+          ctx.events.emit('SledHandled', { act: 'loaded' });
+          return undefined;
+        }, 'onto the sled'),
+    };
+  };
+
   /** The F prompt on the ice and in the snow: the sled, the road's ends. */
   const winterPrompt = (): Prompt | undefined => {
     if (!winter || !scene || district) return undefined;
@@ -1741,7 +1819,11 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
     const sl = sled();
     if (road && iced) {
       const end = COLD.road.endM;
-      if (Math.hypot(c.x - road.to.x, c.z - road.to.z) < end && sl?.load.length) {
+      // Only with something on her they'll buy. Beside her with the rope down, the rope
+      // comes first (else a load they won't buy leaves her stuck at the road's end).
+      const sellable = sl?.load.some((l) => winter.sellable?.(winter.roadPort, l) ?? true);
+      const ropeFirst = !!sl && !hitched && Math.hypot(sl.x - c.x, sl.z - c.z) < 2.5;
+      if (Math.hypot(c.x - road.to.x, c.z - road.to.z) < end && sl && sellable && !ropeFirst) {
         return {
           text: "Sell the sled's load at La Pointe's trading post",
           act: () => {
@@ -1752,16 +1834,42 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
           },
         };
       }
-      if (Math.hypot(c.x - road.from.x, c.z - road.from.z) < end) {
+      if (Math.hypot(c.x - road.from.x, c.z - road.from.z) < end && !ropeFirst) {
         return { text: 'Up the ladder into Bayfield', act: () => void upIntoTown() };
       }
       // Off the road's own scene, onto Madeline's at La Pointe (piece Q).
       if (
+        !ropeFirst &&
         !sceneIsland &&
         Math.hypot(c.x - road.to.x, c.z - road.to.z) < end &&
         deps.island?.walkableAt(road.toHead)
       ) {
         return { text: "Up the ladder onto La Pointe's dock", act: () => void upOntoTheIsland() };
+      }
+      // Already on Madeline's scene, down on the ice off the dock: back up its ladder.
+      if (
+        !ropeFirst &&
+        sceneIsland &&
+        Math.min(
+          Math.hypot(c.x - road.to.x, c.z - road.to.z),
+          Math.hypot(c.x - road.toHead.x, c.z - road.toHead.z),
+        ) < end &&
+        c.y < road.toHead.y - 1
+      ) {
+        return {
+          text: "Up the ladder onto La Pointe's dock",
+          act: () => {
+            const h = Math.atan2(road.toHead.x - road.from.x, -(road.toHead.z - road.from.z));
+            placeCharacter(
+              character,
+              { x: road.toHead.x, y: road.toHead.y + 0.05, z: road.toHead.z },
+              h,
+            );
+            walkCamera.yaw = h;
+            copyPrevious();
+            tracks.lift();
+          },
+        };
       }
     }
     const nearShip = !!scene.ship && toHull(c.x, c.z) < 4 && (bedAt?.(c.x, c.z) ?? 1) < 0;
@@ -1784,6 +1892,14 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
     if (sl && nearShip && Math.hypot(sl.x - c.x, sl.z - c.z) < COLD.sled.ropeM + 3) {
       const hold = winter.hold();
       const movable = hold.filter((h) => !h.contract).reduce((n, h) => n + h.qty, 0);
+      // The picker, where the game shows one: choose what goes on and comes off.
+      if (sledPicker && (movable > 0 || sl.load.length)) {
+        const picker = sledPicker;
+        return {
+          text: `Load the sled from the hold (${sledUsed(sl)} of ${COLD.sled.capacityCu} CU)`,
+          act: () => picker.open(),
+        };
+      }
       if (movable > 0 && sledFree(sl) > 0) {
         return {
           text: `Load the sled from the hold (${Math.min(movable, sledFree(sl))} CU)`,
@@ -2132,7 +2248,7 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
       },
       prints,
       markers: iced && road ? road.markers.map((m) => ({ ...m, y: COLD.ice.topM })) : [],
-      fires: roadFires().map((f) => ({ ...f, y: COLD.ice.topM })),
+      fires: fires(),
     };
   };
 
@@ -2479,6 +2595,7 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
     toZone,
     tracks,
     iceRoad: () => goIceRoad(),
+    sledActions: sledPicker?.actions,
     winter(): WinterSnapshot {
       const w = warm();
       const sl = sled();
