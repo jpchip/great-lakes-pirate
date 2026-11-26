@@ -30,6 +30,8 @@ import { BoardingScreen } from './boarding/BoardingScreen';
 import type { BoardingActions, BoardingSnapshot } from './boarding/model';
 import { LieDialog, StashScreen } from './stash/StashScreen';
 import { SleepDialog } from './hideout/SleepDialog';
+import { SledDialog } from './hud/SledDialog';
+import type { SledActions, SledView } from '../gameplay/sled-picker';
 import type { SleepActions, SleepView } from '../gameplay/hideout-life';
 import type { StashSnapshot } from './stash/model';
 import type { StashActions } from '../gameplay/stash';
@@ -144,6 +146,9 @@ export interface GameUi {
   setSleep(view: SleepView | undefined): void;
   /** The sleep choice's buttons, once hideout life is attached. */
   attachSleep(actions: SleepActions): void;
+  /** The hand sled's picker (piece M); undefined closes it. */
+  setSled(view: SledView | undefined): void;
+  attachSled(actions: SledActions | undefined): void;
   /** The First Week checklist (Phase 4 piece C); undefined for a run without one. */
   setFirstWeek(snapshot: FirstWeekSnapshot | undefined): void;
   /** Ambitions (Phase 8 piece H): the HUD's pinned list and the ledger's page. */
@@ -205,6 +210,8 @@ export function mountGameUi({
   const lie = signal(false);
   const sleep = signal<SleepView | undefined>(undefined);
   let sleepActions: SleepActions | undefined;
+  const sledView = signal<SledView | undefined>(undefined);
+  let sledActions: SledActions | undefined;
   const lieDocked = signal(false);
   const firstWeek = signal<FirstWeekSnapshot | undefined>(undefined);
   const ambitions = signal<AmbitionsSnapshot | undefined>(undefined);
@@ -286,6 +293,9 @@ export function mountGameUi({
     } else if (sleep.value) {
       e.preventDefault();
       sleepActions?.close();
+    } else if (sledView.value) {
+      e.preventDefault();
+      sledActions?.close();
     } else if (port.value) {
       e.preventDefault();
       portActions?.close();
@@ -338,6 +348,7 @@ export function mountGameUi({
       !stash.value &&
       !lie.value &&
       !sleep.value &&
+      !sledView.value &&
       !chart.value;
     const weekShown = !!firstWeek.value && !firstWeek.value.complete && !firstWeek.value.hidden;
     return (
@@ -379,6 +390,9 @@ export function mountGameUi({
           )}
           {sleep.value && sleepActions && !menuOpen.value && (
             <SleepDialog view={sleep.value} actions={sleepActions} />
+          )}
+          {sledView.value && sledActions && !menuOpen.value && (
+            <SledDialog view={sledView.value} actions={sledActions} />
           )}
           {lie.value && stashActions && !menuOpen.value && (
             <LieDialog actions={stashActions} docked={lieDocked.value} />
@@ -532,6 +546,12 @@ export function mountGameUi({
     },
     attachSleep(actions) {
       sleepActions = actions;
+    },
+    setSled(view) {
+      sledView.value = view;
+    },
+    attachSled(actions) {
+      sledActions = actions;
     },
     setLie(open, docked) {
       lie.value = open;

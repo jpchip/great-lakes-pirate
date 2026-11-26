@@ -78,6 +78,7 @@ import type { PlacedStation } from '../sim/light-stations';
 import type { PlacedIsland } from '../sim/islands/on-foot';
 import type { StationSoundView } from './onfoot/station-watch';
 import type { XZ } from './onfoot/nav';
+import { attachSledPicker, type SledActions } from './sled-picker';
 import {
   districtBerthPiers,
   districtForHarbor,
@@ -444,6 +445,8 @@ export interface GameAshore {
   winter(): WinterSnapshot;
   /** For the dev hooks: down onto the ice road from wherever you stand (piece M). */
   iceRoad(): Promise<string | undefined>;
+  /** The sled's picker's buttons (piece M), when the game shows one. */
+  readonly sledActions: SledActions | undefined;
   /** The prints you've left (zone meters), for the dev hooks and the view. */
   readonly tracks: TrackLog;
 }
@@ -570,6 +573,26 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
   /** The sled's on your rope. She lies in `state.player.sled` (zone meters) while out. */
   let hitched = false;
   const sled = (): Sled | undefined => state.player.sled;
+  /** The sled's picker beside the ship (piece M), when the game shows it. */
+  const sledPicker =
+    winter?.showSled && winter.sledOpen
+      ? attachSledPicker({
+          sled,
+          hold: () => winter.hold(),
+          holdChanged: () => winter.holdChanged(),
+          goodName: (g) => winter.goodName?.(g) ?? g,
+          valueOf: (g) => winter.valueOf(g),
+          show: winter.showSled,
+          onOpen: winter.sledOpen,
+          handled: (act) => {
+            if (act === 'stowed') {
+              state.player.sled = undefined;
+              hitched = false;
+            }
+            ctx.events.emit('SledHandled', { act });
+          },
+        })
+      : undefined;
   const weightOf = (g: string): number => winter?.weightOf(g) ?? 1;
 
   // The scene's frame: a district's local meters, or the zone's own.
@@ -1074,6 +1097,7 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
   };
 
   const leave = (): void => {
+    sledPicker?.actions.close();
     // Back aboard by her side, the sled comes aboard with you, her load into the hold.
     const sl = sled();
     const ship = shipPose();
@@ -1296,7 +1320,9 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
     // An island's cairns and the stash's strongbox (zone meters: never in a district).
     if (!district && c.grounded && !c.swimming) {
       // A carcass on your shoulders: lay it in a hideout's stores, or put it down (piece V).
-      if (wild?.carrying) return deps.island?.stashPrompt(c.position) ?? wild.prompt(c);
+      if (wild?.carrying) {
+        return deps.island?.stashPrompt(c.position) ?? sledCarcassPrompt() ?? wild.prompt(c);
+      }
       const found =
         deps.legends?.prompt(c.position) ??
         deps.island?.prompt(c.position) ??
@@ -1754,6 +1780,27 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
     return undefined;
   };
 
+  /** A carcass on your shoulders beside the sled (piece V on the ice): lay it on her. */
+  const sledCarcassPrompt = (): Prompt | undefined => {
+    const sl = sled();
+    const load = wild?.carrying;
+    if (!sl || !load || !wild) return undefined;
+    const c = character.position;
+    if (Math.hypot(sl.x - c.x, sl.z - c.z) > COLD.sled.ropeM + 3) return undefined;
+    const w = wild;
+    return {
+      text: `Lay the carcass on the sled (${load.cu} CU)`,
+      act: () =>
+        w.stashCarcass((good, cu) => {
+          if (sledFree(sl) < cu)
+            return `No room on the sled: ${cu} CU wanted, ${sledFree(sl)} free.`;
+          sl.load.push({ good, qty: cu });
+          ctx.events.emit('SledHandled', { act: 'loaded' });
+          return undefined;
+        }, 'onto the sled'),
+    };
+  };
+
   /** The F prompt on the ice and in the snow: the sled, the road's ends. */
   const winterPrompt = (): Prompt | undefined => {
     if (!winter || !scene || district) return undefined;
@@ -1785,6 +1832,30 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
       ) {
         return { text: "Up the ladder onto La Pointe's dock", act: () => void upOntoTheIsland() };
       }
+      // Already on Madeline's scene, down on the ice off the dock: back up its ladder.
+      if (
+        sceneIsland &&
+        Math.min(
+          Math.hypot(c.x - road.to.x, c.z - road.to.z),
+          Math.hypot(c.x - road.toHead.x, c.z - road.toHead.z),
+        ) < end &&
+        c.y < road.toHead.y - 1
+      ) {
+        return {
+          text: "Up the ladder onto La Pointe's dock",
+          act: () => {
+            const h = Math.atan2(road.toHead.x - road.from.x, -(road.toHead.z - road.from.z));
+            placeCharacter(
+              character,
+              { x: road.toHead.x, y: road.toHead.y + 0.05, z: road.toHead.z },
+              h,
+            );
+            walkCamera.yaw = h;
+            copyPrevious();
+            tracks.lift();
+          },
+        };
+      }
     }
     const nearShip = !!scene.ship && toHull(c.x, c.z) < 4 && (bedAt?.(c.x, c.z) ?? 1) < 0;
     if (nearShip && !sl) {
@@ -1806,6 +1877,14 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
     if (sl && nearShip && Math.hypot(sl.x - c.x, sl.z - c.z) < COLD.sled.ropeM + 3) {
       const hold = winter.hold();
       const movable = hold.filter((h) => !h.contract).reduce((n, h) => n + h.qty, 0);
+      // The picker, where the game shows one: choose what goes on and comes off.
+      if (sledPicker && (movable > 0 || sl.load.length)) {
+        const picker = sledPicker;
+        return {
+          text: `Load the sled from the hold (${sledUsed(sl)} of ${COLD.sled.capacityCu} CU)`,
+          act: () => picker.open(),
+        };
+      }
       if (movable > 0 && sledFree(sl) > 0) {
         return {
           text: `Load the sled from the hold (${Math.min(movable, sledFree(sl))} CU)`,
@@ -2501,6 +2580,7 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
     toZone,
     tracks,
     iceRoad: () => goIceRoad(),
+    sledActions: sledPicker?.actions,
     winter(): WinterSnapshot {
       const w = warm();
       const sl = sled();

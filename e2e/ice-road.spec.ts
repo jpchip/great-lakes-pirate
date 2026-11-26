@@ -76,7 +76,11 @@ test('the ice road: a sled of the hold to La Pointe, tracks, thin ice and the co
   await hooks(page, (w) => w.__glpFoot.interact());
   await expect.poll(() => prompt(page)).toMatch(/^Load the sled from the hold/);
   await hooks(page, (w) => w.__glpFoot.interact());
+  // The picker: fill her with the most valuable, and done.
+  await page.getByTestId('sled-fill').click();
   await expect.poll(async () => (await cold(page)).sled?.cu).toBe(3);
+  await page.getByTestId('sled-close').click();
+  await expect(page.getByTestId('sled-dialog')).toHaveCount(0);
 
   // Walking on the snow-covered ice leaves prints, and the cold bites.
   await page.keyboard.down('KeyW');

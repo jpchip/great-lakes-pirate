@@ -4114,6 +4114,7 @@ async function boot(): Promise<void> {
   // Hideout life (Phase 8 piece F): the bunk, the refuge at the anchorage, being spotted
   // and the ruins' salvage.
   let contextBeforeSleep: InputContext = 'onFoot';
+  let contextBeforeSled: InputContext = 'onFoot';
   const life = attachHideoutLife({
     ctx,
     law,
@@ -4324,6 +4325,23 @@ async function boot(): Promise<void> {
     roadPort: COLD.road.toPort,
     weightOf: (g) => economy.defs.goods.get(g)?.weightFactor ?? 1,
     valueOf: (g) => economy.defs.goods.get(g)?.basePriceCents ?? 0,
+    goodName: (g) => economy.defs.goods.get(g)?.name ?? g,
+    // The hand sled's picker beside her on the ice: over the game, like the bunk's choice.
+    showSled: (view) => ui.setSled(view),
+    sledOpen(open) {
+      if (open) {
+        if (document.pointerLockElement) document.exitPointerLock();
+        machine.pushOverlay('trade');
+        contextBeforeSled = input.context;
+        input.context = 'menu';
+      } else {
+        machine.removeOverlay('trade');
+        input.context = contextBeforeSled;
+        input.endTick();
+      }
+      document.body.dataset['sled'] = open ? 'open' : 'closed';
+      hudClock = HUD_INTERVAL_S;
+    },
     hold: () => state.player.cargo,
     holdChanged: () => economy.syncLoad(),
     sell: (port, load) => {
@@ -4941,6 +4959,7 @@ async function boot(): Promise<void> {
     iceCover01: ashoreWinter.iceAt(at.x, at.z).coverage,
   }));
   ashoreRef.current = ashore;
+  ui.attachSled(ashore.sledActions);
   goAshoreRef.current = () => goAshore();
   ashoreOfferedRef.current = () => ashore.landingHere();
   machine.register(ashore.mode);
