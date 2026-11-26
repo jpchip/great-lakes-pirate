@@ -8,8 +8,8 @@ import { westernSuperiorChart } from '../src/sim/chart/chart-data';
 import { createContacts } from '../src/sim/chart/traffic';
 import { cycleStartS, iceKeepsIn, sailsInCycle } from '../src/sim/chart/routes';
 import { planCourse } from '../src/sim/chart/voyage';
-import { gameEconomy } from '../src/sim/economy/defs';
-import { createMarkets, tickMarkets } from '../src/sim/economy/market';
+import { gameEconomy, seasonAt } from '../src/sim/economy/defs';
+import { createMarkets, midPrice, tickMarkets } from '../src/sim/economy/market';
 import { firstArrivalAfter } from '../src/sim/ice/first-boat';
 import {
   closesHull,
@@ -246,6 +246,34 @@ describe('winter on the lake (plan 05 §3, plan 06 §5.1)', () => {
     expect(markets['port.duluth']?.[imp]?.stock).toBeLessThan(
       (open['port.duluth']?.[imp]?.stock as number) * 0.6,
     );
+  });
+
+  it("cuts La Pointe off: its imports dearer than a frozen port's, its furs and fish cheap", () => {
+    const defs = gameEconomy();
+    const t = at(1901, 0, 15);
+    const iced = createMarkets(defs, t);
+    const open = createMarkets(defs, t);
+    const lp = 'port.la_pointe';
+    for (let i = 0; i < 1500; i++) {
+      tickMarkets(defs, iced, t + i * 600, 600, (p) => p === lp);
+      tickMarkets(defs, open, t + i * 600, 600);
+    }
+    const season = seasonAt(t);
+    const price = (m: typeof iced, g: string): number => {
+      const mg = defs.markets.get(lp)?.goods.get(g);
+      if (!mg) throw new Error(g);
+      return midPrice(defs, mg, m[lp]?.[g]?.stock as number, season);
+    };
+    // Flour: past what the rules' frozen port would run to (0.4 of target: about ×2).
+    expect(price(iced, 'good.flour') / price(open, 'good.flour')).toBeGreaterThan(2.3);
+    // The winter's furs and salt fish, with no boat to take them.
+    for (const g of ['good.furs', 'good.salted_fish']) {
+      expect(price(iced, g) / price(open, g), g).toBeLessThan(0.5);
+    }
+    // Open water: none of it.
+    const bound = createMarkets(defs, t);
+    for (let i = 0; i < 1500; i++) tickMarkets(defs, bound, t + i * 600, 600, () => false);
+    expect(price(bound, 'good.furs')).toBeCloseTo(price(open, 'good.furs'));
   });
 
   it('lays the Morrill up December to March', () => {

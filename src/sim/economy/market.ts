@@ -198,8 +198,11 @@ export function tickMarkets(
       const s = port[goodId];
       if (!s) continue;
       let target = seasonalTarget(defs, mg, season);
-      if (iced && mg.role === 'import') target *= defs.rules.frozenImportStock;
-      else if (iced && mg.role === 'export') target *= defs.rules.frozenExportStock;
+      const bound = iced ? pm.def.iceBound : undefined;
+      if (bound?.exports.includes(goodId)) target *= bound.exportStock;
+      else if (iced && mg.role === 'import') {
+        target *= bound?.importStock ?? defs.rules.frozenImportStock;
+      } else if (iced && mg.role === 'export') target *= defs.rules.frozenExportStock;
       s.stock = Math.max(defs.rules.minStockCu, s.stock + (target - s.stock) * k);
     }
   }

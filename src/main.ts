@@ -2007,7 +2007,14 @@ async function boot(): Promise<void> {
         void saveControls.saveNow();
         return 'The winter passes ashore. The ice is going out of the harbor, and she lies ready at the dock.';
       },
-      iceRoad: (port) => iceRoadWord(port, gameIce.roadOpen(), gameIce.roadIceCm()),
+      iceRoad: (port) => {
+        const road = iceRoadWord(port, gameIce.roadOpen(), gameIce.roadIceCm());
+        // An island village cut off by the ice: what it's short of, and what's piling up.
+        const bound = gameIce.harborClosed(port)
+          ? economy.defs.markets.get(port)?.def.iceBound?.word
+          : undefined;
+        return [road, bound].filter(Boolean).join(' ') || undefined;
+      },
     },
     feuds,
     backRoom,
