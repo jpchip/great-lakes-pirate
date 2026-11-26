@@ -112,10 +112,10 @@
     "id": "recipe.whiskey",
     "name": "Untaxed whiskey",
     "station": "station.distillery",
-    "blurb": "Wheat mashed with well water, run through the still and casked: four loads of whiskey no revenue man has seen. A batch takes a week.",
+    "blurb": "Wheat mashed with well water, run through the still and casked: twelve loads of whiskey no revenue man has seen. A batch takes a week.",
     "hours": 24,
-    "inputs": { "goods": { "good.grain": 3 }, "things": { "item.barrel": 4 }, "water": true },
-    "output": { "goods": { "good.untaxed_whiskey": 4 } }
+    "inputs": { "goods": { "good.grain": 4 }, "things": { "item.barrel": 8 }, "water": true },
+    "output": { "goods": { "good.untaxed_whiskey": 12 } }
   },
   {
     "id": "recipe.loft_mend_kits",
