@@ -560,6 +560,8 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
   /** Holes broken this landing, zone meters: still open when the scene is rebuilt. */
   const holes: { x: number; z: number }[] = [];
   let iceNow: { thicknessCm: number } | undefined;
+  /** The ice road's end you last stood at (piece M), so reaching the other is a crossing. */
+  let roadEnd: 'from' | 'to' | undefined;
   /** Your prints in the snow, zone meters. */
   const tracks = new TrackLog();
   let lastClock = state.environment.clock.gameSeconds;
@@ -866,6 +868,7 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
 
   const enter = (): void => {
     active = true;
+    roadEnd = undefined;
     dead = false;
     walkCamera.yaw = character.heading;
     walkCamera.pitch = 0.25;
@@ -1090,6 +1093,7 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
     thin = freshThinIce();
     tracks.lift();
     active = false;
+    roadEnd = undefined;
     posse = undefined;
     scene = undefined;
     district = undefined;
@@ -1585,6 +1589,23 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
       tracks.lift();
     }
     if (sl && hitched && !district) towSled(sl, p.x, p.z);
+    // Across the ice road: at one end, having last stood at the other (Ambitions).
+    if (district) roadEnd = undefined;
+    if (road && !district) {
+      const end = COLD.road.endM;
+      const at = (e: XZ): boolean => Math.hypot(p.x - e.x, p.z - e.z) < end;
+      const here = at(road.from) ? 'from' : at(road.to) ? 'to' : undefined;
+      if (here && here !== roadEnd) {
+        if (roadEnd && winter.roadOpen()) {
+          const [from, to] =
+            here === 'to'
+              ? [COLD.road.fromPort, COLD.road.toPort]
+              : [COLD.road.toPort, COLD.road.fromPort];
+          ctx.events.emit('IceRoadCrossed', { from, to });
+        }
+        roadEnd = here;
+      }
+    }
     followS += dt;
     if (followS >= 0.5) {
       followS = 0;
@@ -1633,6 +1654,7 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
             maxZ: Math.max(road.from.z, road.to.z) + m,
           };
           scene = build(road.from);
+          roadEnd = 'from';
           const h = Math.atan2(road.to.x - road.from.x, -(road.to.z - road.from.z));
           placeCharacter(character, { x: road.from.x, y: COLD.ice.topM, z: road.from.z }, h);
           walkCamera.yaw = h;

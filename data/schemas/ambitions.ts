@@ -32,6 +32,8 @@ export const AMBITION_COUNTERS = [
   'moonCussings',
   // CU of venison sold, fresh or smoked, to fences, smugglers or on the quiet (piece V).
   'venisonSold',
+  // Crossings of the Bayfield–La Pointe ice road on foot, end to end (piece M).
+  'iceRoadCrossings',
 ] as const;
 export type AmbitionCounter = (typeof AMBITION_COUNTERS)[number];
 
