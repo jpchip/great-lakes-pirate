@@ -1819,7 +1819,11 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
     const sl = sled();
     if (road && iced) {
       const end = COLD.road.endM;
-      if (Math.hypot(c.x - road.to.x, c.z - road.to.z) < end && sl?.load.length) {
+      // Only with something on her they'll buy. Beside her with the rope down, the rope
+      // comes first (else a load they won't buy leaves her stuck at the road's end).
+      const sellable = sl?.load.some((l) => winter.sellable?.(winter.roadPort, l) ?? true);
+      const ropeFirst = !!sl && !hitched && Math.hypot(sl.x - c.x, sl.z - c.z) < 2.5;
+      if (Math.hypot(c.x - road.to.x, c.z - road.to.z) < end && sl && sellable && !ropeFirst) {
         return {
           text: "Sell the sled's load at La Pointe's trading post",
           act: () => {
@@ -1830,11 +1834,12 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
           },
         };
       }
-      if (Math.hypot(c.x - road.from.x, c.z - road.from.z) < end) {
+      if (Math.hypot(c.x - road.from.x, c.z - road.from.z) < end && !ropeFirst) {
         return { text: 'Up the ladder into Bayfield', act: () => void upIntoTown() };
       }
       // Off the road's own scene, onto Madeline's at La Pointe (piece Q).
       if (
+        !ropeFirst &&
         !sceneIsland &&
         Math.hypot(c.x - road.to.x, c.z - road.to.z) < end &&
         deps.island?.walkableAt(road.toHead)
@@ -1843,6 +1848,7 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
       }
       // Already on Madeline's scene, down on the ice off the dock: back up its ladder.
       if (
+        !ropeFirst &&
         sceneIsland &&
         Math.min(
           Math.hypot(c.x - road.to.x, c.z - road.to.z),

@@ -4344,6 +4344,11 @@ async function boot(): Promise<void> {
     },
     hold: () => state.player.cargo,
     holdChanged: () => economy.syncLoad(),
+    sellable: (port, lot) =>
+      !lot.hot &&
+      !lot.contract &&
+      economy.defs.goods.get(lot.good)?.legal === 'legal' &&
+      !!economy.defs.markets.get(port)?.goods.has(lot.good),
     sell: (port, load) => {
       const left: CargoStack[] = [];
       let cents = 0;

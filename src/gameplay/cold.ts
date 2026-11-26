@@ -41,6 +41,8 @@ export interface AshoreWinter {
   holdChanged(): void;
   /** Sells a sled's load at a port's market: what's left unsold, and a line saying how it went. */
   sell(port: string, load: CargoStack[]): { left: CargoStack[]; line: string };
+  /** The port's trading post will buy this lot off the sled (clean, legal, traded there). */
+  sellable?(port: string, lot: CargoStack): boolean;
   /** A good's name, for the sled's picker. */
   goodName?(good: string): string;
   /** The sled's picker shown (or closed: undefined), and opened or closed over the game. */
