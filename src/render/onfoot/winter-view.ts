@@ -2,7 +2,8 @@ import * as THREE from 'three';
 
 /**
  * Winter on foot, drawn plainly (Phase 9 piece M): the hand sled and her load, your prints
- * in the snow, the evergreen boughs marking the ice road, and the warming fires at its ends.
+ * in the snow, the evergreen boughs marking the ice road, and the warming fires at its ends
+ * and on the walked islands.
  * The ice sheet and the snow themselves are piece L's.
  */
 export interface WinterFrame {
@@ -15,7 +16,7 @@ export interface WinterFrame {
 
 const MAX_PRINTS = 400;
 const MAX_MARKERS = 64;
-const MAX_FIRES = 4;
+const MAX_FIRES = 8;
 
 export interface WinterView {
   readonly group: THREE.Group;

@@ -137,6 +137,9 @@ import {
  * The world runs on at R = 6 behind you; the schooner rides at her berth or anchor.
  */
 
+/** The islands' hearths are lit below this air temperature, °C. */
+const HEARTH_LIT_C = 2;
+
 export interface AshoreDeps {
   ctx: GameContext;
   /** The player's schooner: her transform, hazards (mooring) and sailing state. */
@@ -1481,13 +1484,19 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
     return [road.from, road.to].map((e) => ({ x: e.x + 3, z: e.z + 3 }));
   };
 
+  /** Every fire to warm yourself at now: the road's, and the islands' hearths in the cold. */
+  const fires = (): { x: number; y: number; z: number }[] => [
+    ...roadFires().map((f) => ({ ...f, y: COLD.ice.topM })),
+    ...(winter && deps.island && winter.air().airC < HEARTH_LIT_C ? deps.island.hearths() : []),
+  ];
+
   /** The warmth meter, a real second at a time: on foot, in the water or at the oars. */
   const warmthTick = (dt: number): void => {
     if (!winter || !scene) return;
     const air = winter.air();
     const c = character;
     const at = toZone(c.position.x, c.position.z);
-    const nearFire = roadFires().some(
+    const nearFire = fires().some(
       (f) => Math.hypot(at.x - f.x, at.z - f.z) < COLD.warmth.heatRadiusM,
     );
     const indoors = underRoof && !inBoat;
@@ -2233,7 +2242,7 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
       },
       prints,
       markers: iced && road ? road.markers.map((m) => ({ ...m, y: COLD.ice.topM })) : [],
-      fires: roadFires().map((f) => ({ ...f, y: COLD.ice.topM })),
+      fires: fires(),
     };
   };
 

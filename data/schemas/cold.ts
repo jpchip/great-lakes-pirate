@@ -118,5 +118,20 @@ export const coldFileSchema = z.object({
     /** Within this of a road's end, you're there, m. */
     endM: pos,
   }),
+  /**
+   * Fires kept burning on the walked islands in winter, to warm yourself at: outside a
+   * prefab's door (`poi`, an islands.json prefab id) or a village's building (`building`, by
+   * its name in the harbor's layout), `outM` out in front of it.
+   */
+  hearths: z
+    .array(
+      z.object({
+        island: z.string(),
+        poi: z.string().optional(),
+        building: z.string().optional(),
+        outM: pos,
+      }),
+    )
+    .default([]),
 });
 export type ColdFile = z.infer<typeof coldFileSchema>;

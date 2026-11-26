@@ -1,3 +1,4 @@
+import { layoutHarbors, type HarborLayout } from '../src/sim/harbors';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import type * as THREE from 'three';
@@ -103,6 +104,7 @@ describe('landing on and walking every island', () => {
   let zone: LoadedZone;
   let placed: PlacedIsland[] = [];
   let stations: PlacedStation[] = [];
+  let harbors: HarborLayout[] = [];
   const grounds = new Map<string, GridField>();
   let ashore: IslandAshore;
   const heightAt = (x: number, z: number): number => zone.terrain.heightAt(x, z);
@@ -118,6 +120,7 @@ describe('landing on and walking every island', () => {
       const g = await loadIslandGround(read, zone.manifest, p.id);
       if (g) grounds.set(p.id, g);
     }
+    harbors = layoutHarbors(frame, zone.terrain);
     stations = placeLights(lightsIn(zone.manifest.zone), frame, zone.terrain).flatMap(
       (l) => placeStation(l, heightAt) ?? [],
     );
@@ -134,9 +137,23 @@ describe('landing on and walking every island', () => {
       stations: () => stations,
       runSeed: () => 7,
       notice: () => undefined,
+      harbors: () => harbors,
     });
     for (const p of placed) landings.set(p.id, findLanding(p, heightAt));
   }, 120_000);
+
+  it.skipIf(!baked)(
+    "lays Madeline's hearths on dry ground in La Pointe, by the trapper's cabin and at the fish camp",
+    () => {
+      // La Pointe's, before the general store, and the trapper's and the fish camp's.
+      const fires = ashore.hearths();
+      expect(fires).toHaveLength(3);
+      for (const f of fires) {
+        expect(heightAt(f.x, f.z)).toBeGreaterThan(0);
+        expect(ashore.walkableAt(f)).toBe(true);
+      }
+    },
+  );
 
   for (const def of APOSTLES) {
     it.skipIf(!baked || !def.onFoot)(`lands on ${def.name} and walks inland`, () => {
