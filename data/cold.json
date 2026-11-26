@@ -29,6 +29,7 @@
     "recoverS": 0.4,
     "heatS": 2.5,
     "heatRadiusM": 4,
+    "stoveRadiusM": 6,
     "dryHeatS": 0.05,
     "dryAirS": 0.004,
     "rainWetS": 0.02,
