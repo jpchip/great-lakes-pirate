@@ -36,7 +36,7 @@ test('makes kits, re-crates stolen goods and runs the still at Stockton', async 
     h.give('good.lumber', 4);
     h.give('good.rope_canvas', 2);
     h.give('good.hardware', 2);
-    h.give('good.grain', 3);
+    h.give('good.grain', 4);
     h.give('good.furs', 2, 'hideout.stockton', true);
   });
   const docked = await page.evaluate(() =>
@@ -83,7 +83,7 @@ test('makes kits, re-crates stolen goods and runs the still at Stockton', async 
   const whiskey = await hook.evaluate(
     (h) => h.hideout().storage.goods.find((s) => s.good === 'good.untaxed_whiskey')?.qty ?? 0,
   );
-  expect(whiskey).toBe(4);
+  expect(whiskey).toBe(12);
   await expect(screen.getByTestId('still-queue')).toContainText('Nothing loaded');
   expect(errors).toEqual([]);
 });

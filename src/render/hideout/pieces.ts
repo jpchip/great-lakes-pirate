@@ -1217,6 +1217,27 @@ function catalog(): PieceDef[] {
   );
   defs.push(
     prop(
+      'build.fire_barrel',
+      'Fire barrel',
+      'utility',
+      ['timber'],
+      (_s, out) => {
+        // An oil drum with its top cut out and draught holes punched round the foot, a
+        // fire of scrap wood burning in it: the ice road's warming fire (Phase 9 piece M).
+        out.body.push(cyl(0.3, 0.82, 10, 0, 0, 0, RUST));
+        for (const y of [0.2, 0.62]) out.body.push(cyl(0.315, 0.04, 10, 0, y, 0, IRON));
+        for (let k = 0; k < 4; k++) {
+          const a = (k * Math.PI) / 2 + Math.PI / 4;
+          out.lit.push(box(0.1, 0.07, 0.03, Math.sin(a) * 0.3, 0.08, Math.cos(a) * 0.3, FIRE));
+        }
+        out.lit.push(cyl(0.26, 0.04, 10, 0, 0.8, 0, FIRE));
+        out.lit.push(frustum(0.03, 0.2, 0.42, 7, 0, 0.82, 0, FIRE));
+      },
+      { lamp: { x: 0, y: 1.1, z: 0, radiusM: 5, color: FIRE } },
+    ),
+  );
+  defs.push(
+    prop(
       'build.lantern',
       'Lantern post',
       'light',

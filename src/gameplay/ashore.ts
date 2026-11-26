@@ -15,6 +15,7 @@ import {
 import {
   coldHealthDrainS,
   freshWarmth,
+  heatedAt,
   stepWarmth,
   warmAboard,
   warmthStage,
@@ -197,6 +198,13 @@ export interface AshoreDeps {
    * 1 m tiles with its quarry, and F searches its cairns and opens the stash's strongbox.
    */
   island?: IslandAshore | undefined;
+  /**
+   * Built stoves and fireplaces at the zone's hideouts, zone meters at their floor: they
+   * warm you in the winter. Without it, a hideout has no heat but its roof.
+   */
+  stoves?(): readonly { x: number; y: number; z: number }[];
+  /** Inside a claimed hideout's build bounds (zone meters): its roof is shelter, not heat. */
+  inHideout?(at: { x: number; z: number }): boolean;
   /**
    * The marshal posse on a walkable island, at Wanted tier 4 and up (piece H): `boat` is
    * where yours lies now (the rowboat, or the ship), scene meters, for them to land by.
@@ -1496,10 +1504,18 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
     const air = winter.air();
     const c = character;
     const at = toZone(c.position.x, c.position.z);
-    const nearFire = fires().some(
-      (f) => Math.hypot(at.x - f.x, at.z - f.z) < COLD.warmth.heatRadiusM,
-    );
     const indoors = underRoof && !inBoat;
+    // A district's buildings are scene-local; hideouts and their stoves are in the zone.
+    const inHideout = !district && !inBoat && !!deps.inHideout?.(at);
+    const heat = heatedAt(
+      { ...at, y: c.position.y },
+      {
+        fires: fires(),
+        stoves: district || inBoat ? [] : (deps.stoves?.() ?? []),
+        indoors,
+        inHideout,
+      },
+    );
     const w = warm();
     const fell = stepWarmth(
       w,
@@ -1509,7 +1525,7 @@ export function attachAshore(deps: AshoreDeps): GameAshore {
         precip01: air.precip01,
         swimming: !inBoat && c.swimming,
         waterC: waterC(),
-        heat: indoors || nearFire,
+        heat,
         indoors,
         running: !inBoat && c.gait === 'run',
       },

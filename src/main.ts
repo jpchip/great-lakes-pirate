@@ -4447,6 +4447,9 @@ async function boot(): Promise<void> {
       };
     },
     island: islandAshore,
+    // A hideout's stove or fireplace warms you; its roof alone is only shelter.
+    stoves: () => hideouts.stoves(),
+    inHideout: (at) => !!hideouts.siteAt(at),
     plants: plantsIn,
     // The marshal posse on a walkable island at Wanted tier 4 and up (plan 08 §20.4 piece H):
     // they land by your boat, sweep out from it and break off at a hideout's bounds (Phase 9

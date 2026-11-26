@@ -294,10 +294,21 @@ describe('re-crating hot goods', () => {
 
 describe('the still (passive production)', () => {
   const WEEK = SECONDS_PER_GAME_DAY;
-  const mash = (): CargoStack[] => [lot('good.grain', 12)];
+  const mash = (): CargoStack[] => [lot('good.grain', 16)];
+  /** Two hidden cellar vaults beside the workshop: 80 CU more, for a full still's run. */
+  const roomy = (h: HideoutState): HideoutState => {
+    const grid = unpackGrid(h.layout);
+    for (const row of [2, 3]) {
+      for (const id of ['build.foundation', 'build.cellar_vault']) {
+        grid.add({ id, col: 18, row, level: 0, rot: 0, variant: 0, paint: 0 }, true);
+      }
+    }
+    h.layout = packGrid(grid);
+    return h;
+  };
 
   it('wants water: a well or a rain barrel', () => {
-    const h = hideout(mash(), { 'item.barrel': 4 });
+    const h = hideout(mash(), { 'item.barrel': 8 });
     const grid = unpackGrid(h.layout);
     grid.remove(grid.all().find((p) => p.piece.id === 'build.well')!.uid);
     h.layout = packGrid(grid);
@@ -305,7 +316,7 @@ describe('the still (passive production)', () => {
   });
 
   it('has whiskey waiting after a voyage, and never more than one batch a week', () => {
-    const h = hideout(mash(), { 'item.barrel': 16 });
+    const h = roomy(hideout(mash(), { 'item.barrel': 32 }));
     const r = craft(h, 'recipe.whiskey', 4, [h.storage.goods], { ...opts, gameSeconds: 1000 });
     expect(r.ok && r.seconds).toBe(0);
     expect(h.storage.goods).toEqual([]);
@@ -318,25 +329,25 @@ describe('the still (passive production)', () => {
     // Away two and a half weeks: two batches have run off.
     const done = settleProduction(h, 1000 + 2.5 * WEEK);
     expect(done.map((d) => d.recipe)).toEqual(['recipe.whiskey', 'recipe.whiskey']);
-    expect(h.storage.goods).toEqual([lot('good.untaxed_whiskey', 8)]);
+    expect(h.storage.goods).toEqual([lot('good.untaxed_whiskey', 24)]);
     expect(settleProduction(h, 1000 + 2.9 * WEEK)).toEqual([]);
     // Away for months: the rest, and no more.
     settleProduction(h, 1000 + 20 * WEEK);
-    expect(h.storage.goods).toEqual([lot('good.untaxed_whiskey', 16)]);
+    expect(h.storage.goods).toEqual([lot('good.untaxed_whiskey', 48)]);
     expect(h.stations!['station.distillery']).toBeUndefined();
   });
 
   it('caps a week whatever the time skip: 52 weeks of loading make 4 batches at most', () => {
-    const h = hideout([lot('good.grain', 30)], { 'item.barrel': 40 });
+    const h = roomy(hideout([lot('good.grain', 30)], { 'item.barrel': 60 }));
     expect(craftRefusal(h, 'recipe.whiskey', 5, [h.storage.goods])).toBe('queueFull');
     craft(h, 'recipe.whiskey', 4, [h.storage.goods], opts);
     expect(craftRefusal(h, 'recipe.whiskey', 1, [h.storage.goods])).toBe('queueFull');
     settleProduction(h, 52 * WEEK);
-    expect(h.storage.goods.find((s) => s.good === 'good.untaxed_whiskey')!.qty).toBe(16);
+    expect(h.storage.goods.find((s) => s.good === 'good.untaxed_whiskey')!.qty).toBe(48);
   });
 
   it('chains a batch loaded later behind the ones in the still', () => {
-    const h = hideout(mash(), { 'item.barrel': 8 });
+    const h = hideout(mash(), { 'item.barrel': 16 });
     craft(h, 'recipe.whiskey', 1, [h.storage.goods], opts);
     craft(h, 'recipe.whiskey', 1, [h.storage.goods], { ...opts, gameSeconds: 0.5 * WEEK });
     expect(h.stations!['station.distillery']!.queue.map((b) => b.readyAt)).toEqual([
@@ -346,13 +357,13 @@ describe('the still (passive production)', () => {
   });
 
   it('waits in the still for room in the storage', () => {
-    const h = hideout([lot('good.grain', 3), lot('good.salt', 37)], { 'item.barrel': 4 });
+    const h = hideout([lot('good.grain', 4), lot('good.salt', 36)], { 'item.barrel': 8 });
     craft(h, 'recipe.whiskey', 1, [h.storage.goods], opts);
-    expect(holdUsed(h.storage.goods)).toBe(37);
+    expect(holdUsed(h.storage.goods)).toBe(36);
     expect(settleProduction(h, 2 * WEEK)).toEqual([]);
-    h.storage.goods[0]!.qty = 30;
+    h.storage.goods[0]!.qty = 28;
     expect(settleProduction(h, 2 * WEEK)).toHaveLength(1);
-    expect(holdUsed(h.storage.goods)).toBe(34);
+    expect(holdUsed(h.storage.goods)).toBe(40);
   });
 });
 
@@ -428,8 +439,8 @@ describe('saves', () => {
     const state = createWorldState('craft');
     const h = state.hideouts!['hideout.stockton']!;
     h.layout = withWorkshop(h.layout);
-    h.storage.goods.push(lot('good.grain', 3));
-    h.storage.things = { 'item.barrel': 4, 'store.crowbar': 2 };
+    h.storage.goods.push(lot('good.grain', 4));
+    h.storage.things = { 'item.barrel': 8, 'store.crowbar': 2 };
     expect(craft(h, 'recipe.whiskey', 1, [h.storage.goods], opts).ok).toBe(true);
     const back = parseWorldState(JSON.parse(JSON.stringify(state)));
     expect(back.hideouts).toEqual(state.hideouts);

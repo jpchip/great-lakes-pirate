@@ -89,6 +89,11 @@ export interface Hideouts {
    */
   runningStills(): { x: number; y: number; z: number }[];
   /**
+   * Built stoves and fireplaces (pieces with `warmth`), zone meters at the floor they
+   * stand on: the hideout's heat in winter. Cached per change, cheap each frame.
+   */
+  stoves(): { x: number; y: number; z: number; hideout: string }[];
+  /**
    * Every piece of every site, placed for the renderer. `cut` hides one site's levels above
    * the one edited, but for its roofs and gables when `roofs` (a roof's being placed).
    */
@@ -304,6 +309,24 @@ export function attachHideouts(deps: HideoutsDeps): Hideouts {
     return at;
   };
 
+  let stoveCache:
+    { key: string; at: { x: number; y: number; z: number; hideout: string }[] } | undefined;
+  /** Built pieces that keep the place warm (the stove, the fireplace), at their floor. */
+  const stovePlaces = (): { x: number; y: number; z: number; hideout: string }[] => {
+    const key = `${version}:${deps.zone()?.id ?? ''}:${Object.keys(state.hideouts ?? {}).length}`;
+    if (stoveCache?.key === key) return stoveCache.at;
+    const at: { x: number; y: number; z: number; hideout: string }[] = [];
+    for (const s of sites()) {
+      for (const r of placedRender(s.grid, s.build)) {
+        if (!r.built || !structure(r.id).functions.warmth) continue;
+        const p = siteToZone(s.frame, r.x, r.z);
+        at.push({ ...p, y: s.frame.baseM + r.y, hideout: s.hideoutId });
+      }
+    }
+    stoveCache = { key, at };
+    return at;
+  };
+
   /** An owned site's lease, offered on its ground while it isn't yours by one (piece W). */
   const leasePrompt = (at: { x: number; z: number }): HideoutPrompt | undefined => {
     const s = [...sites(), ...openSites()].find(
@@ -340,6 +363,7 @@ export function attachHideouts(deps: HideoutsDeps): Hideouts {
     get version() {
       return version;
     },
+    stoves: stovePlaces,
     runningStills() {
       const places = stillPlaces();
       if (places.length === 0) return [];

@@ -60,6 +60,8 @@ export const coldFileSchema = z.object({
     heatS: pos,
     /** A fire warms you this close, m. */
     heatRadiusM: pos,
+    /** A hideout's stove or fireplace warms you this close, on its own floor, m. */
+    stoveRadiusM: pos,
     /** Wet dried a second by a fire, and in air above freezing. */
     dryHeatS: pos,
     dryAirS: pos,

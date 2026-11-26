@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { STRUCTURES, structure } from '../src/sim/hideouts/structures';
 import {
   COLD,
   freshClimbOut,
@@ -13,6 +14,7 @@ import {
 import {
   feelsLikeC,
   freshWarmth,
+  heatedAt,
   stepWarmth,
   warmAboard,
   warmthStage,
@@ -213,6 +215,44 @@ describe('warmth', () => {
     expect(a.value).toBeGreaterThan(60);
     expect(a.wet).toBe(0);
     expect(warmthStage(100)).toBe('warm');
+  });
+});
+
+describe('heat at a hideout', () => {
+  const none = { fires: [], stoves: [], indoors: false, inHideout: false };
+  const at = { x: 0, y: 2, z: 0 };
+
+  it("keeps a district or a keeper's house warm under its roof", () => {
+    expect(heatedAt(at, { ...none, indoors: true })).toBe(true);
+  });
+
+  it("gives a hideout's roof no heat of its own", () => {
+    expect(heatedAt(at, { ...none, indoors: true, inHideout: true })).toBe(false);
+  });
+
+  it('warms you near a built stove on its own floor', () => {
+    const r = COLD.warmth.stoveRadiusM;
+    const stove = { x: r - 0.5, y: 2, z: 0 };
+    expect(heatedAt(at, { ...none, inHideout: true, indoors: true, stoves: [stove] })).toBe(true);
+    // Outdoors by it too.
+    expect(heatedAt(at, { ...none, stoves: [stove] })).toBe(true);
+    expect(heatedAt(at, { ...none, stoves: [{ x: r + 0.5, y: 2, z: 0 }] })).toBe(false);
+  });
+
+  it('does not warm the floor above or below', () => {
+    expect(heatedAt(at, { ...none, stoves: [{ x: 1, y: 5, z: 0 }] })).toBe(false);
+    expect(heatedAt(at, { ...none, stoves: [{ x: 1, y: -1, z: 0 }] })).toBe(false);
+  });
+
+  it('counts the stove, the fireplace and the fire barrel as heat', () => {
+    const warm = STRUCTURES.filter((d) => d.functions.warmth).map((d) => d.id);
+    expect(warm.sort()).toEqual(['build.fire_barrel', 'build.fireplace', 'build.stove']);
+    expect(structure('build.fire_barrel').groundOk).toBe(true);
+  });
+
+  it('still warms you at an open fire', () => {
+    expect(heatedAt(at, { ...none, fires: [{ x: 3, z: 0 }] })).toBe(true);
+    expect(heatedAt(at, { ...none, fires: [{ x: 5, z: 0 }] })).toBe(false);
   });
 });
 

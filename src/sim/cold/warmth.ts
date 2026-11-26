@@ -103,6 +103,42 @@ export function stepWarmth(w: Warmth, input: WarmthInput, dt: number): WarmthSta
   return rank(after) > rank(before) ? after : undefined;
 }
 
+/** A point in zone meters, its height too. */
+export interface HeatPoint {
+  x: number;
+  y: number;
+  z: number;
+}
+
+/** How far up or down a hideout's stove reaches: its own floor, not the one above or below. */
+export const STOVE_REACH_Y_M = 2;
+
+/**
+ * Whether you're warmed where you stand (plan 09 §3: a hideout's stove keeps it warm). A
+ * fire (the ice road's, an island's hearth) warms you within `heatRadiusM`; a built stove
+ * or fireplace within `stoveRadiusM` on its own floor. Under a roof, a district's or a
+ * keeper's house is kept warm for you, but a hideout's roof is only shelter: its warmth is
+ * the stove you built.
+ */
+export function heatedAt(
+  at: HeatPoint,
+  o: {
+    fires: readonly { x: number; z: number }[];
+    stoves: readonly HeatPoint[];
+    indoors: boolean;
+    inHideout: boolean;
+  },
+): boolean {
+  const c = COLD.warmth;
+  if (o.indoors && !o.inHideout) return true;
+  if (o.fires.some((f) => Math.hypot(at.x - f.x, at.z - f.z) < c.heatRadiusM)) return true;
+  return o.stoves.some(
+    (s) =>
+      Math.abs(at.y - s.y) <= STOVE_REACH_Y_M &&
+      Math.hypot(at.x - s.x, at.z - s.z) < c.stoveRadiusM,
+  );
+}
+
 /** Health lost a real second with no warmth left. */
 export function coldHealthDrainS(w: Warmth): number {
   return w.value <= 0 ? COLD.warmth.drainHealthS : 0;

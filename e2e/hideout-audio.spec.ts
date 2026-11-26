@@ -104,7 +104,7 @@ test('the workshop: the bench, the cooperage, the still and its bell', async ({ 
     h.give('good.lumber', 4);
     h.give('good.rope_canvas', 2);
     h.give('good.hardware', 2);
-    h.give('good.grain', 3);
+    h.give('good.grain', 4);
   });
   expect(
     await page.evaluate(() => (window as unknown as W).__glpPort.dock('stockton_landing')),
