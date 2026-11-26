@@ -260,7 +260,11 @@ export function attachPorts(opts: PortControlOptions): PortControl {
       defs: economy.defs,
       markets: ctx.state.markets,
       knowledge: ctx.state.knowledge.prices,
-      trader: away ? carried(player, sled ?? { cargo: [], capacity: 0 }) : player,
+      trader: away
+        ? Object.assign(carried(player, sled ?? { cargo: [], capacity: 0 }), {
+            stores: player.stores,
+          })
+        : player,
       fameTier: fameTier(gameLaw(), ctx.state.fame.value),
       capacity: away ? (sled?.capacity ?? 0) : economy.capacity,
       load01: hazards.state.cargo01,
