@@ -165,7 +165,11 @@ const hot = (good: string, qty: number): CargoStack => ({
 });
 
 /** The port screen with the back room, walked into (`walkIn`) or on its 0.6.0 tab. */
-function game(atSeconds: number, walkIn: boolean) {
+function game(
+  atSeconds: number,
+  walkIn: boolean,
+  winter?: Parameters<typeof attachPorts>[0]['winter'],
+) {
   const state = createWorldState('shops', atSeconds);
   const ctx = {
     state,
@@ -206,6 +210,7 @@ function game(atSeconds: number, walkIn: boolean) {
     showJournal: () => undefined,
     onOpen: (open) => (opens += open ? 1 : -1),
     castOff: () => castOffs++,
+    winter,
   });
   return {
     state,
@@ -280,6 +285,37 @@ describe('the back room walked into (§20.3 #8)', () => {
     expect(tabs).not.toContain('freight');
     expect(g.last()?.canWait).toBeUndefined();
     expect(g.last()?.canGoAshore).toBeUndefined();
+  });
+
+  it("trades off the hand sled at La Pointe when she's not there, and not without it", () => {
+    const sled: CargoStack[] = [];
+    let near = true;
+    const g = game(NOON, false, {
+      frozenUntil: () => undefined,
+      layUp: () => undefined,
+      sledAt: (port) =>
+        port === 'port.la_pointe'
+          ? { carrier: near ? { cargo: sled, capacity: 3 } : undefined }
+          : undefined,
+    });
+    g.state.player.purse = 100_000;
+    const hold = structuredClone(g.state.player.cargo);
+    expect(g.ports.openShop('port.la_pointe', 'market', 'La Pointe', ['harbor'])).toBeUndefined();
+    expect(g.last()?.notices[0]).toMatch(/hand sled/);
+    expect(g.ports.actions.buy('good.furs', 2)).toBeUndefined();
+    expect(sled).toEqual([expect.objectContaining({ good: 'good.furs', qty: 2 })]);
+    expect(g.state.player.cargo).toEqual(hold);
+    expect(g.ports.actions.buy('good.furs', 2)).toBe('There is no room on the sled.');
+    expect(g.ports.actions.sell('good.furs', 1)).toBeUndefined();
+    expect(sled[0]?.qty).toBe(1);
+    // The sled left back across the ice: nothing to carry it in.
+    near = false;
+    expect(g.ports.actions.buy('good.furs', 1)).toMatch(/bring the hand sled/);
+    g.ports.close();
+    // At a port that isn't on the road, the hold as ever.
+    expect(g.ports.openShop('port.bayfield', 'market', 'The store')).toBeUndefined();
+    expect(g.ports.actions.buy('good.flour', 1)).toBeUndefined();
+    expect(g.state.player.cargo).not.toEqual(hold);
   });
 
   it('finds nobody at the table by day', () => {

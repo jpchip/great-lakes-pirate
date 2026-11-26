@@ -299,6 +299,8 @@ const AUTOSAVE_INTERVAL_MS = 2 * 60_000;
 
 /** The fog fade's length (ui/theme.css `.loading`), so a zone swaps out of sight. */
 const FADE_MS = 650;
+/** How far past the ice road's end the hand sled may lie and still carry what you buy, m. */
+const SLED_AT_END_M = 30;
 
 /** HUD numbers update at most this often (plan 13 §10). */
 const HUD_INTERVAL_S = 0.1;
@@ -2014,6 +2016,19 @@ async function boot(): Promise<void> {
           ? economy.defs.markets.get(port)?.def.iceBound?.word
           : undefined;
         return [road, bound].filter(Boolean).join(' ') || undefined;
+      },
+      // Over the ice to a road port she isn't at: trade off the hand sled at the road's end.
+      sledAt: (port) => {
+        const { fromPort, toPort, endM } = COLD.road;
+        if (port !== fromPort && port !== toPort) return undefined;
+        const road = ashoreWinter.road();
+        const sled = state.player.sled;
+        const end = road && (port === fromPort ? road.from : road.to);
+        const near =
+          !!sled && !!end && Math.hypot(sled.x - end.x, sled.z - end.z) < endM + SLED_AT_END_M;
+        return {
+          carrier: near && sled ? { cargo: sled.load, capacity: COLD.sled.capacityCu } : undefined,
+        };
       },
     },
     feuds,
