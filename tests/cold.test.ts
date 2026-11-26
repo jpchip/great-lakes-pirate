@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { STRUCTURES, structure } from '../src/sim/hideouts/structures';
 import {
   COLD,
   freshClimbOut,
@@ -241,6 +242,12 @@ describe('heat at a hideout', () => {
   it('does not warm the floor above or below', () => {
     expect(heatedAt(at, { ...none, stoves: [{ x: 1, y: 5, z: 0 }] })).toBe(false);
     expect(heatedAt(at, { ...none, stoves: [{ x: 1, y: -1, z: 0 }] })).toBe(false);
+  });
+
+  it('counts the stove, the fireplace and the fire barrel as heat', () => {
+    const warm = STRUCTURES.filter((d) => d.functions.warmth).map((d) => d.id);
+    expect(warm.sort()).toEqual(['build.fire_barrel', 'build.fireplace', 'build.stove']);
+    expect(structure('build.fire_barrel').groundOk).toBe(true);
   });
 
   it('still warms you at an open fire', () => {

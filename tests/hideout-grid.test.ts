@@ -189,6 +189,7 @@ describe('validity (plan 09 §4.3)', () => {
     expect(refusal(g, flat, P('palisade', 0, 0))).toBeUndefined();
     expect(refusal(g, flat, P('well', 0, 0))).toBeUndefined();
     expect(refusal(g, flat, P('lantern', 4, 4))).toBeUndefined();
+    expect(refusal(g, flat, P('fire_barrel', 6, 6))).toBeUndefined();
     expect(refusal(g, flat, P('table', 4, 4))).toBe('noFloor');
   });
 

@@ -1271,6 +1271,20 @@
     }
   },
   {
+    "id": "build.fire_barrel",
+    "name": "Fire barrel",
+    "category": "living",
+    "placement": "prop",
+    "stand": "onFloor",
+    "sizeM": [0.7, 0.7],
+    "heightM": 0.9,
+    "collider": "solid",
+    "variants": [{ "material": "iron", "cost": { "good.hardware": 1, "good.lumber": 1 } }],
+    "buildHours": 0.25,
+    "groundOk": true,
+    "functions": { "warmth": true, "smoke": true, "light": true, "concealment": -0.03 }
+  },
+  {
     "id": "build.lantern",
     "name": "Lantern",
     "category": "light",
